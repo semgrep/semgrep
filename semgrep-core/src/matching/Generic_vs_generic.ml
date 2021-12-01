@@ -169,31 +169,26 @@ let cache_access : tin Caching.Cache.access =
     set_mv_field = (fun tin mv -> { tin with mv });
   }
 
-let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
-  if not !Flag.use_bloom_filter then F.Maybe
+let stmts_may_match pattern_stmts (stmts : G.stmt list) =
+  if not !Flag.use_bloom_filter then true
   else
-    let pattern_list =
-      Bloom_annotation.list_of_pattern_strings (Ss pattern_stmts)
+    let pattern_strs =
+      Bloom_annotation.set_of_pattern_strings (Ss pattern_stmts)
     in
-    let pat_in_stmt pat (stmt : AST_generic.stmt) =
+    let pats_in_stmt pats (stmt : AST_generic.stmt) =
       match stmt.s_bf with
-      | None -> F.Maybe
-      | Some bf -> F.mem pat bf
+      | None -> true
+      | Some bf -> Set_.subset pats (F.set_of_filter bf)
     in
-    let rec pattern_in_any_stmt pat stmts acc =
+    let rec patterns_in_any_stmt pats stmts acc =
       match stmts with
       | [] -> acc
       | stmt :: rest -> (
           match acc with
-          | F.No -> pattern_in_any_stmt pat rest (pat_in_stmt pat stmt)
-          | F.Maybe -> acc)
+          | false -> patterns_in_any_stmt pats rest (pats_in_stmt pats stmt)
+          | true -> acc)
     in
-    let patterns_all_in_stmts acc x =
-      match acc with
-      | F.No -> Bloom_filter.No
-      | Maybe -> pattern_in_any_stmt x stmts F.No
-    in
-    List.fold_left patterns_all_in_stmts F.Maybe pattern_list
+    patterns_in_any_stmt pattern_strs stmts true
   [@@profiling]
 
 (*****************************************************************************)
@@ -1752,11 +1747,13 @@ and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-          | None -> fail () (* was already flat *)
-          | Some (xsb, last_stmt) ->
-              m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
-                xsb)
+          (if not (stmts_may_match xsa xsb) then fail ()
+          else
+            match SubAST_generic.flatten_substmts_of_stmts xsb with
+            | None -> fail () (* was already flat *)
+            | Some (xsb, last_stmt) ->
+                m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id)
+                  xsa xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
@@ -1790,61 +1787,55 @@ and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
  *)
 and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
     (xsb : G.stmt list) =
-  (* TODO: getting this list every time is redundant *)
-  match stmts_may_match xsa xsb with
-  | No -> fail ()
-  | Maybe -> (
-      logger#ldebug
-        (lazy
-          (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
-             (List.length xsb)));
-      match (xsa, xsb) with
-      | [], [] -> return ()
-      (* less-is-ok:
-       * it's ok to have statements after in the concrete code as long as we
-       * matched all the statements in the pattern (there is an implicit
-       * '...' at the end, in addition to implicit '...' at the beginning
-       * handled by kstmts calling the pattern for each subsequences).
-       * TODO: sgrep_generic though then display the whole sequence as a match
-       * instead of just the relevant part.
-       *)
-      | [], _ :: _ -> if less_is_ok then return () else fail ()
-      (* dots: '...', can also match no statement *)
-      | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], [] -> return ()
-      | ( { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: xsa_tail,
-          (xb :: xsb_tail as xsb) ) ->
-          (* can match nothing *)
-          m_list__m_stmt ~list_kind xsa_tail xsb
-          >||> (* can match more *)
-          ( env_add_matched_stmt xb >>= fun () ->
-            m_list__m_stmt ~list_kind xsa xsb_tail )
-      (* dots: metavars: $...BODY *)
-      | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ }
-          :: xsa,
-          xsb )
-        when MV.is_metavar_ellipsis s ->
-          (* can match 0 or more arguments *)
-          let candidates = inits_and_rest_of_list_empty_ok xsb in
-          let rec aux xs =
-            match xs with
-            | [] -> fail ()
-            | (inits, rest) :: xs ->
-                envf (s, tok) (MV.Ss inits)
-                >>= (fun () ->
-                      (* less: env_add_matched_stmt ?? *)
-                      (* when we use { $...BODY }, we don't have an implicit
-                       * ... after, so we use less_is_ok:false here
-                       *)
-                      m_list__m_stmt ~less_is_ok:false ~list_kind xsa rest)
-                >||> aux xs
-          in
-          aux candidates
-      (* the general case *)
-      | xa :: aas, xb :: bbs ->
-          m_stmt xa xb >>= fun () ->
-          env_add_matched_stmt xb >>= fun () ->
-          m_list__m_stmt ~list_kind aas bbs
-      | _ :: _, _ -> fail ())
+  logger#ldebug
+    (lazy
+      (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
+         (List.length xsb)));
+  match (xsa, xsb) with
+  | [], [] -> return ()
+  (* less-is-ok:
+   * it's ok to have statements after in the concrete code as long as we
+   * matched all the statements in the pattern (there is an implicit
+   * '...' at the end, in addition to implicit '...' at the beginning
+   * handled by kstmts calling the pattern for each subsequences).
+   * TODO: sgrep_generic though then display the whole sequence as a match
+   * instead of just the relevant part.
+   *)
+  | [], _ :: _ -> if less_is_ok then return () else fail ()
+  (* dots: '...', can also match no statement *)
+  | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], [] -> return ()
+  | ( { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: xsa_tail,
+      (xb :: xsb_tail as xsb) ) ->
+      (* can match nothing *)
+      m_list__m_stmt ~list_kind xsa_tail xsb
+      >||> (* can match more *)
+      ( env_add_matched_stmt xb >>= fun () ->
+        m_list__m_stmt ~list_kind xsa xsb_tail )
+  (* dots: metavars: $...BODY *)
+  | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
+      xsb )
+    when MV.is_metavar_ellipsis s ->
+      (* can match 0 or more arguments *)
+      let candidates = inits_and_rest_of_list_empty_ok xsb in
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (inits, rest) :: xs ->
+            envf (s, tok) (MV.Ss inits)
+            >>= (fun () ->
+                  (* less: env_add_matched_stmt ?? *)
+                  (* when we use { $...BODY }, we don't have an implicit
+                   * ... after, so we use less_is_ok:false here
+                   *)
+                  m_list__m_stmt ~less_is_ok:false ~list_kind xsa rest)
+            >||> aux xs
+      in
+      aux candidates
+  (* the general case *)
+  | xa :: aas, xb :: bbs ->
+      m_stmt xa xb >>= fun () ->
+      env_add_matched_stmt xb >>= fun () -> m_list__m_stmt ~list_kind aas bbs
+  | _ :: _, _ -> fail ()
 
 (*****************************************************************************)
 (* Statement *)
