@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Improved filtering of rules based on file content
+- Semgrep CLI now respects .semgrepignore files
 
 ### Fixed
 - Java: class patterns not using generics will match classes using generics
