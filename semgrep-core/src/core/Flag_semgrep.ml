@@ -28,8 +28,6 @@ let filter_irrelevant_rules = ref false
 (* check for identifiers before attempting to match a stmt or stmt list *)
 let use_bloom_filter = ref true
 
-let set_instead_of_bloom_filter = ref false
-
 (* opt = optimization *)
 let with_opt_cache = ref true
 

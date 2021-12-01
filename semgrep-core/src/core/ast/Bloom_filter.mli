@@ -9,19 +9,16 @@ type elt = string
 (* from deriving eq *)
 val pp : Format.formatter -> t -> unit
 
-val create : bool -> t
+val create : t
 
 val is_empty : t -> bool
 
-(* imperative interface *)
-val add : elt -> t -> unit
+val add : elt -> t -> t
 
-(* bloom filter boolean for membership test *)
-type bbool = No | Maybe
+val mem : elt -> t -> bool
 
-val mem : elt -> t -> bbool
+val set_of_filter : t -> elt Set_.t
 
-(* for all elements in bf1, are they (Maybe) present in bf2 *)
-val is_subset : elt list -> t -> bbool
+val is_subset : elt Set_.t -> t -> bool
 
-val make_bloom_from_set : bool -> elt Set_.t -> t
+val make_bloom_from_set : elt Set_.t -> t
