@@ -1,5 +1,4 @@
 import json
-import os
 import time
 from io import StringIO
 from pathlib import Path
@@ -61,6 +60,23 @@ def notify_user_of_work(
     logger.verbose("rules:")
     for rule in filtered_rules:
         logger.verbose(f"- {rule.id}")
+
+
+def get_file_ignore() -> Optional[FileIgnore]:
+    workdir = Path.cwd()
+    semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
+    if semgrepignore_path.is_file():
+        logger.info("using path ignore rules from .semgrepignore")
+        with open(semgrepignore_path) as f:
+            file_ignore: Optional[FileIgnore] = FileIgnore(
+                base_path=workdir,
+                patterns=Parser(workdir).parse(f),
+            )
+    else:
+        logger.info("no .semgrepignore found")
+        file_ignore = None
+
+    return file_ignore
 
 
 def invoke_semgrep(
@@ -181,18 +197,6 @@ def main(
 
     respect_git_ignore = not no_git_ignore
 
-    workdir = Path.cwd()
-    ignore_rules_file = f"{workdir}/{IGNORE_FILE_NAME}"
-    if os.path.exists(ignore_rules_file):
-        with open(ignore_rules_file) as f:
-            ignore_patterns = Parser(workdir).parse(f)
-            file_ignore: Optional[FileIgnore] = FileIgnore(
-                base_path=workdir,
-                patterns=ignore_patterns,
-            )
-    else:
-        file_ignore = None
-
     target_manager = TargetManager(
         includes=include,
         excludes=exclude,
@@ -201,7 +205,7 @@ def main(
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
         skip_unknown_extensions=skip_unknown_extensions,
-        file_ignore=file_ignore,
+        file_ignore=get_file_ignore(),
     )
 
     join_rules, rest_of_the_rules = partition(
