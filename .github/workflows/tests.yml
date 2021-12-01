@@ -215,6 +215,8 @@ jobs:
           pipenv install --dev
       - name: Test dummy benchmarks on latest
         run: |
+          pwd
+          ls
           cd semgrep
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
