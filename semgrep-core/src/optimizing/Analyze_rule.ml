@@ -63,7 +63,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 
-(* Conjonctive normal form (CNF).
+(* Conjunctive normal form (CNF).
  *
  * Why a CNF instead of a DNF (Disjunctive normal form)?
  * Because in the context of producing a regexp, regexps are good at
@@ -88,6 +88,8 @@ exception GeneralPattern
 exception EmptyAnd
 
 exception EmptyOr
+
+exception CNF_exploded
 
 (*****************************************************************************)
 (* Utils *)
@@ -198,30 +200,32 @@ let rec (cnf : Rule.formula -> cnf_step0) =
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
   | R.Or (_, xs) ->
+      let is_dangerously_large l = List.compare_length_with l 1_000_000 = 1 in
       let ys = Common.map cnf xs in
-      let rec aux ys =
-        match ys with
-        | [] -> And []
-        | [ x ] -> x
-        | [ And ps; And qs ] ->
-            And
-              (ps
-              |> Common.map (fun pi ->
-                     let ands =
-                       qs
-                       |> Common.map (fun qi ->
-                              let (Or pi_ors) = pi in
-                              let (Or qi_ors) = qi in
-                              let ors = pi_ors @ qi_ors in
-                              Or ors)
-                     in
-                     ands)
-              |> List.flatten)
-        | x :: xs ->
-            let y = aux xs in
-            aux [ x; y ]
-      in
-      aux ys
+      List.fold_left
+        (fun (And ps) (And qs) ->
+          (* Abort before this starts consuming insane amounts of memory. *)
+          if is_dangerously_large ps || is_dangerously_large qs then
+            raise CNF_exploded;
+          (* Distributive law *)
+          And
+            (ps
+            |> List.concat_map (fun pi ->
+                   let ands =
+                     qs
+                     |> Common.map (fun qi ->
+                            let (Or pi_ors) = pi in
+                            let (Or qi_ors) = qi in
+                            (* `ps` is the accumulator so we expect it to be larger *)
+                            let ors = List.rev_append qi_ors pi_ors in
+                            Or ors)
+                   in
+                   ands)))
+        (* If `ys = []`, we have `Or []` which is the same as `false`. Note that
+         * the CNF is then `And [Or []]` rather than `And []` (the latter being
+         * the same `true`). *)
+        (And [ Or [] ])
+        ys
 
 (*****************************************************************************)
 (* Step1: just collect strings, mvars, regexps *)
@@ -529,6 +533,9 @@ let regexp_prefilter_of_rule r =
         | R.Taint spec -> regexp_prefilter_of_taint_rule t spec
       with
       (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
+      | CNF_exploded ->
+          logger#error "CNF size exploded on rule id %s" id;
+          None
       | Stack_overflow ->
-        logger#error "Stack overflow on rule id %s" id;
-        None)
+          logger#error "Stack overflow on rule id %s" id;
+          None)
