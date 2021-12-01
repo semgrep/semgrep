@@ -24,6 +24,7 @@
    tree-sitter-lang.bash
    tree-sitter-lang.php
    tree-sitter-lang.hcl
+   tree-sitter-lang.solidity
 
    commons
    pfff-lang_GENERIC
