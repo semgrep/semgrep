@@ -22,13 +22,7 @@ IGNORE_FILE_NAME = ".semgrepignore"
 
 logger = getLogger(__name__)
 
-
-@attr.s
-class Entry:
-    path = attr.ib(type=Path)
-    survives = attr.ib(type=bool)
-
-
+# This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
 @attr.s
 class FileIgnore:
     base_path = attr.ib(type=Path)
@@ -76,6 +70,7 @@ class FileIgnore:
         )
 
 
+# This class is an exact duplicate of the Parser class in semgrep-action
 @attr.s(auto_attribs=True)
 class Parser:
     """
@@ -167,6 +162,7 @@ class Parser:
         }
 
 
+# This class is an exact duplicate of the Processor class in semgrep-action
 @attr.s(auto_attribs=True)
 class Processor:
     """
