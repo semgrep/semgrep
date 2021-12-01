@@ -660,6 +660,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
       let _equal = token env v2 (* "=" *) in
       let default = map_type_ env v3 in
       match type_param with
+      | TParamEllipsis _ -> raise Impossible
       | TP x -> TP { x with G.tp_default = Some default }
       | OtherTypeParam (x, anys) -> OtherTypeParam (x, G.T default :: anys))
   | `Const_param (v1, v2, v3, v4) ->

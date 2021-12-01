@@ -1033,6 +1033,9 @@ and vof_macro_definition
   OCaml.VDict bnds
 
 and vof_type_parameter = function
+  | TParamEllipsis v1 ->
+      let v1 = vof_tok v1 in
+      OCaml.VSum ("TParamEllipsis", [ v1 ])
   | TP v1 ->
       let v1 = vof_type_parameter_classic v1 in
       OCaml.VSum ("TP", [ v1 ])

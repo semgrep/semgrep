@@ -82,23 +82,23 @@ let test = ref false
 
 let debug = ref false
 
+(* related:
+ * - Flag_semgrep.debug_matching
+ * - Flag_semgrep.fail_fast
+ * - Trace_matching.on
+ *)
+
+(* try to continue processing files, even if one has a parse error with -e/f *)
+let error_recovery = ref false
+
 let profile = ref false
 
 (* report matching times per file *)
 let report_time = ref false
 
-(* try to continue processing files, even if one has a parse error with -e/f *)
-let error_recovery = ref false
-
-(* related: Flag_semgrep.debug_matching *)
-let fail_fast = ref false
-
 (* used for -json -profile *)
 let profile_start = ref 0.
 
-(* there are a few other debugging flags in Flag_semgrep.ml
- * (e.g., debug_matching)
- *)
 (* ------------------------------------------------------------------------- *)
 (* main flags *)
 (* ------------------------------------------------------------------------- *)
@@ -306,7 +306,6 @@ let mk_config () =
     profile = !profile;
     report_time = !report_time;
     error_recovery = !error_recovery;
-    fail_fast = !fail_fast;
     profile_start = !profile_start;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
@@ -430,7 +429,6 @@ let all_actions () =
     ( "-test_comby",
       " <pattern> <file>",
       Common.mk_action_2_arg Test_comby.test_comby );
-    ("-eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.eval_json_file);
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ()
@@ -502,7 +500,7 @@ let options () =
           Flag_parsing.error_recovery := true),
       " do not stop at first parsing error with -e/-f" );
     ( "-fail_fast",
-      Arg.Set fail_fast,
+      Arg.Set Flag.fail_fast,
       " stop at first exception (and get a backtrace)" );
     ( "-use_parsing_cache",
       Arg.Set_string use_parsing_cache,
