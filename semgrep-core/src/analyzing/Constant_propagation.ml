@@ -316,7 +316,7 @@ and eval_concat_string env args : literal option =
 (*****************************************************************************)
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
-  logger#info "Constant_propagation.propagate_basic progran";
+  logger#trace "Constant_propagation.propagate_basic program";
   let env = default_env () in
 
   (* step1: first pass const analysis for languages without 'const/final' *)
@@ -415,7 +415,7 @@ let propagate_basic a b =
   Common.profile_code "Constant_propagation.xxx" (fun () -> propagate_basic a b)
 
 let propagate_dataflow lang ast =
-  logger#info "Constant_propagation.propagate_dataflow progran";
+  logger#trace "Constant_propagation.propagate_dataflow program";
   let v =
     V.mk_visitor
       {
