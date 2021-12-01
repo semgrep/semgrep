@@ -65,7 +65,6 @@ class FileIgnore:
                 and p.startswith(str(self.base_path))
                 and fnmatch.fnmatch(str(path), p + "*")
             ):
-                print(p)
                 return False
 
         return True
