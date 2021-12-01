@@ -1,0 +1,15 @@
+rules:
+  - id: domdocument-load
+    severity: INFO
+    message: DOMDocument::load
+    languages:
+      - php
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern: new DOMDocument(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: $DOMDOCUMENT->load($FILENAME, ...)
+          - pattern: $DOMDOCUMENT
+

@@ -1,5 +1,10 @@
 (* debugging flags *)
 
+(* To not capture exn and instead let them bubble up to get a precise
+ * backtrace when there is an error. This is useful for debugging.
+ *)
+let fail_fast = ref false
+
 (* note that this will stop at the first fail(), but if you restrict
  * enough your pattern, this can help you debug your problem.*)
 let debug_matching = ref false

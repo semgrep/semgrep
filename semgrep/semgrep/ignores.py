@@ -17,36 +17,34 @@ from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.error import Level
 from semgrep.error import SemgrepError
-from semgrep.output import logger
-from semgrep.output import OutputHandler
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def process_ignores(
     rule_matches_by_rule: RuleMatchMap,
-    output_handler: OutputHandler,
+    keep_ignored: bool,
     *,
     strict: bool,
-    disable_nosem: bool,
 ) -> Tuple[RuleMatchMap, Sequence[SemgrepError], int]:
     """
     Converts a mapping of findings to a mapping of findings that
     will be shown to the caller.
 
     :param rule_matches_by_rule: The input findings (typically from a Semgrep call)
-    :param output_handler: The output handler that will be used to print output;
-                           this is used to determine if ignored findings should be
-                           kept in the output
+    :param keep_ignored: if true will keep nosem findings in returned object, otherwise removes them
     :param strict: The value of the --strict flag (affects error return)
-    :param disable_nosem: The value of the --disable-nosem flag
     :return:
     - RuleMatchMap: dict from rule to list of findings. Findings have is_ignored
         set to true if there was matching nosem comment found for it.
-        Contains only findings without nosem if disable_nosem set to False
+        If keep_ignored set to true, will keep all findings that have is_ignored: True
+        otherwise removes them in the return object
     - list of semgrep errors when dealing with nosem:
         i.e. a nosem without associated finding or nosem id not matching finding
-    - number of findings filtered out with nosem
+    - number of findings with is_ignored set to true
     """
     filtered = {}
     nosem_errors: List[SemgrepError] = []
@@ -58,7 +56,7 @@ def process_ignores(
             nosem_errors.extend(returned_errors)
         filtered[rule] = evolved_matches
 
-    if not disable_nosem and not output_handler.formatter.keep_ignores():
+    if not keep_ignored:
         filtered = {
             rule: [m for m in matches if not m._is_ignored]
             for rule, matches in filtered.items()

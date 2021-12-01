@@ -6,15 +6,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Improved filtering of rules based on file content
+- Java: support ellipsis in generics, e.g., `class Foo<...>` (#4335)
 
 ### Fixed
 - Java: class patterns not using generics will match classes using generics
   (#4335), e.g., `class $X { ...}` will now match `class Foo<T> { }`
 - TS: parse correctly type definitions (#4330)
+- taint-mode: Findings are now reported when the LHS of an access operator is
+  a sink (e.g. as in `$SINK->method`), and the LHS operand is a tainted
+  variable (#4320)
+- metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
 - Optimization: change bloom filters to use sets, move location of filter
+- Reduced the size of `--debug` dumps
 
 ## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
 

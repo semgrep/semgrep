@@ -148,6 +148,7 @@ and type_argument = function
 and ref_type v = typ v
 
 let type_parameter = function
+  | TParamEllipsis v1 -> G.TParamEllipsis v1
   | TParam (v1, v2) ->
       let v1 = ident v1 and v2 = list ref_type v2 in
       G.tparam_of_id v1 ~tp_bounds:v2

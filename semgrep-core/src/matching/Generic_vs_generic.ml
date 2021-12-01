@@ -1099,7 +1099,7 @@ and m_container_ordered_elements a b =
     (function
       | { e = G.Ellipsis _; _ } -> true
       | _ -> false)
-    false (* empty list can not match non-empty list *) a b
+    ~less_is_ok:false (* empty list can not match non-empty list *) a b
 
 and m_compatible_type typed_mvar t e =
   match (t.G.t, e.G.e) with
@@ -2056,7 +2056,7 @@ and m_for_header a b =
         (function
           | { e = G.Ellipsis _; _ } -> true
           | _ -> false)
-        false a2 b2
+        ~less_is_ok:false a2 b2
   | G.ForClassic _, _
   | G.ForEach _, _
   | G.ForIn _, _ ->
@@ -2227,12 +2227,17 @@ and m_entity a b =
 
 and m_list__m_type_parameter a b =
   match a with
-  (* less-is-ok: it's ok to not have generics in the pattern.
+  (* less-is-ok: it's ok to not have generics at all in the pattern.
    * TODO? or should we impose that the entity name above is a metavariable?
    * and then bind it to an IdQualifier with a type_argument?
    *)
   | [] -> return ()
-  | _ -> m_list m_type_parameter a b
+  | _ ->
+      m_list_with_dots m_type_parameter
+        (function
+          | G.TParamEllipsis _ -> true
+          | _ -> false)
+        ~less_is_ok:false (* empty list can not match non-empty list *) a b
 
 and m_definition_kind a b =
   match (a, b) with
@@ -2274,7 +2279,10 @@ and m_type_parameter a b =
   | G.TP a1, B.TP b1 -> m_type_parameter_classic a1 b1
   | G.OtherTypeParam (a1, a2), B.OtherTypeParam (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  (* those constructs should be handled in the caller *)
+  | G.TParamEllipsis a1, B.TParamEllipsis b1 -> m_tok a1 b1
   | G.TP _, _
+  | G.TParamEllipsis _, _
   | G.OtherTypeParam _, _ ->
       fail ()
 
@@ -2352,7 +2360,7 @@ and m_parameters a b =
     (function
       | G.ParamEllipsis _ -> true
       | _ -> false)
-    false (* empty list can not match non-empty list *) a b
+    ~less_is_ok:false (* empty list can not match non-empty list *) a b
 
 and m_parameter a b =
   match (a, b) with
@@ -2566,8 +2574,8 @@ and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
       (function
       | { t = G.TyExpr { G.e = G.Ellipsis _i; _ }; _ } -> true
       | _ -> false)
-    (* less-is-ok: it's ok to not specify all the parents I think *)
-    true (* empty list can not match non-empty list *) xsa xsb
+      (* less-is-ok: it's ok to not specify all the parents I think *)
+    ~less_is_ok:true xsa xsb
 
 and m_list__m_type_any_order (xsa : G.type_ list) (xsb : G.type_ list) =
   (* TODO? filter existing ellipsis?
@@ -2585,8 +2593,8 @@ and m_list__m_class_parent (xsa : G.class_parent list)
       (function
       | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
       | _ -> false)
-    (* less-is-ok: it's ok to not specify all the parents I think *)
-    true (* empty list can not match non-empty list *) xsa xsb
+      (* less-is-ok: it's ok to not specify all the parents I think *)
+    ~less_is_ok:true xsa xsb
 
 and m_class_parent (a1, a2) (b1, b2) =
   let* () = m_type_ a1 b1 in

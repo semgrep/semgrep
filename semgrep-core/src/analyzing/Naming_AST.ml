@@ -299,7 +299,7 @@ let error_report = false
 
 let error tok s =
   if error_report then raise (Parse_info.Other_error (s, tok))
-  else logger#error "%s at %s" s (Parse_info.string_of_info tok)
+  else logger#trace "%s at %s" s (Parse_info.string_of_info tok)
 
 (*****************************************************************************)
 (* Other Helpers *)
@@ -372,7 +372,7 @@ let assign_implicitly_declares lang =
 (*****************************************************************************)
 
 let resolve lang prog =
-  logger#info "Naming_AST.resolve program";
+  logger#trace "Naming_AST.resolve program";
   let env = default_env lang in
 
   (* coupling: we do similar things in Constant_propagation.ml so if you
