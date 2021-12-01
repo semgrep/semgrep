@@ -170,6 +170,9 @@ let cache_access : tin Caching.Cache.access =
   }
 
 let stmts_may_match pattern_stmts (stmts : G.stmt list) =
+  (* We could gather all the strings from the stmts
+     and perform one intersection, but this is quite slow.
+     By iterating over each stmt, we can shortcircuit *)
   if not !Flag.use_bloom_filter then true
   else
     let pattern_strs =
