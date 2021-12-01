@@ -105,11 +105,7 @@ let rec statement_strings stmt =
             else
               (* For any other statement, recurse to add the filter *)
               let strs = statement_strings x in
-              let bf =
-                B.make_bloom_from_set
-                  !Flag_semgrep.set_instead_of_bloom_filter
-                  strs
-              in
+              let bf = B.make_bloom_from_set strs in
               push_list strs res;
               x.s_bf <- Some bf);
       }
@@ -120,8 +116,8 @@ let rec statement_strings stmt =
 (*****************************************************************************)
 (* Analyze the pattern *)
 (*****************************************************************************)
-let list_of_pattern_strings ?lang any =
-  Analyze_pattern.extract_specific_strings ?lang any
+let set_of_pattern_strings ?lang any =
+  Set_.of_list (Analyze_pattern.extract_specific_strings ?lang any)
 
 (*****************************************************************************)
 (* Analyze the code *)
@@ -136,11 +132,7 @@ let annotate_program ast =
         V.kstmt =
           (fun (_k, _) x ->
             let ids = statement_strings x in
-            let bf =
-              B.make_bloom_from_set
-                !Flag_semgrep.set_instead_of_bloom_filter
-                ids
-            in
+            let bf = B.make_bloom_from_set ids in
             x.s_bf <- Some bf);
       }
   in

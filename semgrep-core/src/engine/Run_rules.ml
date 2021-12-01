@@ -61,12 +61,12 @@ let filter_and_partition_rules rules file_and_more =
                | None -> true
                | Some (re, f) ->
                    let content = Lazy.force lazy_content in
-                   logger#info "looking for %s in %s" re file;
+                   logger#trace "looking for %s in %s" re file;
                    f content)
              else true
            in
            if not relevant_rule then
-             logger#info "skipping rule %s for %s" (fst r.R.id) file;
+             logger#trace "skipping rule %s for %s" (fst r.R.id) file;
            relevant_rule)
   in
   let search_rules, taint_rules = R.partition_rules rules in

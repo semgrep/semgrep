@@ -177,7 +177,6 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
   (* only when the Bloom_filter says No we can skip the stmt *)
   | Some bf ->
       Bloom_filter.is_subset pattern_strs bf
-      = Bloom_filter.Maybe
       |> Common.before_return (fun b ->
              if not b then logger#debug "skipping pattern on stmt %d" st.s_id)
 
@@ -194,7 +193,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
  *   unless they fall in specific regions of the code.
  *   See also docs for {!check} in Match_pattern.mli. *)
 let check2 ~hook range_filter config rules equivs (file, lang, ast) =
-  logger#info "checking %s with %d mini rules" file (List.length rules);
+  logger#trace "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)
@@ -242,8 +241,8 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
            let push_with_annotation any pattern rules =
              let strs =
                if !Flag.use_bloom_filter then
-                 Bloom_annotation.list_of_pattern_strings any
-               else []
+                 Bloom_annotation.set_of_pattern_strings any
+               else Set_.empty
              in
              Common.push (pattern, strs, rule, cache) rules
            in

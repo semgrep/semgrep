@@ -25,7 +25,6 @@
  (libraries
    pcre
    commons
-   bloomf
    pfff-h_program-lang
 
    semgrep-core-response
