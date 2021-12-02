@@ -70,11 +70,11 @@ def semver_matches(expression: str, actual_version: str) -> bool:
         ">": operator.gt,
         ">=": operator.ge,
     }
-    if expression not in operator_map:
+    if expression_operator not in operator_map:
         raise SemgrepError(
             f"unknown package version comparison operator: {expression_operator}"
         )
-    return operator_map[expression](lhs, rhs)
+    return operator_map[expression_operator](lhs, rhs)
 
 
 # step 3: compare vulnerable range to version in lockfile
