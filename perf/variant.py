@@ -27,6 +27,7 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
     SemgrepVariant("no-filter-irrelevant-rules", "-no_filter_irrelevant_rules"),
+    SemgrepVariant("set-filters", "-set_filters"),
 ]
 
 # For when you just want to test a single change
