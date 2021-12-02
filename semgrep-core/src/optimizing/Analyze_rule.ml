@@ -200,7 +200,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
   | R.Or (_, xs) ->
-      let is_dangerously_large l = List.compare_length_with l 1_000_000 = 1 in
+      let is_dangerously_large l = List.compare_length_with l 1_000_000 > 0 in
       let ys = Common.map cnf xs in
       List.fold_left
         (fun (And ps) (And qs) ->
