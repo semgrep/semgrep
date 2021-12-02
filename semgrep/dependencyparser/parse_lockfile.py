@@ -1,17 +1,19 @@
 import base64
 import collections
 import json
-import logging
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Generator
 from typing import List
 
+from semgrep.verbose_logging import getLogger
+
+
+logger = getLogger(__name__)
+
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
-
-logging.basicConfig(level=logging.INFO)
 
 
 def parse_lockfile_str(
@@ -105,7 +107,7 @@ def parse_NPM_package_lock_str(
         dep_blob = as_json["dependencies"][dep]
         version = dep_blob.get("version", None)
         if not version:
-            logging.warning(f"no version for dep {dep}")
+            logger.info(f"no version for dependency: {dep}")
         else:
             resolved_url = dep_blob.get("resolved")
             integrity = dep_blob["integrity"]
@@ -136,7 +138,7 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
             dep_blob = root_blob[dep]
             version = dep_blob.get("version", None)
             if not version:
-                logging.warning(f"no version for dep {dep}")
+                logger.info(f"no version for dependency: {dep}")
             else:
                 version = version.replace("==", "")
                 yield LockfileDependency(

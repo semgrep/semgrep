@@ -33,13 +33,14 @@ rules:
 def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDependency]]:
     dependencies = {}
     for lockfile in find_lockfiles(current_dir):
-        print(f"parsing lockfile {lockfile}")
+        # print(f"parsing lockfile {lockfile}")
         dependencies[lockfile] = list(
             parse_lockfile_str(lockfile.read_text(), lockfile)
         )
     return dependencies
 
 
+# useless comment
 @dataclass(frozen=True, eq=True, order=True)
 class ProjectDependsOnEntry:
     namespace: PackageManagers

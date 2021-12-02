@@ -1,6 +1,11 @@
-from typing import Any
+from typing import Any, Union
 
+#def parse(v: str) -> Union[Version, LegacyVersion]:
+def parse(v: str) -> Version:
+    ...
 
+class LegacyVersion:
+    ...
 class Version:
     major: int
     minor: int
