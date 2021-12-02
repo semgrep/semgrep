@@ -191,6 +191,44 @@ jobs:
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
+  # Run abbreviated version of benchmarks to check that they work
+  dummy-benchmarks:
+    name: semgrep dummy benchmarks
+    runs-on: ubuntu-latest
+    needs: [build-core]
+    strategy:
+      matrix:
+        python: [3.7]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      - name: Install semgrep
+        run: |
+          cd semgrep
+          pip3 install pipenv==2021.5.29
+          pipenv install --dev
+      - name: Test dummy benchmarks on latest
+        working-directory: ./semgrep
+        run: |
+          pipenv run semgrep --version
+          pipenv run python -m semgrep --version
+          pipenv run semgrep-core -version
+          pipenv run python3 ../perf/run-benchmarks --dummy
+
   # Run each benchmark twice to decrease effect of natural variance
   benchmark-test:
     name: semgrep benchmark tests
@@ -233,12 +271,6 @@ jobs:
           cd semgrep
           pip3 install pipenv==2021.5.29
           pipenv install --dev
-      - name: Test dummy benchmarks in docker from run-benchmarks
-        # This uploads the results, which should happen elsewhere so we run it explicitly for now.
-        #  make dummy
-        run: |
-          docker pull returntocorp/semgrep-dev:develop
-          python3 perf/run-benchmarks --docker returntocorp/semgrep-dev:develop --dummy
       - name: Get timing for latest semgrep
         run: |
           cd semgrep
