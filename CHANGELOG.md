@@ -23,6 +23,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - semgrep-core: Log messages are now tagged with the process id
 - Optimization: change bloom filters to use sets, move location of filter
 - Reduced the size of `--debug` dumps
+- Given `--output` Semgrep will no longer print search results to _stdout_,
+  but it will only save/post them to the specified file/URL
 
 ## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
 
