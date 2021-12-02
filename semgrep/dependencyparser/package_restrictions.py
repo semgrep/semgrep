@@ -40,7 +40,6 @@ def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDepen
     return dependencies
 
 
-# useless comment
 @dataclass(frozen=True, eq=True, order=True)
 class ProjectDependsOnEntry:
     namespace: PackageManagers
