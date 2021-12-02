@@ -1,6 +1,5 @@
 import hashlib
 import io
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 from typing import Callable
@@ -9,6 +8,8 @@ from typing import Generator
 from typing import List
 from typing import Optional
 from typing import Tuple
+
+import attr
 
 from semgrep.error import SemgrepError
 
@@ -26,7 +27,7 @@ class PackageManagers(Enum):
     PYPI = "pypy"
 
 
-@dataclass(frozen=True, eq=True, order=True)
+@attr.s(auto_attribs=True, frozen=True, eq=True, order=True)
 class LockfileDependency:
     name: str
     version: str
