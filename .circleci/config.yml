@@ -18,6 +18,18 @@ jobs:
   #    semgrep and whatever utilities we added.
   #
   # We use B out of necessity.
+  #
+  # Go through the same steps as the real benchmarks but quickly.
+  dummy-benchmarks:
+    docker:
+      - image: returntocorp/semgrep-dev:develop
+    steps:
+      - checkout
+      - run:
+          name: dummy benchmarks
+          command: |
+            cd perf
+            ./run-benchmarks --dummy --upload
 
   # Real benchmarks
   benchmarks:
@@ -71,6 +83,21 @@ workflows:
             branches:
               only:
                 - develop
+
+  # This is to check whether we broke the benchmarks before merging a branch.
+  dummy-benchmarks-on-commit:
+    jobs:
+      - dummy-benchmarks
+
+  # This is for testing. Requires pushing to a branch named 'force-benchmarks'.
+  # It can take hours, use with care.
+  benchmarks-on-commit:
+    jobs:
+      - benchmarks:
+          filters:
+            branches:
+              only:
+                - force-benchmarks
 
   scheduled-parsing-stats:
     triggers:
