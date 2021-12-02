@@ -522,7 +522,7 @@ def cli(
 
     NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
     the Semgrep registy. To learn more about how and why these metrics are collected, please see
-    https://github.com/returntocorp/semgrep/PRIVACY.md. To modify this behavior, see the --metrics option below.
+    https://semgrep.dev/docs/metrics. To modify this behavior, see the --metrics option below.
     """
 
     if version:
