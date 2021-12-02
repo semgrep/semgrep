@@ -1,6 +1,5 @@
 import functools
 import operator
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 from typing import Dict
@@ -8,6 +7,7 @@ from typing import Generator
 from typing import List
 from typing import Tuple
 
+import attr
 import packaging.version
 from dependencyparser.find_lockfiles import find_lockfiles
 from dependencyparser.models import LockfileDependency
@@ -47,7 +47,7 @@ def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDepen
     return dependencies
 
 
-@dataclass(frozen=True, eq=True, order=True)
+@attr.s(auto_attribs=True, frozen=True, eq=True, order=True)
 class ProjectDependsOnEntry:
     namespace: PackageManagers
     package_name: str
