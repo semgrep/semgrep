@@ -18,8 +18,11 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.ignores import process_ignores
+from semgrep.ignores import FileIgnore
+from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.ignores import Parser
 from semgrep.metric_manager import metric_manager
+from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -58,6 +61,25 @@ def notify_user_of_work(
     logger.verbose("rules:")
     for rule in filtered_rules:
         logger.verbose(f"- {rule.id}")
+
+
+# Currently we do not search for a default .semgrepignore if none is provided
+# This is different from the behavior of semgrep-agent, where a default is used
+def get_file_ignore() -> Optional[FileIgnore]:
+    workdir = Path.cwd()
+    semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
+    if semgrepignore_path.is_file():
+        logger.verbose("using path ignore rules from .semgrepignore")
+        with open(semgrepignore_path) as f:
+            file_ignore: Optional[FileIgnore] = FileIgnore(
+                base_path=workdir,
+                patterns=Parser(workdir).parse(f),
+            )
+    else:
+        logger.verbose("no .semgrepignore found")
+        file_ignore = None
+
+    return file_ignore
 
 
 def invoke_semgrep(
@@ -185,6 +207,7 @@ def main(
             targets=target,
             respect_git_ignore=respect_git_ignore,
             skip_unknown_extensions=skip_unknown_extensions,
+            file_ignore=get_file_ignore(),
         )
     except FilesNotFoundError as e:
         output_handler.handle_semgrep_error(e)
