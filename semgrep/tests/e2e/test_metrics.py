@@ -82,6 +82,7 @@ def test_flags(
         options=[*options, "--debug"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
     )
+    print(output)
     assert (
         "Sent pseudonymous metrics" in output
         or "Failed to send pseudonymous metrics" in output
