@@ -72,6 +72,12 @@ end)
 
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
+let orig_is_source config orig = config.is_source (any_of_orig orig)
+
+let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
+
+let orig_is_sink config orig = config.is_sink (any_of_orig orig)
+
 let set_opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> x
@@ -159,7 +165,7 @@ let check_tainted_var config (fun_env : fun_env) (env : PM.Set.t VarMap.t) var =
 let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
     exp =
   let check = check_tainted_expr config fun_env env in
-  let sink_pms = config.is_sink (G.E exp.eorig) in
+  let sink_pms = orig_is_sink config exp.eorig in
   let check_base = function
     | Var var -> check_tainted_var config fun_env env var
     | VarSpecial _ -> PM.Set.empty
@@ -186,13 +192,13 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
     | Record fields -> set_concat_map (fun (_, e) -> check e) fields
     | Cast (_, e) -> check e
   in
-  let sanitized_pms = config.is_sanitizer (G.E exp.eorig) in
+  let sanitized_pms = orig_is_sanitized config exp.eorig in
   match sanitized_pms with
   | _ :: _ -> PM.Set.empty
   | [] ->
       let tainted_pms =
         PM.Set.union (check_subexpr exp.e)
-          (PM.Set.of_list (config.is_source (G.E exp.eorig)))
+          (PM.Set.of_list (orig_is_source config exp.eorig))
       in
       let found = make_tainted_sink_matches sink_pms tainted_pms in
       if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
@@ -201,7 +207,7 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let check_tainted_instr config fun_env env instr : PM.Set.t =
-  let sink_pms = config.is_sink (G.E instr.iorig) in
+  let sink_pms = orig_is_sink config instr.iorig in
   let check_expr = check_tainted_expr config fun_env env in
   let tainted_args = function
     | Assign (_, e) -> check_expr e
@@ -213,13 +219,13 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
     | CallSpecial (_, _, args) -> set_concat_map check_expr args
     | FixmeInstr _ -> PM.Set.empty
   in
-  let sanitized_pm_opt = config.is_sanitizer (G.E instr.iorig) in
+  let sanitized_pm_opt = orig_is_sanitized config instr.iorig in
   match sanitized_pm_opt with
   | _ :: _ -> PM.Set.empty
   | [] ->
       let tainted_pms =
         PM.Set.union (tainted_args instr.i)
-          (PM.Set.of_list (config.is_source (G.E instr.iorig)))
+          (PM.Set.of_list (orig_is_source config instr.iorig))
       in
       let found = make_tainted_sink_matches sink_pms tainted_pms in
       if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
@@ -228,8 +234,7 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
 (* Test whether a `return' is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let check_tainted_return config fun_env env tok e =
-  let orig_return = G.s (G.Return (tok, Some e.eorig, tok)) in
-  let sink_pms = config.is_sink (G.S orig_return) in
+  let sink_pms = config.is_sink (G.Tk tok) @ orig_is_sink config e.eorig in
   let e_tainted_pms = check_tainted_expr config fun_env env e in
   let found = make_tainted_sink_matches sink_pms e_tainted_pms in
   if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
