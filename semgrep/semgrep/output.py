@@ -320,18 +320,18 @@ class OutputHandler:
                 self.settings.output_per_finding_max_lines_limit,
                 self.settings.output_per_line_max_chars_limit,
             )
-            if output:
-                try:
-                    print(output, file=self.stdout)
-                except UnicodeEncodeError as ex:
-                    raise Exception(
-                        "Received output encoding error, please set PYTHONIOENCODING=utf-8"
-                    ) from ex
-            if self.stats_line:
-                logger.info(self.stats_line)
-
             if self.settings.output_destination:
                 self.save_output(self.settings.output_destination, output)
+            else:
+                if output:
+                    try:
+                        print(output, file=self.stdout)
+                    except UnicodeEncodeError as ex:
+                        raise Exception(
+                            "Received output encoding error, please set PYTHONIOENCODING=utf-8"
+                        ) from ex
+            if self.stats_line:
+                logger.info(self.stats_line)
 
         final_error = None
         error_stats = None
