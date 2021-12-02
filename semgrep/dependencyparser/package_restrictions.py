@@ -1,15 +1,22 @@
 import functools
+import operator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 from typing import Dict
 from typing import Generator
 from typing import List
 from typing import Tuple
 
+import packaging.version
 from dependencyparser.find_lockfiles import find_lockfiles
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.parse_lockfile import parse_lockfile_str
+from packaging.version import parse as parse_version
+
+from semgrep.error import SemgrepError
+
 
 # For example:
 """
@@ -47,9 +54,6 @@ class ProjectDependsOnEntry:
     semver_range: str
 
 
-from packaging.version import parse as parse_version
-
-
 def semver_matches(expression: str, actual_version: str) -> bool:
     # print(f'compare {expression} {actual_version}')
 
@@ -57,15 +61,20 @@ def semver_matches(expression: str, actual_version: str) -> bool:
     expression = expression.replace(expression_operator + " ", "", 1)
     lhs = parse_version(expression)
     rhs = parse_version(actual_version)
-    if expression_operator == "==":
-        return lhs == rhs
-    elif expression_operator == "<":
-        return lhs < rhs
-    elif expression_operator == ">":
-        return lhs > rhs
-    raise AssertionError(
-        f"unknown package version comparison operator: {expression_operator}"
-    )
+    operator_map: Dict[
+        str, Callable[[packaging.version.Version, packaging.version.Version], bool]
+    ] = {
+        "==": operator.eq,
+        "<": operator.lt,
+        "<=": operator.le,
+        ">": operator.gt,
+        ">=": operator.ge,
+    }
+    if expression not in operator_map:
+        raise SemgrepError(
+            f"unknown package version comparison operator: {expression_operator}"
+        )
+    return operator_map[expression](lhs, rhs)
 
 
 # step 3: compare vulnerable range to version in lockfile

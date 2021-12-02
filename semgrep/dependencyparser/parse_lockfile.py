@@ -7,6 +7,7 @@ from typing import Dict
 from typing import Generator
 from typing import List
 
+from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
 
@@ -27,8 +28,8 @@ def parse_lockfile_str(
     elif filepath_for_reference.name.lower() == "package-lock.json":
         yield from parse_NPM_package_lock_str(lockfile_text)
     else:
-        raise AssertionError(
-            f"dont know how to parse this filename: {filepath_for_reference}"
+        raise SemgrepError(
+            f"don't know how to parse this filename: {filepath_for_reference}"
         )
 
 

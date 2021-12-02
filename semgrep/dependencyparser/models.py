@@ -10,6 +10,8 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from semgrep.error import SemgrepError
+
 MAX_REFERENCES = 3
 
 KNOWN_HASH_ALGORITHMS: Dict[str, Callable] = {
@@ -60,7 +62,7 @@ class LockfileDependency:
         elif self.namespace == PackageManagers.NPM:
             return f"https://www.npmjs.com/package/{self.name}"
         else:
-            raise AssertionError(f"unknown namespace {self.namespace}")
+            raise SemgrepError(f"unknown namespace for package: {self.namespace}")
 
     @classmethod
     def hash_file_all_algorithms(

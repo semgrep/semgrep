@@ -28,8 +28,7 @@ def parse_depends_on_restrictions(
             elif package_manager == "npm":
                 pm = PackageManagers.NPM
             else:
-                # TODO: semgrep error instead
-                raise AssertionError(f"unknown package manager: {package_manager}")
+                raise SemgrepError(f"unknown package manager: {package_manager}")
             package_name = dep_name_and_version_str.split(" ")[0]
             semver_range = (
                 dep_name_and_version_str.replace(package_name + " ", "", 1)
@@ -51,23 +50,24 @@ def run_dependency_aware_rule(
     Run a dependency aware rule.
     """
 
-    # TODO: populate error output
     dep_rule_errors: List[SemgrepError] = []
-
     if len(matches) == 0:
         return [], dep_rule_errors
 
     dependencies = dep_aware_rule.get("project-depends-on", {})
-    depends_on_entries = list(parse_depends_on_restrictions(dependencies))
+    try:
+        depends_on_entries = list(parse_depends_on_restrictions(dependencies))
 
-    # print(list(targets[0].parents))
-    target = list(targets[0].parents)[
-        -1
-    ]  # TODO fix this; run on the top-level of all the targets
-    output = list(
-        dependencies_range_match_any(
-            depends_on_entries, find_and_parse_lockfiles(target)
+        # print(list(targets[0].parents))
+        target = list(targets[0].parents)[
+            -1
+        ]  # TODO fix this; run on the top-level of all the targets
+        output = list(
+            dependencies_range_match_any(
+                depends_on_entries, find_and_parse_lockfiles(target)
+            )
         )
-    )
-    final_matches = [] if len(output) == 0 else matches
-    return final_matches, dep_rule_errors
+        final_matches = [] if len(output) == 0 else matches
+        return final_matches, dep_rule_errors
+    except SemgrepError as e:
+        return [], [e]
