@@ -22,6 +22,9 @@ IGNORE_FILE_NAME = ".semgrepignore"
 
 logger = getLogger(__name__)
 
+## TODO: This files duplicates the .semgrepignore functionality from semgrep-action.
+## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
+
 # This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
 @attr.s
 class FileIgnore:
