@@ -14,3 +14,4 @@ tox = "*"
 click = "~=8.0.1"
 click-option-group = "~=0.5.3"
 semgrep = {editable = true,path = "."}
+packaging = "==21.0"

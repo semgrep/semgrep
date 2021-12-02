@@ -193,6 +193,9 @@ def main(
         lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
     )
+    dependency_aware_rules, _ = partition(
+        lambda rule: rule.project_depends_on is not None, rest_of_the_rules
+    )
     filtered_rules = rest_of_the_rules
 
     core_start_time = time.time()
@@ -215,6 +218,21 @@ def main(
             join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
+
+    if dependency_aware_rules:
+        import semgrep.dependency_aware_rule as dep_aware_rule
+
+        for rule in dependency_aware_rules:
+            (
+                dep_rule_matches,
+                dep_rule_errors,
+            ) = dep_aware_rule.run_dependency_aware_rule(
+                rule_matches_by_rule.get(rule, []),
+                rule.raw,
+                [Path(t) for t in target_manager.targets],
+            )
+            rule_matches_by_rule[rule] = dep_rule_matches
+            output_handler.handle_semgrep_errors(dep_rule_errors)
 
     profiler.save("core_time", core_start_time)
 

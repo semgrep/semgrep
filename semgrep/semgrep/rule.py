@@ -146,6 +146,10 @@ class Rule:
         return self._mode
 
     @property
+    def project_depends_on(self) -> Optional[str]:
+        return self._raw.get("project-depends-on")
+
+    @property
     def languages(self) -> List[Language]:
         return self._languages
 

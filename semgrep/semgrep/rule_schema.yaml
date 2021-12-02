@@ -319,6 +319,9 @@ properties:
         message:
           title: Description to attach to findings
           type: string
+        project-depends-on:
+          title: Package manager dependencies that the project must depend on one of in order for the rule to fire
+          type: array
         mode:
           enum:
           - search
