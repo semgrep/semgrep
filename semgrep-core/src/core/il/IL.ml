@@ -119,6 +119,24 @@ type fixme_kind =
 [@@deriving show]
 
 (*****************************************************************************)
+(* Mapping back to Generic *)
+(*****************************************************************************)
+
+(* Only use `SameAs` when the IL expression or instruction is indeed "the same as"
+ * (i.e., semantically equivalent) to that Generic expression. *)
+type orig = SameAs of G.expr | Related of G.any | NoOrig
+[@@deriving show { with_path = false }]
+
+let related_tok tok = Related (G.Tk tok)
+
+let related_exp exp_gen = Related (G.E exp_gen)
+
+let any_of_orig = function
+  | SameAs e -> G.E e
+  | Related any -> any
+  | NoOrig -> G.Anys []
+
+(*****************************************************************************)
 (* Lvalue *)
 (*****************************************************************************)
 
@@ -164,7 +182,7 @@ and var_special = This | Super | Self | Parent
  * Here 'exp' does not contain any side effect!
  * todo: etype: typ;
  *)
-and exp = { e : exp_kind; eorig : G.expr }
+and exp = { e : exp_kind; eorig : orig }
 
 and exp_kind =
   | Fetch of lval (* lvalue used in a rvalue context *)
@@ -183,7 +201,9 @@ and exp_kind =
    * (they are too many intermediate _tmp variables then) *)
   | Operator of G.operator wrap * exp list
   | FixmeExp of
-      fixme_kind * G.any (* origin *) * exp (* partial translation *) option
+      fixme_kind
+      * G.any (* fixme source *)
+      * exp (* partial translation *) option
 
 and composite_kind =
   | CTuple
@@ -203,7 +223,7 @@ type argument = exp [@@deriving show]
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split into  instr vs exp vs lval.
  *)
-type instr = { i : instr_kind; iorig : G.expr }
+type instr = { i : instr_kind; iorig : orig }
 
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
