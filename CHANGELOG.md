@@ -16,6 +16,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   a sink (e.g. as in `$SINK->method`), and the LHS operand is a tainted
   variable (#4320)
 - metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
+- semgrep-core: Fix a segmentation fault on Apple M1 when using
+  `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
