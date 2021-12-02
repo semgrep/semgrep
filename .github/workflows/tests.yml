@@ -214,10 +214,8 @@ jobs:
           pip3 install pipenv==2021.5.29
           pipenv install --dev
       - name: Test dummy benchmarks on latest
+        working-directory: ./semgrep
         run: |
-          pwd
-          ls
-          cd semgrep
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
