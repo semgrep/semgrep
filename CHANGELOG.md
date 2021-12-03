@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   for nodejsscan rules notably)
 - Semgrep CLI now respects .semgrepignore files
 - Java: support ellipsis in generics, e.g., `class Foo<...>` (#4335)
+- Metrics now track the value of all flags passed to semgrep
 
 ### Fixed
 - Java: class patterns not using generics will match classes using generics
