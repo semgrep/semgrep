@@ -8,6 +8,12 @@ rules:
   message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 1
   languages: [python]
   severity: WARNING
+- id: unconditional-depends-on-only
+  project-depends-on:
+    - pypi: awscli "== 1.11.82"
+  message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 2
+  languages: [python]
+  severity: WARNING
 - id: not-filtered
   pattern-either:
     - pattern: boto3.resource('s3', ...)

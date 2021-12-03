@@ -196,7 +196,10 @@ def main(
     dependency_aware_rules, _ = partition(
         lambda rule: rule.project_depends_on is not None, rest_of_the_rules
     )
-    filtered_rules = rest_of_the_rules
+    runnable_rules, _ = partition(
+        lambda rule: rule.has_runable_semgrep_rules, rest_of_the_rules
+    )
+    filtered_rules = runnable_rules
 
     core_start_time = time.time()
     # actually invoke semgrep
@@ -228,7 +231,7 @@ def main(
                 dep_rule_errors,
             ) = dep_aware_rule.run_dependency_aware_rule(
                 rule_matches_by_rule.get(rule, []),
-                rule.raw,
+                rule,
                 [Path(t) for t in target_manager.targets],
             )
             rule_matches_by_rule[rule] = dep_rule_matches

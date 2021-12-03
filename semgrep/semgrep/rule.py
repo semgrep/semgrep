@@ -13,6 +13,7 @@ from typing import Union
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
@@ -146,7 +147,7 @@ class Rule:
         return self._mode
 
     @property
-    def project_depends_on(self) -> Optional[str]:
+    def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
         return self._raw.get("project-depends-on")
 
     @property
@@ -192,6 +193,10 @@ class Rule:
         return hashlib.sha256(
             json.dumps(self._raw, sort_keys=True).encode()
         ).hexdigest()
+
+    @property
+    def has_runable_semgrep_rules(self) -> bool:
+        return any(k in self._raw for k in RuleValidation.PATTERN_KEYS)
 
 
 def rule_without_metadata(rule: Rule) -> Rule:

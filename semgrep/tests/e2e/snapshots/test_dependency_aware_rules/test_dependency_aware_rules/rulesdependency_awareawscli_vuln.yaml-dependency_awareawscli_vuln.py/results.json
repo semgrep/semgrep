@@ -88,6 +88,27 @@
         "line": 24,
         "offset": 632
       }
+    },
+    {
+      "check_id": "rules.dependency_aware.unconditional-depends-on-only",
+      "end": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": ".",
+      "start": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
+      }
     }
   ]
 }
