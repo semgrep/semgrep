@@ -22,10 +22,10 @@ from semgrep.error import SemgrepError
 def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDependency]]:
     dependencies = {}
     for lockfile in find_lockfiles(current_dir):
-        # print(f"parsing lockfile {lockfile}")
         dependencies[lockfile] = list(
             parse_lockfile_str(lockfile.read_text(), lockfile)
         )
+        # print(f'lockfile: {lockfile} with # deps: {len(dependencies[lockfile])}')
     return dependencies
 
 
@@ -41,8 +41,8 @@ def semver_matches(expression: str, actual_version: str) -> bool:
 
     expression_operator = expression.split(" ")[0]
     expression = expression.replace(expression_operator + " ", "", 1)
-    lhs = parse_version(expression)
-    rhs = parse_version(actual_version)
+    rhs = parse_version(expression)
+    lhs = parse_version(actual_version)
     operator_map: Dict[
         str, Callable[[packaging.version.Version, packaging.version.Version], bool]
     ] = {
@@ -52,6 +52,8 @@ def semver_matches(expression: str, actual_version: str) -> bool:
         ">": operator.gt,
         ">=": operator.ge,
     }
+    if expression_operator == "*":
+        return True
     if expression_operator not in operator_map:
         raise SemgrepError(
             f"unknown package version comparison operator: {expression_operator}"
@@ -77,19 +79,3 @@ def dependencies_range_match_any(
                     and semver_matches(target_range.semver_range, have_dep.version)
                 ):
                     yield (target_range, have_dep, lockfile_path)
-
-
-"""
-def main(target_dir: Path) -> :
-    lockfiles = find_and_parse_lockfiles(target_dir)
-    output = dependencies_range_match_any(
-        [
-            ProjectDependsOnEntry(PackageManagers.PYPI, "awscli", "<= 1.1182"),
-            ProjectDependsOnEntry(PackageManagers.PYPI, "colorama", "0.4.4"),
-        ],
-        lockfiles,
-    )
-    print(list(output))
-"""
-
-# main(Path("../../"))

@@ -54,18 +54,24 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
 
         "@babel/types@^7.0.0", "@babel/types@^7.10.4", "@babel/types@^7.10.5", "@babel/types@^7.11.0", "@babel/types@^7.3.0", "@babel/types@^7.3.3", "@babel/types@^7.4.0", "@babel/types@^7.4.4", "@babel/types@^7.7.0", "@babel/types@^7.9.0":
         should parse as @babel/types
+
+        lodash@4.17.18:
+        should parse as lodash
         """
         # print(line)
-        first_quoted = "".join(line.split('"')[1:2])
-        parsed_name = "@".join(first_quoted.split("@")[:-1])
-        # print(line, first_quoted, parsed_name)
-        return parsed_name
+        if '"' not in line:
+            return line.split("@")[0]
+        else:
+            first_quoted = "".join(line.split('"')[1:2])
+            parsed_name = "@".join(first_quoted.split("@")[:-1])
+            print(line, first_quoted, parsed_name)
+            return parsed_name
 
     def remove_trailing_octothorpe(s: str) -> str:
         return "#".join(s.split("#")[:-1])
 
     package_name, version, resolved, integrity = None, None, None, None
-    for line in lockfile_text.split("\n"):
+    for line in lockfile_text.split("\n") + [""]:
         line = line.strip()
         # print(line)
         # print('>>>', package_name, version, resolved)
