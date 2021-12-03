@@ -597,6 +597,30 @@ let maturity_tests =
     (* R, HTML, Vue *)
   ]
 
+(* It's important that our parsers generate classic parsing errors
+ * exns (e.g., Parsing_error, Lexical_error), otherwise semgrep
+ * will report some "Fatal error" and abort.
+ *)
+let parsing_error_tests =
+  let dir = Filename.concat tests_path "OTHER/parsing_errors" in
+  pack_tests "Parsing error detection" (
+    let tests = Common2.glob (spf "%s/*" dir) in
+    tests |> List.map (fun file ->
+      Filename.basename file, (fun () ->
+         try
+          let lang = List.hd (Lang.langs_of_filename file) in
+          let res = Parse_target.just_parse_with_lang lang file in
+          if res.Parse_target.errors = []
+          then 
+           failwith "it should raise a standard parsing error exn or return partial errors "
+         with
+         | Parse_info.Lexical_error _
+         | Parse_info.Parsing_error _
+           -> ()
+     )
+   )
+  )
+
 (*****************************************************************************)
 (* All tests *)
 (*****************************************************************************)
@@ -616,6 +640,7 @@ let tests = List.flatten [
   Unit_pcre_settings.tests;
 
   lang_parsing_tests;
+  parsing_error_tests;
   (* full testing for many languages *)
   lang_regression_tests ~with_caching:false;
   lang_regression_tests ~with_caching:true;
