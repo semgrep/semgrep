@@ -5,7 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Improved filtering of rules based on file content
+- Improved filtering of rules based on file content (important speedup
+  for nodejsscan rules notably)
 - Semgrep CLI now respects .semgrepignore files
 - Java: support ellipsis in generics, e.g., `class Foo<...>` (#4335)
 
@@ -19,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
 - semgrep-core: Fix a segmentation fault on Apple M1 when using
   `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
+- Python: generate proper lexical exn for unbalanced braces (#4310)  
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
