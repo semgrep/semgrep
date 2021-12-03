@@ -50,6 +50,7 @@ class _MetricManager:
         self._file_stats: List[Dict[str, Any]] = []
         self._rule_stats: List[Dict[str, Any]] = []
         self._rules_with_findings: Mapping[str, int] = {}
+        self._user_flags: Dict[str, Any] = {}
 
         self._send_metrics: MetricsState = MetricsState.OFF
         self._using_server = False
@@ -151,6 +152,12 @@ class _MetricManager:
     ) -> None:
         self._rules_with_findings = {r.full_hash: len(f) for r, f in findings.items()}
 
+    def set_user_flags(self, user_flags: Dict[str, Any]) -> None:
+        self._user_flags = user_flags
+        # Need to turn MetricState objects intro strings so they can be serialized
+        self._user_flags["metrics"] = str(self._user_flags["metrics"])
+        self._user_flags["metrics_legacy"] = str(self._user_flags["metrics_legacy"])
+
     def set_run_timings(
         self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
     ) -> None:
@@ -210,6 +217,7 @@ class _MetricManager:
                 "numFindings": self._num_findings,
                 "numIgnored": self._num_ignored,
                 "ruleHashesWithFindings": self._rules_with_findings,
+                "userFlags": self._user_flags,
             },
         }
 

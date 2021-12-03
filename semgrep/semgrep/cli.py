@@ -533,6 +533,10 @@ def cli(
             version_check()
         return
 
+    # Creates a dict mapping all local variables to their arugments
+    # Because no other variables have been defined yet, this contains only the arguments to the function
+    user_flags = locals()
+
     # To keep version runtime fast, we defer non-version imports until here
     import semgrep.semgrep_main
     import semgrep.test
@@ -551,6 +555,8 @@ def cli(
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
     metric_manager.configure(metrics, metrics_legacy)
+    if metric_manager.is_enabled():
+        metric_manager.set_user_flags(user_flags)
 
     if include and exclude:
         logger.warning(
