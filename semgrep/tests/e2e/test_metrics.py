@@ -112,6 +112,36 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
 def test_flags(
     run_semgrep_in_tmp, mock_config_request, config, options, env, should_send
 ):
+    """
+    Test that we try to send metrics when we should be
+    """
+    _, output = run_semgrep_in_tmp(
+        config,
+        options=[*options, "--debug"],
+        env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
+    )
+    print(output)
+    # Test that we try to send metrics. Even if it fails sending
+    assert (
+        "Sent pseudonymous metrics" in output
+        or "Failed to send pseudonymous metrics" in output
+        if should_send
+        else "Sent pseudonymous metrics" not in output
+    )
+
+
+@mark.parametrize(
+    "config,options,env,should_send",
+    [
+        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}, True),
+    ],
+)
+def test_flags_actual_send(
+    run_semgrep_in_tmp, mock_config_request, config, options, env, should_send
+):
+    """
+    Test that the server for metrics sends back success
+    """
     _, output = run_semgrep_in_tmp(
         config,
         options=[*options, "--debug"],
