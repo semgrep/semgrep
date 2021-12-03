@@ -52,26 +52,61 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     "config,options,env,should_send",
     [
         ("rules/eqeq.yaml", [], {}, False),
-        ("r/a", [], {}, True),
+        ("r/python.lang.correctness.useless-eqeq.useless-eqeq", [], {}, True),
         ("rules/eqeq.yaml", ["--metrics", "auto"], {}, False),
-        ("r/a", ["--metrics", "auto"], {}, True),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            ["--metrics", "auto"],
+            {},
+            True,
+        ),
         ("rules/eqeq.yaml", ["--metrics", "on"], {}, True),
-        ("r/a", ["--metrics", "on"], {}, True),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            ["--metrics", "on"],
+            {},
+            True,
+        ),
         ("rules/eqeq.yaml", ["--metrics", "off"], {}, False),
-        ("r/a", ["--metrics", "off"], {}, False),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            ["--metrics", "off"],
+            {},
+            False,
+        ),
         ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "auto"}, False),
-        ("r/a", [], {"SEMGREP_SEND_METRICS": "auto"}, True),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            [],
+            {"SEMGREP_SEND_METRICS": "auto"},
+            True,
+        ),
         ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "off"}, False),
-        ("r/a", [], {"SEMGREP_SEND_METRICS": "off"}, False),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            [],
+            {"SEMGREP_SEND_METRICS": "off"},
+            False,
+        ),
         ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}, True),
-        ("r/a", [], {"SEMGREP_SEND_METRICS": "on"}, True),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            [],
+            {"SEMGREP_SEND_METRICS": "on"},
+            True,
+        ),
         (
             "rules/eqeq.yaml",
             ["--metrics", "auto"],
             {"SEMGREP_SEND_METRICS": "on"},
             False,
         ),
-        ("r/a", ["--metrics", "auto"], {"SEMGREP_SEND_METRICS": "off"}, True),
+        (
+            "r/python.lang.correctness.useless-eqeq.useless-eqeq",
+            ["--metrics", "auto"],
+            {"SEMGREP_SEND_METRICS": "off"},
+            True,
+        ),
     ],
 )
 def test_flags(
@@ -85,7 +120,6 @@ def test_flags(
     print(output)
     assert (
         "Sent pseudonymous metrics" in output
-        or "Failed to send pseudonymous metrics" in output
         if should_send
         else "Sent pseudonymous metrics" not in output
     )
