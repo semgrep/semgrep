@@ -14,13 +14,11 @@ rules:
   message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 2
   languages: [python]
   severity: WARNING
-- id: not-filtered
-  pattern-either:
-    - pattern: boto3.resource('s3', ...)
-    - pattern: boto3.client('s3', ...)
+- id: vulnerable-awscli-apr-2017-wrong-pattern
+  pattern: neverexists.resource('s3', ...)
   project-depends-on:
     - pypi: awscli "== 1.11.82"
-  message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 2
+  message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 1
   languages: [python]
   severity: WARNING
 - id: wrong-version
@@ -30,5 +28,23 @@ rules:
   project-depends-on:
     - pypi: awscli "== 1.11.83"
   message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 3
+  languages: [python]
+  severity: WARNING
+- id: version-ge
+  pattern-either:
+    - pattern: boto3.resource('s3', ...)
+    - pattern: boto3.client('s3', ...)
+  project-depends-on:
+    - pypi: awscli ">= 0.0.1"
+  message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 3
+  languages: [python]
+  severity: WARNING
+- id: version-leq
+  pattern-either:
+    - pattern: boto3.resource('s3', ...)
+    - pattern: boto3.client('s3', ...)
+  project-depends-on:
+    - pypi: awscli "<= 1.11.82"
+  message: this version of awscli is subject to a directory traversal vulnerability in the s3 module 1
   languages: [python]
   severity: WARNING

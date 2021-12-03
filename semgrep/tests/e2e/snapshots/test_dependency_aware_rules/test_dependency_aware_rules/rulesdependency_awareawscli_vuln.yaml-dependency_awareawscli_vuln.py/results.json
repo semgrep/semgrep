@@ -46,7 +46,7 @@
       }
     },
     {
-      "check_id": "rules.dependency_aware.not-filtered",
+      "check_id": "rules.dependency_aware.version-leq",
       "end": {
         "col": 43,
         "line": 21,
@@ -55,7 +55,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
-        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
         "metavars": {},
         "severity": "WARNING"
@@ -68,7 +68,7 @@
       }
     },
     {
-      "check_id": "rules.dependency_aware.not-filtered",
+      "check_id": "rules.dependency_aware.version-leq",
       "end": {
         "col": 63,
         "line": 24,
@@ -77,7 +77,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
-        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
         "metavars": {},
         "severity": "WARNING"

@@ -18,24 +18,6 @@ from packaging.version import parse as parse_version
 from semgrep.error import SemgrepError
 
 
-# For example:
-"""
-rules:
-- id: vulnerable-awscli-apr-2017
-  pattern-either:
-    - boto3.resource('s3', ...)
-    - boto3.client('s3', ...)
-  project-depends:
-    - pip: awscli "<= 1.11.82"
-  message: this version of awscli is subject to a directory traversal vulnerability in the s3 module
-  languages: [python]
-  severity: WARNING
-"""
-
-# step 1: find lockfile
-# step 2: parse lockfile
-
-
 @functools.lru_cache(maxsize=None)
 def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDependency]]:
     dependencies = {}
@@ -77,7 +59,7 @@ def semver_matches(expression: str, actual_version: str) -> bool:
     return operator_map[expression_operator](lhs, rhs)
 
 
-# step 3: compare vulnerable range to version in lockfile
+# compare vulnerable range to version in lockfile
 def dependencies_range_match_any(
     search_for_ranges: List[ProjectDependsOnEntry],
     lockfile_deps: Dict[Path, List[LockfileDependency]],
@@ -89,14 +71,13 @@ def dependencies_range_match_any(
                 #    f"comparing {target_range} <-> {have_dep.namespace} {have_dep.name} {have_dep.version}"
                 # )
                 if (
-                    target_range.namespace == have_dep.namespace
+                    target_range.namespace.value.lower()
+                    == have_dep.namespace.value.lower()
                     and target_range.package_name == have_dep.name
                     and semver_matches(target_range.semver_range, have_dep.version)
                 ):
                     yield (target_range, have_dep, lockfile_path)
 
-
-# step 4: filter output
 
 """
 def main(target_dir: Path) -> :
