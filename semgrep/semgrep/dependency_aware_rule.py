@@ -52,9 +52,11 @@ def run_dependency_aware_rule(
     """
 
     # print(list(targets[0].parents))
-    top_level_target = list(targets[0].parents)[
-        -1
-    ]  # TODO fix this; run on the top-level of all the targets
+    top_level_target_rooted = list(targets[0].parents)
+    top_level_target: Path = (
+        targets[0] if len(top_level_target_rooted) == 0 else top_level_target_rooted[-1]
+    )
+    # TODO fix this; run on the top-level of all the targets
     dependencies: List[Dict[str, str]] = rule.project_depends_on or [{}]
     dep_rule_errors: List[SemgrepError] = []
 
