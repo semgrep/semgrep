@@ -523,6 +523,13 @@ let test_irrelevant_rule_file file =
     test_irrelevant_rule rules_file file
   )
 
+(* These tests test that semgrep with filter_irrelevant_rules correctly 
+   does not run files when they lack necessary strings.
+
+   To test that filter_irrelevant_rules does not mistakenly filter out 
+   any files, place the rule/target pair in the rules folder but annotate 
+   in a comment that the test targets filter_irrelevant_rules to help
+   future debuggers. *)
 let filter_irrelevant_rules_tests =
   pack_tests "filter irrelevant rules testing" (
     let dir = Filename.concat tests_path "OTHER/irrelevant_rules" in
