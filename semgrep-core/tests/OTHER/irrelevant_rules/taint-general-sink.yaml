@@ -1,0 +1,10 @@
+rules:
+- id: pattern-and 
+  mode: taint
+  pattern-sources:
+    - pattern: tainted_input
+  pattern-sinks:
+    - pattern: $X(...)
+  languages: [py]
+  severity: WARNING 
+  message: "test"
