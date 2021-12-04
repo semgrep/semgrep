@@ -1,6 +1,8 @@
 open Printf
 open Metavariable
 
+let debug = false
+
 (*
    Environment that is carried along and modified while matching a
    pattern AST against a target AST. It holds the captured metavariables

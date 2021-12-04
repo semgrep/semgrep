@@ -16,10 +16,7 @@ module PI = Parse_info
 module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
-
-(*
 module H2 = AST_generic_helpers
- *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -46,6 +43,11 @@ let todo (_env : env) _ = failwith "not implemented"
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-solidity/Boilerplate.ml *)
+
+let map_trailing_comma env v =
+  match v with
+  | Some tok -> (* "," *) token env tok |> ignore
+  | None -> ()
 
 let map_uint (env : env) (x : CST.uint) =
   match x with
@@ -109,15 +111,15 @@ let map_yul_or_literal_boolean (env : env) x : bool wrap =
   | `False tok -> (* "false" *) (false, token env tok)
 
 let map_solidity_version_comparison_operator (env : env)
-    (x : CST.solidity_version_comparison_operator) =
+    (x : CST.solidity_version_comparison_operator) : operator wrap =
   match x with
-  | `LTEQ tok -> (* "<=" *) token env tok
-  | `LT tok -> (* "<" *) token env tok
-  | `HAT tok -> (* "^" *) token env tok
-  | `GT tok -> (* ">" *) token env tok
-  | `GTEQ tok -> (* ">=" *) token env tok
-  | `TILDE tok -> (* "~" *) token env tok
-  | `EQ tok -> (* "=" *) token env tok
+  | `LTEQ tok -> (* "<=" *) (LtE, token env tok)
+  | `LT tok -> (* "<" *) (Lt, token env tok)
+  | `HAT tok -> (* "^" *) (BitXor, token env tok)
+  | `GT tok -> (* ">" *) (Gt, token env tok)
+  | `GTEQ tok -> (* ">=" *) (GtE, token env tok)
+  | `TILDE tok -> (* "~" *) (BitNot, token env tok)
+  | `EQ tok -> (* "=" *) (Eq, token env tok)
 
 let map_storage_location (env : env) (x : CST.storage_location) =
   match x with
@@ -129,16 +131,16 @@ let map_visibility (env : env) (x : CST.visibility) : attribute =
   match x with
   | `Public tok ->
       let x = (* "public" *) token env tok in
-      todo env x
+      G.attr Public x
   | `Inte tok ->
       let x = (* "internal" *) token env tok in
-      todo env x
+      G.attr Static x
   | `Priv tok ->
       let x = (* "private" *) token env tok in
-      todo env x
+      G.attr Private x
   | `Exte tok ->
       let x = (* "external" *) token env tok in
-      todo env x
+      G.attr Extern x
 
 let map_yul_evm_builtin (env : env) (x : CST.yul_evm_builtin) =
   match x with
@@ -294,127 +296,129 @@ let map_int_ (env : env) (x : CST.int_) =
   | `Int248 tok -> (* "int248" *) str env tok
   | `Int256 tok -> (* "int256" *) str env tok
 
-let map_yul_path (env : env) ((v1, v2) : CST.yul_path) =
-  let v1 = (* pattern [a-zA-Z$_]+ *) token env v1 in
+let map_yul_path (env : env) ((v1, v2) : CST.yul_path) : dotted_ident =
+  let v1 = (* pattern [a-zA-Z$_]+ *) str env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = (* "." *) token env v1 in
-        let v2 = (* pattern [a-zA-Z$_]+ *) token env v2 in
-        todo env (v1, v2))
+        let _v1 = (* "." *) token env v1 in
+        let v2 = (* pattern [a-zA-Z$_]+ *) str env v2 in
+        v2)
       v2
   in
-  todo env (v1, v2)
+  v1 :: v2
 
 let map_anon_yul_id_rep_COMMA_yul_id_opt_COMMA_477546e (env : env)
-    ((v1, v2, v3) : CST.anon_yul_id_rep_COMMA_yul_id_opt_COMMA_477546e) =
-  let v1 = (* pattern [a-zA-Z$_]+ *) token env v1 in
+    ((v1, v2, v3) : CST.anon_yul_id_rep_COMMA_yul_id_opt_COMMA_477546e) :
+    ident list =
+  let v1 = (* pattern [a-zA-Z$_]+ *) str env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = (* "," *) token env v1 in
-        let v2 = (* pattern [a-zA-Z$_]+ *) token env v2 in
-        todo env (v1, v2))
+        let _v1 = (* "," *) token env v1 in
+        let v2 = (* pattern [a-zA-Z$_]+ *) str env v2 in
+        v2)
       v2
   in
-  let v3 =
-    match v3 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
-  in
-  todo env (v1, v2, v3)
+  let _v3 = map_trailing_comma env v3 in
+  v1 :: v2
 
 let map_anon_id_rep_COMMA_id_opt_COMMA_e9ba3f8 (env : env)
-    ((v1, v2, v3) : CST.anon_id_rep_COMMA_id_opt_COMMA_e9ba3f8) =
-  let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v1 in
+    ((v1, v2, v3) : CST.anon_id_rep_COMMA_id_opt_COMMA_e9ba3f8) : ident list =
+  let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = (* "," *) token env v1 in
-        let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
-        todo env (v1, v2))
+        let _v1 = (* "," *) token env v1 in
+        let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
+        v2)
       v2
   in
-  let v3 =
-    match v3 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
-  in
-  todo env (v1, v2, v3)
+  let _v3 = map_trailing_comma env v3 in
+  v1 :: v2
 
-let map_user_defined_type (env : env) ((v1, v2) : CST.user_defined_type) =
-  let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v1 in
+let map_user_defined_type (env : env) ((v1, v2) : CST.user_defined_type) : type_
+    =
+  let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = (* "." *) token env v1 in
-        let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
-        todo env (v1, v2))
+        let _v1 = (* "." *) token env v1 in
+        let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
+        v2)
       v2
   in
-  todo env (v1, v2)
+  let ids = v1 :: v2 in
+  let name = H2.name_of_ids ids in
+  TyN name |> G.t
 
 let map_import_declaration (env : env) ((v1, v2) : CST.import_declaration) =
-  let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v1 in
+  let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 = (* "as" *) token env v1 in
-        let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        let _v1 = (* "as" *) token env v1 in
+        let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
+        Some (v2, G.empty_id_info ())
+    | None -> None
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 let map_decimal_number (env : env) (x : CST.decimal_number) =
   match x with
-  | `Pat_6c32705 tok -> (* pattern \d+(\.\d+)?([eE](-)?\d+)? *) token env tok
-  | `Pat_0468c4a tok -> (* pattern \.\d+([eE](-)?\d+)? *) token env tok
+  | `Pat_6c32705 tok ->
+      let s, t = (* pattern \d+(\.\d+)?([eE](-)?\d+)? *) str env tok in
+      (float_of_string_opt s, t)
+  | `Pat_0468c4a tok ->
+      let s, t = (* pattern \.\d+([eE](-)?\d+)? *) str env tok in
+      (float_of_string_opt s, t)
 
 let map_pragma_version_constraint (env : env)
-    ((v1, v2) : CST.pragma_version_constraint) =
+    ((v1, v2) : CST.pragma_version_constraint) : any list =
   let v1 =
     match v1 with
-    | Some x -> map_solidity_version_comparison_operator env x
-    | None -> todo env ()
+    | Some x ->
+        let op, t = map_solidity_version_comparison_operator env x in
+        [ E (IdSpecial (Op op, t) |> G.e) ]
+    | None -> []
   in
-  let v2 = (* pattern \d+(.\d+(.\d+)?)? *) token env v2 in
-  todo env (v1, v2)
+  let v2 = (* pattern \d+(.\d+(.\d+)?)? *) str env v2 in
+  v1 @ [ Str v2 ]
 
 let map_fixed (env : env) (x : CST.fixed) =
   match x with
-  | `Fixed tok -> (* "fixed" *) token env tok
-  | `Pat_f2662db tok -> (* pattern fixed([0-9]+)x([0-9]+) *) token env tok
+  | `Fixed tok -> (* "fixed" *) str env tok
+  | `Pat_f2662db tok -> (* pattern fixed([0-9]+)x([0-9]+) *) str env tok
 
 let map_anon_rep_opt___hex_digit_c87bea1 (env : env)
-    (xs : CST.anon_rep_opt___hex_digit_c87bea1) =
+    (xs : CST.anon_rep_opt___hex_digit_c87bea1) : string wrap list =
   List.map
     (fun (v1, v2) ->
-      let v1 =
+      let _v1 =
         match v1 with
-        | Some tok -> (* "_" *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "_" *) [ token env tok ]
+        | None -> []
       in
-      let v2 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) token env v2 in
-      todo env (v1, v2))
+      let v2 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) str env v2 in
+      v2)
     xs
 
 let map_ufixed (env : env) (x : CST.ufixed) =
   match x with
-  | `Ufixed tok -> (* "ufixed" *) token env tok
-  | `Pat_accdbe2 tok -> (* pattern ufixed([0-9]+)x([0-9]+) *) token env tok
+  | `Ufixed tok -> (* "ufixed" *) str env tok
+  | `Pat_accdbe2 tok -> (* pattern ufixed([0-9]+)x([0-9]+) *) str env tok
 
 let map_double_quoted_unicode_char (env : env)
     (x : CST.double_quoted_unicode_char) =
   match x with
-  | `Pat_0c477de tok -> (* pattern "[^\"\\r\\n\\\\]" *) token env tok
-  | `Esc_seq tok -> (* escape_sequence *) token env tok
+  | `Pat_0c477de tok -> (* pattern "[^\"\\r\\n\\\\]" *) str env tok
+  | `Esc_seq tok -> (* escape_sequence *) str env tok
 
 let map_single_quoted_unicode_char (env : env)
     (x : CST.single_quoted_unicode_char) =
   match x with
-  | `Pat_a096c41 tok -> (* pattern "[^'\\r\\n\\\\]" *) token env tok
-  | `Esc_seq tok -> (* escape_sequence *) token env tok
+  | `Pat_a096c41 tok -> (* pattern "[^'\\r\\n\\\\]" *) str env tok
+  | `Esc_seq tok -> (* escape_sequence *) str env tok
 
 let map_string_ (env : env) (x : CST.string_) =
   match x with
@@ -425,12 +429,14 @@ let map_string_ (env : env) (x : CST.string_) =
           (fun x ->
             match x with
             | `Str_imme_elt_inside_double_quote tok ->
-                (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *) token env tok
-            | `Esc_seq tok -> (* escape_sequence *) token env tok)
+                (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *) str env tok
+            | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
       let v3 = (* "\"" *) token env v3 in
-      todo env (v1, v2, v3)
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = (v2 |> List.map snd) @ [ v3 ] in
+      (str, PI.combine_infos v1 toks)
   | `SQUOT_rep_choice_str_imme_elt_inside_quote_SQUOT (v1, v2, v3) ->
       let v1 = (* "'" *) token env v1 in
       let v2 =
@@ -438,25 +444,30 @@ let map_string_ (env : env) (x : CST.string_) =
           (fun x ->
             match x with
             | `Str_imme_elt_inside_quote tok ->
-                (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *) token env tok
-            | `Esc_seq tok -> (* escape_sequence *) token env tok)
+                (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *) str env tok
+            | `Esc_seq tok -> (* escape_sequence *) str env tok)
           v2
       in
       let v3 = (* "'" *) token env v3 in
-      todo env (v1, v2, v3)
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = (v2 |> List.map snd) @ [ v3 ] in
+      (str, PI.combine_infos v1 toks)
 
 let map_enum_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.enum_declaration) : definition =
-  let v1 = (* "enum" *) token env v1 in
-  let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
-  let v3 = (* "{" *) token env v3 in
-  let v4 =
+  let _enumkwd = (* "enum" *) token env v1 in
+  let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
+  let _lb = (* "{" *) token env v3 in
+  let elems =
     match v4 with
     | Some x -> map_anon_id_rep_COMMA_id_opt_COMMA_e9ba3f8 env x
-    | None -> todo env ()
+    | None -> []
   in
-  let v5 = (* "}" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  let _rb = (* "}" *) token env v5 in
+  let ent = G.basic_entity id in
+  let ors = elems |> List.map (fun id -> OrEnum (id, None)) in
+  let def = { tbody = OrType ors } in
+  (ent, TypeDef def)
 
 let map_override_specifier (env : env) ((v1, v2) : CST.override_specifier) =
   let v1 = (* "override" *) token env v1 in
@@ -468,33 +479,34 @@ let map_override_specifier (env : env) ((v1, v2) : CST.override_specifier) =
         let v3 =
           List.map
             (fun (v1, v2) ->
-              let v1 = (* "," *) token env v1 in
+              let _v1 = (* "," *) token env v1 in
               let v2 = map_user_defined_type env v2 in
-              todo env (v1, v2))
+              v2)
             v3
         in
-        let v4 =
-          match v4 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ()
-        in
+        let _v4 = map_trailing_comma env v4 in
         let v5 = (* ")" *) token env v5 in
-        todo env (v1, v2, v3, v4, v5)
-    | None -> todo env ()
+        Some (v1, v2 :: v3, v5)
+    | None -> None
   in
-  todo env (v1, v2)
+  match v2 with
+  | None -> G.attr Override v1
+  | Some (_l, xs, _r) ->
+      OtherAttribute (("OverrideWithTypes", v1), xs |> List.map (fun t -> T t))
 
 let map_hex_number (env : env) ((v1, v2) : CST.hex_number) =
-  let v1 = (* pattern 0[xX] *) token env v1 in
+  let start, t1 = (* pattern 0[xX] *) str env v1 in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) token env v1 in
+        let v1 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) str env v1 in
         let v2 = map_anon_rep_opt___hex_digit_c87bea1 env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        v1 :: v2
+    | None -> []
   in
-  todo env (v1, v2)
+  let str = start ^ (v2 |> List.map fst |> String.concat "") in
+  let toks = v2 |> List.map snd in
+  (int_of_string_opt str, PI.combine_infos t1 toks)
 
 let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) =
   List.map
@@ -507,67 +519,68 @@ let map_hex_string_literal (env : env) (xs : CST.hex_string_literal) =
             let v2 =
               match v2 with
               | Some (v1, v2) ->
-                  let v1 =
-                    (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) token env v1
-                  in
+                  let v1 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) str env v1 in
                   let v2 = map_anon_rep_opt___hex_digit_c87bea1 env v2 in
-                  todo env (v1, v2)
-              | None -> todo env ()
+                  v1 :: v2
+              | None -> []
             in
             let v3 = (* "\"" *) token env v3 in
-            todo env (v1, v2, v3)
+            let str = v2 |> List.map fst |> String.concat "" in
+            let toks = (v2 |> List.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
         | `SQUOT_opt_hex_digit_rep_opt___hex_digit_SQUOT (v1, v2, v3) ->
             let v1 = (* "'" *) token env v1 in
             let v2 =
               match v2 with
               | Some (v1, v2) ->
-                  let v1 =
-                    (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) token env v1
-                  in
+                  let v1 = (* pattern ([a-fA-F0-9][a-fA-F0-9]) *) str env v1 in
                   let v2 = map_anon_rep_opt___hex_digit_c87bea1 env v2 in
-                  todo env (v1, v2)
-              | None -> todo env ()
+                  v1 :: v2
+              | None -> []
             in
             let v3 = (* "'" *) token env v3 in
-            todo env (v1, v2, v3)
+            let str = v2 |> List.map fst |> String.concat "" in
+            let toks = (v2 |> List.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
       in
-      todo env (v1, v2))
+      (v1, v2))
     xs
 
 let map_primitive_type (env : env) (x : CST.primitive_type) : type_ =
   match x with
   | `Addr_opt_paya (v1, v2) ->
-      let v1 = (* "address" *) token env v1 in
+      let v1 = (* "address" *) str env v1 in
       let v2 =
         match v2 with
-        | Some tok -> (* "payable" *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "payable" *) [ str env tok ]
+        | None -> []
       in
-      todo env (v1, v2)
+      let n = H2.name_of_ids (v1 :: v2) in
+      G.TyN n |> G.t
   | `Bool tok ->
-      let x = (* "bool" *) token env tok in
-      todo env x
+      let x = (* "bool" *) str env tok in
+      G.ty_builtin x
   | `Str tok ->
-      let x = (* "string" *) token env tok in
-      todo env x
+      let x = (* "string" *) str env tok in
+      G.ty_builtin x
   | `Var tok ->
-      let x = (* "var" *) token env tok in
-      todo env x
+      let x = (* "var" *) str env tok in
+      G.ty_builtin x
   | `Int x ->
       let x = map_int_ env x in
-      todo env x
+      G.ty_builtin x
   | `Uint x ->
       let x = map_uint env x in
-      todo env x
+      G.ty_builtin x
   | `Bytes x ->
       let x = map_bytes_ env x in
-      todo env x
+      G.ty_builtin x
   | `Fixed x ->
       let x = map_fixed env x in
-      todo env x
+      G.ty_builtin x
   | `Ufixed x ->
       let x = map_ufixed env x in
-      todo env x
+      G.ty_builtin x
 
 let map_unicode_string_literal (env : env) (xs : CST.unicode_string_literal) =
   List.map
@@ -579,14 +592,18 @@ let map_unicode_string_literal (env : env) (xs : CST.unicode_string_literal) =
             let v1 = (* "\"" *) token env v1 in
             let v2 = List.map (map_double_quoted_unicode_char env) v2 in
             let v3 = (* "\"" *) token env v3 in
-            todo env (v1, v2, v3)
+            let str = v2 |> List.map fst |> String.concat "" in
+            let toks = (v2 |> List.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
         | `SQUOT_rep_single_quoted_unic_char_SQUOT (v1, v2, v3) ->
             let v1 = (* "'" *) token env v1 in
             let v2 = List.map (map_single_quoted_unicode_char env) v2 in
             let v3 = (* "'" *) token env v3 in
-            todo env (v1, v2, v3)
+            let str = v2 |> List.map fst |> String.concat "" in
+            let toks = (v2 |> List.map snd) @ [ v3 ] in
+            (str, PI.combine_infos v1 toks)
       in
-      todo env (v1, v2))
+      (v1, v2))
     xs
 
 let map_yul_string_literal (env : env) (x : CST.yul_string_literal) =
@@ -595,42 +612,47 @@ let map_yul_string_literal (env : env) (x : CST.yul_string_literal) =
 let map_import_clause (env : env) (x : CST.import_clause) =
   match x with
   | `Single_import (v1, v2) ->
-      let v1 = (* "*" *) token env v1 in
+      let tstar = (* "*" *) token env v1 in
       let v2 =
         match v2 with
         | Some (v1, v2) ->
-            let v1 = (* "as" *) token env v1 in
-            let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
-            todo env (v1, v2)
-        | None -> todo env ()
+            let _v1 = (* "as" *) token env v1 in
+            let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
+            fun timport modname ->
+              [
+                ImportAs (timport, modname, Some (id, G.empty_id_info ()))
+                |> G.d;
+              ]
+        | None ->
+            fun timport modname ->
+              [ ImportAll (timport, modname, tstar) |> G.d ]
       in
-      todo env (v1, v2)
+      v2
   | `Mult_import (v1, v2, v3) ->
-      let v1 = (* "{" *) token env v1 in
-      let v2 =
+      let _lb = (* "{" *) token env v1 in
+      let xs =
         match v2 with
         | Some (v1, v2, v3) ->
             let v1 = map_import_declaration env v1 in
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
+                  let _v1 = (* "," *) token env v1 in
                   let v2 = map_import_declaration env v2 in
-                  todo env (v1, v2))
+                  v2)
                 v2
             in
-            let v3 =
-              match v3 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ()
-            in
-            todo env (v1, v2, v3)
-        | None -> todo env ()
+            let _v3 = map_trailing_comma env v3 in
+            v1 :: v2
+        | None -> []
       in
-      let v3 = (* "}" *) token env v3 in
-      todo env (v1, v2, v3)
+      let _rb = (* "}" *) token env v3 in
+      fun timport modname ->
+        xs
+        |> List.map (fun (id, aliasopt) ->
+               ImportFrom (timport, modname, id, aliasopt) |> G.d)
 
-let map_mapping_key (env : env) (x : CST.mapping_key) =
+let map_mapping_key (env : env) (x : CST.mapping_key) : type_ =
   match x with
   | `Prim_type x -> map_primitive_type env x
   | `User_defi_type x -> map_user_defined_type env x
@@ -640,17 +662,17 @@ let map_yul_literal (env : env) (x : CST.yul_literal) : literal =
   | `Yul_deci_num tok ->
       (* pattern 0|([1-9][0-9]*\
          ) *)
-      let x = token env tok in
-      todo env x
+      let s, t = str env tok in
+      Int (Common2.int_of_string_c_octal_opt s, t)
   | `Yul_str_lit x ->
       let x = map_yul_string_literal env x in
-      todo env x
+      String x
   | `Yul_hex_num tok ->
-      let x = (* pattern 0x[0-9A-Fa-f]* *) token env tok in
-      todo env x
+      let s, t = (* pattern 0x[0-9A-Fa-f]* *) str env tok in
+      Int (int_of_string_opt s, t)
   | `Yul_bool x ->
       let b = map_yul_or_literal_boolean env x in
-      todo env b
+      Bool b
 
 let map_from_clause (env : env) ((v1, v2) : CST.from_clause) =
   let v1 = (* "from" *) token env v1 in
@@ -674,7 +696,9 @@ let map_string_literal (env : env) (xs : CST.string_literal) =
 
 let rec map_yul_expression (env : env) (x : CST.yul_expression) : expr =
   match x with
-  | `Yul_path x -> map_yul_path env x
+  | `Yul_path x ->
+      let ids = map_yul_path env x in
+      todo env ids
   | `Yul_func_call x -> map_yul_function_call env x
   | `Yul_lit x ->
       let x = map_yul_literal env x in
@@ -699,23 +723,19 @@ and map_yul_function_call (env : env) ((v1, v2, v3, v4) : CST.yul_function_call)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = (* "," *) token env v1 in
+              let _v1 = (* "," *) token env v1 in
               let v2 = map_yul_expression env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
-        let v3 =
-          match v3 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ()
-        in
+        let _v3 = map_trailing_comma env v3 in
         todo env (v1, v2, v3)
     | None -> todo env ()
   in
   let v4 = (* ")" *) token env v4 in
   todo env (v1, v2, v3, v4)
 
-let map_literal (env : env) (x : CST.literal) =
+let map_literal (env : env) (x : CST.literal) : expr =
   match x with
   | `Str_lit x ->
       let x = map_string_literal env x in
@@ -723,24 +743,30 @@ let map_literal (env : env) (x : CST.literal) =
   | `Num_lit (v1, v2) ->
       let v1 =
         match v1 with
-        | `Deci_num x -> map_decimal_number env x
-        | `Hex_num x -> map_hex_number env x
+        | `Deci_num x ->
+            let fopt, t = map_decimal_number env x in
+            Float (fopt, t)
+        | `Hex_num x ->
+            let iopt, t = map_hex_number env x in
+            Int (iopt, t)
       in
       let v2 =
         match v2 with
-        | Some x -> map_number_unit env x
-        | None -> todo env ()
+        | Some x ->
+            let unit = map_number_unit env x in
+            todo env unit
+        | None -> L v1 |> G.e
       in
-      todo env (v1, v2)
+      v2
   | `Bool_lit x ->
       let x = map_yul_or_literal_boolean env x in
-      todo env x
+      L (Bool x) |> G.e
   | `Hex_str_lit x ->
-      let x = map_hex_string_literal env x in
-      todo env x
+      let xs = map_hex_string_literal env x in
+      todo env xs
   | `Unic_str_lit x ->
-      let x = map_unicode_string_literal env x in
-      todo env x
+      let xs = map_unicode_string_literal env x in
+      todo env xs
 
 let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
     =
@@ -770,16 +796,12 @@ let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
             let v3 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
-                  let v2 = (* pattern [a-zA-Z$_]+ *) token env v2 in
-                  todo env (v1, v2))
+                  let _v1 = (* "," *) token env v1 in
+                  let v2 = (* pattern [a-zA-Z$_]+ *) str env v2 in
+                  v2)
                 v3
             in
-            let v4 =
-              match v4 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ()
-            in
+            let _v4 = map_trailing_comma env v4 in
             let v5 = (* ")" *) token env v5 in
             todo env (v1, v2, v3, v4, v5)
       in
@@ -806,16 +828,12 @@ let map_yul_assignment (env : env) (x : CST.yul_assignment) =
       let v2 =
         List.map
           (fun (v1, v2) ->
-            let v1 = (* "," *) token env v1 in
+            let _v1 = (* "," *) token env v1 in
             let v2 = map_yul_path env v2 in
-            todo env (v1, v2))
+            v2)
           v2
       in
-      let v3 =
-        match v3 with
-        | Some tok -> (* "," *) token env tok
-        | None -> todo env ()
-      in
+      let v3 = map_trailing_comma env v3 in
       let v4 =
         match v4 with
         | Some (v1, v2) ->
@@ -830,7 +848,7 @@ let map_directive (env : env) (x : CST.directive) : directive =
   match x with
   | `Pragma_dire (v1, v2, v3, v4) ->
       let v1 = (* "pragma" *) token env v1 in
-      let v2 = (* "solidity" *) token env v2 in
+      let v2 = (* "solidity" *) str env v2 in
       let v3 = List.map (map_pragma_version_constraint env) v3 in
       let v4 = (* ";" *) token env v4 in
       todo env (v1, v2, v3, v4)
@@ -985,16 +1003,12 @@ and map_call_arguments (env : env) ((v1, v2, v3) : CST.call_arguments) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = (* "," *) token env v1 in
+              let _v1 = (* "," *) token env v1 in
               let v2 = map_anon_choice_exp_e762ef6 env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
-        let v3 =
-          match v3 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ()
-        in
+        let v3 = map_trailing_comma env v3 in
         todo env (v1, v2, v3)
     | None -> todo env ()
   in
@@ -1033,20 +1047,14 @@ and map_expression (env : env) (x : CST.expression) : expr =
             let v4 =
               List.map
                 (fun (v1, v2, v3, v4) ->
-                  let v1 = (* "," *) token env v1 in
-                  let v2 =
-                    (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2
-                  in
+                  let _v1 = (* "," *) token env v1 in
+                  let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
                   let v3 = (* ":" *) token env v3 in
                   let v4 = map_expression env v4 in
                   todo env (v1, v2, v3, v4))
                 v4
             in
-            let v5 =
-              match v5 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ()
-            in
+            let v5 = map_trailing_comma env v5 in
             todo env (v1, v2, v3, v4, v5)
         | None -> todo env ()
       in
@@ -1120,16 +1128,12 @@ and map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = (* "," *) token env v1 in
+              let _v1 = (* "," *) token env v1 in
               let v2 = map_parameter env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
-        let v3 =
-          match v3 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ()
-        in
+        let v3 = map_trailing_comma env v3 in
         todo env (v1, v2, v3)
     | None -> todo env ()
   in
@@ -1186,7 +1190,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let v3 = map_expression env v3 in
       todo env (v1, v2, v3)
-  | `User_defi_type x -> map_user_defined_type env x
+  | `User_defi_type x ->
+      let x = map_user_defined_type env x in
+      todo env x
   | `Tuple_exp x -> map_tuple_expression env x
   | `Inline_array_exp (v1, v2, v3) ->
       let v1 = (* "[" *) token env v1 in
@@ -1197,16 +1203,12 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
+                  let _v1 = (* "," *) token env v1 in
                   let v2 = map_expression env v2 in
-                  todo env (v1, v2))
+                  v2)
                 v2
             in
-            let v3 =
-              match v3 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ()
-            in
+            let _v3 = map_trailing_comma env v3 in
             todo env (v1, v2, v3)
         | None -> todo env ()
       in
@@ -1235,16 +1237,12 @@ and map_return_parameters (env : env)
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = (* "," *) token env v1 in
+        let _v1 = (* "," *) token env v1 in
         let v2 = map_nameless_parameter env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
-  let v4 =
-    match v4 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
-  in
+  let v4 = map_trailing_comma env v4 in
   let v5 = (* ")" *) token env v5 in
   todo env (v1, v2, v3, v4, v5)
 
@@ -1273,7 +1271,9 @@ and map_tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) =
 and map_type_name (env : env) (x : CST.type_name) : type_ =
   match x with
   | `Prim_type x -> map_primitive_type env x
-  | `User_defi_type x -> map_user_defined_type env x
+  | `User_defi_type x ->
+      let x = map_user_defined_type env x in
+      todo env x
   | `Mapp (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "mapping" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1423,16 +1423,12 @@ and map_yul_statement (env : env) (x : CST.yul_statement) : stmt =
             let v3 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
-                  let v2 = (* pattern [a-zA-Z$_]+ *) token env v2 in
-                  todo env (v1, v2))
+                  let _v1 = (* "," *) token env v1 in
+                  let v2 = (* pattern [a-zA-Z$_]+ *) str env v2 in
+                  v2)
                 v3
             in
-            let v4 =
-              match v4 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ()
-            in
+            let _v4 = map_trailing_comma env v4 in
             todo env (v1, v2, v3, v4)
         | None -> todo env ()
       in
@@ -1448,16 +1444,17 @@ let map_state_variable_declaration (env : env)
         match x with
         | `Visi x ->
             let x = map_visibility env x in
-            todo env x
+            x
         | `Cst tok ->
             let x = (* "constant" *) token env tok in
-            todo env x
+            G.attr Const x
         | `Over_spec x ->
             let x = map_override_specifier env x in
-            todo env x
+            x
+        (* TODO: difference between constant and immutable? *)
         | `Immu tok ->
-            let x = (* "immutable" *) token env tok in
-            todo env x)
+            let x = (* "immutable" *) str env tok in
+            G.unhandled_keywordattr x)
       v2
   in
   let v3 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 in
@@ -1565,16 +1562,12 @@ let map_class_heritage (env : env) ((v1, v2, v3, v4) : CST.class_heritage) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = (* "," *) token env v1 in
+        let _v1 = (* "," *) token env v1 in
         let v2 = map_inheritance_specifier env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
-  let v4 =
-    match v4 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
-  in
+  let _v4 = map_trailing_comma env v4 in
   todo env (v1, v2, v3, v4)
 
 let map_event_parameter_list (env : env)
@@ -1587,16 +1580,12 @@ let map_event_parameter_list (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = (* "," *) token env v1 in
+              let _v1 = (* "," *) token env v1 in
               let v2 = map_event_paramater env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
-        let v3 =
-          match v3 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ()
-        in
+        let _v3 = map_trailing_comma env v3 in
         todo env (v1, v2, v3)
     | None -> todo env ()
   in
@@ -1615,16 +1604,12 @@ let map_variable_declaration_tuple (env : env)
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
+                  let _v1 = (* "," *) token env v1 in
                   let v2 = map_variable_declaration env v2 in
-                  todo env (v1, v2))
+                  v2)
                 v2
             in
-            let v3 =
-              match v3 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ()
-            in
+            let _v3 = map_trailing_comma env v3 in
             todo env (v1, v2, v3)
         | None -> todo env ()
       in
@@ -1921,7 +1906,9 @@ let map_modifier_definition (env : env)
     List.map
       (fun x ->
         match x with
-        | `Virt tok -> (* "virtual" *) token env tok
+        | `Virt tok ->
+            let t = (* "virtual" *) token env tok in
+            G.attr Abstract t
         | `Over_spec x -> map_override_specifier env x)
       v4
   in

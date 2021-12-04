@@ -1182,14 +1182,14 @@ and attribute =
 
 and keyword_attribute =
   (* the classic C modifiers (except Auto) *)
-  | Static
+  | Static (* a.k.a Intern in Solidity *)
   | Extern (* less: of string? like extern "C" in C++ or Rust *)
   | Volatile
   (* the classic C++ modifiers for fields/methods *)
   | Public
   | Private
   | Protected
-  | Abstract (* a.k.a virtual in C++ *)
+  | Abstract (* a.k.a virtual in C++/Solidity *)
   (* for fields/methods in classes and also classes *)
   | Final
   | Override
