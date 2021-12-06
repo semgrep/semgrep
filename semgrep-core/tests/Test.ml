@@ -577,6 +577,7 @@ let maturity_tests =
     (* Beta *)
     check_maturity Lang.Hack "hack" ".hack" Beta;
     check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
+    check_maturity Lang.Scala "scala" ".scala" Beta;
     (* Terraform/HCL has too many NA, not worth it *)
 
     (* Experimental *)
@@ -590,7 +591,6 @@ let maturity_tests =
     (* TODO: too many exns, we need to write tests!
      check_maturity Lang.Rust "rust" ".rust" Experimental;
     *)
-    check_maturity Lang.Scala "scala" ".scala" Experimental;
     (* YAML has too many NA, not worth it *)
 
     (* Not even experimental *)
