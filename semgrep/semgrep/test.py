@@ -256,10 +256,6 @@ def score_output_json(
                 old_cm[i] + new_cm[i] for i in range(len(new_cm))
             ]
 
-    if false_positive_lines:
-        logger.error("failing due to false positives")
-        sys.exit(EXIT_FAILURE)
-
     return (score_by_checkid, matches_by_check_id, num_todo)
 
 
