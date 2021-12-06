@@ -1,0 +1,14 @@
+rules:
+  - id: my_pattern_id
+    patterns:
+      - pattern: |
+          owasp: 
+            $X
+      - metavariable-pattern:
+          metavariable: $X
+          pattern: $Y
+    message: Semgrep found a match - $X
+    languages:
+      - yaml
+    severity: WARNING
+
