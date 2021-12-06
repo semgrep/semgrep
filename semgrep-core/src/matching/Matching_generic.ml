@@ -630,25 +630,30 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  let loc = PI.unsafe_token_location_of_info info in
-  let raw_str = loc.PI.str in
-  let re = Str.regexp_string s in
-  try
-    let pos = Str.search_forward re raw_str 0 in
-    let loc =
-      {
-        loc with
-        PI.str = s;
-        charpos = loc.charpos + pos;
-        column = loc.column + pos;
-      }
-    in
-    let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
-    (s, info)
-  with Not_found ->
-    logger#error "could not find %s in %s" s raw_str;
-    (* return original token ... better than failwith? *)
-    (s, info)
+  match PI.token_location_of_info info with
+  | Error _ ->
+      (* We have no token location to adjust (typically a fake token),
+       * this happens if the string is the result of constant folding. *)
+      (s, info)
+  | Ok loc -> (
+      let raw_str = loc.PI.str in
+      let re = Str.regexp_string s in
+      try
+        let pos = Str.search_forward re raw_str 0 in
+        let loc =
+          {
+            loc with
+            PI.str = s;
+            charpos = loc.charpos + pos;
+            column = loc.column + pos;
+          }
+        in
+        let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+        (s, info)
+      with Not_found ->
+        logger#error "could not find %s in %s" s raw_str;
+        (* return original token ... better than failwith? *)
+        (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket
@@ -658,7 +663,7 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
   match fst a with
   (* dots: '...' on string *)
   | "..." -> return ()
-  (* metavar: *)
+  (* metavar: "$MVAR" *)
   | astr when MV.is_metavar_name astr ->
       let text = adjust_info_remove_enclosing_quotes b in
       envf a (MV.Text text)
