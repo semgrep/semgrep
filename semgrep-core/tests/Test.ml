@@ -511,16 +511,16 @@ let test_irrelevant_rule rule_file target_file =
         Alcotest.fail (spf "Rule %s considered relevant by regex prefilter: %s" (fst rule.id) re)
   )
   
-let test_irrelevant_rule_file test_file =
-  Filename.basename test_file, (fun () ->
+let test_irrelevant_rule_file target_file =
+  Filename.basename target_file, (fun () ->
     let rules_file =
-      let (d,b,_e) = Common2.dbe_of_filename test_file in
+      let (d,b,_e) = Common2.dbe_of_filename target_file in
       let candidate1 = Common2.filename_of_dbe (d,b,"yaml") in
       if Sys.file_exists candidate1
       then candidate1
-      else failwith (spf "could not find target file for irrelevant rule %s" test_file)
+      else failwith (spf "could not find target file for irrelevant rule %s" target_file)
     in
-    test_irrelevant_rule rules_file test_file
+    test_irrelevant_rule rules_file target_file
   )
 
 (* These tests test that semgrep with filter_irrelevant_rules correctly 
@@ -533,14 +533,14 @@ let test_irrelevant_rule_file test_file =
 let filter_irrelevant_rules_tests =
   pack_tests "filter irrelevant rules testing" (
     let dir = Filename.concat tests_path "OTHER/irrelevant_rules" in
-    let test_files = 
+    let target_files = 
     Common2.glob (spf "%s/*" dir)
     |> File_type.files_of_dirs_or_files (function
          | File_type.Config File_type.Yaml -> false
          | _ -> true (* TODO include .test.yaml*))
     in
-    test_files |> List.map (fun test_file ->
-      test_irrelevant_rule_file test_file
+    target_files |> List.map (fun target_file ->
+      test_irrelevant_rule_file target_file
     )
   )
 
