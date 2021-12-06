@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -497,13 +497,14 @@ and expr_kind =
   | StmtExpr of stmt
   (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
    * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
-   * Subshell in Ruby, Delete/Unset in JS/Hack,
-   * Unpack, ArrayAppend in PHP (the AST for $x[] = 1 used to be
+   * Subshell in Ruby, Delete/Unset in JS/Hack/Solidity/C++,
+   * Unpack/ArrayAppend in PHP (the AST for $x[] = 1 used to be
    * handled as an AssignOp with special Append).
-   * Define/Arguments/NewTarget//YieldStar in JS
-   * Exports/Module/Require/UseStrict in JS,
+   * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
+   * UnitLiteral/TupleHole in Solidity
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
-   * TODO? of replace 'any list' by 'expr list'?
+   * TODO? of replace 'any list' by 'expr list'? any way there's still
+   * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
 
@@ -1182,14 +1183,14 @@ and attribute =
 
 and keyword_attribute =
   (* the classic C modifiers (except Auto) *)
-  | Static
+  | Static (* a.k.a Intern in Solidity *)
   | Extern (* less: of string? like extern "C" in C++ or Rust *)
   | Volatile
   (* the classic C++ modifiers for fields/methods *)
   | Public
   | Private
   | Protected
-  | Abstract (* a.k.a virtual in C++ *)
+  | Abstract (* a.k.a virtual in C++/Solidity *)
   (* for fields/methods in classes and also classes *)
   | Final
   | Override
