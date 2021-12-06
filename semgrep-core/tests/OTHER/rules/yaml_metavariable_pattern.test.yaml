@@ -1,0 +1,4 @@
+# ERROR:
+owasp:
+- 'A8: Insecure Deserialization'
+- 'A1: Injection'
