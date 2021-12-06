@@ -118,6 +118,7 @@ let mk_bracket
     | None -> (e_line, e_column)
     | Some f ->
         let e_line, e_column = f e_index' in
+        (* e_line - 1 because tok expects e_line 0-indexed *)
         (e_line - 1, e_column)
   in
   ( tok (s_index, s_line, s_column) "(" env,
