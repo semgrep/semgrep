@@ -1,7 +1,7 @@
 object Foo {
     def foo () : Int = {
+        //ERROR:
         if (cond) {
-            y = 0
             return 1
         }
     }
