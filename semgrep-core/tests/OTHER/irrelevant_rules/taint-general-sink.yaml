@@ -1,3 +1,6 @@
+# both source and sink are necessary for a match, so
+# despite having a general sink the specific source 
+# allows us to filter
 rules:
 - id: pattern-and 
   mode: taint

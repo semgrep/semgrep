@@ -6,6 +6,7 @@ rules:
       import environ
       ...
   - pattern-either:
+    # because this pattern is general, we cannot filter out any files
     - pattern: |
         ...
     - pattern: |
