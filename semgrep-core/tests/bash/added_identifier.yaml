@@ -1,0 +1,7 @@
+rules:
+- id: '-'
+  pattern: echo ...
+  message: echo ...
+  languages:
+  - bash
+  severity: ERROR
