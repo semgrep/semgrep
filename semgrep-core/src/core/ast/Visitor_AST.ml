@@ -449,6 +449,9 @@ let (mk_visitor :
       | Cst v1 ->
           let v1 = v_const_type v1 in
           ()
+      | Sym v1 ->
+          let v1 = v_expr v1 in
+          ()
       | NotCst -> ()
     in
     vin.kconstness (k, all_functions) x

@@ -534,7 +534,7 @@ and literal =
 and const_type = Cbool | Cint | Cstr | Cany
 
 (* set by the constant propagation algorithm and used in semgrep *)
-and constness = Lit of literal | Cst of const_type | NotCst
+and constness = Lit of literal | Cst of const_type | Sym of expr | NotCst
 
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)

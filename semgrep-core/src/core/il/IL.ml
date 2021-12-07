@@ -123,7 +123,18 @@ type fixme_kind =
 (*****************************************************************************)
 
 (* Only use `SameAs` when the IL expression or instruction is indeed "the same as"
- * (i.e., semantically equivalent) to that Generic expression. *)
+ * (i.e., semantically equivalent to) that Generic expression.
+ *
+ * When an IL expression is derived from some other Generic expression or
+ * construct, but not semantically equivalent, you can use `Related`. Note that
+ * this info will be used by taint-tracking to match sources/sanitizers/sinks;
+ * so make sure that the annotation makes sense, or it could lead to weird taint
+ * findings.
+ *
+ * When no orig info is needed, or it cannot be provided, then use NoOrig. For
+ * example, auxiliary assignments where the RHS has the right orig-info can be
+ * annotated with NoOrig. This also helps making -dump_il more readable.
+ *)
 type orig = SameAs of G.expr | Related of G.any | NoOrig
 [@@deriving show { with_path = false }]
 

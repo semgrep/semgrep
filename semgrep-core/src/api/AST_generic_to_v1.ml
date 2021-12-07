@@ -364,6 +364,7 @@ and map_constness = function
   | Cst v1 ->
       let v1 = map_const_type v1 in
       `Cst v1
+  | Sym _v1 -> (* Not supported by AST_generic_v1 *) `NotCst
   | NotCst -> `NotCst
 
 and map_container_operator = function

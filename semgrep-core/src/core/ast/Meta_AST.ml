@@ -364,6 +364,9 @@ and vof_constness = function
   | Cst v1 ->
       let v1 = vof_const_type v1 in
       OCaml.VSum ("Cst", [ v1 ])
+  | Sym v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("Sym", [ v1 ])
   | NotCst -> OCaml.VSum ("NotCst", [])
 
 and vof_container_operator = function

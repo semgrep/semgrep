@@ -770,6 +770,23 @@ and pattern env = function
   | PatId (id, _id_info) -> ident id
   | x -> todo (P x)
 
+let ctype = function
+  | G.Cbool -> "bool"
+  | G.Cint -> "int"
+  | G.Cstr -> "str"
+  | G.Cany -> "???"
+
+let constness env = function
+  | G.NotCst -> "TOP"
+  | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
+  | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
+  | G.Lit l -> (
+      match l with
+      | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
+      | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
+      | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
+      | ___else___ -> "lit(???)")
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -791,3 +808,7 @@ let pattern_to_string lang any =
   | _ ->
       pr2 (AST_generic.show_any any);
       failwith "todo: only expression pattern can be pretty printed right now"
+
+let constness_to_string lang c =
+  let env = { lang; mvars = [] } in
+  constness env c

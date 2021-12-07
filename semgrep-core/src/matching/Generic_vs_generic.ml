@@ -342,6 +342,16 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
         in
         b |> sub_fun |> aux )
 
+let m_with_symbolic_propagation f b =
+  if_config
+    (fun x -> x.Config.constant_propagation && x.Config.symbolic_propagation)
+    ~then_:
+      (match b.G.e with
+      | G.N (G.Id (_, { id_constness = { contents = Some (G.Sym b1) }; _ })) ->
+          f b1
+      | ___else___ -> fail ())
+    ~else_:(fail ())
+
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
@@ -546,6 +556,10 @@ and m_id_info a b =
 (* experimental! *)
 and m_expr_deep a b =
   m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b
+  >||> m_with_symbolic_propagation
+         (fun b1 ->
+           m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b1)
+         b
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
@@ -609,15 +623,16 @@ and m_expr a b =
       (* TODO: double check names does not have any type_args *)
       let full = (names |> List.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
-  | G.DotAccess (_, _, _), B.N b1 -> (
+  | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
        * a,b,c are all identifiers. Note that something like a.b.c could get
        * parsed as either DotAccess or IdQualified depending on the context
        * (e.g., in Python it is always a DotAccess *except* when it occurs
        * in an attribute). *)
-      match H.name_of_dot_access a with
+      (match H.name_of_dot_access a with
       | None -> fail ()
       | Some a1 -> m_name a1 b1)
+      >||> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   (* $X should not match an IdSpecial in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
    * Call(IdSpecial Plus, ...).
@@ -641,7 +656,8 @@ and m_expr a b =
    * the next case where we bind to the more general MV.E.
    * TODO: should be B.N (B.Id _ | B.IdQualified _)?
    *)
-  | G.N (G.Id _ as na), B.N (B.Id _ as nb) -> m_name na nb
+  | G.N (G.Id _ as na), B.N (B.Id _ as nb) ->
+      m_name na nb >||> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
       envf (str, tok) (MV.E b)
   (* metavar: typed! *)
@@ -728,6 +744,7 @@ and m_expr a b =
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
+  | G.Call _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -780,6 +797,7 @@ and m_expr a b =
       aux candidates
   | G.ArrayAccess (a1, a2), B.ArrayAccess (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_bracket m_expr a2 b2
+  | G.ArrayAccess _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
@@ -833,14 +851,12 @@ and m_expr a b =
   | G.AnonClass _, _
   | G.N _, _
   | G.IdSpecial _, _
-  | G.Call _, _
   | G.ParenExpr _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _
   | G.LetPattern _, _
   | G.DotAccess _, _
-  | G.ArrayAccess _, _
   | G.SliceAccess _, _
   | G.Conditional _, _
   | G.Yield _, _
@@ -986,6 +1002,7 @@ and m_literal_constness a b =
       | G.String ("...", _) -> return ()
       | ___else___ -> fail ())
   | B.Cst _
+  | B.Sym _
   | B.NotCst ->
       fail ()
 

@@ -36,6 +36,8 @@
 (* !!Do not rename the fields because they can be referenced in rules!! *)
 type t = {
   ~constant_propagation <ocaml default="true"> : bool;
+  (* requires constant_propagation to have effect *)
+  ~symbolic_propagation <ocaml default="false"> : bool;
   (* associative-commutative matching *)
   ~ac_matching <ocaml default="true"> : bool;
   (* pretend && and || are commutative *)

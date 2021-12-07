@@ -48,22 +48,6 @@ let warning tok s =
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_ctype = function
-  | G.Cbool -> "bool"
-  | G.Cint -> "int"
-  | G.Cstr -> "str"
-  | G.Cany -> "???"
-
-let string_of_constness = function
-  | G.NotCst -> "dyn"
-  | G.Cst t -> Printf.sprintf "cst(%s)" (string_of_ctype t)
-  | G.Lit l -> (
-      match l with
-      | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
-      | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
-      | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
-      | ___else___ -> "lit(???)")
-
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
 (*****************************************************************************)
@@ -84,17 +68,46 @@ let eq c1 c2 =
   match (c1, c2) with
   | G.Lit l1, G.Lit l2 -> eq_literal l1 l2
   | G.Cst t1, G.Cst t2 -> eq_ctype t1 t2
+  | G.Sym e1, G.Sym e2 -> AST_utils.with_structural_equal G.equal_expr e1 e2
   | G.NotCst, G.NotCst -> true
-  | ___else___ -> false
+  | G.Lit _, _
+  | G.Cst _, _
+  | G.Sym _, _
+  | G.NotCst, _ ->
+      false
 
 let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 
+(* aka merge *)
 let union c1 c2 =
   match (c1, c2) with
-  | _ when eq c1 c2 -> c1
+  (* For now we only propagate symbolic expressions through linear sequences
+   * of statements. Note that merging symbolic expressions can be tricky.
+   *
+   * Example: Both branches assign `y = x.foo`, but `x` may have a different
+   * value in each branch. When merging symbolic expressions like `x.foo` we
+   * must first merge their dependencies (in our example, `x`).
+   *
+   *     if c:
+   *       x = a
+   *       y = x.foo
+   *     else:
+   *       x = b
+   *       y = x.foo
+   *
+   * Example: If we are not careful, when analyzing loops, we could introduce
+   * circular dependencies!
+   *
+   *     while cond():
+   *       x = f(x)
+   *
+   *)
+  | _any, G.Sym _
+  | G.Sym _, _any
   | _any, G.NotCst
   | G.NotCst, _any ->
       G.NotCst
+  | c1, c2 when eq c1 c2 -> c1
   | G.Lit l1, G.Lit l2 ->
       let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
@@ -113,9 +126,14 @@ let refine c1 c2 =
   | G.NotCst, c ->
       c
   | G.Lit _, _
-  | G.Cst _, G.Cst _ ->
+  | G.Cst _, G.Cst _
+  | G.Sym _, G.Sym _ ->
       c1
+  | G.Cst _, G.Sym _ -> c1
   | G.Cst _, G.Lit _ -> c2
+  | G.Sym _, G.Lit _
+  | G.Sym _, G.Cst _ ->
+      c2
 
 let refine_constness_ref c_ref c' =
   match !c_ref with
@@ -277,6 +295,38 @@ and eval_concat env args =
   | ___else___ -> G.NotCst
 
 (*****************************************************************************)
+(* Symbolic evaluation *)
+(*****************************************************************************)
+
+(* Defines the subset of Generic expressions that we can propagate. *)
+let rec is_symbolic_expr expr =
+  match expr.G.e with
+  | G.L _ -> true
+  | G.N _ -> true
+  | G.DotAccess (e, _, FN _) -> is_symbolic_expr e
+  | G.ArrayAccess (e1, (_, e2, _)) -> is_symbolic_expr e1 && is_symbolic_expr e2
+  | G.Call (e, (_, args, _)) ->
+      is_symbolic_expr e && List.for_all is_symbolic_arg args
+  | _ -> false
+
+and is_symbolic_arg arg =
+  match arg with
+  | G.Arg e -> is_symbolic_expr e
+  | G.ArgKwd (_, e) -> is_symbolic_expr e
+  | G.ArgType _ -> true
+  | G.OtherArg _ -> false
+
+let sym_prop eorig =
+  match eorig with
+  | SameAs e_gen when is_symbolic_expr e_gen -> G.Sym e_gen
+  | ___else___ -> G.NotCst
+
+let eval_or_sym_prop env exp =
+  match eval env exp with
+  | G.NotCst -> sym_prop exp.eorig
+  | c -> c
+
+(*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
 
@@ -361,8 +411,14 @@ let transfer :
         match instr.i with
         | Assign ({ base = Var var; offset = NoOffset }, exp) ->
             (* var = exp *)
-            let cexp = eval inp' exp in
+            let cexp = eval_or_sym_prop inp' exp in
             D.VarMap.add (str_of_name var) cexp inp'
+        | Call (Some { base = Var var; offset = NoOffset }, _, _) ->
+            (* Call to an arbitrary function, we are intraprocedural so we cannot
+             * propagate actual constants in this case, but we can propagate the
+             * call itself as a symbolic expression. *)
+            let ccall = sym_prop instr.iorig in
+            D.VarMap.add (str_of_name var) ccall inp'
         | CallSpecial
             (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
             (* var = concat(args) *)

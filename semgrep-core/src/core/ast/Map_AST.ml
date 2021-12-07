@@ -407,6 +407,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Cst v1 ->
         let v1 = map_const_type v1 in
         Cst v1
+    | Sym v1 ->
+        let v1 = map_expr v1 in
+        Sym v1
     | NotCst -> NotCst
   and map_container_operator x = x
   and map_special x =
@@ -1238,10 +1241,15 @@ let (mk_visitor : visitor_in -> visitor_out) =
 (* Fix token locations *)
 (*****************************************************************************)
 
+(* Fix token locations to "relocate" a sub-AST. *)
 let mk_fix_token_locations fix =
   mk_visitor
     {
-      default_visitor with
+      kidinfo =
+        (fun (_k, _vout) ii ->
+          (* The id_info contains locations that should not be modified, and they
+           * are likely outside the sub-AST of interest anyways. *)
+          ii);
       kexpr =
         (fun (k, _) e ->
           k

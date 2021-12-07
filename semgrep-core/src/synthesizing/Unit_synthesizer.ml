@@ -1,7 +1,7 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
 module G = AST_generic
-module PPG = Pretty_print_generic
+module PPG = Pretty_print_AST
 
 (*****************************************************************************)
 (* Semgrep Unit tests *)

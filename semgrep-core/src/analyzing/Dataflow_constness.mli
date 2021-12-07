@@ -1,7 +1,5 @@
 type mapping = AST_generic.constness Dataflow_core.mapping
 
-val string_of_constness : AST_generic.constness -> string
-
 val fixpoint : IL.name list -> IL.cfg -> mapping
 (** Flow-sensitive constant-propagation.
  * !Note that this assumes Naming_AST.resolve has been called before!

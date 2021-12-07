@@ -151,7 +151,7 @@ let test_dfg_constness file =
             let mapping = Dataflow_constness.fixpoint inputs flow in
             Dataflow_constness.update_constness flow mapping;
             DataflowY.display_mapping flow mapping
-              Dataflow_constness.string_of_constness;
+              (Pretty_print_AST.constness_to_string lang);
             let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
             pr2 s);
       }
