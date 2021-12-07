@@ -90,6 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Get the version without leading v
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
@@ -106,6 +108,8 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     steps:
+      - name: Install pipenv
+        run: sudo pip install pipenv
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -132,8 +136,12 @@ jobs:
     name: Build the OSX binaries
     runs-on: macos-10.15
     steps:
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
       - name: Run OSX release script
