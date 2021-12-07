@@ -94,6 +94,7 @@ let print_bool env = function
       | Lang.Bash
       | Lang.Rust
       | Lang.Scala
+      | Lang.Solidity
       | Lang.Html
       | Lang.Hcl ->
           "true"
@@ -123,6 +124,7 @@ let print_bool env = function
       | Lang.Bash
       | Lang.Rust
       | Lang.Scala
+      | Lang.Solidity
       | Lang.Html
       | Lang.Hcl ->
           "false"
@@ -224,6 +226,7 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Ruby
     | Lang.Ocaml
     | Lang.Scala
+    | Lang.Solidity
     | Lang.Php
     | Lang.Hack
     | Lang.Yaml
@@ -283,6 +286,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Lua
     | Lang.Yaml
     | Lang.Scala
+    | Lang.Solidity
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
@@ -318,6 +322,7 @@ and do_while stmt env level (s, e) =
     | Lang.Lua
     | Lang.Yaml
     | Lang.Scala
+    | Lang.Solidity
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
@@ -353,6 +358,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Lua
     | Lang.Yaml
     | Lang.Scala
+    | Lang.Solidity
     | Lang.Hcl ->
         raise Todo
     | Lang.Java
@@ -415,6 +421,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Lua
       | Lang.Yaml
       | Lang.Scala
+      | Lang.Solidity
       | Lang.Html
       | Lang.Hcl ->
           raise Todo
@@ -477,6 +484,7 @@ and return env (tok, eopt) _sc =
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
+  | Lang.Solidity
   | Lang.Html
   | Lang.Hcl ->
       raise Todo
@@ -515,6 +523,7 @@ and break env (tok, lbl) _sc =
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
+  | Lang.Solidity
   | Lang.Html
   | Lang.Hcl ->
       raise Todo
@@ -553,6 +562,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
+  | Lang.Solidity
   | Lang.Html
   | Lang.Hcl ->
       raise Todo
@@ -661,6 +671,7 @@ and literal env l =
       | Lang.Hack
       | Lang.Yaml
       | Lang.Scala
+      | Lang.Solidity
       | Lang.Html
       | Lang.Hcl ->
           raise Todo
