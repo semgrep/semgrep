@@ -27,7 +27,8 @@ let lang_has_no_dollar_ids =
     | Hack
     | Bash
     | Rust
-    | Scala ->
+    | Scala
+    | Solidity ->
         false)
 
 let check_pattern_metavars error lang ast =
