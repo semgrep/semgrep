@@ -131,13 +131,13 @@ def test_flags(
 
 
 @mark.parametrize(
-    "config,options,env,should_send",
+    "config,options,env",
     [
-        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}, True),
+        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}),
     ],
 )
 def test_flags_actual_send(
-    run_semgrep_in_tmp, mock_config_request, config, options, env, should_send
+    run_semgrep_in_tmp, mock_config_request, config, options, env
 ):
     """
     Test that the server for metrics sends back success
@@ -148,11 +148,8 @@ def test_flags_actual_send(
         env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
     )
     print(output)
-    assert (
-        "Sent pseudonymous metrics" in output
-        if should_send
-        else "Sent pseudonymous metrics" not in output
-    )
+    assert "Sent pseudonymous metrics" in output
+    assert "Failed to send pseudonymous metrics" not in output
 
 
 def test_legacy_flags(run_semgrep_in_tmp):
