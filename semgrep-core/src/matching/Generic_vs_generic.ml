@@ -2095,7 +2095,11 @@ and m_catch_exn a b =
   (* boilerplate *)
   | G.CatchPattern a, CatchPattern b -> m_pattern a b
   | G.CatchParam a, B.CatchParam b -> m_parameter_classic a b
+  | G.OtherCatch (a0, a1), B.OtherCatch (b0, b1) ->
+      let* () = m_todo_kind a0 b0 in
+      m_list m_any a1 b1
   | G.CatchPattern _, _
+  | G.OtherCatch _, _
   | G.CatchParam _, _ ->
       fail ()
 

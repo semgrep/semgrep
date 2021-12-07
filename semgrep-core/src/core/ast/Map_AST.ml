@@ -716,6 +716,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = map_catch_exn v1 and v2 = map_stmt v2 in
     (t, v1, v2)
   and map_catch_exn = function
+    | OtherCatch (v1, v2) ->
+        let v1 = map_todo_kind v1 in
+        let v2 = map_of_list map_any v2 in
+        OtherCatch (v1, v2)
     | CatchPattern v1 ->
         let v1 = map_pattern v1 in
         CatchPattern v1
