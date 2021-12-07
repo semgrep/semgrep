@@ -892,7 +892,7 @@ and stmt_kind =
   (* This is important to correctly compute a CFG. The any should not
    * contain any stmt! *)
   | OtherStmtWithStmt of other_stmt_with_stmt_operator * any list * stmt
-  (* any here should not contain any statement! otherwise the CFG will be
+  (* any here should _not_ contain any statement! otherwise the CFG will be
    * incorrect and some analysis (e.g., liveness) will be incorrect.
    * TODO: other_stmt_operator wrap, so enforce at least one token instead
    * of relying that the any list contains at least one token
@@ -1004,7 +1004,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_UncheckedBlock
   (* C/C++/cpp *)
   | OSWS_Iterator
-  (* Other *)
+  (* e.g., Assembly in Solidity *)
   | OSWS_Todo
 
 and other_stmt_operator =
@@ -1032,7 +1032,7 @@ and other_stmt_operator =
   | OS_Retry
   (* OCaml *)
   | OS_ExprStmt2
-  (* Other *)
+  (* Other: Leave/Emit in Solidity *)
   | OS_Todo
 
 (*****************************************************************************)
@@ -1059,7 +1059,7 @@ and pattern =
   (* less: generalize to other container_operator? *)
   | PatList of pattern list bracket
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
-  (* special case of PatId, =~ PatAny *)
+  (* special case of PatId, TODO: name PatAny *)
   | PatUnderscore of tok
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
@@ -1243,8 +1243,9 @@ and definition = entity * definition_kind
  * entity (as in 'let (f: int -> int) = fun i -> i + 1), but we
  * currently abuse id_info.id_type for that.
  *
- * see special_multivardef_pattern below for many vardefs in one entity in
- * ident.
+ * Note that with the new entity_name type and EPattern, one entity value
+ * can actually correspond to the definition of multiple vairables.
+ *
  * less: could be renamed entity_def, and name is a kind of entity_use.
  *)
 and entity = {
@@ -1258,16 +1259,15 @@ and entity = {
   tparams : type_parameters;
 }
 
-(* TODO: extend to allow Pattern, to avoid the special multivardef hack.
- * old: used to be merged with field_name in a unique name_or_dynamic
- * but we want MultiEntity just here, hence the fork.
+(* old: used to be merged with field_name in a unique name_or_dynamic
+ * but we want multiple entities (via EPattern) just here, hence the fork.
  *)
 and entity_name =
   | EN of name
   | EDynamic of expr
   (* TODO: replace LetPattern and multivardef hack with that *)
   | EPattern of pattern
-  (* e.g., anon Bitfield in C++ *)
+  (* e.g., AnonBitfield in C++ *)
   | OtherEntity of todo_kind * any list
 
 and definition_kind =
@@ -1547,8 +1547,8 @@ and class_definition = {
  * for EnumClass/AnnotationClass/etc. see keyword_attribute.
  *)
 and class_kind =
-  | Class (* or Struct *)
-  | Interface
+  | Class (* or Struct for C/Solidity *)
+  | Interface (* abused for Contract in Solidity *)
   | Trait
   (* Kotlin/Scala *)
   | Object
