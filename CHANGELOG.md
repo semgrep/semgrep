@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
+
 ## Fixed
 - Fixed bug where the presence of .semgrepignore would cause runs to fail on files that
   were not subpaths of the directory where semgrep was being run
