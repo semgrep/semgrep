@@ -2018,7 +2018,7 @@ let map_fallback_receive_definition (env : env)
     | `Opt_func_choice_fall (v1, v2) ->
         (* If it has the function kwd before, then it's a regular func.
          * Without the function kwd it's a "special" function.
-         * TODO: But then why define it in the grammar?
+         * Joran defined both in the grammar for backward compatibility.
          *)
         let _tfunc_opt =
           match v1 with
@@ -2034,7 +2034,8 @@ let map_fallback_receive_definition (env : env)
          * a CTor like attribute? *)
         (G.basic_entity id, snd id)
     | `Func tok ->
-        (* TODO? what is that? anonymous def??? *)
+        (* This is the old syntax for fallback function, just
+         * function() public { ... } according to Joran Honig *)
         let tfunc = (* "function" *) token env tok in
         (G.basic_entity ("function", tfunc), tfunc)
   in
