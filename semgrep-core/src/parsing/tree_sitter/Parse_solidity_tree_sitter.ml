@@ -1083,73 +1083,90 @@ and map_call_arguments (env : env) ((v1, v2, v3) : CST.call_arguments) :
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
-  | `Bin_exp x -> map_binary_expression env x
-  | `Un_exp x -> map_unary_expression env x
-  | `Update_exp x -> map_update_expression env x
-  | `Call_exp (v1, v2) ->
-      let e = map_expression env v1 in
-      let args = map_call_arguments env v2 in
-      Call (e, args) |> G.e
-  | `Paya_conv_exp (v1, v2) ->
-      (* TODO: add to special? *)
-      let id = (* "payable" *) str env v1 in
-      let args = map_call_arguments env v2 in
-      let n = N (H2.name_of_id id) |> G.e in
-      Call (n, args) |> G.e
-  | `Meta_type_exp (v1, v2, v3, v4) ->
-      let ttype = (* "type" *) token env v1 in
-      let lp = (* "(" *) token env v2 in
-      let t = map_type_name env v3 in
-      let rp = (* ")" *) token env v4 in
-      let arg = ArgType t in
-      let op = IdSpecial (Typeof, ttype) |> G.e in
-      Call (op, (lp, [ arg ], rp)) |> G.e
-  | `Prim_exp x -> map_primary_expression env x
-  | `Struct_exp (v1, v2, v3, v4) ->
-      let e = map_expression env v1 in
-      let lb = (* "{" *) token env v2 in
-      let flds =
-        match v3 with
-        | Some (v1, v2, v3, v4, v5) ->
-            let fld_id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
-            let _tcolon = (* ":" *) token env v2 in
-            let e = map_expression env v3 in
-            let xs =
-              List.map
-                (fun (v1, v2, v3, v4) ->
-                  let _v1 = (* "," *) token env v1 in
-                  let fld_id =
-                    (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2
-                  in
-                  let _tcolon = (* ":" *) token env v3 in
-                  let e = map_expression env v4 in
-                  (fld_id, e))
-                v4
-            in
-            let _v5 = map_trailing_comma env v5 in
-            (fld_id, e) :: xs
-        | None -> []
-      in
-      let rb = (* "}" *) token env v4 in
-      (* TODO? kind of New? or a With? *)
-      let flds_any =
-        flds |> List.map (fun (fld_id, e) -> [ I fld_id; E e ]) |> List.flatten
-      in
-      OtherExpr (("StructExpr", lb), [ E e; Tk lb ] @ flds_any @ [ Tk rb ])
-      |> G.e
-  | `Tern_exp (v1, v2, v3, v4, v5) ->
-      let e1 = map_expression env v1 in
-      let _question = (* "?" *) token env v2 in
-      let e2 = map_expression env v3 in
-      let _colon = (* ":" *) token env v4 in
-      let e3 = map_expression env v5 in
-      Conditional (e1, e2, e3) |> G.e
-  | `Type_cast_exp (v1, v2, v3, v4) ->
-      let t = map_primitive_type env v1 in
-      let lp = (* "(" *) token env v2 in
-      let e = map_expression env v3 in
-      let _rp = (* ")" *) token env v4 in
-      Cast (t, lp, e) |> G.e
+  | `Choice_bin_exp x -> (
+      match x with
+      | `Bin_exp x -> map_binary_expression env x
+      | `Un_exp x -> map_unary_expression env x
+      | `Update_exp x -> map_update_expression env x
+      | `Call_exp (v1, v2) ->
+          let e = map_expression env v1 in
+          let args = map_call_arguments env v2 in
+          Call (e, args) |> G.e
+      | `Paya_conv_exp (v1, v2) ->
+          (* TODO: add to special? *)
+          let id = (* "payable" *) str env v1 in
+          let args = map_call_arguments env v2 in
+          let n = N (H2.name_of_id id) |> G.e in
+          Call (n, args) |> G.e
+      | `Meta_type_exp (v1, v2, v3, v4) ->
+          let ttype = (* "type" *) token env v1 in
+          let lp = (* "(" *) token env v2 in
+          let t = map_type_name env v3 in
+          let rp = (* ")" *) token env v4 in
+          let arg = ArgType t in
+          let op = IdSpecial (Typeof, ttype) |> G.e in
+          Call (op, (lp, [ arg ], rp)) |> G.e
+      | `Prim_exp x -> map_primary_expression env x
+      | `Struct_exp (v1, v2, v3, v4) ->
+          let e = map_expression env v1 in
+          let lb = (* "{" *) token env v2 in
+          let flds =
+            match v3 with
+            | Some (v1, v2, v3, v4, v5) ->
+                let fld_id =
+                  (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1
+                in
+                let _tcolon = (* ":" *) token env v2 in
+                let e = map_expression env v3 in
+                let xs =
+                  List.map
+                    (fun (v1, v2, v3, v4) ->
+                      let _v1 = (* "," *) token env v1 in
+                      let fld_id =
+                        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2
+                      in
+                      let _tcolon = (* ":" *) token env v3 in
+                      let e = map_expression env v4 in
+                      (fld_id, e))
+                    v4
+                in
+                let _v5 = map_trailing_comma env v5 in
+                (fld_id, e) :: xs
+            | None -> []
+          in
+          let rb = (* "}" *) token env v4 in
+          (* TODO? kind of New? or a With? *)
+          let flds_any =
+            flds
+            |> List.map (fun (fld_id, e) -> [ I fld_id; E e ])
+            |> List.flatten
+          in
+          OtherExpr (("StructExpr", lb), [ E e; Tk lb ] @ flds_any @ [ Tk rb ])
+          |> G.e
+      | `Tern_exp (v1, v2, v3, v4, v5) ->
+          let e1 = map_expression env v1 in
+          let _question = (* "?" *) token env v2 in
+          let e2 = map_expression env v3 in
+          let _colon = (* ":" *) token env v4 in
+          let e3 = map_expression env v5 in
+          Conditional (e1, e2, e3) |> G.e
+      | `Type_cast_exp (v1, v2, v3, v4) ->
+          let t = map_primitive_type env v1 in
+          let lp = (* "(" *) token env v2 in
+          let e = map_expression env v3 in
+          let _rp = (* ")" *) token env v4 in
+          Cast (t, lp, e) |> G.e)
+  | `Ellips tok -> Ellipsis ((* "..." *) token env tok) |> G.e
+  | `Deep_ellips (v1, v2, v3) ->
+      let l = (* "<..." *) token env v1 in
+      let e = map_expression env v2 in
+      let r = (* "...>" *) token env v3 in
+      DeepEllipsis (l, e, r) |> G.e
+  | `Member_ellips_exp (v1, v2, v3) ->
+      let e = map_anon_choice_exp_97f816a env v1 in
+      let _tdot = (* "." *) token env v2 in
+      let tdots = (* "..." *) token env v3 in
+      DotAccessEllipsis (e, tdots) |> G.e
 
 and map_lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
@@ -1160,15 +1177,16 @@ and map_lhs_expression (env : env) (x : CST.lhs_expression) : expr =
       N (H2.name_of_id id) |> G.e
   | `Tuple_exp x -> map_tuple_expression env x
 
+and map_anon_choice_exp_97f816a (env : env) (x : CST.anon_choice_exp_97f816a) =
+  match x with
+  | `Exp x -> map_expression env x
+  | `Id tok ->
+      let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env tok in
+      N (H2.name_of_id id) |> G.e
+
 and map_member_expression (env : env) ((v1, v2, v3) : CST.member_expression) :
     expr =
-  let e =
-    match v1 with
-    | `Exp x -> map_expression env x
-    | `Id tok ->
-        let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env tok in
-        N (H2.name_of_id id) |> G.e
-  in
+  let e = map_anon_choice_exp_97f816a env v1 in
   let tdot = (* "." *) token env v2 in
   let fld = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 in
   DotAccess (e, tdot, FN (H2.name_of_id fld)) |> G.e
@@ -1182,19 +1200,22 @@ and map_nameless_parameter (env : env) ((v1, v2) : CST.nameless_parameter) =
   in
   t
 
-and map_parameter (env : env) ((v1, v2, v3) : CST.parameter) : parameter =
-  let t = map_type_name env v1 in
-  let pattrs =
-    match v2 with
-    | Some x -> [ map_storage_location env x ]
-    | None -> []
-  in
-  let pname =
-    match v3 with
-    | Some tok -> (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) Some (str env tok)
-    | None -> None
-  in
-  Param (G.param_of_type ~pattrs ~pname t)
+and map_parameter (env : env) (x : CST.parameter) : parameter =
+  match x with
+  | `Type_name_opt_stor_loca_opt_id (v1, v2, v3) ->
+      let t = map_type_name env v1 in
+      let pattrs =
+        match v2 with
+        | Some x -> [ map_storage_location env x ]
+        | None -> []
+      in
+      let pname =
+        match v3 with
+        | Some tok -> (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) Some (str env tok)
+        | None -> None
+      in
+      Param (G.param_of_type ~pattrs ~pname t)
+  | `Ellips tok -> ParamEllipsis ((* "..." *) token env tok)
 
 and map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
     parameters =
@@ -1584,16 +1605,28 @@ let map_modifier_invocation (env : env) ((v1, v2) : CST.modifier_invocation) =
   in
   (id, argsopt)
 
-let map_expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
-  let e = map_expression env v1 in
-  let sc = (* ";" *) token env v2 in
-  (e, sc)
+let map_expression_statement (env : env) (x : CST.expression_statement) =
+  match x with
+  | `Exp_semi (v1, v2) ->
+      let e = map_expression env v1 in
+      let sc = (* ";" *) token env v2 in
+      (e, sc)
+  | `Ellips_SEMI (v1, v2) ->
+      let tdots = (* "..." *) token env v1 in
+      let sc = (* ";" *) token env v2 in
+      (Ellipsis tdots |> G.e, sc)
+  | `Ellips tok ->
+      let tdots = (* "..." *) token env tok in
+      (Ellipsis tdots |> G.e, G.sc)
 
-let map_struct_member (env : env) ((v1, v2, v3) : CST.struct_member) : field =
-  let ty = map_type_name env v1 in
-  let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
-  let _sc = (* ";" *) token env v3 in
-  G.basic_field id None (Some ty)
+let map_struct_member (env : env) (x : CST.struct_member) : field =
+  match x with
+  | `Type_name_id_semi (v1, v2, v3) ->
+      let ty = map_type_name env v1 in
+      let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
+      let _sc = (* ";" *) token env v3 in
+      G.basic_field id None (Some ty)
+  | `Ellips tok -> G.fieldEllipsis ((* "..." *) token env tok)
 
 let map_inheritance_specifier (env : env) ((v1, v2) : CST.inheritance_specifier)
     : class_parent =
@@ -2205,9 +2238,17 @@ let map_source_unit (env : env) (x : CST.source_unit) : item list =
       let def = map_declaration env x in
       [ DefStmt def |> G.s ]
 
-let map_source_file (env : env) (v1 : CST.source_file) : program =
-  let xxs = List.map (map_source_unit env) v1 in
-  List.flatten xxs
+let map_source_file (env : env) (x : CST.source_file) : any =
+  match x with
+  | `Rep_source_unit v1 ->
+      let xxs = List.map (map_source_unit env) v1 in
+      Pr (List.flatten xxs)
+  | `Rep1_stmt xs ->
+      let xs = List.map (map_statement env) xs in
+      Ss xs
+  | `Exp x ->
+      let e = map_expression env x in
+      E e
 
 (*****************************************************************************)
 (* Entry point *)
@@ -2219,29 +2260,17 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_source_file env cst with
-      (*G.Pr*)
-      | xs -> xs
-      (* | _ -> failwith "not a program" *))
-
-let parse_pattern _str = failwith "TODO"
-
-(*
-let parse_expression_or_source_file str =
-  let res = Tree_sitter_kotlin.Parse.string str in
-  match res.errors with
-  | [] -> res
-  | _ ->
-      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-      Tree_sitter_kotlin.Parse.string expr_str
+      | G.Pr xs -> xs
+      | _ -> failwith "not a program")
 
 let parse_pattern str =
   H.wrap_parser
-    (fun () -> parse_expression_or_source_file str)
+    (fun () -> Tree_sitter_solidity.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match source_file env cst with
+      match map_source_file env cst with
       | G.Pr [ x ] -> G.S x
       | G.Pr xs -> G.Ss xs
+      | G.Ss [ x ] -> G.S x
       | x -> x)
- *)
