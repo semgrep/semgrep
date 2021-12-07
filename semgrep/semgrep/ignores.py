@@ -22,6 +22,16 @@ IGNORE_FILE_NAME = ".semgrepignore"
 
 logger = getLogger(__name__)
 
+# For some reason path.is_relative_to produces a complaint that 'PosixPath' object has no attribute 'is_relative_to'
+# So we just copy its implementation
+def path_is_relative_to(p1: Path, p2: Path) -> bool:
+    try:
+        p1.relative_to(p2)
+        return True
+    except ValueError:
+        return False
+
+
 ## TODO: This files duplicates the .semgrepignore functionality from semgrep-action.
 ## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
 
@@ -53,8 +63,12 @@ class FileIgnore:
             # i.e. /private/var/.../instabot should not be ignored with var/ rule
             # in instabot dir as base_path
             # Note: Append "/" to path before running fnmatch so **/pattern matches with pattern/stuff
-            if p.endswith("/") and fnmatch.fnmatch(
-                "/" + str(path.relative_to(self.base_path)), p + "*"
+            if (
+                path_is_relative_to(path, self.base_path)
+                and p.endswith("/")
+                and fnmatch.fnmatch(
+                    "/" + str(path.relative_to(self.base_path)), p + "*"
+                )
             ):
                 return False
             if (
