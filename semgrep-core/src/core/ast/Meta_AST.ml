@@ -815,6 +815,10 @@ and vof_catch (t, v1, v2) =
   OCaml.VTuple [ t; v1; v2 ]
 
 and vof_catch_exn = function
+  | OtherCatch (v1, v2) ->
+      let v1 = vof_todo_kind v1 in
+      let v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherCatch", [ v1; v2 ])
   | CatchPattern v ->
       let v = vof_pattern v in
       OCaml.VSum ("CatchPattern", [ v ])
