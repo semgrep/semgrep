@@ -782,6 +782,7 @@ and map_catch_condition = function
   | CatchParam p ->
       let _p = map_parameter_classic p in
       failwith "TODO"
+  | OtherCatch _ -> failwith "TODO"
 
 and map_finally v = map_tok_and_stmt v
 

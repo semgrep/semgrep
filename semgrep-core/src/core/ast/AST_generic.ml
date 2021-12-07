@@ -501,7 +501,7 @@ and expr_kind =
    * Unpack/ArrayAppend in PHP (the AST for $x[] = 1 used to be
    * handled as an AssignOp with special Append).
    * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
-   * UnitLiteral/TupleHole in Solidity
+   * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? of replace 'any list' by 'expr list'? any way there's still
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
@@ -789,7 +789,7 @@ and argument =
   | ArgKwd of ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
-  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
+  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml, ArgIds in Solidity *)
   | OtherArg of todo_kind * any list
 
 (*****************************************************************************)
@@ -948,6 +948,8 @@ and catch_exn =
    * alt: we could abuse pattern and use PatTyped, but ugly.
    *)
   | CatchParam of parameter_classic
+  (* e.g., CatchEmpty/CatchParams in Solidity *)
+  | OtherCatch of todo_kind * any list
 
 (* ptype should never be None *)
 
@@ -1315,7 +1317,7 @@ and definition_kind =
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
   (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby,
-   * BitField in C/C++
+   * BitField in C/C++, Event/Modifier in Solidity
    *)
   | OtherDef of todo_kind * any list
 
@@ -1633,7 +1635,7 @@ and directive_kind =
   | PackageEnd of tok
   | Pragma of ident * any list
   (* e.g., Dynamic include in C, Extern "C" in C++/Rust, Undef in C++/Ruby,
-   * Export/Reexport in Javascript
+   * Export/Reexport in Javascript, Using in Solidity
    * TODO: Declare, move OE_UseStrict here for JS?
    *)
   | OtherDirective of todo_kind * any list

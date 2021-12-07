@@ -811,6 +811,9 @@ let (mk_visitor :
     in
     vin.kcatch (k, all_functions) x
   and v_catch_exn = function
+    | OtherCatch (v1, v2) ->
+        v_todo_kind v1;
+        v_list v_any v2
     | CatchPattern p -> v_pattern p
     | CatchParam p -> v_parameter_classic p
   and v_finally (t, v) =
