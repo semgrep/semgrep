@@ -1,3 +1,4 @@
+import copy
 import functools
 import itertools
 from pathlib import Path
@@ -139,6 +140,25 @@ class TextFormatter(BaseFormatter):
         items_to_show = 5
         col_lim = 70
 
+        time_data = copy.deepcopy(time_data)
+
+        # Don't count errors in final times
+        run_errors = 0
+        parse_errors = 0
+        match_errors = 0
+        for t in time_data["targets"]:
+            for i in range(len(time_data["rules"])):
+                if t["run_times"][i] < 0:
+                    t["run_times"][i] = 0
+                    run_errors += 1
+                if t["parse_times"][i] < 0:
+                    t["parse_times"][i] = 0
+                    parse_errors += 1
+                if t["match_times"][i] < 0:
+                    t["match_times"][i] = 0
+                    match_errors += 1
+
+        # Compute summary stats
         rule_parsing_time = sum(
             parse_time for parse_time in time_data["rule_parse_info"]
         )
@@ -164,8 +184,21 @@ class TextFormatter(BaseFormatter):
         all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
         total_matching_time = sum(i[1] for i in rule_timings.values())
 
-        # Output information
-        yield f"\nSemgrep-core timing summary:"
+        # Output semgrep summary
+        total_time = time_data["profiling_times"]["total_time"]
+        config_time = time_data["profiling_times"]["config_time"]
+        core_time = time_data["profiling_times"]["core_time"]
+        ignores_time = time_data["profiling_times"]["ignores_time"]
+
+        yield f"\nSemgrep timing summary:"
+
+        yield f"Total time: {total_time:.4f} Config time: {config_time:.4f} Core time: {core_time:.4f} Ignores time: {ignores_time:.4f}"
+
+        if run_errors > 0 or parse_errors > 0 or match_errors > 0:
+            yield f"There were { run_errors } errors that interrupted running, { parse_errors } errors that interrupted parsing, and { match_errors } errors that interrupted matching"
+
+        # Output semgrep-core information
+        yield f"\nSemgrep-core time:"
         yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
 
         yield f"Slowest {items_to_show}/{len(file_timings)} files"
