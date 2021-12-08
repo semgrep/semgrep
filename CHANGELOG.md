@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## Fixed
+- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs w  would sometimes cause a parse error
+
 ## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 
 ### Added
