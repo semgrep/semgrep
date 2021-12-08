@@ -2835,6 +2835,7 @@ and m_any a b =
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
   | G.I a1, B.I b1 -> m_ident a1 b1
   | G.Lbli a1, B.Lbli b1 -> m_label_ident a1 b1
+  | G.ForOrIfComp a1, B.ForOrIfComp b1 -> m_for_or_if_comp a1 b1
   | G.I _, _
   | G.Modn _, _
   | G.Di _, _
@@ -2863,6 +2864,7 @@ and m_any a b =
   | G.TodoK _, _
   | G.Partial _, _
   | G.Args _, _
+  | G.ForOrIfComp _, _
   | G.Anys _, _
   | G.Str _, _ ->
       fail ()

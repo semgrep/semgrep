@@ -546,9 +546,10 @@ and container_operator =
    *)
   | Tuple
 
-(* For Python/HCL (and Haskell later). The 'expr' is a 'Tuple' to
+(* For Python/HCL (and Haskell later). The 'expr' can be a 'Tuple' to
  * represent a Key/Value pair (like in Container). See keyval() below.
- * newscope:
+ * newscope: for_or_if_comp introduce new local variables whose scope
+ *  is just the first expr.
  *)
 and comprehension = expr * for_or_if_comp list
 
@@ -1709,6 +1710,7 @@ and any =
   | Modn of module_name
   | Ce of catch_exn
   | Cs of case
+  | ForOrIfComp of for_or_if_comp
   (* todo: get rid of some? *)
   | ModDk of module_definition_kind
   | En of entity
