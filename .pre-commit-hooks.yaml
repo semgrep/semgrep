@@ -14,3 +14,4 @@
   name: semgrep
   entry: semgrep
   language: python
+  args: ["--disable-version-check", "--quiet", "--skip-unknown-extensions"]
