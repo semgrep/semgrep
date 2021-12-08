@@ -401,6 +401,7 @@ let lang_regression_tests ~with_caching =
     pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
     pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
     pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
+    pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
  ]
 
 let full_rule_regression_tests = [
@@ -601,6 +602,7 @@ let maturity_tests =
     (* TODO: too many exns, we need to write tests!
      check_maturity Lang.Rust "rust" ".rust" Experimental;
     *)
+    check_maturity Lang.Solidity "solidity" ".sol" Experimental;
     (* YAML has too many NA, not worth it *)
 
     (* Not even experimental *)
