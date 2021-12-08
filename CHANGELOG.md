@@ -30,6 +30,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
 - Python: generate proper lexical exn for unbalanced braces (#4310)  
 - YAML: fix off-by-one in location of arrays
+- Python: generate proper lexical exn for unbalanced braces (#4310)
+- Matching `"$MVAR"` patterns against string literals computed by constant folding
+  no longer causes a crash (#4371)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
