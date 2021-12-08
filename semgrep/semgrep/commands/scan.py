@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import multiprocessing
 import os
 from itertools import chain
@@ -455,7 +454,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     hidden=True
     # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
 )
-def cli(
+def scan(
     *,
     autofix: bool,
     config: Optional[Tuple[str, ...]],

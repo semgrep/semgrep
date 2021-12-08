@@ -67,6 +67,9 @@ class Settings:
         :param value: The settings object
         """
         self._value[key] = value
+        self._write_settings()
+
+    def _write_settings(self) -> None:
         try:
             if not self._path.parent.exists():
                 self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -77,6 +80,10 @@ class Settings:
 
     def get_setting(self, key: str, *, default: Any) -> Any:
         return self._value.get(key, default)
+
+    def delete_setting(self, key: str) -> None:
+        del self._value[key]
+        self._write_settings()
 
 
 SETTINGS = Settings()
