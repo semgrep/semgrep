@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Fixed
 - Python: set the right scope for comprehension variables (#4260)
+- Fixed bug where the presence of .semgrepignore would cause reported targets
+  to have absolute instead of relative file paths
 
 ## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
 
