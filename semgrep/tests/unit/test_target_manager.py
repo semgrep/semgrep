@@ -6,10 +6,10 @@ from typing import Collection
 import pytest
 
 from semgrep.error import FilesNotFoundError
+from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
-from semgrep.ignores import FileIgnore
 
 
 def test_nonexistent(tmp_path, monkeypatch):
@@ -768,7 +768,9 @@ def test_explicit_path(tmp_path, monkeypatch):
 
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats):
-        return TargetManager([],[],0,[tmp_path],False,False,FileIgnore(tmp_path,ignore_pats)).get_files(Language("python"),[],[])
+        return TargetManager(
+            [], [], 0, [tmp_path], False, False, FileIgnore(tmp_path, ignore_pats)
+        ).get_files(Language("python"), [], [])
 
     monkeypatch.chdir(tmp_path)
     a = tmp_path / "a.py"
