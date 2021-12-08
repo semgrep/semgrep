@@ -6,6 +6,7 @@ from typing import Collection
 import pytest
 
 from semgrep.error import FilesNotFoundError
+from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
@@ -763,3 +764,70 @@ def test_explicit_path(tmp_path, monkeypatch):
         ).get_files(python_language, ["a.py"], []),
         {foo_a},
     )
+
+
+def test_ignores(tmp_path, monkeypatch):
+    def ignore(ignore_pats):
+        return TargetManager(
+            [], [], 0, [tmp_path], False, False, FileIgnore(tmp_path, ignore_pats)
+        ).get_files(Language("python"), [], [])
+
+    monkeypatch.chdir(tmp_path)
+    a = tmp_path / "a.py"
+    a.touch()
+
+    dir = tmp_path / "dir"
+    dir.mkdir()
+
+    dir_a = dir / "a.py"
+    dir_a.touch()
+
+    dir_b = dir / "b.py"
+    dir_b.touch()
+
+    dir_c = dir / "c.py"
+    dir_c.touch()
+
+    dir2 = dir / "dir2"
+    dir2.mkdir()
+
+    dir3 = dir2 / "dir3"
+    dir3.mkdir()
+    dir3_a = dir3 / "a.py"
+    dir3_a.touch()
+
+    # Ignore nothing
+    files = ignore([])
+    assert a in files
+
+    # Ignore file name
+    files = ignore(["a.py"])
+    assert a not in files
+    assert dir3_a not in files
+
+    # Ignore directory
+    files = ignore(["dir/"])
+    assert dir_a not in files
+    assert dir_b not in files
+    assert dir_c not in files
+    assert dir3_a not in files
+
+    # Ignore root file
+    files = ignore(["/a.py"])
+    assert dir3_a in files
+
+    # Ignore root file that does not exist
+    files = ignore(["/b.py"])
+    assert dir_b in files
+
+    # Ignore not nested
+    files = ignore(["dir2/dir3/a.py"])
+    assert dir3_a in files
+
+    # Ignore nested dir syntax
+    files = ignore(["dir3/"])
+    assert dir3_a not in files
+
+    # Ingore nested double star
+    files = ignore(["**/dir2/dir3/"])
+    assert dir3_a not in files
