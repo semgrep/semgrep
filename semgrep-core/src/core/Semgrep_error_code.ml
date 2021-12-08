@@ -141,15 +141,20 @@ let string_of_error_kind = function
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
 
+let source_of_string = function
+  | "" -> "<input>"
+  | path -> path
+
 let string_of_error err =
   let pos = err.loc in
-  assert (pos.PI.file <> "");
   let details =
     match err.details with
     | None -> ""
     | Some s -> spf "\n%s" s
   in
-  spf "%s:%d:%d: %s: %s%s" pos.PI.file pos.PI.line pos.PI.column
+  spf "%s:%d:%d: %s: %s%s"
+    (source_of_string pos.PI.file)
+    pos.PI.line pos.PI.column
     (string_of_error_kind err.typ)
     err.msg details
 
