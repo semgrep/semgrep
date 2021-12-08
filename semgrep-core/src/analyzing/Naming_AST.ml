@@ -19,6 +19,9 @@ module H = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* see error() below *)
+let error_report = false
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -86,8 +89,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    See set_resolved()
  *
  * TODO:
- *  - resolve Comprehension, which can introduce bindings locally
- *    (kpattern might do its job, but the scope might be too big)
  *  - generalize the original "resolvers":
  *    * resolve_go.ml
  *    * resolve_python.ml
@@ -172,7 +173,8 @@ let default_scopes () = { global = ref []; blocks = ref []; imported = ref [] }
 let with_new_function_scope params scopes f =
   Common.save_excursion scopes.blocks (params :: !(scopes.blocks)) f
 
-let _with_new_block_scope _params _lang _scopes _f = raise Todo
+let with_new_block_scope scopes f =
+  Common.save_excursion scopes.blocks ([] :: !(scopes.blocks)) f
 
 let add_ident_current_scope (s, _) resolved scopes =
   match !(scopes.blocks) with
@@ -191,6 +193,7 @@ let _add_ident_function_scope _id _resolved _scopes = raise Todo
 
 let untyped_ent name = { entname = name; enttype = None }
 
+(* see also lookup_scope_opt below taking as a parameter the environment *)
 let rec lookup s xxs =
   match xxs with
   | [] -> None
@@ -295,7 +298,6 @@ let lookup_scope_opt (s, _) env =
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
-let error_report = false
 
 let error tok s =
   if error_report then raise (Parse_info.Other_error (s, tok))
@@ -347,11 +349,10 @@ let params_of_parameters env xs =
        | _ -> None)
 
 let declare_var env lang id id_info ~explicit vinit vtype =
-  (* name resolution *)
   let sid = H.gensym () in
-  (* for the type, we use the (optional) type in vtype, or, if we can infer  *)
-  (* the type of the expression vinit (literal or id), we use that as a type *)
-  (* useful when the type is not given, e.g. in Go: `var x = 2`  *)
+  (* for the type, we use the (optional) type in vtype, or, if we can infer
+   * the type of the expression vinit (literal or id), we use that as a type
+   * useful when the type is not given, e.g. in Go: `var x = 2` *)
   let resolved_type = Typing.get_resolved_type lang (vinit, vtype) in
   let name_kind, add_ident_to_its_scope =
     (* In JS/TS an assignment to a variable that has not been
@@ -559,6 +560,7 @@ let resolve lang prog =
         (fun (k, _vout) x ->
           let _t, exn, _st = x in
           (match exn with
+          (* TODO: we should create a new block scope *)
           | CatchParam { pname = Some id; pinfo = id_info; _ }
             when is_resolvable_name_ctx env lang ->
               declare_var env lang id id_info ~explicit:true None None
@@ -628,6 +630,8 @@ let resolve lang prog =
           | IdQualified _ -> ());
       V.kexpr =
         (fun (k, vout) x ->
+          (* ugly: hack. If we use a classic recursive-with-env visitor,
+           * we would not need this *)
           let recurse = ref true in
           (match x.e with
           (* Go: This is `x := E`, a single-variable short variable declaration.
@@ -701,6 +705,14 @@ let resolve lang prog =
               | _ ->
                   let s, tok = id in
                   error tok (spf "could not find '%s' field in environment" s))
+          | Comprehension (_op, (_l, (e, xs), _r)) ->
+              (* Actually in Python2, no new scope was created, so iterator vars
+               * could leak in the outer scope. This was fixed in Python3. *)
+              with_new_block_scope env.names (fun () ->
+                  (* first visit xs, then e *)
+                  xs |> List.iter (fun x -> vout (ForOrIfComp x));
+                  vout (E e));
+              recurse := false
           | _ -> ());
           if !recurse then k x);
       V.ktype_ =

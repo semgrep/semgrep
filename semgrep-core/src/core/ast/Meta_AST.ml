@@ -1346,6 +1346,9 @@ and vof_partial = function
       OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
 
 and vof_any = function
+  | ForOrIfComp v1 ->
+      let v1 = vof_for_or_if_comp v1 in
+      OCaml.VSum ("ForOrIfComp", [ v1 ])
   | Tp v1 ->
       let v1 = vof_type_parameter v1 in
       OCaml.VSum ("Tp", [ v1 ])

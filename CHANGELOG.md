@@ -4,6 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- New language Solidity with experimental support.
+
+## Fixed
+- Python: set the right scope for comprehension variables (#4260)
+
 ## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
 
 ## Fixed
