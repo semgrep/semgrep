@@ -266,19 +266,24 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * - id_constness (see the special @equal for id_constness)
          *)
         MV.Structural.equal_mvalue a b
+    (* TODO still needed now that we have the better MV.Id of id_info? *)
     | MV.Id _, MV.E { e = G.N (G.Id (b_id, b_id_info)); _ } ->
-        (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (G.E), not id (G.I),
          * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
-         * but in some cases you have no choice and you need to match an expression
+         * but in some cases you have no choice and you need to match an expr
          * metavar with an id metavar.
-         * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
-         * (this is useful in the Javascript transpilation context of complex pattern parameter).
+         * For example, we want the pattern 'const $X = foo.$X' to match
+         *  'const bar = foo.bar'
+         * (this is useful in the Javascript transpilation context of
+         * complex pattern parameter).
          *)
         equal_ast_binded_code config a (MV.Id (b_id, Some b_id_info))
+    (* TODO: we should get rid of that too, we should properly bind to MV.N *)
+    | MV.E { e = G.N (G.Id (a_id, a_id_info)); _ }, MV.Id _ ->
+        equal_ast_binded_code config (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
 
