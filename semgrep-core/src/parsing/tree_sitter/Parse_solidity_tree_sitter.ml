@@ -345,7 +345,11 @@ let map_anon_id_rep_COMMA_id_opt_COMMA_e9ba3f8 (env : env)
   let _v3 = map_trailing_comma env v3 in
   v1 :: v2
 
-let map_user_defined_type (env : env) ((v1, v2) : CST.user_defined_type) : type_
+(* TODO: in the grammar there is a PREC.USER_TYPE which makes every
+ * primary expression to switch to this instead of a simple identifier,
+ * so take care!
+ *)
+let map_user_defined_type (env : env) ((v1, v2) : CST.user_defined_type) : name
     =
   let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
   let v2 =
@@ -357,8 +361,11 @@ let map_user_defined_type (env : env) ((v1, v2) : CST.user_defined_type) : type_
       v2
   in
   let ids = v1 :: v2 in
-  let name = H2.name_of_ids ids in
-  TyN name |> G.t
+  let n = H2.name_of_ids ids in
+  (* actually not always a type, so better to just return the name instead
+   * of TyN n |> G.t
+   *)
+  n
 
 let map_import_declaration (env : env) ((v1, v2) : CST.import_declaration) =
   let v1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
@@ -478,29 +485,31 @@ let map_enum_declaration (env : env)
   (ent, TypeDef def)
 
 let map_override_specifier (env : env) ((v1, v2) : CST.override_specifier) =
-  let v1 = (* "override" *) token env v1 in
-  let v2 =
+  let toverride = (* "override" *) token env v1 in
+  let names =
     match v2 with
     | Some (v1, v2, v3, v4, v5) ->
-        let v1 = (* "(" *) token env v1 in
-        let v2 = map_user_defined_type env v2 in
-        let v3 =
+        let lp = (* "(" *) token env v1 in
+        let n = map_user_defined_type env v2 in
+        let xs =
           List.map
             (fun (v1, v2) ->
-              let _v1 = (* "," *) token env v1 in
-              let v2 = map_user_defined_type env v2 in
-              v2)
+              let _tcomma = (* "," *) token env v1 in
+              let n = map_user_defined_type env v2 in
+              n)
             v3
         in
         let _v4 = map_trailing_comma env v4 in
-        let v5 = (* ")" *) token env v5 in
-        Some (v1, v2 :: v3, v5)
+        let rp = (* ")" *) token env v5 in
+        Some (lp, n :: xs, rp)
     | None -> None
   in
-  match v2 with
-  | None -> G.attr Override v1
+  match names with
+  | None -> G.attr Override toverride
   | Some (_l, xs, _r) ->
-      OtherAttribute (("OverrideWithTypes", v1), xs |> List.map (fun t -> T t))
+      OtherAttribute
+        ( ("OverrideWithNames", toverride),
+          xs |> List.map (fun x -> E (N x |> G.e)) )
 
 let map_hex_number (env : env) ((v1, v2) : CST.hex_number) =
   let start, t1 = (* pattern 0[xX] *) str env v1 in
@@ -663,7 +672,9 @@ let map_import_clause (env : env) (x : CST.import_clause) =
 let map_mapping_key (env : env) (x : CST.mapping_key) : type_ =
   match x with
   | `Prim_type x -> map_primitive_type env x
-  | `User_defi_type x -> map_user_defined_type env x
+  | `User_defi_type x ->
+      let n = map_user_defined_type env x in
+      TyN n |> G.t
 
 let map_yul_literal (env : env) (x : CST.yul_literal) : literal =
   match x with
@@ -1291,10 +1302,11 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let rhs = map_expression env v3 in
       AssignOp (lhs, op, rhs) |> G.e
-  (* what is that too? *)
+  (* TODO: this is actually not a type, but in grammar.js maybe because
+   * of ambiguities it uses this instead of a 'path_identifier' *)
   | `User_defi_type x ->
-      let t = map_user_defined_type env x in
-      OtherExpr (("TypeExpr", PI.unsafe_fake_info ""), [ T t ]) |> G.e
+      let n = map_user_defined_type env x in
+      N n |> G.e
   | `Tuple_exp x -> map_tuple_expression env x
   | `Inline_array_exp (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
@@ -1378,7 +1390,9 @@ and map_tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) :
 and map_type_name (env : env) (x : CST.type_name) : type_ =
   match x with
   | `Prim_type x -> map_primitive_type env x
-  | `User_defi_type x -> map_user_defined_type env x
+  | `User_defi_type x ->
+      let n = map_user_defined_type env x in
+      TyN n |> G.t
   | `Mapp (v1, v2, v3, v4, v5, v6) ->
       let idmap = (* "mapping" *) str env v1 in
       let lp = (* "(" *) token env v2 in
@@ -1630,7 +1644,8 @@ let map_struct_member (env : env) (x : CST.struct_member) : field =
 
 let map_inheritance_specifier (env : env) ((v1, v2) : CST.inheritance_specifier)
     : class_parent =
-  let ty = map_user_defined_type env v1 in
+  let n = map_user_defined_type env v1 in
+  let ty = TyN n |> G.t in
   let argsopt =
     match v2 with
     | Some x -> Some (map_call_arguments env x)
@@ -1674,7 +1689,8 @@ let map_using_directive (env : env) ((v1, v2, v3, v4, v5) : CST.using_directive)
     : directive =
   (* TODO: a bit similar to an Import *)
   let tusing = (* "using" *) token env v1 in
-  let ty1 = map_user_defined_type env v2 in
+  let n1 = map_user_defined_type env v2 in
+  let ty1 = TyN n1 |> G.t in
   (* ?? some kind of mixins? *)
   let tfor = (* "for" *) token env v3 in
   let ty2 =
