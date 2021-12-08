@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+- Timing output handles errors and reports profiling times
+
 ## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 12-06-2021
 
 ### Added
