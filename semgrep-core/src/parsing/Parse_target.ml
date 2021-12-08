@@ -20,6 +20,9 @@ module E = Semgrep_error_code
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* To get a better backtrace, to better debug parse errors *)
+let debug_exn = ref false
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -33,6 +36,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 type parsing_result = {
   ast : AST_generic.program;
+  (* partial errors tree-sitter was able to recover from *)
   errors : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
@@ -80,7 +84,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
   match parser with
   | Pfff f ->
       Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
-          logger#info "trying to parse with Pfff parser %s" file;
+          logger#trace "trying to parse with Pfff parser %s" file;
           try
             let res = f file in
             Ok res
@@ -88,10 +92,10 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           | Timeout _ as e -> raise e
           | exn ->
               (* TODO: print where the exception was raised or reraise *)
-              logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
+              logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
               Error exn)
   | TreeSitter f -> (
-      logger#info "trying to parse with TreeSitter parser %s" file;
+      logger#trace "trying to parse with TreeSitter parser %s" file;
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat file res.stat in
@@ -100,22 +104,24 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
         | Some ast, [] -> Ok (ast, stat)
         | None, ts_error :: _xs ->
             let exn = error_of_tree_sitter_error ts_error in
-            logger#info "non-recoverable error (%s) with TreeSitter parser"
+            logger#error "non-recoverable error (%s) with TreeSitter parser"
               (Common.exn_to_s exn);
             Error exn
         | Some ast, x :: _xs ->
             (* let's just return the first one for now; the following one
              * may be due to cascading effect of the first error *)
             let exn = error_of_tree_sitter_error x in
-            logger#info "partial error (%s) with TreeSitter parser"
+            logger#error "partial error (%s) with TreeSitter parser"
               (Common.exn_to_s exn);
             let err = E.exn_to_error file exn in
             Partial (ast, [ err ], stat)
       with
       | Timeout _ as e -> raise e
+      (* to get correct stack trace on parse error *)
+      | exn when !debug_exn -> raise exn
       | exn ->
           (* TODO: print where the exception was raised or reraise *)
-          logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
+          logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
           Error exn)
 
 let rec (run_either :
@@ -221,7 +227,7 @@ let rec just_parse_with_lang lang file =
           Pfff (throw_tokens Parse_go.parse);
         ]
         Go_to_generic.program
-  | Lang.Javascript ->
+  | Lang.Js ->
       (* we start directly with tree-sitter here, because
        * the pfff parser is slow on minified files due to its (slow) error
        * recovery strategy.
@@ -232,7 +238,7 @@ let rec just_parse_with_lang lang file =
           Pfff (throw_tokens Parse_js.parse);
         ]
         Js_to_generic.program
-  | Lang.Typescript ->
+  | Lang.Ts ->
       run file
         [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None) ]
         Js_to_generic.program
@@ -244,6 +250,8 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
   | Lang.Kotlin ->
       run file [ TreeSitter Parse_kotlin_tree_sitter.parse ] (fun x -> x)
+  | Lang.Solidity ->
+      run file [ TreeSitter Parse_solidity_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
       run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
@@ -268,7 +276,7 @@ let rec just_parse_with_lang lang file =
          * switched to call Naming_AST.ml to correct def and use tagger
          *)
         Python_to_generic.program
-  | Lang.JSON ->
+  | Lang.Json ->
       run file
         [
           Pfff
@@ -276,14 +284,14 @@ let rec just_parse_with_lang lang file =
               (Parse_json.parse_program file, Parse_info.correct_stat file));
         ]
         Json_to_generic.program
-  | Lang.Cplusplus ->
+  | Lang.Cpp ->
       run file
         [
-          Pfff (throw_tokens Parse_cpp.parse);
           TreeSitter Parse_cpp_tree_sitter.parse;
+          Pfff (throw_tokens Parse_cpp.parse);
         ]
         Cpp_to_generic.program
-  | Lang.OCaml ->
+  | Lang.Ocaml ->
       run file
         [
           Pfff (throw_tokens Parse_ml.parse);
@@ -294,7 +302,7 @@ let rec just_parse_with_lang lang file =
       run file
         [ Pfff (throw_tokens Parse_scala.parse) ]
         Scala_to_generic.program
-  | Lang.PHP ->
+  | Lang.Php ->
       run file
         [
           Pfff
@@ -316,14 +324,12 @@ let rec just_parse_with_lang lang file =
         errors = [];
         stat = Parse_info.default_stat file;
       }
-  | Lang.HTML ->
+  | Lang.Html ->
       (* less: there is an html parser in pfff too we could use as backup *)
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue ->
       let parse_embedded_js file =
-        let { ast; errors; stat = _ } =
-          just_parse_with_lang Lang.Javascript file
-        in
+        let { ast; errors; stat = _ } = just_parse_with_lang Lang.Js file in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors
          *)
@@ -333,7 +339,7 @@ let rec just_parse_with_lang lang file =
       run file
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
-  | Lang.HCL -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)

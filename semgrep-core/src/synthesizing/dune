@@ -1,5 +1,5 @@
 (library
- (name semgrep_synthesizing)
+ (public_name semgrep_synthesizing)
  (wrapped false)
  (libraries
    ppx_deriving.runtime

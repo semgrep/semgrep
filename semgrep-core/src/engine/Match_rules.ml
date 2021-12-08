@@ -113,7 +113,7 @@ type env = {
   file : Common.filename;
   lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
   rule_id : R.rule_id;
-  xlang : R.xlang;
+  xlang : Xlang.t;
   equivalences : Equivalence.equivalences;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
@@ -199,7 +199,7 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      R.xlang -> Pattern.t * R.inside option * Rule.pattern_id * string -> MR.t)
+      Xlang.t -> Pattern.t * R.inside option * Rule.pattern_id * string -> MR.t)
     =
  fun xlang (pattern, inside, id, pstr) ->
   {
@@ -213,9 +213,9 @@ let (mini_rule_of_pattern :
     severity = R.Error;
     languages =
       (match xlang with
-      | R.L (x, xs) -> x :: xs
-      | R.LRegex
-      | R.LGeneric ->
+      | L (x, xs) -> x :: xs
+      | LRegex
+      | LGeneric ->
           raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
@@ -259,7 +259,7 @@ let debug_semgrep config mini_rules equivalences file lang ast =
 let matches_of_patterns ?range_filter config equivalences
     (file, xlang, lazy_ast_and_errors) patterns =
   match xlang with
-  | R.L (lang, _) ->
+  | Xlang.L (lang, _) ->
       let (ast, errors), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in
@@ -453,7 +453,7 @@ let matches_of_spacegrep spacegreps file =
 (* Regexps *)
 (*-------------------------------------------------------------------*)
 let regexp_matcher big_str file (re_str, re) =
-  let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
+  let subs = SPcre.exec_all_noerr ~rex:re big_str in
   subs |> Array.to_list
   |> List.map (fun sub ->
          let matched_str = Pcre.get_substring sub 0 in
@@ -640,7 +640,7 @@ let rec filter_ranges env xs cond =
                  ( G.DotAccess
                      ( G.N (G.Id (("re", fk), fki)) |> G.e,
                        fk,
-                       EN (Id (("match", fk), fki)) )
+                       FN (Id (("match", fk), fki)) )
                    |> G.e,
                    ( fk,
                      [
@@ -737,7 +737,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                   let lazy_ast_and_errors =
                     lazy
                       (match xlang with
-                      | R.L (lang, _) ->
+                      | L (lang, _) ->
                           let { Parse_target.ast; errors; _ } =
                             Parse_target
                             .parse_and_resolve_name_use_pfff_or_treesitter lang
@@ -752,8 +752,8 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                                   fully parse the content of %s"
                                  env.rule_id mvar);
                           (ast, errors)
-                      | R.LRegex
-                      | R.LGeneric ->
+                      | LRegex
+                      | LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
                   nested_formula_has_matches { env with file; xlang } formula
@@ -932,7 +932,7 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
       (file, xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
-  logger#info "found %d matches" (List.length res.matches);
+  logger#trace "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
@@ -948,9 +948,9 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
       errors = ref [];
     }
   in
-  logger#info "evaluating the formula";
+  logger#trace "evaluating the formula";
   let final_ranges = evaluate_formula env opt_context formula in
-  logger#info "found %d final ranges" (List.length final_ranges);
+  logger#trace "found %d final ranges" (List.length final_ranges);
   let res' = { res with RP.errors = res.RP.errors @ !(env.errors) } in
   (res', final_ranges)
   [@@profiling]
@@ -986,8 +986,7 @@ let check_rule r hook default_config pformula equivs file_and_more =
 
 let check hook default_config rules equivs file_and_more =
   let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
-  logger#info "checking %s with %d rules" file (List.length rules);
-  if rules = [] then logger#error "empty rules";
+  logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
     lazy_force lazy_ast_and_errors |> ignore);
@@ -996,8 +995,11 @@ let check hook default_config rules equivs file_and_more =
   |> List.map (fun (r, pformula) ->
          let rule_id = fst r.R.id in
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-             try check_rule r hook default_config pformula equivs file_and_more
-             with exn ->
+             try
+               check_rule r hook default_config pformula equivs file_and_more
+               (* TODO: why do we intercept errors here? We already do that in
+                * Run_semgrep.ml. *)
+             with exn when not !Flag_semgrep.fail_fast ->
                {
                  RP.matches = [];
                  errors = [ E.exn_to_error ~rule_id:(Some rule_id) file exn ];

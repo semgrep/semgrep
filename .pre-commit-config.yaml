@@ -48,7 +48,7 @@ repos:
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.43.0'
+    rev: 'v0.71.0'
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -82,7 +82,7 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.43.0'
+    rev: 'v0.71.0'
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python

@@ -138,7 +138,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/dropbox/mypy-protobuf", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/dropbox/nautilus-dropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/nsot", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/othw", "languages": ALL_LANGUAGES},
     {
@@ -372,6 +371,13 @@ FAILING_REPOS = [
             "languages": ALL_LANGUAGES,
         },
         reason="templates",
+    ),
+    xfail_repo(
+        {
+            "repo": "https://github.com/dropbox/nautilus-dropbox",
+            "languages": ALL_LANGUAGES,
+        },
+        reason="dropbox.in is invalid Python",
     ),
 ]
 

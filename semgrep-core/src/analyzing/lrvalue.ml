@@ -144,7 +144,7 @@ let rec visit_expr hook lhs expr =
            | Arg e -> recr e
            | ArgKwd (_id, e) -> recr e
            | ArgType _ -> ()
-           | ArgOther (_, anys) -> List.iter (anyhook hook Rhs) anys)
+           | OtherArg (_, anys) -> List.iter (anyhook hook Rhs) anys)
   | Cast (_t, _, e) -> recr e
   (* Do some languages allow this to be part of an assign? *)
   | Conditional (e, e1, e2) ->
@@ -179,6 +179,7 @@ let rec visit_expr hook lhs expr =
   | LetPattern (pat, e) ->
       anyhook hook Lhs (P pat);
       recr e
+  | ParenExpr (_, e, _) -> recr e
   | Seq xs -> List.iter recr xs
   (* we should not be called on a sgrep pattern *)
   | TypedMetavar (_id, _, _t) -> raise Impossible
@@ -187,6 +188,7 @@ let rec visit_expr hook lhs expr =
   | DotAccessEllipsis _ ->
       raise Impossible
   | Ellipsis _tok -> ()
+  | StmtExpr st -> anyhook hook Rhs (S st)
   | OtherExpr (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
 
 (*****************************************************************************)

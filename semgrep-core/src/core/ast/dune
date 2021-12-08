@@ -2,6 +2,22 @@
 ; used to be in pfff and is still used in projects outside semgrep (e.g.,
 ; codemap/efuns) which rely on this pfff-lang_... name and rely on
 ; small dependencies.
+
+; Handle jinja2 generation of Lang.mlx
+(data_only_dirs lang)
+(rule
+  (deps (source_tree lang) Lang.ml.j2 Lang.mli.j2 gen_lang.py)
+  (targets Lang.ml Lang.mli)
+  (action
+    (no-infer
+      (progn
+        (run pipenv install)
+        (run pipenv run python3 gen_lang.py)
+      )
+    )
+  )
+)
+
 (library
  (public_name pfff-lang_GENERIC_base)
  (name pfff_lang_GENERIC_base)
@@ -9,7 +25,6 @@
  (libraries
    pcre
    commons
-   bloomf
    pfff-h_program-lang
 
    semgrep-core-response

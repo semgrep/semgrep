@@ -1,4 +1,5 @@
 import hashlib
+import os
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -43,7 +44,7 @@ class _MetricManager:
         self._num_targets: Optional[int] = None
         self._num_findings: Optional[int] = None
         self._num_ignored: Optional[int] = None
-        self._run_time: Optional[float] = None
+        self._profiling_times: Dict[str, float] = {}
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
         self._file_stats: List[Dict[str, Any]] = []
@@ -136,8 +137,8 @@ class _MetricManager:
     def set_num_ignored(self, num_ignored: int) -> None:
         self._num_ignored = num_ignored
 
-    def set_run_time(self, run_time: float) -> None:
-        self._run_time = run_time
+    def set_profiling_times(self, profiling_times: Dict[str, float]) -> None:
+        self._profiling_times = profiling_times
 
     def set_total_bytes_scanned(self, total_bytes_scanned: int) -> None:
         self._total_bytes_scanned = total_bytes_scanned
@@ -191,11 +192,12 @@ class _MetricManager:
                 "projectHash": self._project_hash,
                 "configNamesHash": self._configs_hash,
                 "rulesHash": self._rules_hash,
+                "ci": os.environ.get("CI"),
             },
             "performance": {
                 "fileStats": self._file_stats,
                 "ruleStats": self._rule_stats,
-                "runTime": self._run_time,
+                "profilingTimes": self._profiling_times,
                 "numRules": self._num_rules,
                 "numTargets": self._num_targets,
                 "totalBytesScanned": self._total_bytes_scanned,

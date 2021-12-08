@@ -146,6 +146,9 @@ def score_output_json(
     todo_ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
+    todo_ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
         lambda: [0, 0, 0, 0]
     )
@@ -165,21 +168,30 @@ def score_output_json(
             todo_ok_in_line = line_has_todo_ok(line)
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
+            has_parseable_rule_id = (
+                rule_in_line or todo_rule_in_line or ok_in_line or todo_ok_in_line
+            ) and ":" in line
+
             try:
+                if not has_parseable_rule_id:
+                    continue
+                rule_ids = normalize_rule_ids(line)
                 if (not ignore_todo and todo_rule_in_line) or rule_in_line:
-                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         ruleid_lines[test_file_resolved][rule_id].append(
                             effective_line_num
                         )
                 if (not ignore_todo and todo_rule_in_line) or ok_in_line:
-                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         ok_lines[test_file_resolved][rule_id].append(effective_line_num)
                 if ignore_todo and todo_ok_in_line:
-                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         todo_ok_lines[test_file_resolved][rule_id].append(
+                            effective_line_num
+                        )
+                if todo_rule_in_line:
+                    for rule_id in rule_ids:
+                        todo_ruleid_lines[test_file_resolved][rule_id].append(
                             effective_line_num
                         )
             except ValueError:  # comment looked like a test annotation but couldn't parse
@@ -223,6 +235,7 @@ def score_output_json(
             expected = set(ruleid_lines[file_path][check_id])
             oked = set(ok_lines[file_path][check_id])
             todo_oked = set(todo_ok_lines[file_path][check_id])
+            todo_ruleid = set(todo_ruleid_lines[file_path][check_id])
 
             reported_oked_lines = oked.intersection(all_reported)
             if reported_oked_lines:
@@ -231,7 +244,7 @@ def score_output_json(
                 )
                 false_positive_lines = True
 
-            reported = all_reported - todo_oked
+            reported = all_reported - todo_oked - todo_ruleid
 
             new_cm = compute_confusion_matrix(reported, expected, oked)
             matches_by_check_id[check_id][file_path] = {
@@ -242,10 +255,6 @@ def score_output_json(
             score_by_checkid[check_id] = [
                 old_cm[i] + new_cm[i] for i in range(len(new_cm))
             ]
-
-    if false_positive_lines:
-        logger.error("failing due to false positives")
-        sys.exit(EXIT_FAILURE)
 
     return (score_by_checkid, matches_by_check_id, num_todo)
 
@@ -278,11 +287,14 @@ def generate_matches_line(check_results: Mapping[str, Any]) -> str:
 
 def invoke_semgrep_multi(
     config: Path, targets: List[Path], **kwargs: Any
-) -> Tuple[Path, Optional[Exception], Any]:
+) -> Tuple[Path, Optional[str], Any]:
     try:
         output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
-        return (config, error, {})
+        # We must get the string of the error because the multiprocessing library
+        # will fail the marshal the error and hang
+        # See: https://bugs.python.org/issue39751
+        return (config, str(error), {})
     else:
         return (config, None, output)
 
@@ -358,7 +370,7 @@ def generate_file_pairs(
 
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
     config_with_errors_output = [
-        {"filename": str(filename), "error": str(error), "output": output}
+        {"filename": str(filename), "error": error, "output": output}
         for filename, error, output in config_with_errors
     ]
 

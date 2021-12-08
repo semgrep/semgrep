@@ -110,11 +110,12 @@ val m_list : 'a matcher -> 'a list matcher
 val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*
-   Usage: m_list_with_dots f is_dots less_is_ok list_a list_b
+   Usage: m_list_with_dots less_is_ok f is_dots list_a list_b
 
    less_is_ok: whether the empty list pattern can match a non-empty list.
 *)
-val m_list_with_dots : 'a matcher -> ('a -> bool) -> bool -> 'a list matcher
+val m_list_with_dots :
+  less_is_ok:bool -> 'a matcher -> ('a -> bool) -> 'a list matcher
 
 val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
 

@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     steps:
+      - name: Install pipenv
+        run: sudo pip install pipenv
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -50,6 +52,8 @@ jobs:
           submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
       - name: Run OSX build
         run: ./scripts/osx-release.sh
       - name: Upload artifacts

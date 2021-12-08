@@ -25,7 +25,7 @@
 val files_of_dirs_or_files :
   ?keep_root_files:bool ->
   ?sort_by_decr_size:bool ->
-  Lang.t ->
+  Lang.t option ->
   Common.path list ->
   Common.filename list * Semgrep_core_response_t.skipped_target list
 

@@ -22,6 +22,8 @@ module G = AST_generic
 (*****************************************************************************)
 (* A Control Flow Graph (CFG) for AST generic.
  *
+ * This file is deprecated. You should use the IL and its CFG in IL.cfg
+ *
  * Note that this is just for intra-procedural analysis. The CFG covers
  * just one function. For inter-procedural analysis you may want to look
  * at pfff/graph_code/ (or invest in learning Datalog).
@@ -58,14 +60,14 @@ and node_kind =
   | TrueNode
   | FalseNode
   | Join
-  | IfHeader of expr
-  | WhileHeader of expr
+  | IfHeader of condition
+  | WhileHeader of condition
   | DoHeader
   | DoWhileTail of expr
   | ForHeader
   | ForeachHeader of pattern * expr
   | OtherStmtWithStmtHeader of other_stmt_with_stmt_operator * expr option
-  | SwitchHeader of expr option
+  | SwitchHeader of condition option
   | SwitchEnd
   | Case
   | Default
@@ -99,7 +101,7 @@ and simple_node =
   | ExprStmt of expr
   | DefStmt of definition
   | DirectiveStmt of directive
-  | Assert of tok * expr * expr option
+  | Assert of tok * arguments
   | OtherStmt of other_stmt_operator * any list
   (* not part of Ast.stmt but useful to have in CFG for
    * dataflow analysis purpose *)
@@ -164,7 +166,7 @@ let short_string_of_node node = short_string_of_node_kind node.n
 let simple_node_of_stmt_opt stmt =
   match stmt.s with
   | G.ExprStmt (e, _) -> Some (ExprStmt e)
-  | G.Assert (t, e1, e2, _sc) -> Some (Assert (t, e1, e2))
+  | G.Assert (t, args, _sc) -> Some (Assert (t, args))
   | G.DefStmt x -> Some (DefStmt x)
   | G.DirectiveStmt x -> Some (DirectiveStmt x)
   | G.OtherStmt (a, b) -> Some (OtherStmt (a, b))
@@ -189,7 +191,7 @@ let simple_node_of_stmt_opt stmt =
 
 let any_of_simple_node = function
   | ExprStmt e -> G.S (G.ExprStmt (e, G.sc) |> G.s)
-  | Assert (t, e1, e2) -> G.S (G.Assert (t, e1, e2, G.sc) |> G.s)
+  | Assert (t, args) -> G.S (G.Assert (t, args, G.sc) |> G.s)
   | DefStmt x -> G.S (G.DefStmt x |> G.s)
   | DirectiveStmt x -> G.S (G.DirectiveStmt x |> G.s)
   | OtherStmt (a, b) -> G.S (G.OtherStmt (a, b) |> G.s)

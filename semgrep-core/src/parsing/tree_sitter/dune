@@ -1,5 +1,5 @@
 (library
- (name semgrep_parsing_tree_sitter)
+ (public_name semgrep_parsing_tree_sitter)
  (wrapped false)
  (libraries
    yaml
@@ -24,6 +24,7 @@
    tree-sitter-lang.bash
    tree-sitter-lang.php
    tree-sitter-lang.hcl
+   tree-sitter-lang.solidity
 
    commons
    pfff-lang_GENERIC

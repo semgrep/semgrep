@@ -1,5 +1,3 @@
-(*s: semgrep/core/Config_semgrep.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -47,8 +44,17 @@ type t = {
 
   (* assign-patterns (e.g. `$X = $E`) will match var-defs (e.g. `var x = 1;`) *)
   ~vardef_assign <ocaml default="true"> : bool;
+  (* assign-patterns (e.g. `$X = function() { ... }`) will match fld-defs
+   * (e.g. `class Foo {  x = function() { return; } }`).
+   *)
+  ~flddef_assign <ocaml default="false"> : bool;
   (* expression patterns (e.g. `f($X)`) will match attributes (e.g. `@f(a)`)  *)
   ~attr_expr <ocaml default="true"> : bool;
+
+  (* treat arrows (a.k.a short lambdas) like other functions *)
+  ~arrow_is_function <ocaml default="true">: bool;
+  (* treat let/const as equivalent to var (JS-specific) *)
+  ~let_is_var <ocaml default="true">: bool;
 
   (* !experimental: a bit hacky, and may introduce big perf regressions! *)
   (* should be used with DeepEllipsis; do it implicitely has issues *)
@@ -61,8 +67,6 @@ type t = {
   ~implicit_ellipsis <ocaml default="true"> : bool;
 
   (* TODO: equivalences:
-   *   - const_let_to_var
    *   - require_to_import (but need pass config to Js_to_generic)
    *)
 }
-(*e: semgrep/core/Config_semgrep.ml *)

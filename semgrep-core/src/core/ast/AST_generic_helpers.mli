@@ -16,6 +16,9 @@ val expr_to_type : AST_generic.expr -> AST_generic.type_
 
 val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
 
+(* should avoid; used mainly during expr->condition migration for If/While/..*)
+val cond_to_expr : AST_generic.condition -> AST_generic.expr
+
 (* stmt conversions *)
 
 val vardef_to_assign :
@@ -58,6 +61,9 @@ val name_of_dot_access : AST_generic.expr -> AST_generic.name option
 val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
 
 (* misc *)
+
+val parameter_to_catch_exn_opt :
+  AST_generic.parameter -> AST_generic.catch_exn option
 
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
 

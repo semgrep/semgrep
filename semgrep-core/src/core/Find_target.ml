@@ -101,8 +101,7 @@ let is_minified path =
     else Ok path
   else Ok path
 
-let exclude_minified_files _lang paths =
-  Common.partition_result is_minified paths
+let exclude_minified_files paths = Common.partition_result is_minified paths
 
 let exclude_files_in_skip_lists roots =
   let paths, skipped_paths =
@@ -128,7 +127,7 @@ let exclude_files_in_skip_lists roots =
    We could configure the size limit based on a per-language basis if we
    know that a language parser can handle larger files.
 *)
-let filter_by_size _lang paths =
+let filter_by_size paths =
   let max_bytes = !Flag_semgrep.max_target_bytes in
   paths
   |> Common.partition_result (fun path ->
@@ -152,7 +151,7 @@ let sort_by_decreasing_size paths =
   |> Common.map fst
 
 let files_of_dirs_or_files ?(keep_root_files = true)
-    ?(sort_by_decr_size = false) lang roots =
+    ?(sort_by_decr_size = false) opt_lang roots =
   let explicit_targets, paths =
     if keep_root_files then
       roots
@@ -162,9 +161,13 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   in
   let paths = Common.files_of_dir_or_files_no_vcs_nofilter paths in
   let paths, skipped1 = exclude_files_in_skip_lists paths in
-  let paths, skipped2 = Guess_lang.inspect_files lang paths in
-  let paths, skipped3 = filter_by_size lang paths in
-  let paths, skipped4 = exclude_minified_files lang paths in
+  let paths, skipped2 =
+    match opt_lang with
+    | None -> (paths, [])
+    | Some lang -> Guess_lang.inspect_files lang paths
+  in
+  let paths, skipped3 = filter_by_size paths in
+  let paths, skipped4 = exclude_minified_files paths in
   let skipped = Common.flatten [ skipped1; skipped2; skipped3; skipped4 ] in
   let paths = explicit_targets @ paths in
   let sorted_paths =

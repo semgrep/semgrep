@@ -40,12 +40,10 @@ let str_of_ident = fst
 let gensym_counter = ref 0
 
 (* see sid type in resolved_name *)
-(* see sid type in resolved_name *)
 let gensym () =
   incr gensym_counter;
   !gensym_counter
 
-(* TODO: refactor name_qualifier and correctly handle this *)
 let name_of_ids_with_opt_typeargs xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
@@ -136,7 +134,7 @@ let name_of_dot_access e =
   let ( let* ) = Option.bind in
   let rec fetch_ids = function
     | G.N (G.Id (x, _)) -> Some [ x ]
-    | G.DotAccess (e1, _, G.EN (G.Id (x, _))) ->
+    | G.DotAccess (e1, _, G.FN (G.Id (x, _))) ->
         let* xs = fetch_ids e1.e in
         Some (xs @ [ x ])
     | ___else___ -> None
@@ -147,14 +145,15 @@ let name_of_dot_access e =
 (* TODO: you should not need to use that. This is mostly because
  * Constructor and PatConstructor currently takes a dotted_ident instead
  * of a name, and because module_name accepts only DottedName
- * but C# allows name.
+ * but C# and C++ allow names.
  *)
 let dotted_ident_of_name (n : name) : dotted_ident =
   match n with
   | Id (id, _) -> [ id ]
-  | IdQualified { name_last = ident, _topt; name_middle; _ } ->
+  | IdQualified { name_last = ident, _toptTODO; name_middle; _ } ->
       let before =
         match name_middle with
+        (* we skip the type parts in ds ... *)
         | Some (QDots ds) -> ds |> List.map fst
         | Some (QExpr _) ->
             logger#error "unexpected qualifier type";
@@ -199,13 +198,16 @@ let rec pattern_to_expr p =
 
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
-  OtherType (OT_Expr, [ E e ]) |> G.t
+  TyExpr e |> G.t
 
 (* TODO: recognize foo(args)? like in Kotlin/Java *)
-let expr_to_class_parent e : class_parent =
-  (OtherType (OT_Expr, [ E e ]) |> G.t, None)
+let expr_to_class_parent e : class_parent = (expr_to_type e, None)
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
+
+let cond_to_expr = function
+  | Cond e -> e
+  | OtherCond (categ, xs) -> OtherExpr (categ, xs) |> G.e
 
 (* old: there was a stmt_to_item before *)
 (* old: there was a stmt_to_field before *)
@@ -241,16 +243,20 @@ let is_boolean_operator = function
     -> true
 *)
 
-let name_or_dynamic_to_expr name idinfo_opt =
-  (match (name, idinfo_opt) with
+(* this will be used for the lhs of an Assign. Maybe one day Assign
+ * will have a more precise type and we can be more precise too here.
+ *)
+let entity_name_to_expr name idinfo_opt =
+  match (name, idinfo_opt) with
   (* assert idinfo = _idinfo below? *)
-  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo))
-  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
-  | EN (IdQualified n), None -> N (IdQualified n)
+  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo)) |> G.e
+  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo)) |> G.e
+  | EN (IdQualified n), None -> N (IdQualified n) |> G.e
   | EN (IdQualified n), Some idinfo ->
-      N (IdQualified { n with name_info = idinfo })
-  | EDynamic e, _ -> e.e)
-  |> G.e
+      N (IdQualified { n with name_info = idinfo }) |> G.e
+  | EDynamic e, _ -> e
+  | EPattern pat, _ -> G.OtherExpr (("EPattern", fake ""), [ P pat ]) |> G.e
+  | OtherEntity (categ, xs), _ -> G.OtherExpr (categ, xs) |> G.e
 
 let argument_to_expr arg =
   match arg with
@@ -260,25 +266,25 @@ let argument_to_expr arg =
       let k = N n |> G.e in
       G.keyval k (fake "") e
   | ArgType _
-  | ArgOther _ ->
+  | OtherArg _ ->
       raise NotAnExpr
 
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
-  let name = name_or_dynamic_to_expr ent.name None in
+  let name_or_expr = entity_name_to_expr ent.name None in
   let v =
     match def.vinit with
     | Some v -> v
     | None -> L (Null (Parse_info.unsafe_fake_info "null")) |> G.e
   in
-  Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
-  let name = name_or_dynamic_to_expr ent.name (Some idinfo) in
+  let name_or_expr = entity_name_to_expr ent.name (Some idinfo) in
   let v = Lambda def |> G.e in
-  Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
 
 let funcbody_to_stmt = function
   | FBStmt st -> st
@@ -291,6 +297,18 @@ let has_keyword_attr kwd attrs =
   |> List.exists (function
        | KeywordAttr (kwd2, _) -> kwd =*= kwd2
        | _ -> false)
+
+(* just used in cpp_to_generic.ml for now, could be moved there *)
+let parameter_to_catch_exn_opt p =
+  match p with
+  | Param p -> Some (CatchParam p)
+  | ParamEllipsis t -> Some (CatchPattern (PatEllipsis t))
+  | ParamPattern p -> Some (G.CatchPattern p)
+  (* TODO: valid in exn spec? *)
+  | ParamRest (_, _p)
+  | ParamHashSplat (_, _p) ->
+      None
+  | OtherParam _ -> None
 
 (*****************************************************************************)
 (* Abstract position and constness for comparison *)
@@ -339,7 +357,7 @@ let ac_matching_nf op args =
          | Arg e -> e
          | ArgKwd _
          | ArgType _
-         | ArgOther _ ->
+         | OtherArg _ ->
              raise_notrace Exit)
     |> List.map nf_one |> List.flatten
   and nf_one e =

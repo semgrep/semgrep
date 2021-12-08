@@ -17,7 +17,6 @@ from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -126,6 +125,13 @@ class TextFormatter(BaseFormatter):
                     yield BREAK_LINE
 
     @staticmethod
+    def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
+        source_url = rule_match._metadata.get("shortlink")
+        if not source_url:
+            return ""
+        return f' Details: {with_color("bright_blue", source_url)}'
+
+    @staticmethod
     def _build_text_timing_output(
         time_data: Mapping[str, Any],
         color_output: bool,
@@ -207,13 +213,8 @@ class TextFormatter(BaseFormatter):
                 and check_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
-                severity = rule_match.severity
-                severity_text = f"severity:{severity.value.lower()} "
-                if severity == RuleSeverity.WARNING:
-                    severity_text = with_color("yellow", severity_text)
-                elif severity == RuleSeverity.ERROR:
-                    severity_text = with_color("red", severity_text)
-                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message}')}"
+                shortlink = TextFormatter._get_details_shortlink(rule_match)
+                yield f"{with_color('yellow', f'rule:{check_id}: {message}{shortlink}')}"
 
             last_file = current_file
             last_message = message
@@ -224,10 +225,10 @@ class TextFormatter(BaseFormatter):
             )
 
             if fix:
-                yield f"{with_color('blue', 'autofix:')} {fix}"
+                yield f"{with_color('bright_blue', 'autofix:')} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{with_color('blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{with_color('bright_blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False

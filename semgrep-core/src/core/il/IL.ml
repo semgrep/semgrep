@@ -37,8 +37,8 @@ module G = AST_generic
  *
  *  - no For/Foreach/DoWhile/While, converted all to Loop,
  *  - no Foreach, converted to a Loop and 2 new special
- *  - TODO no Switch, converted to Ifs
- *  - TODO no Continue/Break, converted to goto
+ *  - no Switch, converted to Ifs
+ *  - no Continue/Break, converted to goto
  *  - less use of expr option (in Return/Assert/...), use Unit in those cases
  *
  *  - no Sgrep constructs
@@ -95,14 +95,15 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 type ident = G.ident [@@deriving show]
 
 (* 'sid' below is the result of name resolution and variable disambiguation
- * using a gensym (see Naming_AST.ml). The pair is guaranteed to be
+ * using a gensym (see Naming_AST.ml). A name is guaranteed to be
  * global and unique (no need to handle variable shadowing, block scoping,
  * etc; this has been done already).
  * TODO: use it to also do SSA! so some control-flow insensitive analysis
  * can become control-flow sensitive? (e.g., DOOP)
  *
  *)
-type name = ident * G.sid [@@deriving show]
+type name = { ident : ident; sid : G.sid; id_info : G.id_info }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Fixme constructs *)
@@ -118,17 +119,29 @@ type fixme_kind =
 [@@deriving show]
 
 (*****************************************************************************)
+(* Mapping back to Generic *)
+(*****************************************************************************)
+
+(* Only use `SameAs` when the IL expression or instruction is indeed "the same as"
+ * (i.e., semantically equivalent) to that Generic expression. *)
+type orig = SameAs of G.expr | Related of G.any | NoOrig
+[@@deriving show { with_path = false }]
+
+let related_tok tok = Related (G.Tk tok)
+
+let related_exp exp_gen = Related (G.E exp_gen)
+
+let any_of_orig = function
+  | SameAs e -> G.E e
+  | Related any -> any
+  | NoOrig -> G.Anys []
+
+(*****************************************************************************)
 (* Lvalue *)
 (*****************************************************************************)
 
 (* An lvalue, represented as in CIL as a pair. *)
-type lval = {
-  base : base;
-  offset : offset;
-  constness : G.constness option ref;
-      (* THINK: Drop option? *)
-      (* todo: ltype: typ; *)
-}
+type lval = { base : base; offset : offset }
 
 and base =
   | Var of name
@@ -169,7 +182,7 @@ and var_special = This | Super | Self | Parent
  * Here 'exp' does not contain any side effect!
  * todo: etype: typ;
  *)
-and exp = { e : exp_kind; eorig : G.expr }
+and exp = { e : exp_kind; eorig : orig }
 
 and exp_kind =
   | Fetch of lval (* lvalue used in a rvalue context *)
@@ -187,7 +200,10 @@ and exp_kind =
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
   | Operator of G.operator wrap * exp list
-  | FixmeExp of fixme_kind * G.any
+  | FixmeExp of
+      fixme_kind
+      * G.any (* fixme source *)
+      * exp (* partial translation *) option
 
 and composite_kind =
   | CTuple
@@ -207,7 +223,7 @@ type argument = exp [@@deriving show]
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split into  instr vs exp vs lval.
  *)
-type instr = { i : instr_kind; iorig : G.expr }
+type instr = { i : instr_kind; iorig : orig }
 
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
@@ -280,7 +296,7 @@ and other_stmt =
   (* everything except VarDef (which is transformed in a Set instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
-  | Noop
+  | Noop of (* for debugging purposes *) string
 
 and label = ident * G.sid [@@deriving show { with_path = false }]
 
@@ -383,7 +399,8 @@ let rec lvals_of_exp e =
   | Operator (_, xs) ->
       lvals_of_exps xs
   | Record ys -> lvals_of_exps (ys |> List.map snd)
-  | FixmeExp _ -> []
+  | FixmeExp (_, _, Some e) -> lvals_of_exp e
+  | FixmeExp (_, _, None) -> []
 
 and lvals_in_lval lval =
   let base_lvals =
@@ -446,7 +463,9 @@ let lval_of_node_opt = function
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let str_of_name ((s, _tok), _sid) = s
+let str_of_name name = fst name.ident
+
+let str_of_label ((n, _), _) = n
 
 let find_node f cfg =
   cfg#nodes#tolist

@@ -22,6 +22,8 @@ module F = Controlflow
 (* A smaller wrapper around the AST generic visitor to also handles
  * control flow nodes.
  *
+ * This file is deprecated. You should use the IL and its CFG in IL.cfg.
+ *
  * Less useful now that we have Controlflow.exprs_of_node and
  * Controlflow.fold_on_node_and_expr.
  *)
@@ -63,11 +65,16 @@ let mk_visitor vin =
     | F.SwitchHeader None
     | F.OtherStmtWithStmtHeader (_, None) ->
         ()
+    (* cond *)
+    | F.IfHeader cond
+    | F.WhileHeader cond
+    | F.SwitchHeader (Some cond) -> (
+        match cond with
+        | G.Cond e -> visitor (G.E e)
+        (* TODO *)
+        | G.OtherCond _ -> ())
     (* expr *)
-    | F.IfHeader expr
-    | F.WhileHeader expr
     | F.DoWhileTail expr
-    | F.SwitchHeader (Some expr)
     | F.Throw expr
     | F.Return (Some expr)
     | F.OtherStmtWithStmtHeader (_, Some expr) ->
@@ -103,11 +110,15 @@ let exprs_of_node node =
   | SwitchHeader None
   | OtherStmtWithStmtHeader (_, None) ->
       []
+  (* cond *)
+  | IfHeader cond
+  | WhileHeader cond
+  | SwitchHeader (Some cond) -> (
+      match cond with
+      | Cond e -> [ e ]
+      | OtherCond _ -> [])
   (* expr *)
-  | IfHeader expr
-  | WhileHeader expr
   | DoWhileTail expr
-  | SwitchHeader (Some expr)
   | Throw expr
   | Return (Some expr)
   | OtherStmtWithStmtHeader (_, Some expr) ->
@@ -116,7 +127,11 @@ let exprs_of_node node =
   | SimpleNode x -> (
       match x with
       | ExprStmt e -> [ e ]
-      | Assert (_, e, eopt) -> e :: Common.opt_to_list eopt
+      | Assert (_, (_, args, _)) ->
+          args
+          |> Common.map_filter (function
+               | G.Arg e -> Some e
+               | _ -> None)
       (* TODO: should transform VarDef in it in Assign *)
       | DefStmt _ -> []
       | DirectiveStmt _ -> []

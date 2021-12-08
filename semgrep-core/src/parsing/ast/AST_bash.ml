@@ -109,30 +109,56 @@ type binary_test_operator =
 
 type pipeline_bar = Bar | Bar_ampersand
 
-type unary_control_operator =
-  | Foreground (* ';' or '\n' or ';;' *)
-  | Background
+(*
+   Pipeline/command terminators that indicate that the command should
+   run in the foreground i.e. synchronously: ';' or '\n' or ';;'
+*)
+type fg_op = Fg_newline | Fg_semi | Fg_semisemi
 
-(* & *)
+type unary_control_operator = Foreground of fg_op | (* & *) Background
 
-type redirect = todo
+type write_kind =
+  | Write_truncate (* '>' *)
+  | Write_append (* '>>' *)
+  | Write_force_truncate
+
+(* '>|' *)
+
+type write_redir_src =
+  | Stdout of tok
+  | Stdout_and_stderr of tok
+  | File_descriptor of int wrap
+
+(* The destination for writes (">") or the source for reads ("<") *)
+type file_redir_target =
+  | File of expression
+  | File_descriptor of int wrap
+  | Stdout_and_stderr (*'&>' or '>&' *) of tok
+  | Close_fd (* '-' *) of tok
+
+and file_redirect =
+  | Read of tok * file_redir_target
+  | Write of write_redir_src * write_kind wrap * file_redir_target
+  | Read_write
+
+(* <> *)
+and redirect =
+  | File_redirect of loc * file_redirect
+  | Read_heredoc of todo
+  | Read_herestring of todo
 
 (*
    Redirections can occur anywhere within a simple command. We extract
    them into a list while preserving their order, which matters.
 *)
-type command_with_redirects = {
-  loc : loc;
-  command : command;
-  redirects : redirect list;
-}
+and cmd_redir = { loc : loc; command : command; redirects : redirect list }
 
 (*
    A command is anything that can be chained into a pipeline.
 
    These are all the different kinds of commands as presented in the
    Bash man page. IO redirections are hoisted up into the
-   'command_with_redirects' wrapper.
+   'cmd_redir' wrapper.
 
    The syntax doesn't allow for nested coprocesses, but we allow it in
    the AST because it's simpler this way.
@@ -142,6 +168,10 @@ type command_with_redirects = {
 *)
 and command =
   | Simple_command of simple_command
+  (* &&/|| combine two commands into one.
+     They don't form a list of pipelines like 'man bash' says. *)
+  | And of loc * pipeline * tok (* && *) * pipeline
+  | Or of loc * pipeline * tok (* || *) * pipeline
   (* What the manual refers to as "compound commands" *)
   | Subshell of loc * blist bracket
   | Command_group of loc * blist bracket
@@ -194,8 +224,8 @@ and command =
       loc * (* until *) tok * blist * (* do *) tok * blist * (* done *) tok
   (* Other commands *)
   | Coprocess of loc * string option * (* simple or compound *) command
-  | Assignment of loc * assignment
-  | Declaration of loc * declaration
+  | Assignment of assignment
+  | Declaration of declaration
   | Negated_command of loc * tok * command
   | Function_definition of loc * function_definition
 
@@ -244,8 +274,8 @@ and simple_command = {
      a | b && c | d
 *)
 and pipeline =
-  | Command of loc * command_with_redirects
-  | Pipeline of loc * pipeline * pipeline_bar wrap * command_with_redirects
+  | Command of cmd_redir
+  | Pipeline of loc * pipeline * pipeline_bar wrap * cmd_redir
   | Control_operator of loc * pipeline * unary_control_operator wrap
 
 (*
@@ -262,8 +292,6 @@ and pipeline =
 *)
 and blist =
   | Seq of loc * blist * blist
-  | And of loc * blist * tok (* && *) * blist
-  | Or of loc * blist * tok (* || *) * blist
   | Pipelines of loc * pipeline list
   | Empty of loc
 
@@ -311,8 +339,27 @@ and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
 
 and else_ = loc * (* else *) tok * blist
 
-(* TODO: add support for assigning to an array cell
-   TODO: add support for assigning an array literal *)
+(* Declarations and optionally some assignments. Covers things like
+
+     declare -i a=1 b=2
+     declare -a arr brr
+     export PATH
+     local foo=$1
+     unset x y z
+
+   Yes, 'unset' is treated as a declaration too.
+
+   TODO: add support for assigning to an array cell
+   TODO: add support for assigning an array literal
+*)
+and declaration = {
+  loc : loc;
+  declarations : variable_name list;
+  assignments : assignment list;
+  attributes : declaration_attribute wrap list;
+  unknowns : expression list;
+}
+
 and assignment = {
   loc : loc;
   lhs : string wrap;
@@ -320,10 +367,31 @@ and assignment = {
   rhs : expression;
 }
 
-and assign_rhs = expression
+(*
+   Some of these attributes are mutually compatible, some aren't, and it's
+   not obvious.
+   For example, -i (integer) is compatible with -a (array) and with -l
+   (lowercase)!
+*)
+and declaration_attribute =
+  | Array (* -a *)
+  | Associative_array (* -A *)
+  | Function (* '-f' (makes sense only with '-p') *)
+  | Function_short (* '-F' *)
+  | Global (* -g *)
+  | Integer (* -i *)
+  | Local (* 'local' *)
+  | Lowercase (* -l *)
+  | Nameref (* -n *)
+  | Print (* -p *)
+  | Readonly (* 'readonly' or '-r' *)
+  | Trace (* '-t' *)
+  | Uppercase (* -u *)
+  | Export (* 'export' or '-x' *)
+  | Unset (* 'unset' *)
+  | Unsetenv
 
-and declaration = todo
-
+(* 'unsetenv' *)
 and expression =
   | Word of (* unquoted string *) string wrap
   | Special_character of (* unquoted string *) string wrap
@@ -332,19 +400,20 @@ and expression =
   | Raw_string of (* '...' *) string wrap
   | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
-  | Expr_ellipsis of (* ... *) tok
-  | Expr_metavar of (* $X in pattern mode *) string wrap
+  | Expr_semgrep_ellipsis of (* ... *) tok
+  | Expr_semgrep_deep_ellipsis of (* <... x ...> *) loc * expression bracket
+  | Expr_semgrep_metavar of (* $X in pattern mode *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
-  | Array of (* ( ... ) *) loc * expression list bracket
-  | Process_substitution of (* <( ... ) *) loc * blist bracket
+  | Array of (* ( a b ) *) loc * expression list bracket
+  | Process_substitution of (* <( echo 'x' ) *) loc * blist bracket
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
-  | Frag_metavar of (* $X in pattern mode *) string wrap
+  | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -354,7 +423,7 @@ and expansion =
 and variable_name =
   | Simple_variable_name of string wrap
   | Special_variable_name of string wrap
-  | Var_metavar of string wrap
+  | Var_semgrep_metavar of string wrap
 
 and complex_expansion =
   | Variable of loc * variable_name
@@ -424,21 +493,27 @@ let bracket (loc : loc) x : 'a bracket =
 
 let compare_loc (a, _) (b, _) = Parse_info.compare_pos a b
 
-let min_loc_tok a b =
-  let tok_a = left_loc_tok a in
-  let tok_b = left_loc_tok b in
+let min_tok tok_a tok_b =
   if Parse_info.is_fake tok_a then tok_b
   else if Parse_info.is_fake tok_b then tok_a
   else if Parse_info.compare_pos tok_a tok_b <= 0 then tok_a
   else tok_b
 
-let max_loc_tok a b =
-  let tok_a = right_loc_tok a in
-  let tok_b = right_loc_tok b in
+let min_loc_tok a b =
+  let tok_a = left_loc_tok a in
+  let tok_b = left_loc_tok b in
+  min_tok tok_a tok_b
+
+let max_tok tok_a tok_b =
   if Parse_info.is_fake tok_b then tok_a
   else if Parse_info.is_fake tok_a then tok_b
   else if Parse_info.compare_pos tok_a tok_b <= 0 then tok_b
   else tok_a
+
+let max_loc_tok a b =
+  let tok_a = right_loc_tok a in
+  let tok_b = right_loc_tok b in
+  max_tok tok_a tok_b
 
 (*
    Return the span of two ranges (locations) while trying to eliminate
@@ -468,12 +543,10 @@ let bracket_loc (start_tok, _, end_tok) : loc = (start_tok, end_tok)
 
 let todo_loc (TODO loc) = loc
 
-let redirect_loc x = todo_loc x
-
-let command_with_redirects_loc x = x.loc
-
 let command_loc = function
   | Simple_command x -> x.loc
+  | And (loc, _, _, _) -> loc
+  | Or (loc, _, _, _) -> loc
   | Subshell (loc, _) -> loc
   | Command_group (loc, _) -> loc
   | Sh_test (loc, _) -> loc
@@ -487,22 +560,20 @@ let command_loc = function
   | While_loop (loc, _, _, _, _, _) -> loc
   | Until_loop (loc, _, _, _, _, _) -> loc
   | Coprocess (loc, _, _) -> loc
-  | Assignment (loc, _) -> loc
-  | Declaration (loc, _) -> loc
+  | Assignment x -> x.loc
+  | Declaration x -> x.loc
   | Negated_command (loc, _, _) -> loc
   | Function_definition (loc, _) -> loc
 
 let simple_command_loc (x : simple_command) = x.loc
 
 let pipeline_loc = function
-  | Command (loc, _) -> loc
+  | Command x -> x.loc
   | Pipeline (loc, _, _, _) -> loc
   | Control_operator (loc, _, _) -> loc
 
 let blist_loc = function
   | Seq (loc, _, _) -> loc
-  | And (loc, _, _, _) -> loc
-  | Or (loc, _, _, _) -> loc
   | Pipelines (loc, _) -> loc
   | Empty loc -> loc
 
@@ -544,7 +615,7 @@ let assignment_loc (x : assignment) = x.loc
 
 let assignment_list_loc (x : assignment list) = list_loc assignment_loc x
 
-let declaration_loc (x : declaration) = todo_loc x
+let declaration_loc (x : declaration) = x.loc
 
 let expression_loc = function
   | Word x -> wrap_loc x
@@ -554,20 +625,19 @@ let expression_loc = function
   | Ansii_c_string x -> wrap_loc x
   | Special_character x -> wrap_loc x
   | Concatenation (loc, _) -> loc
-  | Expr_ellipsis tok -> (tok, tok)
-  | Expr_metavar x -> wrap_loc x
+  | Expr_semgrep_ellipsis tok -> (tok, tok)
+  | Expr_semgrep_deep_ellipsis (loc, _) -> loc
+  | Expr_semgrep_metavar x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
   | Array (loc, _) -> loc
   | Process_substitution (loc, _) -> loc
 
-let assign_rhs_loc (x : assign_rhs) = expression_loc x
-
 let string_fragment_loc = function
   | String_content x -> wrap_loc x
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
-  | Frag_metavar x -> wrap_loc x
+  | Frag_semgrep_metavar x -> wrap_loc x
 
 let expansion_loc = function
   | Simple_expansion (loc, _) -> loc
@@ -576,8 +646,10 @@ let expansion_loc = function
 let variable_name_wrap = function
   | Simple_variable_name x
   | Special_variable_name x
-  | Var_metavar x ->
+  | Var_semgrep_metavar x ->
       x
+
+let variable_name_tok x = variable_name_wrap x |> snd
 
 let variable_name_loc x = variable_name_wrap x |> wrap_loc
 
@@ -605,6 +677,28 @@ let test_expression_loc = function
   | T_todo loc ->
       loc
 
+let write_redir_src_loc (x : write_redir_src) =
+  match x with
+  | Stdout tok
+  | Stdout_and_stderr tok
+  | File_descriptor (_, tok) ->
+      (tok, tok)
+
+let file_redir_target_loc (x : file_redir_target) =
+  match x with
+  | File e -> expression_loc e
+  | File_descriptor w -> wrap_loc w
+  | Stdout_and_stderr tok -> (tok, tok)
+  | Close_fd tok -> (tok, tok)
+
+let redirect_loc (x : redirect) =
+  match x with
+  | File_redirect (loc, _) -> loc
+  | Read_heredoc x -> todo_loc x
+  | Read_herestring x -> todo_loc x
+
+let cmd_redir_loc x = x.loc
+
 (*****************************************************************************)
 (* Helpers for users of the module *)
 (*****************************************************************************)
@@ -623,3 +717,86 @@ let concat_blists (x : blist list) : blist =
           let loc = range start end_ in
           Seq (loc, blist, acc))
         last_blist blists
+
+let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
+    cmd_redir =
+  let all_locs = cmd_r.loc :: List.map redirect_loc redirects in
+  let loc = list_loc (fun loc -> loc) all_locs in
+  { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
+
+let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
+  match pip with
+  | Command cmd_r -> Command (add_redirects_to_command cmd_r redirects)
+  | Pipeline (loc, pip, bar, cmd_r) ->
+      let cmd_r = add_redirects_to_command cmd_r redirects in
+      let loc = range loc cmd_r.loc in
+      Pipeline (loc, pip, bar, cmd_r)
+  | Control_operator (loc, pip, op) ->
+      let pip = add_redirects_to_last_command_of_pipeline pip redirects in
+      let loc = range loc (pipeline_loc pip) in
+      Control_operator (loc, pip, op)
+
+let rec first_command_of_pipeline pip :
+    cmd_redir * unary_control_operator wrap option =
+  match pip with
+  | Command x -> (x, None)
+  | Pipeline (_loc, pip, _bar, _cmd) -> first_command_of_pipeline pip
+  | Control_operator (_loc, pip, op) ->
+      let cmd, _ = first_command_of_pipeline pip in
+      (cmd, Some op)
+
+(*
+   We use this only to analyze and simplify a pattern. This loses the location
+   information if the list is empty.
+*)
+let flatten_blist blist : pipeline list =
+  let rec flatten acc blist =
+    match blist with
+    | Seq (_loc, a, b) ->
+        let acc = flatten acc a in
+        flatten acc b
+    | Pipelines (_loc, pips) -> List.rev_append pips acc
+    | Empty _loc -> acc
+  in
+  flatten [] blist |> List.rev
+
+(*
+   Simple expressions returned by this function:
+
+     foo
+     $foo
+     ""
+
+   Not simple expressions:
+
+     foo bar
+     foo;
+     foo > bar
+     foo &
+     foo | bar
+*)
+let rec pipeline_as_expression pip : expression option =
+  match pip with
+  | Command cmd_r -> (
+      match (cmd_r.redirects, cmd_r.command) with
+      | [], Simple_command cmd -> (
+          match (cmd.assignments, cmd.arguments) with
+          | [], [ arg0 ] -> Some arg0
+          | _ -> None)
+      | _ -> None)
+  | Pipeline _ -> None
+  | Control_operator (_loc, pip, (op, _tok)) -> (
+      match op with
+      | Foreground Fg_newline -> pipeline_as_expression pip
+      | Foreground (Fg_semi | Fg_semisemi)
+      | Background ->
+          None)
+
+(*
+   This is necessary to that a pattern 'foo' is not translated into to a
+   function/command call.
+*)
+let blist_as_expression blist : expression option =
+  match flatten_blist blist with
+  | [ pip ] -> pipeline_as_expression pip
+  | _ -> None

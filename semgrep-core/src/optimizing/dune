@@ -1,5 +1,5 @@
 (library
- (name semgrep_optimizing)
+ (public_name semgrep_optimizing)
  (wrapped false)
  (libraries
     pfff_lang_GENERIC_base

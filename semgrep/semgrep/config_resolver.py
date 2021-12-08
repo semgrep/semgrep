@@ -33,12 +33,12 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.metric_manager import metric_manager
 from semgrep.rule import Rule
+from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
-from semgrep.semgrep_types import Language
 from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
@@ -65,7 +65,7 @@ DEFAULT_CONFIG = {
             "id": "eqeq-is-bad",
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
-            "languages": [Language.PYTHON.value],
+            "languages": ["python"],
             "severity": RuleSeverity.ERROR.value,
         },
     ],
@@ -117,12 +117,9 @@ class ConfigPath:
                     )
                 )
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
-        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
-            self._origin = ConfigType.CDN
-            self._config_path = config_str[2:]
         else:
             self._origin = ConfigType.LOCAL
-            self._config_path = config_str
+            self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
             metric_manager.set_using_server_true()
@@ -305,8 +302,14 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
 
+        # deduplicate rules, ignoring metadata, which is not displayed
+        # in the result
         return list(
-            OrderedDict.fromkeys([rule for rules in configs.values() for rule in rules])
+            OrderedDict(
+                (rule_without_metadata(rule), rule)
+                for rules in configs.values()
+                for rule in rules
+            ).values()
         )
 
     @staticmethod

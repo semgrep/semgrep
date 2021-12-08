@@ -86,7 +86,7 @@ let exn_to_error ?(rule_id = None) file exn =
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
-          spf "Invalid pattern for %s" (Rule.string_of_xlang xlang);
+          spf "Invalid pattern for %s" (Xlang.to_string xlang);
         details = None;
         yaml_path = Some yaml_path;
       }
@@ -106,13 +106,14 @@ let exn_to_error ?(rule_id = None) file exn =
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
+      let trace = Printexc.get_backtrace () in
       let loc = Parse_info.first_loc_of_file file in
       {
         rule_id;
         typ = FatalError;
         loc;
         msg = Common.exn_to_s exn;
-        details = Some (Printexc.get_backtrace ());
+        details = Some trace;
         yaml_path = None;
       }
 
@@ -132,7 +133,7 @@ let string_of_error_kind = function
   (* semgrep *)
   | SemgrepMatchFound check_id ->
       (* TODO: please make the error message obvious to the user *)
-      spf "Semgrep match found '%s'" check_id
+      spf "Semgrep match found by '%s'" check_id
   | MatchingError -> "Internal matching error"
   | TooManyMatches -> "Too many matches"
   (* other *)
@@ -154,7 +155,7 @@ let string_of_error err =
 
 let severity_of_error typ =
   match typ with
-  | SemgrepMatchFound _title -> Warning
+  | SemgrepMatchFound _title -> Error
   | MatchingError -> Warning
   | TooManyMatches -> Warning
   | LexicalError -> Warning

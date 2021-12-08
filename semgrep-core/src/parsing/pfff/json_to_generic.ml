@@ -33,7 +33,7 @@ let expr x =
                 let ys =
                   xs
                   |> List.map (function
-                       | G.FieldStmt
+                       | G.F
                            {
                              s =
                                G.DefStmt
@@ -42,8 +42,7 @@ let expr x =
                              _;
                            } ->
                            Left (id, e)
-                       | G.FieldStmt
-                           { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
+                       | G.F { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
                            Right t
                        | x ->
                            failwith

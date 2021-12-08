@@ -1,0 +1,3 @@
+public function __construct($VAR) {
+  file_get_contents($VAR);
+}

@@ -109,11 +109,11 @@ module Pcre_engine = struct
 
   let matching_exact_string s =
     let quoted = Pcre.quote s in
-    (quoted, Pcre_settings.regexp quoted)
+    (quoted, SPcre.regexp quoted)
 
   let matching_exact_word s =
     let re = "\b" ^ Pcre.quote s ^ "\b" in
-    (re, Pcre_settings.regexp re)
+    (re, SPcre.regexp re)
 
-  let run (_, re) str = Pcre.pmatch ~rex:re str
+  let run (_, re) str = SPcre.pmatch_noerr ~rex:re str
 end

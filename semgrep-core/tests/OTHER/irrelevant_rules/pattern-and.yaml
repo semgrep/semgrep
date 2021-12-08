@@ -1,0 +1,11 @@
+rules:
+- id: pattern-and 
+  patterns:
+  - pattern-inside: |
+      import child_process
+      ...
+  - pattern: |
+      "me"
+  languages: [py]
+  severity: WARNING 
+  message: "test"

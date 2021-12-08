@@ -125,10 +125,12 @@ def upload_result(
     if variant_name == STD and timings is not None:
         # Compute bps from semgrep timing data
         assert "rules" in timings
-        assert "total_time" in timings
+        assert "profiling_times" in timings
         assert "total_bytes" in timings
+        prof_times = timings["profiling_times"]
+        assert "total_time" in prof_times
         num_rules = len(timings["rules"])
-        bps = timings["total_bytes"] / (timings["total_time"] * num_rules)
+        bps = timings["total_bytes"] / (prof_times["total_time"] * num_rules)
 
         bps_url = f"{DASHBOARD_URL}/api/metric/{BPS_ENDPOINT}"
         upload(bps_url, str(bps))
@@ -143,7 +145,7 @@ def upload_result(
                     num_lines += sum(1 for _ in f)
                 except UnicodeDecodeError:
                     pass
-        lps = num_lines / (timings["total_time"] * num_rules)
+        lps = num_lines / (prof_times["total_time"] * num_rules)
 
         lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
         upload(lps_url, str(lps))

@@ -63,7 +63,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 
-(* Conjonctive normal form (CNF).
+(* Conjunctive normal form (CNF).
  *
  * Why a CNF instead of a DNF (Disjunctive normal form)?
  * Because in the context of producing a regexp, regexps are good at
@@ -88,6 +88,8 @@ exception GeneralPattern
 exception EmptyAnd
 
 exception EmptyOr
+
+exception CNF_exploded
 
 (*****************************************************************************)
 (* Utils *)
@@ -170,7 +172,12 @@ type step0 = LPat of Rule.xpattern | LCond of Rule.metavar_cond
 
 type cnf_step0 = step0 cnf [@@deriving show]
 
-(* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html *)
+(* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
+ * TODO the current code triggers some Stack_overflow on
+ * tests/OTHER/rules/tainted-filename.yaml. I've replaced some List.map
+ * by Common.map, but we still get some Stack_overflow because of the many
+ * calls to @.
+ *)
 let rec (cnf : Rule.formula -> cnf_step0) =
  fun f ->
   match f with
@@ -189,34 +196,36 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * )
    *)
   | R.And (_, xs, conds) ->
-      let ys = List.map cnf xs in
-      let zs = List.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
-      And (ys @ zs |> List.map (function And ors -> ors) |> List.flatten)
+      let ys = Common.map cnf xs in
+      let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
+      And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
   | R.Or (_, xs) ->
-      let ys = List.map cnf xs in
-      let rec aux ys =
-        match ys with
-        | [] -> And []
-        | [ x ] -> x
-        | [ And ps; And qs ] ->
-            And
-              (ps
-              |> List.map (fun pi ->
-                     let ands =
-                       qs
-                       |> List.map (fun qi ->
-                              let (Or pi_ors) = pi in
-                              let (Or qi_ors) = qi in
-                              let ors = pi_ors @ qi_ors in
-                              Or ors)
-                     in
-                     ands)
-              |> List.flatten)
-        | x :: xs ->
-            let y = aux xs in
-            aux [ x; y ]
-      in
-      aux ys
+      let is_dangerously_large l = List.compare_length_with l 1_000_000 > 0 in
+      let ys = Common.map cnf xs in
+      List.fold_left
+        (fun (And ps) (And qs) ->
+          (* Abort before this starts consuming insane amounts of memory. *)
+          if is_dangerously_large ps || is_dangerously_large qs then
+            raise CNF_exploded;
+          (* Distributive law *)
+          And
+            (ps
+            |> List.concat_map (fun pi ->
+                   let ands =
+                     qs
+                     |> Common.map (fun qi ->
+                            let (Or pi_ors) = pi in
+                            let (Or qi_ors) = qi in
+                            (* `ps` is the accumulator so we expect it to be larger *)
+                            let ors = List.rev_append qi_ors pi_ors in
+                            Or ors)
+                   in
+                   ands)))
+        (* If `ys = []`, we have `Or []` which is the same as `false`. Note that
+         * the CNF is then `And [Or []]` rather than `And []` (the latter being
+         * the same `true`). *)
+        (And [ Or [] ])
+        ys
 
 (*****************************************************************************)
 (* Step1: just collect strings, mvars, regexps *)
@@ -360,22 +369,21 @@ type step2 =
 type cnf_step2 = step2 cnf [@@deriving show]
 
 let or_step2 (Or xs) =
-  (* sanity check *)
-  xs
-  |> List.iter (function
-       | StringsAndMvars ([], _) -> raise GeneralPattern
-       | _ -> ());
-  let ys =
-    xs
-    |> List.map (function
-         | StringsAndMvars (xs, _) -> Idents xs
-         | Regexp re -> Regexp2 re
-         | MvarRegexp (_mvar, re) -> Regexp2 re)
+  let step1_to_step2 =
+    Common.map (function
+      | StringsAndMvars ([], _) -> raise GeneralPattern
+      | StringsAndMvars (xs, _) -> Idents xs
+      | Regexp re -> Regexp2 re
+      | MvarRegexp (_mvar, re) -> Regexp2 re)
   in
-  Or ys
+  (* Remove or cases where any of the possibilities is a general pattern *)
+  (* We need to do this because later, in the final regex generation,
+     empty cases will be disregarded *)
+  try Some (Or (step1_to_step2 xs)) with GeneralPattern -> None
 
 let and_step2 (And xs) =
-  let ys = xs |> List.map or_step2 in
+  let ys = xs |> List.filter_map or_step2 in
+  if null ys then raise GeneralPattern;
   And ys
 
 (*****************************************************************************)
@@ -394,7 +402,7 @@ type cnf_final = AndFinal of final_step list
 [@@deriving show]
 
 let or_final (Or xs) =
-  let ys = xs |> List.map (function
+  let ys = xs |> Common.map (function
    | Idents [] -> raise Impossible
    (* take the first one *)
    | Idents (x::_) -> Re.matching_exact_string x
@@ -446,7 +454,7 @@ let eval_and p (And xs) =
   |> List.for_all (function Or xs ->
          if null xs then raise EmptyOr;
          xs |> List.exists (fun x -> p x) |> fun v ->
-         if not v then logger#info "this Or failed: %s" (Common.dump (Or xs));
+         if not v then logger#trace "this Or failed: %s" (Common.dump (Or xs));
          v)
 
 let run_cnf_step2 cnf big_str =
@@ -517,8 +525,17 @@ let regexp_prefilter_of_rule r =
   let id, t = r.R.id in
   let k = PI.file_of_info t ^ "." ^ id in
   Common.memoized hmemo k (fun () ->
-      match r.mode with
-      | R.Search pf ->
-          let f = R.formula_of_pformula pf in
-          regexp_prefilter_of_formula f
-      | R.Taint spec -> regexp_prefilter_of_taint_rule t spec)
+      try
+        match r.mode with
+        | R.Search pf ->
+            let f = R.formula_of_pformula pf in
+            regexp_prefilter_of_formula f
+        | R.Taint spec -> regexp_prefilter_of_taint_rule t spec
+      with
+      (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
+      | CNF_exploded ->
+          logger#error "CNF size exploded on rule id %s" id;
+          None
+      | Stack_overflow ->
+          logger#error "Stack overflow on rule id %s" id;
+          None)

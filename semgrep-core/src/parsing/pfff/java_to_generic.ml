@@ -52,7 +52,9 @@ let fb = G.fake_bracket
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
   | G.EN _
-  | G.EDynamic _ ->
+  | G.EDynamic _
+  | EPattern _
+  | OtherEntity _ ->
       raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused } t =
@@ -85,20 +87,14 @@ let ident v = wrap string v
 
 let qualified_ident v = list ident v
 
-let rec typ x =
-  let x = typ_kind x in
-  x |> G.t
-
-and typ_kind = function
+let rec typ = function
   | TBasic v1 ->
       let v1 = wrap string v1 in
-      G.TyBuiltin v1
-  | TClass v1 ->
-      let v1 = class_type v1 in
-      v1
+      G.ty_builtin v1
+  | TClass v1 -> class_type v1
   | TArray (t1, v1, t2) ->
       let v1 = typ v1 in
-      G.TyArray ((t1, None, t2), v1)
+      G.TyArray ((t1, None, t2), v1) |> G.t
 
 and type_arguments v = bracket (list type_argument) v
 
@@ -117,8 +113,9 @@ and class_type v =
    *)
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
-  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
-  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
+  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ())) |> G.t
+  | [ (id, Some ts) ] ->
+      G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts) |> G.t
   | (id, None) :: xs ->
       G.TyN
         (G.IdQualified
@@ -128,9 +125,11 @@ and class_type v =
              name_middle = Some (G.QDots (List.rev xs));
              name_info = G.empty_id_info ();
            })
+      |> G.t
   | (id, Some ts) :: xs ->
       G.TyApply
         (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
+      |> G.t
 
 and type_argument = function
   | TArgument v1 ->
@@ -149,6 +148,7 @@ and type_argument = function
 and ref_type v = typ v
 
 let type_parameter = function
+  | TParamEllipsis v1 -> G.TParamEllipsis v1
   | TParam (v1, v2) ->
       let v1 = ident v1 and v2 = list ref_type v2 in
       G.tparam_of_id v1 ~tp_bounds:v2
@@ -195,7 +195,7 @@ and element_value = function
       v1
   | AnnotNestedAnnot v1 ->
       let v1 = annotation v1 in
-      G.OtherExpr (G.OE_Annot, [ G.At v1 ]) |> G.e
+      G.OtherExpr (("Annot", unsafe_fake ""), [ G.At v1 ]) |> G.e
   | AnnotArrayInit (t1, v1, t2) ->
       let v1 = list element_value v1 in
       G.Container (G.List, (t1, v1, t2)) |> G.e
@@ -271,7 +271,7 @@ and expr e =
       G.L v1
   | ClassLiteral (v1, v2) ->
       let v1 = typ v1 in
-      G.OtherExpr (G.OE_ClassLiteral, [ G.T v1; G.Tk v2 ])
+      G.OtherExpr (("ClassLiteral", v2), [ G.T v1 ])
   | NewClass (v0, v1, (lp, v2, rp), v3) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -288,7 +288,7 @@ and expr e =
                 cimplements = [];
                 cmixins = [];
                 cparams = [];
-                cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
+                cbody = decls |> bracket (List.map (fun x -> G.F x));
               }
             |> G.e
           in
@@ -312,30 +312,31 @@ and expr e =
           G.Call
             (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
-  | NewQualifiedClass (v0, _tok1, _tok2, v2, v3, v4) ->
+  | NewQualifiedClass (v0, _tok1, tok2, v2, v3, v4) ->
       let v0 = expr v0
       and v2 = typ v2
       and v3 = arguments v3
       and v4 = option (bracket decls) v4 in
-      let any =
+      let anys =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
         @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
           |> List.map (fun st -> G.S st))
       in
-      G.OtherExpr (G.OE_NewQualifiedClass, any)
+      G.OtherExpr (("NewQualifiedClass", tok2), anys)
   | MethodRef (v1, v2, v3, v4) ->
       let v1 = expr_or_type v1 in
       let v2 = tok v2 in
       let _v3TODO = option type_arguments v3 in
       let v4 = ident v4 in
-      G.OtherExpr (G.OE_Todo, [ v1; G.Tk v2; G.I v4 ])
+      (* TODO? use G.GetRef? *)
+      G.OtherExpr (("MethodRef", v2), [ v1; G.I v4 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = arguments v2 in
       G.Call (v1, v2)
   | Dot (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
   | ArrayAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)
@@ -400,7 +401,7 @@ and expr e =
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
-      let x = G.stmt_to_expr (G.Switch (v0, Some v1, v2) |> G.s) in
+      let x = G.stmt_to_expr (G.Switch (v0, Some (Cond v1), v2) |> G.s) in
       x.G.e)
   |> G.e
 
@@ -431,7 +432,7 @@ and stmt st =
       G.ExprStmt (v1, t) |> G.s
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = option stmt v3 in
-      G.If (t, v1, v2, v3) |> G.s
+      G.If (t, G.Cond v1, v2, v3) |> G.s
   | Switch (v0, v1, v2) ->
       let v0 = info v0 in
       let v1 = expr v1
@@ -443,10 +444,10 @@ and stmt st =
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
-      G.Switch (v0, Some v1, v2) |> G.s
+      G.Switch (v0, Some (G.Cond v1), v2) |> G.s
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.While (t, v1, v2) |> G.s
+      G.While (t, G.Cond v1, v2) |> G.s
   | Do (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
       G.DoWhile (t, v1, v2) |> G.s
@@ -467,7 +468,7 @@ and stmt st =
       G.Label (v1, v2) |> G.s
   | Sync (v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.OtherStmt (G.OS_Sync, [ G.E v1; G.S v2 ]) |> G.s
+      G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E v1 ], v2) |> G.s
   | Try (t, _v0TODO, v1, v2, v3) ->
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
       G.Try (t, v1, v2, v3) |> G.s
@@ -481,7 +482,9 @@ and stmt st =
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      G.Assert (t, v1, v2, G.sc) |> G.s
+      let es = v1 :: Common.opt_to_list v2 in
+      let args = es |> List.map G.arg in
+      G.Assert (t, fb args, G.sc) |> G.s
 
 and tok_and_stmt (t, v) =
   let v = stmt v in
@@ -567,7 +570,7 @@ and parameter_binding = function
   | ParamClassic v
   | ParamReceiver v ->
       let ent, t = var v in
-      G.ParamClassic (entity_to_param ent t)
+      G.Param (entity_to_param ent t)
   | ParamSpread (tk, v) ->
       let ent, t = var v in
       let p = entity_to_param ent t in
@@ -599,7 +602,7 @@ and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v3 = list class_parent en_impls in
   let v4, v5 = en_body in
   let v4 = list enum_constant v4 |> List.map G.fld in
-  let v5 = decls v5 |> List.map (fun st -> G.FieldStmt st) in
+  let v5 = decls v5 |> List.map (fun st -> G.F st) in
   let ent = G.basic_entity v1 ~attrs:(G.attr EnumClass (snd v1) :: v2) in
   let cbody = fb (v4 @ v5) in
   let cdef =
@@ -623,7 +626,7 @@ and enum_constant (v1, v2, v3) =
   (ent, G.EnumEntryDef def)
 
 and class_body (l, xs, r) : G.field list G.bracket =
-  let xs = decls xs |> List.map (fun x -> G.FieldStmt x) in
+  let xs = decls xs |> List.map (fun x -> G.F x) in
   (l, xs, r)
 
 and class_decl

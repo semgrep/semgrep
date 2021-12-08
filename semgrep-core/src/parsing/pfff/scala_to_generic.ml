@@ -54,7 +54,7 @@ let v_option = Common.map_opt
 
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
-  let param = G.ParamClassic (G.param_of_id id) in
+  let param = G.Param (G.param_of_id id) in
   let body = G.Match (lb, G.N (H.name_of_id id) |> G.e, cases) |> G.s in
   {
     fkind = (G.BlockCases, lb);
@@ -109,7 +109,7 @@ let v_simple_ref = function
       and v2 = v_tok v2
       and _v3TODO = v_option (v_bracket v_ident) v3
       and v4 = v_ident v4 in
-      let fld = G.EN (G.Id (v4, G.empty_id_info ())) in
+      let fld = G.FN (G.Id (v4, G.empty_id_info ())) in
       Right
         (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
 
@@ -216,7 +216,7 @@ and v_encaps = function
       let v1 = v_expr v1 in
       Right v1
 
-and todo_type msg any = G.OtherType (G.OT_Todo, G.TodoK (msg, fake msg) :: any)
+and todo_type msg anys = G.OtherType ((msg, fake msg), anys)
 
 and v_type_ x = v_type_kind x |> G.t
 
@@ -247,14 +247,13 @@ and v_type_kind = function
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])
   | TyFunction1 (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_type_ v3 in
-      G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v3)
+      G.TyFun ([ G.Param (G.param_of_type v1) ], v3)
   | TyFunction2 (v1, v2, v3) ->
       let v1 = v_bracket (v_list v_type_) v1
       and _v2 = v_tok v2
       and v3 = v_type_ v3 in
       let ts =
-        v1 |> G.unbracket
-        |> List.map (fun t -> G.ParamClassic (G.param_of_type t))
+        v1 |> G.unbracket |> List.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
   | TyTuple v1 ->
@@ -263,6 +262,9 @@ and v_type_kind = function
   | TyRepeated (v1, v2) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 in
       todo_type "TyRepeated" [ G.T v1; G.Tk v2 ]
+  | TyByName (v1, v2) ->
+      let v1 = v_tok v1 and v2 = v_type_ v2 in
+      todo_type "TyByName" [ G.Tk v1; G.T v2 ]
   | TyAnnotated (v1, v2) ->
       let v1 = v_type_ v1 and _v2TODO = v_list v_annotation v2 in
       v1.t
@@ -318,6 +320,9 @@ and v_pattern = function
       match v1 with
       | Left lit -> G.PatLiteral lit
       | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ])
+  | PatName (Id id, [])
+    when AST_generic_.is_metavar_name (fst (v_varid_or_wildcard id)) ->
+      G.PatId (v_varid_or_wildcard id, G.empty_id_info ())
   | PatName v1 ->
       let ids = v_dotted_name_of_stable_id v1 in
       let name = H.name_of_ids ids in
@@ -357,8 +362,7 @@ and v_pattern = function
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
 
-and todo_expr msg any =
-  G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any) |> G.e
+and todo_expr msg any = G.OtherExpr ((msg, fake msg), any) |> G.e
 
 and v_expr e : G.expr =
   match e with
@@ -382,7 +386,7 @@ and v_expr e : G.expr =
       ids
       |> List.fold_left
            (fun acc fld ->
-             G.DotAccess (acc, fake ".", G.EN (H.name_of_id fld)) |> G.e)
+             G.DotAccess (acc, fake ".", G.FN (H.name_of_id fld)) |> G.e)
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -396,13 +400,17 @@ and v_expr e : G.expr =
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
       let name = H.name_of_id v3 in
-      G.DotAccess (v1, v2, G.EN name) |> G.e
+      G.DotAccess (v1, v2, G.FN name) |> G.e
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1
   | Infix (v1, v2, v3) ->
+      (* In scala [x f y] means [x.f(y)]  *)
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e
+      G.Call
+        ( G.DotAccess (v1, fake ".", G.FN (H.name_of_id v2)) |> G.e,
+          fb [ G.Arg v3 ] )
+      |> G.e
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
       G.Call (G.N (H.name_of_id v1) |> G.e, fb [ G.Arg v2 ]) |> G.e
@@ -520,12 +528,12 @@ and v_stmt = function
             v2)
           v4
       in
-      G.If (v1, G.unbracket v2, v3, v4) |> G.s
+      G.If (v1, G.Cond (G.unbracket v2), v3, v4) |> G.s
   | While (v1, v2, v3) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2
       and v3 = v_expr_for_stmt v3 in
-      G.While (v1, G.unbracket v2, v3) |> G.s
+      G.While (v1, G.Cond (G.unbracket v2), v3) |> G.s
   | DoWhile (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_expr_for_stmt v2
@@ -533,11 +541,30 @@ and v_stmt = function
       and v4 = v_bracket v_expr v4 in
       G.DoWhile (v1, v2, G.unbracket v4) |> G.s
   | For (v1, v2, v3) ->
+      (* See https://scala-lang.org/files/archive/spec/2.13/06-expressions.html#for-comprehensions-and-for-loops
+       * for an explanation of for loops in scala
+       *)
       let v1 = v_tok v1
-      and _v2TODO = v_bracket v_enumerators v2
+      and v2 = v2 |> G.unbracket |> v_enumerators
       and v3 = v_for_body v3 in
-      let header = G.ForClassic ([], None, None) (* TODO *) in
-      G.For (v1, header, v3) |> G.s
+      List.fold_right
+        (fun gen stmt ->
+          match gen with
+          | `G (pat, tok, e, guards) ->
+              G.For
+                ( v1,
+                  G.ForEach (pat, tok, e),
+                  List.fold_right
+                    (fun (g_tok, g_e) stmt ->
+                      G.If (g_tok, G.Cond g_e, stmt, None) |> G.s)
+                    guards stmt )
+              |> G.s
+          | `GIf guards ->
+              List.fold_right
+                (fun (g_tok, g_e) stmt ->
+                  G.If (g_tok, G.Cond g_e, stmt, None) |> G.s)
+                guards stmt)
+        v2 v3
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
       G.Return (v1, v2, G.sc) |> G.s
@@ -559,12 +586,8 @@ and v_stmt = function
 and v_enumerators v = v_list v_enumerator v
 
 and v_enumerator = function
-  | G v1 ->
-      let _v1TODO = v_generator v1 in
-      ()
-  | GIf v1 ->
-      let _v1TODO = v_list v_guard v1 in
-      ()
+  | G v1 -> `G (v_generator v1)
+  | GIf v1 -> `GIf (v_list v_guard v1)
 
 and v_generator
     {
@@ -573,11 +596,11 @@ and v_generator
       genbody = v_genbody;
       genguards = v_genguards;
     } =
-  let _pat = v_pattern v_genpat in
-  let _t = v_tok v_gentok in
-  let _e = v_expr v_genbody in
-  let _guards = v_list v_guard v_genguards in
-  ()
+  let pat = v_pattern v_genpat in
+  let t = v_tok v_gentok in
+  let e = v_expr v_genbody in
+  let guards = v_list v_guard v_genguards in
+  (pat, t, e, guards)
 
 and v_for_body = function
   | Yield (v1, v2) ->
@@ -691,17 +714,9 @@ and v_type_parameter
   let _argTODO = v_type_bounds v_tpbounds in
   let _argTODO = v_list v_type_ v_tpviewbounds in
   let _argTODO = v_list v_type_ v_tpcolons in
-  let tp_constraints = [] in
   let tp_bounds = [] in
   (* TODO *)
-  {
-    G.tp_id;
-    tp_variance;
-    tp_attrs;
-    tp_constraints;
-    tp_bounds;
-    tp_default = None;
-  }
+  TP { G.tp_id; tp_variance; tp_attrs; tp_bounds; tp_default = None }
 
 and v_variance = function
   | Covariant -> G.Covariant
@@ -818,13 +833,13 @@ and v_binding v : G.parameter =
         { (G.param_of_id id) with pattrs = attrs; pdefault = default }
       in
       match v_p_type with
-      | None -> G.ParamClassic pclassic
+      | None -> G.Param pclassic
       | Some (PT v1) ->
           let v1 = v_type_ v1 in
-          G.ParamClassic { pclassic with ptype = Some v1 }
+          G.Param { pclassic with ptype = Some v1 }
       | Some (PTByNameApplication (v1, v2)) ->
           let v1 = v_tok v1 and v2 = v_type_ v2 in
-          G.ParamClassic
+          G.Param
             {
               pclassic with
               ptype = Some v2;
@@ -849,7 +864,7 @@ and v_template_definition
   let cbody =
     match body with
     | None -> G.empty_body
-    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.FieldStmt st), rb)
+    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.F st), rb)
   in
   { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
 

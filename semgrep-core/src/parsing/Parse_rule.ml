@@ -50,7 +50,7 @@ type env = {
   (* id of the current rule (needed by some exns) *)
   id : Rule.rule_id;
   (* languages of the current rule (needed by parse_pattern) *)
-  languages : R.xlang;
+  languages : Xlang.t;
   (* emma: save the path within the yaml file for each pattern
    * (this will allow us to later report errors in playground basic mode)
    *)
@@ -317,7 +317,7 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try (s, Pcre_settings.regexp s)
+  try (s, SPcre.regexp s)
   with Pcre.Error exn ->
     raise (R.InvalidRegexp (env.id, pcre_error_to_string s exn, t))
 
@@ -383,6 +383,19 @@ let parse_options env (key : key) value =
 (* Sub parsers patterns and formulas *)
 (*****************************************************************************)
 
+(* less: could move in a separate Parse_xpattern.ml *)
+let parse_xpattern xlang (str, tok) =
+  match xlang with
+  | Xlang.L (lang, _) ->
+      let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
+      R.mk_xpat (R.Sem (pat, lang)) (str, tok)
+  | Xlang.LRegex -> failwith "TODO"
+  | Xlang.LGeneric -> (
+      let src = Spacegrep.Src_file.of_string str in
+      match Spacegrep.Parse_pattern.of_src src with
+      | Ok ast -> R.mk_xpat (R.Spacegrep ast) (str, tok)
+      | Error err -> failwith err.msg)
+
 (* TODO: note that the [pattern] string and token location [t] given to us
  * by the YAML parser do not correspond exactly to the content
  * in the YAML file. If the pattern is on a single line, as in
@@ -395,57 +408,38 @@ let parse_options env (key : key) value =
  * indentation and the token location [t] will actually be the location
  * of the leading "|", so we need to recompute location by reparsing
  * the YAML file and look at the indentation there.
+ *
+ * TODO: adjust pos with Map_AST.mk_fix_token_locations and
+ * Parse_info.adjust_info_wrt_base t
  *)
-let parse_pattern ~id ~lang { Rule.pattern; t; path } =
-  try
-    (* old? todo? call Normalize_ast.normalize here? *)
-    let any = Parse_pattern.parse_pattern lang ~print_errors:false pattern in
-    (* TODO: adjust pos with Map_AST.mk_fix_token_locations and
-     * Parse_info.adjust_info_wrt_base t
-     *)
-    any
-  with
-  | Timeout _ as e -> raise e
-  | UnixExit n -> raise (UnixExit n)
-  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-  | exn ->
-      raise
-        (R.InvalidPattern
-           (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t, path))
 
-let parse_xpattern env e =
+let parse_xpattern_expr env e =
   let s, t =
     match read_string_wrap e.G.e with
     | Some (s, t) -> (s, t)
     | None -> error_at_expr env e ("Expected a string value for " ^ env.id)
   in
-  (* emma: This is for later, but note that start and end_ are currently the same
-   * (each pattern is only associated with one token). This might be really annoying
-   * to change (we need to compute an accurate end_, but the string given to us by
-   * the yaml parser has tabs removed). Will include a note to this effect when
-   * I make my "add ranges to patterns" PR.
+
+  (* emma: This is for later, but note that start and end_ are currently the
+   * same (each pattern is only associated with one token). This might be
+   * really annoying to change (we need to compute an accurate end_, but
+   * the string given to us by the yaml parser has tabs removed).
+   * Will include a note to this effect when I make my
+   * "add ranges to patterns" PR.
    *)
+
   (* let start, end_ = Visitor_AST.range_of_any (G.E e) in
      let _s_range =
        (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
        (* TODO put in *)
      in *)
-  match env.languages with
-  | R.L (lang, _) ->
-      R.mk_xpat
-        (Sem
-           ( parse_pattern ~id:env.id ~lang { pattern = s; t; path = env.path },
-             lang ))
-        (s, t)
-  | R.LRegex -> failwith "you should not use real pattern with language = none"
-  | R.LGeneric -> (
-      let src = Spacegrep.Src_file.of_string s in
-      match Spacegrep.Parse_pattern.of_src src with
-      | Ok ast -> R.mk_xpat (Spacegrep ast) (s, t)
-      | Error err ->
-          (* TODO: adjust error pos instead of using [t] *)
-          raise
-            (R.InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
+  try parse_xpattern env.languages (s, t) with
+  | (Timeout _ | UnixExit _) as e -> raise e
+  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
+  | exn ->
+      raise
+        (R.InvalidPattern
+           (env.id, s, env.languages, Common.exn_to_s exn, t, env.path))
 
 let find_formula_old env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
@@ -478,7 +472,7 @@ let rec parse_formula (env : env) (rule_dict : dict) : R.pformula =
 
 and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let env = { env with path = fst key :: env.path } in
-  let get_pattern str_e = parse_xpattern env str_e in
+  let get_pattern str_e = parse_xpattern_expr env str_e in
   let get_nested_formula i x =
     let env = { env with path = string_of_int i :: env.path } in
     match x.G.e with
@@ -551,7 +545,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
           R.And (t, fs, conds)
       | "or" -> R.Or (t, parse_list env key parse_formula_new value)
       | "not" -> R.Not (t, parse_formula_new env value)
-      | "inside" -> R.P (parse_xpattern env value, Some Inside)
+      | "inside" -> R.P (parse_xpattern_expr env value, Some Inside)
       | "regex" ->
           let x = parse_string_wrap env key value in
           let xpat = R.mk_xpat (R.Regexp (parse_regexp env x)) x in
@@ -561,7 +555,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
           let xpat = R.mk_xpat (R.Comby (fst x)) x in
           R.P (xpat, None)
       | _ -> error_at_key env key ("Invalid key for formula_new " ^ fst key))
-  | _ -> R.P (parse_xpattern env x, None)
+  | _ -> R.P (parse_xpattern_expr env x, None)
 
 and parse_formula_and_new env (x : G.expr) :
     (R.formula, R.tok * R.metavar_cond) Common.either =
@@ -590,7 +584,7 @@ and parse_formula_and_new env (x : G.expr) :
               Right (t, R.CondRegexp (mvar, parse_regexp env x))
           | _ -> error_at_expr env value "Expected a metavariable and regex")
       | _ -> Left (parse_formula_new env x))
-  | _ -> Left (R.P (parse_xpattern env x, None))
+  | _ -> Left (R.P (parse_xpattern_expr env x, None))
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
@@ -615,7 +609,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       let env', opt_xlang =
         match take_opt mv_pattern_dict env parse_string "language" with
         | Some s ->
-            let xlang = R.xlang_of_string ~id:(Some env.id) s in
+            let xlang = Xlang.of_string ~id:(Some env.id) s in
             let env' =
               {
                 id = env.id;
@@ -642,10 +636,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   | "pattern-where-python" -> R.PatWherePython (parse_string env key value)
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
-let parse_languages ~id langs =
+let parse_languages ~id langs : Xlang.t =
   match langs with
-  | [ (("none" | "regex"), _t) ] -> R.LRegex
-  | [ ("generic", _t) ] -> R.LGeneric
+  | [ (("none" | "regex"), _t) ] -> LRegex
+  | [ ("generic", _t) ] -> LGeneric
   | xs -> (
       let languages =
         xs
@@ -661,7 +655,7 @@ let parse_languages ~id langs =
       | [] ->
           raise
             (R.InvalidRule (fst id, "we need at least one language", snd id))
-      | x :: xs -> R.L (x, xs))
+      | x :: xs -> L (x, xs))
 
 let parse_severity ~id (s, t) =
   match s with

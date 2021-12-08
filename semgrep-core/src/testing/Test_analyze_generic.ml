@@ -41,7 +41,7 @@ let test_cfg_generic file =
 
 module F = Controlflow
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = F.node
 
   type edge = F.edge
@@ -60,7 +60,7 @@ let test_dfg_generic file =
              let flow = Controlflow_build.cfg_of_func def in
              pr2 "Reaching definitions";
              let mapping = Dataflow_reaching.fixpoint flow in
-             DataflowX.display_mapping flow mapping Dataflow.ns_to_str;
+             DataflowX.display_mapping flow mapping Dataflow_core.ns_to_str;
              pr2 "Liveness";
              let mapping = Dataflow_liveness.fixpoint flow in
              DataflowX.display_mapping flow mapping (fun () -> "()")
@@ -109,18 +109,23 @@ let test_cfg_il file =
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
 
-  ast
-  |> List.iter (fun item ->
-         match item.s with
-         | DefStmt (_ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
-             let cfg = CFG_build.cfg_of_stmts xs in
-             Display_IL.display_cfg cfg
-         | _ -> ())
+  let v =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kfunction_definition =
+          (fun (_k, _) def ->
+            let body = H.funcbody_to_stmt def.fbody in
+            let xs = AST_to_IL.stmt lang body in
+            let cfg = CFG_build.cfg_of_stmts xs in
+            Display_IL.display_cfg cfg);
+      }
+  in
+  v (Pr ast)
 
 module F2 = IL
 
-module DataflowY = Dataflow.Make (struct
+module DataflowY = Dataflow_core.Make (struct
   type node = F2.node
 
   type edge = F2.edge
@@ -129,33 +134,6 @@ module DataflowY = Dataflow.Make (struct
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
-
-let test_dfg_tainting file =
-  let ast = Parse_target.parse_program file in
-  let lang = List.hd (Lang.langs_of_filename file) in
-  Naming_AST.resolve lang ast;
-  let fun_env = Hashtbl.create 8 in
-  ast
-  |> List.iter (fun item ->
-         match item.s with
-         | DefStmt (ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
-             let flow = CFG_build.cfg_of_stmts xs in
-             pr2 "Tainting";
-             let config =
-               {
-                 Dataflow_tainting.is_source = (fun _ -> false);
-                 is_sink = (fun _ -> false);
-                 is_sanitizer = (fun _ -> false);
-                 found_tainted_sink = (fun _ _ -> ());
-               }
-             in
-             let opt_name = AST_to_IL.name_of_entity ent in
-             let mapping =
-               Dataflow_tainting.fixpoint config fun_env opt_name flow
-             in
-             DataflowY.display_mapping flow mapping (fun () -> "()")
-         | _ -> ())
 
 let test_dfg_constness file =
   let ast = Parse_target.parse_program file in
@@ -191,6 +169,5 @@ let actions () =
       Common.mk_action_1_arg test_constant_propagation );
     ("-il_generic", " <file>", Common.mk_action_1_arg test_il_generic);
     ("-cfg_il", " <file>", Common.mk_action_1_arg test_cfg_il);
-    ("-dfg_tainting", " <file>", Common.mk_action_1_arg test_dfg_tainting);
     ("-dfg_constness", " <file>", Common.mk_action_1_arg test_dfg_constness);
   ]

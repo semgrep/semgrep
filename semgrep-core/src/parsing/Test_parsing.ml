@@ -28,6 +28,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
+let print_exn file e =
+  let trace = Printexc.get_backtrace () in
+  pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
+
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
   | Some cst -> dumper cst
@@ -85,11 +89,14 @@ let dump_tree_sitter_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
-  | Lang.Javascript ->
+  | Lang.Solidity ->
+      Tree_sitter_solidity.Parse.file file
+      |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
+  | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
       |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
-  | Lang.Typescript ->
+  | Lang.Ts ->
       Tree_sitter_typescript.Parse.file file
       |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
   | Lang.Lua ->
@@ -98,32 +105,34 @@ let dump_tree_sitter_cst lang file =
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
-  | Lang.OCaml ->
+  | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
       |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
-  | Lang.Cplusplus ->
+  | Lang.Cpp ->
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
-  | Lang.HTML ->
+  | Lang.Html ->
       Tree_sitter_html.Parse.file file
       |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
   | Lang.Vue ->
       Tree_sitter_vue.Parse.file file
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
-  | Lang.PHP ->
+  | Lang.Php ->
       Tree_sitter_php.Parse.file file
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
-  | Lang.HCL ->
+  | Lang.Hcl ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
   let paths = List.map Common.fullpath root_paths in
-  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang paths in
+  let paths, _skipped_paths =
+    Find_target.files_of_dirs_or_files (Some lang) paths
+  in
   let stat_list = ref [] in
   paths
   |> Console.progress (fun k ->
@@ -146,27 +155,27 @@ let test_parse_tree_sitter lang root_paths =
                  | Lang.Kotlin ->
                      Tree_sitter_kotlin.Parse.file file
                      |> fail_on_error |> ignore
-                 | Lang.Javascript ->
+                 | Lang.Js ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Typescript ->
+                 | Lang.Ts ->
                      Tree_sitter_typescript.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.Rust ->
                      Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
-                 | Lang.OCaml ->
+                 | Lang.Ocaml ->
                      Tree_sitter_ocaml.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.C ->
                      Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Cplusplus ->
+                 | Lang.Cpp ->
                      Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HTML ->
+                 | Lang.Html ->
                      Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
                  | Lang.Vue ->
                      Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
-                 | Lang.PHP ->
+                 | Lang.Php ->
                      Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HCL ->
+                 | Lang.Hcl ->
                      Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
                  | _ ->
                      failwith
@@ -174,7 +183,7 @@ let test_parse_tree_sitter lang root_paths =
                           (Lang.string_of_lang lang)));
                  PI.correct_stat file
                with exn ->
-                 pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+                 print_exn file exn;
                  PI.bad_stat file
              in
              Common.push stat stat_list));
@@ -234,7 +243,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     (* = absolute paths *)
     List.map Common.fullpath files_or_dirs
   in
-  let paths, skipped = Find_target.files_of_dirs_or_files lang paths in
+  let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
     paths
     |> List.rev_map (fun file ->
@@ -258,8 +267,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
              with
              | Timeout _ -> assert false
              | exn ->
-                 if verbose then
-                   pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+                 if verbose then print_exn file exn;
                  (* bugfix: bad_stat() could actually triggering some
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
@@ -392,8 +400,8 @@ let parse_projects ~verbose lang project_dirs =
       parse_project ~verbose lang name [ dir ])
     project_dirs
 
-let parsing_stats lang json project_dirs =
-  let stat_list = parse_projects ~verbose:(not json) lang project_dirs in
+let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
+  let stat_list = parse_projects ~verbose lang project_dirs in
   if json then print_json lang stat_list
   else
     let flat_stat = List.map snd stat_list |> List.flatten in
@@ -407,23 +415,20 @@ let diff_pfff_tree_sitter xs =
   pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
   xs
   |> List.iter (fun file ->
-         match Lang.langs_of_filename file with
-         | [ _lang ] ->
-             let ast1 =
-               Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
-                   Parse_target.parse_program file)
-             in
-             let ast2 =
-               Common.save_excursion Flag_semgrep.tree_sitter_only true
-                 (fun () -> Parse_target.parse_program file)
-             in
-             let s1 = AST_generic.show_program ast1 in
-             let s2 = AST_generic.show_program ast2 in
-             Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-                 Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
-                     let xs = Common2.unix_diff file1 file2 in
-                     xs |> List.iter pr2))
-         | _ -> failwith (spf "can't detect single language for %s" file))
+         let ast1 =
+           Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+               Parse_target.parse_program file)
+         in
+         let ast2 =
+           Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
+               Parse_target.parse_program file)
+         in
+         let s1 = AST_generic.show_program ast1 in
+         let s2 = AST_generic.show_program ast2 in
+         Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+             Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+                 let xs = Common2.unix_diff file1 file2 in
+                 xs |> List.iter pr2)))
 
 (*****************************************************************************)
 (* Rule parsing *)
@@ -431,7 +436,7 @@ let diff_pfff_tree_sitter xs =
 
 let test_parse_rules roots =
   let targets, _skipped_paths =
-    Find_target.files_of_dirs_or_files Lang.Yaml roots
+    Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->
