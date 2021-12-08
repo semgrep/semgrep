@@ -81,9 +81,8 @@ class FileIgnore:
         return True
 
     def filter_paths(self, paths: Iterable[Path]) -> FrozenSet[Path]:
-        abspaths = (p.absolute() for p in paths if p.exists())
         return frozenset(
-            p for p in abspaths if self._survives(p) or p.samefile(self.base_path)
+            p for p in paths if p.exists() and self._survives(p.absolute()) or p.absolute().samefile(self.base_path)
         )
 
 
