@@ -89,6 +89,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+  | Lang.Solidity ->
+      Tree_sitter_solidity.Parse.file file
+      |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
