@@ -631,12 +631,8 @@ let main () =
   (* does side effect on many global flags *)
   let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
   let args =
-    if !target_file = "" then
-      Common.map S.replace_named_pipe_by_regular_file args
-    else
-      (* no conversion from named pipes in this mode so we don't have to worry
-         about possible performance issues *)
-      Common.cat !target_file
+    (* not necessarily file paths, depending on command *)
+    if !target_file = "" then args else Common.cat !target_file
   in
 
   let config = mk_config () in
@@ -670,6 +666,14 @@ let main () =
       (* --------------------------------------------------------- *)
       | _ :: _ as roots -> (
           if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc ();
+          let roots =
+            if config.target_file = "" then
+              Common.map S.replace_named_pipe_by_regular_file roots
+            else
+              (* leave files as is if they come from a file list so as to
+                 not worry about performance *)
+              roots
+          in
           match () with
           | _ when config.config_file <> "" ->
               S.semgrep_with_formatted_output config roots
