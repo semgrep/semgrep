@@ -85,8 +85,7 @@ class FileIgnore:
             p
             for p in paths
             if p.exists()
-            and self._survives(p.absolute())
-            or p.absolute().samefile(self.base_path)
+            and (self._survives(p.absolute()) or p.absolute().samefile(self.base_path))
         )
 
 
