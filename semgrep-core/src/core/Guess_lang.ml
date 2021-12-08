@@ -244,6 +244,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Ruby
     | Rust
     | Scala
+    | Solidity
     | Hcl
     | Ts
     | Vue

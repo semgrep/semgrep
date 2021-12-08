@@ -266,19 +266,24 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * - id_constness (see the special @equal for id_constness)
          *)
         MV.Structural.equal_mvalue a b
+    (* TODO still needed now that we have the better MV.Id of id_info? *)
     | MV.Id _, MV.E { e = G.N (G.Id (b_id, b_id_info)); _ } ->
-        (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (G.E), not id (G.I),
          * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
-         * but in some cases you have no choice and you need to match an expression
+         * but in some cases you have no choice and you need to match an expr
          * metavar with an id metavar.
-         * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
-         * (this is useful in the Javascript transpilation context of complex pattern parameter).
+         * For example, we want the pattern 'const $X = foo.$X' to match
+         *  'const bar = foo.bar'
+         * (this is useful in the Javascript transpilation context of
+         * complex pattern parameter).
          *)
         equal_ast_binded_code config a (MV.Id (b_id, Some b_id_info))
+    (* TODO: we should get rid of that too, we should properly bind to MV.N *)
+    | MV.E { e = G.N (G.Id (a_id, a_id_info)); _ }, MV.Id _ ->
+        equal_ast_binded_code config (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
 
@@ -630,25 +635,30 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  let loc = PI.unsafe_token_location_of_info info in
-  let raw_str = loc.PI.str in
-  let re = Str.regexp_string s in
-  try
-    let pos = Str.search_forward re raw_str 0 in
-    let loc =
-      {
-        loc with
-        PI.str = s;
-        charpos = loc.charpos + pos;
-        column = loc.column + pos;
-      }
-    in
-    let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
-    (s, info)
-  with Not_found ->
-    logger#error "could not find %s in %s" s raw_str;
-    (* return original token ... better than failwith? *)
-    (s, info)
+  match PI.token_location_of_info info with
+  | Error _ ->
+      (* We have no token location to adjust (typically a fake token),
+       * this happens if the string is the result of constant folding. *)
+      (s, info)
+  | Ok loc -> (
+      let raw_str = loc.PI.str in
+      let re = Str.regexp_string s in
+      try
+        let pos = Str.search_forward re raw_str 0 in
+        let loc =
+          {
+            loc with
+            PI.str = s;
+            charpos = loc.charpos + pos;
+            column = loc.column + pos;
+          }
+        in
+        let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+        (s, info)
+      with Not_found ->
+        logger#error "could not find %s in %s" s raw_str;
+        (* return original token ... better than failwith? *)
+        (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket
@@ -658,7 +668,7 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
   match fst a with
   (* dots: '...' on string *)
   | "..." -> return ()
-  (* metavar: *)
+  (* metavar: "$MVAR" *)
   | astr when MV.is_metavar_name astr ->
       let text = adjust_info_remove_enclosing_quotes b in
       envf a (MV.Text text)

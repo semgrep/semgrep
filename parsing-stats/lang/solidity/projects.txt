@@ -1,0 +1,55 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+
+#coupling: copy pasted from the one in ocaml-tree-sitter-semgrep
+
+# this repo contains 650000 .sol files, which is great for testing, but it
+# also occupies 25GB on the disk and is very slow to checkout, so not
+# so great for CI jobs like the one in parsing-stat
+# TOO BIG: https://github.com/tintinweb/smart-contract-sanctuary
+
+# not sure why most-starred-for-language below didn't list those
+# they are at the top in https://github.com/topics/solidity
+https://github.com/OpenZeppelin/openzeppelin-contracts
+# the compiler, may contain test files so we may want to skip it
+# TOO MANY TESTS https://github.com/ethereum/solidity
+https://github.com/ethereumbook/ethereumbook
+https://github.com/ConsenSys/smart-contract-best-practices
+# static analysis tool using its own IR!
+https://github.com/crytic/slither
+
+#
+# Top solidity projects from GitHub, sorted by stars.
+# Created by ./most-starred-for-language.
+#
+https://github.com/ethereum/EIPs
+https://github.com/willitscale/learning-solidity
+https://github.com/sushiswap/sushiswap
+https://github.com/compound-finance/compound-protocol
+https://github.com/fravoll/solidity-patterns
+# interesting one!
+https://github.com/crytic/not-so-smart-contracts
+https://github.com/xtblock/xtt
+https://github.com/Arachnid/solidity-stringutils
+https://github.com/nibbstack/erc721
+https://github.com/studydefi/money-legos
+https://github.com/ExtropyIO/defi-bot
+https://github.com/yam-finance/yam-protocol
+https://github.com/provable-things/ethereum-api
+https://github.com/andrecronje/rarity
+https://github.com/rebase-network/Dapp-Learning
+https://github.com/safemoonprotocol/Safemoon.sol
+https://github.com/aragon/aragonOS
+https://github.com/Uniswap/v2-periphery
+https://github.com/unlock-protocol/unlock
+https://github.com/Dexaran/ERC223-token-standard
+https://github.com/crytic/building-secure-contracts
+https://github.com/yearn/yearn-protocol
+https://github.com/provable-things/ethereum-examples
+https://github.com/makerdao/dss
+https://github.com/keep3r-network/keep3r.network
+https://github.com/1inch/1inchProtocol
+https://github.com/OlympusDAO/olympus-contracts
+https://github.com/makerdao/multicall
+https://github.com/pancakeswap/pancake-farm
+https://github.com/certikfoundation/security-oracle-smart-contracts

@@ -142,9 +142,19 @@ let int_of_literal = function
   | G.Int (x, _) -> x
   | ___else___ -> None
 
-let literal_of_string s =
-  (* TODO: use proper token when possible? *)
-  let tok = Parse_info.unsafe_fake_info s in
+let literal_of_string ?tok s =
+  let tok =
+    match tok with
+    | None -> Parse_info.unsafe_fake_info s
+    | Some tok ->
+        (* THIHK: IMO this should be `Parse_info.fake_info tok s`. Yet right now
+         * we are picking an arbitrary token from one of the strings involved in
+         * computing `s` and prentending it is a real token for `s`, but it's NOT.
+         * This may not interact well with Autofix (?). Anyways for now we have
+         * to do this because an $MVAR could match `s` and Semgrep assumes that
+         * an $MVAR always has a source location. *)
+        tok
+  in
   G.String (s, tok)
 
 let eval_unop_bool op b =
@@ -200,11 +210,11 @@ let eval_binop_int tok op opt_i1 opt_i2 =
           G.Cst G.Cint)
   | ___else____ -> G.Cst G.Cint
 
-let eval_binop_string op s1 s2 =
+let eval_binop_string ?tok op s1 s2 =
   match op with
   | G.Plus
   | G.Concat ->
-      G.Lit (literal_of_string (s1 ^ s2))
+      G.Lit (literal_of_string ?tok (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
 let rec eval (env : G.constness D.env) exp : G.constness =
@@ -242,7 +252,7 @@ and eval_op env wop args =
   | op, [ G.Lit (G.Int _ as li1); G.Lit (G.Int _ as li2) ] ->
       eval_binop_int tok op (int_of_literal li1) (int_of_literal li2)
   | op, [ G.Lit (G.String (s1, _)); G.Lit (G.String (s2, _)) ] ->
-      eval_binop_string op s1 s2
+      eval_binop_string ~tok op s1 s2
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
   | _op, [ G.Lit l1; G.Cst t2 ]
@@ -252,16 +262,19 @@ and eval_op env wop args =
   | ___else___ -> G.NotCst
 
 and eval_concat env args =
-  args
-  |> List.map (eval env)
-  |> List.fold_left
-       (fun res e ->
-         match (res, e) with
-         | G.Lit (G.String (r, _)), G.Lit (G.String (s, _)) ->
-             G.Lit (literal_of_string (r ^ s))
-         | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
-         | _____else_____ -> G.NotCst)
-       (G.Lit (literal_of_string ""))
+  match List.map (eval env) args with
+  | [] -> G.Lit (literal_of_string "")
+  | G.Lit (G.String (r, tok)) :: args' ->
+      List.fold_left
+        (fun res e ->
+          match (res, e) with
+          | G.Lit (G.String (r, tok)), G.Lit (G.String (s, _)) ->
+              G.Lit (literal_of_string ~tok (r ^ s))
+          | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
+          | _____else_____ -> G.NotCst)
+        (G.Lit (literal_of_string ~tok r))
+        args'
+  | ___else___ -> G.NotCst
 
 (*****************************************************************************)
 (* Transfer *)

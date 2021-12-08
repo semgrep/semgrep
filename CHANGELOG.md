@@ -6,6 +6,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Timing output handles errors and reports profiling times
+## Fixed
+- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs w  would sometimes cause a parse error
+
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+
+### Added
+- New language Solidity with experimental support.
+
+## Fixed
+- Python: set the right scope for comprehension variables (#4260)
+- Fixed bug where the presence of .semgrepignore would cause reported targets
+  to have absolute instead of relative file paths
+
+## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
+
+## Fixed
+- Fixed bug where the presence of .semgrepignore would cause runs to fail on files that
+  were not subpaths of the directory where semgrep was being run
 
 ## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 12-06-2021
 
@@ -27,6 +45,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
 - Python: generate proper lexical exn for unbalanced braces (#4310)  
 - YAML: fix off-by-one in location of arrays
+- Python: generate proper lexical exn for unbalanced braces (#4310)
+- Matching `"$MVAR"` patterns against string literals computed by constant folding
+  no longer causes a crash (#4371)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
