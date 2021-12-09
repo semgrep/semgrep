@@ -438,7 +438,8 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
 let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
   let rules_file = config.config_file in
   try
-    logger#info "Parsing %s" rules_file;
+    logger#linfo
+      (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
     let timed_rules =
       Common.with_time (fun () -> Parse_rule.parse rules_file)
     in
