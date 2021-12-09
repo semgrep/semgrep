@@ -15,8 +15,8 @@ FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
 
 def findings_differ(expected: Dict[str, Any], findings: Dict[str, Any]) -> bool:
     name = findings["name"]
-    baseline = set(expected["findings"]["results"])
-    latest = set(findings["findings"]["results"])
+    baseline = set(json.dumps(result) for result in expected["findings"]["results"])
+    latest = set(json.dumps(result) for result in findings["findings"]["results"])
 
     def output_diff(diff: set) -> None:
         for d in sorted(diff):
