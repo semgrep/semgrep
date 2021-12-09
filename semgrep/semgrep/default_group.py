@@ -43,6 +43,15 @@ class DefaultGroup(click.Group):
         if default_command is not None:
             self.default_command_name = default_command
 
+    def get_help(self, ctx: click.Context) -> str:
+        """
+        Override `semgrep --help` to print out `semgrep scan --help`
+        for backwards compatibility
+        """
+        command = self.get_command(ctx, "scan")
+        assert command
+        return command.get_help(ctx)
+
     def parse_args(self, ctx: click.Context, args: List[str]) -> List[str]:
         """
         If there are no arguments, insert default command

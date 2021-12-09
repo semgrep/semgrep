@@ -82,8 +82,14 @@ class Settings:
         return self._value.get(key, default)
 
     def delete_setting(self, key: str) -> None:
-        del self._value[key]
-        self._write_settings()
+        """
+        Deletes key KEY from settings file if it exists
+
+        Noop otherwise
+        """
+        if key in self._value:
+            del self._value[key]
+            self._write_settings()
 
 
 SETTINGS = Settings()
