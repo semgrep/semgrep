@@ -19,6 +19,8 @@ module F = IL
 module D = Dataflow_core
 module VarMap = Dataflow_core.VarMap
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -458,6 +460,49 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
     ~forward:true ~flow
 
 let update_constness (flow : F.cfg) mapping =
+  let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
+    (* Check that all id_info's satisfy a given condition. We use refs so that
+     * we can have a single visitor for all calls, given that `mk_visitor` is
+     * pretty expensive. *)
+    let ff = ref (fun _ -> true) in
+    let ok = ref true in
+    let hooks =
+      {
+        Visitor_AST.default_visitor with
+        kid_info =
+          (fun (_k, _vout) ii ->
+            ok := !ok && !ff ii;
+            if not !ok then raise Exit);
+      }
+    in
+    let vout = Visitor_AST.mk_visitor hooks in
+    fun f ast ->
+      ff := f;
+      ok := true;
+      try
+        vout ast;
+        !ok
+      with Exit -> false
+  in
+  let no_cycles var c =
+    (* Check that `c' contains to reference to `var'. It can contain references
+     * to other occurrences of `var', but not to the same occurrence (that would
+     * be a cycle), and each occurence must have its own `id_constness` ref. This
+     * is not supposed to happen, but if it does happen by accident then it would
+     * cause an infinite loop, stack overflow, or segfault later on. *)
+    match c with
+    | G.Sym e ->
+        for_all_id_info
+          (fun ii ->
+            (* Note the use of physical equality, we are looking for the *same*
+             * id_constness ref, that tells us it's the same variable occurrence. *)
+            var.id_info.id_constness != ii.id_constness)
+          (G.E e)
+    | G.NotCst
+    | G.Cst _
+    | G.Lit _ ->
+        true
+  in
   flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in
@@ -472,7 +517,12 @@ let update_constness (flow : F.cfg) mapping =
                     D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
                   with
                   | None -> ()
-                  | Some c -> refine_constness_ref var.id_info.id_constness c)
+                  | Some c ->
+                      if no_cycles var c then
+                        refine_constness_ref var.id_info.id_constness c
+                      else
+                        logger#error "Cycle check failed for %s"
+                          (str_of_name var))
               | ___else___ -> ())
          (* Should not update the LHS constness since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))
