@@ -2158,11 +2158,13 @@ and m_pattern a b =
       m_ident a1 b1 >>= fun () -> m_id_info a2 b2
   | G.PatLiteral a1, B.PatLiteral b1 -> m_literal a1 b1
   | G.PatType a1, B.PatType b1 -> m_type_ a1 b1
-  | G.PatConstructor (a1, [ G.PatEllipsis _ ]), B.PatConstructor (b1, _)
-  | G.PatConstructor (a1, _), B.PatConstructor (b1, [ B.PatEllipsis _ ]) ->
-      m_name a1 b1
   | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) ->
-      m_name a1 b1 >>= fun () -> (m_list m_pattern) a2 b2
+      (* List(...) ought to match List(), so less_is_ok *)
+      m_name a1 b1 >>= fun () ->
+      (m_list_with_dots ~less_is_ok:true m_pattern (function
+        | G.PatEllipsis _ -> true
+        | _ -> false))
+        a2 b2
   | G.PatTuple a1, B.PatTuple b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatList a1, B.PatList b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1
