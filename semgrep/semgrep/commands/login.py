@@ -71,6 +71,8 @@ class Authentication:
     def read_token() -> Optional[str]:
         """
         Read api token from settings file
+
+        Returns None if api token not in settings file
         """
         logger.debug("Getting API token from settings file")
         login_token = SETTINGS.get_setting(
