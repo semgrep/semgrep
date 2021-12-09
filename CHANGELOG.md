@@ -9,10 +9,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: Patterns like List(...) now correctly match against patterns in code
 
 ### Fixed
-- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs w  would sometimes cause a parse error
-- Scala: Translate definitions using patterns like `val List(x,y,z) = List(1,2,3)` to the generic AST
+- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs
+  would sometimes cause a parse error
+- Scala: Translate definitions using patterns like
+  `val List(x,y,z) = List(1,2,3)` to the generic AST
 - Allow name resolution on imported packages named just vN, where N is a number
 - The -json option in semgrep-core works again when used with -e/-f
+- Python: get the correct range when matching comprehension (#4221)
 
 ### Changed
 - Constant propagation is now a proper must-analysis, if a variable is undefined
