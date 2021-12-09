@@ -24,7 +24,7 @@ def test2(c):
 def test3(c):
     if c:
         x = "hi"
-    # Must analysis, and `x`` is only coonstant in one path!
+    # Must analysis, and `x' is only constant in one path!
     # OK:
     foo(x)
 
@@ -34,7 +34,7 @@ def test4(c):
     foo(x)
     while c:
         x = x + " hi"
-        # TODO
+        # TODO: See Dataflow_constness.input_env
         # OK:
         foo(x)
     # TODO

@@ -280,10 +280,28 @@ and eval_concat env args =
 (* Transfer *)
 (*****************************************************************************)
 
+(* This is a must-analysis so a variable is only constant if it is constant in
+ * all preceding paths:
+ *
+ *     def foo():
+ *         if cond():
+ *              x = "abc"
+ *         return x # x is not constant, it may be undefined!
+ *
+ * THINK: We could have an option to decide whether we want may/must.
+ *
+ * For simplicity we just assume non-constant. This is OK because it's a must-
+ * analysis. But then we have problems with loops such as:
+ *
+ *     x = "a"
+ *     while cond():
+ *         x = x + "a"
+ *
+ * FIXME: At the entry node everything must be set to non-constant, but
+ * otherwise it should be initialized with _|_.
+ *)
 let union_env =
   VarMap.merge (fun _ c1_opt c2_opt ->
-      (* For simplicity, since this is a must-analysis, we just assume
-       * non-constant by default. *)
       let c1 = Option.value c1_opt ~default:G.NotCst in
       let c2 = Option.value c2_opt ~default:G.NotCst in
       Some (union c1 c2))
@@ -297,6 +315,17 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
         CFG.predecessors flow ni
         |> Common.map (fun (pi, _) -> mapping.(pi).D.out_env)
       in
+      (* Due to how `union_env` is defined, `VarMap.empty` represents an
+       * environment where all variables are non-constant, thus `VarMap.empty`
+       * is not the neutral element wrt `union_env` but the absorbing element.
+       * In other words, `union_env VarMap.empty env` will always return an
+       * environment where all variables are non-constant.
+       *
+       * FIXME: Right now `enter_env` only sets the function parameters to
+       *        non-constant, but it should do the same with every local
+       *        variable. Then we could change `union_env` to stop assuming
+       *        non-constant by default.
+       *)
       match pred_envs with
       | [] -> VarMap.empty
       | [ penv ] -> penv

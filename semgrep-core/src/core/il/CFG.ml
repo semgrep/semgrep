@@ -46,3 +46,8 @@ let make (graph : _ Ograph_extended.ograph_mutable) entry : _ t =
 let predecessors cfg nodei : (nodei * 'node) list =
   (cfg.graph#predecessors nodei)#tolist
   |> List.filter (fun (pi, _) -> NodeiSet.mem pi cfg.reachable)
+
+(* Successors of a node (returns an empty list for unreachable nodes). *)
+let successors cfg nodei : (nodei * 'node) list =
+  if NodeiSet.mem nodei cfg.reachable then (cfg.graph#successors nodei)#tolist
+  else []
