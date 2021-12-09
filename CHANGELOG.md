@@ -15,6 +15,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - The -json option in semgrep-core works again when used with -e/-f
 
 ### Changed
+- Constant propagation is now a proper must-analysis, if a variable is undefined
+  in some path then it will be considered as non-constant
+- Dataflow: Only consider reachable nodes, which prevents some FPs/FNs
+
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 
 ## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 

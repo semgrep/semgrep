@@ -280,22 +280,27 @@ and eval_concat env args =
 (* Transfer *)
 (*****************************************************************************)
 
-(* FIXME: This takes "Bottom" as the default constness of a variable.
- *
- * E.g. in
- *
- *     def foo():
- *         if cond():
- *              x = "abc"
- *         return x
- *
- * we infer that `foo' returns the string "abc" when `x' may not even be defined!
- *
- * It would be more sound to assume "Top" (i.e., `G.NotCst`) as default, or
- * perhaps we could have a switch to control whether we want a may- or must-
- * analysis?
- *)
-let union_env = Dataflow_core.varmap_union union
+let union_env =
+  VarMap.merge (fun _ c1_opt c2_opt ->
+      (* For simplicity, since this is a must-analysis, we just assume
+       * non-constant by default. *)
+      let c1 = Option.value c1_opt ~default:G.NotCst in
+      let c2 = Option.value c2_opt ~default:G.NotCst in
+      Some (union c1 c2))
+
+let input_env ~enter_env ~(flow : F.cfg) mapping ni =
+  let node = flow.graph#nodes#assoc ni in
+  match node.F.n with
+  | Enter -> enter_env
+  | _else -> (
+      let pred_envs =
+        CFG.predecessors flow ni
+        |> Common.map (fun (pi, _) -> mapping.(pi).D.out_env)
+      in
+      match pred_envs with
+      | [] -> VarMap.empty
+      | [ penv ] -> penv
+      | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
 
 let transfer :
     enter_env:G.constness Dataflow_core.env ->
@@ -306,15 +311,7 @@ let transfer :
        mapping ni ->
   let node = flow.graph#nodes#assoc ni in
 
-  let inp' =
-    (* input mapping *)
-    match node.F.n with
-    | Enter -> enter_env
-    | _else ->
-        (flow.graph#predecessors ni)#fold
-          (fun acc (ni_pred, _) -> union_env acc mapping.(ni_pred).D.out_env)
-          VarMap.empty
-  in
+  let inp' = input_env ~enter_env ~flow mapping ni in
 
   let out' =
     match node.F.n with
