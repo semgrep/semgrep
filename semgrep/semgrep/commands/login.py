@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Optional
 
 import click
@@ -20,7 +21,7 @@ def login() -> None:
         click.echo(
             f"API token already exists in {SETTINGS.get_path_to_settings()}. To login with a different token logout with `semgrep logout`"
         )
-        return
+        sys.exit(1)
 
     login_token = click.prompt("Enter semgrep.dev API token", hide_input=True)
     if Authentication.is_valid_token(login_token):
@@ -28,6 +29,7 @@ def login() -> None:
         click.echo(f"Valid API Token saved in {SETTINGS.get_path_to_settings()}")
     else:
         click.echo("entered token is not valid. Please try again.")
+        sys.exit(1)
 
 
 @click.command()
