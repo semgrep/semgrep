@@ -541,7 +541,9 @@ let resolve lang prog =
                 let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
                 if pkgbase =~ "v[0-9]+" then
                   (* e.g. google.golang.org/api/youtube/v3 *)
-                  Common2.list_last pkgpath
+                  match pkgpath with
+                  | [] -> pkgbase
+                  | _ -> Common2.list_last pkgpath
                 else if pkgbase =~ "\\(.+\\)-go" then
                   (* e.g. github.com/dgrijalva/jwt-go *)
                   matched1 pkgbase
