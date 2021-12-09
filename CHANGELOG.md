@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Added
 - Scala: Translate definitions using patterns like `val List(x,y,z) = List(1,2,3)` to the generic AST
+- Allow name resolution on imported packages named just vN, where N is a number
 
 ## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 
