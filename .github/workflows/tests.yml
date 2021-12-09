@@ -284,5 +284,5 @@ jobs:
           jq . findings.json
       - name: Compare timing infos
         run: |
-          ../perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
-          ../perf/compare-bench-findings semgrep/findings.json
+          perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
+          perf/compare-bench-findings semgrep/findings.json
