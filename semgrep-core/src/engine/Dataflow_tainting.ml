@@ -256,9 +256,10 @@ let (transfer :
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let in' =
-    (flow.graph#predecessors ni)#fold
-      (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
-      VarMap.empty
+    CFG.predecessors flow ni
+    |> List.fold_left
+         (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
+         VarMap.empty
   in
   let node = flow.graph#nodes#assoc ni in
   let out' =
