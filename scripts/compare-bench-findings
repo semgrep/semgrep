@@ -4,6 +4,7 @@
 # It's meant to run within a semgrep pull request.
 #
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -44,7 +45,9 @@ def read_findings(filename: Path) -> Dict[str, Any]:
 
 
 def main() -> None:
-    expected = read_findings(Path(FINDINGS_SNAPSHOT_PATH))
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+
+    expected = read_findings(Path(file_dir + "/" + FINDINGS_SNAPSHOT_PATH))
     findings = read_findings(Path(sys.argv[1]))
 
     errors = 0
