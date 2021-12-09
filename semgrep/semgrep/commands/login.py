@@ -13,7 +13,7 @@ logger = getLogger(__name__)
 @click.command()
 def login() -> None:
     """
-    Prompts for API key and saves it to global settings file
+    Prompts for API key to semgrep.dev and saves it to global settings file
     """
     saved_login_token = Authentication.read_token()
     if saved_login_token:
