@@ -491,7 +491,7 @@ let semgrep_with_formatted_output config files_or_dirs =
 (* Semgrep -e/-f *)
 (*****************************************************************************)
 
-let rule_of_pattern lang pattern_string pattern =
+let minirule_of_pattern lang pattern_string pattern =
   {
     MR.id = "-e/-f";
     pattern_string;
@@ -500,6 +500,24 @@ let rule_of_pattern lang pattern_string pattern =
     message = "";
     severity = R.Error;
     languages = [ lang ];
+  }
+
+let rule_of_pattern lang pattern_string pattern =
+  let fk = PI.unsafe_fake_info "" in
+  let xlang = Xlang.L (lang, []) in
+  let xpat = R.mk_xpat (R.Sem (pattern, lang)) (pattern_string, fk) in
+  {
+    R.id = ("-e/-f", fk);
+    mode = R.Search (R.New (R.P (xpat, None)));
+    message = "";
+    severity = R.Error;
+    languages = xlang;
+    options = None;
+    equivalences = None;
+    fix = None;
+    fix_regexp = None;
+    paths = None;
+    metadata = None;
   }
 
 (* simpler code path compared to semgrep_with_rules *)
@@ -513,7 +531,7 @@ let semgrep_with_one_pattern config roots =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
    *)
-  (* TODO: support generic and regex patterns as well? *)
+  (* TODO: support generic and regex patterns as well? See code in Deep. *)
   let lang = Xlang.lang_of_opt_xlang config.lang in
   let pattern, pattern_string =
     match (config.pattern_file, config.pattern_string) with
@@ -529,20 +547,27 @@ let semgrep_with_one_pattern config roots =
     | _, s when s <> "" -> (parse_pattern lang s, s)
     | _ -> raise Impossible
   in
-  let rule, _rule_parse_time =
-    Common.with_time (fun () -> [ rule_of_pattern lang pattern_string pattern ])
-  in
-
   let targets, _skipped =
     Find_target.files_of_dirs_or_files (Some lang) roots
   in
   let targets = Common.map replace_named_pipe_by_regular_file targets in
   match config.output_format with
   | Json ->
-      (* closer to -rules_file, but no incremental match output *)
-      (*      semgrep_with_patterns config (rule, rule_parse_time) targets skipped *)
-      failwith "TODO: -e/-f and JSON"
+      let rule, rule_parse_time =
+        Common.with_time (fun () ->
+            [ rule_of_pattern lang pattern_string pattern ])
+      in
+      let res, files =
+        semgrep_with_rules config (rule, rule_parse_time) targets
+      in
+      let json = JSON_report.match_results_of_matches_and_errors files res in
+      let s = SJ.string_of_match_results json in
+      pr s
   | Text ->
+      let minirule, _rule_parse_time =
+        Common.with_time (fun () ->
+            [ minirule_of_pattern lang pattern_string pattern ])
+      in
       (* simpler code path than in semgrep_with_rules *)
       targets
       |> List.iter (fun file ->
@@ -560,7 +585,7 @@ let semgrep_with_one_pattern config roots =
                        let xs = Lazy.force matched_tokens in
                        print_match config.match_format config.mvars env
                          Metavariable.ii_of_mval xs)
-                     Config_semgrep.default_config rule
+                     Config_semgrep.default_config minirule
                      (parse_equivalences config.equivalences_file)
                      (file, lang, ast)
                    |> ignore)
