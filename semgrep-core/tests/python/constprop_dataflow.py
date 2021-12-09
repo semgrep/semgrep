@@ -1,28 +1,42 @@
-def foo1():
-    # ERROR:
+def test1():
     x = "x"
     # ERROR:
+    foo(x)
     y = "y"
     # ERROR:
+    foo(y)
     t = x + y
+    # ERROR:
+    foo(t)
 
-def foo2(c):
+def test2(c):
     if c:
-        # ERROR:
         a = "a"
-    else:
         # ERROR:
+        foo(a)
+    else:
         a = "b"
+        # ERROR:
+        foo(a)
     # ERROR:
-    v = a
+    foo(a)
 
+def test3(c):
+    if c:
+        x = "hi"
+    # Must analysis, and `x' is only constant in one path!
+    # OK:
+    foo(x)
 
-def foo3(c):
-    # ERROR:
+def test4(c):
     x = "hi"
-    while c:
-        # TODO:
-        # OK:
-        x = x + " hi"
     # ERROR:
-    y = x
+    foo(x)
+    while c:
+        x = x + " hi"
+        # TODO: See Dataflow_constness.input_env
+        # OK:
+        foo(x)
+    # TODO
+    # OK:
+    foo(x)

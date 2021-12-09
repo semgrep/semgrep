@@ -280,22 +280,56 @@ and eval_concat env args =
 (* Transfer *)
 (*****************************************************************************)
 
-(* FIXME: This takes "Bottom" as the default constness of a variable.
- *
- * E.g. in
+(* This is a must-analysis so a variable is only constant if it is constant in
+ * all preceding paths:
  *
  *     def foo():
  *         if cond():
  *              x = "abc"
- *         return x
+ *         return x # x is not constant, it may be undefined!
  *
- * we infer that `foo' returns the string "abc" when `x' may not even be defined!
+ * THINK: We could have an option to decide whether we want may/must.
  *
- * It would be more sound to assume "Top" (i.e., `G.NotCst`) as default, or
- * perhaps we could have a switch to control whether we want a may- or must-
- * analysis?
+ * For simplicity we just assume non-constant. This is OK because it's a must-
+ * analysis. But then we have problems with loops such as:
+ *
+ *     x = "a"
+ *     while cond():
+ *         x = x + "a"
+ *
+ * FIXME: At the entry node everything must be set to non-constant, but
+ * otherwise it should be initialized with _|_.
  *)
-let union_env = Dataflow_core.varmap_union union
+let union_env =
+  VarMap.merge (fun _ c1_opt c2_opt ->
+      let c1 = Option.value c1_opt ~default:G.NotCst in
+      let c2 = Option.value c2_opt ~default:G.NotCst in
+      Some (union c1 c2))
+
+let input_env ~enter_env ~(flow : F.cfg) mapping ni =
+  let node = flow.graph#nodes#assoc ni in
+  match node.F.n with
+  | Enter -> enter_env
+  | _else -> (
+      let pred_envs =
+        CFG.predecessors flow ni
+        |> Common.map (fun (pi, _) -> mapping.(pi).D.out_env)
+      in
+      (* Due to how `union_env` is defined, `VarMap.empty` represents an
+       * environment where all variables are non-constant, thus `VarMap.empty`
+       * is not the neutral element wrt `union_env` but the absorbing element.
+       * In other words, `union_env VarMap.empty env` will always return an
+       * environment where all variables are non-constant.
+       *
+       * FIXME: Right now `enter_env` only sets the function parameters to
+       *        non-constant, but it should do the same with every local
+       *        variable. Then we could change `union_env` to stop assuming
+       *        non-constant by default.
+       *)
+      match pred_envs with
+      | [] -> VarMap.empty
+      | [ penv ] -> penv
+      | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
 
 let transfer :
     enter_env:G.constness Dataflow_core.env ->
@@ -306,15 +340,7 @@ let transfer :
        mapping ni ->
   let node = flow.graph#nodes#assoc ni in
 
-  let inp' =
-    (* input mapping *)
-    match node.F.n with
-    | Enter -> enter_env
-    | _else ->
-        (flow.graph#predecessors ni)#fold
-          (fun acc (ni_pred, _) -> union_env acc mapping.(ni_pred).D.out_env)
-          VarMap.empty
-  in
+  let inp' = input_env ~enter_env ~flow mapping ni in
 
   let out' =
     match node.F.n with
