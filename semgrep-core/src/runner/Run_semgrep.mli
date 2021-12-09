@@ -31,7 +31,8 @@ val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
    Copy named pipes created with <(echo 'foo') on the command line
    into a regular file to avoid illegal seeks when reporting match results
    or parsing errors.
-   Used outside Run_semgrep in Main.ml for -dump_pattern.
+   Any file coming from the command line should go through this so as to
+   allows easy manual testing.
 *)
 
 val print_match :
