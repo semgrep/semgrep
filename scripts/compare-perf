@@ -46,13 +46,13 @@ def send_comment(message: str, github_token: str, pull_request_number: str) -> N
     r.raise_for_status()
 
 
-Timing = namedtuple("Timing", "name time findings")
+Timing = namedtuple("Timing", "name time")
 
 
 def read_timing(filename: Path) -> List[Timing]:
     print(f"Reading {filename}")
     with open(filename) as f:
-        return [Timing(a["name"], a["time"], a["findings"]) for a in json.load(f)]
+        return [Timing(a["name"], a["time"]) for a in json.load(f)]
 
 
 def select_min_timings(al: List[Timing], bl: List[Timing]) -> List[Timing]:
@@ -63,30 +63,6 @@ def select_min_timings(al: List[Timing], bl: List[Timing]) -> List[Timing]:
         else:
             res.append(b)
     return res
-
-
-def findings_differ(baseline_timing: Timing, latest_timing: Timing, name: str) -> bool:
-    baseline = set(baseline_timing.findings["results"])
-    latest = set(latest_timing.findings["results"])
-
-    def output_diff(diff: set) -> None:
-        for d in sorted(diff):
-            print(d)
-
-    b_diff = baseline.difference(latest)
-    l_diff = latest.difference(baseline)
-    bd_len = len(b_diff)
-    ld_len = len(l_diff)
-    if bd_len > 0 or ld_len > 0:
-        print("*" * 70)
-        print(f"Error running benchmark {name}")
-        print(f"Missing {bd_len} findings:")
-        output_diff(b_diff)
-        print(f"Extra {ld_len} findings:")
-        output_diff(l_diff)
-        print(f"*" * 70)
-        return True
-    return False
 
 
 def main() -> None:
@@ -167,9 +143,6 @@ def main() -> None:
                 f"🔥 Potential speedup in benchmark {name}: "
                 f"{perc:.1f}% ({diff:.3f} s)"
             )
-
-        if findings_differ(baseline, latest, name):
-            errors += 1
 
     mean_rel_dur = total_rel_dur / n
     mean_perc = 100 * (mean_rel_dur - 1)

@@ -1,0 +1,61 @@
+#! /usr/bin/env python3
+#
+# Compare the findings for two different versions of semgrep.
+# It's meant to run within a semgrep pull request.
+#
+import json
+import sys
+from pathlib import Path
+from typing import Any
+from typing import Dict
+
+FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
+
+
+def findings_differ(expected: Dict[str, Any], findings: Dict[str, Any]) -> bool:
+    name = findings["name"]
+    baseline = set(expected["findings"]["results"])
+    latest = set(findings["findings"]["results"])
+
+    def output_diff(diff: set) -> None:
+        for d in sorted(diff):
+            print(d)
+
+    b_diff = baseline.difference(latest)
+    l_diff = latest.difference(baseline)
+    bd_len = len(b_diff)
+    ld_len = len(l_diff)
+    if bd_len > 0 or ld_len > 0:
+        print("*" * 70)
+        print(f"Error running benchmark {name}")
+        print(f"Missing {bd_len} findings:")
+        output_diff(b_diff)
+        print(f"Extra {ld_len} findings:")
+        output_diff(l_diff)
+        print(f"*" * 70)
+        return True
+    return False
+
+
+def read_findings(filename: Path) -> Dict[str, Any]:
+    print(f"Reading {filename}")
+    with open(filename) as f:
+        return json.load(f)
+
+
+def main() -> None:
+    expected = read_findings(Path(FINDINGS_SNAPSHOT_PATH))
+    findings = read_findings(Path(sys.argv[1]))
+
+    errors = 0
+
+    for expected, findings in zip(expected, findings):
+        if findings_differ(expected, findings):
+            errors += 1
+
+    # Fail only after printing and sending all messages
+    assert not errors
+
+
+if __name__ == "__main__":
+    main()

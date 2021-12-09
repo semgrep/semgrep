@@ -51,6 +51,7 @@ handler.setFormatter(
 )
 logger.addHandler(handler)
 
+FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
@@ -410,6 +411,8 @@ def run_benchmarks(
     include_time: bool,
     clean: bool,
     summary_file_path: str,
+    findings_file_path: str,
+    findings_snapshot_update: bool,
     called_dir: str,
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
@@ -429,8 +432,9 @@ def run_benchmarks(
         variants = STD_VARIANTS
 
     results_msgs = []
-    benchmark_results = []
+    durations = []
     results: dict = {variant.name: [] for variant in variants}
+    saved_findings = []
     output_per_rule_json_results = RepositoryTimePerRule(
         output_file=output_time_per_rule_json
     )
@@ -500,11 +504,10 @@ def run_benchmarks(
                 results_msgs.append(msg)
 
                 findings, timings = standardize_findings(semgrep_results, include_time)
-                benchmark_results.append(
+                durations.append(
                     {
                         "name": name,
                         "time": duration,
-                        "findings": jsonify_findings(findings),
                     }
                 )
                 results[variant.name].append(duration)
@@ -529,13 +532,29 @@ def run_benchmarks(
                 elif len(findings["errors"]) > len(std_findings["errors"]):
                     results_msgs[-1] += " WARNING: more errors than std"
 
+            saved_findings.append(
+                {
+                    "name": ".".join(["semgrep", "bench", corpus.name]),
+                    "findings": jsonify_findings(std_findings),
+                }
+            )
+
     # Show summary data
     print("\n".join(results_msgs))
 
     if summary_file_path:
         with chdir(called_dir):
             with open(summary_file_path, "w") as f:
-                json.dump(benchmark_results, f)
+                json.dump(durations, f)
+
+    if findings_file_path:
+        with chdir(called_dir):
+            with open(findings_file_path, "w") as f:
+                json.dump(saved_findings, f)
+
+    if findings_snapshot_update:
+        with open(FINDINGS_SNAPSHOT_PATH, "w") as f:
+            json.dump(saved_findings, f)
 
     if plot_benchmarks:
         import matplotlib.pyplot as plt
@@ -610,12 +629,20 @@ def main() -> None:
         help="save timing summary to the json file given by the argument",
     )
     parser.add_argument(
-        "--plot-benchmarks",
-        help="display a graph of the benchmark results",
+        "--save-findings-to",
+        metavar="FILE_NAME",
+        type=str,
+        help="save findings to the json file given by the argument",
+    )
+    parser.add_argument(
+        "--snapshot-update",
+        help="update the snapshot to compare findings against",
         action="store_true",
     )
     parser.add_argument(
-        "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
+        "--plot-benchmarks",
+        help="display a graph of the benchmark results",
+        action="store_true",
     )
     parser.add_argument(
         "--hard-timeout",
@@ -660,6 +687,8 @@ def main() -> None:
             include_time=not args.no_time,
             clean=args.clean,
             summary_file_path=args.save_to,
+            findings_file_path=args.save_findings_to,
+            findings_snapshot_update=args.snapshot_update,
             called_dir=called_dir,
         )
 
