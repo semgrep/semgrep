@@ -186,7 +186,7 @@ def jsonify_findings(findings: dict) -> dict:
     """
     return {
         "errors": findings["errors"],
-        "results": sorted(finding.str for finding in findings["results"]),
+        "results": [json.loads(finding.str) for finding in sorted(findings["results"])],
     }
 
 
