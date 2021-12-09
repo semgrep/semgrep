@@ -279,7 +279,7 @@ jobs:
           pipenv run semgrep-core -version
           pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing1.json
           jq . timing1.json
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json --save-findings-to semgrep/findings.json
+          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json --save-findings-to findings.json
           jq . timing2.json
           jq . findings.json
       - name: Compare timing infos
