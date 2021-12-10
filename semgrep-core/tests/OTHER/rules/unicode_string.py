@@ -1,0 +1,4 @@
+#ruleid:
+"snowman ☃"
+
+"snowman 🚀"

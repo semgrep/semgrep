@@ -1,0 +1,6 @@
+rules:
+- id: test
+  languages: [python]
+  pattern: '"snowman ☃"'
+  message: found the snowman
+  severity: ERROR
