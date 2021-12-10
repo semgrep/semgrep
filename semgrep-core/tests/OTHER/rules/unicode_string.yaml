@@ -1,6 +1,6 @@
 rules:
 - id: test
   languages: [python]
-  pattern: '"snowman ☃"'
-  message: found the snowman
+  pattern: '"🎅"'
+  message: checks that unicode matching works
   severity: ERROR
