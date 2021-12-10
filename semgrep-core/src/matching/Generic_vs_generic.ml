@@ -347,7 +347,7 @@ let m_with_symbolic_propagation f b =
     (fun x -> x.Config.constant_propagation && x.Config.symbolic_propagation)
     ~then_:
       (match b.G.e with
-      | G.N (G.Id (_, { id_constness = { contents = Some (G.Sym b1) }; _ })) ->
+      | G.N (G.Id (_, { id_svalue = { contents = Some (G.Sym b1) }; _ })) ->
           f b1
       | ___else___ -> fail ())
     ~else_:(fail ())
@@ -506,13 +506,9 @@ and m_ident_and_empty_id_info a1 b1 =
  *)
 and m_id_info a b =
   match (a, b) with
-  | ( { G.id_resolved = _a1; id_type = _a2; id_constness = _a3; id_hidden = _a4 },
-      {
-        B.id_resolved = _b1;
-        id_type = _b2;
-        id_constness = _b3;
-        id_hidden = _b4;
-      } ) ->
+  | ( { G.id_resolved = _a1; id_type = _a2; id_svalue = _a3; id_hidden = _a4 },
+      { B.id_resolved = _b1; id_type = _b2; id_svalue = _b3; id_hidden = _b4 } )
+    ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
        * but doing import flask in a source file means every reference
        * to flask.xxx will be tagged with a ImportedEntity, but
@@ -682,7 +678,7 @@ and m_expr a b =
           (match
              Normalize_generic.constant_propagation_and_evaluate_literal b
            with
-          | Some b1 -> m_literal_constness a1 b1
+          | Some b1 -> m_literal_svalue a1 b1
           | None -> fail ())
         ~else_:(fail ())
   | G.Container (G.Array, a2), B.Container (B.Array, b2) ->
@@ -994,7 +990,7 @@ and m_wrap_m_float_opt (a1, a2) (b1, b2) =
       let b1 = Parse_info.str_of_info b2 in
       m_wrap m_string (a1, a2) (b1, b2)
 
-and m_literal_constness a b =
+and m_literal_svalue a b =
   match b with
   | B.Lit b1 -> m_literal a b1
   | B.Cst B.Cstr -> (

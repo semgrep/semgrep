@@ -4,7 +4,7 @@ func test() {
 	//     79acabc303f ("dataflow: Make const-prop a true must-analysis (#4410)")
 	//
 	// this simple loop will make symbolic propagation introduce a cyclic
-	// id_constness that later caused a segfault. Because `cpuids` is undefined
+	// id_svalue that later caused a segfault. Because `cpuids` is undefined
 	// before entering the loop, and locals were _|_ at the entry node, we
 	// inferred that `cpuids` was the same as `append(cpuids)` at the start of
 	// the loop body. After 79acabc303f we now assume that variables are

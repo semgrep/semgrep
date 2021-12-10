@@ -776,7 +776,7 @@ let ctype = function
   | G.Cstr -> "str"
   | G.Cany -> "???"
 
-let constness env = function
+let svalue env = function
   | G.NotCst -> "TOP"
   | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
   | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
@@ -809,6 +809,6 @@ let pattern_to_string lang any =
       pr2 (AST_generic.show_any any);
       failwith "todo: only expression pattern can be pretty printed right now"
 
-let constness_to_string lang c =
+let svalue_to_string lang c =
   let env = { lang; mvars = [] } in
-  constness env c
+  svalue env c

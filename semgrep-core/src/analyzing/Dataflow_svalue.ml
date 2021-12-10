@@ -26,7 +26,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 (* map for each node/var whether a variable is constant *)
-type mapping = G.constness Dataflow_core.mapping
+type mapping = G.svalue Dataflow_core.mapping
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
@@ -137,7 +137,7 @@ let refine c1 c2 =
   | G.Sym _, G.Cst _ ->
       c2
 
-let refine_constness_ref c_ref c' =
+let refine_svalue_ref c_ref c' =
   match !c_ref with
   | None -> c_ref := Some c'
   | Some c -> c_ref := Some (refine c c')
@@ -237,7 +237,7 @@ let eval_binop_string ?tok op s1 s2 =
       G.Lit (literal_of_string ?tok (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
-let rec eval (env : G.constness D.env) exp : G.constness =
+let rec eval (env : G.svalue D.env) exp : G.svalue =
   match exp.e with
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
@@ -252,7 +252,7 @@ and eval_lval env lval =
   match lval with
   | { base = Var x; offset = NoOffset } -> (
       let opt_c = D.VarMap.find_opt (str_of_name x) env in
-      match (!(x.id_info.id_constness), opt_c) with
+      match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
       | Some c, None
       | None, Some c ->
@@ -384,9 +384,9 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
 
 let transfer :
-    enter_env:G.constness Dataflow_core.env ->
+    enter_env:G.svalue Dataflow_core.env ->
     flow:F.cfg ->
-    G.constness Dataflow_core.transfn =
+    G.svalue Dataflow_core.transfn =
  fun ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -456,10 +456,10 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
   in
   DataflowX.fixpoint ~eq
     ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
-    ~trans:(transfer ~enter_env ~flow) (* constness is a forward analysis! *)
+    ~trans:(transfer ~enter_env ~flow) (* svalue is a forward analysis! *)
     ~forward:true ~flow
 
-let update_constness (flow : F.cfg) mapping =
+let update_svalue (flow : F.cfg) mapping =
   let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
     (* Check that all id_info's satisfy a given condition. We use refs so that
      * we can have a single visitor for all calls, given that `mk_visitor` is
@@ -487,7 +487,7 @@ let update_constness (flow : F.cfg) mapping =
   let no_cycles var c =
     (* Check that `c' contains to reference to `var'. It can contain references
      * to other occurrences of `var', but not to the same occurrence (that would
-     * be a cycle), and each occurence must have its own `id_constness` ref. This
+     * be a cycle), and each occurence must have its own `id_svalue` ref. This
      * is not supposed to happen, but if it does happen by accident then it would
      * cause an infinite loop, stack overflow, or segfault later on. *)
     match c with
@@ -495,8 +495,8 @@ let update_constness (flow : F.cfg) mapping =
         for_all_id_info
           (fun ii ->
             (* Note the use of physical equality, we are looking for the *same*
-             * id_constness ref, that tells us it's the same variable occurrence. *)
-            var.id_info.id_constness != ii.id_constness)
+             * id_svalue ref, that tells us it's the same variable occurrence. *)
+            var.id_info.id_svalue != ii.id_svalue)
           (G.E e)
     | G.NotCst
     | G.Cst _
@@ -509,7 +509,7 @@ let update_constness (flow : F.cfg) mapping =
 
          let node = flow.graph#nodes#assoc ni in
 
-         (* Update RHS constness according to the input env. *)
+         (* Update RHS svalue according to the input env. *)
          rlvals_of_node node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
@@ -519,10 +519,10 @@ let update_constness (flow : F.cfg) mapping =
                   | None -> ()
                   | Some c ->
                       if no_cycles var c then
-                        refine_constness_ref var.id_info.id_constness c
+                        refine_svalue_ref var.id_info.id_svalue c
                       else
-                        logger#error "Cycle check failed for %s"
-                          (str_of_name var))
+                        logger#error "Cycle check failed for %s -> %s"
+                          (str_of_name var) (G.show_svalue c))
               | ___else___ -> ())
-         (* Should not update the LHS constness since in x = E, x is a "ref",
+         (* Should not update the LHS svalue since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))

@@ -87,7 +87,7 @@ let rec statement_strings stmt =
             | L (String (str, _tok)) -> push str res
             | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
             | _ -> k x);
-        V.kconstness =
+        V.ksvalue =
           (fun (k, _) x ->
             match x with
             | Lit (String (str, _tok)) ->

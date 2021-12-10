@@ -97,12 +97,12 @@ and vof_id_info
     {
       id_resolved = v_id_resolved;
       id_type = v_id_type;
-      id_constness = v3;
+      id_svalue = v3;
       id_hidden;
     } =
   let bnds = [] in
-  let arg = OCaml.vof_ref (OCaml.vof_option vof_constness) v3 in
-  let bnd = ("id_constness", arg) in
+  let arg = OCaml.vof_ref (OCaml.vof_option vof_svalue) v3 in
+  let bnd = ("id_svalue", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_type_) v_id_type in
   let bnd = ("id_type", arg) in
@@ -357,7 +357,7 @@ and vof_const_type = function
   | Cstr -> OCaml.VSum ("Cstr", [])
   | Cany -> OCaml.VSum ("Cany", [])
 
-and vof_constness = function
+and vof_svalue = function
   | Lit v1 ->
       let v1 = vof_literal v1 in
       OCaml.VSum ("Lit", [ v1 ])
