@@ -125,7 +125,7 @@ install_requires = [
     "tqdm>=4.46.1",
     "packaging>=20.4",
     "jsonschema~=3.2.0",
-    "wcmatch==8.2",
+    "wcmatch==8.3",
     "peewee~=3.14.4",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because

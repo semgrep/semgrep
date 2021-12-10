@@ -734,7 +734,7 @@ let (control_flow_graph_of_stmts : parameter list -> stmt list -> F.flow) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_opt (last_node_opt, exiti);
-  { graph = g; entry = enteri }
+  CFG.make g enteri
 
 let (cfg_of_func : function_definition -> F.flow) =
  fun def ->

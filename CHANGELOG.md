@@ -4,25 +4,38 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-## Fixed
-- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs w  would sometimes cause a parse error
+### Added
+- New language Solidity with experimental support.
+- Scala: Patterns like List(...) now correctly match against patterns in code
+
+### Fixed
+- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs
+  would sometimes cause a parse error
+- Scala: Translate definitions using patterns like
+  `val List(x,y,z) = List(1,2,3)` to the generic AST
 - Allow name resolution on imported packages named just vN, where N is a number
+- The -json option in semgrep-core works again when used with -e/-f
+- Python: get the correct range when matching comprehension (#4221)
+
+### Changed
+- Constant propagation is now a proper must-analysis, if a variable is undefined
+  in some path then it will be considered as non-constant
+- Dataflow: Only consider reachable nodes, which prevents some FPs/FNs
 
 ## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 
-### Added
-- New language Solidity with experimental support.
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 
-## Fixed
+### Fixed
 - Python: set the right scope for comprehension variables (#4260)
 - Fixed bug where the presence of .semgrepignore would cause reported targets
   to have absolute instead of relative file paths
 
 ## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
 
-## Fixed
-- Fixed bug where the presence of .semgrepignore would cause runs to fail on files that
-  were not subpaths of the directory where semgrep was being run
+### Fixed
+- Fixed bug where the presence of .semgrepignore would cause runs to fail on
+  files that were not subpaths of the directory where semgrep was being run
 
 ## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 12-06-2021
 
