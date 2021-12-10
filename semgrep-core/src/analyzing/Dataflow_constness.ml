@@ -98,11 +98,11 @@ let union c1 c2 =
    *       y = x.foo
    *
    * Example: If we are not careful, when analyzing loops, we could introduce
-   * circular dependencies!
+   * circular dependencies! (See tests/OTHER/rules/sym_prop_no_merge1.go)
    *
-   *     while cond():
-   *       x = f(x)
-   *
+	 *     for cond {
+	 *       x = f(x)
+	 *     }
    *)
   | _any, G.Sym _
   | G.Sym _, _any
