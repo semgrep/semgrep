@@ -52,17 +52,19 @@ handler.setFormatter(
 logger.addHandler(handler)
 
 FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
+PERF_PATH = "semgrep/perf"
+PERF_RULE_PATH = "semgrep.perf"
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
 class SemgrepResult:
     def __init__(self, dict: dict) -> None:
         self.res = dict
+        dict2 = copy.deepcopy(dict)
 
         # We use self.str to compare dicts, so change this
         # to abstract away differences
-        if "extra" in dict:
-            dict2 = copy.deepcopy(dict)
+        if "extra" in dict2:
             # TODO: spacegrep.py calls dedent() on lines (not sure why)
             if "lines" in dict2["extra"]:
                 dict2["extra"]["lines"] = ""
@@ -76,9 +78,15 @@ class SemgrepResult:
                 # but with different metavars
                 dict2["extra"]["metavars"] = ""
 
-            self.str = json.dumps(dict2, sort_keys=True)
-        else:
-            self.str = json.dumps(dict, sort_keys=True)
+        # Abbreviate paths to avoid file-system differences
+        if "path" in dict2:
+            relative_path_start = dict2["path"].find(PERF_PATH)
+            dict2["path"] = dict2["path"][relative_path_start:]
+        if "check_id" in dict2:
+            relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
+            dict2["check_id"] = dict2["check_id"][relative_path_start:]
+
+        self.str = json.dumps(dict2, sort_keys=True)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
