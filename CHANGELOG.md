@@ -16,6 +16,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Allow name resolution on imported packages named just vN, where N is a number
 - The -json option in semgrep-core works again when used with -e/-f
 - Python: get the correct range when matching comprehension (#4221)
+- Python and other languages: allow matches of patterns containing
+  non-ascii characters, but still with possibly many false positives (#4336)
 
 ### Changed
 - Constant propagation is now a proper must-analysis, if a variable is undefined
