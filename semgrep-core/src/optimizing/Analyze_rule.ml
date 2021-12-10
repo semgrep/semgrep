@@ -460,7 +460,7 @@ let eval_and p (And xs) =
 (*
    At least for some languages, '"🚀"' is replaced by 'ZZZ' in the pattern
    but not in the raw target file that we inspect as part of this optimization.
-   Because of this, we don't require a match in the target file is the
+   Because of this, we don't require a match in the target file if the
    pattern contains 'ZZ' (at least two Zs in a row).
 *)
 let contains_substituted_non_ascii =
