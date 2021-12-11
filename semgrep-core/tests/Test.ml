@@ -404,14 +404,23 @@ let lang_regression_tests ~with_caching =
     pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
  ]
 
-let full_rule_regression_tests = [
-  "full rule", (fun () ->
-    let path = Filename.concat tests_path "OTHER/rules" in
-    Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
-    logger#info "running with -filter_irrelevant_rules";  
-    Test_engine.test_rules ~unit_testing:true [path])
+let full_rule_regression_tests =
+  let path = Filename.concat tests_path "OTHER/rules" in
+  pack_tests "full rule" (
+    let tests, _print_summary =
+      Test_engine.make_tests ~unit_testing:true [path]
+    in
+    tests |> Common.map (fun (name, test) ->
+      let test () =
+        Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules
+          (fun () ->
+             logger#info "running with -filter_irrelevant_rules";
+             test ()
+          )
+      in
+      name, test
+    )
   )
-]
 
 let lang_tainting_tests =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
