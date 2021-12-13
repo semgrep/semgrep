@@ -533,7 +533,12 @@ and literal =
 (* The type of an unknown constant. *)
 and const_type = Cbool | Cint | Cstr | Cany
 
-(* semantic value: set by the svalue propagation algorithm and used in semgrep *)
+(* semantic value: set by the svalue propagation algorithm and used in semgrep
+ *
+ * Note that we can't track a constant and a symbolic expression at the same
+ * time. If this becomes a problem then we may want to have separate analyses
+ * for constant and symbolic propagation, but having a single one is more
+ * efficient (time- and memory-wise). *)
 and svalue = Lit of literal | Cst of const_type | Sym of expr | NotCst
 
 and container_operator =

@@ -100,9 +100,9 @@ let union c1 c2 =
    * Example: If we are not careful, when analyzing loops, we could introduce
    * circular dependencies! (See tests/OTHER/rules/sym_prop_no_merge1.go)
    *
-	 *     for cond {
-	 *       x = f(x)
-	 *     }
+   *     for cond {
+   *       x = f(x)
+   *     }
    *)
   | _any, G.Sym _
   | G.Sym _, _any
@@ -485,7 +485,7 @@ let update_svalue (flow : F.cfg) mapping =
       with Exit -> false
   in
   let no_cycles var c =
-    (* Check that `c' contains to reference to `var'. It can contain references
+    (* Check that `c' contains no reference to `var'. It can contain references
      * to other occurrences of `var', but not to the same occurrence (that would
      * be a cycle), and each occurence must have its own `id_svalue` ref. This
      * is not supposed to happen, but if it does happen by accident then it would
