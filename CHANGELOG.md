@@ -21,8 +21,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Constant propagation is now a proper must-analysis, if a variable is undefined
   in some path then it will be considered as non-constant
 - Dataflow: Only consider reachable nodes, which prevents some FPs/FNs
-
-### Changed
 - Timing output handles errors and reports profiling times
 
 ## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
