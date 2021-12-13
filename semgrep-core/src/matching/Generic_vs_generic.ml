@@ -2159,9 +2159,8 @@ and m_pattern a b =
   | G.PatLiteral a1, B.PatLiteral b1 -> m_literal a1 b1
   | G.PatType a1, B.PatType b1 -> m_type_ a1 b1
   | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) ->
-      (* List(...) ought to match List(), so less_is_ok *)
       m_name a1 b1 >>= fun () ->
-      (m_list_with_dots ~less_is_ok:true m_pattern (function
+      (m_list_with_dots ~less_is_ok:false m_pattern (function
         | G.PatEllipsis _ -> true
         | _ -> false))
         a2 b2
