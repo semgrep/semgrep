@@ -4,8 +4,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-### Fixed
-- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs w  would sometimes cause a parse error
 ### Added
 - New language Solidity with experimental support.
 - Scala: Patterns like List(...) now correctly match against patterns in code
