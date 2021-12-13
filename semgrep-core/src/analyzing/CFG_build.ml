@@ -313,4 +313,4 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
-  { graph = g; entry = enteri }
+  CFG.make g enteri

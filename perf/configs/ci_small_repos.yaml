@@ -21,6 +21,13 @@ runs:
   - r2c-rules/r2c-ci.yml
   - r2c-rules/r2c-security-audit.yml
   opts: []
+- name: njs-django  # njsscan rules on a JS/other repo
+  repos:
+  - url: https://github.com/django/django
+    commit_hash: 9ee693bd6cf4074f04ec51c6f3cfe87cad392f12
+  rule_configs:
+  - njsscan
+  opts: []
 - name: apache  # django rulepack on a large python repo
   repos:
   - url: https://github.com/apache/libcloud
@@ -74,13 +81,6 @@ runs:
   rule_configs:
   - r2c-rules/python.yml
   - r2c-rules/flask.yml
-  opts: []
-- name: socket  # javascript rules on a JS repo
-  repos:
-  - url: https://github.com/socketio/socket.io
-    commit_hash: 1faa7e3aea1414ec814aa935021356e8ed2b054c
-  rule_configs:
-  - r2c-rules/javascript.yml
   opts: []
 # For more comprehensive rule timing information
 - name: coolMenu  # small java corpus

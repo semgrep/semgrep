@@ -21,6 +21,13 @@ runs:
   - r2c-rules/r2c-ci.yml
   - r2c-rules/r2c-security-audit.yml
   opts: []
+- name: socket  # javascript rules on a JS repo
+  repos:
+  - url: https://github.com/socketio/socket.io
+    commit_hash: 1faa7e3aea1414ec814aa935021356e8ed2b054c
+  rule_configs:
+  - r2c-rules/javascript.yml
+  opts: []
 - name: draios  # r2c-ci and r2c-security audit packs on a JS/other repo
   repos:
   - url: https://github.com/draios/sysdig-inspect
