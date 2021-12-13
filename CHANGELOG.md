@@ -18,6 +18,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Python: get the correct range when matching comprehension (#4221)
 - Python and other languages: allow matches of patterns containing
   non-ascii characters, but still with possibly many false positives (#4336)
+- Java: parse correctly constructor method patterns (#4418)
 
 ### Changed
 - Constant propagation is now a proper must-analysis, if a variable is undefined
