@@ -35,3 +35,7 @@ dummy-local:
 clean:
 	rm -rf bench/*/input
 	rm -rf bench/*/output
+
+.PHONY: regenerate-tests
+regenerate-tests:
+	./run-benchmarks --small-only --std-only --snapshot-update
