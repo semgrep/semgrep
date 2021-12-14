@@ -2,7 +2,7 @@
   "errors": [],
   "results": [
     {
-      "check_id": "rules.javascript-basic-eqeq-bad",
+      "check_id": "rules.eqeq-bad",
       "end": {
         "col": 15,
         "line": 1,
@@ -42,7 +42,7 @@
       }
     },
     {
-      "check_id": "rules.javascript-basic-eqeq-bad",
+      "check_id": "rules.eqeq-bad",
       "end": {
         "col": 15,
         "line": 1,

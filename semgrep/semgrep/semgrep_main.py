@@ -63,21 +63,21 @@ def notify_user_of_work(
         logger.verbose(f"- {rule.id}")
 
 
-# Currently we do not search for a default .semgrepignore if none is provided
-# This is different from the behavior of semgrep-agent, where a default is used
-def get_file_ignore() -> Optional[FileIgnore]:
+def get_file_ignore() -> FileIgnore:
+    TEMPLATES_DIR = (Path(__file__).parent.parent / "templates").resolve()
     workdir = Path.cwd()
     semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
-    if semgrepignore_path.is_file():
-        logger.verbose("using path ignore rules from .semgrepignore")
-        with open(semgrepignore_path) as f:
-            file_ignore: Optional[FileIgnore] = FileIgnore(
-                base_path=workdir,
-                patterns=Parser(workdir).parse(f),
-            )
+    if not semgrepignore_path.is_file():
+        logger.verbose("using default .semgrepignore")
+        semgrepignore_path = TEMPLATES_DIR / IGNORE_FILE_NAME
     else:
-        logger.verbose("no .semgrepignore found")
-        file_ignore = None
+        logger.verbose("using path ignore rules from user provided .semgrepignore")
+
+    with open(semgrepignore_path) as f:
+        file_ignore = FileIgnore(
+            base_path=workdir,
+            patterns=Parser(workdir).parse(f),
+        )
 
     return file_ignore
 
