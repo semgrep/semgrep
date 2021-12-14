@@ -64,7 +64,7 @@ def notify_user_of_work(
 
 
 def get_file_ignore() -> FileIgnore:
-    TEMPLATES_DIR = (Path(__file__).parent.parent / "templates").resolve()
+    TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
     workdir = Path.cwd()
     semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
     if not semgrepignore_path.is_file():
