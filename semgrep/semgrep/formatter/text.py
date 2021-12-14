@@ -139,6 +139,7 @@ class TextFormatter(BaseFormatter):
         items_to_show = 5
         col_lim = 70
 
+        # Compute summary stats
         rule_parsing_time = sum(
             parse_time for parse_time in time_data["rule_parse_info"]
         )
@@ -154,18 +155,29 @@ class TextFormatter(BaseFormatter):
             for i, rule in enumerate(time_data["rules"])
         }
         file_parsing_time = sum(
-            sum(target["parse_times"]) for target in time_data["targets"]
+            sum(t for t in target["parse_times"] if t >= 0)
+            for target in time_data["targets"]
         )
         file_timings = {
-            target["path"]: float(sum(target["run_times"]))
+            target["path"]: float(sum(t for t in target["run_times"] if t >= 0))
             for target in time_data["targets"]
         }
 
         all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
         total_matching_time = sum(i[1] for i in rule_timings.values())
 
-        # Output information
-        yield f"\nSemgrep-core timing summary:"
+        # Output semgrep summary
+        total_time = time_data["profiling_times"]["total_time"]
+        config_time = time_data["profiling_times"]["config_time"]
+        core_time = time_data["profiling_times"]["core_time"]
+        ignores_time = time_data["profiling_times"]["ignores_time"]
+
+        yield f"\nSemgrep timing summary:"
+
+        yield f"Total time: {total_time:.4f} Config time: {config_time:.4f} Core time: {core_time:.4f} Ignores time: {ignores_time:.4f}"
+
+        # Output semgrep-core information
+        yield f"\nSemgrep-core time:"
         yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
 
         yield f"Slowest {items_to_show}/{len(file_timings)} files"

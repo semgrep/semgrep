@@ -16,8 +16,6 @@ BIN_DIR = "bin"
 PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "semgrep", BIN_DIR)
 SEMGREP_CORE_BIN = "semgrep-core"
 SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
-SPACEGREP_BIN = "spacegrep"
-SPACEGREP_BIN_ENV = "SPACEGREP_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
@@ -97,7 +95,6 @@ def find_executable(env_name, exec_name):
 if not SEMGREP_SKIP_BIN:
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
-        (SPACEGREP_BIN_ENV, SPACEGREP_BIN),
     ]
 
     for binary_env, binary_name in binaries:
