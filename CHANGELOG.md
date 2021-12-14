@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - New language Solidity with experimental support.
 - Scala: Patterns like List(...) now correctly match against patterns in code
 - A default set of .semgrepignore patterns (in semgrep/templates/.semgrepignore)  are now used if no .semgrepignore file is provided
+- Java: Ellipsis metavariables can now be used for parameters (#4420)
 
 ### Fixed
 - Go: fixed bug where using an ellipsis to stand for a list of key-value pairs
@@ -25,6 +26,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Constant propagation is now a proper must-analysis, if a variable is undefined
   in some path then it will be considered as non-constant
 - Dataflow: Only consider reachable nodes, which prevents some FPs/FNs
+- Timing output handles errors and reports profiling times
+- semgrep-core will log a warning when a worker process is consuming above 400 MiB
+  of memory, or reached 80% of the specified memory limit, whatever happens first.
+  This is meant to help diagnosing OOM-related crashes.
 
 ## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
 

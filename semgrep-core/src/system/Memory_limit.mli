@@ -48,9 +48,11 @@
 
    Function parameters:
 
-   - stack_size_warning_mb: a warning will be printed if the stack size
-     is found to exceed this value (in MiB). This is often not detected
+   - stack_warning_kb: a warning will be printed if the stack size
+     is found to exceed this value (in KiB). This is often not detected
      early enough or at all if there's not enough allocation (GC activity).
+   - heap_warning_mb: a warning will be printed if the heap size
+     is found to exceed this value (in MiB).
    - mem_limit_mb: an 'Out_of_memory' exception will be raised if the
      combined heap+stack size is found to exceed this value (in MiB).
 
@@ -59,9 +61,14 @@
 
    Default values are the minimum values we're willing to support for
    semgrep-core:
-   - default stack_size_warning_mb: 100 KiB
+   - default stack_warning_kb: 100 KiB
+   - default heap_warning_mb: 500 MiB
 *)
 val run_with_memory_limit :
-  ?stack_warning_kb:int -> mem_limit_mb:int -> (unit -> 'a) -> 'a
+  ?stack_warning_kb:int ->
+  ?heap_warning_mb:int ->
+  mem_limit_mb:int ->
+  (unit -> 'a) ->
+  'a
 
 val default_stack_warning_kb : int

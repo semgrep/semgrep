@@ -1,4 +1,4 @@
-# Both 🎅 and 🐻 are UTF-8-encoded using 3 bytes.
+# Both 🎅 and 🐻 are UTF-8-encoded using 4 bytes.
 
 #ruleid:
 "🎅"
@@ -8,3 +8,10 @@
 # line once the Unicode hack is gone.
 #ruleid:
 "🐻"
+
+# same problem
+#ruleid:
+"ZZZZ"
+
+# this should not match, hack or not
+"zzzz"
