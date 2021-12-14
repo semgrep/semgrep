@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from typing import Dict
 from typing import List
 from typing import Set
 from typing import Tuple
@@ -20,28 +21,48 @@ class Fix:
         self.fixed_lines = fixed_lines
 
 
+class FileOffsets:
+    def __init__(self, line_offset: int, col_offset: int, active_line: int):
+        self.line_offset = line_offset
+        self.col_offset = col_offset
+        self.active_line = active_line
+
+
 def _get_lines(path: Path) -> List[str]:
     contents = path.read_text()
     lines = contents.split(SPLIT_CHAR)
     return lines
 
 
-def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
+def _get_match_context(
+    rule_match: RuleMatch, offsets: FileOffsets
+) -> Tuple[int, int, int, int]:
     start_obj = rule_match.start
     start_line = start_obj.line - 1  # start_line is 1 indexed
     start_col = start_obj.col - 1  # start_col is 1 indexed
     end_obj = rule_match.end
     end_line = end_obj.line - 1  # end_line is 1 indexed
     end_col = end_obj.col - 1  # end_line is 1 indexed
+
+    # adjust based on offsets
+    start_line = start_line + offsets.line_offset
+    end_line = end_line + offsets.line_offset
+    start_col = start_col + offsets.col_offset
+    end_col = end_col + offsets.col_offset
+
     return start_line, start_col, end_line, end_col
 
 
-def _basic_fix(rule_match: RuleMatch, fix: str) -> Fix:
+def _basic_fix(
+    rule_match: RuleMatch, file_offsets: FileOffsets, fix: str
+) -> Tuple[Fix, FileOffsets]:
     p = rule_match.path
     lines = _get_lines(p)
 
     # get the start and end points
-    start_line, start_col, end_line, end_col = _get_match_context(rule_match)
+    start_line, start_col, end_line, end_col = _get_match_context(
+        rule_match, file_offsets
+    )
 
     # break into before, to modify, after
     before_lines = lines[:start_line]
@@ -51,12 +72,21 @@ def _basic_fix(rule_match: RuleMatch, fix: str) -> Fix:
     after_lines = lines[end_line + 1 :]  # next line after end of match
     contents_after_fix = before_lines + modified_lines + after_lines
 
-    return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines)
+    # update offsets
+    file_offsets.line_offset = len(contents_after_fix) - len(lines)
+    if start_line == end_line:
+        file_offsets.col_offset = len(fix) - (end_col - start_col)
+
+    return Fix(SPLIT_CHAR.join(contents_after_fix), modified_lines), file_offsets
 
 
 def _regex_replace(
-    rule_match: RuleMatch, from_str: str, to_str: str, count: int = 1
-) -> Fix:
+    rule_match: RuleMatch,
+    file_offsets: FileOffsets,
+    from_str: str,
+    to_str: str,
+    count: int = 1,
+) -> Tuple[Fix, FileOffsets]:
     """
     Use a regular expression to autofix.
     Replaces from_str to to_str, starting from the left,
@@ -65,7 +95,7 @@ def _regex_replace(
     path = rule_match.path
     lines = _get_lines(path)
 
-    start_line, _, end_line, _ = _get_match_context(rule_match)
+    start_line, _, end_line, _ = _get_match_context(rule_match, file_offsets)
 
     before_lines = lines[:start_line]
     after_lines = lines[end_line + 1 :]
@@ -76,7 +106,10 @@ def _regex_replace(
     modified_context = fix.splitlines()
     modified_contents = before_lines + modified_context + after_lines
 
-    return Fix(SPLIT_CHAR.join(modified_contents), modified_context)
+    # update offsets
+    file_offsets.line_offset = len(modified_context) - len(match_context)
+
+    return Fix(SPLIT_CHAR.join(modified_contents), modified_context), file_offsets
 
 
 def _write_contents(path: Path, contents: str) -> None:
@@ -89,15 +122,24 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     autofix configuration
     """
     modified_files: Set[Path] = set()
-
+    modified_files_offsets: Dict[Path, FileOffsets] = {}
     for _, rule_matches in rule_matches_by_rule.items():
         for rule_match in rule_matches:
             fix = rule_match.fix
             fix_regex = rule_match.fix_regex
             filepath = rule_match.path
+            # initialize or retrieve/update offsets for the file
+            file_offsets = modified_files_offsets.get(
+                filepath, FileOffsets(0, 0, rule_match.start.line)
+            )
+            if file_offsets.active_line != rule_match.start.line:
+                file_offsets.active_line = rule_match.start.line
+                file_offsets.col_offset = 0
             if fix:
                 try:
-                    fixobj = _basic_fix(rule_match, fix)
+                    fixobj, modified_files_offsets[filepath] = _basic_fix(
+                        rule_match, file_offsets, fix
+                    )
                 except Exception as e:
                     raise SemgrepError(f"unable to modify file {filepath}: {e}")
             elif fix_regex:
@@ -115,7 +157,9 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                         "optional 'count' value must be an integer when using 'fix-regex'"
                     )
                 try:
-                    fixobj = _regex_replace(rule_match, regex, replacement, count)
+                    fixobj, modified_files_offsets[filepath] = _regex_replace(
+                        rule_match, file_offsets, regex, replacement, count
+                    )
                 except Exception as e:
                     raise SemgrepError(
                         f"unable to use regex to modify file {filepath} with fix '{fix}': {e}"
