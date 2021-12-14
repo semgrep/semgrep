@@ -639,7 +639,7 @@ let main () =
 
   Setup_logging.setup config;
 
-  logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
+  logger#info "Executed as: %s" (argv |> String.concat " ");
   logger#info "Version: %s" version;
   let config =
     if config.profile then (
