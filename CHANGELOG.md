@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - New language Solidity with experimental support.
 - Scala: Patterns like List(...) now correctly match against patterns in code
+- A default set of .semgrepignore patterns (in semgrep/templates/.semgrepignore)  are now used if no .semgrepignore file is provided
 
 ### Fixed
 - Go: fixed bug where using an ellipsis to stand for a list of key-value pairs
