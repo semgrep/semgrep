@@ -35,7 +35,6 @@ e2etest:
 install:
 	dune install
 	cp -f _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
-	cp -f _build/install/default/bin/spacegrep ../semgrep/semgrep/bin/
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 

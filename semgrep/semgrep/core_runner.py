@@ -240,7 +240,7 @@ class CoreRunner:
         profiling_data: ProfilingData,
         output_time_json: Dict[str, Any],
     ) -> None:
-        """Collect the match times reported by semgrep-core (or spacegrep)."""
+        """Collect the match times reported by semgrep-core."""
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
