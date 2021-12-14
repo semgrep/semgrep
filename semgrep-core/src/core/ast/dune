@@ -27,7 +27,6 @@
    commons
    pfff-h_program-lang
 
-   semgrep-core-response
  )
  (preprocess
    (pps
