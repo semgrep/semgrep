@@ -65,6 +65,7 @@ type mvalue =
    *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
+  | Params of AST_generic.parameter list
   (* This is to match the content of a string or atom, without the
    * enclosing quotes. For a string this can actually be empty. *)
   | Text of string AST_generic.wrap
@@ -85,6 +86,7 @@ let mvalue_to_any = function
   | N x -> G.E (G.N x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
+  | Params x -> G.Params x
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
@@ -101,6 +103,7 @@ let program_of_mvalue : mvalue -> G.program option =
       Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
   | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
   | Ss stmts -> Some stmts
+  | Params _
   | Args _
   | T _
   | P _
