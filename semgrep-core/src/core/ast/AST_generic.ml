@@ -299,6 +299,8 @@ and resolved_name_kind =
  * analysis to disambiguate. In the meantime, you can use
  * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
  * into an IdQualified name.
+ *
+ * sgrep-ext: note that ident can be a metavariable.
  *)
 type name = Id of ident * id_info | IdQualified of qualified_info
 
@@ -1394,6 +1396,7 @@ and parameters = parameter list
 
 (* newvar: *)
 and parameter =
+  (* sgrep-ext: note that pname can be a metavariable *)
   | Param of parameter_classic
   (* in OCaml, but also now JS, Python2, Rust *)
   | ParamPattern of pattern
@@ -1694,6 +1697,7 @@ and any =
   | Fld of field
   | Flds of field list
   | Args of argument list
+  | Params of parameter list
   | Partial of partial
   (* misc *)
   | I of ident

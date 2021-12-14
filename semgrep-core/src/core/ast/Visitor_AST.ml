@@ -1264,6 +1264,7 @@ let (mk_visitor :
     | Cs v1 -> v_case v1
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
+    | Params v1 -> v_list v_parameter v1
     | Flds v1 -> v_fields v1
     | Anys v1 -> v_list v_any v1
     | Partial v1 -> v_partial ~recurse:true v1
