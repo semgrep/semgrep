@@ -84,6 +84,7 @@ let range_of_any_opt startp_of_match_range any =
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
    *)
   | Ss []
+  | Params []
   | Args [] ->
       Some empty_range
   | _ ->

@@ -246,6 +246,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     | MV.P _, MV.P _
     | MV.T _, MV.T _
     | MV.Text _, MV.Text _
+    | MV.Params _, MV.Params _
     | MV.Args _, MV.Args _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
@@ -504,6 +505,44 @@ let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   | [], _
   | _ :: _, _ ->
       fail ()
+
+let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
+    ~is_metavar_ellipsis xsa xsb =
+  let rec aux xsa xsb =
+    match (xsa, xsb) with
+    | [], [] -> return ()
+    (* less-is-ok: empty list can sometimes match non-empty list *)
+    | [], _ :: _ when less_is_ok -> return ()
+    (* dots: '...', can also match no argument *)
+    | [ a ], [] when is_dots a -> return ()
+    (* dots: metavars: $...ARGS *)
+    | a :: xsa, xsb when is_metavar_ellipsis a <> None -> (
+        match is_metavar_ellipsis a with
+        | None -> raise Impossible
+        | Some ((s, tok), metavar_build) ->
+            (* can match 0 or more arguments (just like ...) *)
+            let candidates = inits_and_rest_of_list_empty_ok xsb in
+            let rec aux2 xs =
+              match xs with
+              | [] -> fail ()
+              | (inits, rest) :: xs ->
+                  envf (s, tok) (metavar_build inits)
+                  >>= (fun () -> aux xsa rest)
+                  >||> aux2 xs
+            in
+            aux2 candidates)
+    | a :: xsa, xb :: xsb when is_dots a ->
+        (* can match nothing *)
+        aux xsa (xb :: xsb)
+        >||> (* can match more *)
+        aux (a :: xsa) xsb
+    (* the general case *)
+    | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> aux aas bbs
+    | [], _
+    | _ :: _, _ ->
+        fail ()
+  in
+  aux xsa xsb
 
 (* todo? opti? try to go faster to the one with split_when?
  * need reflect tin so we can call the matcher and query whether there

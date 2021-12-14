@@ -10,7 +10,10 @@ let timeout_exit_code = 3
 
 type when_use_color = Auto | Always | Never
 
-type output_format = Text | Semgrep
+(* There used to be a Semgrep output_format when spacegrep was called
+ * from the Semgrep Python wrapper, but it's not the case anymore
+ *)
+type output_format = Text
 
 type config = {
   case_insensitive : bool;
@@ -27,10 +30,18 @@ type config = {
   no_skip_search : bool;
 }
 
+(* Those 2 types below are copy-pasted from Semgrep_core_response.atd
+ * but duplicated here to avoid some dependencies between spacegrep and
+ * semgrep-core.
+ *)
+type skip_reason = Minified | Binary
+
+type skipped_target = { path : string; reason : skip_reason; details : string }
+
 type matches = {
   matches :
     (Src_file.t * (int * Match.match_ list * float) list * float * float) list;
-  skipped : Semgrep_core_response_t.skipped_target list;
+  skipped : skipped_target list;
   num_analyzed : int;
   num_files : int;
   num_matches : int;
@@ -73,11 +84,10 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                   if warn then eprintf "ignoring minified file: %s\n%!" path;
                   skipped :=
                     {
-                      Semgrep_core_response_t.path;
+                      path;
                       reason = Minified;
                       details =
                         "not a source file: target file appears to be minified";
-                      rule_id = None;
                     }
                     :: !skipped;
                   None
@@ -85,10 +95,9 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                   if warn then eprintf "ignoring gibberish file: %s\n%!" path;
                   skipped :=
                     {
-                      Semgrep_core_response_t.path;
+                      path;
                       reason = Binary;
                       details = "target looks like a binary file";
-                      rule_id = None;
                     }
                     :: !skipped;
                   None
@@ -188,7 +197,7 @@ let run config =
   let highlight = detect_highlight config.color stdout in
   let {
     matches;
-    skipped;
+    skipped = _;
     num_analyzed;
     num_files;
     num_matches;
@@ -202,9 +211,7 @@ let run config =
   (match config.output_format with
   | Text ->
       Match.print_nested_results ~with_time:config.time ~highlight matches
-        errors
-  | Semgrep ->
-      Semgrep.print_semgrep_json ~with_time:config.time matches errors skipped);
+        errors);
   if debug then (
     printf "\nanalyzed %i files out of %i\n" num_analyzed num_files;
     printf "found %i matches in %i files\n" num_matches num_matching_files)
@@ -232,14 +239,12 @@ let output_format_conv =
   let parser s =
     match s with
     | "text" -> Ok Text
-    | "semgrep" -> Ok Semgrep
     | s -> Error (`Msg ("Invalid output format: " ^ s))
   in
   let printer fmt output_format =
     let s =
       match output_format with
       | Text -> "text"
-      | Semgrep -> "semgrep"
     in
     Format.pp_print_string fmt s
   in

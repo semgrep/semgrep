@@ -1,0 +1,6 @@
+rules:
+- id: test
+  languages: [python]
+  pattern: '"🎅"'
+  message: checks that unicode matching works
+  severity: ERROR

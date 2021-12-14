@@ -1234,7 +1234,7 @@ and m_arguments a b =
   match (a, b) with
   | a, b -> m_bracket m_list__m_argument a b
 
-(* less: factorize in m_list_and_dots? but also has unordered for kwd args *)
+(* less: factorize in m_list_with_dots? but also has unordered for kwd args *)
 and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
   match (xsa, xsb) with
   | [], [] -> return ()
@@ -2158,11 +2158,12 @@ and m_pattern a b =
       m_ident a1 b1 >>= fun () -> m_id_info a2 b2
   | G.PatLiteral a1, B.PatLiteral b1 -> m_literal a1 b1
   | G.PatType a1, B.PatType b1 -> m_type_ a1 b1
-  | G.PatConstructor (a1, [ G.PatEllipsis _ ]), B.PatConstructor (b1, _)
-  | G.PatConstructor (a1, _), B.PatConstructor (b1, [ B.PatEllipsis _ ]) ->
-      m_name a1 b1
   | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) ->
-      m_name a1 b1 >>= fun () -> (m_list m_pattern) a2 b2
+      m_name a1 b1 >>= fun () ->
+      (m_list_with_dots ~less_is_ok:false m_pattern (function
+        | G.PatEllipsis _ -> true
+        | _ -> false))
+        a2 b2
   | G.PatTuple a1, B.PatTuple b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatList a1, B.PatList b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1
@@ -2363,11 +2364,16 @@ and m_function_body a b =
       fail ()
 
 and m_parameters a b =
-  m_list_with_dots m_parameter
-    (function
+  m_list_with_dots_and_metavar_ellipsis ~f:m_parameter
+    ~is_dots:(function
       | G.ParamEllipsis _ -> true
       | _ -> false)
-    ~less_is_ok:false (* empty list can not match non-empty list *) a b
+    ~less_is_ok:false (* empty list can not match non-empty list *)
+    ~is_metavar_ellipsis:(function
+      | Param { pname = Some (s, tok); _ } when MV.is_metavar_ellipsis s ->
+          Some ((s, tok), fun xs -> MV.Params xs)
+      | _ -> None)
+    a b
 
 and m_parameter a b =
   match (a, b) with
@@ -2814,6 +2820,7 @@ and m_any a b =
   | G.S a1, B.S b1 -> m_stmt a1 b1
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
   | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
+  | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
   | G.Anys a1, B.Anys b1 -> m_list m_any a1 b1
   (* boilerplate *)
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
@@ -2867,6 +2874,7 @@ and m_any a b =
   | G.TodoK _, _
   | G.Partial _, _
   | G.Args _, _
+  | G.Params _, _
   | G.ForOrIfComp _, _
   | G.Anys _, _
   | G.Str _, _ ->

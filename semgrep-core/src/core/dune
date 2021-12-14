@@ -4,6 +4,7 @@
  (libraries
    str re pcre
    yaml
+   atdgen-runtime
 
    commons
    pfff-config
@@ -31,4 +32,14 @@
 (rule
  (targets Config_semgrep_t.ml Config_semgrep_t.mli)
  (deps    Config_semgrep.atd)
+ (action  (run atdgen -t %{deps})))
+
+(rule
+ (targets Semgrep_core_response_j.ml Semgrep_core_response_j.mli)
+ (deps    Semgrep_core_response.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+
+(rule
+ (targets Semgrep_core_response_t.ml Semgrep_core_response_t.mli)
+ (deps    Semgrep_core_response.atd)
  (action  (run atdgen -t %{deps})))
