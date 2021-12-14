@@ -1364,6 +1364,9 @@ and vof_any = function
   | Args v1 ->
       let v1 = OCaml.vof_list vof_argument v1 in
       OCaml.VSum ("Args", [ v1 ])
+  | Params v1 ->
+      let v1 = OCaml.vof_list vof_parameter v1 in
+      OCaml.VSum ("Params", [ v1 ])
   | Flds v1 ->
       let v1 = OCaml.vof_list vof_field v1 in
       OCaml.VSum ("Flds", [ v1 ])

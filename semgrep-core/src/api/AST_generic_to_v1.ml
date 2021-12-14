@@ -1198,6 +1198,7 @@ and map_any x : B.any =
   | Args v1 ->
       let v1 = map_of_list map_argument v1 in
       `Args v1
+  | Params _ -> failwith "TODO"
   | I v1 ->
       let v1 = map_ident v1 in
       `I v1
