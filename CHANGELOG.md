@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Python and other languages: allow matches of patterns containing
   non-ascii characters, but still with possibly many false positives (#4336)
 - Java: parse correctly constructor method patterns (#4418)
+- Fix several line/column-related bugs in autofix results (#4428, #3577, #3338)
 
 ### Changed
 - Constant propagation is now a proper must-analysis, if a variable is undefined
