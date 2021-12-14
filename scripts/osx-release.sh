@@ -26,5 +26,4 @@ make build-core
 
 mkdir -p artifacts
 cp ./semgrep-core/_build/install/default/bin/semgrep-core artifacts
-cp ./semgrep-core/_build/install/default/bin/spacegrep artifacts
 zip -r artifacts.zip artifacts
