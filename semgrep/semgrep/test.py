@@ -96,12 +96,16 @@ def line_has_todo_ok(line: str) -> bool:
     return any(annotation in line for annotation in rule_annotations)
 
 
-def add_line_to_dict_of_ruleids(
+def _add_line_to_dict_of_ruleids(
     rule_ids: Set[str],
     line_dict: Dict[str, Dict[str, List[int]]],
     effective_line_num: int,
     test_file_resolved: str,
 ) -> None:
+    """
+    given that 'todoruleid' or 'todook' or 'ok' or 'todo' are detected, add the line number
+    flagged to the appropriate dictionary.
+    """
     for rule_id in rule_ids:
         line_dict[test_file_resolved][rule_id].append(effective_line_num)
 
@@ -109,6 +113,10 @@ def add_line_to_dict_of_ruleids(
 def check_rule_id_mismatch(
     reported_lines: Dict[str, Dict[str, List[int]]], test_lines: Dict[str, Set]
 ) -> None:
+    """
+    checks whether there exists a #ruleid: <rule name> annotation where a rule matching <rule name> doesn't exist.
+    leads to exit of 1 if there does exist such an occurence.
+    """
     rule_id_mismatch = False
     if reported_lines:
         for file_path, test_ids in test_lines.items():
@@ -130,6 +138,15 @@ def check_rule_id_mismatch(
 def get_expected_and_reported_lines(
     json_out: Dict[str, Any], test_files: List[Path]
 ) -> Dict[str, Dict[str, Any]]:
+    """
+    Collects the expected lines (which are the lines annotated with '#ruleid')
+    and the reported lines (which are the lines that the run of semgrep flagged on)
+    Returns the 'matches' dictionary, which maps check_ids -> file_paths involved -> expected
+    and reported line lists.
+
+    Note: we need matches to map check_ids -> file paths because some rule_ids have two
+    distinct test files (notably, for rules that work on both tsx and jsx)
+    """
     ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
@@ -169,19 +186,19 @@ def get_expected_and_reported_lines(
                     continue
                 rule_ids = normalize_rule_ids(line)
                 if todo_rule_in_line or rule_in_line:
-                    add_line_to_dict_of_ruleids(
+                    _add_line_to_dict_of_ruleids(
                         rule_ids, ruleid_lines, effective_line_num, test_file_resolved
                     )
                 if todo_rule_in_line or ok_in_line:
-                    add_line_to_dict_of_ruleids(
+                    _add_line_to_dict_of_ruleids(
                         rule_ids, ok_lines, effective_line_num, test_file_resolved
                     )
                 if todo_ok_in_line:
-                    add_line_to_dict_of_ruleids(
+                    _add_line_to_dict_of_ruleids(
                         rule_ids, todo_ok_lines, effective_line_num, test_file_resolved
                     )
                 if todo_rule_in_line:
-                    add_line_to_dict_of_ruleids(
+                    _add_line_to_dict_of_ruleids(
                         rule_ids,
                         todo_ruleid_lines,
                         effective_line_num,
@@ -227,7 +244,7 @@ def get_expected_and_reported_lines(
     return matches_by_check_id
 
 
-def generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
+def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
     def _generate_expected_vs_reported_lines(matches: Mapping[str, Any]) -> str:
         expected = f"expected lines: {matches['expected_lines']}"
         reported = f"reported lines: {matches['reported_lines']}"
@@ -399,7 +416,7 @@ def generate_test_results(
         for check_id, check_results in sorted(rr["checks"].items()):
             if not check_results["passed"]:
                 all_tests_passed = False
-                check_output_lines += generate_check_output_line(
+                check_output_lines += _generate_check_output_line(
                     check_id, check_results
                 )
 
