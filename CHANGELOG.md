@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - New language Solidity with experimental support.
 - Scala: Patterns like List(...) now correctly match against patterns in code
 - Java: Ellipsis metavariables can now be used for parameters (#4420)
+- `semgrep login` and `semgrep logout` commands to save api token
 
 ### Fixed
 - Go: fixed bug where using an ellipsis to stand for a list of key-value pairs

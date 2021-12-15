@@ -1,4 +1,4 @@
-Usage: python -m semgrep [OPTIONS] [TARGET]...
-Try 'python -m semgrep --help' for help.
+Usage: python -m semgrep --max-target-bytes [OPTIONS] [TARGET]...
+Try 'python -m semgrep --max-target-bytes --help' for help.
 
 Error: could not convert string to float: '1.3R'
