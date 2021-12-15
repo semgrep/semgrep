@@ -69,14 +69,14 @@ let normalize_import_opt is_pattern i =
 (* see also Constant_propagation.ml. At some point we should remove
  * the code below and rely only on Constant_propagation.ml
  *)
-let rec eval x : constness option =
+let rec eval x : svalue option =
   match x.e with
   | L x -> Some (Lit x)
-  | N (Id (_, { id_constness = { contents = Some x }; _ }))
+  | N (Id (_, { id_svalue = { contents = Some x }; _ }))
   | DotAccess
       ( { e = IdSpecial (This, _); _ },
         _,
-        FN (Id (_, { id_constness = { contents = Some x }; _ })) ) ->
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
   | Call
       ( { e = IdSpecial (EncodedString str_kind, _); _ },

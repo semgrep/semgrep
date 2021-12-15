@@ -273,10 +273,8 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             |> List.iter (fun (pattern, _bf, rule, cache) ->
                    match V.range_of_any_opt (E x) with
                    | None ->
-                       (* TODO: Report a warning to the user? *)
-                       logger#error
-                         "Cannot report match because we lack range info: %s"
-                         (show_expr x);
+                       logger#error "Skipping because we lack range info: %s"
+                         (show_expr_kind x.e);
                        ()
                    | Some range_loc when range_filter range_loc ->
                        let env = MG.empty_environment cache config in

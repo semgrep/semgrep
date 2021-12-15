@@ -173,13 +173,13 @@ let make_tests ?(unit_testing = false) xs =
                (* match_time could be 0.0 if the rule contains no pattern or if the
                   rules are skipped. Otherwise it's positive. *)
                failwith
-                 (spf "invalid value for match time: %g"
-                    res.profiling.match_time);
+                 (spf "invalid value for match time: %g (rule: %s, target: %s)"
+                    res.profiling.match_time file target);
              if not (res.profiling.parse_time >= 0.) then
                (* same for parse time *)
                failwith
-                 (spf "invalid value for parse time: %g"
-                    res.profiling.parse_time);
+                 (spf "invalid value for parse time: %g (rule: %s, target: %s)"
+                    res.profiling.parse_time file target);
 
              res.matches |> List.iter JSON_report.match_to_error;
              if not (res.errors = []) then

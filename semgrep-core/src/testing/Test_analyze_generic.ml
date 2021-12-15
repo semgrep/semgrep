@@ -135,7 +135,7 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let test_dfg_constness file =
+let test_dfg_svalue file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
@@ -148,10 +148,10 @@ let test_dfg_constness file =
             let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
             pr2 "Constness";
-            let mapping = Dataflow_constness.fixpoint inputs flow in
-            Dataflow_constness.update_constness flow mapping;
+            let mapping = Dataflow_svalue.fixpoint inputs flow in
+            Dataflow_svalue.update_svalue flow mapping;
             DataflowY.display_mapping flow mapping
-              Dataflow_constness.string_of_constness;
+              (Pretty_print_AST.svalue_to_string lang);
             let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
             pr2 s);
       }
@@ -169,5 +169,5 @@ let actions () =
       Common.mk_action_1_arg test_constant_propagation );
     ("-il_generic", " <file>", Common.mk_action_1_arg test_il_generic);
     ("-cfg_il", " <file>", Common.mk_action_1_arg test_cfg_il);
-    ("-dfg_constness", " <file>", Common.mk_action_1_arg test_dfg_constness);
+    ("-dfg_svalue", " <file>", Common.mk_action_1_arg test_dfg_svalue);
   ]
