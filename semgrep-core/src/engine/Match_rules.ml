@@ -56,16 +56,16 @@ let skipped_target_of_rule (file_and_more : FM.t) (rule : R.rule) :
     rule_id = Some rule_id;
   }
 
-let check hook default_config rules equivs file_and_more =
+let check ~match_hook default_config rules file_and_more =
   let search_rules, taint_rules, skipped_rules =
     filter_and_partition_rules rules file_and_more
   in
   let res_search =
-    Match_search_rules.check hook default_config search_rules equivs
+    Match_search_rules.check ~match_hook default_config search_rules
       file_and_more
   in
   let res_taint =
-    Match_tainting_rules.check hook default_config taint_rules equivs
+    Match_tainting_rules.check ~match_hook default_config taint_rules
       file_and_more
   in
   let skipped =

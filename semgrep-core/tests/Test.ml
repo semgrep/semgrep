@@ -231,8 +231,8 @@ let regression_tests_for_lang ~with_caching files lang =
           let minii_loc = Parse_info.unsafe_token_location_of_info minii in
           E.error "test pattern" minii_loc "" (E.SemgrepMatchFound "")
         )
-        Config_semgrep.default_config
-        [rule] equiv (file, lang, ast) 
+        (Config_semgrep.default_config, equiv)
+        [rule] (file, lang, ast) 
       |> ignore;
       let actual = !E.g_errors in
       let expected = E.expected_error_lines_of_files [file] in
@@ -274,9 +274,9 @@ let tainting_test lang rules_file file =
   let matches =
     let equivs = [] in
     Tainting_generic.check
-      (fun _ _ _ -> ())
-      Config_semgrep.default_config
-      taint_rules equivs file lang ast
+      ~match_hook:(fun _ _ _ -> ())
+      (Config_semgrep.default_config, equivs)
+      taint_rules file lang ast
   in
   let actual =
     matches |> List.map (fun m ->
