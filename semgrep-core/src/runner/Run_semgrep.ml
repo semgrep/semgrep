@@ -410,7 +410,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
              }
            in
            let res =
-             Run_rules.check hook Config_semgrep.default_config rules
+             Match_rules.check hook Config_semgrep.default_config rules
                (parse_equivalences config.equivalences_file)
                file_and_more
            in
