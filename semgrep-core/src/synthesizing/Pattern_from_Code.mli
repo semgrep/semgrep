@@ -23,7 +23,7 @@
  * behind these decisions is that a pattern is only useful if it suggests
  * a possibility for a user.
  *
- * Finally, we output the pattern by giving it to Pretty_print_generic.pattern_to_string,
+ * Finally, we output the pattern by giving it to Pretty_print_AST.pattern_to_string,
  * a language-aware AST-to-string converter.
  *)
 

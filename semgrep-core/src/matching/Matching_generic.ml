@@ -228,13 +228,12 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      * THINK: We could also equal two different variable occurrences that happen
      * to have the same constant value. *)
     | ( MV.E { e = G.L a_lit; _ },
-        MV.Id (_, Some { B.id_constness = { contents = Some (B.Lit b_lit) }; _ })
-      )
-    | ( MV.Id (_, Some { G.id_constness = { contents = Some (G.Lit a_lit) }; _ }),
+        MV.Id (_, Some { B.id_svalue = { contents = Some (B.Lit b_lit) }; _ }) )
+    | ( MV.Id (_, Some { G.id_svalue = { contents = Some (G.Lit a_lit) }; _ }),
         MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit
-    (* general case, equality modulo-position-and-constness.
+    (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
      * TODO? missing MV.Ss _, MV.Ss _ ??
@@ -264,7 +263,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          *)
         (* This will perform equality but not care about:
          * - position information (see adhoc AST_generic.equal_tok)
-         * - id_constness (see the special @equal for id_constness)
+         * - id_svalue (see the special @equal for id_svalue)
          *)
         MV.Structural.equal_mvalue a b
     (* TODO still needed now that we have the better MV.Id of id_info? *)

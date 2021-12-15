@@ -20,11 +20,11 @@ let synthesize_patterns config s file =
   let a = range_to_ast file lang s in
   let patterns = Pattern_from_Code.from_any config a in
   List.map
-    (fun (k, v) -> (k, Pretty_print_generic.pattern_to_string lang v))
+    (fun (k, v) -> (k, Pretty_print_AST.pattern_to_string lang v))
     patterns
 
 let target_to_string lang target =
-  "target:\n" ^ Pretty_print_generic.pattern_to_string lang target ^ "\n"
+  "target:\n" ^ Pretty_print_AST.pattern_to_string lang target ^ "\n"
 
 let parse_range_args s =
   let rec read_input xs =
@@ -45,7 +45,7 @@ let parse_targets (args : string list) : Pattern.t list * Lang.t =
 
 let print_pattern lang targets pattern =
   List.map (target_to_string lang) targets
-  @ [ Pretty_print_generic.pattern_to_string lang pattern ]
+  @ [ Pretty_print_AST.pattern_to_string lang pattern ]
 
 let generate_pattern_from_targets config s =
   let targets, lang = parse_targets s in

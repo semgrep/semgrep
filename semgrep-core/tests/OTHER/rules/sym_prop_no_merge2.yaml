@@ -1,0 +1,9 @@
+rules:
+- id: test
+  options:
+    symbolic_propagation: true
+  pattern: g(f(x))
+  message: Test
+  languages:
+  - python
+  severity: WARNING

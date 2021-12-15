@@ -34,7 +34,7 @@ def test4(c):
     foo(x)
     while c:
         x = x + " hi"
-        # TODO: See Dataflow_constness.input_env
+        # TODO: See Dataflow_svalue.input_env
         # OK:
         foo(x)
     # TODO

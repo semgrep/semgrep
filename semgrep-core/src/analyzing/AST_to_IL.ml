@@ -411,7 +411,7 @@ and expr_aux env ?(void = false) e_gen =
       match G.unbracket args with
       | [ G.Arg e ] ->
           let lval = lval env e in
-          (* TODO: This `lval` should have a new constness ref given that we
+          (* TODO: This `lval` should have a new svalue ref given that we
            * are translating `lval++` as `lval = lval + 1`. *)
           let lvalexp = mk_e (Fetch lval) (related_exp e) in
           let op =
@@ -449,7 +449,7 @@ and expr_aux env ?(void = false) e_gen =
       let res =
         match env.lang with
         (* Ruby's concat method is side-effectful and updates the object. *)
-        (* TODO: The lval in the LHs should have a differnt constness than the
+        (* TODO: The lval in the LHs should have a differnt svalue than the
          * one in the RHS. *)
         | Lang.Ruby -> obj'
         | _ -> fresh_lval env tok

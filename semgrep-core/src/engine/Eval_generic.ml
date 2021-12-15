@@ -265,8 +265,7 @@ let bindings_to_env xs =
              None
          in
          match mval with
-         | MV.Id (_, Some { id_constness = { contents = Some (G.Lit lit) }; _ })
-           ->
+         | MV.Id (_, Some { id_svalue = { contents = Some (G.Lit lit) }; _ }) ->
              (* Metavariable binds to a code variable: if the code variable is known
               * to be constant, then we use its constant value. *)
              try_bind_to_exp (G.e (G.L lit))

@@ -19,12 +19,14 @@ module F = IL
 module D = Dataflow_core
 module VarMap = Dataflow_core.VarMap
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
 (* map for each node/var whether a variable is constant *)
-type mapping = G.constness Dataflow_core.mapping
+type mapping = G.svalue Dataflow_core.mapping
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
@@ -48,22 +50,6 @@ let warning tok s =
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_ctype = function
-  | G.Cbool -> "bool"
-  | G.Cint -> "int"
-  | G.Cstr -> "str"
-  | G.Cany -> "???"
-
-let string_of_constness = function
-  | G.NotCst -> "dyn"
-  | G.Cst t -> Printf.sprintf "cst(%s)" (string_of_ctype t)
-  | G.Lit l -> (
-      match l with
-      | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
-      | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
-      | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
-      | ___else___ -> "lit(???)")
-
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
 (*****************************************************************************)
@@ -84,17 +70,46 @@ let eq c1 c2 =
   match (c1, c2) with
   | G.Lit l1, G.Lit l2 -> eq_literal l1 l2
   | G.Cst t1, G.Cst t2 -> eq_ctype t1 t2
+  | G.Sym e1, G.Sym e2 -> AST_utils.with_structural_equal G.equal_expr e1 e2
   | G.NotCst, G.NotCst -> true
-  | ___else___ -> false
+  | G.Lit _, _
+  | G.Cst _, _
+  | G.Sym _, _
+  | G.NotCst, _ ->
+      false
 
 let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 
+(* aka merge *)
 let union c1 c2 =
   match (c1, c2) with
-  | _ when eq c1 c2 -> c1
+  (* For now we only propagate symbolic expressions through linear sequences
+   * of statements. Note that merging symbolic expressions can be tricky.
+   *
+   * Example: Both branches assign `y = x.foo`, but `x` may have a different
+   * value in each branch. When merging symbolic expressions like `x.foo` we
+   * must first merge their dependencies (in our example, `x`).
+   *
+   *     if c:
+   *       x = a
+   *       y = x.foo
+   *     else:
+   *       x = b
+   *       y = x.foo
+   *
+   * Example: If we are not careful, when analyzing loops, we could introduce
+   * circular dependencies! (See tests/OTHER/rules/sym_prop_no_merge1.go)
+   *
+   *     for cond {
+   *       x = f(x)
+   *     }
+   *)
+  | _any, G.Sym _
+  | G.Sym _, _any
   | _any, G.NotCst
   | G.NotCst, _any ->
       G.NotCst
+  | c1, c2 when eq c1 c2 -> c1
   | G.Lit l1, G.Lit l2 ->
       let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
@@ -113,11 +128,16 @@ let refine c1 c2 =
   | G.NotCst, c ->
       c
   | G.Lit _, _
-  | G.Cst _, G.Cst _ ->
+  | G.Cst _, G.Cst _
+  | G.Sym _, G.Sym _ ->
       c1
+  | G.Cst _, G.Sym _ -> c1
   | G.Cst _, G.Lit _ -> c2
+  | G.Sym _, G.Lit _
+  | G.Sym _, G.Cst _ ->
+      c2
 
-let refine_constness_ref c_ref c' =
+let refine_svalue_ref c_ref c' =
   match !c_ref with
   | None -> c_ref := Some c'
   | Some c -> c_ref := Some (refine c c')
@@ -217,7 +237,7 @@ let eval_binop_string ?tok op s1 s2 =
       G.Lit (literal_of_string ?tok (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
-let rec eval (env : G.constness D.env) exp : G.constness =
+let rec eval (env : G.svalue D.env) exp : G.svalue =
   match exp.e with
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
@@ -232,7 +252,7 @@ and eval_lval env lval =
   match lval with
   | { base = Var x; offset = NoOffset } -> (
       let opt_c = D.VarMap.find_opt (str_of_name x) env in
-      match (!(x.id_info.id_constness), opt_c) with
+      match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
       | Some c, None
       | None, Some c ->
@@ -275,6 +295,38 @@ and eval_concat env args =
         (G.Lit (literal_of_string ~tok r))
         args'
   | ___else___ -> G.NotCst
+
+(*****************************************************************************)
+(* Symbolic evaluation *)
+(*****************************************************************************)
+
+(* Defines the subset of Generic expressions that we can propagate. *)
+let rec is_symbolic_expr expr =
+  match expr.G.e with
+  | G.L _ -> true
+  | G.N _ -> true
+  | G.DotAccess (e, _, FN _) -> is_symbolic_expr e
+  | G.ArrayAccess (e1, (_, e2, _)) -> is_symbolic_expr e1 && is_symbolic_expr e2
+  | G.Call (e, (_, args, _)) ->
+      is_symbolic_expr e && List.for_all is_symbolic_arg args
+  | _ -> false
+
+and is_symbolic_arg arg =
+  match arg with
+  | G.Arg e -> is_symbolic_expr e
+  | G.ArgKwd (_, e) -> is_symbolic_expr e
+  | G.ArgType _ -> true
+  | G.OtherArg _ -> false
+
+let sym_prop eorig =
+  match eorig with
+  | SameAs e_gen when is_symbolic_expr e_gen -> G.Sym e_gen
+  | ___else___ -> G.NotCst
+
+let eval_or_sym_prop env exp =
+  match eval env exp with
+  | G.NotCst -> sym_prop exp.eorig
+  | c -> c
 
 (*****************************************************************************)
 (* Transfer *)
@@ -332,9 +384,9 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
 
 let transfer :
-    enter_env:G.constness Dataflow_core.env ->
+    enter_env:G.svalue Dataflow_core.env ->
     flow:F.cfg ->
-    G.constness Dataflow_core.transfn =
+    G.svalue Dataflow_core.transfn =
  fun ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -361,8 +413,14 @@ let transfer :
         match instr.i with
         | Assign ({ base = Var var; offset = NoOffset }, exp) ->
             (* var = exp *)
-            let cexp = eval inp' exp in
+            let cexp = eval_or_sym_prop inp' exp in
             D.VarMap.add (str_of_name var) cexp inp'
+        | Call (Some { base = Var var; offset = NoOffset }, _, _) ->
+            (* Call to an arbitrary function, we are intraprocedural so we cannot
+             * propagate actual constants in this case, but we can propagate the
+             * call itself as a symbolic expression. *)
+            let ccall = sym_prop instr.iorig in
+            D.VarMap.add (str_of_name var) ccall inp'
         | CallSpecial
             (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
             (* var = concat(args) *)
@@ -398,17 +456,60 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
   in
   DataflowX.fixpoint ~eq
     ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
-    ~trans:(transfer ~enter_env ~flow) (* constness is a forward analysis! *)
+    ~trans:(transfer ~enter_env ~flow) (* svalue is a forward analysis! *)
     ~forward:true ~flow
 
-let update_constness (flow : F.cfg) mapping =
+let update_svalue (flow : F.cfg) mapping =
+  let for_all_id_info : (G.id_info -> bool) -> G.any -> bool =
+    (* Check that all id_info's satisfy a given condition. We use refs so that
+     * we can have a single visitor for all calls, given that `mk_visitor` is
+     * pretty expensive. *)
+    let ff = ref (fun _ -> true) in
+    let ok = ref true in
+    let hooks =
+      {
+        Visitor_AST.default_visitor with
+        kid_info =
+          (fun (_k, _vout) ii ->
+            ok := !ok && !ff ii;
+            if not !ok then raise Exit);
+      }
+    in
+    let vout = Visitor_AST.mk_visitor hooks in
+    fun f ast ->
+      ff := f;
+      ok := true;
+      try
+        vout ast;
+        !ok
+      with Exit -> false
+  in
+  let no_cycles var c =
+    (* Check that `c' contains no reference to `var'. It can contain references
+     * to other occurrences of `var', but not to the same occurrence (that would
+     * be a cycle), and each occurence must have its own `id_svalue` ref. This
+     * is not supposed to happen, but if it does happen by accident then it would
+     * cause an infinite loop, stack overflow, or segfault later on. *)
+    match c with
+    | G.Sym e ->
+        for_all_id_info
+          (fun ii ->
+            (* Note the use of physical equality, we are looking for the *same*
+             * id_svalue ref, that tells us it's the same variable occurrence. *)
+            var.id_info.id_svalue != ii.id_svalue)
+          (G.E e)
+    | G.NotCst
+    | G.Cst _
+    | G.Lit _ ->
+        true
+  in
   flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in
 
          let node = flow.graph#nodes#assoc ni in
 
-         (* Update RHS constness according to the input env. *)
+         (* Update RHS svalue according to the input env. *)
          rlvals_of_node node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
@@ -416,7 +517,12 @@ let update_constness (flow : F.cfg) mapping =
                     D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
                   with
                   | None -> ()
-                  | Some c -> refine_constness_ref var.id_info.id_constness c)
+                  | Some c ->
+                      if no_cycles var c then
+                        refine_svalue_ref var.id_info.id_svalue c
+                      else
+                        logger#error "Cycle check failed for %s -> %s"
+                          (str_of_name var) (G.show_svalue c))
               | ___else___ -> ())
-         (* Should not update the LHS constness since in x = E, x is a "ref",
+         (* Should not update the LHS svalue since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))
