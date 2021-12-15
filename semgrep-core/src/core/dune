@@ -2,17 +2,18 @@
  (public_name semgrep_core)
  (wrapped false)
  (libraries
-   str re pcre
+   str
    yaml
    atdgen-runtime
 
    commons
-   pfff-config
    pfff-h_program-lang
    pfff-lang_GENERIC
    ;note: we should not depend on pfff-lang_GENERIC-analyze in core
+   ;note: we should also not depend on any other semgrep libs (except utils)
+   semgrep_utils
 
-   spacegrep
+   spacegrep ; Rule.ml references Spacegrep.Pattern_AST.t
  )
  (preprocess
    (pps
