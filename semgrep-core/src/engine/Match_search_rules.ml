@@ -726,12 +726,16 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                         Map_AST.mk_fix_token_locations fix_loc
                       in
                       let mast' = fixing_visitor.Map_AST.vprogram mast in
-                      let lazy_ast_and_errors = lazy (mast', []) in
-                      let file_and_more = { env.file_and_more with file } in
+                      let file_and_more =
+                        {
+                          env.file_and_more with
+                          file;
+                          lazy_ast_and_errors = lazy (mast', []);
+                          lazy_content = lazy content;
+                        }
+                      in
                       nested_formula_has_matches { env with file_and_more }
-                        formula lazy_ast_and_errors
-                        (lazy content)
-                        (Some r')))
+                        formula (Some r')))
           | Some xlang, MV.Text (content, _tok)
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
               (* We re-parse the matched text as `xlang`. *)
@@ -759,10 +763,15 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       | LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
-                  let file_and_more = { env.file_and_more with file; xlang } in
+                  let file_and_more =
+                    {
+                      FM.file;
+                      xlang;
+                      lazy_ast_and_errors;
+                      lazy_content = lazy content;
+                    }
+                  in
                   nested_formula_has_matches { env with file_and_more } formula
-                    lazy_ast_and_errors
-                    (lazy content)
                     (Some r'))
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
@@ -775,13 +784,10 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                 mvar (MV.show_mvalue mval);
               false))
 
-and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
-    opt_context =
+and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
-    let file_and_more =
-      { env.file_and_more with lazy_content; lazy_ast_and_errors }
-    in
-    matches_of_formula env.config env.rule_id file_and_more formula opt_context
+    matches_of_formula env.config env.rule_id env.file_and_more formula
+      opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
   match final_ranges with
