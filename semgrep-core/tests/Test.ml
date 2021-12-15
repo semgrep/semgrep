@@ -203,7 +203,7 @@ let regression_tests_for_lang ~with_caching files lang =
         with exn ->
           failwith (spf "fail to parse pattern %s with lang = %s (exn = %s)" 
                       sgrep_file 
-                      (Lang.string_of_lang lang)
+                      (Lang.to_string lang)
                       (Common.exn_to_s exn))
     in
     E.g_errors := [];

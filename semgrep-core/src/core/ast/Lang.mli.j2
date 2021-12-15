@@ -18,6 +18,18 @@ val lang_map : (string, t) Hashtbl.t
 
 val lang_of_string_opt : string -> t option
 
+(* unsupported_language_message [lang] takes the language as a string and
+ * returns an error message.
+ *
+ * If the language is "unset", it returns a "no language specified error"
+ * coupling: Main.lang reference.
+ * Otherwise it returns an error with the list of supported languages.
+ *)
+val unsupported_language_message : string -> string
+
+(* May raise Failure of unsupported_language_message *)
+val of_string : string -> t
+
 (* Association from a valid name for a language to its unique internal ID. *)
 val assoc : (string * t) list
 
@@ -34,9 +46,6 @@ val langs_of_filename : Common.filename -> t list
    Produce a human-readable representation of the language e.g. "C#"
 *)
 val to_string : t -> string
-
-(* legacy alias for 'to_string' *)
-val string_of_lang : t -> string
 
 (*
    Convert to the most standard and unambiguous representation of the
@@ -76,12 +85,3 @@ val excluded_exts_of_lang : t -> string list
    Return a list of programs that can run a script written in this language.
 *)
 val shebangs_of_lang : t -> string list
-
-(* unsupported_language_message [lang] takes the language as a string and
- * returns an error message.
- *
- * If the language is "unset", it returns a "no language specified error"
- * coupling: Main.lang reference.
- * Otherwise it returns an error with the list of supported languages.
- *)
-val unsupported_language_message : string -> string
