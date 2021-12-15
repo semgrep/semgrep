@@ -13,6 +13,7 @@
    - a 'skip_list.txt' file was found at a conventional location (see
      skip_list.ml in pfff).
    - files over a certain size.
+   See Skip_target.ml for more information.
 
    If keep_root_files is true (the default), regular files passed directly
    to this function are considered ok and bypass the other filters.
@@ -34,13 +35,3 @@ val files_of_dirs_or_files :
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
 val sort_by_decreasing_size : Common.filename list -> Common.filename list
-
-(* Stats used internally to detect minified files *)
-type whitespace_stat = { sample_size : int; ws_freq : float; line_freq : float }
-
-(*
-   Return file size and frequency of whitespace bytes.
-   This is intended for calibrating the heuristic used to detect
-   minified files.
-*)
-val whitespace_stat_of_file : Common.filename -> whitespace_stat
