@@ -164,7 +164,9 @@ let make_tests ?(unit_testing = false) xs =
              let config = Config_semgrep.default_config in
              let res =
                try
-                 Run_rules.check (fun _ _ _ -> ()) config rules [] file_and_more
+                 Match_rules.check
+                   (fun _ _ _ -> ())
+                   config rules [] file_and_more
                with exn ->
                  failwith
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))

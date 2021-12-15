@@ -103,8 +103,8 @@ let any_in_ranges any rwms =
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
-  Match_rules.matches_of_formula config equivs rule_id file_and_more formula
-    None
+  Match_search_rules.matches_of_formula config equivs rule_id file_and_more
+    formula None
   |> snd
 
 (*s: function [[Tainting_generic.config_of_rule]] *)
