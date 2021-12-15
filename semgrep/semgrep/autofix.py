@@ -23,7 +23,13 @@ class Fix:
 
 class FileOffsets:
     """
-    Used to track state when applying multiple fixes to a single file/line.
+    This object is used to track state when applying multiple fixes to the same
+    or subsequent lines in a single file.
+
+    The assumption and current state here is that fixes are applied top-to-
+    bottom and in a single pass; semgrep will not come back and re-parse or
+    re-fix a file or line. This approach may need to be revisited or extended
+    to support more complex overlapping autofix cases in future.
     """
 
     def __init__(self, line_offset: int, col_offset: int, active_line: int):
