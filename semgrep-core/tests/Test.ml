@@ -273,7 +273,7 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches =
     let equivs = [] in
-    Tainting_generic.check
+    Match_tainting_rules.check_bis
       ~match_hook:(fun _ _ _ -> ())
       (Config_semgrep.default_config, equivs)
       taint_rules file lang ast
