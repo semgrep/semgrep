@@ -26,7 +26,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Prelude *)
 (*****************************************************************************)
 
-let check hook default_config taint_rules equivs file_and_more =
+let check ~match_hook default_config taint_rules file_and_more =
   match taint_rules with
   | [] -> RP.empty_semgrep_result
   | __else__ ->
@@ -43,7 +43,7 @@ let check hook default_config taint_rules equivs file_and_more =
       in
       let matches, match_time =
         Common.with_time (fun () ->
-            Tainting_generic.check hook default_config taint_rules equivs file
+            Tainting_generic.check match_hook default_config taint_rules file
               lang ast)
       in
       {

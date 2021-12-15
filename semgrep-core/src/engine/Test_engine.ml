@@ -166,7 +166,7 @@ let make_tests ?(unit_testing = false) xs =
                try
                  Match_rules.check
                    (fun _ _ _ -> ())
-                   config rules [] file_and_more
+                   (config, []) rules file_and_more
                with exn ->
                  failwith
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))

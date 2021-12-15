@@ -1,10 +1,10 @@
 (*s: semgrep/tainting/Tainting_generic.mli *)
 (*s: signature [[Tainting_generic.check]] *)
 val check :
-  (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
-  Config_semgrep.t ->
+  match_hook:
+    (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.taint_spec) list ->
-  Equivalence.equivalences ->
   Common.filename ->
   Lang.t ->
   Target.t ->
