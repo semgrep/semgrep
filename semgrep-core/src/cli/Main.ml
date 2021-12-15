@@ -17,6 +17,8 @@ module J = JSON
 module RP = Report
 module S = Run_semgrep
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
@@ -26,9 +28,9 @@ module S = Run_semgrep
  * Right now there is:
  *  - good support for: Python, Java, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: C, C#, PHP, OCaml, Scala, Rust, Lua,
- *    YAML, HTML, Vue
- *  - almost support for: R, Kotlin, Bash, Docker, C++
+ *  - partial support for: C, C++, C#, PHP, OCaml, Kotlin, Scala, Rust, Lua,
+ *    YAML, HTML, Vue, Bash
+ *  - almost support for: R, Docker
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -161,8 +163,6 @@ let action = ref ""
 (* Helpers *)
 (*****************************************************************************)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 let version =
   spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version
 
@@ -187,11 +187,6 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.major_heap_increment = 8_000_000 };
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
-
-let lang_of_string s =
-  match Lang.lang_of_string_opt s with
-  | Some x -> x
-  | None -> failwith (Lang.unsupported_language_message s)
 
 (*****************************************************************************)
 (* Dumpers *)
