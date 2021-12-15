@@ -22,6 +22,9 @@ class Fix:
 
 
 class FileOffsets:
+    """
+    Used to track state when applying multiple fixes to a single file/line.
+    """
     def __init__(self, line_offset: int, col_offset: int, active_line: int):
         self.line_offset = line_offset
         self.col_offset = col_offset
