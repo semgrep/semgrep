@@ -149,7 +149,7 @@ let make_tests ?(unit_testing = false) xs =
                      (ast, errors)
                  | LRegex
                  | LGeneric ->
-                     raise Impossible)
+                     assert false)
              in
              let file_and_more =
                {

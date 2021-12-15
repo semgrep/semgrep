@@ -112,10 +112,8 @@ type env = {
   config : Config_semgrep.t * Equivalence.equivalences;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
-  file : Common.filename;
-  lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
+  file_and_more : File_and_more.t;
   rule_id : R.rule_id;
-  xlang : Xlang.t;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
   errors : E.error list ref;
@@ -131,7 +129,7 @@ let error env msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = PI.first_loc_of_file env.file in
+  let loc = PI.first_loc_of_file env.file_and_more.FM.file in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err = E.mk_error ~rule_id:(Some env.rule_id) loc msg E.MatchingError in
   Common.push err env.errors
@@ -257,8 +255,10 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?range_filter config (file, xlang, lazy_ast_and_errors)
-    patterns =
+let matches_of_patterns ?range_filter config file_and_more patterns =
+  let { FM.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
+    file_and_more
+  in
   match xlang with
   | Xlang.L (lang, _) ->
       let (ast, errors), parse_time =
@@ -270,11 +270,11 @@ let matches_of_patterns ?range_filter config (file, xlang, lazy_ast_and_errors)
               patterns |> List.map (mini_rule_of_pattern xlang)
             in
 
-            (* debugging path *)
             if !debug_timeout || !debug_matches then
+              (* debugging path *)
               (debug_semgrep config mini_rules file lang ast, errors)
-              (* regular path *)
             else
+              (* regular path *)
               ( Match_patterns.check
                   ~hook:(fun _ _ -> ())
                   ?range_filter config mini_rules (file, lang, ast),
@@ -587,8 +587,8 @@ let matches_of_combys combys lazy_content file =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns config (file, xlang, lazy_ast_and_errors, lazy_content)
-    xpatterns =
+let matches_of_xpatterns config file_and_more xpatterns =
+  let { FM.file; lazy_content; _ } = file_and_more in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -599,7 +599,7 @@ let matches_of_xpatterns config (file, xlang, lazy_ast_and_errors, lazy_content)
   (* final result *)
   RP.collate_semgrep_results
     [
-      matches_of_patterns config (file, xlang, lazy_ast_and_errors) patterns;
+      matches_of_patterns config file_and_more patterns;
       matches_of_spacegrep spacegreps file;
       matches_of_regexs regexps lazy_content file;
       matches_of_combys combys lazy_content file;
@@ -727,8 +727,9 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       in
                       let mast' = fixing_visitor.Map_AST.vprogram mast in
                       let lazy_ast_and_errors = lazy (mast', []) in
-                      nested_formula_has_matches { env with file } formula
-                        lazy_ast_and_errors
+                      let file_and_more = { env.file_and_more with file } in
+                      nested_formula_has_matches { env with file_and_more }
+                        formula lazy_ast_and_errors
                         (lazy content)
                         (Some r')))
           | Some xlang, MV.Text (content, _tok)
@@ -758,7 +759,8 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       | LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
-                  nested_formula_has_matches { env with file; xlang } formula
+                  let file_and_more = { env.file_and_more with file; xlang } in
+                  nested_formula_has_matches { env with file_and_more } formula
                     lazy_ast_and_errors
                     (lazy content)
                     (Some r'))
@@ -777,12 +779,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
   let res, final_ranges =
     let file_and_more =
-      {
-        FM.file = env.file;
-        xlang = env.xlang;
-        lazy_content;
-        lazy_ast_and_errors;
-      }
+      { env.file_and_more with lazy_content; lazy_ast_and_errors }
     in
     matches_of_formula env.config env.rule_id file_and_more formula opt_context
   in
@@ -913,9 +910,7 @@ and run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.config
-          (env.file, env.xlang, env.lazy_ast_and_errors)
-          patterns
+        matches_of_patterns ~range_filter env.config env.file_and_more patterns
       in
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
@@ -925,14 +920,9 @@ and run_selector_on_ranges env selector_opt ranges =
 
 and matches_of_formula config rule_id file_and_more formula opt_context :
     RP.times RP.match_result * RM.ranges =
-  let { FM.file; xlang; lazy_content; lazy_ast_and_errors } = file_and_more in
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
-  let res =
-    matches_of_xpatterns config
-      (file, xlang, lazy_ast_and_errors, lazy_content)
-      xpatterns
-  in
+  let res = matches_of_xpatterns config file_and_more xpatterns in
   logger#trace "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
@@ -941,10 +931,8 @@ and matches_of_formula config rule_id file_and_more formula opt_context :
     {
       config;
       pattern_matches = pattern_matches_per_id;
-      file;
-      lazy_ast_and_errors;
+      file_and_more;
       rule_id;
-      xlang;
       errors = ref [];
     }
   in
