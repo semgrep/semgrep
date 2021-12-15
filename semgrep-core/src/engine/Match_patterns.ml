@@ -171,12 +171,12 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
    * identifiers or strings from the pattern, then the pattern is too general
    * and we must analyze the stmt
    *)
-  match st.s_bf with
+  match st.s_strings with
   (* No bloom filter, expected if -bloom_filter is not used *)
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf ->
-      Bloom_filter.is_subset pattern_strs bf
+  | Some strs ->
+      Set_.subset pattern_strs strs
       |> Common.before_return (fun b ->
              if not b then logger#debug "skipping pattern on stmt %d" st.s_id)
 

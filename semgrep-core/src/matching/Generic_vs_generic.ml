@@ -31,7 +31,6 @@ module H = AST_generic_helpers
 (* optimisations *)
 module CK = Caching.Cache_key
 module Env = Metavariable_capture
-module F = Bloom_filter
 open Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -179,9 +178,9 @@ let stmts_may_match pattern_stmts (stmts : G.stmt list) =
       Bloom_annotation.set_of_pattern_strings (Ss pattern_stmts)
     in
     let pats_in_stmt pats (stmt : AST_generic.stmt) =
-      match stmt.s_bf with
+      match stmt.s_strings with
       | None -> true
-      | Some bf -> Set_.subset pats (F.set_of_filter bf)
+      | Some strs -> Set_.subset pats strs
     in
     let rec patterns_in_any_stmt pats stmts acc =
       match stmts with
