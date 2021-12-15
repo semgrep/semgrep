@@ -552,10 +552,6 @@ and m_id_info a b =
 (* experimental! *)
 and m_expr_deep a b =
   m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b
-  >||> m_with_symbolic_propagation
-         (fun b1 ->
-           m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b1)
-         b
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
@@ -665,6 +661,7 @@ and m_expr a b =
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b ->
       m_expr_deep a1 b (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
+      >||> m_with_symbolic_propagation (fun b1 -> m_expr_deep a1 b1) b
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
