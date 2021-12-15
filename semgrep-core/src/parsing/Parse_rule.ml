@@ -21,6 +21,8 @@ module G = AST_generic
 module PI = Parse_info
 module Set = Set_
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -805,7 +807,6 @@ let parse_generic file ast =
 let parse file =
   let ast =
     match FT.file_type_of_file file with
-    | FT.Config FT.Yaml -> Yaml_to_generic.program file
     | FT.Config FT.Json ->
         Json_to_generic.program (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
@@ -814,8 +815,10 @@ let parse file =
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
             Json_to_generic.program (Parse_json.parse_program tmpfile))
+    | FT.Config FT.Yaml -> Yaml_to_generic.program file
     | _ ->
-        failwith
-          (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)
+        logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
+        logger#info "trying to parse %s as YAML" file;
+        Yaml_to_generic.program file
   in
   parse_generic file ast
