@@ -385,7 +385,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
                         true
                     | _ -> false)
            in
-           let hook str env matched_tokens =
+           let match_hook str env matched_tokens =
              if config.output_format = Text then
                let xs = Lazy.force matched_tokens in
                print_match ~str config.match_format config.mvars env
@@ -410,9 +410,10 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
              }
            in
            let res =
-             Match_rules.check hook Config_semgrep.default_config rules
-               (parse_equivalences config.equivalences_file)
-               file_and_more
+             Match_rules.check ~match_hook
+               ( Config_semgrep.default_config,
+                 parse_equivalences config.equivalences_file )
+               rules file_and_more
            in
            RP.add_file file res)
   in
@@ -585,9 +586,9 @@ let semgrep_with_one_pattern config roots =
                        let xs = Lazy.force matched_tokens in
                        print_match config.match_format config.mvars env
                          Metavariable.ii_of_mval xs)
-                     Config_semgrep.default_config minirule
-                     (parse_equivalences config.equivalences_file)
-                     (file, lang, ast)
+                     ( Config_semgrep.default_config,
+                       parse_equivalences config.equivalences_file )
+                     minirule (file, lang, ast)
                    |> ignore)
              in
 

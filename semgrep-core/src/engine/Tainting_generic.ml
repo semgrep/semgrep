@@ -103,7 +103,7 @@ let any_in_ranges any rwms =
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
-  Match_search_rules.matches_of_formula config equivs rule_id file_and_more
+  Match_search_rules.matches_of_formula (config, equivs) rule_id file_and_more
     formula None
   |> snd
 
@@ -175,9 +175,8 @@ let taint_config_of_rule default_config equivs file ast_and_errors
 (* Main entry point *)
 (*****************************************************************************)
 
-(*s: function [[Tainting_generic.check2]] *)
-let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
-    equivs file lang ast =
+let check ~match_hook (default_config, equivs)
+    (taint_rules : (Rule.rule * Rule.taint_spec) list) file lang ast =
   let matches = ref [] in
 
   let taint_configs =
@@ -244,9 +243,4 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
          v
          |> List.iter (fun (m : Pattern_match.t) ->
                 let str = Common.spf "with rule %s" m.rule_id.id in
-                hook str m.env m.tokens))
-  [@@profiling]
-
-(*e: function [[Tainting_generic.check2]] *)
-
-(*e: semgrep/tainting/Tainting_generic.ml *)
+                match_hook str m.env m.tokens))

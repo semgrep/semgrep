@@ -7,16 +7,15 @@
         filtering of irrelevant rules.
 *)
 val check :
-  (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
-  Config_semgrep.t ->
+  match_hook:
+    (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.pformula) list ->
-  Equivalence.equivalences ->
   File_and_more.t ->
   Report.times Report.match_result
 
 val matches_of_formula :
-  Config_semgrep_t.t ->
-  Equivalence.equivalences ->
+  Config_semgrep_t.t * Equivalence.equivalences ->
   Rule.rule_id ->
   File_and_more.t ->
   Rule.formula ->

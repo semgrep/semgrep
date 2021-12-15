@@ -107,14 +107,15 @@ type pattern_id = R.pattern_id
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
 type env = {
-  config : Config_semgrep.t;
+  (* less: we might want to get rid of equivalences at some point as
+   * they are not exposed to the user anymore. *)
+  config : Config_semgrep.t * Equivalence.equivalences;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
   lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
   rule_id : R.rule_id;
   xlang : Xlang.t;
-  equivalences : Equivalence.equivalences;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
   errors : E.error list ref;
@@ -225,7 +226,7 @@ let (mini_rule_of_pattern :
 (* Debugging semgrep *)
 (*****************************************************************************)
 
-let debug_semgrep config mini_rules equivalences file lang ast =
+let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
@@ -234,7 +235,7 @@ let debug_semgrep config mini_rules equivalences file lang ast =
          let res =
            Match_patterns.check
              ~hook:(fun _ _ -> ())
-             config [ mr ] equivalences (file, lang, ast)
+             config [ mr ] (file, lang, ast)
          in
          if !debug_matches then
            (* TODO
@@ -256,8 +257,8 @@ let debug_semgrep config mini_rules equivalences file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?range_filter config equivalences
-    (file, xlang, lazy_ast_and_errors) patterns =
+let matches_of_patterns ?range_filter config (file, xlang, lazy_ast_and_errors)
+    patterns =
   match xlang with
   | Xlang.L (lang, _) ->
       let (ast, errors), parse_time =
@@ -271,12 +272,12 @@ let matches_of_patterns ?range_filter config equivalences
 
             (* debugging path *)
             if !debug_timeout || !debug_matches then
-              ( debug_semgrep config mini_rules equivalences file lang ast,
-                errors ) (* regular path *)
+              (debug_semgrep config mini_rules file lang ast, errors)
+              (* regular path *)
             else
               ( Match_patterns.check
                   ~hook:(fun _ _ -> ())
-                  ?range_filter config mini_rules equivalences (file, lang, ast),
+                  ?range_filter config mini_rules (file, lang, ast),
                 errors ))
       in
       {
@@ -586,8 +587,8 @@ let matches_of_combys combys lazy_content file =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns config equivalences
-    (file, xlang, lazy_ast_and_errors, lazy_content) xpatterns =
+let matches_of_xpatterns config (file, xlang, lazy_ast_and_errors, lazy_content)
+    xpatterns =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -598,9 +599,7 @@ let matches_of_xpatterns config equivalences
   (* final result *)
   RP.collate_semgrep_results
     [
-      matches_of_patterns config equivalences
-        (file, xlang, lazy_ast_and_errors)
-        patterns;
+      matches_of_patterns config (file, xlang, lazy_ast_and_errors) patterns;
       matches_of_spacegrep spacegreps file;
       matches_of_regexs regexps lazy_content file;
       matches_of_combys combys lazy_content file;
@@ -785,8 +784,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
         lazy_ast_and_errors;
       }
     in
-    matches_of_formula env.config env.equivalences env.rule_id file_and_more
-      formula opt_context
+    matches_of_formula env.config env.rule_id file_and_more formula opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
   match final_ranges with
@@ -862,7 +860,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   RM.intersect_ranges env.config !debug_matches acc r)
+                   RM.intersect_ranges (fst env.config) !debug_matches acc r)
                  res
           in
 
@@ -874,7 +872,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
             neg
             |> List.fold_left
                  (fun acc x ->
-                   RM.difference_ranges env.config acc
+                   RM.difference_ranges (fst env.config) acc
                      (evaluate_formula env opt_context x))
                  res
           in
@@ -915,7 +913,7 @@ and run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.config env.equivalences
+        matches_of_patterns ~range_filter env.config
           (env.file, env.xlang, env.lazy_ast_and_errors)
           patterns
       in
@@ -923,15 +921,15 @@ and run_selector_on_ranges env selector_opt ranges =
         (List.length res.matches);
       res.matches
       |> List.map RM.match_result_to_range
-      |> RM.intersect_ranges env.config !debug_matches ranges
+      |> RM.intersect_ranges (fst env.config) !debug_matches ranges
 
-and matches_of_formula config equivs rule_id file_and_more formula opt_context :
+and matches_of_formula config rule_id file_and_more formula opt_context :
     RP.times RP.match_result * RM.ranges =
   let { FM.file; xlang; lazy_content; lazy_ast_and_errors } = file_and_more in
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
-    matches_of_xpatterns config equivs
+    matches_of_xpatterns config
       (file, xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
@@ -947,7 +945,6 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
       lazy_ast_and_errors;
       rule_id;
       xlang;
-      equivalences = equivs;
       errors = ref [];
     }
   in
@@ -962,12 +959,12 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule r hook default_config pformula equivs file_and_more =
+let check_rule r hook (default_config, equivs) pformula file_and_more =
   let config = r.R.options ||| default_config in
   let formula = R.formula_of_pformula pformula in
   let rule_id = fst r.id in
   let res, final_ranges =
-    matches_of_formula config equivs rule_id file_and_more formula None
+    matches_of_formula (config, equivs) rule_id file_and_more formula None
   in
   {
     RP.matches =
@@ -987,7 +984,7 @@ let check_rule r hook default_config pformula equivs file_and_more =
     profiling = res.profiling;
   }
 
-let check hook default_config rules equivs file_and_more =
+let check ~match_hook default_config rules file_and_more =
   let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
@@ -999,7 +996,7 @@ let check hook default_config rules equivs file_and_more =
          let rule_id = fst r.R.id in
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
              try
-               check_rule r hook default_config pformula equivs file_and_more
+               check_rule r match_hook default_config pformula file_and_more
                (* TODO: why do we intercept errors here? We already do that in
                 * Run_semgrep.ml. *)
              with exn when not !Flag_semgrep.fail_fast ->
@@ -1010,4 +1007,3 @@ let check hook default_config rules equivs file_and_more =
                  profiling = { parse_time = -1.; match_time = -1. };
                }))
   |> RP.collate_semgrep_results
-  [@@profiling]
