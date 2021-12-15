@@ -840,8 +840,8 @@ and stmt = {
      and before matching.
   *)
   (* used in semgrep to skip some AST matching *)
-  mutable s_bf : Bloom_filter.t option;
-      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_strings : string Set_.t option;
+      [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
   mutable s_range :
     (Parse_info.token_location * Parse_info.token_location) option;
@@ -1791,7 +1791,7 @@ let s skind =
     s_id = AST_utils.Node_ID.create ();
     s_use_cache = false;
     s_backrefs = None;
-    s_bf = None;
+    s_strings = None;
     s_range = None;
   }
 
