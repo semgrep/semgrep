@@ -217,6 +217,7 @@ def get_expected_and_reported_lines(
             todo_ruleid = set(todo_ruleid_lines[file_path][check_id])
 
             reported = all_reported - todo_oked - todo_ruleid
+            expected = expected - todo_ruleid - todo_oked
 
             matches_by_check_id[check_id][file_path] = {
                 "expected_lines": sorted(expected),
@@ -241,7 +242,7 @@ def generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) 
         test_file for test_file, _ in check_results["matches"].items()
     )
 
-    return f"\t✖ {check_id.ljust(60)} {expected_vs_reported_lines} \n\t test file path: {test_file_names}"
+    return f"\t✖ {check_id.ljust(60)} {expected_vs_reported_lines} \n\t test file path: {test_file_names}\n\n"
 
 
 def invoke_semgrep_multi(
