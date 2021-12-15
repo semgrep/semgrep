@@ -678,7 +678,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                 please file a bug report"
                mvar);
           false
-      | Some mval_range -> (
+      | Some (mval_file, mval_range) -> (
           let r' =
             (* Fix the range to match the content of the temporary file. *)
             {
@@ -702,7 +702,10 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                        mvar);
                   false
               | Some mast ->
-                  let content = Range.content_at_range env.file mval_range in
+                  (* Note that due to symbolic propagation, `mast` may be
+                   * outside of the current file/AST, so we must get
+                   * `mval_range` from `mval_file` and not from `env.file`! *)
+                  let content = Range.content_at_range mval_file mval_range in
                   Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
                     (fun file ->
                       (* We don't want having to re-parse `content', but then we

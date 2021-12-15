@@ -75,7 +75,7 @@ val has_keyword_attr :
   AST_generic.keyword_attribute -> AST_generic.attribute list -> bool
 
 val abstract_for_comparison_any : AST_generic.any -> AST_generic.any
-(** Abstract away position and constness for comparison
+(** Abstract away position and svalue for comparison
  * with polymorphic operators.
 *)
 

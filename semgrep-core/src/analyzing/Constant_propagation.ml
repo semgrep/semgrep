@@ -361,12 +361,12 @@ let propagate_basic lang prog =
           match x.e with
           | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
               match find_id env id id_info with
-              | Some literal -> id_info.id_constness := Some (Lit literal)
+              | Some literal -> id_info.id_svalue := Some (Lit literal)
               | _ -> ())
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
-              | Some literal -> id_info.id_constness := Some (Lit literal)
+              | Some literal -> id_info.id_svalue := Some (Lit literal)
               | _ -> ())
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
@@ -424,8 +424,8 @@ let propagate_dataflow lang ast =
           (fun (_k, _) def ->
             let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
-            let mapping = Dataflow_constness.fixpoint inputs flow in
-            Dataflow_constness.update_constness flow mapping);
+            let mapping = Dataflow_svalue.fixpoint inputs flow in
+            Dataflow_svalue.update_svalue flow mapping);
       }
   in
   v (Pr ast)

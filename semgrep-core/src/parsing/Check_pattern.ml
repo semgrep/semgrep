@@ -41,7 +41,7 @@ let check_pattern_metavars error lang ast =
       error
         (Common.spf
            "`%s' is neither a valid identifier in %s nor a valid meta-variable"
-           str (Lang.string_of_lang lang));
+           str (Lang.to_string lang));
     k ident
   in
   if lang_has_no_dollar_ids lang then
