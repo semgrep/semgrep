@@ -5,8 +5,11 @@ open Runner_common
 (* Purpose *)
 (*****************************************************************************)
 
-(* Cache parsed ASTs between runs. This is necessary because the python
- * wrapper makes multiple calls to semgrep-core. Previous was in main
+(* Cache parsed ASTs between runs. This is necessary because the Python
+ * wrapper makes multiple calls to semgrep-core. Previously was in Main.ml
+ *
+ * TODO: once the Python code passes all the rules to semgrep-core, we
+ * should not need this anymore.
  *)
 
 (*****************************************************************************)
@@ -91,7 +94,7 @@ let parse_generic parsing_cache version lang file =
          * try to use the old cache file (which should generate an exception).
          *)
         let full_filename =
-          spf "%s__%s__%s" file (Lang.string_of_lang lang) version
+          spf "%s__%s__%s" file (Lang.to_string lang) version
         in
         cache_file_of_file parsing_cache full_filename)
       (fun () ->
