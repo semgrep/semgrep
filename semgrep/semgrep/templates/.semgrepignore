@@ -8,9 +8,7 @@ node_modules/
 build/
 dist/
 vendor/
-env/
 .env/
-venv/
 .venv/
 .tox/
 *.min.js
