@@ -111,13 +111,19 @@ def abort(message: str) -> None:
     sys.exit(1)
 
 
-def with_color(color: str, text: str, bold: bool = False) -> str:
+def with_color(
+    color: str,
+    text: str,
+    bgcolor: str = None,
+    bold: bool = False,
+    underline: bool = False,
+) -> str:
     """
     Wrap text in color & reset
     """
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
-    return click.style(text, fg=color)
+    return click.style(text, fg=color, bg=bgcolor, underline=underline, bold=bold)
 
 
 def terminal_wrap(text: str) -> str:
