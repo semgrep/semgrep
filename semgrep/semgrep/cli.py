@@ -175,7 +175,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "--validate",
     is_flag=True,
     default=False,
-    help="Validate configuration file(s). No search is performed.",
+    help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
 )
 @optgroup.option(
     "--version", is_flag=True, default=False, help="Show the version and exit."
