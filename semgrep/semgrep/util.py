@@ -115,7 +115,7 @@ def with_color(color: str, text: str, bold: bool = False) -> str:
     """
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
-    return click.style(text, fg=color)
+    return click.style(text, fg=color, bold=bold)
 
 
 def terminal_wrap(text: str) -> str:
@@ -198,5 +198,5 @@ def truncate(file_name: str, col_lim: int) -> str:
     name_len = len(file_name)
     prefix = "..."
     if name_len > col_lim:
-        file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
+        file_name = prefix + file_name[name_len - col_lim + len(prefix):]
     return file_name
