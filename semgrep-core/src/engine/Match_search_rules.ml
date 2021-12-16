@@ -643,8 +643,8 @@ let rec filter_ranges env xs cond =
                    |> G.e,
                    ( fk,
                      [
-                       G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e);
                        G.Arg (G.L (G.String (re_str, fk)) |> G.e);
+                       G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e);
                      ],
                      fk ) )
                |> G.e
