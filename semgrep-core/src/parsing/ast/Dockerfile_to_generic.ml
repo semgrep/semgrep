@@ -61,34 +61,36 @@ let argv_or_shell env x : G.expr list =
       [ call_shell loc shell_compat args ]
 
 let instruction env (x : instruction) : G.stmt =
-  let loc = instruction_loc x in
   let expr =
     match x with
     | From (loc, name, _, _, _) -> call name loc []
-    | Run (_loc, name, x) -> call name loc (argv_or_shell env x)
-    | Cmd (_loc, name, x) -> call name loc (argv_or_shell env x)
-    | Label (_loc, name, _) -> call name loc []
-    | Expose (_loc, name, _, _) -> call name loc []
-    | Env (_loc, name, _) -> call name loc []
-    | Add (_loc, name, _, _, _) -> call name loc []
-    | Copy (_loc, name, _, _, _) -> call name loc []
-    | Entrypoint (_loc, name, _) -> call name loc []
-    | Volume (_loc, name, _) -> call name loc []
-    | User (_loc, name, _, _) -> call name loc []
-    | Workdir (_loc, name, _) -> call name loc []
-    | Arg (_loc, name, _) -> call name loc []
-    | Onbuild (_loc, name, _) -> call name loc []
-    | Stopsignal (_loc, name, _) -> call name loc []
-    | Healthcheck (_loc, name, _) -> call name loc []
-    | Shell (_loc, name, _) -> call name loc []
-    | Maintainer (_loc, name, _) -> call name loc []
-    | Cross_build_xxx (_loc, name, _) -> call name loc []
+    | Run (loc, name, x) -> call name loc (argv_or_shell env x)
+    | Cmd (loc, name, x) -> call name loc (argv_or_shell env x)
+    | Label (loc, name, _) -> call name loc []
+    | Expose (loc, name, _, _) -> call name loc []
+    | Env (loc, name, _) -> call name loc []
+    | Add (loc, name, _, _, _) -> call name loc []
+    | Copy (loc, name, _, _, _) -> call name loc []
+    | Entrypoint (loc, name, _) -> call name loc []
+    | Volume (loc, name, _) -> call name loc []
+    | User (loc, name, _, _) -> call name loc []
+    | Workdir (loc, name, _) -> call name loc []
+    | Arg (loc, name, _) -> call name loc []
+    | Onbuild (loc, name, _) -> call name loc []
+    | Stopsignal (loc, name, _) -> call name loc []
+    | Healthcheck (loc, name, _) -> call name loc []
+    | Shell (loc, name, _) -> call name loc []
+    | Maintainer (loc, name, _) -> call name loc []
+    | Cross_build_xxx (loc, name, _) -> call name loc []
     | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
-    | Instr_TODO name -> call name loc []
+    | Instr_TODO ((_, tok) as name) -> call name (tok, tok) []
   in
-  stmt_of_expr loc expr
+  stmt_of_expr (instruction_loc x) expr
 
 let program (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
 
-let any (env : env) x : G.any = G.Ss (program env x)
+let any (env : env) x : G.any =
+  match program env x with
+  | [ stmt ] -> G.S stmt
+  | stmts -> G.Ss stmts

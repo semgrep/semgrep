@@ -12,6 +12,13 @@ module PI = Parse_info
 open! AST_dockerfile
 module H = Parse_tree_sitter_helpers
 
+(*
+   This is preferred for debugging since it raises Assert_failures where
+   there are bugs. In production, it's best to avoid raising exceptions
+   when possible.
+*)
+let strict = true
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -30,16 +37,20 @@ let concat_tokens first_tok other_toks : string wrap =
   let tok = PI.combine_infos first_tok other_toks in
   (PI.str_of_info tok, tok)
 
-(* Requires at least one token, otherwise it uses a fake token which
-   can pose problems later. *)
-let unsafe_concat_tokens toks : string wrap =
+let opt_concat_tokens toks : string wrap option =
   match toks with
-  | first_tok :: other_toks ->
-      let tok = PI.combine_infos first_tok other_toks in
-      (PI.str_of_info tok, tok)
-  | [] ->
-      let s = "" in
-      (s, PI.unsafe_fake_info s)
+  | first_tok :: other_toks -> Some (concat_tokens first_tok other_toks)
+  | [] -> None
+
+(* Requires at least one token, which must be guaranteed statically. *)
+let unsafe_concat_tokens toks : string wrap =
+  match opt_concat_tokens toks with
+  | Some res -> res
+  | None ->
+      if strict then assert false
+      else
+        let s = "" in
+        (s, PI.unsafe_fake_info s)
 
 let classify_shell ((_open, ar, _close) : string_array) :
     shell_compatibility option =
