@@ -5,15 +5,10 @@
     "rules/cli_test/basic/basic.yaml": {
       "checks": {
         "basic-test": {
-          "fn": 0,
-          "fp": 0,
           "matches": "<masked in tests>",
-          "passed": true,
-          "tn": 0,
-          "tp": 1
+          "passed": true
         }
-      },
-      "todo": 0
+      }
     }
   }
 }
