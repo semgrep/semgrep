@@ -28,6 +28,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
    manually on the command line with e.g. <(echo 'eval(x)') which the
    shell replaces by a named pipe like '/dev/fd/63'.
 
+   update: This can be used also to fetch rules from the network,
+   e.g., semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
+
    coupling: this functionality is implemented also in semgrep-python.
 *)
 let replace_named_pipe_by_regular_file path =
@@ -452,6 +455,10 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
 
 let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
   let rules_file = config.config_file in
+  (* useful when using process substitution, e.g.
+   * semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
+   *)
+  let rules_file = replace_named_pipe_by_regular_file rules_file in
   try
     logger#linfo
       (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
