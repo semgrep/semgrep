@@ -20,3 +20,6 @@ tests/
 
 # Semgrep rules folder
 .semgrep
+
+# Semgrep-action log folder
+.semgrep_logs/
