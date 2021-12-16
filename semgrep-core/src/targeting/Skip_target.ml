@@ -1,5 +1,9 @@
 (*
    Filter targets.
+
+   TODO: note that some of the functions below are also present in
+   semgrep-python so we might want to move all file-filtering in one
+   place.
 *)
 open Common
 module Resp = Semgrep_core_response_t
