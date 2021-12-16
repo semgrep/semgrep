@@ -1,6 +1,5 @@
 (*
-   Find target files suitable to be analyzed by semgrep, assuming a given
-   language.
+   Find target files suitable to be analyzed by semgrep.
 *)
 
 (*

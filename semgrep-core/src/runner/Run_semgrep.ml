@@ -346,28 +346,66 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
          RP.add_run_time run_time res)
 
 (*****************************************************************************)
-(* Other helpers *)
+(* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let rules_for_xlang (xlang : Xlang.t) rules =
+let lang_opt_of_config config =
+  match config.lang with
+  | None -> None
+  | Some xlang -> (
+      match xlang with
+      | Xlang.LRegex
+      | Xlang.LGeneric ->
+          None (* we will get all the files *)
+      | Xlang.L (lang, []) -> Some lang
+      (* config.lang comes from Xlang.of_string which returns just one lang *)
+      | Xlang.L (_, _) -> assert false)
+
+(* TODO: maybe this info should be passed by semgrep-python, so we don't
+ * have to redo some file-targeting here.
+ *)
+let langs_of_file_or_config config file =
+  match lang_opt_of_config config with
+  | Some lang -> [ lang ]
+  | None ->
+      (* let's try to infer the language
+       * TODO: use Guess_lang to also recognize scripts, and
+       * maybe use more stuff from lang.json (e.g., Lang.ext_of_lang)
+       *)
+      Lang.langs_of_filename file
+
+let rules_for_langs_and_file langs _fileTODO rules =
   rules
   |> List.filter (fun r ->
-         match (r.R.languages, xlang) with
-         | L (x, xs), L (lang, _) -> List.mem lang (x :: xs)
-         | LRegex, LRegex
-         | LGeneric, LGeneric ->
+         match (r.R.languages, langs) with
+         (* even if a file has a language, which should still apply
+          * the generic and regexp rules on it
+          * TODO: apply the include/exclude for file, which is especially
+          * used for generic and regex rules
+          *)
+         | LRegex, _
+         | LGeneric, _ ->
              true
-         | _ -> false)
+         | L _, [] -> false
+         | L (x, xs), y :: ys ->
+             y :: ys |> List.exists (fun l -> List.mem l (x :: xs)))
+  [@@profile]
 
-let file_and_more_of_file config (xlang : Xlang.t) file =
-  let lazy_ast_and_errors =
-    lazy
-      (match xlang with
-      | L (lang, _) ->
-          P.parse_generic config.use_parsing_cache config.version lang file
-      | LRegex
-      | LGeneric ->
-          failwith "requesting generic AST for LRegex|LGeneric")
+let file_and_more_of_file config langs file =
+  let lazy_ast_and_errors, xlang =
+    match langs with
+    (* TODO: if there are multiple languages (e.g., Python2 and Python3,
+     * or Javascript and Typescript, should we try to parse the file with
+     * each language?
+     *)
+    | lang :: _ ->
+        ( lazy
+            (P.parse_generic config.use_parsing_cache config.version lang file),
+          Xlang.L (lang, []) )
+    | [] ->
+        ( lazy (failwith "requesting generic AST for LRegex|LGeneric"),
+          (* TODO? aribtrary? Why not LRegex? need to look in config? *)
+          Xlang.LGeneric )
   in
   {
     File_and_more.file;
@@ -376,23 +414,13 @@ let file_and_more_of_file config (xlang : Xlang.t) file =
     lazy_ast_and_errors;
   }
 
-(* really we should let semgrep-python computing the list of files,
- * but it's convenient to run semgrep-core without semgrep-python
- * and to recursively get a list of files for a certain language.
+(* We should let semgrep-python computing the list of files (and pass it
+ * via -target, but it's convenient to run semgrep-core without semgrep-python
+ * and to recursively get a list of files.
  *)
-let files_of_roots xlang_opt roots =
-  (* TODO: if xlang is None, then get all the files *)
-  let xlang = Xlang.of_opt_xlang xlang_opt in
-  let opt_lang =
-    match xlang with
-    | LRegex
-    | LGeneric ->
-        None
-    | L (lang, _other_langs) ->
-        (* FIXME: we should include other_langs if there are any! *)
-        Some lang
-  in
-  Find_target.files_of_dirs_or_files opt_lang roots
+let files_of_roots config roots =
+  let lang_opt = lang_opt_of_config config in
+  Find_target.files_of_dirs_or_files lang_opt roots
 
 (*****************************************************************************)
 (* Semgrep -config *)
@@ -409,17 +437,16 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
    *
    * For now python wrapper passes down all files that should be scanned
    *)
-  let files, skipped = files_of_roots config.lang files_or_dirs in
+  let files, skipped = files_of_roots config files_or_dirs in
   logger#info "processing %d files, skipping %d files" (List.length files)
     (List.length skipped);
 
   let file_results =
     files
     |> iter_files_and_get_matches_and_exn_to_errors config (fun file ->
-           (* TODO: we should infer xlang from file if not provided *)
-           let xlang = Xlang.of_opt_xlang config.lang in
-           let rules = rules_for_xlang xlang rules in
-           let file_and_more = file_and_more_of_file config xlang file in
+           let langs = langs_of_file_or_config config file in
+           let rules = rules_for_langs_and_file langs file rules in
+           let file_and_more = file_and_more_of_file config langs file in
            let match_hook str env matched_tokens =
              if config.output_format = Text then
                let xs = Lazy.force matched_tokens in
