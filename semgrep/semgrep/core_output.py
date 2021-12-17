@@ -148,6 +148,7 @@ class CoreError:
 
     def to_semgrep_error(self, rule_id: RuleId) -> SemgrepCoreError:
         # TODO benchmarking code relies on error code value right now
+        # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
         if self.error_type == CoreErrorType(
             "Syntax error"
         ) or self.error_type == CoreErrorType("Lexical error"):
