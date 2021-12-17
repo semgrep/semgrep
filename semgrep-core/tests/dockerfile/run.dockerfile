@@ -1,7 +1,7 @@
-#FROM debian
+FROM debian
 
 # MATCH:
-#RUN echo hello
+RUN echo hello
 
 # MATCH:
 RUN ls \

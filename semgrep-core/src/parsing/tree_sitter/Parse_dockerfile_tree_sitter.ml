@@ -279,16 +279,25 @@ let label_pair (env : env) ((v1, v2, v3) : CST.label_pair) =
   let v3 = string env v3 in
   todo env (v1, v2, v3)
 
-let parse_bash (env : env) (raw_shell_code, tok) : AST_bash.blist option =
+(* hack to obtain correct locations when parsing a string extracted from
+   a larger file. *)
+let shift_locations (str, tok) =
+  let line (* 0-based *) = max 0 (PI.line_of_info tok - 1) (* 1-based *) in
+  let column (* 0-based *) = max 0 (PI.col_of_info tok) in
+  String.make line '\n' ^ String.make column ' ' ^ str
+
+let parse_bash (env : env) shell_cmd : AST_bash.blist option =
   let input_kind, _ = env.extra in
   let ts_res =
     H.wrap_parser
-      (fun () -> Tree_sitter_bash.Parse.string raw_shell_code)
+      (fun () ->
+        let str = shift_locations shell_cmd in
+        Tree_sitter_bash.Parse.string str)
       (fun cst ->
         let bash_env : Parse_bash_tree_sitter.env =
           { env with extra = input_kind }
         in
-        Parse_bash_tree_sitter.program bash_env ~tok cst)
+        Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
   in
   (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
      module of ocaml-tree-sitter-core. *)
