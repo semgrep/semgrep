@@ -10,3 +10,8 @@ RUN ls \
 # MATCH:
 RUN ls \
   -l
+
+# MATCH:
+RUN ls \
+  -l; # blah \
+  echo yay

@@ -313,12 +313,25 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       let more_frags =
         List.map
           (fun (v1, _comments, v3) ->
-            (* keep the line continuation so as to preserve the original
-               locations when parsing the shell command *)
-            let line_cont = token env v1 (* "\\\n" without \n *) in
-            let line_cont = PI.tok_add_s "\n" line_cont in
+            (* Keep the line continuation so as to preserve the original
+               locations when parsing the shell command.
+
+               Warning: dockerfile line continuation character may be different
+               than '\'. Since we reinject a line continuation into
+               the shell code to preserve locations, we must ensure that
+               we inject a backslash, not whatever dockerfile is using.
+            *)
+            let dockerfile_line_cont =
+              (* dockerfile's line continuation character without \n *)
+              token env v1
+            in
+            let shell_line_cont =
+              (* we would omit this if it weren't for preserving
+                 line numbers *)
+              PI.rewrap_str "\\\n" dockerfile_line_cont
+            in
             let shell_frag = shell_fragment env v3 in
-            [ line_cont; shell_frag ])
+            [ shell_line_cont; shell_frag ])
           v2
         |> List.flatten
       in
