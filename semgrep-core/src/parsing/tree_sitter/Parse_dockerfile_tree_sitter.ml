@@ -313,9 +313,14 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       let more_frags =
         List.map
           (fun (v1, _comments, v3) ->
-            let _line_continuation = token env v1 (* "\\\n" *) in
-            shell_fragment env v3)
+            (* keep the line continuation so as to preserve the original
+               locations when parsing the shell command *)
+            let line_cont = token env v1 (* "\\\n" without \n *) in
+            let line_cont = PI.tok_add_s "\n" line_cont in
+            let shell_frag = shell_fragment env v3 in
+            [ line_cont; shell_frag ])
           v2
+        |> List.flatten
       in
       let raw_shell_code = concat_tokens first_frag more_frags in
       let _, shell_compat = env.extra in
