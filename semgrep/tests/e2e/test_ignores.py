@@ -11,7 +11,15 @@ def test_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
     )
 
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq-js.yaml", target_name="ignores")[0],
+        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores")[0],
+        "results.json",
+    )
+
+
+# We provide no .semgrepignore but everything except find.js should still be ignored
+def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores_default")[0],
         "results.json",
     )
 
