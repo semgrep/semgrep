@@ -2,6 +2,7 @@
    Convert Dockerfile-specific AST to generic AST.
 *)
 
+module PI = Parse_info
 module G = AST_generic
 open AST_dockerfile
 
@@ -60,10 +61,28 @@ let argv_or_shell env x : G.expr list =
       let loc = wrap_loc code in
       [ call_shell loc shell_compat args ]
 
+let from _env _TODO_opt_param (image_spec : image_spec) _TODO_opt_alias :
+    G.expr list =
+  (* TODO: metavariable for image name *)
+  (* TODO: metavariable for image tag, metavariable for image digest *)
+  let _name_str, tok = image_spec.name in
+  let tok =
+    match image_spec.tag with
+    | None ->
+        (* TODO: let pattern match any tag in the target *)
+        PI.tok_add_s ":latest" tok
+    | Some (colon_tok, (_tag_str, tag_tok)) ->
+        PI.combine_infos tok [ colon_tok; tag_tok ]
+  in
+  (* TODO don't ignore image digest if specified in the pattern *)
+  let str = PI.str_of_info tok in
+  [ G.L (G.String (str, tok)) |> G.e ]
+
 let instruction env (x : instruction) : G.stmt =
   let expr =
     match x with
-    | From (loc, name, _, _, _) -> call name loc []
+    | From (loc, name, opt_param, image_spec, opt_alias) ->
+        call name loc (from env opt_param image_spec opt_alias)
     | Run (loc, name, x) -> call name loc (argv_or_shell env x)
     | Cmd (loc, name, x) -> call name loc (argv_or_shell env x)
     | Label (loc, name, _) -> call name loc []
