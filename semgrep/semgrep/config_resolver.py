@@ -17,6 +17,7 @@ from typing import Tuple
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
+from semgrep.commands.login import Authentication
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -98,6 +99,8 @@ class ConfigPath:
             self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
             self._config_path = config_str
+        elif is_policy_id(config_str):
+            self._config_path = policy_id_to_url(config_str)
         elif is_registry_id(config_str):
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
@@ -202,6 +205,11 @@ class ConfigPath:
         config_url = self._config_path
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, **(self._extra_headers or {})}
+
+        token = Authentication.get_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
         r = requests.get(config_url, stream=True, headers=headers, timeout=20)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
@@ -546,6 +554,16 @@ def registry_id_to_url(registry_id: str) -> str:
     Convert from registry_id to semgrep.dev url
     """
     return f"{SEMGREP_URL}{registry_id}"
+
+
+def is_policy_id(config_str: str) -> bool:
+    return config_str[:7] == "policy/"
+
+
+def policy_id_to_url(config_str: str) -> str:
+    deployment_id = 1
+    repo_name = config_str[7:]
+    return f"{(SEMGREP_URL)}api/agent/deployment/{deployment_id}/repos/{repo_name}/rules.yaml"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:
