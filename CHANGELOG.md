@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
+
 ### Added
 - New language Solidity with experimental support.
 - Scala: Patterns like List(...) now correctly match against patterns in code
