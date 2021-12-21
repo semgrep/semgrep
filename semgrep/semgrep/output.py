@@ -343,9 +343,8 @@ class OutputHandler:
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
-            # make a simplifying assumption that # errors = # files failed
-            # it's a quite a bit of work to simplify further because errors may or may not have path, span, etc.
-            num_errors = len(self.semgrep_structured_errors)
+            paths = set(err.path for err in self.semgrep_structured_errors)
+            num_errors = len(paths)
             plural = "s" if num_errors > 1 else ""
             error_stats = f"found problems analyzing {num_errors} file{plural}"
             final_error = self.semgrep_structured_errors[-1]
@@ -392,7 +391,7 @@ class OutputHandler:
                 "loc": make_loc_stats(self.all_targets),
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
-        if self.settings.output_time:
+        if self.settings.output_time or self.settings.verbose_errors:
             extra["time"] = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
