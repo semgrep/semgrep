@@ -418,7 +418,7 @@ and argument = function
       G.Arg v1
   | ArgKwd (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
-      G.ArgKwd (v1, v2)
+      G.ArgKwd (G.ArgRequired, v1, v2)
   | ArgQuestion (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
       G.OtherArg (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])

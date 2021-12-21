@@ -145,10 +145,10 @@ let rec map_args env = function
       let env', new_id = get_id env x in
       let _, args = map_args env' xs in
       (env', Arg new_id :: args)
-  | ArgKwd (label, x) :: xs ->
+  | ArgKwd (required, label, x) :: xs ->
       let env', new_id = get_id env x in
       let _, args = map_args env' xs in
-      (env', ArgKwd (label, new_id) :: args)
+      (env', ArgKwd (required, label, new_id) :: args)
   | _ -> (env, [])
 
 (* TODO fail? *)
@@ -181,9 +181,9 @@ and deep_mv_args with_type env args =
   | Arg e :: xs ->
       let env'', new_e, args' = get_new_arg (e, xs) in
       (env'', Arg new_e :: args')
-  | ArgKwd (label, e) :: xs ->
+  | ArgKwd (required, label, e) :: xs ->
       let env'', new_e, args' = get_new_arg (e, xs) in
-      (env'', ArgKwd (label, new_e) :: args')
+      (env'', ArgKwd (required, label, new_e) :: args')
   | _ -> (env, [])
 
 let deep_metavar (e, (lp, es, rp)) env =

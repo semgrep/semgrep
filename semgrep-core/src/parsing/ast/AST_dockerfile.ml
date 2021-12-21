@@ -54,11 +54,13 @@ type argv_or_shell =
   | Sh_command of loc * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
 
-type param = tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap
+type param =
+  loc * (tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap)
 
 (* value *)
 
 type image_spec = {
+  loc : loc;
   name : string wrap;
   tag : (tok (* : *) * string wrap) option;
   digest : (tok (* @ *) * string wrap) option;
@@ -128,6 +130,8 @@ let wrap_loc (_, tok) = (tok, tok)
 
 let bracket_loc (open_, _, close) = (open_, close)
 
+let range (start_tok, _) (_, end_tok) = (start_tok, end_tok)
+
 let list_loc = B.list_loc
 
 (* Re-using the type used for double-quoted strings in bash *)
@@ -153,22 +157,9 @@ let argv_or_shell_loc = function
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
 
-let param_loc ((tok, _, _, value) : param) : loc = (tok, snd value)
+let param_loc ((loc, _) : param) : loc = loc
 
-let image_spec_loc (x : image_spec) =
-  let start = wrap_loc x.name in
-  let end_ = start in
-  let end_ =
-    match x.tag with
-    | None -> end_
-    | Some (_, x) -> wrap_loc x
-  in
-  let end_ =
-    match x.digest with
-    | None -> end_
-    | Some (_, x) -> wrap_loc x
-  in
-  (start, end_)
+let image_spec_loc (x : image_spec) = x.loc
 
 let image_alias_loc = wrap_loc
 

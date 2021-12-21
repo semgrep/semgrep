@@ -783,11 +783,19 @@ and xml_body =
 (* brackets can be fake '()' for OCaml/Ruby *)
 and arguments = argument list bracket
 
+(*
+   ArgRequired = argument must exist in both pattern and target.
+   ArgOptional = still matches if the argument exists in the target but
+                 not in the pattern. If an ArgOptional exists in the pattern,
+                 a matching argument must exist in the target.
+*)
+and required = ArgRequired | ArgOptional
+
 and argument =
   (* regular argument *)
   | Arg of expr (* can be Call (IdSpecial Spread, Id foo) *)
   (* keyword argument *)
-  | ArgKwd of ident * expr
+  | ArgKwd of required * ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
   (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml, ArgIds in Solidity *)

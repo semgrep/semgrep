@@ -983,7 +983,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : G.argument =
   in
   match v1 with
   | None -> G.Arg v3
-  | Some id -> G.ArgKwd (id, v3)
+  | Some id -> G.ArgKwd (G.ArgRequired, id, v3)
 
 and initializer_expression (env : env)
     ((v1, v2, v3, v4) : CST.initializer_expression) : expr list G.bracket =
@@ -1945,7 +1945,7 @@ and attribute_argument (env : env) ((v1, v2) : CST.attribute_argument) =
   in
   let v2 = expression env v2 in
   match v1 with
-  | Some name -> ArgKwd (name, v2)
+  | Some name -> ArgKwd (G.ArgRequired, name, v2)
   | None -> Arg v2
 
 and catch_filter_clause (env : env) ((v1, v2, v3, v4) : CST.catch_filter_clause)

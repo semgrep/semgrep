@@ -79,7 +79,7 @@ let todo (_env : env) _ =
    Here, we just return all the tokens so they can be concatenated back
    together.
 *)
-let expansion (env : env) ((v1, v2) : CST.expansion) : tok list =
+let expansion (env : env) ((v1, v2) : CST.expansion) : string wrap =
   let dollar = token env v1 (* "$" *) in
   let more_tokens =
     match v2 with
@@ -90,15 +90,17 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : tok list =
         let v3 = token env v3 (* "}" *) in
         [ v1; v2; v3 ]
   in
+  concat_tokens dollar more_tokens
 
-  dollar :: more_tokens
+let expansion_tok (env : env) (x : CST.expansion) : tok = expansion env x |> snd
 
 let param (env : env) ((v1, v2, v3, v4) : CST.param) =
-  let v1 = token env v1 (* "--" *) in
-  let v2 = token env v2 (* pattern [a-z][-a-z]* *) in
-  let v3 = token env v3 (* "=" *) in
-  let v4 = token env v4 (* pattern [^\s]+ *) in
-  todo env (v1, v2, v3, v4)
+  let dashdash = token env v1 (* "--" *) in
+  let key = str env v2 (* pattern [a-z][-a-z]* *) in
+  let equal = token env v3 (* "=" *) in
+  let value = str env v4 (* pattern [^\s]+ *) in
+  let loc = (dashdash, snd value) in
+  (loc, (dashdash, key, equal, value))
 
 let expose_port (env : env) ((v1, v2) : CST.expose_port) =
   let v1 = token env v1 (* pattern \d+ *) in
@@ -113,23 +115,27 @@ let expose_port (env : env) ((v1, v2) : CST.expose_port) =
   todo env (v1, v2)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) =
-  let v1 = token env v1 (* ":" *) in
-  let v2 =
-    List.map
-      (fun x ->
-        match x with
-        | `Imm_tok_pat_bcfc287 tok -> [ token env tok (* pattern [^@\s\$]+ *) ]
-        | `Expa x -> expansion env x)
-      v2
+  let colon = token env v1 (* ":" *) in
+  let tag =
+    match v2 with
+    | [] -> ("", colon)
+    | fragments ->
+        fragments
+        |> List.map (fun x ->
+               match x with
+               | `Imm_tok_pat_bcfc287 tok ->
+                   token env tok (* pattern [^@\s\$]+ *)
+               | `Expa x -> expansion_tok env x)
+        |> unsafe_concat_tokens
   in
-  todo env (v1, v2)
+  (colon, tag)
 
 let user_name_or_group (env : env) (xs : CST.user_name_or_group) =
   List.map
     (fun x ->
       match x with
-      | `Pat_660c06c tok -> [ token env tok (* pattern [a-z][-a-z0-9_]* *) ]
-      | `Expa x -> expansion env x)
+      | `Pat_660c06c tok -> token env tok (* pattern [a-z][-a-z0-9_]* *)
+      | `Expa x -> expansion_tok env x)
     xs
 
 let unquoted_string (env : env) (xs : CST.unquoted_string) : string wrap =
@@ -137,63 +143,65 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : string wrap =
     (fun x ->
       match x with
       | `Imm_tok_pat_24a1611 tok ->
-          [ token env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *) ]
-      | `BSLASHSPACE tok -> [ token env tok (* "\\ " *) ]
-      | `Expa x -> expansion env x)
+          token env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *)
+      | `BSLASHSPACE tok -> token env tok (* "\\ " *)
+      | `Expa x -> expansion_tok env x)
     xs
-  |> Common.flatten |> unsafe_concat_tokens
+  |> unsafe_concat_tokens
 
 let path (env : env) ((v1, v2) : CST.path) =
   let v1 =
     match v1 with
-    | `Pat_1167a92 tok -> [ token env tok (* pattern [^-\s\$] *) ]
-    | `Expa x -> expansion env x
+    | `Pat_1167a92 tok -> token env tok (* pattern [^-\s\$] *)
+    | `Expa x -> expansion_tok env x
   in
   let v2 =
     List.map
       (fun x ->
         match x with
-        | `Pat_0c7fc22 tok -> [ token env tok (* pattern [^\s\$]+ *) ]
-        | `Expa x -> expansion env x)
+        | `Pat_0c7fc22 tok -> token env tok (* pattern [^\s\$]+ *)
+        | `Expa x -> expansion_tok env x)
       v2
   in
   todo env (v1, v2)
 
 let image_digest (env : env) ((v1, v2) : CST.image_digest) =
-  let v1 = token env v1 (* "@" *) in
-  let v2 =
+  let at = token env v1 (* "@" *) in
+  let digest =
     List.map
       (fun x ->
         match x with
-        | `Imm_tok_pat_d2727a0 tok ->
-            [ token env tok (* pattern [a-zA-Z0-9:]+ *) ]
-        | `Expa x -> expansion env x)
+        | `Imm_tok_pat_d2727a0 tok -> token env tok (* pattern [a-zA-Z0-9:]+ *)
+        | `Expa x -> expansion_tok env x)
       v2
+    |> unsafe_concat_tokens
   in
-  todo env (v1, v2)
+  (at, digest)
 
 let image_name (env : env) (xs : CST.image_name) =
   List.map
     (fun x ->
       match x with
-      | `Pat_2b37705 tok -> [ token env tok (* pattern [^@:\s\$]+ *) ]
-      | `Expa x -> expansion env x)
+      | `Pat_2b37705 tok -> token env tok (* pattern [^@:\s\$]+ *)
+      | `Expa x -> expansion_tok env x)
     xs
+  |> unsafe_concat_tokens
 
 let image_alias (env : env) (xs : CST.image_alias) =
   List.map
     (fun x ->
       match x with
-      | `Pat_9a14b5c tok -> [ token env tok (* pattern [-a-zA-Z0-9_]+ *) ]
-      | `Expa x -> expansion env x)
+      | `Pat_9a14b5c tok -> token env tok (* pattern [-a-zA-Z0-9_]+ *)
+      | `Expa x -> expansion_tok env x)
     xs
+  |> unsafe_concat_tokens
 
 let stopsignal_value (env : env) (xs : CST.stopsignal_value) =
   List.map
     (fun x ->
       match x with
-      | `Pat_441cd81 tok -> [ token env tok (* pattern [A-Z0-9]+ *) ]
-      | `Expa x -> expansion env x)
+      | `Pat_441cd81 tok -> token env tok (* pattern [A-Z0-9]+ *)
+      | `Expa x -> expansion_tok env x)
     xs
 
 let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
@@ -204,11 +212,10 @@ let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
       (fun x ->
         match x with
         | `Imm_tok_pat_589b0f8 tok ->
-            [ token env tok (* pattern "[^\"\\n\\\\\\$]+" *) ]
-        | `Esc_seq tok -> [ token env tok (* escape_sequence *) ]
-        | `Expa x -> expansion env x)
+            token env tok (* pattern "[^\"\\n\\\\\\$]+" *)
+        | `Esc_seq tok -> token env tok (* escape_sequence *)
+        | `Expa x -> expansion_tok env x)
       v2
-    |> Common.flatten
   in
   let close = [ token env v3 (* "\"" *) ] in
   concat_tokens open_ (contents @ close)
@@ -222,19 +229,34 @@ let shell_fragment (env : env) (xs : CST.shell_fragment) : tok =
     xs
   |> unsafe_concat_tokens |> snd
 
-let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) =
-  let v1 = image_name env v1 in
-  let v2 =
+let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
+  let name = image_name env v1 in
+  let tag =
     match v2 with
-    | Some x -> image_tag env x
-    | None -> todo env ()
+    | Some x -> Some (image_tag env x)
+    | None -> None
   in
-  let v3 =
+  let digest =
     match v3 with
-    | Some x -> image_digest env x
-    | None -> todo env ()
+    | Some x -> Some (image_digest env x)
+    | None -> None
   in
-  todo env (v1, v2, v3)
+  let loc =
+    let start = wrap_loc name in
+    let end_ = start in
+    let end_ =
+      match tag with
+      | None -> end_
+      | Some (_, x) -> wrap_loc x
+    in
+    let end_ =
+      match digest with
+      | None -> end_
+      | Some (_, x) -> wrap_loc x
+    in
+    range start end_
+  in
+  { loc; name; tag; digest }
 
 let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) : str =
   match x with
@@ -359,21 +381,28 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
       match x with
       | `From_inst (v1, v2, v3, v4) ->
           let name = str env v1 (* pattern [fF][rR][oO][mM] *) in
-          let _v2 () =
-            match v2 with
-            | Some x -> param env x
-            | None -> todo env ()
+          let loc =
+            let tok = snd name in
+            (tok, tok)
           in
-          let _v3 () = image_spec env v3 in
-          let _v4 () =
+          let param, loc =
+            match v2 with
+            | Some x ->
+                let param = param env x in
+                (Some param, Loc.range loc (param_loc param))
+            | None -> (None, loc)
+          in
+          let image_spec = image_spec env v3 in
+          let loc = Loc.range loc (image_spec_loc image_spec) in
+          let alias, loc =
             match v4 with
             | Some (v1, v2) ->
-                let _as = token env v1 (* pattern [aA][sS] *) in
-                let _v2 () = image_alias env v2 in
-                todo env (v1, v2)
-            | None -> todo env ()
+                let as_ = token env v1 (* pattern [aA][sS] *) in
+                let alias = image_alias env v2 in
+                (Some (as_, alias), Loc.extend loc (snd alias))
+            | None -> (None, loc)
           in
-          (env, Instr_TODO name)
+          (env, From (loc, name, param, image_spec, alias))
       | `Run_inst (v1, v2) ->
           let name = str env v1 (* pattern [rR][uU][nN] *) in
           let cmd = argv_or_shell env v2 in

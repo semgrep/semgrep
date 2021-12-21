@@ -294,7 +294,7 @@ and argument = function
   | ArgKwd (n, e) ->
       let n = name n in
       let e = expr e in
-      G.ArgKwd (n, e)
+      G.ArgKwd (G.ArgRequired, n, e)
   | ArgComp (e, xs) ->
       let e = expr e in
       G.Arg (G.Comprehension (G.List, G.fake_bracket (e, list for_if xs)) |> G.e)
@@ -444,7 +444,7 @@ and type_parent v : G.class_parent =
   match v with
   | G.Arg e -> H.expr_to_class_parent e
   (* less: could raise an error *)
-  | G.ArgKwd (id, e) ->
+  | G.ArgKwd (G.ArgRequired, id, e) ->
       (G.OtherType (("ArgKwdParent", snd id), [ G.I id; G.E e ]) |> G.t, None)
   (* see argument code *)
   | _ -> raise Impossible

@@ -11,11 +11,16 @@ type env = AST_bash.input_kind
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
 let call ((orig_name, name_tok) : string wrap) ((args_start, args_end) : loc)
-    (args : G.expr list) : G.expr =
+    (args : G.argument list) : G.expr =
   let name = (String.uppercase_ascii orig_name, name_tok) in
   let func = G.N (G.Id (name, G.empty_id_info ())) |> G.e in
-  let args = Common.map (fun e -> G.Arg e) args in
   G.Call (func, (args_start, args, args_end)) |> G.e
+
+(* Same as 'call' but assumes all the arguments are ordinary, non-optional
+   arguments, specified as 'expr'. *)
+let call_exprs (name : string wrap) (loc : loc) (args : G.expr list) : G.expr =
+  let args = Common.map (fun e -> G.Arg e) args in
+  call name loc args
 
 let make_hidden_function loc name : G.expr =
   let id = "!dockerfile_" ^ name ^ "!" in
@@ -61,30 +66,33 @@ let argv_or_shell env x : G.expr list =
       let loc = wrap_loc code in
       [ call_shell loc shell_compat args ]
 
-let from _env _TODO_opt_param (image_spec : image_spec) _TODO_opt_alias :
-    G.expr list =
+let from _TODO_opt_param (image_spec : image_spec) _TODO_opt_alias :
+    G.argument list =
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
-  let _name_str, tok = image_spec.name in
-  let tok =
+  let name = G.Arg (G.L (G.String image_spec.name) |> G.e) in
+  let tag =
     match image_spec.tag with
-    | None ->
-        (* TODO: let pattern match any tag in the target *)
-        PI.tok_add_s ":latest" tok
-    | Some (colon_tok, (_tag_str, tag_tok)) ->
-        PI.combine_infos tok [ colon_tok; tag_tok ]
+    | None -> []
+    | Some (colon, tag) ->
+        [ G.ArgKwd (G.ArgOptional, (":", colon), G.L (G.String tag) |> G.e) ]
   in
-  (* TODO don't ignore image digest if specified in the pattern *)
-  let str = PI.str_of_info tok in
-  [ G.L (G.String (str, tok)) |> G.e ]
+  let digest =
+    match image_spec.digest with
+    | None -> []
+    | Some (at, digest) ->
+        [ G.ArgKwd (G.ArgOptional, ("@", at), G.L (G.String digest) |> G.e) ]
+  in
+  (name :: tag) @ digest
 
 let instruction env (x : instruction) : G.stmt =
   let expr =
     match x with
     | From (loc, name, opt_param, image_spec, opt_alias) ->
-        call name loc (from env opt_param image_spec opt_alias)
-    | Run (loc, name, x) -> call name loc (argv_or_shell env x)
-    | Cmd (loc, name, x) -> call name loc (argv_or_shell env x)
+        let args = from opt_param image_spec opt_alias in
+        call name loc args
+    | Run (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
+    | Cmd (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
     | Label (loc, name, _) -> call name loc []
     | Expose (loc, name, _, _) -> call name loc []
     | Env (loc, name, _) -> call name loc []
@@ -102,7 +110,8 @@ let instruction env (x : instruction) : G.stmt =
     | Maintainer (loc, name, _) -> call name loc []
     | Cross_build_xxx (loc, name, _) -> call name loc []
     | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
-    | Instr_TODO ((_, tok) as name) -> call name (tok, tok) []
+    | Instr_TODO (orig_name, tok) ->
+        call ("TODO_" ^ orig_name, tok) (tok, tok) []
   in
   stmt_of_expr (instruction_loc x) expr
 
