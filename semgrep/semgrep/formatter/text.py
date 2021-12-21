@@ -196,10 +196,7 @@ class TextFormatter(BaseFormatter):
 
         def lang_of_path(path: str) -> str:
             ext = "." + path.split(".")[-1]
-            if ext in ext_to_lang:
-                return ext_to_lang[ext]
-            else:
-                return "generic"
+            return ext_to_lang.get(ext, "generic")
 
         ext_info = sorted(
             [
