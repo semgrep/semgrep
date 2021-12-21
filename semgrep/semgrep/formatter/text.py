@@ -136,8 +136,9 @@ class TextFormatter(BaseFormatter):
         return f' Details: {with_color("bright_blue", source_url)}'
 
     @staticmethod
-    def _build_text_timing_output(
+    def _build_summary(
         time_data: Mapping[str, Any],
+        error_output: List[Any],
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
@@ -173,22 +174,10 @@ class TextFormatter(BaseFormatter):
 
         # Count errors
 
-        # If all the rules have -1 for their non-zero (aka attempted) parse_times, the file failed to parse.
-        # Otherwise, something else went wrong before the matching stage
+        errors = { (err.path, err.error_type) for err in error_output }
 
-        target_states = [
-            (
-                any(t < 0 for t in target["run_times"]),
-                any(t < 0 for t in target["parse_times"]),
-                any(t < 0 for t in target["match_times"]),
-            )
-            for target in targets
-        ]
-        target_errors = [t for t in target_states if t[0] or t[1] or t[2]]
-        run_errors = len([t for t in target_errors if t[0]])
-        parse_errors = len([t for t in target_errors if t[1] and not t[0]])
-        match_errors = len([t for t in target_errors if t[2] and not (t[1] or t[0])])
-        errors = len(target_errors)
+        error_types = { k: len(list(v)) for k, v in groupby(errors, lambda x:x[1]) }
+        num_errors = len(errors)
 
         # Compute summary by language
 
@@ -251,7 +240,7 @@ class TextFormatter(BaseFormatter):
 
         # Output other file information
         ANALYZED = "Analyzed:"
-        FAILED = "Failed:"
+        FAILED = "Errors:"
         headings = [ANALYZED, FAILED]
         max_heading_len = max(len(h) for h in headings) + 1  # for the space
 
@@ -278,19 +267,11 @@ class TextFormatter(BaseFormatter):
         def if_exists(num_errors: int, msg: str) -> str:
             return "" if num_errors == 0 else msg
 
-        l_paren = if_exists(errors, "(")
-        r_paren = if_exists(errors, ")")
-        see_more = if_exists(errors, "see output before the results for details")
-        parse_err_str = if_exists(
-            parse_errors, f"{ parse_errors } failed before matching, "
-        )
-        match_err_str = if_exists(
-            match_errors, f"{ match_errors } failed while matching, "
-        )
-        run_err_str = if_exists(run_errors, f"{ run_errors } crashed, ")
-
-        error_str = f"{ errors } files failed {l_paren}{parse_err_str}{match_err_str}{run_err_str}{see_more}{r_paren}"
-        for line in add_heading(FAILED, [error_str]):
+        see_more = if_exists(num_errors, ", see output before the results for details or run with --strict")
+        error_msg = f"{ num_errors } files with errors{see_more}"
+        error_lines = [error_msg] + [f"{type} ({num} files)" for (type, num) in error_types.items()]
+        
+        for line in add_heading(FAILED, error_lines):
             yield line
 
         yield ""
@@ -366,8 +347,9 @@ class TextFormatter(BaseFormatter):
         )
 
         timing_output = (
-            self._build_text_timing_output(
+            self._build_summary(
                 extra.get("time", {}),
+                semgrep_structured_errors,
                 extra.get("color_output", False),
             )
             if "time" in extra
