@@ -1,13 +1,14 @@
 import functools
 import itertools
+from itertools import groupby
 from pathlib import Path
 from typing import Any
 from typing import Iterable
 from typing import Iterator
+from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
-from typing import List
 
 import colorama
 
@@ -22,14 +23,12 @@ from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_types import LANGUAGE
+from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
 from semgrep.util import with_color
-from semgrep.semgrep_types import FileExtension
-from semgrep.semgrep_types import LANGUAGE
-from semgrep.semgrep_types import Language
 
-from itertools import groupby
 
 class TextFormatter(BaseFormatter):
     @staticmethod
@@ -162,8 +161,7 @@ class TextFormatter(BaseFormatter):
             for i, rule in enumerate(time_data["rules"])
         }
         file_parsing_time = sum(
-            sum(t for t in target["parse_times"] if t >= 0)
-            for target in targets
+            sum(t for t in target["parse_times"] if t >= 0) for target in targets
         )
         file_timings = {
             target["path"]: float(sum(t for t in target["run_times"] if t >= 0))
@@ -175,33 +173,53 @@ class TextFormatter(BaseFormatter):
 
         # Count errors
 
-        # If all the rules have -1 for their non-zero (aka attempted) parse_times, the file failed to parse. 
+        # If all the rules have -1 for their non-zero (aka attempted) parse_times, the file failed to parse.
         # Otherwise, something else went wrong before the matching stage
 
-        target_states = [ (any(t < 0 for t in target["run_times"]), any(t < 0 for t in target["parse_times"]), any(t < 0 for t in target["match_times"])) for target in targets ]
-        target_errors = [ t for t in target_states if t[0] or t[1] or t[2] ]
-        run_errors = len([ t for t in target_errors if t[0] ])
-        parse_errors = len([ t for t in target_errors if t[1] and not t[0] ])
-        match_errors = len([ t for t in target_errors if t[2] and not (t[1] or t[0]) ])
+        target_states = [
+            (
+                any(t < 0 for t in target["run_times"]),
+                any(t < 0 for t in target["parse_times"]),
+                any(t < 0 for t in target["match_times"]),
+            )
+            for target in targets
+        ]
+        target_errors = [t for t in target_states if t[0] or t[1] or t[2]]
+        run_errors = len([t for t in target_errors if t[0]])
+        parse_errors = len([t for t in target_errors if t[1] and not t[0]])
+        match_errors = len([t for t in target_errors if t[2] and not (t[1] or t[0])])
         errors = len(target_errors)
 
-        # Compute summary by language 
-        
+        # Compute summary by language
+
         ext_to_lang: Mapping[str, Language] = LANGUAGE.lang_by_ext
 
-        def lang_of_path(path : str):
+        def lang_of_path(path: str) -> str:
             ext = "." + path.split(".")[-1]
             if ext in ext_to_lang:
                 return ext_to_lang[ext]
             else:
                 return "generic"
 
-        ext_info = sorted([(lang_of_path(target["path"]), (target["num_bytes"], sum(target["run_times"]))) for target in targets ], key=lambda x:x[0])
-        lang_info = {k : list(v) for k, v in groupby(ext_info, lambda x:x[0]) }
+        ext_info = sorted(
+            [
+                (
+                    lang_of_path(target["path"]),
+                    (target["num_bytes"], sum(target["run_times"])),
+                )
+                for target in targets
+            ],
+            key=lambda x: x[0],
+        )
+        lang_info = {k: list(v) for k, v in groupby(ext_info, lambda x: x[0])}
         langs = lang_info.keys()
-        lang_counts: Mapping[Language, int] = { lang : len(lang_info[lang]) for lang in langs }
-        lang_bytes: Mapping[Language, int] = { lang : sum(info[1][0] for info in lang_info[lang]) for lang in langs }
-        lang_times: Mapping[Language, int] = { lang : sum(info[1][1] for info in lang_info[lang]) for lang in langs }
+        lang_counts: Mapping[str, int] = {lang: len(lang_info[lang]) for lang in langs}
+        lang_bytes: Mapping[str, int] = {
+            lang: sum(info[1][0] for info in lang_info[lang]) for lang in langs
+        }
+        lang_times: Mapping[str, int] = {
+            lang: sum(info[1][1] for info in lang_info[lang]) for lang in langs
+        }
 
         # Output semgrep summary
         total_time = time_data["profiling_times"].get("total_time", 0.0)
@@ -238,9 +256,9 @@ class TextFormatter(BaseFormatter):
         ANALYZED = "Analyzed:"
         FAILED = "Failed:"
         headings = [ANALYZED, FAILED]
-        max_heading_len = max(len(h) for h in headings) + 1 # for the space
+        max_heading_len = max(len(h) for h in headings) + 1  # for the space
 
-        def add_heading(heading : str, lines : List[str]):
+        def add_heading(heading: str, lines: List[str]) -> List[str]:
             heading = heading + " " * (max_heading_len - len(heading))
             first = True
             returned = []
@@ -252,18 +270,26 @@ class TextFormatter(BaseFormatter):
 
         yield ""
 
-        by_lang = [f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.4f} seconds)" for lang in langs]
+        by_lang = [
+            f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.4f} seconds)"
+            for lang in langs
+        ]
         for line in add_heading(ANALYZED, by_lang):
             yield line
 
         # Output errors
-        def if_exists(num_errors, str):
-            return "" if num_errors == 0 else str
+        def if_exists(num_errors: int, msg: str) -> str:
+            return "" if num_errors == 0 else msg
+
         l_paren = if_exists(errors, "(")
         r_paren = if_exists(errors, ")")
         see_more = if_exists(errors, "see output before the results for details")
-        parse_err_str = if_exists(parse_errors, f"{ parse_errors } failed before matching, ")
-        match_err_str = if_exists(match_errors, f"{ match_errors } failed while matching, ")
+        parse_err_str = if_exists(
+            parse_errors, f"{ parse_errors } failed before matching, "
+        )
+        match_err_str = if_exists(
+            match_errors, f"{ match_errors } failed while matching, "
+        )
         run_err_str = if_exists(run_errors, f"{ run_errors } crashed, ")
 
         error_str = f"{ errors } files failed {l_paren}{parse_err_str}{match_err_str}{run_err_str}{see_more}{r_paren}"

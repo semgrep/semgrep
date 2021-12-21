@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -343,7 +344,13 @@ class OutputHandler:
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
-            paths = set(err.path for err in self.semgrep_structured_errors)
+            # Assumption: only the semgrep core errors pertain to files
+            semgrep_core_errors = [
+                cast(SemgrepCoreError, err)
+                for err in self.semgrep_structured_errors
+                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+            ]
+            paths = set(err.path for err in semgrep_core_errors)
             num_errors = len(paths)
             plural = "s" if num_errors > 1 else ""
             error_stats = f"found problems analyzing {num_errors} file{plural}"
