@@ -9,5 +9,51 @@
       "type": "Timeout"
     }
   ],
-  "results": []
+  "results": [],
+  "time": {
+    "profiling_times": {
+      "config_time": 0.1628890037536621,
+      "core_time": 1.1856169700622559,
+      "ignores_time": 2.193450927734375e-05,
+      "total_time": 1.3498539924621582
+    },
+    "rule_parse_info": [
+      0.0022690296173095703,
+      0.0,
+      0.0
+    ],
+    "rules": [
+      {
+        "id": "rules.forcetimeout"
+      },
+      {
+        "id": "rules.forcetimeout2"
+      },
+      {
+        "id": "rules.forcetimeout3"
+      }
+    ],
+    "targets": [
+      {
+        "match_times": [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        "num_bytes": 1763,
+        "parse_times": [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        "path": "targets/equivalence/open_redirect.py",
+        "run_times": [
+          1.0012030601501465,
+          0.0,
+          0.0
+        ]
+      }
+    ],
+    "total_bytes": 1763
+  }
 }
