@@ -3,6 +3,7 @@ import itertools
 from itertools import groupby
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Iterable
 from typing import Iterator
 from typing import List
@@ -19,6 +20,7 @@ from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -138,7 +140,7 @@ class TextFormatter(BaseFormatter):
     @staticmethod
     def _build_summary(
         time_data: Mapping[str, Any],
-        error_output: List[Any],
+        error_output: Sequence[SemgrepError],
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
@@ -174,9 +176,14 @@ class TextFormatter(BaseFormatter):
 
         # Count errors
 
-        errors = { (err.path, err.error_type) for err in error_output }
+        semgrep_core_errors = [
+            cast(SemgrepCoreError, err)
+            for err in error_output
+            if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+        ]
+        errors = {(err.path, err.error_type) for err in semgrep_core_errors}
 
-        error_types = { k: len(list(v)) for k, v in groupby(errors, lambda x:x[1]) }
+        error_types = {k: len(list(v)) for k, v in groupby(errors, lambda x: x[1])}
         num_errors = len(errors)
 
         # Compute summary by language
@@ -267,10 +274,15 @@ class TextFormatter(BaseFormatter):
         def if_exists(num_errors: int, msg: str) -> str:
             return "" if num_errors == 0 else msg
 
-        see_more = if_exists(num_errors, ", see output before the results for details or run with --strict")
+        see_more = if_exists(
+            num_errors,
+            ", see output before the results for details or run with --strict",
+        )
         error_msg = f"{ num_errors } files with errors{see_more}"
-        error_lines = [error_msg] + [f"{type} ({num} files)" for (type, num) in error_types.items()]
-        
+        error_lines = [error_msg] + [
+            f"{type} ({num} files)" for (type, num) in error_types.items()
+        ]
+
         for line in add_heading(FAILED, error_lines):
             yield line
 
