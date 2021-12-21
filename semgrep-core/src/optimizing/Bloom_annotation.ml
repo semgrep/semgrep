@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module B = Bloom_filter
 module V = Visitor_AST
 module Set = Set_
 open AST_generic
@@ -29,6 +28,19 @@ open AST_generic
  * identifier.
  * The Bloom filter allows to generalize this idea to a set of identifiers
  * that must be present in some statements while still being space-efficient.
+ *
+ * We actually now use regular OCaml Sets instead of Bloom filters.
+ * In theory, sets ought to be less efficient than bloom filters, since bloom
+ * filters use bits and are constant size. However, in practice, the
+ * implementation of sets and strings are designed to reuse memory as much as
+ * possible. Since every string in the set is already in the AST, and a child
+ * node's set is a subset of its parent, there is a great deal of opportunity
+ * for reusing. From experimental spotchecking using top, set filters use less
+ * memory than bloom filters
+ *
+ * Using sets also ensures that we will never have a false positive, which from
+ * comparing benchmarks on https://dashboard.semgrep.dev/metrics appears to
+ * make a small difference.
  *
  * Note that we must make sure we don't skip statements we should analyze!
  * For example with the naming aliasing, a pattern like 'foo()'
@@ -87,7 +99,7 @@ let rec statement_strings stmt =
             | L (String (str, _tok)) -> push str res
             | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
             | _ -> k x);
-        V.kconstness =
+        V.ksvalue =
           (fun (k, _) x ->
             match x with
             | Lit (String (str, _tok)) ->
@@ -105,9 +117,8 @@ let rec statement_strings stmt =
             else
               (* For any other statement, recurse to add the filter *)
               let strs = statement_strings x in
-              let bf = B.make_bloom_from_set strs in
               push_list strs res;
-              x.s_bf <- Some bf);
+              x.s_strings <- Some strs);
       }
   in
   visitor (S stmt);
@@ -132,8 +143,7 @@ let annotate_program ast =
         V.kstmt =
           (fun (_k, _) x ->
             let ids = statement_strings x in
-            let bf = B.make_bloom_from_set ids in
-            x.s_bf <- Some bf);
+            x.s_strings <- Some ids);
       }
   in
   visitor (Ss ast)

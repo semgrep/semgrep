@@ -44,6 +44,15 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
             "rules/autofix/django-none-password-default.yaml",
             "autofix/django-none-password-default.py",
         ),
+        (
+            "rules/autofix/terraform-ec2-instance-metadata-options.yaml",
+            "autofix/terraform-ec2-instance-metadata-options.hcl",
+        ),
+        (
+            "rules/autofix/python-assert-statement.yaml",
+            "autofix/python-assert-statement.py",
+        ),
+        ("rules/autofix/java-string-wrap.yaml", "autofix/java-string-wrap.java"),
     ],
 )
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):

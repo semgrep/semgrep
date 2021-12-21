@@ -398,6 +398,9 @@ class TargetManager:
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 
+        targets = (
+            self.file_ignore.filter_paths(targets) if self.file_ignore else targets
+        )
         self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
 
@@ -416,9 +419,6 @@ class TargetManager:
         filter is then applied.
         """
         targets = self.filtered_files(lang)
-        targets = (
-            self.file_ignore.filter_paths(targets) if self.file_ignore else targets
-        )
         targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
         targets = self.filter_by_size(targets, self.max_target_bytes)

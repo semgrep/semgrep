@@ -92,8 +92,6 @@ let to_string = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.name }}"
 {% endfor %}
 
-let string_of_lang = to_string
-
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.id }}"
@@ -121,3 +119,8 @@ let unsupported_language_message lang =
   else
     Common.spf "unsupported language: %s; supported language tags are: %s" lang
       supported_langs
+
+let of_string s =
+  match lang_of_string_opt s with
+  | Some x -> x
+  | None -> failwith (unsupported_language_message s)

@@ -51,13 +51,12 @@ val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val xlang_files_of_dirs_or_files :
-  Xlang.t ->
-  Common.filename list ->
+val files_of_roots :
+  Runner_common.config ->
+  Common.path list ->
   Common.filename list * Semgrep_core_response_j.skipped_target list
 (**
-  Small wrapper over Find_target.files_of_dirs_or_files to handle
-  also Xlang.t (LRegex and LGeneric)
+  Small wrapper over Find_target.files_of_dirs_or_files
  *)
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :

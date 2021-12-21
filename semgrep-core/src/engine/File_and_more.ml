@@ -16,6 +16,7 @@ type t = {
   file : Common.filename;
   xlang : Xlang.t;
   lazy_content : string lazy_t;
+  (* This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)
   lazy_ast_and_errors :
     (AST_generic.program * Semgrep_error_code.error list) lazy_t;
 }

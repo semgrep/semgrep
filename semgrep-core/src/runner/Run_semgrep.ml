@@ -8,6 +8,8 @@ module SJ = Semgrep_core_response_j
 module RP = Report
 module P = Parse_with_caching
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
@@ -18,8 +20,6 @@ module P = Parse_with_caching
 (* Helpers *)
 (*****************************************************************************)
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*
    If the target is a named pipe, copy it into a regular file and return
    that. This allows multiple reads on the file.
@@ -27,6 +27,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
    This is intended to support one or a small number of targets created
    manually on the command line with e.g. <(echo 'eval(x)') which the
    shell replaces by a named pipe like '/dev/fd/63'.
+
+   update: This can be used also to fetch rules from the network,
+   e.g., semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
+
+   coupling: this functionality is implemented also in semgrep-python.
 *)
 let replace_named_pipe_by_regular_file path =
   match (Unix.stat path).st_kind with
@@ -340,26 +345,91 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
          in
          RP.add_run_time run_time res)
 
-let xlang_files_of_dirs_or_files (xlang : Xlang.t) files_or_dirs =
-  let opt_lang =
-    match xlang with
-    | LRegex
-    | LGeneric ->
-        None
-    | L (lang, _other_langs) ->
-        (* FIXME: we should include other_langs if there are any! *)
-        Some lang
+(*****************************************************************************)
+(* File targeting and rule filtering *)
+(*****************************************************************************)
+
+let lang_opt_of_config config =
+  match config.lang with
+  | None -> None
+  | Some xlang -> (
+      match xlang with
+      | Xlang.LRegex
+      | Xlang.LGeneric ->
+          None (* we will get all the files *)
+      | Xlang.L (lang, []) -> Some lang
+      (* config.lang comes from Xlang.of_string which returns just one lang *)
+      | Xlang.L (_, _) -> assert false)
+
+(* TODO: maybe this info should be passed by semgrep-python, so we don't
+ * have to redo some file-targeting here.
+ *)
+let langs_of_file_or_config config file =
+  match lang_opt_of_config config with
+  | Some lang -> [ lang ]
+  | None ->
+      (* let's try to infer the language
+       * TODO: use Guess_lang to also recognize scripts, and
+       * maybe use more stuff from lang.json (e.g., Lang.ext_of_lang)
+       *)
+      Lang.langs_of_filename file
+
+let rules_for_langs_and_file langs _fileTODO rules =
+  rules
+  |> List.filter (fun r ->
+         match (r.R.languages, langs) with
+         (* even if a file has a language, which should still apply
+          * the generic and regexp rules on it
+          * TODO: apply the include/exclude for file, which is especially
+          * used for generic and regex rules
+          *)
+         | LRegex, _
+         | LGeneric, _ ->
+             true
+         | L _, [] -> false
+         | L (x, xs), y :: ys ->
+             y :: ys |> List.exists (fun l -> List.mem l (x :: xs)))
+  [@@profile]
+
+let file_and_more_of_file config langs file =
+  let lazy_ast_and_errors, xlang =
+    match langs with
+    (* TODO: if there are multiple languages (e.g., Python2 and Python3,
+     * or Javascript and Typescript, should we try to parse the file with
+     * each language?
+     *)
+    | lang :: _ ->
+        ( lazy
+            (P.parse_generic config.use_parsing_cache config.version lang file),
+          Xlang.L (lang, []) )
+    | [] ->
+        ( lazy (failwith "requesting generic AST for LRegex|LGeneric"),
+          (* TODO? aribtrary? Why not LRegex? need to look in config? *)
+          Xlang.LGeneric )
   in
-  Find_target.files_of_dirs_or_files opt_lang files_or_dirs
+  {
+    File_and_more.file;
+    xlang;
+    lazy_content = lazy (Common.read_file file);
+    lazy_ast_and_errors;
+  }
+
+(* We should let semgrep-python computing the list of files (and pass it
+ * via -target, but it's convenient to run semgrep-core without semgrep-python
+ * and to recursively get a list of files.
+ *)
+let files_of_roots config roots =
+  let lang_opt = lang_opt_of_config config in
+  Find_target.files_of_dirs_or_files lang_opt roots
 
 (*****************************************************************************)
 (* Semgrep -config *)
 (*****************************************************************************)
+
 (* This is the main function used by the semgrep python wrapper right now.
  * It takes a language, a set of rules and a set of files or dirs and
  * recursively process those files or dirs.
  *)
-
 let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
   (* todo: at some point we should infer the lang from the rules and
    * apply different rules with different languages and different files
@@ -367,52 +437,27 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
    *
    * For now python wrapper passes down all files that should be scanned
    *)
-  let xlang = Xlang.of_opt_xlang config.lang in
-  let files, skipped = xlang_files_of_dirs_or_files xlang files_or_dirs in
+  let files, skipped = files_of_roots config files_or_dirs in
   logger#info "processing %d files, skipping %d files" (List.length files)
     (List.length skipped);
 
   let file_results =
     files
     |> iter_files_and_get_matches_and_exn_to_errors config (fun file ->
-           let rules =
-             rules
-             |> List.filter (fun r ->
-                    match (r.R.languages, xlang) with
-                    | L (x, xs), L (lang, _) -> List.mem lang (x :: xs)
-                    | LRegex, LRegex
-                    | LGeneric, LGeneric ->
-                        true
-                    | _ -> false)
-           in
-           let hook str env matched_tokens =
+           let langs = langs_of_file_or_config config file in
+           let rules = rules_for_langs_and_file langs file rules in
+           let file_and_more = file_and_more_of_file config langs file in
+           let match_hook str env matched_tokens =
              if config.output_format = Text then
                let xs = Lazy.force matched_tokens in
                print_match ~str config.match_format config.mvars env
                  Metavariable.ii_of_mval xs
            in
-           let lazy_ast_and_errors =
-             lazy
-               (match xlang with
-               | L (lang, _) ->
-                   P.parse_generic config.use_parsing_cache config.version lang
-                     file
-               | LRegex
-               | LGeneric ->
-                   failwith "requesting generic AST for LRegex|LGeneric")
-           in
-           let file_and_more =
-             {
-               File_and_more.file;
-               xlang;
-               lazy_content = lazy (Common.read_file file);
-               lazy_ast_and_errors;
-             }
-           in
            let res =
-             Run_rules.check hook Config_semgrep.default_config rules
-               (parse_equivalences config.equivalences_file)
-               file_and_more
+             Match_rules.check ~match_hook
+               ( Config_semgrep.default_config,
+                 parse_equivalences config.equivalences_file )
+               rules file_and_more
            in
            RP.add_file file res)
   in
@@ -437,6 +482,10 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
 
 let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
   let rules_file = config.config_file in
+  (* useful when using process substitution, e.g.
+   * semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
+   *)
+  let rules_file = replace_named_pipe_by_regular_file rules_file in
   try
     logger#linfo
       (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
@@ -585,9 +634,9 @@ let semgrep_with_one_pattern config roots =
                        let xs = Lazy.force matched_tokens in
                        print_match config.match_format config.mvars env
                          Metavariable.ii_of_mval xs)
-                     Config_semgrep.default_config minirule
-                     (parse_equivalences config.equivalences_file)
-                     (file, lang, ast)
+                     ( Config_semgrep.default_config,
+                       parse_equivalences config.equivalences_file )
+                     minirule (file, lang, ast)
                    |> ignore)
              in
 

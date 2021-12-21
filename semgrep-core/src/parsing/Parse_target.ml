@@ -200,7 +200,7 @@ let lang_to_python_parsing_mode = function
   | Lang.Python -> Parse_python.Python
   | Lang.Python2 -> Parse_python.Python2
   | Lang.Python3 -> Parse_python.Python3
-  | s -> failwith (spf "not a python language:%s" (Lang.string_of_lang s))
+  | s -> failwith (spf "not a python language:%s" (Lang.to_string s))
 
 let rec just_parse_with_lang lang file =
   match lang with

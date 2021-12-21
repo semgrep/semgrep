@@ -311,7 +311,7 @@ let parameter_to_catch_exn_opt p =
   | OtherParam _ -> None
 
 (*****************************************************************************)
-(* Abstract position and constness for comparison *)
+(* Abstract position and svalue for comparison *)
 (*****************************************************************************)
 
 (* update: you should now use AST_generic.equal_any which internally
@@ -324,7 +324,7 @@ let abstract_for_comparison_visitor recursor =
       M.default_visitor with
       M.kinfo = (fun (_k, _) i -> { i with Parse_info.token = Parse_info.Ab });
       M.kidinfo =
-        (fun (k, _) ii -> k { ii with AST_generic.id_constness = ref None });
+        (fun (k, _) ii -> k { ii with AST_generic.id_svalue = ref None });
     }
   in
   let vout = M.mk_visitor hooks in

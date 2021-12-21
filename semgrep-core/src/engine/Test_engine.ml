@@ -149,7 +149,7 @@ let make_tests ?(unit_testing = false) xs =
                      (ast, errors)
                  | LRegex
                  | LGeneric ->
-                     raise Impossible)
+                     assert false)
              in
              let file_and_more =
                {
@@ -164,7 +164,9 @@ let make_tests ?(unit_testing = false) xs =
              let config = Config_semgrep.default_config in
              let res =
                try
-                 Run_rules.check (fun _ _ _ -> ()) config rules [] file_and_more
+                 Match_rules.check
+                   (fun _ _ _ -> ())
+                   (config, []) rules file_and_more
                with exn ->
                  failwith
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
@@ -173,13 +175,13 @@ let make_tests ?(unit_testing = false) xs =
                (* match_time could be 0.0 if the rule contains no pattern or if the
                   rules are skipped. Otherwise it's positive. *)
                failwith
-                 (spf "invalid value for match time: %g"
-                    res.profiling.match_time);
+                 (spf "invalid value for match time: %g (rule: %s, target: %s)"
+                    res.profiling.match_time file target);
              if not (res.profiling.parse_time >= 0.) then
                (* same for parse time *)
                failwith
-                 (spf "invalid value for parse time: %g"
-                    res.profiling.parse_time);
+                 (spf "invalid value for parse time: %g (rule: %s, target: %s)"
+                    res.profiling.parse_time file target);
 
              res.matches |> List.iter JSON_report.match_to_error;
              if not (res.errors = []) then

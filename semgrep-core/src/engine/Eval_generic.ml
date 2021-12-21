@@ -169,13 +169,13 @@ let rec eval env code =
                 FN (Id (("match", _), _)) );
           _;
         },
-        (_, [ G.Arg e1; G.Arg { e = G.L (G.String (re, _)); _ } ], _) ) -> (
+        (_, [ G.Arg { e = G.L (G.String (re, _)); _ }; G.Arg e2 ], _) ) -> (
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.
        * alt: let s = value_to_string v in
        * to convert anything in a string before using regexps on it
        *)
-      let v = eval env e1 in
+      let v = eval env e2 in
 
       match v with
       | String s ->
@@ -265,8 +265,7 @@ let bindings_to_env xs =
              None
          in
          match mval with
-         | MV.Id (_, Some { id_constness = { contents = Some (G.Lit lit) }; _ })
-           ->
+         | MV.Id (_, Some { id_svalue = { contents = Some (G.Lit lit) }; _ }) ->
              (* Metavariable binds to a code variable: if the code variable is known
               * to be constant, then we use its constant value. *)
              try_bind_to_exp (G.e (G.L lit))

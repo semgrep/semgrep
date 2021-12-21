@@ -20,6 +20,7 @@
    semgrep_optimizing
    semgrep_parsing_tree_sitter
    semgrep_parsing_other
+   semgrep_targeting ; for Test_parsing.ml
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

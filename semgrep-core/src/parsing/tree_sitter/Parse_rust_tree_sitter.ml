@@ -2388,7 +2388,7 @@ and map_pointer_type (env : env) ((v1, v2, v3) : CST.pointer_type) : G.type_ =
   let type_ = map_type_ env v3 in
   G.TyPointer (star, type_) |> G.t
 
-(* TODO constness *)
+(* TODO svalue *)
 and map_qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) : G.type_
     =
   let lhs = map_type_ env v1 in

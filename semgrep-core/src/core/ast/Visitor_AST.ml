@@ -50,7 +50,7 @@ type visitor_in = {
     (class_definition -> unit) * visitor_out -> class_definition -> unit;
   kinfo : (tok -> unit) * visitor_out -> tok -> unit;
   kid_info : (id_info -> unit) * visitor_out -> id_info -> unit;
-  kconstness : (constness -> unit) * visitor_out -> constness -> unit;
+  ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
 }
 
 and visitor_out = any -> unit
@@ -82,7 +82,7 @@ let default_visitor =
         let {
           id_resolved = v_id_resolved;
           id_type = v_id_type;
-          id_constness = _IGNORED;
+          id_svalue = _IGNORED;
           id_hidden = _IGNORED2;
         } =
           x
@@ -90,7 +90,7 @@ let default_visitor =
         let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_resolved in
         let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_type in
         ());
-    kconstness = (fun (k, _) x -> k x);
+    ksvalue = (fun (k, _) x -> k x);
   }
 
 let v_id _ = ()
@@ -186,14 +186,14 @@ let (mk_visitor :
       let {
         id_resolved = v_id_resolved;
         id_type = v_id_type;
-        id_constness = v_id_constness;
+        id_svalue = v_id_svalue;
         id_hidden = v_id_hidden;
       } =
         x
       in
       let arg = v_ref_do_visit (v_option v_resolved_name) v_id_resolved in
       let arg = v_ref_do_visit (v_option v_type_) v_id_type in
-      let arg = v_ref_do_visit (v_option v_constness) v_id_constness in
+      let arg = v_ref_do_visit (v_option v_svalue) v_id_svalue in
       let arg = v_hidden v_id_hidden in
       ()
     in
@@ -441,7 +441,7 @@ let (mk_visitor :
     | Cint -> ()
     | Cstr -> ()
     | Cany -> ()
-  and v_constness x =
+  and v_svalue x =
     let k = function
       | Lit v1 ->
           let v1 = v_literal v1 in
@@ -449,9 +449,12 @@ let (mk_visitor :
       | Cst v1 ->
           let v1 = v_const_type v1 in
           ()
+      | Sym v1 ->
+          let v1 = v_expr v1 in
+          ()
       | NotCst -> ()
     in
-    vin.kconstness (k, all_functions) x
+    vin.ksvalue (k, all_functions) x
   and v_hidden _is_hidden = ()
   and v_container_operator _x = ()
   and v_comprehension (v1, v2) =
@@ -1266,6 +1269,7 @@ let (mk_visitor :
     | Cs v1 -> v_case v1
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
+    | Params v1 -> v_list v_parameter v1
     | Flds v1 -> v_fields v1
     | Anys v1 -> v_list v_any v1
     | Partial v1 -> v_partial ~recurse:true v1

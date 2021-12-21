@@ -136,10 +136,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | {
        id_resolved = v_id_resolved;
        id_type = v_id_type;
-       id_constness = v3;
+       id_svalue = v3;
        id_hidden;
       } ->
-          let v3 = map_of_ref (map_of_option map_constness) v3 in
+          let v3 = map_of_ref (map_of_option map_svalue) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
           let v_id_resolved =
             map_of_ref (map_of_option map_resolved_name) v_id_resolved
@@ -148,7 +148,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           {
             id_resolved = v_id_resolved;
             id_type = v_id_type;
-            id_constness = v3;
+            id_svalue = v3;
             id_hidden;
           }
     in
@@ -400,13 +400,16 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Cint -> Cint
     | Cstr -> Cstr
     | Cany -> Cany
-  and map_constness = function
+  and map_svalue = function
     | Lit v1 ->
         let v1 = map_literal v1 in
         Lit v1
     | Cst v1 ->
         let v1 = map_const_type v1 in
         Cst v1
+    | Sym v1 ->
+        let v1 = map_expr v1 in
+        Sym v1
     | NotCst -> NotCst
   and map_container_operator x = x
   and map_special x =
@@ -1152,6 +1155,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Args v1 ->
         let v1 = map_of_list map_argument v1 in
         Args v1
+    | Params v1 ->
+        let v1 = map_of_list map_parameter v1 in
+        Params v1
     | Flds v1 ->
         let v1 = map_of_list map_field v1 in
         Flds v1
@@ -1238,10 +1244,15 @@ let (mk_visitor : visitor_in -> visitor_out) =
 (* Fix token locations *)
 (*****************************************************************************)
 
+(* Fix token locations to "relocate" a sub-AST. *)
 let mk_fix_token_locations fix =
   mk_visitor
     {
-      default_visitor with
+      kidinfo =
+        (fun (_k, _vout) ii ->
+          (* The id_info contains locations that should not be modified, and they
+           * are likely outside the sub-AST of interest anyways. *)
+          ii);
       kexpr =
         (fun (k, _) e ->
           k

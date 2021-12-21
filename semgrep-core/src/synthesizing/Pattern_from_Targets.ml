@@ -71,7 +71,7 @@ let global_lang = ref Lang.Ocaml
 (* Print *)
 (*****************************************************************************)
 
-let p_any any = Pretty_print_generic.pattern_to_string !global_lang any
+let p_any any = Pretty_print_AST.pattern_to_string !global_lang any
 
 let stage_string = function
   | DONE -> "done"
@@ -135,7 +135,7 @@ let default_id str =
          {
            id_resolved = ref None;
            id_type = ref None;
-           id_constness = ref None;
+           id_svalue = ref None;
            id_hidden = false;
          } ))
   |> G.e

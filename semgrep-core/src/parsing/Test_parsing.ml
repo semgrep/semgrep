@@ -180,7 +180,7 @@ let test_parse_tree_sitter lang root_paths =
                  | _ ->
                      failwith
                        (spf "lang %s not supported with tree-sitter"
-                          (Lang.string_of_lang lang)));
+                          (Lang.to_string lang)));
                  PI.correct_stat file
                with exn ->
                  print_exn file exn;

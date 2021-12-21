@@ -77,7 +77,8 @@ let ranges_matched lang file pattern : Range.t list =
         let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
         let minii_loc = Parse_info.unsafe_token_location_of_info minii in
         E.error "Synthesizier tests" minii_loc "" (E.SemgrepMatchFound ""))
-      Config_semgrep.default_config [ rule ] equiv (file, lang, ast)
+      (Config_semgrep.default_config, equiv)
+      [ rule ] (file, lang, ast)
   in
   List.map extract_range matches
 
@@ -87,7 +88,7 @@ let run_single_test file linecols expected_pattern =
       (linecols @ [ file ])
   in
   let actual_pattern =
-    Pretty_print_generic.pattern_to_string lang inferred_pattern
+    Pretty_print_AST.pattern_to_string lang inferred_pattern
   in
   let pattern_correct = actual_pattern = expected_pattern in
   let ranges_expected =

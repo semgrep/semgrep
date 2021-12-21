@@ -70,6 +70,6 @@ let of_string ?id:(id_opt = None) s =
       | Some l -> L (l, []))
 
 let to_string = function
-  | L (l, _) -> Lang.string_of_lang l
+  | L (l, _) -> Lang.to_string l
   | LRegex -> "regex"
   | LGeneric -> "generic"

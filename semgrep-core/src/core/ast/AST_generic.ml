@@ -299,6 +299,8 @@ and resolved_name_kind =
  * analysis to disambiguate. In the meantime, you can use
  * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
  * into an IdQualified name.
+ *
+ * sgrep-ext: note that ident can be a metavariable.
  *)
 type name = Id of ident * id_info | IdQualified of qualified_info
 
@@ -338,12 +340,12 @@ and id_info = {
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
-   * note that we do not use the constness for equality (hence the adhoc
-   * @equal below) because the constness analysis is now controlflow-sensitive
-   * meaning the same variable might have different id_constness value
+   * note that we do not use the svalue for equality (hence the adhoc
+   * @equal below) because the svalue analysis is now controlflow-sensitive
+   * meaning the same variable might have different id_svalue value
    * depending where it is used.
    *)
-  id_constness : constness option ref; [@equal fun _a _b -> true]
+  id_svalue : svalue option ref; [@equal fun _a _b -> true]
   (* THINK: Drop option? *)
   (* id_hidden=true must be set for any artificial identifier that never
      appears in source code but is introduced in the AST after parsing.
@@ -531,8 +533,13 @@ and literal =
 (* The type of an unknown constant. *)
 and const_type = Cbool | Cint | Cstr | Cany
 
-(* set by the constant propagation algorithm and used in semgrep *)
-and constness = Lit of literal | Cst of const_type | NotCst
+(* semantic value: set by the svalue propagation algorithm and used in semgrep
+ *
+ * Note that we can't track a constant and a symbolic expression at the same
+ * time. If this becomes a problem then we may want to have separate analyses
+ * for constant and symbolic propagation, but having a single one is more
+ * efficient (time- and memory-wise). *)
+and svalue = Lit of literal | Cst of const_type | Sym of expr | NotCst
 
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)
@@ -841,8 +848,8 @@ and stmt = {
      and before matching.
   *)
   (* used in semgrep to skip some AST matching *)
-  mutable s_bf : Bloom_filter.t option;
-      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_strings : string Set_.t option;
+      [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
   mutable s_range :
     (Parse_info.token_location * Parse_info.token_location) option;
@@ -1402,6 +1409,7 @@ and parameters = parameter list
 
 (* newvar: *)
 and parameter =
+  (* sgrep-ext: note that pname can be a metavariable *)
   | Param of parameter_classic
   (* in OCaml, but also now JS, Python2, Rust *)
   | ParamPattern of pattern
@@ -1702,6 +1710,7 @@ and any =
   | Fld of field
   | Flds of field list
   | Args of argument list
+  | Params of parameter list
   | Partial of partial
   (* misc *)
   | I of ident
@@ -1790,7 +1799,7 @@ let s skind =
     s_id = AST_utils.Node_ID.create ();
     s_use_cache = false;
     s_backrefs = None;
-    s_bf = None;
+    s_strings = None;
     s_range = None;
   }
 
@@ -1821,7 +1830,7 @@ let empty_id_info ?(hidden = false) () =
   {
     id_resolved = ref None;
     id_type = ref None;
-    id_constness = ref None;
+    id_svalue = ref None;
     id_hidden = hidden;
   }
 
@@ -1829,7 +1838,7 @@ let basic_id_info ?(hidden = false) resolved =
   {
     id_resolved = ref (Some resolved);
     id_type = ref None;
-    id_constness = ref None;
+    id_svalue = ref None;
     id_hidden = hidden;
   }
 
