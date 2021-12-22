@@ -606,7 +606,9 @@ let maturity_tests =
     check_maturity Lang.Bash "bash" ".bash" Experimental;
     check_maturity Lang.C "c" ".c" Experimental;
     check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
+(* TODO dockerfile
     check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
+*)
     check_maturity Lang.Lua "lua" ".lua" Experimental;
     check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
     check_maturity Lang.Php "php" ".php" Experimental;
