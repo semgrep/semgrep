@@ -40,27 +40,27 @@ let unsafe_fake_tok = Parse_info.unsafe_fake_info "fake"
 
 let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
 
+(*
+   'tok_pos_left' and 'tok_pos_right' both return the start position of the
+   token. Only their fallback differs when no position is known.
+*)
+let tok_pos_left tok =
+  match Parse_info.token_location_of_info tok with
+  | Ok x -> x.charpos
+  | Error _ -> max_int
+
+let tok_pos_right tok =
+  match Parse_info.token_location_of_info tok with
+  | Ok x -> x.charpos
+  | Error _ -> min_int
+
 (* Prefer non-error. In case of a tie, prefer left-handside argument. *)
 let min_tok (a : Parse_info.t) (b : Parse_info.t) =
-  match
-    (Parse_info.token_location_of_info a, Parse_info.token_location_of_info b)
-  with
-  | Ok _, Error _ -> a
-  | Error _, Ok _ -> b
-  | Error _, Error _ -> a
-  | Ok { charpos = pos_a; _ }, Ok { charpos = pos_b; _ } ->
-      if pos_a <= pos_b then a else b
+  if tok_pos_left a <= tok_pos_left b then a else b
 
 (* Prefer non-error. In case of a tie, prefer right-handside argument. *)
 let max_tok (a : Parse_info.t) (b : Parse_info.t) =
-  match
-    (Parse_info.token_location_of_info a, Parse_info.token_location_of_info b)
-  with
-  | Ok _, Error _ -> a
-  | Error _, Ok _ -> b
-  | Error _, Error _ -> b
-  | Ok { charpos = pos_a; _ }, Ok { charpos = pos_b; _ } ->
-      if pos_b >= pos_a then b else a
+  if tok_pos_right b >= tok_pos_right a then b else a
 
 let update_start new_start_tok (_, end_) : t = (new_start_tok, end_)
 
@@ -81,9 +81,10 @@ let extend (start, end_) tok =
 
 let of_toks toks = List.fold_left extend unsafe_fake_loc toks
 
-let of_list locs =
-  List.fold_left
-    (fun acc (start, end_) ->
-      let acc = extend acc start in
-      extend acc end_)
-    unsafe_fake_loc locs
+let union loc_a (start, end_) =
+  let loc = extend loc_a start in
+  extend loc end_
+
+let of_locs locs = List.fold_left union unsafe_fake_loc locs
+
+let of_list get_loc xs = Common.map get_loc xs |> of_locs

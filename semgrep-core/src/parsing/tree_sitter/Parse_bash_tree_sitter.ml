@@ -86,10 +86,10 @@ let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
     | Pipelines (loc, pipelines) ->
         let pipelines =
           replace_last pipelines (fun pip ->
-              let loc = range (pipeline_loc pip) term_loc in
+              let loc = Loc.range (pipeline_loc pip) term_loc in
               [ Control_operator (loc, pip, term) ])
         in
-        let loc = range loc term_loc in
+        let loc = Loc.range loc term_loc in
         Pipelines (loc, pipelines)
     | Empty _ as blist -> blist
   in
@@ -342,7 +342,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
         | `Test_op tok -> (* test_operator *) token env tok
       in
       let right = expression env v3 in
-      T_todo (range (test_expression_loc left) (test_expression_loc right))
+      T_todo (Loc.range (test_expression_loc left) (test_expression_loc right))
   | `Exp_choice_EQEQ_regex (v1, v2, v3) ->
       let left = expression env v1 in
       let _op =
@@ -414,15 +414,15 @@ and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
                   Literal (expression_loc e, e)
               | `Regex tok -> (* regex *) Regexp (str env tok)
             in
-            let loc = range (eq_op_loc eq) (right_eq_operand_loc right) in
+            let loc = Loc.range (eq_op_loc eq) (right_eq_operand_loc right) in
             Equality_test (loc, eq, right))
       v3
   in
   let arguments = name :: args in
   let loc =
-    let loc1 = list_loc assignment_loc assignments in
-    let loc2 = list_loc expression_loc arguments in
-    union_loc loc1 loc2
+    let loc1 = Loc.of_list assignment_loc assignments in
+    let loc2 = Loc.of_list expression_loc arguments in
+    Loc.of_locs [ loc1; loc2 ]
   in
   let command = Simple_command { loc; assignments; arguments } in
   { loc; command; redirects }
@@ -431,12 +431,12 @@ and command_name (env : env) (x : CST.command_name) : expression =
   match x with
   | `Conc x ->
       let el = concatenation env x in
-      let loc = list_loc expression_loc el in
+      let loc = Loc.of_list expression_loc el in
       Concatenation (loc, el)
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
-      let loc = list_loc expression_loc el in
+      let loc = Loc.of_list expression_loc el in
       Concatenation (loc, el)
 
 and command_substitution (env : env) (x : CST.command_substitution) :
@@ -670,13 +670,13 @@ and file_redir_target (x : expression) : file_redir_target =
 and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
   let target_e = literal env v3 in
   let target = target_e |> file_redir_target in
-  let left_tok = ref (expression_loc target_e |> fst) in
-  let update_min_tok tok = left_tok := min_tok !left_tok tok in
+  let loc = ref (expression_loc target_e) in
+  let update_loc tok = loc := Loc.extend !loc tok in
   let opt_src_fd : write_redir_src option =
     match v1 with
     | Some tok -> (
         let s, tok = str env tok in
-        update_min_tok tok;
+        update_loc tok;
         match int_of_string_opt s with
         | None -> (* bug *) None
         | Some fd -> Some (File_descriptor (fd, tok)))
@@ -697,7 +697,7 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
   let file_redir =
     let token2 env tok =
       let tok = token env tok in
-      update_min_tok tok;
+      update_loc tok;
       tok
     in
     match v2 with
@@ -733,9 +733,7 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
         let tok = token2 env tok (* ">|" *) in
         Write (src_fd1 tok, (Write_force_truncate, tok), target)
   in
-  let start = !left_tok in
-  let _, end_ = expression_loc target_e in
-  let loc = (start, end_) in
+  let loc = Loc.union !loc (expression_loc target_e) in
   File_redirect (loc, file_redir)
 
 and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
@@ -794,14 +792,14 @@ and literal (env : env) (x : CST.literal) : expression =
   match x with
   | `Conc x -> (
       let el = concatenation env x in
-      let loc = list_loc expression_loc el in
+      let loc = Loc.of_list expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
-      let loc = list_loc expression_loc el in
+      let loc = Loc.of_list expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
@@ -1068,7 +1066,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             let loc = bracket_loc sub in
             (loc, Subshell (loc, sub), [])
       in
-      let loc = extend_left excl loc in
+      let loc = Loc.extend loc excl in
       let command = Negated_command (loc, excl, command) in
       Tmp_command ({ loc; command; redirects }, None)
   | `For_stmt (v1, v2, v3, v4, v5) ->
@@ -1204,14 +1202,14 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         match control_op with
         | None -> pipeline
         | Some ((_, tok) as op) ->
-            let loc = extend_right loc tok in
+            let loc = Loc.extend loc tok in
             Control_operator (loc, pipeline, op)
       in
       Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
       let left = pipeline_statement env v1 in
       let right = pipeline_statement env v3 in
-      let loc = range (pipeline_loc left) (pipeline_loc right) in
+      let loc = Loc.range (pipeline_loc left) (pipeline_loc right) in
       let command =
         match v2 with
         | `AMPAMP tok -> And (loc, left, token env tok, right)
@@ -1259,7 +1257,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             Subshell (bracket_loc br, br)
         | `Test_cmd x -> test_command env x
       in
-      let loc = extend_left start (command_loc body) in
+      let loc = Loc.extend (command_loc body) start in
       let command = Function_definition (loc, { loc; function_; name; body }) in
       Tmp_command ({ loc; command; redirects = [] }, None)
 
@@ -1287,7 +1285,7 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
     | None -> last_blist
     | Some term -> add_terminator_to_blist last_blist term
   in
-  let loc = range (blist_loc blist) (blist_loc last_blist) in
+  let loc = Loc.range (blist_loc blist) (blist_loc last_blist) in
   Seq (loc, blist, last_blist)
 
 and statements2 (env : env) (xs : CST.statements2) : blist =

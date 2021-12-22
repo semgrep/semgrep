@@ -254,7 +254,7 @@ let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
       | None -> end_
       | Some (_, x) -> wrap_loc x
     in
-    range start end_
+    Loc.range start end_
   in
   { loc; name; tag; digest }
 

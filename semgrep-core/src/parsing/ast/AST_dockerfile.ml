@@ -15,8 +15,6 @@ module B = AST_bash
 
 type tok = Parse_info.t
 
-type loc = tok * tok
-
 type 'a wrap = 'a * tok
 
 type 'a bracket = tok * 'a * tok
@@ -51,16 +49,16 @@ type str = Unquoted of string wrap | Quoted of string wrap
 *)
 type argv_or_shell =
   | Argv of (* [ "cmd", "arg1", "arg2$X" ] *) quoted_string list bracket
-  | Sh_command of loc * AST_bash.blist
+  | Sh_command of Loc.t * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
 
 type param =
-  loc * (tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap)
+  Loc.t * (tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap)
 
 (* value *)
 
 type image_spec = {
-  loc : loc;
+  loc : Loc.t;
   name : string wrap;
   tag : (tok (* : *) * string wrap) option;
   digest : (tok (* @ *) * string wrap) option;
@@ -76,45 +74,47 @@ type path = string wrap list
 
 type string_array = string wrap list bracket
 
-type array_or_paths = Array of loc * string_array | Path of loc * path list
+type array_or_paths =
+  | Array of Loc.t * string_array
+  | Path of Loc.t * path list
 
-type cmd = loc * string wrap * argv_or_shell
+type cmd = Loc.t * string wrap * argv_or_shell
 
 type healthcheck = Healthcheck_none of tok | Healthcheck_cmd of cmd
 
 type instruction =
   | From of
-      loc
+      Loc.t
       * string wrap
       * param option
       * image_spec
       * (tok (* as *) * image_alias) option
-  | Run of loc * string wrap * argv_or_shell
+  | Run of Loc.t * string wrap * argv_or_shell
   | Cmd of cmd
-  | Label of loc * string wrap * label_pair list
-  | Expose of loc * string wrap * int wrap (* port number *) * protocol wrap
-  | Env of loc * string wrap * label_pair list
-  | Add of loc * string wrap * param option * path * path
-  | Copy of loc * string wrap * param option * path * path
-  | Entrypoint of loc * string wrap * argv_or_shell
-  | Volume of loc * string wrap * array_or_paths
+  | Label of Loc.t * string wrap * label_pair list
+  | Expose of Loc.t * string wrap * int wrap (* port number *) * protocol wrap
+  | Env of Loc.t * string wrap * label_pair list
+  | Add of Loc.t * string wrap * param option * path * path
+  | Copy of Loc.t * string wrap * param option * path * path
+  | Entrypoint of Loc.t * string wrap * argv_or_shell
+  | Volume of Loc.t * string wrap * array_or_paths
   | User of
-      loc
+      Loc.t
       * string wrap
       * string wrap
       (* user *)
       * (tok (* : *) * string wrap) (* group *) option
-  | Workdir of loc * string wrap * path
-  | Arg of loc * string wrap * string wrap
-  | Onbuild of loc * string wrap * instruction
-  | Stopsignal of loc * string wrap * string wrap
-  | Healthcheck of loc * string wrap * healthcheck
-  | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
-  | Maintainer (* deprecated *) of loc * string wrap * string wrap
+  | Workdir of Loc.t * string wrap * path
+  | Arg of Loc.t * string wrap * string wrap
+  | Onbuild of Loc.t * string wrap * instruction
+  | Stopsignal of Loc.t * string wrap * string wrap
+  | Healthcheck of Loc.t * string wrap * healthcheck
+  | Shell (* changes the shell :-/ *) of Loc.t * string wrap * string_array
+  | Maintainer (* deprecated *) of Loc.t * string wrap * string wrap
   | Cross_build_xxx
       (* e.g. CROSS_BUILD_COPY;
          TODO: who uses this exactly? and where is it documented? *) of
-      loc * string wrap * string wrap
+      Loc.t * string wrap * string wrap
   | Instr_semgrep_ellipsis of tok
   | Instr_TODO of string wrap
 
@@ -129,10 +129,6 @@ let wrap_tok (_, tok) = tok
 let wrap_loc (_, tok) = (tok, tok)
 
 let bracket_loc (open_, _, close) = (open_, close)
-
-let range (start_tok, _) (_, end_tok) = (start_tok, end_tok)
-
-let list_loc = B.list_loc
 
 (* Re-using the type used for double-quoted strings in bash *)
 let quoted_string_loc = bracket_loc
@@ -157,7 +153,7 @@ let argv_or_shell_loc = function
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
 
-let param_loc ((loc, _) : param) : loc = loc
+let param_loc ((loc, _) : param) : Loc.t = loc
 
 let image_spec_loc (x : image_spec) = x.loc
 
@@ -166,7 +162,7 @@ let image_alias_loc = wrap_loc
 let label_pair_loc (((_, start), _, str) : label_pair) =
   (start, str_loc str |> snd)
 
-let path_loc (x : path) = list_loc wrap_loc x
+let path_loc (x : path) = Loc.of_list wrap_loc x
 
 let string_array_loc = bracket_loc
 

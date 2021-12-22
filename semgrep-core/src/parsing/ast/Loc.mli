@@ -27,7 +27,21 @@ val of_toks : tok list -> t
    Identify the leftmost and rightmost tokens from a list of locations
    and return them as the list's location.
 *)
-val of_list : t list -> t
+val of_locs : t list -> t
+
+(*
+   Same as 'of_locs' but operates on two arguments. This is independent
+   of argument order, unlike 'range'.
+   'union <2,4> <1,3>' will return '<1,4>', whereas 'range <2,4> <1,3>'
+   will return '<2,3>'.
+*)
+val union : t -> t -> t
+
+(*
+   Extract location from each element of the list and construct a location
+   spanning all those locations.
+*)
+val of_list : ('a -> t) -> 'a list -> t
 
 (*
    If one and only one of the tokens is fake, return a location that
@@ -44,7 +58,7 @@ val is_fake : t -> bool
 (*
    Take the first token of first location and the last token of the second
    location to form a new location. Tries to eliminate fake tokens in the
-   process.
+   process. See also 'union'.
 *)
 val range : t -> t -> t
 
