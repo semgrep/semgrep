@@ -325,6 +325,7 @@ let lang_parsing_tests =
    (* languages with only a tree-sitter parser *)
     pack_parsing_tests_for_lang Lang.Bash "bash" ".bash";
     pack_parsing_tests_for_lang Lang.Csharp "csharp" ".cs";
+    pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
     pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
     pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
@@ -367,6 +368,7 @@ let lang_regression_tests ~with_caching =
   in
   pack_suites ("lang testing" ^ name_suffix) [
     pack_regression_tests_for_lang Lang.Bash "bash" ".bash";
+    pack_regression_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_regression_tests_for_lang Lang.Python "python" ".py";
     pack_regression_tests_for_lang Lang.Js "js" ".js";
     pack_regression_tests_for_lang Lang.Ts "ts" ".ts";
@@ -604,6 +606,7 @@ let maturity_tests =
     check_maturity Lang.Bash "bash" ".bash" Experimental;
     check_maturity Lang.C "c" ".c" Experimental;
     check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
+    check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
     check_maturity Lang.Lua "lua" ".lua" Experimental;
     check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
     check_maturity Lang.Php "php" ".php" Experimental;
