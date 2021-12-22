@@ -50,7 +50,7 @@ let expr_of_stmt (st : G.stmt) : G.expr = G.stmt_to_expr st
 let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
   G.Block (bracket loc stmts) |> G.s |> expr_of_stmt
 
-let quoted_string s : G.expr = G.L (G.String s) |> G.e
+let string_expr s : G.expr = G.L (G.String s) |> G.e
 
 (*
    Return the arguments to pass to the dockerfile command e.g. the arguments
@@ -58,12 +58,12 @@ let quoted_string s : G.expr = G.L (G.String s) |> G.e
 *)
 let argv_or_shell env x : G.expr list =
   match x with
-  | Argv (_open, args, _close) -> Common.map quoted_string args
+  | Argv (_open, args, _close) -> Common.map string_expr args
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
   | Other_shell_command (shell_compat, code) ->
-      let args = [ G.L (G.String code) |> G.e ] in
+      let args = [ string_expr code ] in
       let loc = wrap_loc code in
       [ call_shell loc shell_compat args ]
 
@@ -71,20 +71,31 @@ let from _TODO_opt_param (image_spec : image_spec) _TODO_opt_alias :
     G.argument list =
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
-  let name = G.Arg (G.L (G.String image_spec.name) |> G.e) in
+  let name = G.Arg (string_expr image_spec.name) in
   let tag =
     match image_spec.tag with
     | None -> []
     | Some (colon, tag) ->
-        [ G.ArgKwd (G.ArgOptional, (":", colon), G.L (G.String tag) |> G.e) ]
+        [ G.ArgKwd (G.ArgOptional, (":", colon), string_expr tag) ]
   in
   let digest =
     match image_spec.digest with
     | None -> []
     | Some (at, digest) ->
-        [ G.ArgKwd (G.ArgOptional, ("@", at), G.L (G.String digest) |> G.e) ]
+        [ G.ArgKwd (G.ArgOptional, ("@", at), string_expr digest) ]
   in
   (name :: tag) @ digest
+
+(* Return the literal with single quotes or double quotes *)
+let string_of_str = function
+  | Unquoted x -> x
+  | Quoted x -> x
+
+let label (kv_pairs : label_pair list) : G.argument list =
+  kv_pairs
+  |> Common.map (fun (key, _eq, value) ->
+         let value = string_of_str value in
+         G.ArgKwd (G.ArgRequired, key, string_expr value))
 
 let instruction env (x : instruction) : G.stmt =
   let expr =
@@ -94,7 +105,9 @@ let instruction env (x : instruction) : G.stmt =
         call name loc args
     | Run (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
     | Cmd (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
-    | Label (loc, name, _) -> call name loc []
+    | Label (loc, name, kv_pairs) ->
+        let args = label kv_pairs in
+        call name loc args
     | Expose (loc, name, _, _) -> call name loc []
     | Env (loc, name, _) -> call name loc []
     | Add (loc, name, _, _, _) -> call name loc []

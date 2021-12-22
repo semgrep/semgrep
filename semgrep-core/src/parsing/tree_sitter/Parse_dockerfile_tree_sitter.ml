@@ -295,11 +295,11 @@ let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) =
   let v3 = string env v3 in
   todo env (v1, v2, v3)
 
-let label_pair (env : env) ((v1, v2, v3) : CST.label_pair) =
-  let v1 = token env v1 (* pattern [-a-zA-Z0-9\._]+ *) in
-  let v2 = token env v2 (* "=" *) in
-  let v3 = string env v3 in
-  todo env (v1, v2, v3)
+let label_pair (env : env) ((v1, v2, v3) : CST.label_pair) : label_pair =
+  let key = str env v1 (* pattern [-a-zA-Z0-9\._]+ *) in
+  let eq = token env v2 (* "=" *) in
+  let value = string env v3 in
+  (key, eq, value)
 
 (* hack to obtain correct locations when parsing a string extracted from
    a larger file. *)
@@ -412,8 +412,10 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
       | `Cmd_inst x -> (env, cmd_instruction env x)
       | `Label_inst (v1, v2) ->
           let name = str env v1 (* pattern [lL][aA][bB][eE][lL] *) in
-          let _v2 () = List.map (label_pair env) v2 in
-          (env, Instr_TODO name)
+          let label_pairs = List.map (label_pair env) v2 in
+          let loc = Loc.of_list label_pair_loc label_pairs in
+          let loc = Loc.extend loc (snd name) in
+          (env, Label (loc, name, label_pairs))
       | `Expose_inst (v1, v2) ->
           let name = str env v1 (* pattern [eE][xX][pP][oO][sS][eE] *) in
           let _v2 () =
