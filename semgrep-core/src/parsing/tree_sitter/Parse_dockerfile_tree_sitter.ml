@@ -149,13 +149,13 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : string wrap =
     xs
   |> unsafe_concat_tokens
 
-let path (env : env) ((v1, v2) : CST.path) =
-  let v1 =
+let path (env : env) ((v1, v2) : CST.path) : path =
+  let first_tok =
     match v1 with
     | `Pat_1167a92 tok -> token env tok (* pattern [^-\s\$] *)
     | `Expa x -> expansion_tok env x
   in
-  let v2 =
+  let more_toks =
     List.map
       (fun x ->
         match x with
@@ -163,7 +163,8 @@ let path (env : env) ((v1, v2) : CST.path) =
         | `Expa x -> expansion_tok env x)
       v2
   in
-  todo env (v1, v2)
+  let tok = PI.combine_infos first_tok more_toks in
+  (PI.str_of_info tok, tok)
 
 let image_digest (env : env) ((v1, v2) : CST.image_digest) =
   let at = token env v1 (* "@" *) in
@@ -437,26 +438,33 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Instr_TODO name)
       | `Add_inst (v1, v2, v3, v4, v5) ->
           let name = str env v1 (* pattern [aA][dD][dD] *) in
-          let _v2 () =
+          let param =
             match v2 with
-            | Some x -> param env x
-            | None -> todo env ()
+            | Some x -> Some (param env x)
+            | None -> None
           in
-          let _v3 () = path env v3 in
-          let _v4 = token env v4 (* pattern [\t ]+ *) in
-          let _v5 () = path env v5 in
-          (env, Instr_TODO name)
+          let src = path env v3 in
+          let _blank = token env v4 (* pattern [\t ]+ *) in
+          let dst = path env v5 in
+          let loc = (wrap_tok name, wrap_tok dst) in
+          (env, Add (loc, name, param, src, dst))
       | `Copy_inst (v1, v2, v3, v4, v5) ->
+          (*
+             COPY is the same as ADD but with less magic in the interpretation
+             of the arguments.
+             See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#add-or-copy
+          *)
           let name = str env v1 (* pattern [cC][oO][pP][yY] *) in
-          let _v2 () =
+          let param =
             match v2 with
-            | Some x -> param env x
-            | None -> todo env ()
+            | Some x -> Some (param env x)
+            | None -> None
           in
-          let _v3 () = path env v3 in
-          let _v4 () = token env v4 (* pattern [\t ]+ *) in
-          let _v5 () = path env v5 in
-          (env, Instr_TODO name)
+          let src = path env v3 in
+          let _blank = token env v4 (* pattern [\t ]+ *) in
+          let dst = path env v5 in
+          let loc = (wrap_tok name, wrap_tok dst) in
+          (env, Copy (loc, name, param, src, dst))
       | `Entr_inst (v1, v2) ->
           let name =
             str env v1

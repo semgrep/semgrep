@@ -70,7 +70,7 @@ type label_pair = string wrap (* key *) * tok (* = *) * str (* value *)
 
 type protocol = TCP | UDP
 
-type path = string wrap list
+type path = string wrap
 
 type string_array = string wrap list bracket
 
@@ -161,8 +161,6 @@ let image_alias_loc = wrap_loc
 
 let label_pair_loc (((_, start), _, str) : label_pair) =
   (start, str_loc str |> snd)
-
-let path_loc (x : path) = Loc.of_list wrap_loc x
 
 let string_array_loc = bracket_loc
 

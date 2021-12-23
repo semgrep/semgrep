@@ -67,10 +67,19 @@ let argv_or_shell env x : G.expr list =
       let loc = wrap_loc code in
       [ call_shell loc shell_compat args ]
 
-let from _TODO_opt_param (image_spec : image_spec) _TODO_opt_alias :
+let opt_param_arg (x : param option) : G.argument list =
+  match x with
+  | None -> []
+  | Some (_loc, (dashdash, (name_str, name_tok), _eq, value)) ->
+      let option_tok = PI.combine_infos dashdash [ name_tok ] in
+      let option_str = PI.str_of_info dashdash ^ name_str in
+      [ G.ArgKwd (G.ArgOptional, (option_str, option_tok), string_expr value) ]
+
+let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
     G.argument list =
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
+  let opt_param = opt_param_arg opt_param in
   let name = G.Arg (string_expr image_spec.name) in
   let tag =
     match image_spec.tag with
@@ -84,7 +93,7 @@ let from _TODO_opt_param (image_spec : image_spec) _TODO_opt_alias :
     | Some (at, digest) ->
         [ G.ArgKwd (G.ArgOptional, ("@", at), string_expr digest) ]
   in
-  (name :: tag) @ digest
+  opt_param @ (name :: tag) @ digest
 
 (* Return the literal with single quotes or double quotes *)
 let string_of_str = function
@@ -96,6 +105,10 @@ let label (kv_pairs : label_pair list) : G.argument list =
   |> Common.map (fun (key, _eq, value) ->
          let value = string_of_str value in
          G.ArgKwd (G.ArgRequired, key, string_expr value))
+
+let add_or_copy (opt_param : param option) (src : path) (dst : path) =
+  let opt_param = opt_param_arg opt_param in
+  opt_param @ [ G.Arg (string_expr src); G.Arg (string_expr dst) ]
 
 let instruction env (x : instruction) : G.stmt =
   let expr =
@@ -110,8 +123,10 @@ let instruction env (x : instruction) : G.stmt =
         call name loc args
     | Expose (loc, name, _, _) -> call name loc []
     | Env (loc, name, _) -> call name loc []
-    | Add (loc, name, _, _, _) -> call name loc []
-    | Copy (loc, name, _, _, _) -> call name loc []
+    | Add (loc, name, param, src, dst) ->
+        call name loc (add_or_copy param src dst)
+    | Copy (loc, name, param, src, dst) ->
+        call name loc (add_or_copy param src dst)
     | Entrypoint (loc, name, _) -> call name loc []
     | Volume (loc, name, _) -> call name loc []
     | User (loc, name, _, _) -> call name loc []
