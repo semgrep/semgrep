@@ -509,8 +509,9 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, User (loc, name, user, opt_group))
       | `Work_inst (v1, v2) ->
           let name = str env v1 (* pattern [wW][oO][rR][kK][dD][iI][rR] *) in
-          let _v2 () = path env v2 in
-          (env, Instr_TODO name)
+          let dir = path env v2 in
+          let loc = (wrap_tok name, wrap_tok dir) in
+          (env, Workdir (loc, name, dir))
       | `Arg_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [aA][rR][gG] *) in
           let _v2 () = token env v2 (* pattern [a-zA-Z0-9_]+ *) in

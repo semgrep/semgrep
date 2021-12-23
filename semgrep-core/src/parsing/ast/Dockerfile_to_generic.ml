@@ -140,7 +140,7 @@ let instruction env (x : instruction) : G.stmt =
     | Entrypoint (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
     | Volume (loc, name, _) -> call name loc []
     | User (loc, name, user, group) -> call name loc (user_args user group)
-    | Workdir (loc, name, _) -> call name loc []
+    | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
     | Arg (loc, name, _) -> call name loc []
     | Onbuild (loc, name, _) -> call name loc []
     | Stopsignal (loc, name, _) -> call name loc []
