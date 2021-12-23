@@ -21,7 +21,7 @@ val create : tok -> tok -> t
    Identify the leftmost and rightmost tokens from a list and return them
    as the list's location.
 *)
-val of_toks : tok list -> t
+val of_toks : ('a -> tok) -> 'a list -> t
 
 (*
    Identify the leftmost and rightmost tokens from a list of locations

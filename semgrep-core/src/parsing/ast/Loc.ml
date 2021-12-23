@@ -79,7 +79,8 @@ let extend (start, end_) tok =
      cases. *)
   (min_tok start tok, max_tok tok end_)
 
-let of_toks toks = List.fold_left extend unsafe_fake_loc toks
+let of_toks get_tok xs =
+  List.fold_left (fun loc x -> extend loc (get_tok x)) unsafe_fake_loc xs
 
 let union loc_a (start, end_) =
   let loc = extend loc_a start in

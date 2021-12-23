@@ -133,7 +133,9 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Label (loc, name, kv_pairs) ->
       let args = label kv_pairs in
       call name loc args
-  | Expose (loc, name, _, _) -> call name loc []
+  | Expose (loc, name, port_protos) ->
+      let args = Common.map string_expr port_protos in
+      call_exprs name loc args
   | Env (loc, name, _) -> call name loc []
   | Add (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)

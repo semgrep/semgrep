@@ -102,17 +102,21 @@ let param (env : env) ((v1, v2, v3, v4) : CST.param) =
   let loc = (dashdash, snd value) in
   (loc, (dashdash, key, equal, value))
 
-let expose_port (env : env) ((v1, v2) : CST.expose_port) =
-  let v1 = token env v1 (* pattern \d+ *) in
-  let v2 =
+let expose_port (env : env) ((v1, v2) : CST.expose_port) : string wrap =
+  let port = token env v1 (* pattern \d+ *) in
+  let protocol =
     match v2 with
-    | Some x -> (
-        match x with
-        | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
-        | `SLAS_c773c8d tok -> token env tok (* "/udp" *))
-    | None -> todo env ()
+    | Some x ->
+        [
+          (match x with
+          | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
+          | `SLAS_c773c8d tok -> token env tok)
+          (* "/udp" *);
+        ]
+    | None -> []
   in
-  todo env (v1, v2)
+  let tok = PI.combine_infos port protocol in
+  (PI.str_of_info tok, tok)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) =
   let colon = token env v1 (* ":" *) in
@@ -420,7 +424,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Label (loc, name, label_pairs))
       | `Expose_inst (v1, v2) ->
           let name = str env v1 (* pattern [eE][xX][pP][oO][sS][eE] *) in
-          let _v2 () =
+          let port_protos =
             List.map
               (fun x ->
                 match x with
@@ -428,7 +432,9 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                 | `Expa x -> expansion env x)
               v2
           in
-          (env, Instr_TODO name)
+          let _, end_ = Loc.of_toks wrap_tok port_protos in
+          let loc = (wrap_tok name, end_) in
+          (env, Expose (loc, name, port_protos))
       | `Env_inst (v1, v2) ->
           let name = str env v1 (* pattern [eE][nN][vV] *) in
           let _v2 () =
@@ -568,6 +574,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let loc = (start_tok, end_tok) in
           (env, Shell (loc, name, cmd))
       | `Main_inst (v1, v2) ->
+          (* deprecated feature *)
           let name =
             str env v1
             (* pattern [mM][aA][iI][nN][tT][aA][iI][nN][eE][rR] *)
@@ -575,6 +582,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let _v2 () = token env v2 (* pattern .* *) in
           (env, Instr_TODO name)
       | `Cross_build_inst (v1, v2) ->
+          (* undocumented *)
           let name =
             str env v1
             (* pattern [cC][rR][oO][sS][sS]_[bB][uU][iI][lL][dD][a-zA-Z_]* *)

@@ -92,7 +92,7 @@ type instruction =
   | Run of Loc.t * string wrap * argv_or_shell
   | Cmd of cmd
   | Label of Loc.t * string wrap * label_pair list
-  | Expose of Loc.t * string wrap * int wrap (* port number *) * protocol wrap
+  | Expose of Loc.t * string wrap * string wrap list (* 123/udp 123 56/tcp *)
   | Env of Loc.t * string wrap * label_pair list
   | Add of Loc.t * string wrap * param option * path * path
   | Copy of Loc.t * string wrap * param option * path * path
@@ -180,7 +180,7 @@ let instruction_loc = function
   | Run (loc, _, _) -> loc
   | Cmd cmd -> cmd_loc cmd
   | Label (loc, _, _) -> loc
-  | Expose (loc, _, _, _) -> loc
+  | Expose (loc, _, _) -> loc
   | Env (loc, _, _) -> loc
   | Add (loc, _, _, _, _) -> loc
   | Copy (loc, _, _, _, _) -> loc
