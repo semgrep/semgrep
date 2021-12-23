@@ -289,17 +289,18 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) : string_array =
   let close = token env v3 (* "]" *) in
   (open_, argv, close)
 
-let env_pair (env : env) ((v1, v2, v3) : CST.env_pair) =
-  let v1 = token env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
-  let v2 = token env v2 (* "=" *) in
-  let v3 = string env v3 in
-  todo env (v1, v2, v3)
+let env_pair (env : env) ((v1, v2, v3) : CST.env_pair) : label_pair =
+  let k = str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
+  let eq = token env v2 (* "=" *) in
+  let v = string env v3 in
+  (k, eq, v)
 
-let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) =
-  let v1 = token env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
-  let v2 = token env v2 (* pattern \s+ *) in
-  let v3 = string env v3 in
-  todo env (v1, v2, v3)
+let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) :
+    label_pair =
+  let k = str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
+  let blank = token env v2 (* pattern \s+ *) in
+  let v = string env v3 in
+  (k, blank, v)
 
 let label_pair (env : env) ((v1, v2, v3) : CST.label_pair) : label_pair =
   let key = str env v1 (* pattern [-a-zA-Z0-9\._]+ *) in
@@ -437,12 +438,14 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Expose (loc, name, port_protos))
       | `Env_inst (v1, v2) ->
           let name = str env v1 (* pattern [eE][nN][vV] *) in
-          let _v2 () =
+          let pairs =
             match v2 with
             | `Rep1_env_pair xs -> List.map (env_pair env) xs
-            | `Spaced_env_pair x -> spaced_env_pair env x
+            | `Spaced_env_pair x -> [ spaced_env_pair env x ]
           in
-          (env, Instr_TODO name)
+          let _, end_ = Loc.of_list label_pair_loc pairs in
+          let loc = (wrap_tok name, end_) in
+          (env, Env (loc, name, pairs))
       | `Add_inst (v1, v2, v3, v4, v5) ->
           let name = str env v1 (* pattern [aA][dD][dD] *) in
           let param =

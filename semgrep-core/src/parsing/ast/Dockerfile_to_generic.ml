@@ -103,7 +103,7 @@ let string_of_str = function
   | Unquoted x -> x
   | Quoted x -> x
 
-let label (kv_pairs : label_pair list) : G.argument list =
+let label_pairs (kv_pairs : label_pair list) : G.argument list =
   kv_pairs
   |> Common.map (fun (key, _eq, value) ->
          let value = string_of_str value in
@@ -130,13 +130,11 @@ let rec instruction_expr env (x : instruction) : G.expr =
       call name loc args
   | Run (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
   | Cmd (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
-  | Label (loc, name, kv_pairs) ->
-      let args = label kv_pairs in
-      call name loc args
+  | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
       let args = Common.map string_expr port_protos in
       call_exprs name loc args
-  | Env (loc, name, _) -> call name loc []
+  | Env (loc, name, pairs) -> call name loc (label_pairs pairs)
   | Add (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
   | Copy (loc, name, param, src, dst) ->
