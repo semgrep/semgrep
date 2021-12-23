@@ -470,8 +470,10 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [eE][nN][tT][rR][yY][pP][oO][iI][nN][tT] *)
           in
-          let _v2 () = argv_or_shell env v2 in
-          (env, Instr_TODO name)
+          let cmd = argv_or_shell env v2 in
+          let _, end_ = argv_or_shell_loc cmd in
+          let loc = (wrap_tok name, end_) in
+          (env, Entrypoint (loc, name, cmd))
       | `Volume_inst (v1, v2) ->
           let name = str env v1 (* pattern [vV][oO][lL][uU][mM][eE] *) in
           let _v2 () =

@@ -127,7 +127,7 @@ let instruction env (x : instruction) : G.stmt =
         call name loc (add_or_copy param src dst)
     | Copy (loc, name, param, src, dst) ->
         call name loc (add_or_copy param src dst)
-    | Entrypoint (loc, name, _) -> call name loc []
+    | Entrypoint (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
     | Volume (loc, name, _) -> call name loc []
     | User (loc, name, _, _) -> call name loc []
     | Workdir (loc, name, _) -> call name loc []
