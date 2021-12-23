@@ -130,13 +130,14 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) =
   in
   (colon, tag)
 
-let user_name_or_group (env : env) (xs : CST.user_name_or_group) =
+let user_name_or_group (env : env) (xs : CST.user_name_or_group) : string wrap =
   List.map
     (fun x ->
       match x with
       | `Pat_660c06c tok -> token env tok (* pattern [a-z][-a-z0-9_]* *)
       | `Expa x -> expansion_tok env x)
     xs
+  |> unsafe_concat_tokens
 
 let unquoted_string (env : env) (xs : CST.unquoted_string) : string wrap =
   List.map
@@ -494,16 +495,18 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Instr_TODO name)
       | `User_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [uU][sS][eE][rR] *) in
-          let _v2 () = user_name_or_group env v2 in
-          let _v3 () =
+          let user = user_name_or_group env v2 in
+          let end_ = wrap_tok user in
+          let opt_group, end_ =
             match v3 with
             | Some (v1, v2) ->
-                let v1 = token env v1 (* ":" *) in
-                let v2 = user_name_or_group env v2 in
-                todo env (v1, v2)
-            | None -> todo env ()
+                let colon = token env v1 (* ":" *) in
+                let group = user_name_or_group env v2 in
+                (Some (colon, group), wrap_tok group)
+            | None -> (None, end_)
           in
-          (env, Instr_TODO name)
+          let loc = (wrap_tok name, end_) in
+          (env, User (loc, name, user, opt_group))
       | `Work_inst (v1, v2) ->
           let name = str env v1 (* pattern [wW][oO][rR][kK][dD][iI][rR] *) in
           let _v2 () = path env v2 in

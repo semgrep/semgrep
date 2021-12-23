@@ -110,6 +110,16 @@ let add_or_copy (opt_param : param option) (src : path) (dst : path) =
   let opt_param = opt_param_arg opt_param in
   opt_param @ [ G.Arg (string_expr src); G.Arg (string_expr dst) ]
 
+let user_args (user : string wrap) (group : (tok * string wrap) option) =
+  let user = G.Arg (string_expr user) in
+  let group =
+    match group with
+    | None -> []
+    | Some (colon, group) ->
+        [ G.ArgKwd (G.ArgOptional, (":", colon), string_expr group) ]
+  in
+  user :: group
+
 let instruction env (x : instruction) : G.stmt =
   let expr =
     match x with
@@ -129,7 +139,7 @@ let instruction env (x : instruction) : G.stmt =
         call name loc (add_or_copy param src dst)
     | Entrypoint (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
     | Volume (loc, name, _) -> call name loc []
-    | User (loc, name, _, _) -> call name loc []
+    | User (loc, name, user, group) -> call name loc (user_args user group)
     | Workdir (loc, name, _) -> call name loc []
     | Arg (loc, name, _) -> call name loc []
     | Onbuild (loc, name, _) -> call name loc []
