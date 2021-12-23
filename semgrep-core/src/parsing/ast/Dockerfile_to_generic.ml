@@ -52,13 +52,16 @@ let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
 
 let string_expr s : G.expr = G.L (G.String s) |> G.e
 
+let argv ((open_, args, close) : string_array) : G.expr =
+  G.Container (G.Array, (open_, Common.map string_expr args, close)) |> G.e
+
 (*
    Return the arguments to pass to the dockerfile command e.g. the arguments
    to CMD.
 *)
 let argv_or_shell env x : G.expr list =
   match x with
-  | Argv (_open, args, _close) -> Common.map string_expr args
+  | Argv array -> [ argv array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
@@ -145,7 +148,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
       call_exprs name loc [ instruction_expr env instr ]
   | Stopsignal (loc, name, _) -> call name loc []
   | Healthcheck (loc, name, _) -> call name loc []
-  | Shell (loc, name, _) -> call name loc []
+  | Shell (loc, name, array) -> call_exprs name loc [ argv array ]
   | Maintainer (loc, name, _) -> call name loc []
   | Cross_build_xxx (loc, name, _) -> call name loc []
   | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
