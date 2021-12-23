@@ -120,38 +120,39 @@ let user_args (user : string wrap) (group : (tok * string wrap) option) =
   in
   user :: group
 
+let rec instruction_expr env (x : instruction) : G.expr =
+  match x with
+  | From (loc, name, opt_param, image_spec, opt_alias) ->
+      let args = from opt_param image_spec opt_alias in
+      call name loc args
+  | Run (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
+  | Cmd (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
+  | Label (loc, name, kv_pairs) ->
+      let args = label kv_pairs in
+      call name loc args
+  | Expose (loc, name, _, _) -> call name loc []
+  | Env (loc, name, _) -> call name loc []
+  | Add (loc, name, param, src, dst) ->
+      call name loc (add_or_copy param src dst)
+  | Copy (loc, name, param, src, dst) ->
+      call name loc (add_or_copy param src dst)
+  | Entrypoint (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
+  | Volume (loc, name, _) -> call name loc []
+  | User (loc, name, user, group) -> call name loc (user_args user group)
+  | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
+  | Arg (loc, name, _) -> call name loc []
+  | Onbuild (loc, name, instr) ->
+      call_exprs name loc [ instruction_expr env instr ]
+  | Stopsignal (loc, name, _) -> call name loc []
+  | Healthcheck (loc, name, _) -> call name loc []
+  | Shell (loc, name, _) -> call name loc []
+  | Maintainer (loc, name, _) -> call name loc []
+  | Cross_build_xxx (loc, name, _) -> call name loc []
+  | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Instr_TODO (orig_name, tok) -> call ("TODO_" ^ orig_name, tok) (tok, tok) []
+
 let instruction env (x : instruction) : G.stmt =
-  let expr =
-    match x with
-    | From (loc, name, opt_param, image_spec, opt_alias) ->
-        let args = from opt_param image_spec opt_alias in
-        call name loc args
-    | Run (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
-    | Cmd (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
-    | Label (loc, name, kv_pairs) ->
-        let args = label kv_pairs in
-        call name loc args
-    | Expose (loc, name, _, _) -> call name loc []
-    | Env (loc, name, _) -> call name loc []
-    | Add (loc, name, param, src, dst) ->
-        call name loc (add_or_copy param src dst)
-    | Copy (loc, name, param, src, dst) ->
-        call name loc (add_or_copy param src dst)
-    | Entrypoint (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
-    | Volume (loc, name, _) -> call name loc []
-    | User (loc, name, user, group) -> call name loc (user_args user group)
-    | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
-    | Arg (loc, name, _) -> call name loc []
-    | Onbuild (loc, name, _) -> call name loc []
-    | Stopsignal (loc, name, _) -> call name loc []
-    | Healthcheck (loc, name, _) -> call name loc []
-    | Shell (loc, name, _) -> call name loc []
-    | Maintainer (loc, name, _) -> call name loc []
-    | Cross_build_xxx (loc, name, _) -> call name loc []
-    | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
-    | Instr_TODO (orig_name, tok) ->
-        call ("TODO_" ^ orig_name, tok) (tok, tok) []
-  in
+  let expr = instruction_expr env x in
   stmt_of_expr (instruction_loc x) expr
 
 let program (env : env) (x : program) : G.stmt list =

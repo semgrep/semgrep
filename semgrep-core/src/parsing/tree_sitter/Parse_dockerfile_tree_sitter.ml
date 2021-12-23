@@ -526,8 +526,10 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Instr_TODO name)
       | `Onbu_inst (v1, v2) ->
           let name = str env v1 (* pattern [oO][nN][bB][uU][iI][lL][dD] *) in
-          let _v2 () = instruction env v2 in
-          (env, Instr_TODO name)
+          let _env, instr = instruction env v2 in
+          let _, end_ = instruction_loc instr in
+          let loc = (wrap_tok name, end_) in
+          (env, Onbuild (loc, name, instr))
       | `Stop_inst (v1, v2) ->
           let name =
             str env v1
