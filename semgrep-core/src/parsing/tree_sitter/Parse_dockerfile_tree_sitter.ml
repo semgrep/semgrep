@@ -68,11 +68,6 @@ let classify_shell ((_open, ar, _close) : string_array) :
 (* Boilerplate converter *)
 (*****************************************************************************)
 
-(* This is to satisfy the type system. Make sure it never gets called
-   on any input. *)
-let todo (_env : env) _ =
-  failwith "Parse_bash_tree_sitter: feature not implemented"
-
 (*
    I don't know why this exists in the tree-sitter-dockerfile grammar
    since it's not part of the dockerfile specification.
@@ -526,16 +521,17 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Workdir (loc, name, dir))
       | `Arg_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [aA][rR][gG] *) in
-          let _v2 () = token env v2 (* pattern [a-zA-Z0-9_]+ *) in
-          let _v3 () =
+          let key = str env v2 (* pattern [a-zA-Z0-9_]+ *) in
+          let loc = (wrap_tok name, wrap_tok key) in
+          let opt_value, loc =
             match v3 with
             | Some (v1, v2) ->
-                let v1 = token env v1 (* "=" *) in
-                let v2 = string env v2 in
-                todo env (v1, v2)
-            | None -> todo env ()
+                let eq = token env v1 (* "=" *) in
+                let value = string env v2 in
+                (Some (eq, value), Loc.range loc (str_loc value))
+            | None -> (None, loc)
           in
-          (env, Instr_TODO name)
+          (env, Arg (loc, name, key, opt_value))
       | `Onbu_inst (v1, v2) ->
           let name = str env v1 (* pattern [oO][nN][bB][uU][iI][lL][dD] *) in
           let _env, instr = instruction env v2 in

@@ -107,7 +107,7 @@ type instruction =
       (* user *)
       * (tok (* : *) * string wrap) (* group *) option
   | Workdir of Loc.t * string wrap * path
-  | Arg of Loc.t * string wrap * string wrap
+  | Arg of Loc.t * string wrap * string wrap * (tok * str) option
   | Onbuild of Loc.t * string wrap * instruction
   | Stopsignal of Loc.t * string wrap * string wrap
   | Healthcheck of Loc.t * string wrap * healthcheck
@@ -190,7 +190,7 @@ let instruction_loc = function
   | Volume (loc, _, _) -> loc
   | User (loc, _, _, _) -> loc
   | Workdir (loc, _, _) -> loc
-  | Arg (loc, _, _) -> loc
+  | Arg (loc, _, _, _) -> loc
   | Onbuild (loc, _, _) -> loc
   | Stopsignal (loc, _, _) -> loc
   | Healthcheck (loc, _, _) -> loc

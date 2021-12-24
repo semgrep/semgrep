@@ -140,6 +140,15 @@ let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
   in
   cmd_arg :: opt_args
 
+let arg_args key opt_value : G.expr list =
+  let key = string_expr key in
+  let value =
+    match opt_value with
+    | None -> []
+    | Some (_eq, x) -> [ string_of_str x |> string_expr ]
+  in
+  key :: value
+
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
   | From (loc, name, opt_param, image_spec, opt_alias) ->
@@ -160,7 +169,8 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Volume (loc, name, _) -> call name loc []
   | User (loc, name, user, group) -> call name loc (user_args user group)
   | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
-  | Arg (loc, name, _) -> call name loc []
+  | Arg (loc, name, key, opt_value) ->
+      call_exprs name loc (arg_args key opt_value)
   | Onbuild (loc, name, instr) ->
       call_exprs name loc [ instruction_expr env instr ]
   | Stopsignal (loc, name, _) -> call name loc []
