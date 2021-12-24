@@ -197,13 +197,14 @@ let image_alias (env : env) (xs : CST.image_alias) =
     xs
   |> unsafe_concat_tokens
 
-let stopsignal_value (env : env) (xs : CST.stopsignal_value) =
+let stopsignal_value (env : env) (xs : CST.stopsignal_value) : string wrap =
   List.map
     (fun x ->
       match x with
       | `Pat_441cd81 tok -> token env tok (* pattern [A-Z0-9]+ *)
       | `Expa x -> expansion_tok env x)
     xs
+  |> unsafe_concat_tokens
 
 let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
     string wrap =
@@ -543,8 +544,9 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [sS][tT][oO][pP][sS][iI][gG][nN][aA][lL] *)
           in
-          let _v2 () = stopsignal_value env v2 in
-          (env, Instr_TODO name)
+          let signal = stopsignal_value env v2 in
+          let loc = (wrap_tok name, wrap_tok signal) in
+          (env, Stopsignal (loc, name, signal))
       | `Heal_inst (v1, v2) ->
           let name =
             str env v1
@@ -584,16 +586,18 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [mM][aA][iI][nN][tT][aA][iI][nN][eE][rR] *)
           in
-          let _v2 () = token env v2 (* pattern .* *) in
-          (env, Instr_TODO name)
+          let maintainer = str env v2 (* pattern .* *) in
+          let loc = (wrap_tok name, wrap_tok maintainer) in
+          (env, Maintainer (loc, name, maintainer))
       | `Cross_build_inst (v1, v2) ->
           (* undocumented *)
           let name =
             str env v1
             (* pattern [cC][rR][oO][sS][sS]_[bB][uU][iI][lL][dD][a-zA-Z_]* *)
           in
-          let _v2 () = token env v2 (* pattern .* *) in
-          (env, Instr_TODO name))
+          let data = str env v2 (* pattern .* *) in
+          let loc = (wrap_tok name, wrap_tok data) in
+          (env, Cross_build_xxx (loc, name, data)))
 
 let source_file (env : env) (xs : CST.source_file) =
   let _env, instrs =

@@ -118,7 +118,6 @@ type instruction =
          TODO: who uses this exactly? and where is it documented? *) of
       Loc.t * string wrap * string wrap
   | Instr_semgrep_ellipsis of tok
-  | Instr_TODO of string wrap
 
 type program = instruction list
 
@@ -198,4 +197,3 @@ let instruction_loc = function
   | Maintainer (loc, _, _) -> loc
   | Cross_build_xxx (loc, _, _) -> loc
   | Instr_semgrep_ellipsis tok -> (tok, tok)
-  | Instr_TODO x -> wrap_loc x

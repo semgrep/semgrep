@@ -52,7 +52,7 @@ let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
 
 let string_expr s : G.expr = G.L (G.String s) |> G.e
 
-let argv ((open_, args, close) : string_array) : G.expr =
+let string_array ((open_, args, close) : string_array) : G.expr =
   G.Container (G.Array, (open_, Common.map string_expr args, close)) |> G.e
 
 (*
@@ -61,7 +61,7 @@ let argv ((open_, args, close) : string_array) : G.expr =
 *)
 let argv_or_shell env x : G.expr list =
   match x with
-  | Argv (_loc, array) -> [ argv array ]
+  | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
@@ -149,6 +149,11 @@ let arg_args key opt_value : G.expr list =
   in
   key :: value
 
+let array_or_paths (x : array_or_paths) : G.expr list =
+  match x with
+  | Array (_loc, ar) -> [ string_array ar ]
+  | Paths (_loc, paths) -> Common.map string_expr paths
+
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
   | From (loc, name, opt_param, image_spec, opt_alias) ->
@@ -166,24 +171,25 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Copy (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
   | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name x
-  | Volume (loc, name, _) -> call name loc []
+  | Volume (loc, name, x) -> call_exprs name loc (array_or_paths x)
   | User (loc, name, user, group) -> call name loc (user_args user group)
   | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
   | Arg (loc, name, key, opt_value) ->
       call_exprs name loc (arg_args key opt_value)
   | Onbuild (loc, name, instr) ->
       call_exprs name loc [ instruction_expr env instr ]
-  | Stopsignal (loc, name, _) -> call name loc []
+  | Stopsignal (loc, name, signal) -> call_exprs name loc [ string_expr signal ]
   | Healthcheck (loc, name, Healthcheck_none tok) ->
       call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
   | Healthcheck (loc, name, Healthcheck_cmd (_cmd_loc, params, cmd)) ->
       let args = healthcheck_cmd_args env params cmd in
       call name loc args
-  | Shell (loc, name, array) -> call_exprs name loc [ argv array ]
-  | Maintainer (loc, name, _) -> call name loc []
-  | Cross_build_xxx (loc, name, _) -> call name loc []
+  | Shell (loc, name, array) -> call_exprs name loc [ string_array array ]
+  | Maintainer (loc, name, maintainer) ->
+      call_exprs name loc [ string_expr maintainer ]
+  | Cross_build_xxx (loc, name, data) ->
+      call_exprs name loc [ string_expr data ]
   | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
-  | Instr_TODO (orig_name, tok) -> call ("TODO_" ^ orig_name, tok) (tok, tok) []
 
 let instruction env (x : instruction) : G.stmt =
   let expr = instruction_expr env x in
