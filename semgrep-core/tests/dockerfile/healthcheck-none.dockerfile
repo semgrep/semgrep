@@ -2,7 +2,7 @@
 HEALTHCHECK NONE
 
 # MATCH:
-healthcheck none
+healthcheck NONE
 
 HEALTHCHECK CMD echo hello
 
