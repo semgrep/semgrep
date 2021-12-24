@@ -795,6 +795,10 @@ and arguments = argument list bracket
    ArgOptional = still matches if the argument exists in the target but
                  not in the pattern. If an ArgOptional exists in the pattern,
                  a matching argument must exist in the target.
+
+   Warning: ArgKwd(ArgOptional) arguments must be placed at the end of the list
+            of arguments so as to not shift the positional arguments (Arg)
+            and allow them to match.
 *)
 and required = ArgRequired | ArgOptional
 

@@ -61,7 +61,7 @@ let argv ((open_, args, close) : string_array) : G.expr =
 *)
 let argv_or_shell env x : G.expr list =
   match x with
-  | Argv array -> [ argv array ]
+  | Argv (_loc, array) -> [ argv array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
       [ call_shell loc Sh [ args ] ]
@@ -70,13 +70,16 @@ let argv_or_shell env x : G.expr list =
       let loc = wrap_loc code in
       [ call_shell loc shell_compat args ]
 
+let param_arg (x : param) : G.argument =
+  let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
+  let option_tok = PI.combine_infos dashdash [ name_tok ] in
+  let option_str = PI.str_of_info dashdash ^ name_str in
+  G.ArgKwd (G.ArgOptional, (option_str, option_tok), string_expr value)
+
 let opt_param_arg (x : param option) : G.argument list =
   match x with
   | None -> []
-  | Some (_loc, (dashdash, (name_str, name_tok), _eq, value)) ->
-      let option_tok = PI.combine_infos dashdash [ name_tok ] in
-      let option_str = PI.str_of_info dashdash ^ name_str in
-      [ G.ArgKwd (G.ArgOptional, (option_str, option_tok), string_expr value) ]
+  | Some x -> [ param_arg x ]
 
 let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
     G.argument list =
@@ -96,7 +99,8 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
     | Some (at, digest) ->
         [ G.ArgKwd (G.ArgOptional, ("@", at), string_expr digest) ]
   in
-  opt_param @ (name :: tag) @ digest
+  let optional_params (* must be placed last *) = tag @ digest @ opt_param in
+  name :: optional_params
 
 (* Return the literal with single quotes or double quotes *)
 let string_of_str = function
@@ -111,7 +115,7 @@ let label_pairs (kv_pairs : label_pair list) : G.argument list =
 
 let add_or_copy (opt_param : param option) (src : path) (dst : path) =
   let opt_param = opt_param_arg opt_param in
-  opt_param @ [ G.Arg (string_expr src); G.Arg (string_expr dst) ]
+  [ G.Arg (string_expr src); G.Arg (string_expr dst) ] @ opt_param
 
 let user_args (user : string wrap) (group : (tok * string wrap) option) =
   let user = G.Arg (string_expr user) in
@@ -123,13 +127,26 @@ let user_args (user : string wrap) (group : (tok * string wrap) option) =
   in
   user :: group
 
+(* RUN, CMD, ENTRYPOINT, HEALTHCHECK CMD *)
+let cmd_instr_expr (env : env) loc name (cmd : argv_or_shell) : G.expr =
+  call_exprs name loc (argv_or_shell env cmd)
+
+let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
+    =
+  let opt_args = Common.map param_arg params in
+  let cmd_arg =
+    let loc, name, cmd = cmd in
+    G.Arg (cmd_instr_expr env loc name cmd)
+  in
+  cmd_arg :: opt_args
+
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
   | From (loc, name, opt_param, image_spec, opt_alias) ->
       let args = from opt_param image_spec opt_alias in
       call name loc args
-  | Run (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
-  | Cmd (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
+  | Run (loc, name, x) -> cmd_instr_expr env loc name x
+  | Cmd (loc, name, x) -> cmd_instr_expr env loc name x
   | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
       let args = Common.map string_expr port_protos in
@@ -139,7 +156,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
       call name loc (add_or_copy param src dst)
   | Copy (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
-  | Entrypoint (loc, name, x) -> call_exprs name loc (argv_or_shell env x)
+  | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name x
   | Volume (loc, name, _) -> call name loc []
   | User (loc, name, user, group) -> call name loc (user_args user group)
   | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
@@ -147,7 +164,11 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Onbuild (loc, name, instr) ->
       call_exprs name loc [ instruction_expr env instr ]
   | Stopsignal (loc, name, _) -> call name loc []
-  | Healthcheck (loc, name, _) -> call name loc []
+  | Healthcheck (loc, name, Healthcheck_none tok) ->
+      call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
+  | Healthcheck (loc, name, Healthcheck_cmd (_cmd_loc, params, cmd)) ->
+      let args = healthcheck_cmd_args env params cmd in
+      call name loc args
   | Shell (loc, name, array) -> call_exprs name loc [ argv array ]
   | Maintainer (loc, name, _) -> call name loc []
   | Cross_build_xxx (loc, name, _) -> call name loc []

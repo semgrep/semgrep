@@ -48,7 +48,7 @@ type str = Unquoted of string wrap | Quoted of string wrap
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 type argv_or_shell =
-  | Argv of (* [ "cmd", "arg1", "arg2$X" ] *) quoted_string list bracket
+  | Argv of Loc.t * (* [ "cmd", "arg1", "arg2$X" ] *) quoted_string list bracket
   | Sh_command of Loc.t * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
 
@@ -76,11 +76,13 @@ type string_array = string wrap list bracket
 
 type array_or_paths =
   | Array of Loc.t * string_array
-  | Path of Loc.t * path list
+  | Paths of Loc.t * path list
 
 type cmd = Loc.t * string wrap * argv_or_shell
 
-type healthcheck = Healthcheck_none of tok | Healthcheck_cmd of cmd
+type healthcheck =
+  | Healthcheck_none of tok
+  | Healthcheck_cmd of Loc.t * param list * cmd
 
 type instruction =
   | From of
@@ -149,7 +151,7 @@ let str_loc = function
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 let argv_or_shell_loc = function
-  | Argv x -> bracket_loc x
+  | Argv (loc, _) -> loc
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
 
@@ -166,14 +168,14 @@ let string_array_loc = bracket_loc
 
 let array_or_paths_loc = function
   | Array (loc, _)
-  | Path (loc, _) ->
+  | Paths (loc, _) ->
       loc
 
 let cmd_loc ((loc, _, _) : cmd) = loc
 
 let healthcheck_loc = function
   | Healthcheck_none tok -> (tok, tok)
-  | Healthcheck_cmd cmd -> cmd_loc cmd
+  | Healthcheck_cmd (loc, _, _) -> loc
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc

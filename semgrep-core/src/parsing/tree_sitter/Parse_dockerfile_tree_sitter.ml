@@ -269,13 +269,14 @@ let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) : str =
   | `Double_quoted_str x -> Quoted (double_quoted_string env x)
   | `Unqu_str x -> Unquoted (unquoted_string env x)
 
-let string_array (env : env) ((v1, v2, v3) : CST.string_array) : string_array =
+let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
+    Loc.t * string_array =
   let open_ = token env v1 (* "[" *) in
   let argv =
     match v2 with
     | Some (v1, v2) ->
-        let argv0 = double_quoted_string env v1 in
-        let args =
+        let x0 = double_quoted_string env v1 in
+        let xs =
           List.map
             (fun (v1, v2) ->
               let _comma = token env v1 (* "," *) in
@@ -283,11 +284,12 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) : string_array =
               arg)
             v2
         in
-        argv0 :: args
+        x0 :: xs
     | None -> []
   in
   let close = token env v3 (* "]" *) in
-  (open_, argv, close)
+  let loc = (open_, close) in
+  (loc, (open_, argv, close))
 
 let env_pair (env : env) ((v1, v2, v3) : CST.env_pair) : label_pair =
   let k = str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
@@ -334,7 +336,9 @@ let parse_bash (env : env) shell_cmd : AST_bash.blist option =
 
 let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
   match x with
-  | `Str_array x -> Argv (string_array env x)
+  | `Str_array x ->
+      let loc, ar = string_array env x in
+      Argv (loc, ar)
   | `Shell_cmd (v1, v2) -> (
       (* Stitch back the fragments together, then parse using the correct
          shell language. *)
@@ -376,6 +380,13 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
 
+let runlike_instruction (env : env) name cmd =
+  let name = str env name (* RUN, CMD, ... *) in
+  let cmd = argv_or_shell env cmd in
+  let _, end_ = argv_or_shell_loc cmd in
+  let loc = (wrap_tok name, end_) in
+  (loc, name, cmd)
+
 let rec instruction (env : env) (x : CST.instruction) : env * instruction =
   match x with
   | `Semg_ellips tok -> (* "..." *) (env, Instr_semgrep_ellipsis (token env tok))
@@ -406,16 +417,10 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           in
           (env, From (loc, name, param, image_spec, alias))
       | `Run_inst (v1, v2) ->
-          let name = str env v1 (* pattern [rR][uU][nN] *) in
-          let cmd = argv_or_shell env v2 in
-          let _, end_ = argv_or_shell_loc cmd in
-          let loc = (wrap_tok name, end_) in
+          let loc, name, cmd = runlike_instruction (env : env) v1 v2 in
           (env, Run (loc, name, cmd))
-      | `Cmd_inst x ->
-          let name = str env v1 (* pattern [cC][mM][dD] *) in
-          let cmd = argv_or_shell env v2 in
-          let _, end_ = argv_or_shell_loc cmd in
-          let loc = (wrap_tok name, end_) in
+      | `Cmd_inst (v1, v2) ->
+          let loc, name, cmd = runlike_instruction (env : env) v1 v2 in
           (env, Cmd (loc, name, cmd))
       | `Label_inst (v1, v2) ->
           let name = str env v1 (* pattern [lL][aA][bB][eE][lL] *) in
@@ -476,32 +481,30 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let loc = (wrap_tok name, wrap_tok dst) in
           (env, Copy (loc, name, param, src, dst))
       | `Entr_inst (v1, v2) ->
-          let name =
-            str env v1
-            (* pattern [eE][nN][tT][rR][yY][pP][oO][iI][nN][tT] *)
-          in
-          let cmd = argv_or_shell env v2 in
-          let _, end_ = argv_or_shell_loc cmd in
-          let loc = (wrap_tok name, end_) in
+          let loc, name, cmd = runlike_instruction (env : env) v1 v2 in
           (env, Entrypoint (loc, name, cmd))
       | `Volume_inst (v1, v2) ->
           let name = str env v1 (* pattern [vV][oO][lL][uU][mM][eE] *) in
-          let _v2 () =
+          let args =
             match v2 with
-            | `Str_array x -> string_array env x
+            | `Str_array x ->
+                let loc, ar = string_array env x in
+                Array (loc, ar)
             | `Path_rep_non_nl_whit_path (v1, v2) ->
-                let v1 = path env v1 in
-                let v2 =
+                let path0 = path env v1 in
+                let paths =
                   List.map
                     (fun (v1, v2) ->
-                      let v1 = token env v1 (* pattern [\t ]+ *) in
-                      let v2 = path env v2 in
-                      todo env (v1, v2))
+                      let _blank = token env v1 (* pattern [\t ]+ *) in
+                      path env v2)
                     v2
                 in
-                todo env (v1, v2)
+                let paths = path0 :: paths in
+                let loc = Loc.of_toks wrap_tok paths in
+                Paths (loc, paths)
           in
-          (env, Instr_TODO name)
+          let loc = Loc.extend (array_or_paths_loc args) (wrap_tok name) in
+          (env, Volume (loc, name, args))
       | `User_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [uU][sS][eE][rR] *) in
           let user = user_name_or_group env v2 in
@@ -551,21 +554,24 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [hH][eE][aA][lL][tT][hH][cC][hH][eE][cC][kK] *)
           in
-          let _v2 () =
+          let arg =
             match v2 with
-            | `NONE tok -> token env tok (* "NONE" *)
-            | `Rep_param_cmd_inst (v1, v2) ->
-                let v1 = List.map (param env) v1 in
-                let v2 = cmd_instruction env v2 in
-                todo env (v1, v2)
+            | `NONE tok -> Healthcheck_none (token env tok (* "NONE" *))
+            | `Rep_param_cmd_inst (v1, (name (* CMD *), args)) ->
+                let params = List.map (param env) v1 in
+                let params_loc = Loc.of_list param_loc params in
+                let cmd_loc, name, args = runlike_instruction env name args in
+                let loc = Loc.range params_loc cmd_loc in
+                Healthcheck_cmd (loc, params, (cmd_loc, name, args))
           in
-          (env, Instr_TODO name)
+          let loc = Loc.extend (healthcheck_loc arg) (wrap_tok name) in
+          (env, Healthcheck (loc, name, arg))
       | `Shell_inst (v1, v2) ->
           let ((_, start_tok) as name) =
             str env v1
             (* pattern [sS][hH][eE][lL][lL] *)
           in
-          let cmd = string_array env v2 in
+          let cmd_loc, cmd = string_array env v2 in
           let env =
             match classify_shell cmd with
             | None -> env
@@ -573,7 +579,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                 let input_kind, _cur_shell = env.extra in
                 { env with extra = (input_kind, shell_compat) }
           in
-          let _, end_tok = string_array_loc cmd in
+          let _, end_tok = cmd_loc in
           let loc = (start_tok, end_tok) in
           (env, Shell (loc, name, cmd))
       | `Main_inst (v1, v2) ->
