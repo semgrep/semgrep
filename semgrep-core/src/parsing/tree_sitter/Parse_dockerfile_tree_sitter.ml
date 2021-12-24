@@ -376,11 +376,6 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
 
-let cmd_instruction (env : env) ((v1, v2) : CST.cmd_instruction) =
-  let name = str env v1 (* pattern [cC][mM][dD] *) in
-  let _v2 () = argv_or_shell env v2 in
-  Instr_TODO name
-
 let rec instruction (env : env) (x : CST.instruction) : env * instruction =
   match x with
   | `Semg_ellips tok -> (* "..." *) (env, Instr_semgrep_ellipsis (token env tok))
@@ -416,7 +411,12 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let _, end_ = argv_or_shell_loc cmd in
           let loc = (wrap_tok name, end_) in
           (env, Run (loc, name, cmd))
-      | `Cmd_inst x -> (env, cmd_instruction env x)
+      | `Cmd_inst x ->
+          let name = str env v1 (* pattern [cC][mM][dD] *) in
+          let cmd = argv_or_shell env v2 in
+          let _, end_ = argv_or_shell_loc cmd in
+          let loc = (wrap_tok name, end_) in
+          (env, Cmd (loc, name, cmd))
       | `Label_inst (v1, v2) ->
           let name = str env v1 (* pattern [lL][aA][bB][eE][lL] *) in
           let label_pairs = List.map (label_pair env) v2 in

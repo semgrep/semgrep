@@ -89,7 +89,7 @@ type instruction =
       * param option
       * image_spec
       * (tok (* as *) * image_alias) option
-  | Run of Loc.t * string wrap * argv_or_shell
+  | Run of cmd
   | Cmd of cmd
   | Label of Loc.t * string wrap * label_pair list
   | Expose of Loc.t * string wrap * string wrap list (* 123/udp 123 56/tcp *)
