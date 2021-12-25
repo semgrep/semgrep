@@ -52,8 +52,21 @@ let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
 
 let string_expr s : G.expr = G.L (G.String s) |> G.e
 
+let id_expr (x : string wrap) : G.expr =
+  G.N (G.Id (x, G.empty_id_info ())) |> G.e
+
+let metavar_expr (x : string wrap) : G.expr = id_expr x
+
+let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
+
+let array_elt_expr (x : array_elt) : G.expr =
+  match x with
+  | Arr_string x -> string_expr x
+  | Arr_metavar x -> metavar_expr x
+  | Arr_ellipsis x -> ellipsis_expr x
+
 let string_array ((open_, args, close) : string_array) : G.expr =
-  G.Container (G.Array, (open_, Common.map string_expr args, close)) |> G.e
+  G.Container (G.Array, (open_, Common.map array_elt_expr args, close)) |> G.e
 
 (*
    Return the arguments to pass to the dockerfile command e.g. the arguments
@@ -102,15 +115,9 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
   let optional_params (* must be placed last *) = tag @ digest @ opt_param in
   name :: optional_params
 
-(* Return the literal with single quotes or double quotes *)
-let string_of_str = function
-  | Unquoted x -> x
-  | Quoted x -> x
-
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
   kv_pairs
   |> Common.map (fun (key, _eq, value) ->
-         let value = string_of_str value in
          G.ArgKwd (G.ArgRequired, key, string_expr value))
 
 let add_or_copy (opt_param : param option) (src : path) (dst : path) =
@@ -145,7 +152,7 @@ let arg_args key opt_value : G.expr list =
   let value =
     match opt_value with
     | None -> []
-    | Some (_eq, x) -> [ string_of_str x |> string_expr ]
+    | Some (_eq, x) -> [ string_expr x ]
   in
   key :: value
 
@@ -190,6 +197,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Cross_build_xxx (loc, name, data) ->
       call_exprs name loc [ string_expr data ]
   | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Instr_semgrep_metavar x -> metavar_expr x
 
 let instruction env (x : instruction) : G.stmt =
   let expr = instruction_expr env x in

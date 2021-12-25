@@ -52,17 +52,23 @@ let unsafe_concat_tokens toks : string wrap =
         let s = "" in
         (s, PI.unsafe_fake_info s)
 
+(* best effort to extract the name of the shell *)
 let classify_shell ((_open, ar, _close) : string_array) :
     shell_compatibility option =
-  match List.map fst ar with
-  | "/bin/bash" :: _
-  | "/bin/sh" :: _
-  | "/usr/bin/env" :: ("bash" | "sh") :: _ ->
+  match ar with
+  | Arr_string ("/bin/bash", _) :: _
+  | Arr_string ("/bin/sh", _) :: _
+  | Arr_string ("/usr/bin/env", _) :: Arr_string (("bash" | "sh"), _) :: _ ->
       Some Sh
-  | "cmd" :: _ -> Some Cmd
-  | "powershell" :: _ -> Some Powershell
-  | x :: _ -> Some (Other x)
-  | [] -> None
+  | Arr_string ("cmd", _) :: _ -> Some Cmd
+  | Arr_string ("powershell", _) :: _ -> Some Powershell
+  | Arr_string ("/usr/bin/env", _) :: Arr_string (name, _) :: _
+  | Arr_string (name, _) :: _ ->
+      Some (Other name)
+  | Arr_metavar _ :: _
+  | Arr_ellipsis _ :: _
+  | [] ->
+      None
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -260,10 +266,17 @@ let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
   in
   { loc; name; tag; digest }
 
-let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) : str =
+let array_element (env : env) (x : CST.array_element) : array_elt =
   match x with
-  | `Double_quoted_str x -> Quoted (double_quoted_string env x)
-  | `Unqu_str x -> Unquoted (unquoted_string env x)
+  | `Double_quoted_str x -> Arr_string (double_quoted_string env x)
+  | `Semg_ellips tok -> Arr_ellipsis (token env tok)
+  | `Semg_meta tok -> Arr_metavar (str env tok)
+
+let string (env : env) (x : CST.anon_choice_double_quoted_str_6b200ac) :
+    string wrap =
+  match x with
+  | `Double_quoted_str x -> double_quoted_string env x
+  | `Unqu_str x -> unquoted_string env x
 
 let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
     Loc.t * string_array =
@@ -271,12 +284,12 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
   let argv =
     match v2 with
     | Some (v1, v2) ->
-        let x0 = double_quoted_string env v1 in
+        let x0 = array_element env v1 in
         let xs =
           List.map
             (fun (v1, v2) ->
               let _comma = token env v1 (* "," *) in
-              let arg = double_quoted_string env v2 in
+              let arg = array_element env v2 in
               arg)
             v2
         in
@@ -386,6 +399,9 @@ let runlike_instruction (env : env) name cmd =
 let rec instruction (env : env) (x : CST.instruction) : env * instruction =
   match x with
   | `Semg_ellips tok -> (* "..." *) (env, Instr_semgrep_ellipsis (token env tok))
+  | `Semg_meta tok ->
+      (* pattern \$[A-Z_][A-Z_0-9]* *)
+      (env, Instr_semgrep_metavar (str env tok))
   | `Choice_from_inst x -> (
       match x with
       | `From_inst (v1, v2, v3, v4) ->
@@ -529,7 +545,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | Some (v1, v2) ->
                 let eq = token env v1 (* "=" *) in
                 let value = string env v2 in
-                (Some (eq, value), Loc.range loc (str_loc value))
+                (Some (eq, value), Loc.extend loc (wrap_tok value))
             | None -> (None, loc)
           in
           (env, Arg (loc, name, key, opt_value))

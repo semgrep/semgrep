@@ -23,6 +23,11 @@ type 'a bracket = tok * 'a * tok
 (* AST definition *)
 (*****************************************************************************)
 
+type array_elt =
+  | Arr_string of string wrap
+  | Arr_metavar of string wrap
+  | Arr_ellipsis of tok
+
 type shell_compatibility =
   | Sh (* Bourne shell or Bash *)
   | Cmd (* Windows cmd *)
@@ -34,7 +39,7 @@ type shell_compatibility =
 
 type quoted_string = string wrap
 
-type str = Unquoted of string wrap | Quoted of string wrap
+type string_array = array_elt list bracket
 
 (*
    The default shell depends on the platform on which docker runs (Unix or
@@ -48,7 +53,7 @@ type str = Unquoted of string wrap | Quoted of string wrap
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 type argv_or_shell =
-  | Argv of Loc.t * (* [ "cmd", "arg1", "arg2$X" ] *) quoted_string list bracket
+  | Argv of Loc.t * (* [ "cmd", "arg1", "arg2$X" ] *) string_array
   | Sh_command of Loc.t * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
 
@@ -66,13 +71,11 @@ type image_spec = {
 
 type image_alias = string wrap
 
-type label_pair = string wrap (* key *) * tok (* = *) * str (* value *)
+type label_pair = string wrap (* key *) * tok (* = *) * string wrap (* value *)
 
 type protocol = TCP | UDP
 
 type path = string wrap
-
-type string_array = string wrap list bracket
 
 type array_or_paths =
   | Array of Loc.t * string_array
@@ -107,7 +110,7 @@ type instruction =
       (* user *)
       * (tok (* : *) * string wrap) (* group *) option
   | Workdir of Loc.t * string wrap * path
-  | Arg of Loc.t * string wrap * string wrap * (tok * str) option
+  | Arg of Loc.t * string wrap * string wrap * (tok * string wrap) option
   | Onbuild of Loc.t * string wrap * instruction
   | Stopsignal of Loc.t * string wrap * string wrap
   | Healthcheck of Loc.t * string wrap * healthcheck
@@ -118,6 +121,7 @@ type instruction =
          TODO: who uses this exactly? and where is it documented? *) of
       Loc.t * string wrap * string wrap
   | Instr_semgrep_ellipsis of tok
+  | Instr_semgrep_metavar of string wrap
 
 type program = instruction list
 
@@ -133,10 +137,6 @@ let bracket_loc (open_, _, close) = (open_, close)
 
 (* Re-using the type used for double-quoted strings in bash *)
 let quoted_string_loc = bracket_loc
-
-let str_loc = function
-  | Unquoted x -> wrap_loc x
-  | Quoted x -> wrap_loc x
 
 (*
    The default shell depends on the platform on which docker runs (Unix or
@@ -160,8 +160,7 @@ let image_spec_loc (x : image_spec) = x.loc
 
 let image_alias_loc = wrap_loc
 
-let label_pair_loc (((_, start), _, str) : label_pair) =
-  (start, str_loc str |> snd)
+let label_pair_loc (((_, start), _, str) : label_pair) = (start, wrap_tok str)
 
 let string_array_loc = bracket_loc
 
@@ -197,3 +196,4 @@ let instruction_loc = function
   | Maintainer (loc, _, _) -> loc
   | Cross_build_xxx (loc, _, _) -> loc
   | Instr_semgrep_ellipsis tok -> (tok, tok)
+  | Instr_semgrep_metavar (_, tok) -> (tok, tok)
