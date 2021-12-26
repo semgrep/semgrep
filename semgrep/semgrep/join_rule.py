@@ -2,7 +2,7 @@ import json
 import tempfile
 from collections import defaultdict
 from enum import Enum
-from functools import reduce
+from functools import partial, reduce
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -16,7 +16,7 @@ from typing import Type
 
 import peewee as pw
 from attrs import define
-from peewee import ModelSelect
+from peewee import CTE, ModelSelect
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_main
@@ -32,6 +32,8 @@ from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
+
+from semgrep.util import partition
 
 logger = getLogger(__file__)
 
@@ -69,6 +71,7 @@ class JoinOperator(Enum):
     SIMILAR = "~"
     SIMILAR_LEFT = "<"
     SIMILAR_RIGHT = ">"
+    RECURSIVE = "-->"
 
 
 @define
@@ -76,6 +79,7 @@ class Ref:
     id: str
     renames: Dict[str, str]
     alias: str
+    recursive: Dict[str, str]
 
 
 @define
@@ -184,6 +188,13 @@ def match_on_conditions(  # type: ignore
         )
         return []
 
+    recursive_conditions, normal_conditions = partition(
+        lambda condition: condition.operator == JoinOperator.RECURSIVE,
+        conditions,
+    )
+
+    handle_recursive_conditions(recursive_conditions, collection_models)
+
     # join them together
     joined: ModelSelect = reduce(  # type: ignore
         lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models  # type: ignore
@@ -191,7 +202,7 @@ def match_on_conditions(  # type: ignore
 
     # evaluate conjoined conditions
     condition_terms = []
-    for condition in conditions:
+    for condition in normal_conditions:
         collection_a_real = aliases.get(condition.collection_a, condition.collection_a)
         collection_b_real = aliases.get(condition.collection_b, condition.collection_b)
         A = model_map[collection_a_real]
@@ -302,6 +313,38 @@ def load_results_into_db(
             )
 
 
+def handle_recursive_conditions(conditions: List[Condition], model_map: Dict[str, Type[BaseModel]]) -> None:
+    for condition in conditions:
+        if condition.collection_a != condition.collection_b:
+            raise InvalidConditionError(
+                f"Recursive conditions must use the same collection name. This condition uses two names: {condition.collection_a}, {condition.collection_b}"
+            )
+        collection = condition.collection_a
+        # Generate a recursive CTE. See https://docs.peewee-orm.com/en/latest/peewee/querying.html#recursive-ctes
+        cte = generate_recursive_cte(model_map[collection], condition.property_a, condition.property_b)
+        # The CTE object has a "select_from" method which returns a peewee.Select object.
+        # Need to patch in a "select" method so it works with other models
+        patch_cte_with_select(cte, condition.property_a, condition.property_b)
+        # Use the CTE instead of the model
+        model_map[collection] = cte
+
+
+def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -> CTE:
+    first_clause = model.select(
+        getattr(model, column1),
+        getattr(model, column2),
+    ).cte('base', recursive=True)
+    union_clause = first_clause.select(
+        getattr(first_clause.c, column1),
+        getattr(model, column2),
+    ).join(model, on=(getattr(first_clause.c, column2) == getattr(model, column1)))
+    return first_clause.union(union_clause)
+
+
+def patch_cte_with_select(cte: CTE, column1: str, column2: str) -> None:
+    cte.select = partial(cte.select_from, getattr(cte.c, column1), getattr(cte.c, column2))
+
+
 def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
@@ -348,6 +391,7 @@ def run_join_rule(
                 for rename in ref.get("renames", [])
             },
             alias=ref.get("as"),
+            recursive=ref.get("recursive")
         )
         for ref in join_contents.get("refs", [])
     ]

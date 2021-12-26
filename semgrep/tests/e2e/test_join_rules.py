@@ -16,6 +16,10 @@ import pytest
             "rules/join_rules/multiple-rules.yaml",
             "join_rules/user-input-with-unescaped-extension",
         ),
+        (
+            "rules/join_rules/recursive.yaml",
+            "join_rules/recursive",
+        )
     ],
 )
 def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):

@@ -1,0 +1,18 @@
+rules:
+- id: spring-sql-injection
+  message: >-
+    SQLi
+  severity: ERROR
+  mode: join
+  join:
+    refs:
+    - rule: user-input.yaml
+      as: spring-user-input
+    - rule: method-parameter-formatted-sql.yaml
+      as: formatted-sql
+    - rule: java-callgraph.yaml
+      as: callgraph
+    on:
+    - 'spring-user-input.$SINK == callgraph.$CALLER'
+    - 'callgraph.$CALLER --> callgraph.$CALLEE'
+    - 'callgraph.$CALLEE == formatted-sql.$METHODNAME'
