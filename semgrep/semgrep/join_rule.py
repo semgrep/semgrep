@@ -199,7 +199,6 @@ def match_on_conditions(  # type: ignore
         lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models  # type: ignore
     )
 
-
     # evaluate conjoined conditions
     condition_terms = []
     for condition in normal_conditions:
@@ -312,7 +311,11 @@ def load_results_into_db(
             )
 
 
-def handle_recursive_conditions(conditions: List[Condition], model_map: Dict[str, Type[BaseModel]], aliases: Dict[str, str]) -> None:
+def handle_recursive_conditions(
+    conditions: List[Condition],
+    model_map: Dict[str, Type[BaseModel]],
+    aliases: Dict[str, str],
+) -> None:
     for condition in conditions:
         if condition.collection_a != condition.collection_b:
             raise InvalidConditionError(
@@ -322,15 +325,29 @@ def handle_recursive_conditions(conditions: List[Condition], model_map: Dict[str
         # Generate a recursive CTE. See https://docs.peewee-orm.com/en/latest/peewee/querying.html#recursive-ctes
         model = model_map[aliases.get(collection, "")]
         cte = generate_recursive_cte(model, condition.property_a, condition.property_b)
-        query = model.select().join(
-            cte,
-            join_type=pw.JOIN.LEFT_OUTER, 
-            on=(
-                getattr(cte.c, condition.property_a) == getattr(model, condition.property_a)
-                and getattr(cte.c, condition.property_b) == getattr(model, condition.property_b)
+        query = (
+            model.select(
+                # TODO: this discards other metavariables. Need a way to keep them.
+                # peewee hasn't been expressive enough to do this easily.
+                model.raw,
+                getattr(cte.c, condition.property_a),
+                getattr(cte.c, condition.property_b),
             )
-        ).with_cte(cte)
-        new_model = model_factory(aliases.get(collection, "")+"-rec", query.dicts()[0].keys())
+            .join(
+                cte,
+                join_type=pw.JOIN.LEFT_OUTER,
+                on=(
+                    getattr(cte.c, condition.property_a)
+                    == getattr(model, condition.property_a)
+                    and getattr(cte.c, condition.property_b)
+                    == getattr(model, condition.property_b)
+                ),
+            )
+            .with_cte(cte)
+        )
+        new_model = model_factory(
+            aliases.get(collection, "") + "-rec", query.dicts()[0].keys()
+        )
         new_model.create_table()
         for row in query.dicts():
             new_model.create(**row)
@@ -341,7 +358,7 @@ def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -
     first_clause = model.select(
         getattr(model, column1),
         getattr(model, column2),
-    ).cte('base', recursive=True)
+    ).cte("base", recursive=True)
     union_clause = first_clause.select(
         getattr(first_clause.c, column1),
         getattr(model, column2),
@@ -396,7 +413,7 @@ def run_join_rule(
                 for rename in ref.get("renames", [])
             },
             alias=ref.get("as"),
-            recursive=ref.get("recursive")
+            recursive=ref.get("recursive"),
         )
         for ref in join_contents.get("refs", [])
     ]
