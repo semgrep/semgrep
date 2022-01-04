@@ -327,8 +327,6 @@ def handle_recursive_conditions(
         cte = generate_recursive_cte(model, condition.property_a, condition.property_b)
         query = (
             model.select(
-                # TODO: this discards other metavariables. Need a way to keep them.
-                # peewee hasn't been expressive enough to do this easily.
                 model.raw,
                 getattr(cte.c, condition.property_a),
                 getattr(cte.c, condition.property_b),
