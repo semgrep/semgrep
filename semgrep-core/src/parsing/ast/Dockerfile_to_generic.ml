@@ -87,7 +87,7 @@ let param_arg (x : param) : G.argument =
   let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
   let option_tok = PI.combine_infos dashdash [ name_tok ] in
   let option_str = PI.str_of_info dashdash ^ name_str in
-  G.ArgKwd (G.ArgOptional, (option_str, option_tok), string_expr value)
+  G.ArgKwd ((option_str, option_tok), string_expr value)
 
 let opt_param_arg (x : param option) : G.argument list =
   match x with
@@ -103,22 +103,19 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
   let tag =
     match image_spec.tag with
     | None -> []
-    | Some (colon, tag) ->
-        [ G.ArgKwd (G.ArgOptional, (":", colon), string_expr tag) ]
+    | Some (colon, tag) -> [ G.ArgKwd ((":", colon), string_expr tag) ]
   in
   let digest =
     match image_spec.digest with
     | None -> []
-    | Some (at, digest) ->
-        [ G.ArgKwd (G.ArgOptional, ("@", at), string_expr digest) ]
+    | Some (at, digest) -> [ G.ArgKwd (("@", at), string_expr digest) ]
   in
   let optional_params (* must be placed last *) = tag @ digest @ opt_param in
   name :: optional_params
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
   kv_pairs
-  |> Common.map (fun (key, _eq, value) ->
-         G.ArgKwd (G.ArgRequired, key, string_expr value))
+  |> Common.map (fun (key, _eq, value) -> G.ArgKwd (key, string_expr value))
 
 let add_or_copy (opt_param : param option) (src : path) (dst : path) =
   let opt_param = opt_param_arg opt_param in
@@ -129,8 +126,7 @@ let user_args (user : string wrap) (group : (tok * string wrap) option) =
   let group =
     match group with
     | None -> []
-    | Some (colon, group) ->
-        [ G.ArgKwd (G.ArgOptional, (":", colon), string_expr group) ]
+    | Some (colon, group) -> [ G.ArgKwd ((":", colon), string_expr group) ]
   in
   user :: group
 

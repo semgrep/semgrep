@@ -2120,7 +2120,7 @@ and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
   in
   match v2 with
   | None -> Arg e
-  | Some (id, _t) -> ArgKwd (G.ArgRequired, id, e)
+  | Some (id, _t) -> ArgKwd (id, e)
 
 and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) : arguments
     =

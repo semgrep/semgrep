@@ -478,7 +478,7 @@ and map_argument = function
   | ArgType v1 ->
       let v1 = map_type_ v1 in
       `ArgType v1
-  | ArgKwd (_required, v1, v2) ->
+  | ArgKwd (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_expr v2 in
       `ArgKwd (v1, v2)
   | OtherArg (v1, v2) ->

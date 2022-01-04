@@ -261,7 +261,7 @@ let entity_name_to_expr name idinfo_opt =
 let argument_to_expr arg =
   match arg with
   | Arg e -> e
-  | ArgKwd (_required, id, e) ->
+  | ArgKwd (id, e) ->
       let n = name_of_id id in
       let k = N n |> G.e in
       G.keyval k (fake "") e

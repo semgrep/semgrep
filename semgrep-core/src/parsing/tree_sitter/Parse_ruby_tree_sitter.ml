@@ -1662,7 +1662,7 @@ and pair_for_hash env x : AST.expr =
 and pair_for_argument env x : AST.argument =
   match pair env x with
   | Left e -> Arg e
-  | Right (a, b, c) -> ArgKwd (a, b, c)
+  | Right (a, b, c) -> ArgKwd (b, c)
 
 let program (env : env) ((v1, _v2interpreted) : CST.program) : AST.stmts =
   match v1 with

@@ -203,7 +203,7 @@ and element_value = function
 and annotation_pair = function
   | AnnotPair (v1, v2) ->
       let v1 = ident v1 and v2 = element_value v2 in
-      G.ArgKwd (G.ArgRequired, v1, v2)
+      G.ArgKwd (v1, v2)
   | AnnotPairEllipsis v1 -> G.Arg (G.Ellipsis v1 |> G.e)
 
 (* id_or_name_of_qualified_ident *)

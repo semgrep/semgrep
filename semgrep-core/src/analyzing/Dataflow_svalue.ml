@@ -314,7 +314,7 @@ let rec is_symbolic_expr expr =
 and is_symbolic_arg arg =
   match arg with
   | G.Arg e -> is_symbolic_expr e
-  | G.ArgKwd (_, _, e) -> is_symbolic_expr e
+  | G.ArgKwd (_, e) -> is_symbolic_expr e
   | G.ArgType _ -> true
   | G.OtherArg _ -> false
 

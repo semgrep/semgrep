@@ -513,7 +513,7 @@ let (mk_visitor :
     | ArgType v1 ->
         let v1 = v_type_ v1 in
         ()
-    | ArgKwd (required, v1, v2) ->
+    | ArgKwd (v1, v2) ->
         let required = v_required required in
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()

@@ -497,7 +497,7 @@ and vof_argument = function
   | Arg v1 ->
       let v1 = vof_expr v1 in
       OCaml.VSum ("Arg", [ v1 ])
-  | ArgKwd (required, v1, v2) ->
+  | ArgKwd (v1, v2) ->
       let required = vof_required required in
       let v1 = vof_ident v1 and v2 = vof_expr v2 in
       OCaml.VSum ("ArgKwd", [ required; v1; v2 ])

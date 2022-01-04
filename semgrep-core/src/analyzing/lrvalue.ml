@@ -142,7 +142,7 @@ let rec visit_expr hook lhs expr =
       |> List.iter (function
            (* Todo: false positive because passing by reference? *)
            | Arg e -> recr e
-           | ArgKwd (_required, _id, e) -> recr e
+           | ArgKwd (_id, e) -> recr e
            | ArgType _ -> ()
            | OtherArg (_, anys) -> List.iter (anyhook hook Rhs) anys)
   | Cast (_t, _, e) -> recr e
