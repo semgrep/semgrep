@@ -169,12 +169,12 @@ and argument arg : G.argument =
   (* sgrep: equivalence between different keyword argument syntax *)
   | Arg (Binop (Atom (_tk, AtomSimple id), (Op_ASSOC, _v2), v3)) ->
       let e3 = expr v3 in
-      G.ArgKwd (id, e3)
+      G.ArgKwd (G.ArgRequired, id, e3)
   | Arg e -> G.Arg (expr e)
   | ArgKwd (id, _tk, arg) ->
       let id = ident id in
       let arg = expr arg in
-      G.ArgKwd (id, arg)
+      G.ArgKwd (G.ArgRequired, id, arg)
 
 and formal_param = function
   | Formal_id id -> G.Param (G.param_of_id id)

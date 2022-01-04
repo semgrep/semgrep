@@ -74,7 +74,8 @@ repos:
       - id: hadolint
         name: hadolint
         language: docker_image
-        files: "Dockerfile"
+        types:
+          - dockerfile
         entry: hadolint/hadolint:v1.18.0 hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
 

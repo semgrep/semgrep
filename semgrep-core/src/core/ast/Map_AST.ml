@@ -447,6 +447,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_of_prepost x = x
   and map_arithmetic_operator x = x
   and map_arguments v = map_bracket (map_of_list map_argument) v
+  and map_required x = x
   and map_argument = function
     | Arg v1 ->
         let v1 = map_expr v1 in
@@ -454,9 +455,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | ArgType v1 ->
         let v1 = map_type_ v1 in
         ArgType v1
-    | ArgKwd (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_expr v2 in
-        ArgKwd (v1, v2)
+    | ArgKwd (v1, v2, v3) ->
+        let v1 = map_required v1 in
+        let v2 = map_ident v2 in
+        let v3 = map_expr v3 in
+        ArgKwd (v1, v2, v3)
     | OtherArg (v1, v2) ->
         let v1 = map_other_argument_operator v1
         and v2 = map_of_list map_any v2 in
