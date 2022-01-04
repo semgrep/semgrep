@@ -131,7 +131,7 @@ let subexprs_of_expr e =
       :: (args |> unbracket
          |> Common.map_filter (function
               | Arg e
-              | ArgKwd (_, e) ->
+              | ArgKwd (_, _, e) ->
                   Some e
               | ArgType _
               | OtherArg _ ->

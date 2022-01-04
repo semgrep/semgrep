@@ -364,7 +364,7 @@ let top_func () =
     | InitKeyValue (v1, v2, v3) -> (
         let v2 = tok v2 and v3 = init v3 in
         match v1 with
-        | InitExpr (Id id) -> G.ArgKwd (id, v3)
+        | InitExpr (Id id) -> G.ArgKwd (G.ArgRequired, id, v3)
         | _ -> G.Arg (G.keyval (init v1) v2 v3))
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in

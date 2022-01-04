@@ -41,6 +41,13 @@ let has_suffix suffixes =
   in
   Test_path f
 
+let is_named valid_names =
+  let f path =
+    let name = Filename.basename path in
+    List.mem name valid_names
+  in
+  Test_path f
+
 let prepend_period_if_needed s =
   match s with
   | "" -> "."
@@ -225,6 +232,9 @@ let inspect_file_p (lang : Lang.t) path =
     match lang with
     | Hack -> is_hack
     | Php -> And (matches_lang lang, Not is_hack)
+    | Dockerfile ->
+        (* TODO: add support for exact file name to lang.json *)
+        Or (is_named [ "Dockerfile"; "dockerfile" ], has_lang_extension lang)
     | Bash
     | C
     | Cpp
