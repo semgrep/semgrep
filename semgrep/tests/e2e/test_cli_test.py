@@ -1,3 +1,5 @@
+from tests.conftest import _mask_floats
+
 from semgrep.constants import OutputFormat
 
 
@@ -11,6 +13,20 @@ def test_cli_test_basic(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         results,
+        "results.json",
+    )
+
+
+def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        options=["--verbose"],
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+    )
+
+    snapshot.assert_match(
+        _mask_floats(results),
         "results.json",
     )
 

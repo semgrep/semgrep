@@ -1,6 +1,7 @@
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -64,6 +65,29 @@ def _clean_output_json(output_json: str) -> str:
                 del r["path"]
 
     return json.dumps(output, indent=2, sort_keys=True)
+
+
+def _mask_times(result_json: str) -> str:
+    result = json.loads(result_json)
+
+    def zero_times(value):
+        if type(value) == float:
+            return 2.022
+        elif type(value) == list:
+            return [zero_times(val) for val in value]
+        elif type(value) == dict:
+            return {k: zero_times(v) for k, v in value.items()}
+        else:
+            return value
+
+    if "time" in result:
+        result["time"] = zero_times(result["time"])
+    return json.dumps(result, indent=2, sort_keys=True)
+
+
+def _mask_floats(text_output: str) -> str:
+    FLOATS = re.compile("([0-9]+).([0-9]+)")
+    return re.sub(FLOATS, "x.xxx", text_output)
 
 
 def _run_semgrep(

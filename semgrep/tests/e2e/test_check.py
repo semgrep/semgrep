@@ -6,30 +6,13 @@ from subprocess import CalledProcessError
 
 import pytest
 from tests.conftest import _clean_output_json
+from tests.conftest import _mask_times
 
 from semgrep.constants import OutputFormat
 
 GITHUB_TEST_GIST_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
 )
-
-
-def mask_times(result_json):
-    result = json.loads(result_json)
-
-    def zero_times(value):
-        if type(value) == float:
-            return 2.022
-        elif type(value) == list:
-            return [zero_times(val) for val in value]
-        elif type(value) == dict:
-            return {k: zero_times(v) for k, v in value.items()}
-        else:
-            return value
-
-    if "time" in result:
-        result["time"] = zero_times(result["time"])
-    return json.dumps(result, indent=4)
 
 
 def test_basic_rule__local(run_semgrep_in_tmp, snapshot):
@@ -446,7 +429,7 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
         target_name="equivalence",
         strict=False,
     )
-    snapshot.assert_match(mask_times(stdout), "results.json")
+    snapshot.assert_match(_mask_times(stdout), "results.json")
     snapshot.assert_match(stderr, "error.txt")
 
 
@@ -499,7 +482,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
         strict=False,
     )[0]
     snapshot.assert_match(
-        mask_times(results),
+        _mask_times(results),
         "results.json",
     )
 
