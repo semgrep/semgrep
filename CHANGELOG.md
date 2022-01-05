@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- Pre-alpha support for Dockerfile as a new target language
+
+### Fixed
+- Rust: inner attributes are allowed again inside functions (#4444) (#4445)
+- Python: return statement can contain tuple expansions (#4461)
+
 ## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
 
 ### Added
