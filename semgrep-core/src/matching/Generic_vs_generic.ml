@@ -1356,12 +1356,14 @@ and m_argument a b =
   (* boilerplate *)
   | G.Arg a1, B.Arg b1 -> m_expr a1 b1
   | G.ArgType a1, B.ArgType b1 -> m_type_ a1 b1
-  | G.ArgKwd (_required1, a1, a2), B.ArgKwd (_required2, b1, b2) ->
+  | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2)
+  | G.ArgKwdOptional (a1, a2), B.ArgKwdOptional (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Arg _, _
   | G.ArgKwd _, _
+  | G.ArgKwdOptional _, _
   | G.ArgType _, _
   | G.OtherArg _, _ ->
       fail ()

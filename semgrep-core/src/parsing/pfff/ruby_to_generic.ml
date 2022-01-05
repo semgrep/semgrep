@@ -171,7 +171,7 @@ and argument arg : G.argument =
       let e3 = expr v3 in
       G.ArgKwd (id, e3)
   | Arg e -> G.Arg (expr e)
-  | ArgKwd (_tk, arg) ->
+  | ArgKwd (id, _tk, arg) ->
       let id = ident id in
       let arg = expr arg in
       G.ArgKwd (id, arg)
