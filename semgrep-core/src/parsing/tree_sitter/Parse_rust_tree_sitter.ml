@@ -221,7 +221,8 @@ let map_boolean_literal (env : env) (x : CST.boolean_literal) : G.literal =
 
 (* "false" *)
 
-let map_reserved_identifier (env : env) (x : CST.reserved_identifier) =
+let map_reserved_identifier (env : env) (x : CST.reserved_identifier) : G.ident
+    =
   match x with
   | `Defa tok -> ident env tok (* "default" *)
   | `Union tok -> ident env tok
@@ -425,7 +426,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
   | `Choice_u8 x ->
       let id = map_primitive_type_ident env x in
       G.I id
-  | `Pat_785a82e tok ->
+  | `Pat_a8c54f1 tok ->
       let s, t = str env tok in
       (* sgrep-ext: todo? better extend grammar.js instead? *)
       if s = "..." && env.extra = Pattern then G.E (G.Ellipsis t |> G.e)
@@ -778,11 +779,12 @@ and map_type_argument (env : env) (x : CST.anon_choice_type_39799c3) :
     G.type_argument =
   match x with
   | `Type x -> G.TA (map_type_ env x)
-  | `Type_bind (v1, v2, v3) ->
+  | `Type_bind (v1, v2, v3, v4) ->
       let _identTODO = ident env v1 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let equals = token env v2 (* "=" *) in
-      let ty = map_type_ env v3 in
+      let _tyargs = Option.map (map_type_arguments env) v2 in
+      let equals = token env v3 (* "=" *) in
+      let ty = map_type_ env v4 in
       G.OtherTypeArg (("TypeBind", equals), [ T ty ])
   | `Life x -> G.OtherTypeArg (map_lifetime env x, [])
   | `Lit x ->
@@ -830,20 +832,18 @@ and map_arguments (env : env) ((v1, v2, _v3TODO, v4) : CST.arguments) :
   (lparen, args, rparen)
 
 (* was restricted to appear only in trait_impl_block by ruin *)
-and map_associated_type (env : env) ((v1, v2, v3, v4) : CST.associated_type) :
-    G.stmt =
+and map_associated_type (env : env) ((v1, v2, v3, v4, v5) : CST.associated_type)
+    : G.stmt =
   let _type_TODO = token env v1 (* "type" *) in
   let ident = ident env v2 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  (* ruin:
-     let type_params =
-       match v3 with
-       | Some x -> map_type_parameters env x
-       | None -> []
-     in
-  *)
-  let _trait_bounds =
+  let type_params =
     match v3 with
+    | Some x -> map_type_parameters env x
+    | None -> []
+  in
+  let _trait_bounds =
+    match v4 with
     | Some x -> map_trait_bounds env x
     | None -> []
   in
@@ -857,7 +857,7 @@ and map_associated_type (env : env) ((v1, v2, v3, v4) : CST.associated_type) :
          v5
      in
   *)
-  let semicolon = token env v4 (* ";" *) in
+  let semicolon = token env v5 (* ";" *) in
   let type_def_kind =
     G.AbstractType semicolon
     (* ruin:
@@ -871,7 +871,7 @@ and map_associated_type (env : env) ((v1, v2, v3, v4) : CST.associated_type) :
     {
       G.name = G.EN (G.Id (ident, G.empty_id_info ()));
       G.attrs = [];
-      G.tparams = (*type_params*) [];
+      G.tparams = type_params;
     }
   in
   G.DefStmt (ent, G.TypeDef type_def) |> G.s
@@ -1969,6 +1969,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     (* ruin:    | `Simple_scoped_id x -> map_simple_scoped_identifier_name env x  *)
     | `Scoped_id x -> map_scoped_identifier_name env x
     | `Id tok -> H2.name_of_id (ident env tok)
+    | `Choice_defa x -> H2.name_of_id (map_reserved_identifier env x)
     (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   in
   let bang = token env v2 (* "!" *) in
@@ -2281,6 +2282,7 @@ and map_path_name (env : env) (x : CST.path) : G.name =
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       H2.name_of_id ident
   | `Scoped_id x -> map_scoped_identifier_name env x
+  | `Choice_defa x -> H2.name_of_id (map_reserved_identifier env x)
 
 and map_pattern (env : env) (x : CST.pattern) : G.pattern =
   match x with
@@ -2957,7 +2959,11 @@ and map_declaration_statement (env : env) (*_outer_attrs _visibility*) x :
       [ G.ExprStmt (invo, sc) |> G.s ]
   | `Macro_defi (v1, v2, v3) ->
       let _macro_rulesTODO = token env v1 (* "macro_rules!" *) in
-      let ident = ident env v2 in
+      let ident =
+        match v2 with
+        | `Id x -> ident env x
+        | `Choice_defa x -> map_reserved_identifier env x
+      in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let macro_def : rust_macro_definition =
         match v3 with
@@ -3206,7 +3212,7 @@ and map_declaration_statement (env : env) (*_outer_attrs _visibility*) x :
       in
       let _tyTODO = map_type_ env v5 in
       let _where_clauseTODO = Option.map (fun x -> map_where_clause env x) v6 in
-      map_declaration_list env v7 |> G.unbracket
+      map_decls_or_semi env v7
   | `Trait_item (_v0TODO, v1, v2, v3, v4, v5, v6, v7) ->
       let unsafe_attr =
         Option.map
