@@ -489,18 +489,16 @@ and vof_arithmetic_operator = function
 
 and vof_arguments v = vof_bracket (OCaml.vof_list vof_argument) v
 
-and vof_required = function
-  | ArgRequired -> OCaml.VSum ("ArgRequired", [])
-  | ArgOptional -> OCaml.VSum ("ArgOptional", [])
-
 and vof_argument = function
   | Arg v1 ->
       let v1 = vof_expr v1 in
       OCaml.VSum ("Arg", [ v1 ])
-  | ArgKwd (required, v1, v2) ->
-      let required = vof_required required in
+  | ArgKwd (v1, v2) ->
       let v1 = vof_ident v1 and v2 = vof_expr v2 in
-      OCaml.VSum ("ArgKwd", [ required; v1; v2 ])
+      OCaml.VSum ("ArgKwd", [ v1; v2 ])
+  | ArgKwdOptional (v1, v2) ->
+      let v1 = vof_ident v1 and v2 = vof_expr v2 in
+      OCaml.VSum ("ArgKwdOptional", [ v1; v2 ])
   | ArgType v1 ->
       let v1 = vof_type_ v1 in
       OCaml.VSum ("ArgType", [ v1 ])
