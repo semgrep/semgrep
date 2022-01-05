@@ -1,45 +1,45 @@
 {
-  "errors": [
-    {
-      "code": 2,
-      "level": "warn",
-      "message": "Semgrep Core WARN - Out of memory: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Exceeded memory limit",
-      "path": "targets/equivalence/open_redirect.py",
-      "rule_id": "rules.forcetimeout",
-      "type": "Out of memory"
+    "errors": [
+        {
+            "code": 2,
+            "level": "warn",
+            "message": "Semgrep Core WARN - Out of memory: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Exceeded memory limit",
+            "path": "targets/equivalence/open_redirect.py",
+            "rule_id": "rules.forcetimeout",
+            "type": "Out of memory"
+        }
+    ],
+    "results": [],
+    "time": {
+        "profiling_times": {
+            "config_time": 2.022,
+            "core_time": 2.022,
+            "ignores_time": 2.022,
+            "total_time": 2.022
+        },
+        "rule_parse_info": [
+            2.022
+        ],
+        "rules": [
+            {
+                "id": "rules.forcetimeout"
+            }
+        ],
+        "targets": [
+            {
+                "match_times": [
+                    2.022
+                ],
+                "num_bytes": 1763,
+                "parse_times": [
+                    2.022
+                ],
+                "path": "targets/equivalence/open_redirect.py",
+                "run_times": [
+                    2.022
+                ]
+            }
+        ],
+        "total_bytes": 1763
     }
-  ],
-  "results": [],
-  "time": {
-    "profiling_times": {
-      "config_time": 0.1074061393737793,
-      "core_time": 0.15993404388427734,
-      "ignores_time": 2.5272369384765625e-05,
-      "total_time": 0.26809215545654297
-    },
-    "rule_parse_info": [
-      0.001283884048461914
-    ],
-    "rules": [
-      {
-        "id": "rules.forcetimeout"
-      }
-    ],
-    "targets": [
-      {
-        "match_times": [
-          -1.0
-        ],
-        "num_bytes": 1763,
-        "parse_times": [
-          -1.0
-        ],
-        "path": "targets/equivalence/open_redirect.py",
-        "run_times": [
-          0.03939485549926758
-        ]
-      }
-    ],
-    "total_bytes": 1763
-  }
 }

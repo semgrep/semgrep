@@ -264,7 +264,7 @@ class TextFormatter(BaseFormatter):
         yield ""
 
         by_lang = [
-            f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.4f} seconds)"
+            f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.3f} seconds)"
             for lang in langs
         ]
         for line in add_heading(ANALYZED, by_lang):
