@@ -723,8 +723,8 @@ and arguments env xs =
 and argument env = function
   | Arg e -> expr env e
   | ArgType t -> print_type t
-  | ArgKwd (G.ArgRequired, id, e) -> F.sprintf "%s=%s" (ident id) (expr env e)
-  | ArgKwd (G.ArgOptional, id, e) -> F.sprintf "%s=?%s" (ident id) (expr env e)
+  | ArgKwd (id, e) -> F.sprintf "%s=%s" (ident id) (expr env e)
+  | ArgKwdOptional (id, e) -> F.sprintf "%s=?%s" (ident id) (expr env e)
   | x -> todo (Ar x)
 
 and tuple env = function

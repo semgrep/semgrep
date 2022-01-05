@@ -702,7 +702,8 @@ and arguments env xs = xs |> G.unbracket |> List.map (argument env)
 and argument env arg =
   match arg with
   | G.Arg e -> expr env e
-  | G.ArgKwd (_, _, e) ->
+  | G.ArgKwd (_, e)
+  | G.ArgKwdOptional (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
   | _ ->

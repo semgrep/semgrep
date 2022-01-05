@@ -466,6 +466,9 @@ type argument = [
   | Arg of expr (* can be Call (IdSpecial Spread, Id foo) *)
   (* keyword argument *)
   | ArgKwd of (ident * expr)
+  (* optional keyword argument - can occur in target code without being
+     specified in the pattern *)
+  | ArgKwdOptional of (ident * expr)
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
   | ArgOther of (string * any list)

@@ -1269,7 +1269,8 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
       >||> (* can match more *)
       m_list__m_argument (G.Arg (G.Ellipsis i |> G.e) :: xsa) xsb
   (* unordered kwd argument matching *)
-  | (G.ArgKwd (_required, ((s, _tok) as ida), ea) as a) :: xsa, xsb -> (
+  | (G.ArgKwd (((s, _tok) as ida), ea) as a) :: xsa, xsb
+  | (G.ArgKwdOptional (((s, _tok) as ida), ea) as a) :: xsa, xsb -> (
       if MV.is_metavar_name s then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)
@@ -1287,11 +1288,15 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
           let before, there, after =
             xsb
             |> Common2.split_when (function
-                 | G.ArgKwd (_required, (s2, _), _) when s =$= s2 -> true
+                 | G.ArgKwd ((s2, _), _)
+                 | G.ArgKwdOptional ((s2, _), _)
+                   when s =$= s2 ->
+                     true
                  | _ -> false)
           in
           match there with
-          | G.ArgKwd (_required, idb, eb) ->
+          | G.ArgKwd (idb, eb)
+          | G.ArgKwdOptional (idb, eb) ->
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
@@ -1305,7 +1310,7 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
       if
         List.for_all
           (function
-            | G.ArgKwd (ArgOptional, _, _) -> true
+            | G.ArgKwdOptional _ -> true
             | _ -> false)
           xsb
       then return ()
@@ -1351,12 +1356,14 @@ and m_argument a b =
   (* boilerplate *)
   | G.Arg a1, B.Arg b1 -> m_expr a1 b1
   | G.ArgType a1, B.ArgType b1 -> m_type_ a1 b1
-  | G.ArgKwd (_required1, a1, a2), B.ArgKwd (_required2, b1, b2) ->
+  | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2)
+  | G.ArgKwdOptional (a1, a2), B.ArgKwdOptional (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Arg _, _
   | G.ArgKwd _, _
+  | G.ArgKwdOptional _, _
   | G.ArgType _, _
   | G.OtherArg _, _ ->
       fail ()

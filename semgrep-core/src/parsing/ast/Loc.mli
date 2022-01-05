@@ -1,12 +1,40 @@
 (*
-   Representation of the location of a piece of code by a pair of tokens.
+   Representation of the location of a piece of code by the first and
+   the last token of the region. The token type is the one used in the
+   generic AST.
 
-   This is used so far in intermediate, language-specific ASTs.
+   This is used so far in intermediate, language-specific ASTs. A location is
+   stored with each node of the AST, similarly to how it's done in Camlp4's
+   OCaml AST where it used to work well. I (Martin) encourage others to use
+   the same approach in newer code. I also think it would be an improvement
+   to use this in the generic AST, but that would need a lot of refactoring.
+
+   What it simplifies:
+   - The location of a node is directly available (O(1)).
+     No need to recompute it each time it's needed.
+   - It's a uniform representation that's independent from the syntax.
+     Compare to the generic AST which has the 'bracket' and 'wrap' constructs.
+     A 'bracket' is not always a pair of brackets. This is the case for example
+     for the arguments function calls with a syntax like 'f x y' (OCaml,
+     shell, ...). Instead of calling everything a bracket and using the first
+     and last token as the "brackets", we call this a loc and it's not
+     weird to have every node associated with a loc.
+   - Combining locations is simple:
+     the sequence (loc1, loc2) = ((first, _), (_, last)) is (first, last).
 *)
 
+(* The type of a token, i.e. a leaf in a syntax tree. *)
 type tok = Parse_info.t
 
-(* Tuples are convenient, let's not make this type abstract. *)
+(* A location or 'loc' for short.
+
+   A location is a pair (first_token, last_token) representing a region of
+   code from a given source. It doesn't make sense for the tokens to come from
+   different source files. The position of the first token should not come
+   after the position of the last token.
+
+   Tuples are convenient, let's not make this type abstract.
+*)
 type t = tok * tok
 
 (*
