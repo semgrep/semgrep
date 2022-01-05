@@ -12,13 +12,13 @@
   "results": [],
   "time": {
     "profiling_times": {
-      "config_time": 0.1628890037536621,
-      "core_time": 1.1856169700622559,
-      "ignores_time": 2.193450927734375e-05,
-      "total_time": 1.3498539924621582
+      "config_time": 0.11490988731384277,
+      "core_time": 1.1448009014129639,
+      "ignores_time": 2.5987625122070312e-05,
+      "total_time": 1.260504961013794
     },
     "rule_parse_info": [
-      0.0022690296173095703,
+      0.0011131763458251953,
       0.0,
       0.0
     ],
@@ -48,7 +48,7 @@
         ],
         "path": "targets/equivalence/open_redirect.py",
         "run_times": [
-          1.0012030601501465,
+          1.001230001449585,
           0.0,
           0.0
         ]
