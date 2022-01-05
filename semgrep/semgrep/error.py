@@ -148,11 +148,11 @@ class SemgrepCoreError(SemgrepError):
                 self.error_type == "Rule parse error"
                 or self.error_type == "Pattern parse error"
             ):
-                msg = f"Semgrep Core {self.level.name} - {self.error_type}: In rule {self.rule_id}: {self.message}"
+                msg = f"Semgrep Core {self.level.name} \n{self.error_type}: In rule {self.rule_id}: {self.message}"
             else:
-                msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
+                msg = f"Semgrep Core {self.level.name} \n{self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
         else:
-            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}:{self.start.line}\n\t{self.message}"
+            msg = f"Semgrep Core {self.level.name} \n{self.error_type} in file {self.path}:{self.start.line}\n\t{self.message}"
         return msg
 
     @property
@@ -162,13 +162,16 @@ class SemgrepCoreError(SemgrepError):
         """
         if self.error_type == "Fatal error":
             error_trace = self.details or "<no stack trace returned>"
-            return f"\n-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n"
+            return f"\nSemgrep failed to run this rule, please file a GitHub issue or contact us on Slack.\n\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
             return ""
 
     def __str__(self) -> str:
-        return with_color("red", self._error_message) + with_color(
-            "white", self._stack_trace
+        return (
+            with_color(231, f" ERROR ", bgcolor="red", bold=True)
+            + f" "
+            + self._error_message
+            + self._stack_trace
         )
 
 
