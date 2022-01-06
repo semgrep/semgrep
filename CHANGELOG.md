@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Pre-alpha support for Dockerfile as a new target language
+- `--verbose` outputs a timing and file breakdown summary at the end
 
 ### Fixed
 - Rust: inner attributes are allowed again inside functions (#4444) (#4445)
