@@ -5,26 +5,28 @@
    yaml
    sexplib
 
-   tree-sitter-lang.ruby
+   tree-sitter-lang.bash
+   tree-sitter-lang.c
+   tree-sitter-lang.c-sharp
+   tree-sitter-lang.cpp
+   tree-sitter-lang.dockerfile
+   tree-sitter-lang.go
+   tree-sitter-lang.hack
+   tree-sitter-lang.hcl
+   tree-sitter-lang.html
    tree-sitter-lang.java
    tree-sitter-lang.kotlin
-   tree-sitter-lang.go
-   tree-sitter-lang.c-sharp
-   tree-sitter-lang.typescript
-   tree-sitter-lang.tsx
    tree-sitter-lang.lua
-   tree-sitter-lang.c
-   tree-sitter-lang.cpp
-   tree-sitter-lang.rust
-   tree-sitter-lang.r
    tree-sitter-lang.ocaml
-   tree-sitter-lang.hack
-   tree-sitter-lang.html
-   tree-sitter-lang.vue
-   tree-sitter-lang.bash
    tree-sitter-lang.php
-   tree-sitter-lang.hcl
+   tree-sitter-lang.python
    tree-sitter-lang.solidity
+   tree-sitter-lang.r
+   tree-sitter-lang.ruby
+   tree-sitter-lang.rust
+   tree-sitter-lang.tsx
+   tree-sitter-lang.typescript
+   tree-sitter-lang.vue
 
    commons
    pfff-lang_GENERIC

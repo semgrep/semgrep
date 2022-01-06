@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,7 +25,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* A simple interpreter for a simple subset of the generic AST.
  *
  * This can be used to safely execute a subset of pattern-where-python:
- * expressions.
+ * expressions, and to handle metavariable-comparison:.
+ * It is safe because OCaml itself does not provide any 'eval()',
+ * so we just execute code that we can explicitely handle.
  *
  * related work:
  * - https://github.com/google/cel-spec by Google
@@ -133,12 +135,13 @@ let rec eval env code =
       | G.Int (Some i, _t) -> Int i
       | G.Float (Some f, _t) -> Float f
       | _ -> raise (NotHandled code))
-  (* less: sanity check that s is a metavar_name? *)
-  | G.N (G.Id ((s, _t), _idinfo)) -> (
+  | G.N (G.Id ((s, _t), _idinfo))
+    when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
       try Hashtbl.find env s
       with Not_found ->
         logger#trace "could not find a value for %s in env" s;
-        raise Not_found)
+        raise (NotInEnv s))
+  (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
@@ -258,13 +261,24 @@ let bindings_to_env xs =
   xs
   |> Common.map_filter (fun (mvar, mval) ->
          let try_bind_to_exp e =
-           try Some (mvar, eval (Hashtbl.create 0) e)
-           with NotHandled _e ->
-             logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
-             (* todo: if not a value, could default to AST of range *)
-             None
+           try
+             Some (mvar, eval (Hashtbl.create 0) e)
+             (* this can happen when a metavar is binded to a complex expression,
+              * e.g., os.getenv("foo") which can't be evaluated. It's ok to
+              * filter those metavars then.
+              *)
+           with
+           | NotHandled _
+           | NotInEnv _ ->
+               logger#debug "filtering mvar %s, can't eval %s" mvar
+                 (MV.show_mvalue mval);
+               (* todo: if not a value, could default to AST of range *)
+               None
          in
          match mval with
+         (* this way we can leverage the constant propagation analysis
+          * in metavariable-comparison: too! This simplifies some rules.
+          *)
          | MV.Id (_, Some { id_svalue = { contents = Some (G.Lit lit) }; _ }) ->
              (* Metavariable binds to a code variable: if the code variable is known
               * to be constant, then we use its constant value. *)
@@ -339,12 +353,11 @@ let eval_bool env e =
         logger#trace "not a boolean: %s" (show_value res);
         false
   with
-  | Not_found ->
-      (* this can be because a metavar is binded to a complex expression,
-       * e.g., os.getenv("foo") which can't be evaluated. It's ok to
-       * return false then.
-       *)
-      false
+  (* this can happen when a metavar is binded to a complex expression,
+   * in which case it's filtered in bindings_to_env(), in which case
+   * it generates a NotInEnv when we run eval with such an environment.
+   *)
+  | NotInEnv _ -> false
   | NotHandled e ->
       logger#trace "NotHandled: %s" (G.show_expr e);
       false

@@ -496,6 +496,9 @@ and vof_argument = function
   | ArgKwd (v1, v2) ->
       let v1 = vof_ident v1 and v2 = vof_expr v2 in
       OCaml.VSum ("ArgKwd", [ v1; v2 ])
+  | ArgKwdOptional (v1, v2) ->
+      let v1 = vof_ident v1 and v2 = vof_expr v2 in
+      OCaml.VSum ("ArgKwdOptional", [ v1; v2 ])
   | ArgType v1 ->
       let v1 = vof_type_ v1 in
       OCaml.VSum ("ArgType", [ v1 ])

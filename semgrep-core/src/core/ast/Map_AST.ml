@@ -455,8 +455,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_type_ v1 in
         ArgType v1
     | ArgKwd (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_expr v2 in
+        let v1 = map_ident v1 in
+        let v2 = map_expr v2 in
         ArgKwd (v1, v2)
+    | ArgKwdOptional (v1, v2) ->
+        let v1 = map_ident v1 in
+        let v2 = map_expr v2 in
+        ArgKwdOptional (v1, v2)
     | OtherArg (v1, v2) ->
         let v1 = map_other_argument_operator v1
         and v2 = map_of_list map_any v2 in

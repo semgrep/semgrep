@@ -505,6 +505,7 @@ let (mk_visitor :
   and v_prepost _ = ()
   and v_arithmetic_operator _x = ()
   and v_arguments v = v_bracket (v_list v_argument) v
+  and v_required _x = ()
   and v_argument = function
     | Arg v1 ->
         let v1 = v_expr v1 in
@@ -513,6 +514,9 @@ let (mk_visitor :
         let v1 = v_type_ v1 in
         ()
     | ArgKwd (v1, v2) ->
+        let v1 = v_ident v1 and v2 = v_expr v2 in
+        ()
+    | ArgKwdOptional (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
     | OtherArg (v1, v2) ->

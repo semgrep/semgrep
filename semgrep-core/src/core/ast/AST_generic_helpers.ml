@@ -261,7 +261,8 @@ let entity_name_to_expr name idinfo_opt =
 let argument_to_expr arg =
   match arg with
   | Arg e -> e
-  | ArgKwd (id, e) ->
+  | ArgKwd (id, e)
+  | ArgKwdOptional (id, e) ->
       let n = name_of_id id in
       let k = N n |> G.e in
       G.keyval k (fake "") e
@@ -356,6 +357,7 @@ let ac_matching_nf op args =
     |> List.map (function
          | Arg e -> e
          | ArgKwd _
+         | ArgKwdOptional _
          | ArgType _
          | OtherArg _ ->
              raise_notrace Exit)

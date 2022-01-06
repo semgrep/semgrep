@@ -795,6 +795,15 @@ and argument =
   | Arg of expr (* can be Call (IdSpecial Spread, Id foo) *)
   (* keyword argument *)
   | ArgKwd of ident * expr
+  (* optional keyword argument. This is the same as a keyword argument
+     except that a match is valid if such argument exists in the target
+     code but not in the pattern.
+
+     Warning: ArgKwdOptional arguments must be placed at the end of the
+              list of arguments so as to not shift the positional arguments
+              (Arg) and allow them to match.
+  *)
+  | ArgKwdOptional of ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
   (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml, ArgIds in Solidity *)
