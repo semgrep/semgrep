@@ -286,17 +286,17 @@ let m_sid a b = if a =|= b then return () else fail ()
 
 let m_resolved_name_kind a b =
   match (a, b) with
-  | G.Local, B.Local -> return ()
+  | G.LocalVar, B.LocalVar -> return ()
   | G.EnclosedVar, B.EnclosedVar -> return ()
-  | G.Param, B.Param -> return ()
+  | G.Parameter, B.Parameter -> return ()
   | G.Global, B.Global -> return ()
   | G.ImportedEntity a1, B.ImportedEntity b1 -> m_dotted_name a1 b1
   | G.ImportedModule a1, B.ImportedModule b1 -> m_module_name a1 b1
   | G.Macro, B.Macro -> return ()
   | G.EnumConstant, B.EnumConstant -> return ()
   | G.TypeName, B.TypeName -> return ()
-  | G.Local, _
-  | G.Param, _
+  | G.LocalVar, _
+  | G.Parameter, _
   | G.Global, _
   | G.EnclosedVar, _
   | G.Macro, _
@@ -1956,7 +1956,7 @@ and m_stmt a b =
       if_config
         (fun x -> x.flddef_assign)
         ~then_:
-          (let resolved = Some (G.Local, G.sid_TODO) in
+          (let resolved = Some (G.LocalVar, G.sid_TODO) in
            let b1 = H.funcdef_to_lambda (ent, fdef) resolved in
            m_expr a1 b1)
         ~else_:(fail ())

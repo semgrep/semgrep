@@ -100,8 +100,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v2 = map_of_int v2 in
     (v1, v2)
   and map_resolved_name_kind = function
-    | Local -> Local
-    | Param -> Param
+    | LocalVar -> LocalVar
+    | Parameter -> Parameter
     | EnclosedVar -> EnclosedVar
     | Global -> Global
     | ImportedEntity v1 ->

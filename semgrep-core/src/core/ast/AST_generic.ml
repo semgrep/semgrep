@@ -249,8 +249,8 @@ and resolved_name_kind =
    *)
   | Global
   (* Those could be merged, but again this is useful in codemap/efuns *)
-  | Local
-  | Param
+  | LocalVar
+  | Parameter
   (* For closures; can refer to a Local or Param.
    * With sid this is potentially less useful for scoping-related issues,
    * but this can be useful in codemap to again highlight specially
@@ -1908,7 +1908,7 @@ let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
     pdefault;
     ptype;
     pattrs;
-    pinfo = basic_id_info (Param, sid_TODO);
+    pinfo = basic_id_info (Parameter, sid_TODO);
   }
 
 let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
@@ -1917,7 +1917,7 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
     pname;
     pdefault;
     pattrs;
-    pinfo = basic_id_info (Param, sid_TODO);
+    pinfo = basic_id_info (Parameter, sid_TODO);
   }
 
 (* ------------------------------------------------------------------------- *)

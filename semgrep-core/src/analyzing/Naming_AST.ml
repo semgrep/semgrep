@@ -324,7 +324,7 @@ let is_resolvable_name_ctx env lang =
 let resolved_name_kind env lang =
   match top_context env with
   | AtToplevel -> Global
-  | InFunction -> Local
+  | InFunction -> LocalVar
   | InClass -> (
       match lang with
       (* true for Java so that we can type class fields.
@@ -343,7 +343,7 @@ let params_of_parameters env xs =
   |> Common.map_filter (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = H.gensym () in
-           let resolved = { entname = (Param, sid); enttype = typ } in
+           let resolved = { entname = (Parameter, sid); enttype = typ } in
            set_resolved env id_info resolved;
            Some (H.str_of_ident id, resolved)
        | _ -> None)
