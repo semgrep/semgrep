@@ -91,8 +91,8 @@ let module_name (v1, dots) =
       G.FileName (s, tok)
 
 let resolved_name = function
-  | LocalVar -> Some (G.Local, G.sid_TODO)
-  | Parameter -> Some (G.Param, G.sid_TODO)
+  | LocalVar -> Some (G.LocalVar, G.sid_TODO)
+  | Parameter -> Some (G.Parameter, G.sid_TODO)
   | GlobalVar -> Some (G.Global, G.sid_TODO)
   | ClassField -> None
   | ImportedModule xs -> Some (G.ImportedModule (G.DottedName xs), G.sid_TODO)

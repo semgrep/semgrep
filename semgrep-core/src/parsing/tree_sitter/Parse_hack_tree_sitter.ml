@@ -1851,7 +1851,7 @@ and parameter (env : env) (x : CST.parameter) : G.parameter =
           pdefault = v7;
           pattrs = v1 @ v2 @ v3;
           pinfo =
-            G.basic_id_info (Param, G.sid_TODO)
+            G.basic_id_info (Parameter, G.sid_TODO)
             (* Q: But why sid_TODO? Like what is this info? *);
         }
       in
