@@ -99,8 +99,8 @@ and map_resolved_name (v1, v2) =
   (v1, v2)
 
 and map_resolved_name_kind = function
-  | Local -> `Local
-  | Param -> `Param
+  | LocalVar -> `Local
+  | Parameter -> `Param
   | EnclosedVar -> `EnclosedVar
   | Global -> `Global
   | ImportedEntity v1 ->

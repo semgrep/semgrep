@@ -223,6 +223,9 @@ let (expected_error_lines_of_files :
                 else None))
   |> List.flatten
 
+(* A copy-paste of Error_code.compare_actual_to_expected but
+ * with Semgrep_error_code.error instead of Error_code.t for the error type.
+ *)
 let compare_actual_to_expected actual_errors expected_error_lines =
   let actual_error_lines =
     actual_errors

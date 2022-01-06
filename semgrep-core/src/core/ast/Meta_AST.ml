@@ -43,8 +43,8 @@ let rec vof_resolved_name (v1, v2) =
   OCaml.VTuple [ v1; v2 ]
 
 and vof_resolved_name_kind = function
-  | Local -> OCaml.VSum ("Local", [])
-  | Param -> OCaml.VSum ("Param", [])
+  | LocalVar -> OCaml.VSum ("LocalVar", [])
+  | Parameter -> OCaml.VSum ("Parameter", [])
   | EnclosedVar -> OCaml.VSum ("EnclosedVar", [])
   | Global -> OCaml.VSum ("Global", [])
   | ImportedEntity v1 ->
