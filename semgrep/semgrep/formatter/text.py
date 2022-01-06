@@ -188,6 +188,12 @@ class TextFormatter(BaseFormatter):
 
         # Compute summary by language
 
+        # TODO assumes languages correspond solely to extension
+        # Consider: get a report from semgrep-core on what language each
+        #           file was analyzed as
+        # However, this might make it harder for users to confirm
+        # semgrep counts against their expected file counts
+
         ext_to_lang: Mapping[str, Language] = LANGUAGE.lang_by_ext
 
         def lang_of_path(path: str) -> str:
