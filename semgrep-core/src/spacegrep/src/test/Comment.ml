@@ -1,8 +1,14 @@
 (*
    Unit tests for spacegrep comment support
 
-   Note that ocamlformat removes end-of-line spaces from string literals.
-   Make sure it's disabled on this file.
+   Note that pre-commit hooks don't like trailing whitespace:
+   - a tool removes trailing whitespace, that's why we have to resort
+     to using '\n\' instead of just a newline in some places.
+   - ocamlformat may also rearrange string literals in a less readable way,
+     so it's disabled via a .ocamlformat-ignore file.
+   Additionally, OCaml ignores leading blanks in string literals
+   if the previous line ends with a '\' (line continuation).
+   If this gets too hard, just avoid line breaks in string literals.
 *)
 
 module C = Spacegrep.Comment
@@ -17,9 +23,9 @@ b
 c # yyy
 ",
   "\
-a
-b
-c
+a    \n\
+b\n\
+c      \n\
 ";
 
   "end of file comment",
@@ -43,7 +49,7 @@ c
 hello // ignore this
 world // ignore this too",
   "\
-hello
+hello               \n\
 world                   ";
 
   "end-of-line comments first",
@@ -51,9 +57,7 @@ world                   ";
   "\
 hello /* //
 // */ world",
-  "\
-hello /*
-           ";
+  "hello /*   \n           ";
 
   "identical start and end",
   C.style ~delimiters:("|", "|") "custom",
@@ -72,16 +76,7 @@ comment end not
 end
 bye
 ",
-  "\
-hello
-
-
-
-hey
-
-
-bye
-"
+  "hello\n       \n     \n         \nhey\n               \n   \nbye\n"
 ]
 
 let test =
