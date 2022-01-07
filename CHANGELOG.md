@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   assignments. Symbolic propagation is still experimental and it is disabled by
   default, it must be enabled in a per-rule basis using `options:` and setting
   `symbolic_propagation: true`. (#2783, #2859, #3207)
+- `--verbose` outputs a timing and file breakdown summary at the end
 
 ### Fixed
 - Rust: inner attributes are allowed again inside functions (#4444) (#4445)

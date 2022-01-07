@@ -19,6 +19,7 @@
    tree-sitter-lang.lua
    tree-sitter-lang.ocaml
    tree-sitter-lang.php
+   tree-sitter-lang.python
    tree-sitter-lang.solidity
    tree-sitter-lang.r
    tree-sitter-lang.ruby

@@ -567,7 +567,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
       cfg_simple_node state previ (exprstmt (H.vardef_to_assign (ent, def)))
   (* just to factorize code, a nested func is really like a lambda *)
   | DefStmt (ent, FuncDef def) ->
-      let resolved = Some (Local, G.sid_TODO) in
+      let resolved = Some (LocalVar, G.sid_TODO) in
       cfg_simple_node state previ
         (exprstmt (H.funcdef_to_lambda (ent, def) resolved))
   (* TODO: we should process lambdas! and generate an arc to its

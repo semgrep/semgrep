@@ -6,6 +6,7 @@ from subprocess import CalledProcessError
 
 import pytest
 from tests.conftest import _clean_output_json
+from tests.conftest import _mask_times
 
 from semgrep.constants import OutputFormat
 
@@ -428,7 +429,7 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
         target_name="equivalence",
         strict=False,
     )
-    snapshot.assert_match(stdout, "results.json")
+    snapshot.assert_match(_mask_times(stdout), "results.json")
     snapshot.assert_match(stderr, "error.txt")
 
 
@@ -474,13 +475,14 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
 
 
 def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
+    results = run_semgrep_in_tmp(
+        "rules/multiple-long.yaml",
+        options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
+        target_name="equivalence",
+        strict=False,
+    )[0]
     snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/multiple-long.yaml",
-            options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
-            target_name="equivalence",
-            strict=False,
-        )[0],
+        _mask_times(results),
         "results.json",
     )
 

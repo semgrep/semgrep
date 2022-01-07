@@ -161,8 +161,8 @@ let (mk_visitor :
     v_resolved_name_kind v1;
     v_int v2
   and v_resolved_name_kind = function
-    | Local -> ()
-    | Param -> ()
+    | LocalVar -> ()
+    | Parameter -> ()
     | EnclosedVar -> ()
     | Global -> ()
     | ImportedEntity v1 ->
@@ -1122,7 +1122,7 @@ let (mk_visitor :
      * 'class Foo { x = function() { return; } }'.
      *)
     | FuncDef fdef when flddef_assign ->
-        let resolved = Some (Local, G.sid_TODO) in
+        let resolved = Some (LocalVar, G.sid_TODO) in
         v_expr (H.funcdef_to_lambda (ventity, fdef) resolved)
     | _ -> ()
   and v_field x =
