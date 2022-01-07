@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Pre-alpha support for Dockerfile as a new target language
+- Semgrep is now able to symbolically propagate simple definitions. E.g., given
+  an assignment `x = foo.bar()` followed by a call `x.baz()`, Semgrep will keep
+  track of `x`'s definition, and it will successfully match `x.baz()` with a
+  pattern like `foo.bar().baz()`. This feature should help writing simple yet
+  powerful rules, by letting the dataflow engine take care of any intermediate
+  assignments. Symbolic propagation is still experimental and it is disabled by
+  default, it must be enabled in a per-rule basis using `options:` and setting
+  `symbolic_propagation: true`. (#2783, #2859, #3207)
 - `--verbose` outputs a timing and file breakdown summary at the end
 
 ### Fixed
@@ -67,14 +75,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   for nodejsscan rules notably)
 - Semgrep CLI now respects .semgrepignore files
 - Java: support ellipsis in generics, e.g., `class Foo<...>` (#4335)
-- Semgrep is now able to symbolically propagate simple definitions. E.g., given
-  an assignment `x = foo.bar()` followed by a call `x.baz()`, Semgrep will keep
-  track of `x`'s definition, and it will successfully match `x.baz()` with a
-  pattern like `foo.bar().baz()`. This feature should help writing simple yet
-  powerful rules, by letting the dataflow engine take care of any intermediate
-  assignments. Symbolic propagation is still experimental and it is disabled by
-  default, it must be enabled in a per-rule basis using `options:` and setting
-  `symbolic_propagation: true`. (#2783, #2859)
 
 ### Fixed
 - Java: class patterns not using generics will match classes using generics

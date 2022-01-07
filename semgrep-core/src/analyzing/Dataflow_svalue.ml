@@ -305,6 +305,7 @@ let rec is_symbolic_expr expr =
   match expr.G.e with
   | G.L _ -> true
   | G.N _ -> true
+  | G.IdSpecial _ -> true
   | G.DotAccess (e, _, FN _) -> is_symbolic_expr e
   | G.ArrayAccess (e1, (_, e2, _)) -> is_symbolic_expr e1 && is_symbolic_expr e2
   | G.Call (e, (_, args, _)) ->
