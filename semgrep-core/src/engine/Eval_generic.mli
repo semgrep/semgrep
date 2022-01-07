@@ -33,6 +33,7 @@ val test_eval : Common.filename -> unit
 val parse_json : Common.filename -> env * code
 
 (* for MetavarCond *)
-val bindings_to_env : Metavariable.bindings -> env
+val bindings_to_env : Config_semgrep.t -> Metavariable.bindings -> env
 
-val bindings_to_env_with_just_strings : Metavariable.bindings -> env
+val bindings_to_env_with_just_strings :
+  Config_semgrep.t -> Metavariable.bindings -> env
