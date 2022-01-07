@@ -4,7 +4,8 @@
   (libraries
      ANSITerminal
      unix
-
+     pcre
+     semgrep_utils
   )
   (preprocess
    (pps
