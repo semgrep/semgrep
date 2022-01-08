@@ -267,6 +267,8 @@ def invoke_semgrep_multi(
 ) -> Tuple[Path, Optional[str], Any]:
     try:
         output = invoke_semgrep(config, targets, **kwargs)
+        if len(output['errors']) > 0:
+            raise Exception(output['errors'][0].get('message', "Semgrep core reported an error but no error message."))
     except Exception as error:
         # We must get the string of the error because the multiprocessing library
         # will fail the marshal the error and hang
