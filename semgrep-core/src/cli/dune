@@ -35,7 +35,6 @@
     semgrep_running
     semgrep_metachecking
     semgrep_synthesizing
-    semgrep_testing
     semgrep_api
     semgrep_system
  )
