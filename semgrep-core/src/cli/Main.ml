@@ -426,7 +426,7 @@ let all_actions () =
       Common.mk_action_2_arg Test_comby.test_comby );
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
-  @ Test_analyze_generic.actions ()
+  @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =
   [

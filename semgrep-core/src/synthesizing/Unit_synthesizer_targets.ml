@@ -88,7 +88,7 @@ let run_single_test file linecols expected_pattern =
       (linecols @ [ file ])
   in
   let actual_pattern =
-    Pretty_print_AST.pattern_to_string lang inferred_pattern
+    Pretty_print_pattern.pattern_to_string lang inferred_pattern
   in
   let pattern_correct = actual_pattern = expected_pattern in
   let ranges_expected =

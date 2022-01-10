@@ -3,8 +3,8 @@ open AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
 
-let test_typing_generic file =
-  let ast = Parse_target.parse_program file in
+let test_typing_generic ~parse_program file =
+  let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
 
@@ -26,63 +26,23 @@ let test_typing_generic file =
   in
   v (Pr ast)
 
-let test_cfg_generic file =
-  let ast = Parse_target.parse_program file in
-  ast
-  |> List.iter (fun item ->
-         match item.s with
-         | DefStmt (_ent, FuncDef def) -> (
-             try
-               let flow = Controlflow_build.cfg_of_func def in
-               Controlflow.display_flow flow
-             with Controlflow_build.Error err ->
-               Controlflow_build.report_error err)
-         | _ -> ())
-
-module F = Controlflow
-
-module DataflowX = Dataflow_core.Make (struct
-  type node = F.node
-
-  type edge = F.edge
-
-  type flow = (node, edge) CFG.t
-
-  let short_string_of_node = F.short_string_of_node
-end)
-
-let test_dfg_generic file =
-  let ast = Parse_target.parse_program file in
-  ast
-  |> List.iter (fun item ->
-         match item.s with
-         | DefStmt (_ent, FuncDef def) ->
-             let flow = Controlflow_build.cfg_of_func def in
-             pr2 "Reaching definitions";
-             let mapping = Dataflow_reaching.fixpoint flow in
-             DataflowX.display_mapping flow mapping Dataflow_core.ns_to_str;
-             pr2 "Liveness";
-             let mapping = Dataflow_liveness.fixpoint flow in
-             DataflowX.display_mapping flow mapping (fun () -> "()")
-         | _ -> ())
-
-let test_naming_generic file =
-  let ast = Parse_target.parse_program file in
+let test_naming_generic ~parse_program file =
+  let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
   let s = AST_generic.show_any (AST_generic.Pr ast) in
   pr2 s
 
-let test_constant_propagation file =
-  let ast = Parse_target.parse_program file in
+let test_constant_propagation ~parse_program file =
+  let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
   let s = AST_generic.show_any (AST_generic.Pr ast) in
   pr2 s
 
-let test_il_generic file =
-  let ast = Parse_target.parse_program file in
+let test_il_generic ~parse_program file =
+  let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
 
@@ -104,8 +64,8 @@ let test_il_generic file =
   in
   v (Pr ast)
 
-let test_cfg_il file =
-  let ast = Parse_target.parse_program file in
+let test_cfg_il ~parse_program file =
+  let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
 
@@ -135,8 +95,8 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let test_dfg_svalue file =
-  let ast = Parse_target.parse_program file in
+let test_dfg_svalue ~parse_program file =
+  let ast = parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
   let v =
@@ -158,16 +118,22 @@ let test_dfg_svalue file =
   in
   v (Pr ast)
 
-let actions () =
+let actions ~parse_program =
   [
-    ("-typing_generic", " <file>", Common.mk_action_1_arg test_typing_generic);
-    ("-cfg_generic", " <file>", Common.mk_action_1_arg test_cfg_generic);
-    ("-dfg_generic", " <file>", Common.mk_action_1_arg test_dfg_generic);
-    ("-naming_generic", " <file>", Common.mk_action_1_arg test_naming_generic);
+    ( "-typing_generic",
+      " <file>",
+      Common.mk_action_1_arg (test_typing_generic ~parse_program) );
+    ( "-naming_generic",
+      " <file>",
+      Common.mk_action_1_arg (test_naming_generic ~parse_program) );
     ( "-constant_propagation",
       " <file>",
-      Common.mk_action_1_arg test_constant_propagation );
-    ("-il_generic", " <file>", Common.mk_action_1_arg test_il_generic);
-    ("-cfg_il", " <file>", Common.mk_action_1_arg test_cfg_il);
-    ("-dfg_svalue", " <file>", Common.mk_action_1_arg test_dfg_svalue);
+      Common.mk_action_1_arg (test_constant_propagation ~parse_program) );
+    ( "-il_generic",
+      " <file>",
+      Common.mk_action_1_arg (test_il_generic ~parse_program) );
+    ("-cfg_il", " <file>", Common.mk_action_1_arg (test_cfg_il ~parse_program));
+    ( "-dfg_svalue",
+      " <file>",
+      Common.mk_action_1_arg (test_dfg_svalue ~parse_program) );
   ]

@@ -34,7 +34,7 @@ module PI = Parse_info
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type env = { mvars : Metavariable.bindings; lang : Lang.t }
+type env = { (*mvars : Metavariable.bindings;*) lang : Lang.t }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -800,27 +800,21 @@ let svalue env = function
       | ___else___ -> "lit(???)")
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
-let expr_to_string lang mvars e =
-  let env = { lang; mvars } in
+
+let expr_to_string lang (*mvars*) e =
+  let env = { lang (*mvars*) } in
   expr env e
 
-let stmt_to_string lang mvars s =
-  let env = { lang; mvars } in
+let stmt_to_string lang (*mvars*) s =
+  let env = { lang (*mvars*) } in
   stmt env 0 s
 
-let pattern_to_string lang any =
-  let mvars = [] in
-  match any with
-  | E e -> expr_to_string lang mvars e
-  | S s -> stmt_to_string lang mvars s
-  | Ss stmts -> List.map (stmt_to_string lang mvars) stmts |> String.concat "\n"
-  | Args args -> arguments { lang; mvars } args
-  | _ ->
-      pr2 (AST_generic.show_any any);
-      failwith "todo: only expression pattern can be pretty printed right now"
+let arguments_to_string lang x =
+  let env = { lang } in
+  arguments env x
 
 let svalue_to_string lang c =
-  let env = { lang; mvars = [] } in
+  let env = { lang (* mvars = [] *) } in
   svalue env c
