@@ -60,12 +60,12 @@ hello /* //
   "hello /*   \n           ";
 
   "identical start and end",
-  C.style ~delimiters:("|", "|") "custom",
+  [C.Multiline ("|", "|")],
   "a | ignore | b | c",
   "a            b | c";
 
   "newline in delimiter",
-  C.style ~delimiters:("comment", "end\n") "custom",
+  [C.Multiline ("comment", "end\n")],
   "\
 hello
 comment

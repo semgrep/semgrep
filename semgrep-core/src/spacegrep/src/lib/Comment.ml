@@ -4,29 +4,18 @@
 
 open Printf
 
-type delimiters = { start : string; end_ : string }
+type comment_syntax = End_of_line of string | Multiline of string * string
 
-type style = {
-  name : string;
-  start : string option;
-  delimiters : delimiters option;
-}
+type style = comment_syntax list
 
-let style ?start ?delimiters name =
-  let delimiters =
-    match delimiters with
-    | None -> None
-    | Some (start, end_) -> Some { start; end_ }
-  in
-  { name; start; delimiters }
+let shell_style = [ End_of_line "#" ]
 
-let shell_style = style ~start:"#" "shell"
+let c_style = [ Multiline ("/*", "*/") ]
 
-let c_style = style ~delimiters:("/*", "*/") "c"
+let cpp_style = End_of_line "//" :: c_style
 
-let cpp_style = style ~start:"//" ~delimiters:("/*", "*/") "cpp"
-
-let predefined_styles = [ c_style; cpp_style; shell_style ]
+let predefined_styles =
+  [ ("c", c_style); ("cpp", cpp_style); ("shell", shell_style) ]
 
 (* TODO: replace whole unicode characters by exactly space to avoid
          location errors, then rename the function to 'whiteout_utf8'. *)
@@ -50,18 +39,14 @@ let replace_multiline_comment ~start ~end_ src =
   in
   Pcre.substitute ~rex ~subst:whiteout_ascii src
 
+(* Apply comment filters from left to right *)
 let remove_comments_from_string style src =
-  let src =
-    match style.start with
-    | None -> src
-    | Some start -> replace_end_of_line_comment ~start src
-  in
-  let src =
-    match style.delimiters with
-    | None -> src
-    | Some { start; end_ } -> replace_multiline_comment ~start ~end_ src
-  in
-  src
+  List.fold_left
+    (fun src filter ->
+      match filter with
+      | End_of_line start -> replace_end_of_line_comment ~start src
+      | Multiline (start, end_) -> replace_multiline_comment ~start ~end_ src)
+    src style
 
 let remove_comments_from_src style src =
   Src_file.replace_contents src (fun s -> remove_comments_from_string style s)
@@ -75,12 +60,14 @@ module CLI = struct
 
   let comment_style_conv =
     let parser name =
-      match List.find_opt (fun x -> x.name = name) predefined_styles with
+      match
+        List.find_opt (fun (name2, _) -> name2 = name) predefined_styles
+      with
       | Some style -> Ok style
       | None ->
           Error (`Msg ("Invalid argument for --comment-style option: " ^ name))
     in
-    let printer fmt style = Format.pp_print_string fmt style.name in
+    let printer fmt (name, _style) = Format.pp_print_string fmt name in
     Cmdliner.Arg.conv (parser, printer)
 
   let comment_style_term =
@@ -124,40 +111,23 @@ module CLI = struct
 
   let merge_comment_options ~comment_style ~eol_comment_start
       ~multiline_comment_start ~multiline_comment_end : style =
+    let style = [] in
     let style =
       match comment_style with
-      | None -> style "custom"
-      | Some x -> x
+      | None -> style
+      | Some (_name, predefined_style) -> predefined_style @ style
+    in
+    let style =
+      match (multiline_comment_start, multiline_comment_end) with
+      | None, None -> style
+      | Some start, Some end_ -> Multiline (start, end_) :: style
+      | Some _, None -> failwith "Missing --multiline-comment-end option"
+      | None, Some _ -> failwith "Missing --multiline-comment-start option"
     in
     let style =
       match eol_comment_start with
       | None -> style
-      | Some _ as start -> { style with start }
-    in
-    let style =
-      let start, end_ =
-        match style.delimiters with
-        | None -> (None, None)
-        | Some { start; end_ } -> (Some start, Some end_)
-      in
-      let start =
-        match multiline_comment_start with
-        | None -> start
-        | Some x -> Some x
-      in
-      let end_ =
-        match multiline_comment_end with
-        | None -> end_
-        | Some x -> Some x
-      in
-      let delimiters =
-        match (start, end_) with
-        | None, None -> None
-        | Some start, Some end_ -> Some { start; end_ }
-        | Some _, None -> failwith "Missing --multiline-comment-end option"
-        | None, Some _ -> failwith "Missing --multiline-comment-start option"
-      in
-      { style with delimiters }
+      | Some start -> End_of_line start :: style
     in
     style
 end

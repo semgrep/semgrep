@@ -7,23 +7,16 @@
    by blanks.
 *)
 
-type delimiters = { start : string; end_ : string }
-
 (*
    I don't like giving users the ability to specify regexps, but since
    some syntaxes may be tricky to configure without regexps, the current
    design restricts the user to a choice of predefined styles.
 *)
-type style = {
-  name : string;
-  (* end-of-line comment prefix *)
-  start : string option;
-  (* multiline comment delimiters *)
-  delimiters : delimiters option;
-}
+type comment_syntax =
+  | End_of_line of (* start *) string
+  | Multiline of (* start, end *) string * string
 
-(* Shorthand for creating a 'style' record of a give name. *)
-val style : ?start:string -> ?delimiters:string * string -> string -> style
+type style = comment_syntax list
 
 (* Any occurrence of '#' until the end of the line.
    Unlike proper Bash syntax, this doesn't take into account what precedes
@@ -38,8 +31,8 @@ val c_style : style
    '//' like in C++. *)
 val cpp_style : style
 
-(* A list of the predefined styles above. *)
-val predefined_styles : style list
+(* A list of the predefined styles above keyed by name. *)
+val predefined_styles : (string * style) list
 
 (* Replace comments by whitespace so as to preserve the (line, column)
    position of the other characters in the file. *)
@@ -53,7 +46,7 @@ val remove_comments_from_src : style -> Src_file.t -> Src_file.t
 
 module CLI : sig
   (* Command-line options *)
-  val comment_style_term : style option Cmdliner.Term.t
+  val comment_style_term : (string * style) option Cmdliner.Term.t
 
   val eol_comment_start_term : string option Cmdliner.Term.t
 
@@ -63,7 +56,7 @@ module CLI : sig
 
   (* Merge values collected from the command line into a style record. *)
   val merge_comment_options :
-    comment_style:style option ->
+    comment_style:(string * style) option ->
     eol_comment_start:string option ->
     multiline_comment_start:string option ->
     multiline_comment_end:string option ->
