@@ -452,22 +452,12 @@ type program = blist
 (*****************************************************************************)
 
 (*
-   Convert a pair (loc, x) to a wrap, which uses a single token to indicate
-   the location of the object in the generic AST.
-*)
-let wrap (loc : loc) x : 'a wrap =
-  let start, _ = loc in
-  (x, start)
-
-(*
    Convert a pair (loc, x) to a bracket, which uses a leading and trailing
    token to indicate the location.
 *)
 let bracket (loc : loc) x : 'a bracket =
   let start, end_ = loc in
   (start, x, end_)
-
-let wrap_tok (_, tok) : tok = tok
 
 let wrap_loc (_, tok) : loc = (tok, tok)
 
@@ -497,8 +487,6 @@ let command_loc = function
   | Negated_command (loc, _, _) -> loc
   | Function_definition (loc, _) -> loc
 
-let simple_command_loc (x : simple_command) = x.loc
-
 let pipeline_loc = function
   | Command x -> x.loc
   | Pipeline (loc, _, _, _) -> loc
@@ -508,8 +496,6 @@ let blist_loc = function
   | Seq (loc, _, _) -> loc
   | Pipelines (loc, _) -> loc
   | Empty loc -> loc
-
-let function_definition_loc (x : function_definition) = x.loc
 
 let sh_test_loc (x : sh_test) =
   let open_, _, close = x in

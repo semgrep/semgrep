@@ -216,22 +216,6 @@ let match_results_of_matches_and_errors files res =
   }
   [@@profiling]
 
-let json_of_profile_info profile_start =
-  let now = Unix.gettimeofday () in
-  (* total time, but excluding J.string_of_json time that comes after *)
-  (* partial copy paste of Common.adjust_profile_entry *)
-  Hashtbl.add !Common._profile_table "TOTAL" (ref (now -. profile_start), ref 1);
-
-  (* partial copy paste of Common.profile_diagnostic *)
-  let xs =
-    Hashtbl.fold (fun k v acc -> (k, v) :: acc) !Common._profile_table []
-    |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
-  in
-  xs
-  |> List.map (fun (k, (t, cnt)) ->
-         (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
-  |> fun xs -> J.Object xs
-
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)

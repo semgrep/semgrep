@@ -12,8 +12,6 @@ val equal : t -> t -> bool
 (* accept any variants *)
 val is_js : t -> bool
 
-val is_python : t -> bool
-
 val lang_map : (string, t) Hashtbl.t
 
 val lang_of_string_opt : string -> t option

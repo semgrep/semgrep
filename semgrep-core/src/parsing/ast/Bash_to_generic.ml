@@ -98,14 +98,6 @@ module G = AST_generic
    program. *)
 type env = AST_bash.input_kind
 
-let is_pattern = function
-  | Pattern -> true
-  | Program -> false
-
-let is_program = function
-  | Program -> true
-  | Pattern -> false
-
 (* Temporary representation.
    Avoids superfluous early wrapping of expressions in statements and
    vice-versa. *)
@@ -216,8 +208,6 @@ let todo_stmt (loc : loc) : G.stmt =
 let todo_expr (loc : loc) : G.expr =
   let t = fst loc in
   G.e (G.OtherExpr (("BashTodo", t), todo_tokens loc))
-
-let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
 let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 
