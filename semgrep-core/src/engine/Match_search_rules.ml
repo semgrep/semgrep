@@ -616,7 +616,7 @@ let rec filter_ranges env xs cond =
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
-             let env = Eval_generic.bindings_to_env bindings in
+             let env = Eval_generic.bindings_to_env (fst env.config) bindings in
              Eval_generic.eval_bool env e
          | R.CondNestedFormula (mvar, opt_lang, formula) ->
              satisfies_metavar_pattern_condition env r mvar opt_lang formula
@@ -651,7 +651,8 @@ let rec filter_ranges env xs cond =
              in
 
              let env =
-               Eval_generic.bindings_to_env_with_just_strings bindings
+               Eval_generic.bindings_to_env_with_just_strings (fst env.config)
+                 bindings
              in
              Eval_generic.eval_bool env e)
 

@@ -384,14 +384,6 @@ let lvar_of_instr_opt x =
   | Mem _ ->
       None
 
-let exps_of_instr x =
-  match x.i with
-  | Assign (_, exp) -> [ exp ]
-  | AssignAnon _ -> []
-  | Call (_, e1, args) -> e1 :: args
-  | CallSpecial (_, _, args) -> args
-  | FixmeInstr _ -> []
-
 let rexps_of_instr x =
   match x.i with
   | Assign (_, exp) -> [ exp ]
@@ -433,12 +425,6 @@ let rlvals_of_instr x =
   let exps = rexps_of_instr x in
   lvals_of_exps exps
 
-let rvars_of_instr x =
-  x |> rlvals_of_instr
-  |> Common.map_filter (function
-       | { base = Var var; _ } -> Some var
-       | ___else___ -> None)
-
 let rlvals_of_node = function
   | Enter
   | Exit
@@ -456,32 +442,9 @@ let rlvals_of_node = function
   | NTodo _ ->
       []
 
-let lval_of_node_opt = function
-  | NInstr x -> lval_of_instr_opt x
-  | Enter
-  | Exit
-  | TrueNode
-  | FalseNode
-  | NGoto _
-  | Join
-  | NCond _
-  | NReturn _
-  | NThrow _
-  | NOther _
-  | NTodo _ ->
-      None
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let str_of_name name = fst name.ident
 
 let str_of_label ((n, _), _) = n
-
-let find_node f cfg =
-  cfg#nodes#tolist
-  |> Common.find_some (fun (nodei, node) -> if f node then Some nodei else None)
-
-let find_exit cfg = find_node (fun node -> node.n = Exit) cfg
-
-let find_enter cfg = find_node (fun node -> node.n = Enter) cfg

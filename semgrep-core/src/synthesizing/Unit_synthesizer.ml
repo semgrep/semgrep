@@ -231,7 +231,8 @@ let tests =
                                 pr2 (AST_generic.show_any code));
                               Alcotest.(check bool)
                                 (spf "pattern:|%s| should match |%s" pat
-                                   (PPG.pattern_to_string lang code))
+                                   (Pretty_print_pattern.pattern_to_string lang
+                                      code))
                                 true (matches_with_env <> [])
                           | None ->
                               failwith
