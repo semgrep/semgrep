@@ -22,9 +22,6 @@ val of_lang : Lang.t -> t
 val to_lang : t -> Lang.t
 
 (* raises an exception with error message *)
-val of_opt_xlang : t option -> t
-
-(* raises an exception with error message *)
 val lang_of_opt_xlang : t option -> Lang.t
 
 (* map from valid extended language names to unique xlang ID *)
@@ -32,8 +29,6 @@ val assoc : (string * t) list
 
 (* efficient map from valid extended language names to unique xlang ID *)
 val map : (string, t) Hashtbl.t
-
-val of_string_opt : string -> t option
 
 (* list of valid names for extended languages, sorted alphabetically *)
 val keys : string list

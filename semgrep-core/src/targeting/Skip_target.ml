@@ -71,10 +71,6 @@ let whitespace_stat_of_block ?block_size path =
   let s = Guess_lang.get_first_block ?block_size path in
   whitespace_stat_of_string s
 
-let whitespace_stat_of_file path =
-  let s = Common.read_file path in
-  whitespace_stat_of_string s
-
 let is_minified path =
   let stat = whitespace_stat_of_block ~block_size:4096 path in
   (*
