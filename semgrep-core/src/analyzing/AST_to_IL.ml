@@ -47,7 +47,7 @@ type env = {
   cont_label : label option;
 }
 
-let empty_env lang =
+let empty_env (lang : Lang.t) : env =
   { stmts = ref []; break_labels = []; cont_label = None; lang }
 
 (*****************************************************************************)
