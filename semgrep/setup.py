@@ -121,7 +121,7 @@ install_requires = [
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm>=4.46.1",
     "packaging>=20.4",
-    "jsonschema~=3.2.0",
+    "jsonschema>=3.2.0,<5",
     "wcmatch==8.3",
     "peewee~=3.14.4",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
