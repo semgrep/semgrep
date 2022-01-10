@@ -23,6 +23,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Python: return statement can contain tuple expansions (#4461)
 - metavariable-comparison: do not throw a Not_found exn anymore (#4469)
 
+### Changed
+- CLI: parse errors (reported with `--verbose`) appear once per file, 
+  not once per rule/file
+
 ## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
 
 ### Added
