@@ -1,8 +1,8 @@
 running 2 rules from 2 configs
 Running 2 rules...
 rules:
-- rules.cli_test.parse_errors.func
 - rules.cli_test.parse_errors.eqeq-is-bad
+- rules.cli_test.parse_errors.func
 No .semgrepignore found. Using default ignores rules
 Semgrep Core WARN - Syntax error in file targets/cli_test/parse_errors/invalid_javascript.js:5
 	`key:` was unexpected
