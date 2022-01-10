@@ -54,7 +54,7 @@ val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
 val files_of_roots :
   Runner_common.config ->
   Common.path list ->
-  Common.filename list * Semgrep_core_response_j.skipped_target list
+  Common.filename list * Output_from_core_j.skipped_target list
 (**
   Small wrapper over Find_target.files_of_dirs_or_files
  *)
@@ -64,6 +64,6 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   Pattern_match.t list ->
   Pattern_match.t list
   * Semgrep_error_code.error list
-  * Semgrep_core_response_j.skipped_target list
+  * Output_from_core_j.skipped_target list
 
 val timeout_function : Common.filename -> float -> (unit -> 'a) -> 'a

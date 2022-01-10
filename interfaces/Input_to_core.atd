@@ -1,0 +1,16 @@
+(*
+   Type definitions for semgrep-core's input and command-line flags,
+   meant for the python wrapper, 'semgrep'.
+
+   There are other very important form of inputs which are not specified here:
+    - The rule syntax and schema (see rule_schema.yaml; only the
+      semgrep matching engine options are specified in Config_semgrep.atd)
+    - The syntax for all the target files (see the grammar for the different
+      tree-sitter and pfff parsers)
+*)
+
+(*****************************************************************************)
+(* Targets *)
+(*****************************************************************************)
+
+(* TODO: --targets format *)

@@ -17,7 +17,7 @@ open Common
 module R = Rule
 module RP = Report
 module FM = File_and_more
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

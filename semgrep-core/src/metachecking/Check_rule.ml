@@ -20,7 +20,7 @@ module E = Semgrep_error_code
 module PI = Parse_info
 module P = Pattern_match
 module RP = Report
-module SJ = Semgrep_core_response_j
+module SJ = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
