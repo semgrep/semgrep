@@ -49,8 +49,6 @@ val mk_error :
 val error :
   Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> unit
 
-val error_tok : Rule.rule_id -> Parse_info.t -> string -> error_kind -> unit
-
 val exn_to_error :
   ?rule_id:Rule.rule_id option -> Common.filename -> exn -> error
 

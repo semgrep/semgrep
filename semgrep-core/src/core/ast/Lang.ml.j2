@@ -35,11 +35,6 @@ let is_js = function
 {% endif %}{% endfor %}  -> true
   | _ -> false
 
-let is_python = function
-{% for item in langs %}{% if "is_python" in item.tags %}  | {{ item.id }}
-{% endif %}{% endfor %}  -> true
-  | _ -> false
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)

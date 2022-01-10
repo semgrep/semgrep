@@ -52,9 +52,6 @@ let mk_error_tok ?(rule_id = None) tok msg err =
 let error rule_id loc msg err =
   Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
 
-let error_tok rule_id tok msg err =
-  Common.push (mk_error_tok ~rule_id:(Some rule_id) tok msg err) g_errors
-
 let exn_to_error ?(rule_id = None) file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) ->

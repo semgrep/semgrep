@@ -5,9 +5,6 @@ val match_to_match :
   Pattern_match.t ->
   (Semgrep_core_response_t.match_, Semgrep_error_code.error) Common.either
 
-(* takes the starting time of the program *)
-val json_of_profile_info : float -> JSON.t
-
 val match_results_of_matches_and_errors :
   Common.filename list ->
   Report.rule_result ->

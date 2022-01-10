@@ -1113,6 +1113,16 @@ and m_container_ordered_elements a b =
       | _ -> false)
     ~less_is_ok:false (* empty list can not match non-empty list *) a b
 
+(* Poor's man typechecker on literals (for now).
+ * old: was partly in typing/Typechecking_generic.ml before.
+ *
+ * todo:
+ *  - local type inference on AST generic? good coverage?
+ *  - we could allow metavars on the type itself, as in
+ *    foo($X: $T) ... $T x; ...
+ *    which would require to transform the code in the generic_vs_generic
+ *    style as typechecking could also bind metavariables in the process
+ *)
 and m_compatible_type typed_mvar t e =
   match (t.G.t, e.G.e) with
   (* for Python literal checking *)
