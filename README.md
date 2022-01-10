@@ -18,13 +18,13 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://r2c.dev/slack">
-    <img src="https://img.shields.io/badge/slack-1K%2B%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-1.2k%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
   <a href="https://github.com/returntocorp/semgrep#readme">
-    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="4000+ GitHub stars" />
+    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="Star Semgrep on GitHub" />
   </a>
   <a href="https://hub.docker.com/r/returntocorp/semgrep">
     <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg" />
