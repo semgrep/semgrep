@@ -30,6 +30,8 @@ WORKDIR /home/user
 COPY --chown=user .gitmodules /semgrep/.gitmodules
 COPY --chown=user .git/ /semgrep/.git/
 COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
+# some .atd files in semgrep-core are symlinks to files in interfaces/
+COPY --chown=user interfaces/ /semgrep/interfaces/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
