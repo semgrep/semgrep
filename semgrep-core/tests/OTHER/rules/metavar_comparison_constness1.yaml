@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: some_function called with $X < 256
+    patterns:
+      - pattern: some_function($X)
+      - metavariable-comparison:
+          metavariable: $X
+          comparison: $X < 256
+    severity: WARNING
+

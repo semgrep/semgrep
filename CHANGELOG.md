@@ -15,6 +15,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   default, it must be enabled in a per-rule basis using `options:` and setting
   `symbolic_propagation: true`. (#2783, #2859, #3207)
 - `--verbose` outputs a timing and file breakdown summary at the end
+- `metavariable-comparison` now handles metavariables that bind to arbitrary
+  constant expressions (instead of just code variables)
 
 ### Fixed
 - Rust: inner attributes are allowed again inside functions (#4444) (#4445)
