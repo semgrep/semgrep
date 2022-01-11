@@ -11,7 +11,8 @@ Copy semgrep-core to where semgrep expects it without running 'pipenv install',
 then run pytest.
 
 This is a wrapper for pytest. It first copies semgrep-core from where it's
-normally built by dune to the location where semgrep expects it.
+found using 'PATH'. You should set your 'PATH' to include 'semgrep-core/bin'
+or wherever your fresh 'semgrep-core' will be located.
 
 This is useful because pytest clears the environment, including the 'PATH'
 variable, which makes the test code unable to find semgrep-core this way.
