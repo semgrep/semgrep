@@ -283,6 +283,8 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
     ]:
+        import psutil
+
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
         outputs: Dict[Rule, List[RuleMatch]] = collections.defaultdict(list)
