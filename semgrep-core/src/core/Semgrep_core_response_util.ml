@@ -8,7 +8,7 @@ open Semgrep_core_response_t
 let compare_position (a : position) b = Int.compare a.offset b.offset
 
 let compare_location (a : location) b =
-  let c = String.compare a.path a.path in
+  let c = String.compare a.path b.path in
   if c <> 0 then c
   else
     let c = compare_position a.start b.start in
