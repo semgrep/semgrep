@@ -1,5 +1,5 @@
 (*
-   Type definitions for semgrep-core's JSON input, meant for the
+   Type definitions for semgrep-core's JSON input, coming from the
    python wrapper, 'semgrep'.
 
    There are other very important form of inputs which are not specified here:
