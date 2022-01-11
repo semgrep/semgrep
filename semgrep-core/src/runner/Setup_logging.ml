@@ -3,7 +3,7 @@
    we found on the command line or config files.
 *)
 
-open Runner_common
+open Runner_config
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

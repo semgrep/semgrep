@@ -28,7 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let config =
   {
-    Runner_common.log_config_file = "";
+    Runner_config.log_config_file = "";
     log_to_file = None;
     test = false;
     debug = false;
@@ -53,6 +53,7 @@ let config =
     target_file = "";
     action = "";
     version = "test";
+    roots = [];
   }
 
 (*****************************************************************************)

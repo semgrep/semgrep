@@ -165,13 +165,15 @@ let semgrep_check config metachecks rules =
   let config =
     {
       config with
-      Runner_common.lang = Some (Xlang.of_lang Yaml);
+      Runner_config.lang = Some (Xlang.of_lang Yaml);
       config_file = metachecks;
       output_format = Json;
+      (* the targets are actually the rules! metachecking! *)
+      roots = rules;
     }
   in
   let _success, res, _targets =
-    Run_semgrep.semgrep_with_raw_results_and_exn_handler config rules
+    Run_semgrep.semgrep_with_raw_results_and_exn_handler config
   in
   res.matches |> List.map match_to_semgrep_error
 
