@@ -1,6 +1,7 @@
 The goal of this directory is to gather all the "interfaces" used
-by the different semgrep components: the semgrep-core program,
-and then semgrep-python cli.
+by the different semgrep components:
+ - the semgrep-core program
+ - the semgrep-python cli
 
 We're using atdgen to specify the types of most of those interfaces.
 See https://github.com/ahrefs/atd for more information on atdgen.
@@ -8,5 +9,8 @@ See https://github.com/ahrefs/atd for more information on atdgen.
 We're also using jsonschema for rule_schema.yaml (JSON schemas
 can also be specified using a YAML syntax, and they can also
 be used to check the schema of YAML files).
+WARNING: This file is a symbolic link because it can't be moved from its
+original location in semgrep/semgrep/ because its part of the installed
+semgrep Python package and used at runtime.
 
 TODO: we should have lang.json there too
