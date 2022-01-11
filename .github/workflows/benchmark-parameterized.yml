@@ -1,4 +1,4 @@
-name: tests
+name: benchmark-parameterized
 
 on:
   workflow_dispatch:
@@ -16,7 +16,6 @@ jobs:
   build-test:
     name: semgrep unit and e2e tests
     runs-on: ubuntu-latest
-    needs: [build-core]
     strategy:
       matrix:
         python: [3.7]
