@@ -214,6 +214,7 @@ let match_results_of_matches_and_errors files res =
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.rule_profiling |> Common.map_opt json_time_of_profiling_data;
   }
+  |> Semgrep_core_response_util.sort_match_results
   [@@profiling]
 
 (*****************************************************************************)
