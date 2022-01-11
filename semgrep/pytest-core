@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# Copy semgrep-core where the semgrep python code expects it,
+# then run pytest.
+#
+set -eu -o pipefail
+
+if [[ "$1" = "--help" ]]; then
+  cat <<EOF
+Copy semgrep-core to where semgrep expects it without running 'pipenv install',
+then run pytest.
+
+This is a wrapper for pytest. It first copies semgrep-core from where it's
+normally built by dune to the location where semgrep expects it.
+
+This is useful because pytest clears the environment, including the 'PATH'
+variable, which makes the test code unable to find semgrep-core this way.
+The intended flow is:
+- work with ocaml, build semgrep-core only
+- run pytest with this wrapper
+
+The benefit is to skip the 'pipenv install' step that normally would be in
+charge of copying semgrep-core. It saves time.
+
+############################ end of wrapper help ############################
+EOF
+else # not --help
+  repo_root=$(git rev-parse --show-toplevel)
+  semgrep_core_dst_dir=$repo_root/semgrep/semgrep/bin
+
+  semgrep_core=$(which semgrep-core)
+  cat <<EOF
+Copying semgrep-core:
+  $semgrep_core → $semgrep_core_dst_dir
+EOF
+  cp "$semgrep_core" "$semgrep_core_dst_dir"
+fi
+
+# Run pytest normally from here
+pipenv run pytest "$@"
