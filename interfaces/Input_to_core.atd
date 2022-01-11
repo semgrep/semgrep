@@ -13,7 +13,10 @@
 (* Targets *)
 (*****************************************************************************)
 
-(* for -targets *)
+(* For -targets.
+ * coupling: if you change the type here, you probably also want to change
+ * semgrep-core/tests/e2e/target
+*)
 
 type target = {
   path: string (* source file *);

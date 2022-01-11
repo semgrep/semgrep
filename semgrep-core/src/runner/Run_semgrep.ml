@@ -429,12 +429,15 @@ let file_and_more_of_file config langs file =
 
 let targets_of_config (config : Runner_config.t) :
     In.targets * Out.skipped_target list =
+  (* TODO: add config.lang there, and check for bad combinations? *)
   match (config.target_file, config.roots) with
   | "", roots ->
       (* We usually let semgrep-python computes the list of targets (and pass it
        * via -target), but it's convenient to also run semgrep-core without
        * semgrep-python and to recursively get a list of targets.
        *)
+      (* less: could also apply Common.fullpath? *)
+      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
       let lang_opt = lang_opt_of_config config in
       let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
       let targets = files |> List.map (fun file -> { In.path = file }) in
@@ -619,7 +622,6 @@ let pattern_of_config lang config =
 *)
 let semgrep_with_one_pattern config =
   assert (config.config_file = "");
-  assert (config.target_file = "");
 
   (* TODO: support generic and regex patterns as well? See code in Deep. *)
   let lang = Xlang.lang_of_opt_xlang config.lang in
@@ -641,14 +643,9 @@ let semgrep_with_one_pattern config =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in semgrep_with_rules *)
-      let roots =
-        (* less: could also apply Common.fullpath? *)
-        config.roots |> Common.map replace_named_pipe_by_regular_file
-      in
-      let targets, _skipped =
-        Find_target.files_of_dirs_or_files (Some lang) roots
-      in
-      targets
+      let targets, _skipped = targets_of_config config in
+      let files = targets |> List.map (fun t -> t.In.path) in
+      files
       |> List.iter (fun file ->
              logger#info "processing: %s" file;
              let process file =
@@ -677,7 +674,7 @@ let semgrep_with_one_pattern config =
       let n = List.length !E.g_errors in
       if n > 0 then pr2 (spf "error count: %d" n);
       (* TODO: what's that? *)
-      Experiments.gen_layer_maybe _matching_tokens pattern_string targets
+      Experiments.gen_layer_maybe _matching_tokens pattern_string files
 
 (*****************************************************************************)
 (* Semgrep dispatch *)
