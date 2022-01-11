@@ -6,7 +6,7 @@
    place.
 *)
 open Common
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)

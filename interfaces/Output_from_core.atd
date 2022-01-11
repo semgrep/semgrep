@@ -3,17 +3,40 @@
    python wrapper, 'semgrep'.
 
    This file is translated into OCaml modules by atdgen:
-   - Core_response_t: type definitions
-   - Core_response_j: json serialization of those types
-   Look for the corresponding Core_response_t.mli, Core_response_j.mli, etc.
-   under dune's _build folder.
+   - Xxx_t: type definitions
+   - Xxx_j: json serialization of those types
+   Look for the corresponding Xxx_t.mli, Xxx_j.mli, etc.
+   under dune's _build folder (where Xxx is Output_from_core).
 
-   These types were originally inferred from JSON_report.ml for use
+   Those types were originally inferred from JSON_report.ml for use
    by spacegrep when it was separate from semgrep-core. It's now also used
    in JSON_report.ml.
+
+   There are other very important form of outputs which are not specified here:
+    - the schema for the generic AST dump is in AST_generic_v1.atd
+    - The parsing stats have its own Parsing_stats.atd
 *)
 
-type rule_id = string
+(*****************************************************************************)
+(* Location *)
+(*****************************************************************************)
+
+type location = {
+  path: string (* source file *);
+  start: position;
+  end_ <json name="end">: position;
+  lines: string list;
+}
+
+type position = {
+  line: int; (* starts from 1 *)
+  col: int; (* starts from 1 *)
+  offset: int; (* byte position from the beginning of the file, starts at 0 *)
+}
+
+(*****************************************************************************)
+(* Match results *)
+(*****************************************************************************)
 
 type match_results = {
   matches: match_ list;
@@ -23,23 +46,13 @@ type match_results = {
   ?time: time option;
 }
 
-type stats = {
-  okfiles: int;
-  errorfiles: int;
-}
-
-type location = {
-  path: string (* source file *);
-  start: position;
-  end_ <json name="end">: position;
-  lines: string list;
-}
-
 type match_ = {
   ?rule_id: rule_id option;
   location: location;
   extra: match_extra;
 }
+
+type rule_id = string
 
 type match_extra = {
   ?message: string option; (* rule.message (?) *)
@@ -50,28 +63,6 @@ type match_extra = {
   *)
   metavars: (string * metavar_value) list <json repr="object">;
 }
-
-(* See Semgrep_error_code *)
-type error = {
-  ?rule_id: rule_id option;
-  error_type: string;
-  severity: severity;
-  location: location;
-  message: string;
-  ?details: string option;
-  ?yaml_path: string list option;
-}
-
-type position = {
-  line: int; (* starts from 1 *)
-  col: int; (* starts from 1 *)
-  offset: int; (* byte position from the beginning of the file, starts at 0 *)
-}
-
-type severity = [
-  | Error <json name="error">
-  | Warning <json name="warning">
-] <ocaml repr="classic">
 
 type metavar_value = {
   (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'
@@ -128,23 +119,37 @@ type unique_id_type = [
   | AST
 ]
 
-type time = {
-  targets: target_time list;
-  ?rule_parse_time: float option; (* not used in spacegrep *)
+(*****************************************************************************)
+(* Errors *)
+(*****************************************************************************)
+
+(* See Semgrep_error_code *)
+type error = {
+  ?rule_id: rule_id option;
+  error_type: string;
+  severity: severity;
+  location: location;
+  message: string;
+  ?details: string option;
+  ?yaml_path: string list option;
 }
 
-type target_time = {
-  path: string;
 
-  (* parse time for all rules *)
-  parse_time: float;
+type severity = [
+  | Error <json name="error">
+  | Warning <json name="warning">
+] <ocaml repr="classic">
 
-  (* match time for all rules *)
-  match_time: float;
 
-  (* run time for all rules *)
-  run_time: float;
+type stats = {
+  okfiles: int;
+  errorfiles: int;
 }
+
+
+(*****************************************************************************)
+(* Skipping information *)
+(*****************************************************************************)
 
 (*
    If the 'rule_id' field is missing, the target is assumed to have
@@ -169,3 +174,29 @@ type skip_reason = [
   | Irrelevant_rule <json name="irrelevant_rule">
   | Too_many_matches <json name="too_many_matches">
 ] <ocaml repr="classic">
+
+(*****************************************************************************)
+(* Profiling information *)
+(*****************************************************************************)
+
+type time = {
+  targets: target_time list;
+  ?rule_parse_time: float option; (* not used in spacegrep *)
+}
+
+type target_time = {
+  path: string;
+
+  (* parse time for all rules *)
+  parse_time: float;
+
+  (* match time for all rules *)
+  match_time: float;
+
+  (* run time for all rules *)
+  run_time: float;
+}
+
+(*****************************************************************************)
+(* TODO incremental findings *)
+(*****************************************************************************)

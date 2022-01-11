@@ -6,7 +6,7 @@
    place.
 *)
 
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let sort_by_decreasing_size paths =
   paths

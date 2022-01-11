@@ -24,7 +24,7 @@ module S = Specialize_formula
 module RM = Range_with_metavars
 module FM = File_and_more
 module E = Semgrep_error_code
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 

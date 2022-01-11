@@ -1,0 +1,496 @@
+$id: https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep/semgrep/rule_schema.yaml
+$schema: http://json-schema.org/draft-07/schema#
+$comment: '!!if you modify this file, you probably also need to update the one in semgrep-app:server/semgrep_app/rule_schema.yaml!!'
+definitions:
+  patterns-content:
+    type: array
+    title: "Return finding where all of the nested conditions are true"
+    items:
+      anyOf:
+      - $ref: '#/definitions/patterns'
+      - $ref: '#/definitions/pattern-either'
+      - $ref: '#/definitions/pattern-inside'
+      - $ref: '#/definitions/pattern-not-inside'
+      - $ref: '#/definitions/pattern-not'
+      - $ref: '#/definitions/pattern'
+      - $ref: '#/definitions/pattern-regex'
+      - $ref: '#/definitions/pattern-not-regex'
+      - $ref: '#/definitions/pattern-where-python'
+      - $ref: '#/definitions/metavariable-regex'
+      - $ref: '#/definitions/metavariable-pattern'
+      - $ref: '#/definitions/metavariable-comparison'
+  pattern-either-content:
+    type: array
+    title: "Return finding where any of the nested conditions are true"
+    items:
+      anyOf:
+      - $ref: '#/definitions/patterns'
+      - $ref: '#/definitions/pattern-either'
+      - $ref: '#/definitions/pattern-inside'
+      - $ref: '#/definitions/pattern'
+      - $ref: '#/definitions/pattern-regex'
+  taint-content:
+    type: array
+    items:
+      anyOf:
+      - type: object
+        properties:
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
+            type: string
+          patterns:
+            $ref: '#/definitions/patterns-content'
+          pattern-either:
+            $ref: '#/definitions/pattern-either-content'
+        oneOf:
+          - required:
+              - pattern
+            not:
+              anyOf:
+                - required:
+                  - patterns
+                - required:
+                  - pattern-either
+                - required:
+                  - pattern-regex
+          - required:
+              - patterns
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-either
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-regex
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+  join-content:
+    type: object
+    title: "Join one or more rules together based on metavariable contents"
+    properties:
+      refs:
+        type: array
+        items:
+          type: object
+          properties:
+            rule:
+              type: string
+            renames:
+              type: array
+              items:
+                type: object
+                properties:
+                  from:
+                    type: string
+                  to:
+                    type: string
+            as:
+              type: string
+      on:
+        type: array
+        items:
+          type: string
+      additionalProperties: false
+  metavariable-regex:
+    type: object
+    properties:
+      metavariable-regex:
+        type: object
+        properties:
+          metavariable:
+            type: string
+          regex:
+            type: string
+        required:
+          - metavariable
+          - regex
+        additionalProperties: false
+    required:
+    - metavariable-regex
+    additionalProperties: false
+  metavariable-pattern:
+    type: object
+    properties:
+      metavariable-pattern:
+        type: object
+        properties:
+          metavariable:
+            type: string
+          language:
+            type: string
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
+            type: string
+          patterns:
+            $ref: '#/definitions/patterns-content'
+          pattern-either:
+            $ref: '#/definitions/pattern-either-content'
+        required:
+          - metavariable
+        oneOf:
+          - required:
+              - pattern
+            not:
+              anyOf:
+                - required:
+                  - patterns
+                - required:
+                  - pattern-either
+                - required:
+                  - pattern-regex
+          - required:
+              - patterns
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-either
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-regex
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+        additionalProperties: false
+    required:
+    - metavariable-pattern
+    additionalProperties: false
+  metavariable-comparison:
+    type: object
+    properties:
+      metavariable-comparison:
+        type: object
+        properties:
+          metavariable:
+            type: string
+          comparison:
+            type: string
+          strip:
+            type: boolean
+          base:
+            type: integer
+        required:
+          - metavariable
+          - comparison
+        additionalProperties: false
+    required:
+    - metavariable-comparison
+    additionalProperties: false
+  pattern:
+    type: object
+    properties:
+      pattern:
+        title: Return finding where Semgrep pattern matches exactly
+        type: string
+    required:
+    - pattern
+    additionalProperties: false
+  pattern-regex:
+    type: object
+    properties:
+      pattern-regex:
+        title: Return finding where regular expression matches
+        type: string
+    required:
+    - pattern-regex
+    additionalProperties: false
+  pattern-not-regex:
+    type: object
+    properties:
+      pattern-not-regex:
+        title: Do not return finding where regular expression matches
+        type: string
+    required:
+    - pattern-not-regex
+    additionalProperties: false
+  patterns:
+    type: object
+    properties:
+      patterns:
+        title: Return finding where all of the nested conditions are true
+        $ref: '#/definitions/patterns-content'
+    required:
+    - patterns
+    additionalProperties: false
+  pattern-either:
+    type: object
+    properties:
+      pattern-either:
+        title: Return finding where any of the nested conditions are true
+        $ref: '#/definitions/pattern-either-content'
+    required:
+    - pattern-either
+    additionalProperties: false
+  pattern-inside:
+    type: object
+    properties:
+      pattern-inside:
+        title: Return findings only from within snippets Semgrep pattern matches
+        type: string
+    required:
+    - pattern-inside
+    additionalProperties: false
+  pattern-not-inside:
+    type: object
+    properties:
+      pattern-not-inside:
+        title: Do not return findings from within snippets Semgrep pattern matches
+        type: string
+    required:
+    - pattern-not-inside
+    additionalProperties: false
+  pattern-not:
+    type: object
+    properties:
+      pattern-not:
+        title: Do not return finding where Semgrep pattern matches exactly
+        type: string
+    required:
+    - pattern-not
+    additionalProperties: false
+  pattern-where-python:
+    type: object
+    properties:
+      pattern-where-python:
+        title: Return finding where Python expression returns true
+        type: string
+    required:
+      - pattern-where-python
+    additionalProperties: false
+  path-array:
+    type: array
+    items:
+      type: string
+type: object
+properties:
+  rules:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          title: Rule ID to attach to findings
+          type: string
+        version:
+          title: Version of rule
+          type: string
+        message:
+          title: Description to attach to findings
+          type: string
+        mode:
+          enum:
+          - search
+          - taint
+          - join
+        languages:
+          title: Languages this pattern should run on
+          type: array
+          items:
+            type: string
+        paths:
+          title: Path globs this pattern should run on
+          type: object
+          properties:
+            include:
+              $ref: '#/definitions/path-array'
+            exclude:
+              $ref: '#/definitions/path-array'
+          additionalProperties: false
+        severity:
+          title: Severity to report alongside this finding
+          enum:
+          - ERROR
+          - WARNING
+          - INFO
+          - INVENTORY
+        pattern-sinks:
+          $ref: '#/definitions/taint-content'
+        pattern-sources:
+          $ref: '#/definitions/taint-content'
+        pattern-sanitizers:
+          $ref: '#/definitions/taint-content'
+        join:
+          $ref: '#/definitions/join-content'
+        fix:
+          title: Replacement text to fix matched code. Can use matched metavariables.
+          type: string
+        fix-regex:
+          type: object
+          title: Replacement regex to fix matched code.
+          properties:
+            count:
+              title: Replace up to this many regex matches
+              type: integer
+            regex:
+              title: Regular expression to find in matched code
+              type: string
+            replacement:
+              title: Code to replace the regular expression match with. Can use capture groups.
+              type: string
+          required:
+            - regex
+            - replacement
+          additionalProperties: false
+        metadata:
+          title: Arbitrary structured data for your own reference
+          type: object
+        options:
+          title: Options object to enable/disable certain matching features in semgrep-core
+          type: object
+        pattern:
+          title: Return finding where Semgrep pattern matches exactly
+          type: string
+        pattern-regex:
+          title: Return finding where regular expression matches exactly
+          type: string
+        patterns:
+          $ref: '#/definitions/patterns-content'
+        pattern-either:
+          $ref: '#/definitions/pattern-either-content'
+      additionalProperties: false
+
+      oneOf:
+        - properties:
+            mode:
+              const: taint
+          required:
+            - id
+            - message
+            - mode
+            - languages
+            - severity
+            - pattern-sinks
+            - pattern-sources
+          not:
+            anyOf:
+              - required:
+                - pattern
+              - required:
+                - patterns
+              - required:
+                - pattern-either
+              - required:
+                - pattern-regex
+              - required:
+                - join
+
+        - properties:
+            mode:
+              const: join
+          required:
+            - id
+            - message
+            - severity
+            - join
+          not:
+            anyOf:
+              - required:
+                - patterns
+              - required:
+                - pattern
+              - required:
+                - pattern-either
+              - required:
+                - pattern-regex
+
+        - properties:
+            mode:
+              const: search
+          required:
+            - id
+            - message
+            - languages
+            - severity
+          oneOf:
+            - required:
+                - pattern
+              not:
+                anyOf:
+                  - required:
+                    - patterns
+                  - required:
+                    - pattern-either
+                  - required:
+                    - pattern-regex
+            - required:
+                - patterns
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-either
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-regex
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+          not:
+            anyOf:
+              - required:
+                - pattern-sinks
+              - required:
+                - pattern-sources
+              - required:
+                - pattern-sanitizers
+              - required:
+                - join

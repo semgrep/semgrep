@@ -4,7 +4,7 @@ module PI = Parse_info
 module E = Semgrep_error_code
 module MR = Mini_rule
 module R = Rule
-module SJ = Semgrep_core_response_j
+module SJ = Output_from_core_j
 module RP = Report
 module P = Parse_with_caching
 
@@ -225,7 +225,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                         n rule_id max_match_per_file
                     in
                     {
-                      Semgrep_core_response_t.path = file;
+                      Output_from_core_t.path = file;
                       reason = Too_many_matches;
                       details;
                       rule_id = Some rule_id;
