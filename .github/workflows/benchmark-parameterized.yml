@@ -38,7 +38,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts.tgz
-          sudo cp bin/* /usr/bin
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
           cd semgrep
