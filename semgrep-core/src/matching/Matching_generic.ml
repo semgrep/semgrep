@@ -190,8 +190,6 @@ let ( let* ) o f = o >>= f
 let add_mv_capture key value (env : tin) =
   { env with mv = Env.add_capture key value env.mv }
 
-let get_mv_capture key (env : tin) = Env.get_capture key env.mv
-
 let extend_stmts_match_span rightmost_stmt (env : tin) =
   let stmts_match_span =
     Stmts_match_span.extend rightmost_stmt env.stmts_match_span
@@ -330,14 +328,6 @@ let empty_environment opt_cache config =
 (* Helpers *)
 (*****************************************************************************)
 
-(* guard for deep stmt matching *)
-let has_ellipsis_stmts xs =
-  xs
-  |> List.exists (fun st ->
-         match st.G.s with
-         | G.ExprStmt ({ e = G.Ellipsis _; _ }, _) -> true
-         | _ -> false)
-
 let rec inits_and_rest_of_list = function
   | [] -> failwith "inits_1 requires a non-empty list"
   | [ e ] -> [ ([ e ], []) ]
@@ -457,14 +447,6 @@ let m_option_none_can_match_some f a b =
   | None, _ -> return ()
   | Some xa, Some xb -> f xa xb
   | Some _, _ -> fail ()
-
-(* ---------------------------------------------------------------------- *)
-(* stdlib: ref *)
-(* ---------------------------------------------------------------------- *)
-let (m_ref : 'a matcher -> 'a ref matcher) =
- fun f a b ->
-  match (a, b) with
-  | { contents = xa }, { contents = xb } -> f xa xb
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: list *)
