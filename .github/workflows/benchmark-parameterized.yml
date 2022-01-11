@@ -37,8 +37,8 @@ jobs:
           check_artifacts:  false
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          tar xf ocaml-build-artifacts.tgz
+          sudo cp bin/* /usr/bin
       - name: Install semgrep
         run: |
           cd semgrep
@@ -50,7 +50,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           git clone --depth=1 ${{github.event.inputs.REPO}} target
           cd target
-          PIPENV_PIPFILE=../semgrep/Pipfile pipenv run semgrep -c ${{github.event.inputs.CONFIG}} --json --json-time . | tee -a times.json
+          PIPENV_PIPFILE=../semgrep/Pipfile pipenv run semgrep --metrics=off --config=${{github.event.inputs.CONFIG}} --time --json . | tee -a times.json
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
