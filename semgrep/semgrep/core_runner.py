@@ -332,7 +332,7 @@ class CoreRunner:
 
                         cmd = [SemgrepCore.path()] + [
                             "-json",
-                            "-config",
+                            "-rules",
                             rule_file.name,
                             "-j",
                             str(self._jobs),

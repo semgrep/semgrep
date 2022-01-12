@@ -12,7 +12,6 @@
  * file license.txt for more details.
  *)
 open Common
-module FM = File_and_more
 module FT = File_type
 module R = Rule
 module E = Semgrep_error_code
@@ -153,7 +152,7 @@ let make_tests ?(unit_testing = false) xs =
              in
              let file_and_more =
                {
-                 FM.file = target;
+                 Xtarget.file = target;
                  xlang;
                  lazy_content = lazy (Common.read_file target);
                  lazy_ast_and_errors;
