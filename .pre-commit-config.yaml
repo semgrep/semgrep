@@ -34,7 +34,7 @@ repos:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
         args: [--config, mypy.ini, --show-error-codes]
-        additional_dependencies:
+        additional_dependencies: &mypy-deps
           - types_all
           - types-attrs
           - types-click
@@ -45,12 +45,7 @@ repos:
         name: mypy (test files)
         files: ^semgrep\/tests\/.+$
         args: [--config, mypy-tests.ini, --show-error-codes]
-        additional_dependencies:
-          - types_all
-          - types-attrs
-          - types-click
-          - types-requests
-          - types-setuptools
+        additional_dependencies: *mypy-deps
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: "3.8.4"
