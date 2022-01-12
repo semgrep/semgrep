@@ -54,7 +54,8 @@ val targets_of_config :
   Runner_config.t ->
   Input_to_core_t.targets * Output_from_core_t.skipped_target list
 (**
-  Small wrapper over Find_target.files_of_dirs_or_files
+  Compute the set of targets, either by reading what was passed
+  in -target, or by using Find_target.files_of_dirs_or_files.
  *)
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :

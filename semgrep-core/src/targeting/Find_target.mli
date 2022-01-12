@@ -30,7 +30,8 @@ val files_of_dirs_or_files :
   Common.filename list * Output_from_core_t.skipped_target list
 
 (*
-   Sort files by decreasing size. This is meant for optimizing
+   Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
 *)
-val sort_by_decreasing_size : Common.filename list -> Common.filename list
+val sort_targets_by_decreasing_size :
+  Input_to_core_t.target list -> Input_to_core_t.target list

@@ -320,7 +320,9 @@ class CoreRunner:
                         # TODO: use atdgen-py
                         # The format of this JSON is specified in
                         # interfaces/Input_to_core.atd
-                        array = [{"path": str(p)} for p in targets]
+                        array = [
+                            {"path": str(p), "language": str(language)} for p in targets
+                        ]
                         target_file.write(json.dumps(array))
                         target_file.flush()
 
@@ -329,8 +331,6 @@ class CoreRunner:
                         rule_file.flush()
 
                         cmd = [SemgrepCore.path()] + [
-                            "-lang",
-                            str(language),
                             "-json",
                             "-config",
                             rule_file.name,
