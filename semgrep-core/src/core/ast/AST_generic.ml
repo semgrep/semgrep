@@ -478,7 +478,13 @@ and expr_kind =
   (* less: could be in Special, but pretty important so I've lifted them here*)
   | Ref of tok (* &, address of *) * expr
   | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr
-  (* For YAML aliases *)
+  (* For YAML aliases
+     TODO a better solution would be to use symbolic propagation
+     This is a little tricky because YAML is a highly nested expression
+     and anchors can be nested. We can get around this by extracting
+     the aliases as VarDefs in the beginning and then using them later.
+     Revisit when symbolic propagation is more stable
+  *)
   | Alias of string wrap * expr
   (* In some rare cases, we need to keep the parenthesis around an expression
    * otherwise in autofix semgrep could produce incorrect code. For example,
