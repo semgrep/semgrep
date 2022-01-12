@@ -8,5 +8,5 @@ val check :
     (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
   Rule.rules ->
-  File_and_more.t ->
+  Xtarget.t ->
   Report.times Report.match_result
