@@ -7,15 +7,10 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
-open Runner_common
+open Runner_config
 module Flag = Flag_semgrep
-module PI = Parse_info
 module E = Semgrep_error_code
-module MR = Mini_rule
-module R = Rule
 module J = JSON
-module RP = Report
-module S = Run_semgrep
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -26,11 +21,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * See https://semgrep.dev/ for more information.
  *
  * Right now there is:
- *  - good support for: Python, Java, Go, Ruby,
+ *  - good support for: Python, Java, C#, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: C, C++, C#, PHP, OCaml, Kotlin, Scala, Rust, Lua,
- *    YAML, HTML, Vue, Bash
- *  - almost support for: R, Docker
+ *  - partial support for: C, C++, PHP, OCaml, Kotlin, Scala, Rust, Lua,
+ *    YAML, HTML, Vue, Bash, Docker
+ *  - almost support for: R
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -155,6 +150,10 @@ let use_parsing_cache = ref ""
 
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
+
+(* ------------------------------------------------------------------------- *)
+(* pad's action flag *)
+(* ------------------------------------------------------------------------- *)
 
 (* action mode *)
 let action = ref ""
@@ -319,6 +318,7 @@ let mk_config () =
     target_file = !target_file;
     action = !action;
     version = Version.version;
+    roots = [] (* This will be set later in main () *);
   }
 
 (*****************************************************************************)
@@ -441,7 +441,7 @@ let options () =
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
         Xlang.supported_xlangs );
-    ( "-target_file",
+    ( "-targets",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
@@ -585,6 +585,8 @@ let options () =
 (*****************************************************************************)
 
 let main () =
+  profile_start := Unix.gettimeofday ();
+
   (* SIGXFSZ (file size limit exceeded)
    * ----------------------------------
    * By default this signal will kill the process, which is not good. If we
@@ -600,12 +602,10 @@ let main () =
    *)
   Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
-  profile_start := Unix.gettimeofday ();
-
   let usage_msg =
     spf
       "Usage: %s [options] -lang <str> [-e|-f|-config] <pattern> \
-       <files_or_dirs> \n\
+       (<files_or_dirs> | -targets <file>) \n\
        Options:"
       (Filename.basename Sys.argv.(0))
   in
@@ -625,10 +625,6 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
-  let args =
-    (* not necessarily file paths, depending on command *)
-    if !target_file = "" then args else Common.cat !target_file
-  in
 
   let config = mk_config () in
 
@@ -659,28 +655,10 @@ let main () =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | _ :: _ as roots -> (
+      | roots ->
           if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc ();
-          let roots =
-            if config.target_file = "" then
-              Common.map S.replace_named_pipe_by_regular_file roots
-            else
-              (* leave files as is if they come from a file list so as to
-                 not worry about performance *)
-              roots
-          in
-          match () with
-          | _ when config.config_file <> "" ->
-              S.semgrep_with_formatted_output config roots
-          | _ -> S.semgrep_with_one_pattern config roots)
-      (* --------------------------------------------------------- *)
-      (* empty entry *)
-      (* --------------------------------------------------------- *)
-      (* TODO: should not need that, semgrep should not call us when there
-       * are no files to process. *)
-      | [] when config.target_file <> "" && config.config_file <> "" ->
-          S.semgrep_with_formatted_output config []
-      | [] -> Common.usage usage_msg (options ()))
+          let config = { config with roots } in
+          Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)
 
