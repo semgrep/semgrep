@@ -8,4 +8,4 @@
    match location first.
 *)
 val sort_match_results :
-  Semgrep_core_response_t.match_results -> Semgrep_core_response_t.match_results
+  Output_from_core_t.match_results -> Output_from_core_t.match_results
