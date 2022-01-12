@@ -25,9 +25,6 @@ val lang_of_string_opt : string -> t option
  *)
 val unsupported_language_message : string -> string
 
-(* May raise Failure of unsupported_language_message *)
-val of_string : string -> t
-
 (* Association from a valid name for a language to its unique internal ID. *)
 val assoc : (string * t) list
 
