@@ -28,4 +28,16 @@ type target = {
   (* TODO: rule_ids *)
 }
 
+(* The same path can be present multiple times in targets below, with
+ * different languages each time, so a Python file can be both analyzed
+ * with Python rules, but also with generic/regexp rules.
+ *
+ * alt: we could have a list of languages instead in target above, but
+ * because of the way semgrep-core is designed (with its file_and_more type),
+ * you could have at most one PL language, and then possibly
+ * "generic" and "regexp".
+ *
+ * alt: rule_ids above could also be used to analyze at once the same
+ * file with both PL and generic/regexp rules.
+ *)
 type targets = target list
