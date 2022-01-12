@@ -35,11 +35,6 @@ let is_js = function
 {% endif %}{% endfor %}  -> true
   | _ -> false
 
-let is_python = function
-{% for item in langs %}{% if "is_python" in item.tags %}  | {{ item.id }}
-{% endif %}{% endfor %}  -> true
-  | _ -> false
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -91,8 +86,6 @@ let langs_of_filename filename =
 let to_string = function
 {% for item in langs %}  | {{ item.id }} -> "{{ item.name }}"
 {% endfor %}
-
-let string_of_lang = to_string
 
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function

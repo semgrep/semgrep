@@ -60,11 +60,17 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Bash ->
         let res = Parse_bash_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Dockerfile ->
+        let res = Parse_dockerfile_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Rust ->
         let res = Parse_rust_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Kotlin ->
         let res = Parse_kotlin_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Solidity ->
+        let res = Parse_solidity_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Html ->
         let res = Parse_html_tree_sitter.parse_pattern str in

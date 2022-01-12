@@ -31,14 +31,14 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Build semgrep-core and spacegrep
+      - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
-      - name: Test semgrep-core and spacegrep
+      - name: Test semgrep-core
         run: |
           eval $(opam env)
           cd semgrep-core
@@ -191,6 +191,44 @@ jobs:
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
+  # Run abbreviated version of benchmarks to check that they work
+  dummy-benchmarks:
+    name: semgrep dummy benchmarks
+    runs-on: ubuntu-latest
+    needs: [build-core]
+    strategy:
+      matrix:
+        python: [3.7]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      - name: Install semgrep
+        run: |
+          cd semgrep
+          pip3 install pipenv==2021.5.29
+          pipenv install --dev
+      - name: Test dummy benchmarks on latest
+        working-directory: ./semgrep
+        run: |
+          pipenv run semgrep --version
+          pipenv run python -m semgrep --version
+          pipenv run semgrep-core -version
+          pipenv run python3 ../perf/run-benchmarks --dummy
+
   # Run each benchmark twice to decrease effect of natural variance
   benchmark-test:
     name: semgrep benchmark tests
@@ -208,9 +246,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Run 0.73.0 Timing Benchmark
+      - name: Run 0.77.0 Timing Benchmark
         run: |
-          pip3 install semgrep==0.73.0
+          pip3 install semgrep==0.77.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
@@ -233,12 +271,6 @@ jobs:
           cd semgrep
           pip3 install pipenv==2021.5.29
           pipenv install --dev
-      - name: Test dummy benchmarks in docker from run-benchmarks
-        # This uploads the results, which should happen elsewhere so we run it explicitly for now.
-        #  make dummy
-        run: |
-          docker pull returntocorp/semgrep-dev:develop
-          python3 perf/run-benchmarks --docker returntocorp/semgrep-dev:develop --dummy
       - name: Get timing for latest semgrep
         run: |
           cd semgrep
@@ -247,8 +279,10 @@ jobs:
           pipenv run semgrep-core -version
           pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing1.json
           jq . timing1.json
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json
+          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json --save-findings-to findings.json
           jq . timing2.json
+          jq . findings.json
       - name: Compare timing infos
         run: |
-          ./scripts/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
+          perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
+          perf/compare-bench-findings semgrep/findings.json

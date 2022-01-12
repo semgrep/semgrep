@@ -21,8 +21,6 @@ open Ppx_hash_lib.Std.Hash.Builtin
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let debug = false
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -67,6 +65,7 @@ type mvalue =
    *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
+  | Params of AST_generic.parameter list
   (* This is to match the content of a string or atom, without the
    * enclosing quotes. For a string this can actually be empty. *)
   | Text of string AST_generic.wrap
@@ -87,6 +86,7 @@ let mvalue_to_any = function
   | N x -> G.E (G.N x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
+  | Params x -> G.Params x
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
@@ -103,6 +103,7 @@ let program_of_mvalue : mvalue -> G.program option =
       Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
   | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
   | Ss stmts -> Some stmts
+  | Params _
   | Args _
   | T _
   | P _
@@ -113,7 +114,9 @@ let program_of_mvalue : mvalue -> G.program option =
 let range_of_mvalue mval =
   let ( let* ) = Common.( >>= ) in
   let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
-  Some (Range.range_of_token_locations tok_start tok_end)
+  (* We must return both the range *and* the file, due to metavariable-pattern
+   * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
+  Some (tok_start.file, Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 

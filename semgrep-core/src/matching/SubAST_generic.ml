@@ -93,8 +93,11 @@ let subexprs_of_stmt_kind = function
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 (* used for deep expression matching *)
-let subexprs_of_expr e =
+let subexprs_of_expr with_symbolic_propagation e =
   match e.e with
+  | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
+    when with_symbolic_propagation ->
+      [ e1 ]
   | L _
   | N _
   | IdSpecial _
@@ -131,7 +134,8 @@ let subexprs_of_expr e =
       :: (args |> unbracket
          |> Common.map_filter (function
               | Arg e
-              | ArgKwd (_, e) ->
+              | ArgKwd (_, e)
+              | ArgKwdOptional (_, e) ->
                   Some e
               | ArgType _
               | OtherArg _ ->
@@ -158,6 +162,10 @@ let subexprs_of_expr e =
       []
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
+
+(* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
+let subexprs_of_expr ?(symbolic_propagation = false) e =
+  subexprs_of_expr symbolic_propagation e
 
 (* used for deep statement matching *)
 let substmts_of_stmt st =

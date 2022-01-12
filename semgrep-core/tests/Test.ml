@@ -203,7 +203,7 @@ let regression_tests_for_lang ~with_caching files lang =
         with exn ->
           failwith (spf "fail to parse pattern %s with lang = %s (exn = %s)" 
                       sgrep_file 
-                      (Lang.string_of_lang lang)
+                      (Lang.to_string lang)
                       (Common.exn_to_s exn))
     in
     E.g_errors := [];
@@ -231,8 +231,8 @@ let regression_tests_for_lang ~with_caching files lang =
           let minii_loc = Parse_info.unsafe_token_location_of_info minii in
           E.error "test pattern" minii_loc "" (E.SemgrepMatchFound "")
         )
-        Config_semgrep.default_config
-        [rule] equiv (file, lang, ast) 
+        (Config_semgrep.default_config, equiv)
+        [rule] (file, lang, ast) 
       |> ignore;
       let actual = !E.g_errors in
       let expected = E.expected_error_lines_of_files [file] in
@@ -273,10 +273,10 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches =
     let equivs = [] in
-    Tainting_generic.check
-      (fun _ _ _ -> ())
-      Config_semgrep.default_config
-      taint_rules equivs file lang ast
+    Match_tainting_rules.check_bis
+      ~match_hook:(fun _ _ _ -> ())
+      (Config_semgrep.default_config, equivs)
+      taint_rules file lang ast
   in
   let actual =
     matches |> List.map (fun m ->
@@ -325,6 +325,7 @@ let lang_parsing_tests =
    (* languages with only a tree-sitter parser *)
     pack_parsing_tests_for_lang Lang.Bash "bash" ".bash";
     pack_parsing_tests_for_lang Lang.Csharp "csharp" ".cs";
+    pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
     pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
     pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
@@ -367,6 +368,7 @@ let lang_regression_tests ~with_caching =
   in
   pack_suites ("lang testing" ^ name_suffix) [
     pack_regression_tests_for_lang Lang.Bash "bash" ".bash";
+    pack_regression_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_regression_tests_for_lang Lang.Python "python" ".py";
     pack_regression_tests_for_lang Lang.Js "js" ".js";
     pack_regression_tests_for_lang Lang.Ts "ts" ".ts";
@@ -401,16 +403,26 @@ let lang_regression_tests ~with_caching =
     pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
     pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
     pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
+    pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
  ]
 
-let full_rule_regression_tests = [
-  "full rule", (fun () ->
-    let path = Filename.concat tests_path "OTHER/rules" in
-    Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
-    logger#info "running with -filter_irrelevant_rules";  
-    Test_engine.test_rules ~unit_testing:true [path])
+let full_rule_regression_tests =
+  let path = Filename.concat tests_path "OTHER/rules" in
+  pack_tests "full rule" (
+    let tests, _print_summary =
+      Test_engine.make_tests ~unit_testing:true [path]
+    in
+    tests |> Common.map (fun (name, test) ->
+      let test () =
+        Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules
+          (fun () ->
+             logger#info "running with -filter_irrelevant_rules";
+             test ()
+          )
+      in
+      name, test
+    )
   )
-]
 
 let lang_tainting_tests =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
@@ -510,27 +522,37 @@ let test_irrelevant_rule rule_file target_file =
       if f content then
         Alcotest.fail (spf "Rule %s considered relevant by regex prefilter: %s" (fst rule.id) re)
   )
-
-let test_irrelevant_rule_file rule_file =
-  Filename.basename rule_file, (fun () ->
-    let target_file =
-      let (d,b,_e) = Common2.dbe_of_filename rule_file in
-      (* TODO: Support other extensions, note that we don't need
-       * to parse the target files! *)
-      let candidate1 = Common2.filename_of_dbe (d,b,"py") in
+  
+let test_irrelevant_rule_file target_file =
+  Filename.basename target_file, (fun () ->
+    let rules_file =
+      let (d,b,_e) = Common2.dbe_of_filename target_file in
+      let candidate1 = Common2.filename_of_dbe (d,b,"yaml") in
       if Sys.file_exists candidate1
       then candidate1
-      else failwith (spf "could not find target file for irrelevant rule %s" rule_file)
+      else failwith (spf "could not find target file for irrelevant rule %s" target_file)
     in
-    test_irrelevant_rule rule_file target_file
+    test_irrelevant_rule rules_file target_file
   )
 
+(* These tests test that semgrep with filter_irrelevant_rules correctly 
+   does not run files when they lack necessary strings.
+
+   To test that filter_irrelevant_rules does not mistakenly filter out 
+   any files, place the rule/target pair in the rules folder but annotate 
+   in a comment that the test targets filter_irrelevant_rules to help
+   future debuggers. *)
 let filter_irrelevant_rules_tests =
   pack_tests "filter irrelevant rules testing" (
     let dir = Filename.concat tests_path "OTHER/irrelevant_rules" in
-    let files = Common2.glob (spf "%s/*.yaml" dir) in
-    files |> List.map (fun file ->
-      test_irrelevant_rule_file file
+    let target_files = 
+    Common2.glob (spf "%s/*" dir)
+    |> File_type.files_of_dirs_or_files (function
+         | File_type.Config File_type.Yaml -> false
+         | _ -> true (* TODO include .test.yaml*))
+    in
+    target_files |> List.map (fun target_file ->
+      test_irrelevant_rule_file target_file
     )
   )
 
@@ -577,12 +599,16 @@ let maturity_tests =
     (* Beta *)
     check_maturity Lang.Hack "hack" ".hack" Beta;
     check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
+    check_maturity Lang.Scala "scala" ".scala" Beta;
     (* Terraform/HCL has too many NA, not worth it *)
 
     (* Experimental *)
     check_maturity Lang.Bash "bash" ".bash" Experimental;
     check_maturity Lang.C "c" ".c" Experimental;
     check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
+(* TODO dockerfile
+    check_maturity Lang.Dockerfile "dockerfile" ".dockerfile" Experimental;
+*)
     check_maturity Lang.Lua "lua" ".lua" Experimental;
     check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
     check_maturity Lang.Php "php" ".php" Experimental;
@@ -590,12 +616,36 @@ let maturity_tests =
     (* TODO: too many exns, we need to write tests!
      check_maturity Lang.Rust "rust" ".rust" Experimental;
     *)
-    check_maturity Lang.Scala "scala" ".scala" Experimental;
+    check_maturity Lang.Solidity "solidity" ".sol" Experimental;
     (* YAML has too many NA, not worth it *)
 
     (* Not even experimental *)
     (* R, HTML, Vue *)
   ]
+
+(* It's important that our parsers generate classic parsing errors
+ * exns (e.g., Parsing_error, Lexical_error), otherwise semgrep
+ * will report some "Fatal error" and abort.
+ *)
+let parsing_error_tests =
+  let dir = Filename.concat tests_path "OTHER/parsing_errors" in
+  pack_tests "Parsing error detection" (
+    let tests = Common2.glob (spf "%s/*" dir) in
+    tests |> List.map (fun file ->
+      Filename.basename file, (fun () ->
+         try
+          let lang = List.hd (Lang.langs_of_filename file) in
+          let res = Parse_target.just_parse_with_lang lang file in
+          if res.Parse_target.errors = []
+          then 
+           failwith "it should raise a standard parsing error exn or return partial errors "
+         with
+         | Parse_info.Lexical_error _
+         | Parse_info.Parsing_error _
+           -> ()
+     )
+   )
+  )
 
 (*****************************************************************************)
 (* All tests *)
@@ -616,6 +666,7 @@ let tests = List.flatten [
   Unit_pcre_settings.tests;
 
   lang_parsing_tests;
+  parsing_error_tests;
   (* full testing for many languages *)
   lang_regression_tests ~with_caching:false;
   lang_regression_tests ~with_caching:true;

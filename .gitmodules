@@ -73,3 +73,9 @@
 [submodule "semgrep-core/src/core/ast/lang"]
 	path = semgrep-core/src/core/ast/lang
 	url = https://github.com/returntocorp/semgrep-langs
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-solidity"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-solidity
+	url = https://github.com/returntocorp/semgrep-solidity.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-python"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-python
+	url = https://github.com/returntocorp/semgrep-python.git

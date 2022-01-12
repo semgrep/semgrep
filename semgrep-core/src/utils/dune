@@ -1,0 +1,19 @@
+(library
+ (public_name semgrep_utils)
+ (wrapped false)
+ (libraries
+   re pcre
+
+   commons
+   ;note: you should not depend on any other semgrep libraries here
+
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_hash
+   )
+ )
+)

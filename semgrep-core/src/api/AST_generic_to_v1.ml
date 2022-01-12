@@ -99,8 +99,8 @@ and map_resolved_name (v1, v2) =
   (v1, v2)
 
 and map_resolved_name_kind = function
-  | Local -> `Local
-  | Param -> `Param
+  | LocalVar -> `Local
+  | Parameter -> `Param
   | EnclosedVar -> `EnclosedVar
   | Global -> `Global
   | ImportedEntity v1 ->
@@ -118,10 +118,10 @@ and map_id_info x =
   | {
    G.id_resolved = v_id_resolved;
    id_type = v_id_type;
-   id_constness = v3;
+   id_svalue = v3;
    id_hidden = _not_available_in_v1;
   } ->
-      let v3 = map_of_ref (map_of_option map_constness) v3 in
+      let v3 = map_of_ref (map_of_option map_svalue) v3 in
       let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
       let v_id_resolved =
         map_of_ref (map_of_option map_resolved_name) v_id_resolved
@@ -357,13 +357,14 @@ and map_const_type = function
   | Cstr -> `Cstr
   | Cany -> `Cany
 
-and map_constness = function
+and map_svalue = function
   | Lit v1 ->
       let v1 = map_literal v1 in
       `Lit v1
   | Cst v1 ->
       let v1 = map_const_type v1 in
       `Cst v1
+  | Sym _v1 -> (* Not supported by AST_generic_v1 *) `NotCst
   | NotCst -> `NotCst
 
 and map_container_operator = function
@@ -480,6 +481,10 @@ and map_argument = function
   | ArgKwd (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_expr v2 in
       `ArgKwd (v1, v2)
+  | ArgKwdOptional (v1, v2) ->
+      let v1 = map_ident v1 and v2 = map_expr v2 in
+      (* new: *)
+      `ArgKwdOptional (v1, v2)
   | OtherArg (v1, v2) ->
       let v1 = map_other_argument_operator v1 and v2 = map_of_list map_any v2 in
       `ArgOther (v1, v2)
@@ -782,6 +787,7 @@ and map_catch_condition = function
   | CatchParam p ->
       let _p = map_parameter_classic p in
       failwith "TODO"
+  | OtherCatch _ -> failwith "TODO"
 
 and map_finally v = map_tok_and_stmt v
 
@@ -1162,6 +1168,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | ForOrIfComp _
   | Tp _
   | Ta _ ->
       failwith "TODO"
@@ -1196,6 +1203,7 @@ and map_any x : B.any =
   | Args v1 ->
       let v1 = map_of_list map_argument v1 in
       `Args v1
+  | Params _ -> failwith "TODO"
   | I v1 ->
       let v1 = map_ident v1 in
       `I v1

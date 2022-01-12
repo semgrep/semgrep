@@ -361,6 +361,7 @@ and v_pattern = function
   | PatDisj (v1, v2, v3) ->
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
+  | PatEllipsis v1 -> G.PatEllipsis v1
 
 and todo_expr msg any = G.OtherExpr ((msg, fake msg), any) |> G.e
 
@@ -753,8 +754,12 @@ and v_variable_definitions
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef)
          | _ ->
-             pr2 "TODO pattern var";
-             None)
+             (* TODO: some patterns may have tparams? *)
+             let ent =
+               G.{ name = EPattern (v_pattern pat); attrs; tparams = [] }
+             in
+             let vdef = { G.vinit = eopt; vtype = topt } in
+             Some (ent, G.VarDef vdef))
 
 and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v1 = v_ident v_name in

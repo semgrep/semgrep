@@ -16,8 +16,6 @@ BIN_DIR = "bin"
 PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "semgrep", BIN_DIR)
 SEMGREP_CORE_BIN = "semgrep-core"
 SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
-SPACEGREP_BIN = "spacegrep"
-SPACEGREP_BIN_ENV = "SPACEGREP_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
@@ -97,7 +95,6 @@ def find_executable(env_name, exec_name):
 if not SEMGREP_SKIP_BIN:
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
-        (SPACEGREP_BIN_ENV, SPACEGREP_BIN),
     ]
 
     for binary_env, binary_name in binaries:
@@ -124,8 +121,8 @@ install_requires = [
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm>=4.46.1",
     "packaging>=20.4",
-    "jsonschema~=3.2.0",
-    "wcmatch==8.2",
+    "jsonschema>=3.2.0,<5",
+    "wcmatch==8.3",
     "peewee~=3.14.4",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because

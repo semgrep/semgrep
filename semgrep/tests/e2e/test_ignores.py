@@ -1,40 +1,53 @@
-from subprocess import CalledProcessError
+import subprocess
+from pathlib import Path
 
-import pytest
+from ..conftest import _clean_output_json
+from ..conftest import TESTS_PATH
 
 
-def test_regex_rule__nosemgrep(run_semgrep_in_tmp, snapshot):
+def test_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
+    (tmp_path / ".semgrepignore").symlink_to(
+        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+    )
+
     snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/regex-nosemgrep.yaml", target_name="basic/regex-nosemgrep.txt"
-        )[0],
+        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores")[0],
         "results.json",
     )
 
 
-def test_nosem_rule(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(run_semgrep_in_tmp("rules/nosem.yaml")[0], "results.json")
-
-
-def test_nosem_rule_unicode(run_semgrep_in_tmp, snapshot):
+# We provide no .semgrepignore but everything except find.js should still be ignored
+def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/nosem-unicode.yaml", target_name="advanced_nosem/nosem-unicode.py"
-        )[0],
+        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores_default")[0],
         "results.json",
     )
 
 
-def test_nosem_rule__invalid_id(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/nosem.yaml", target_name="nosem_invalid_id")
-    assert excinfo.value.returncode == 2
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
-    snapshot.assert_match(excinfo.value.stdout, "error.json")
-
-
-def test_nosem_rule__with_disable_nosem(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp("rules/nosem.yaml", options=["--disable-nosem"])[0],
-        "results.json",
+# Input from stdin will not have a path that is relative to tmp_path, where we're running semgrep
+def test_file_not_relative_to_base_path(tmp_path, monkeypatch, snapshot):
+    (tmp_path / ".semgrepignore").symlink_to(
+        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
     )
+    monkeypatch.chdir(tmp_path)
+    process = subprocess.Popen(
+        [
+            "python3",
+            "-m",
+            "semgrep",
+            "--disable-version-check",
+            "--metrics",
+            "off",
+            "--json",
+            "-e",
+            "a",
+            "--lang",
+            "js",
+            "-",
+        ],
+        encoding="utf-8",
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    stdout, _ = process.communicate("a")
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")

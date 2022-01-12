@@ -100,8 +100,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v2 = map_of_int v2 in
     (v1, v2)
   and map_resolved_name_kind = function
-    | Local -> Local
-    | Param -> Param
+    | LocalVar -> LocalVar
+    | Parameter -> Parameter
     | EnclosedVar -> EnclosedVar
     | Global -> Global
     | ImportedEntity v1 ->
@@ -136,10 +136,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | {
        id_resolved = v_id_resolved;
        id_type = v_id_type;
-       id_constness = v3;
+       id_svalue = v3;
        id_hidden;
       } ->
-          let v3 = map_of_ref (map_of_option map_constness) v3 in
+          let v3 = map_of_ref (map_of_option map_svalue) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
           let v_id_resolved =
             map_of_ref (map_of_option map_resolved_name) v_id_resolved
@@ -148,7 +148,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           {
             id_resolved = v_id_resolved;
             id_type = v_id_type;
-            id_constness = v3;
+            id_svalue = v3;
             id_hidden;
           }
     in
@@ -400,13 +400,16 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Cint -> Cint
     | Cstr -> Cstr
     | Cany -> Cany
-  and map_constness = function
+  and map_svalue = function
     | Lit v1 ->
         let v1 = map_literal v1 in
         Lit v1
     | Cst v1 ->
         let v1 = map_const_type v1 in
         Cst v1
+    | Sym v1 ->
+        let v1 = map_expr v1 in
+        Sym v1
     | NotCst -> NotCst
   and map_container_operator x = x
   and map_special x =
@@ -452,8 +455,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_type_ v1 in
         ArgType v1
     | ArgKwd (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_expr v2 in
+        let v1 = map_ident v1 in
+        let v2 = map_expr v2 in
         ArgKwd (v1, v2)
+    | ArgKwdOptional (v1, v2) ->
+        let v1 = map_ident v1 in
+        let v2 = map_expr v2 in
+        ArgKwdOptional (v1, v2)
     | OtherArg (v1, v2) ->
         let v1 = map_other_argument_operator v1
         and v2 = map_of_list map_any v2 in
@@ -716,6 +724,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = map_catch_exn v1 and v2 = map_stmt v2 in
     (t, v1, v2)
   and map_catch_exn = function
+    | OtherCatch (v1, v2) ->
+        let v1 = map_todo_kind v1 in
+        let v2 = map_of_list map_any v2 in
+        OtherCatch (v1, v2)
     | CatchPattern v1 ->
         let v1 = map_pattern v1 in
         CatchPattern v1
@@ -1124,6 +1136,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | ForOrIfComp v1 ->
+        let v1 = map_for_or_if_comp v1 in
+        ForOrIfComp v1
     | Tp v1 ->
         let v1 = map_type_parameter v1 in
         Tp v1
@@ -1142,6 +1157,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Args v1 ->
         let v1 = map_of_list map_argument v1 in
         Args v1
+    | Params v1 ->
+        let v1 = map_of_list map_parameter v1 in
+        Params v1
     | Flds v1 ->
         let v1 = map_of_list map_field v1 in
         Flds v1
@@ -1228,10 +1246,15 @@ let (mk_visitor : visitor_in -> visitor_out) =
 (* Fix token locations *)
 (*****************************************************************************)
 
+(* Fix token locations to "relocate" a sub-AST. *)
 let mk_fix_token_locations fix =
   mk_visitor
     {
-      default_visitor with
+      kidinfo =
+        (fun (_k, _vout) ii ->
+          (* The id_info contains locations that should not be modified, and they
+           * are likely outside the sub-AST of interest anyways. *)
+          ii);
       kexpr =
         (fun (k, _) e ->
           k

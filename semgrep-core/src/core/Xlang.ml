@@ -23,11 +23,6 @@ let to_lang (x : t) : Lang.t =
   | LRegex -> failwith (Lang.unsupported_language_message "regex")
   | LGeneric -> failwith (Lang.unsupported_language_message "generic")
 
-let of_opt_xlang (x : t option) : t =
-  match x with
-  | None -> failwith (Lang.unsupported_language_message "unset")
-  | Some xlang -> xlang
-
 let lang_of_opt_xlang (x : t option) : Lang.t =
   match x with
   | None -> failwith (Lang.unsupported_language_message "unset")
@@ -38,8 +33,6 @@ let assoc : (string * t) list =
   @ [ ("regex", LRegex); ("generic", LGeneric) ]
 
 let map = Common.hash_of_list assoc
-
-let of_string_opt x = Hashtbl.find_opt map (String.lowercase_ascii x)
 
 let keys = Common2.hkeys map
 
@@ -70,6 +63,6 @@ let of_string ?id:(id_opt = None) s =
       | Some l -> L (l, []))
 
 let to_string = function
-  | L (l, _) -> Lang.string_of_lang l
+  | L (l, _) -> Lang.to_string l
   | LRegex -> "regex"
   | LGeneric -> "generic"

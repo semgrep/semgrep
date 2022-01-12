@@ -16,7 +16,7 @@ module PI = Parse_info
 module G = AST_generic
 module J = JSON
 module FT = File_type
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -89,6 +89,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
+  | Lang.Solidity ->
+      Tree_sitter_solidity.Parse.file file
+      |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
@@ -177,7 +180,7 @@ let test_parse_tree_sitter lang root_paths =
                  | _ ->
                      failwith
                        (spf "lang %s not supported with tree-sitter"
-                          (Lang.string_of_lang lang)));
+                          (Lang.to_string lang)));
                  PI.correct_stat file
                with exn ->
                  print_exn file exn;

@@ -111,16 +111,19 @@ let mk_bracket
         E.end_mark = { M.index = e_index; M.line = e_line; M.column = e_column };
         _;
       } ) v env =
+  (* The end index needs to be adjusted by one because the token is off *)
+  let e_index' = e_index - 1 in
   let e_line, e_column =
     match env.charpos_to_pos with
     | None -> (e_line, e_column)
     | Some f ->
-        let e_line, e_column = f (e_index - 1) in
+        let e_line, e_column = f e_index' in
+        (* e_line - 1 because tok expects e_line 0-indexed *)
         (e_line - 1, e_column)
   in
   ( tok (s_index, s_line, s_column) "(" env,
     v,
-    tok (e_index, e_line, e_column) ")" env )
+    tok (e_index', e_line, e_column) ")" env )
 
 let mk_id str pos env = G.Id ((str, mk_tok pos "" env), G.empty_id_info ())
 

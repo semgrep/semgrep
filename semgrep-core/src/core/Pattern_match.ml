@@ -123,7 +123,10 @@ let no_submatches pms =
    at the moment.
 *)
 module Set = Set.Make (struct
-  type nonrec t = t
+  type previous_t = t
+
+  (* alt: use type nonrec t = t, but this causes pad's codegraph to blowup *)
+  type t = previous_t
 
   (* If the pattern matches are obviously different (have different ranges), this is enough to compare them.
      If their ranges are the same, compare their metavariable environments. This is not robust to reordering

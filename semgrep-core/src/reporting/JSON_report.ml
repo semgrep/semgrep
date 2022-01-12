@@ -22,9 +22,9 @@ module J = JSON
 module MV = Metavariable
 module RP = Report
 open Pattern_match
-module ST = Semgrep_core_response_t (* atdgen definitions *)
+module ST = Output_from_core_t (* atdgen definitions *)
 
-module SJ = Semgrep_core_response_j (* JSON conversions *)
+module SJ = Output_from_core_j (* JSON conversions *)
 
 (*****************************************************************************)
 (* Unique ID *)
@@ -84,6 +84,7 @@ let range_of_any_opt startp_of_match_range any =
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
    *)
   | Ss []
+  | Params []
   | Args [] ->
       Some empty_range
   | _ ->
@@ -213,23 +214,8 @@ let match_results_of_matches_and_errors files res =
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.rule_profiling |> Common.map_opt json_time_of_profiling_data;
   }
+  |> Output_from_core_util.sort_match_results
   [@@profiling]
-
-let json_of_profile_info profile_start =
-  let now = Unix.gettimeofday () in
-  (* total time, but excluding J.string_of_json time that comes after *)
-  (* partial copy paste of Common.adjust_profile_entry *)
-  Hashtbl.add !Common._profile_table "TOTAL" (ref (now -. profile_start), ref 1);
-
-  (* partial copy paste of Common.profile_diagnostic *)
-  let xs =
-    Hashtbl.fold (fun k v acc -> (k, v) :: acc) !Common._profile_table []
-    |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
-  in
-  xs
-  |> List.map (fun (k, (t, cnt)) ->
-         (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
-  |> fun xs -> J.Object xs
 
 (*****************************************************************************)
 (* Error management *)

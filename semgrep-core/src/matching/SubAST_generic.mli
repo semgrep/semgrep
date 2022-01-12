@@ -1,4 +1,5 @@
-val subexprs_of_expr : AST_generic.expr -> AST_generic.expr list
+val subexprs_of_expr :
+  ?symbolic_propagation:bool -> AST_generic.expr -> AST_generic.expr list
 
 val subexprs_of_stmt_kind : AST_generic.stmt_kind -> AST_generic.expr list
 

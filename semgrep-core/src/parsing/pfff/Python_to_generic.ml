@@ -91,8 +91,8 @@ let module_name (v1, dots) =
       G.FileName (s, tok)
 
 let resolved_name = function
-  | LocalVar -> Some (G.Local, G.sid_TODO)
-  | Parameter -> Some (G.Param, G.sid_TODO)
+  | LocalVar -> Some (G.LocalVar, G.sid_TODO)
+  | Parameter -> Some (G.Parameter, G.sid_TODO)
   | GlobalVar -> Some (G.Global, G.sid_TODO)
   | ClassField -> None
   | ImportedModule xs -> Some (G.ImportedModule (G.DottedName xs), G.sid_TODO)
@@ -182,17 +182,17 @@ let rec expr (x : expr) =
   | Tuple (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
       G.Container (G.Tuple, v1) |> G.e
-  | Tuple (CompForIf (v1, v2), v3) ->
+  | Tuple (CompForIf (l, (v1, v2), r), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v4TODO = expr_context v3 in
-      G.Comprehension (G.Tuple, fb e1) |> G.e
+      G.Comprehension (G.Tuple, (l, e1, r)) |> G.e
   | List (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
       G.Container (G.List, v1) |> G.e
-  | List (CompForIf (v1, v2), v3) ->
+  | List (CompForIf (l, (v1, v2), r), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v3TODO = expr_context v3 in
-      G.Comprehension (G.List, fb e1) |> G.e
+      G.Comprehension (G.List, (l, e1, r)) |> G.e
   | Subscript (v1, v2, v3) ->
       (let e = expr v1 and _v3TODO = expr_context v3 in
        match v2 with
@@ -223,9 +223,9 @@ let rec expr (x : expr) =
         else G.Set
       in
       G.Container (kind, (t1, v', t2)) |> G.e
-  | DictOrSet (CompForIf (v1, v2)) ->
+  | DictOrSet (CompForIf (l, (v1, v2), r)) ->
       let e1 = comprehension2 dictorset_elt v1 v2 in
-      G.Comprehension (G.Dict, fb e1) |> G.e
+      G.Comprehension (G.Dict, (l, e1, r)) |> G.e
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list expr v2 in
       G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg))

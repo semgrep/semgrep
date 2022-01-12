@@ -5,7 +5,12 @@
 open Cmdliner
 open Spacegrep
 
-type config = { is_pattern : bool; debug : bool; input_files : string list }
+type config = {
+  is_pattern : bool;
+  debug : bool;
+  input_files : string list;
+  comment_style : Comment.style;
+}
 
 let is_pattern_term =
   let info =
@@ -33,10 +38,19 @@ let input_files_term =
   Arg.value (Arg.pos_all Arg.string [] info)
 
 let cmdline_term =
-  let combine is_pattern debug input_files =
-    { is_pattern; debug; input_files }
+  let combine is_pattern debug input_files comment_style eol_comment_start
+      multiline_comment_start multiline_comment_end =
+    let comment_style =
+      Comment.CLI.merge_comment_options ~comment_style ~eol_comment_start
+        ~multiline_comment_start ~multiline_comment_end
+    in
+    { is_pattern; debug; input_files; comment_style }
   in
-  Term.(const combine $ is_pattern_term $ debug_term $ input_files_term)
+  Term.(
+    const combine $ is_pattern_term $ debug_term $ input_files_term
+    $ Comment.CLI.comment_style_term $ Comment.CLI.eol_comment_start_term
+    $ Comment.CLI.multiline_comment_start_term
+    $ Comment.CLI.multiline_comment_end_term)
 
 let doc = "use a universal parser to interpret a program as a tree"
 
@@ -71,6 +85,7 @@ let run_one config input =
     | `Stdin -> Src_file.of_stdin ()
     | `File path -> Src_file.of_file path
   in
+  let src = Comment.remove_comments_from_src config.comment_style src in
   let print = if config.debug then Print.Debug.to_stdout else Print.to_stdout in
   if config.is_pattern then
     match Parse_pattern.of_src src with

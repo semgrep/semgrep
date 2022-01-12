@@ -30,6 +30,8 @@ WORKDIR /home/user
 COPY --chown=user .gitmodules /semgrep/.gitmodules
 COPY --chown=user .git/ /semgrep/.git/
 COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
+# some .atd files in semgrep-core are symlinks to files in interfaces/
+COPY --chown=user interfaces/ /semgrep/interfaces/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
@@ -51,7 +53,6 @@ RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
 RUN eval "$(opam env)" && make -C semgrep-core/ all
 
 # Sanity checks
-RUN test -x ./semgrep-core/_build/install/default/bin/spacegrep
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
@@ -68,12 +69,6 @@ RUN apk add --no-cache git openssh
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
-
-#TODO: once we always use semgrep-core to run a rule, we can delete spacegrep
-COPY --from=build-semgrep-core \
-     /semgrep/semgrep-core/_build/install/default/bin/spacegrep \
-     /usr/local/bin/spacegrep
-RUN ln -sf spacegrep /usr/local/bin/spacecat
 
 COPY semgrep /semgrep
 RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep

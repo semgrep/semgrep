@@ -5,7 +5,79 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Improved filtering of rules based on file content
+- Pre-alpha support for Dockerfile as a new target language
+- Semgrep is now able to symbolically propagate simple definitions. E.g., given
+  an assignment `x = foo.bar()` followed by a call `x.baz()`, Semgrep will keep
+  track of `x`'s definition, and it will successfully match `x.baz()` with a
+  pattern like `foo.bar().baz()`. This feature should help writing simple yet
+  powerful rules, by letting the dataflow engine take care of any intermediate
+  assignments. Symbolic propagation is still experimental and it is disabled by
+  default, it must be enabled in a per-rule basis using `options:` and setting
+  `symbolic_propagation: true`. (#2783, #2859, #3207)
+- `--verbose` outputs a timing and file breakdown summary at the end
+- `metavariable-comparison` now handles metavariables that bind to arbitrary
+  constant expressions (instead of just code variables)
+
+### Fixed
+- Rust: inner attributes are allowed again inside functions (#4444) (#4445)
+- Python: return statement can contain tuple expansions (#4461)
+- metavariable-comparison: do not throw a Not_found exn anymore (#4469)
+- better ordering of match results with respect to captured
+  metavariables (#4488)
+
+## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
+
+### Added
+- New language Solidity with experimental support.
+- Scala: Patterns like List(...) now correctly match against patterns in code
+- A default set of .semgrepignore patterns (in semgrep/templates/.semgrepignore)  are now used if no .semgrepignore file is provided
+- Java: Ellipsis metavariables can now be used for parameters (#4420)
+- `semgrep login` and `semgrep logout` commands to save api token
+
+### Fixed
+- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs
+  would sometimes cause a parse error
+- Scala: Translate definitions using patterns like
+  `val List(x,y,z) = List(1,2,3)` to the generic AST
+- Allow name resolution on imported packages named just vN, where N is a number
+- The -json option in semgrep-core works again when used with -e/-f
+- Python: get the correct range when matching comprehension (#4221)
+- Python and other languages: allow matches of patterns containing
+  non-ascii characters, but still with possibly many false positives (#4336)
+- Java: parse correctly constructor method patterns (#4418)
+- Address several autofix output issues (#4428, #3577, #3338) by adding per-
+  file line/column offset tracking
+
+### Changed
+- Constant propagation is now a proper must-analysis, if a variable is undefined
+  in some path then it will be considered as non-constant
+- Dataflow: Only consider reachable nodes, which prevents some FPs/FNs
+- Timing output handles errors and reports profiling times
+- semgrep-core will log a warning when a worker process is consuming above 400 MiB
+  of memory, or reached 80% of the specified memory limit, whatever happens first.
+  This is meant to help diagnosing OOM-related crashes.
+
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+
+### Fixed
+- Python: set the right scope for comprehension variables (#4260)
+- Fixed bug where the presence of .semgrepignore would cause reported targets
+  to have absolute instead of relative file paths
+
+## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
+
+### Fixed
+- Fixed bug where the presence of .semgrepignore would cause runs to fail on
+  files that were not subpaths of the directory where semgrep was being run
+
+## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 12-06-2021
+
+### Added
+- Improved filtering of rules based on file content (important speedup
+  for nodejsscan rules notably)
+- Semgrep CLI now respects .semgrepignore files
 - Java: support ellipsis in generics, e.g., `class Foo<...>` (#4335)
 
 ### Fixed
@@ -16,11 +88,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   a sink (e.g. as in `$SINK->method`), and the LHS operand is a tainted
   variable (#4320)
 - metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
+- semgrep-core: Fix a segmentation fault on Apple M1 when using
+  `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
+- Python: generate proper lexical exn for unbalanced braces (#4310)  
+- YAML: fix off-by-one in location of arrays
+- Python: generate proper lexical exn for unbalanced braces (#4310)
+- Matching `"$MVAR"` patterns against string literals computed by constant folding
+  no longer causes a crash (#4371)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
 - Optimization: change bloom filters to use sets, move location of filter
 - Reduced the size of `--debug` dumps
+- Given `--output` Semgrep will no longer print search results to _stdout_,
+  but it will only save/post them to the specified file/URL
 
 ## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
 

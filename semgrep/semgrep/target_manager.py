@@ -5,12 +5,14 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
 from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Set
 
@@ -19,6 +21,7 @@ from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
+from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -89,6 +92,7 @@ class TargetManager:
     targets: Sequence[str] = attr.ib()
     respect_git_ignore: bool
     skip_unknown_extensions: bool
+    file_ignore: Optional[FileIgnore]
 
     _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
 
@@ -316,7 +320,12 @@ class TargetManager:
 
         includes = TargetManager.preprocess_path_patterns(includes)
         return frozenset(
-            wcglob.globfilter(arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+            cast(
+                Iterable[Path],
+                wcglob.globfilter(
+                    arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                ),
+            )
         )
 
     @staticmethod
@@ -333,7 +342,12 @@ class TargetManager:
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
         return arr - frozenset(
-            wcglob.globfilter(arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+            cast(
+                Iterable[Path],
+                wcglob.globfilter(
+                    arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                ),
+            )
         )
 
     @staticmethod
@@ -395,6 +409,9 @@ class TargetManager:
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 
+        targets = (
+            self.file_ignore.filter_paths(targets) if self.file_ignore else targets
+        )
         self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
 

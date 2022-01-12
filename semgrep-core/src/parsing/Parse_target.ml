@@ -52,7 +52,7 @@ type 'ast parser =
 type 'ast internal_result =
   | Ok of ('ast * Parse_info.parsing_stat)
   | Partial of 'ast * Semgrep_error_code.error list * Parse_info.parsing_stat
-  | Error of exn
+  | Error of exn * Printexc.raw_backtrace
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
@@ -93,20 +93,25 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           | exn ->
               (* TODO: print where the exception was raised or reraise *)
               logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
-              Error exn)
+              Error (exn, Printexc.get_raw_backtrace ()))
   | TreeSitter f -> (
       logger#trace "trying to parse with TreeSitter parser %s" file;
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat file res.stat in
         match (res.program, res.errors) with
-        | None, [] -> raise Impossible
+        | None, [] ->
+            let msg =
+              "internal error: failed to recover typed tree from tree-sitter's \
+               untyped tree"
+            in
+            Error (Failure msg, Printexc.get_callstack 100)
         | Some ast, [] -> Ok (ast, stat)
         | None, ts_error :: _xs ->
             let exn = error_of_tree_sitter_error ts_error in
             logger#error "non-recoverable error (%s) with TreeSitter parser"
               (Common.exn_to_s exn);
-            Error exn
+            Error (exn, Printexc.get_callstack 100)
         | Some ast, x :: _xs ->
             (* let's just return the first one for now; the following one
              * may be due to cascading effect of the first error *)
@@ -120,15 +125,17 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
       (* to get correct stack trace on parse error *)
       | exn when !debug_exn -> raise exn
       | exn ->
-          (* TODO: print where the exception was raised or reraise *)
+          let trace = Printexc.get_raw_backtrace () in
           logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          Error exn)
+          Error (exn, trace))
 
 let rec (run_either :
           Common.filename -> 'ast parser list -> 'ast internal_result) =
  fun file xs ->
   match xs with
-  | [] -> Error (Failure (spf "no parser found for %s" file))
+  | [] ->
+      Error
+        (Failure (spf "no parser found for %s" file), Printexc.get_callstack 100)
   | p :: xs -> (
       let res = run_parser p file in
       match res with
@@ -137,27 +144,28 @@ let rec (run_either :
           let res = run_either file xs in
           match res with
           | Ok res -> Ok res
-          | Error exn2 ->
-              logger#debug "exn again (%s) but return Partial"
-                (Common.exn_to_s exn2);
+          | Error (exn2, trace2) ->
+              logger#debug "exn again (%s) but return Partial:\n%s"
+                (Common.exn_to_s exn2)
+                (Printexc.raw_backtrace_to_string trace2);
               (* prefer a Partial to an Error *)
               Partial (ast, errs, stat)
           | Partial _ ->
               logger#debug "Partial again but return first Partial";
               Partial (ast, errs, stat))
-      | Error exn -> (
+      | Error (exn1, trace1) -> (
           let res = run_either file xs in
           match res with
           | Ok res -> Ok res
           | Partial (ast, errs, stat) ->
               logger#debug "Got now a Partial, better than exn (%s)"
-                (Common.exn_to_s exn);
+                (Common.exn_to_s exn1);
               Partial (ast, errs, stat)
-          | Error exn2 ->
+          | Error (exn2, _trace2) ->
               logger#debug "exn again (%s) but return original exn (%s)"
-                (Common.exn_to_s exn2) (Common.exn_to_s exn);
+                (Common.exn_to_s exn2) (Common.exn_to_s exn1);
               (* prefer the first error *)
-              Error exn))
+              Error (exn1, trace1)))
 
 let (run :
       Common.filename ->
@@ -182,7 +190,7 @@ let (run :
   match run_either file xs with
   | Ok (ast, stat) -> { ast = fconvert ast; errors = []; stat }
   | Partial (ast, errs, stat) -> { ast = fconvert ast; errors = errs; stat }
-  | Error exn -> raise exn
+  | Error (exn, trace) -> Printexc.raise_with_backtrace exn trace
 
 let throw_tokens f file =
   let res = f file in
@@ -192,7 +200,7 @@ let lang_to_python_parsing_mode = function
   | Lang.Python -> Parse_python.Python
   | Lang.Python2 -> Parse_python.Python2
   | Lang.Python3 -> Parse_python.Python3
-  | s -> failwith (spf "not a python language:%s" (Lang.string_of_lang s))
+  | s -> failwith (spf "not a python language:%s" (Lang.to_string s))
 
 let rec just_parse_with_lang lang file =
   match lang with
@@ -250,9 +258,13 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
   | Lang.Kotlin ->
       run file [ TreeSitter Parse_kotlin_tree_sitter.parse ] (fun x -> x)
+  | Lang.Solidity ->
+      run file [ TreeSitter Parse_solidity_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
       run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
+  | Lang.Dockerfile ->
+      run file [ TreeSitter Parse_dockerfile_tree_sitter.parse ] (fun x -> x)
   | Lang.Rust ->
       run file [ TreeSitter Parse_rust_tree_sitter.parse ] (fun x -> x)
   | Lang.C ->

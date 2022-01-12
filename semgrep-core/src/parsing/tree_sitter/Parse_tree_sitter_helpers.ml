@@ -146,13 +146,6 @@ let debug_sexp_cst_after_error sexp_cst =
   pr2 s
 
 let wrap_parser tree_sitter_parser ast_mapper =
-  (* Note that because we currently use Parallel.invoke to
-   * invoke the tree-sitter parser, unmarshalled exn
-   * can't be used in match or try or used for structural equality.
-   * So take care! Fortunately the ocaml-tree-sitter parsers now
-   * return a list of error instead of an exception so this is now
-   * less an issue.
-   *)
   let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
   let program =
     match res.program with

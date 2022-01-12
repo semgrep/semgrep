@@ -1,1 +1,4 @@
-tests/e2e/targets/basic.py
+[ {"path": "tests/e2e/targets/basic.py",
+   "language": "python"
+  }
+]

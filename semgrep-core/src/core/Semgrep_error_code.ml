@@ -52,9 +52,6 @@ let mk_error_tok ?(rule_id = None) tok msg err =
 let error rule_id loc msg err =
   Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
 
-let error_tok rule_id tok msg err =
-  Common.push (mk_error_tok ~rule_id:(Some rule_id) tok msg err) g_errors
-
 let exn_to_error ?(rule_id = None) file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) ->
@@ -141,15 +138,20 @@ let string_of_error_kind = function
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
 
+let source_of_string = function
+  | "" -> "<input>"
+  | path -> path
+
 let string_of_error err =
   let pos = err.loc in
-  assert (pos.PI.file <> "");
   let details =
     match err.details with
     | None -> ""
     | Some s -> spf "\n%s" s
   in
-  spf "%s:%d:%d: %s: %s%s" pos.PI.file pos.PI.line pos.PI.column
+  spf "%s:%d:%d: %s: %s%s"
+    (source_of_string pos.PI.file)
+    pos.PI.line pos.PI.column
     (string_of_error_kind err.typ)
     err.msg details
 
@@ -218,6 +220,9 @@ let (expected_error_lines_of_files :
                 else None))
   |> List.flatten
 
+(* A copy-paste of Error_code.compare_actual_to_expected but
+ * with Semgrep_error_code.error instead of Error_code.t for the error type.
+ *)
 let compare_actual_to_expected actual_errors expected_error_lines =
   let actual_error_lines =
     actual_errors

@@ -7,15 +7,12 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
-open Runner_common
+open Runner_config
 module Flag = Flag_semgrep
-module PI = Parse_info
 module E = Semgrep_error_code
-module MR = Mini_rule
-module R = Rule
 module J = JSON
-module RP = Report
-module S = Run_semgrep
+
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
@@ -24,11 +21,11 @@ module S = Run_semgrep
  * See https://semgrep.dev/ for more information.
  *
  * Right now there is:
- *  - good support for: Python, Java, Go, Ruby,
+ *  - good support for: Python, Java, C#, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: C, C#, PHP, OCaml, Scala, Rust, Lua,
- *    YAML, HTML, Vue
- *  - almost support for: R, Kotlin, Bash, Docker, C++
+ *  - partial support for: C, C++, PHP, OCaml, Kotlin, Scala, Rust, Lua,
+ *    YAML, HTML, Vue, Bash, Docker
+ *  - almost support for: R
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -109,8 +106,8 @@ let pattern_string = ref ""
 (* -f *)
 let pattern_file = ref ""
 
-(* -config *)
-let config_file = ref ""
+(* -rules *)
+let rules_file = ref ""
 
 let equivalences_file = ref ""
 
@@ -154,14 +151,16 @@ let use_parsing_cache = ref ""
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
 
+(* ------------------------------------------------------------------------- *)
+(* pad's action flag *)
+(* ------------------------------------------------------------------------- *)
+
 (* action mode *)
 let action = ref ""
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let logger = Logging.get_logger [ __MODULE__ ]
 
 let version =
   spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version
@@ -187,11 +186,6 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.major_heap_increment = 8_000_000 };
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
-
-let lang_of_string s =
-  match Lang.lang_of_string_opt s with
-  | Some x -> x
-  | None -> failwith (Lang.unsupported_language_message s)
 
 (*****************************************************************************)
 (* Dumpers *)
@@ -309,7 +303,7 @@ let mk_config () =
     profile_start = !profile_start;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
-    config_file = !config_file;
+    rules_file = !rules_file;
     equivalences_file = !equivalences_file;
     lang = !lang;
     output_format = !output_format;
@@ -324,6 +318,7 @@ let mk_config () =
     target_file = !target_file;
     action = !action;
     version = Version.version;
+    roots = [] (* This will be set later in main () *);
   }
 
 (*****************************************************************************)
@@ -431,7 +426,7 @@ let all_actions () =
       Common.mk_action_2_arg Test_comby.test_comby );
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
-  @ Test_analyze_generic.actions ()
+  @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =
   [
@@ -439,14 +434,14 @@ let options () =
     ( "-f",
       Arg.Set_string pattern_file,
       " <file> use the file content as the pattern" );
-    ( "-config",
-      Arg.Set_string config_file,
+    ( "-rules",
+      Arg.Set_string rules_file,
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
         Xlang.supported_xlangs );
-    ( "-target_file",
+    ( "-targets",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
@@ -590,6 +585,8 @@ let options () =
 (*****************************************************************************)
 
 let main () =
+  profile_start := Unix.gettimeofday ();
+
   (* SIGXFSZ (file size limit exceeded)
    * ----------------------------------
    * By default this signal will kill the process, which is not good. If we
@@ -605,12 +602,10 @@ let main () =
    *)
   Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
-  profile_start := Unix.gettimeofday ();
-
   let usage_msg =
     spf
-      "Usage: %s [options] -lang <str> [-e|-f|-config] <pattern> \
-       <files_or_dirs> \n\
+      "Usage: %s [options] -lang <str> [-e|-f|-rules] <pattern> \
+       (<files_or_dirs> | -targets <file>) \n\
        Options:"
       (Filename.basename Sys.argv.(0))
   in
@@ -630,13 +625,12 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
-  let args = if !target_file = "" then args else Common.cat !target_file in
 
   let config = mk_config () in
 
   Setup_logging.setup config;
 
-  logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
+  logger#info "Executed as: %s" (argv |> String.concat " ");
   logger#info "Version: %s" version;
   let config =
     if config.profile then (
@@ -661,21 +655,10 @@ let main () =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | _ :: _ as roots -> (
+      | roots ->
           if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc ();
-
-          match () with
-          | _ when config.config_file <> "" ->
-              S.semgrep_with_formatted_output config roots
-          | _ -> S.semgrep_with_one_pattern config roots)
-      (* --------------------------------------------------------- *)
-      (* empty entry *)
-      (* --------------------------------------------------------- *)
-      (* TODO: should not need that, semgrep should not call us when there
-       * are no files to process. *)
-      | [] when config.target_file <> "" && config.config_file <> "" ->
-          S.semgrep_with_formatted_output config []
-      | [] -> Common.usage usage_msg (options ()))
+          let config = { config with roots } in
+          Run_semgrep.semgrep_dispatch config)
 
 (*****************************************************************************)
 

@@ -156,16 +156,13 @@ semgrep-core/src/cli/version.ml
 TAGS
 /semgrep-core/log_config.json
 /semgrep-core/.vscode/settings.json
-/Pipfile
 /semgrep/pyproject.toml
 /scripts/oncall-email/today.json
 /scripts/oncall-email/yesterday.json
 /semgrep/semgrep/bin/semgrep-core
-/semgrep/semgrep/bin/spacegrep
 
 # Do not check in compiled binaries
 semgrep/semgrep/bin/semgrep-core
-semgrep/semgrep/bin/spacegrep
 
 # Ignore bench files
 perf/bench

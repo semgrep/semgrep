@@ -240,7 +240,7 @@ class CoreRunner:
         profiling_data: ProfilingData,
         output_time_json: Dict[str, Any],
     ) -> None:
-        """Collect the match times reported by semgrep-core (or spacegrep)."""
+        """Collect the match times reported by semgrep-core."""
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
@@ -317,21 +317,26 @@ class CoreRunner:
                             continue
                         all_targets = all_targets.union(targets)
 
-                        target_file.write("\n".join(map(lambda p: str(p), targets)))
+                        # TODO: use atdgen-py
+                        # The format of this JSON is specified in
+                        # interfaces/Input_to_core.atd
+                        array = [
+                            {"path": str(p), "language": str(language)} for p in targets
+                        ]
+                        target_file.write(json.dumps(array))
                         target_file.flush()
+
                         yaml = YAML()
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
 
                         cmd = [SemgrepCore.path()] + [
-                            "-lang",
-                            str(language),
                             "-json",
-                            "-config",
+                            "-rules",
                             rule_file.name,
                             "-j",
                             str(self._jobs),
-                            "-target_file",
+                            "-targets",
                             target_file.name,
                             "-use_parsing_cache",
                             semgrep_core_ast_cache_dir,
