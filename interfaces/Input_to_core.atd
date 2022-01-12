@@ -20,7 +20,12 @@
 
 type target = {
   path: string (* source file *);
-  (* TODO: language, rule_ids *)
+  (* examples: "ocaml", "python", but also "generic" or "regexp".
+   * less: would be great to use Lang.t here, but atd does not
+   * allow (by design) to use types defined in other files.
+   *)
+  language: string;
+  (* TODO: rule_ids *)
 }
 
 type targets = target list

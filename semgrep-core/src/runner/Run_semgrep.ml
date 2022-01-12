@@ -429,25 +429,39 @@ let file_and_more_of_file config langs file =
 
 let targets_of_config (config : Runner_config.t) :
     In.targets * Out.skipped_target list =
-  (* TODO: add config.lang there, and check for bad combinations? *)
-  match (config.target_file, config.roots) with
-  | "", roots ->
-      (* We usually let semgrep-python computes the list of targets (and pass it
-       * via -target), but it's convenient to also run semgrep-core without
-       * semgrep-python and to recursively get a list of targets.
-       *)
-      (* less: could also apply Common.fullpath? *)
-      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
-      let lang_opt = lang_opt_of_config config in
-      let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
-      let targets = files |> List.map (fun file -> { In.path = file }) in
-      (targets, skipped)
-  | target_file, [] ->
+  match (config.target_file, config.roots, config.lang) with
+  | target_file, [], None when target_file <> "" ->
       let str = Common.read_file target_file in
       let targets = In.targets_of_string str in
       let skipped = [] in
       (targets, skipped)
-  | _ -> failwith "if you use -targets, you should not specify files"
+  (* We usually let semgrep-python computes the list of targets (and pass it
+   * via -target), but it's convenient to also run semgrep-core without
+   * semgrep-python and to recursively get a list of targets.
+   *)
+  | "", roots, Some xlang ->
+      (* less: could also apply Common.fullpath? *)
+      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
+      let lang_opt =
+        match xlang with
+        | Xlang.LRegex
+        | Xlang.LGeneric ->
+            None (* we will get all the files *)
+        | Xlang.L (lang, []) -> Some lang
+        (* config.lang comes from Xlang.of_string which returns just a lang *)
+        | Xlang.L (_, _) -> assert false
+      in
+      let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
+      let targets =
+        files
+        |> List.map (fun file ->
+               { In.path = file; language = Xlang.to_string xlang })
+      in
+      (targets, skipped)
+  | "", _, None -> failwith "you need to specify a language with -lang"
+  | _target_file, _, _ ->
+      failwith
+        "if you use -targets, you should neither specify files nor a lang"
 
 (*****************************************************************************)
 (* Semgrep -config *)
