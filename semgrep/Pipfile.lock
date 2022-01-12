@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4714c22e9851536d80a0e770b7af83b2531ce8655da2619b68702ee6daef4814"
+            "sha256": "42513c726e6c8b67d5f9543591221c1210f9ff73dc3fc7fb22680d24d9b5beb2"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -31,11 +31,8 @@
             "version": "==2.2.1"
         },
         "certifi": {
-            "hashes": [
-                "sha256:78884e7c1d4b00ce3cea67b44566851c4343c120abd683433ce934a68ea58872",
-                "sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569"
-            ],
-            "version": "==2021.10.8"
+            "editable": true,
+            "path": "."
         },
         "charset-normalizer": {
             "hashes": [
@@ -79,11 +76,11 @@
         },
         "jsonschema": {
             "hashes": [
-                "sha256:636694eb41b3535ed608fe04129f26542b59ed99808b4f688aa32dcf55317a83",
-                "sha256:77281a1f71684953ee8b3d488371b162419767973789272434bbc3f29d9c8823"
+                "sha256:4e5b3cf8216f577bee9ce139cbe72eca3ea4f292ec60928ff24758ce626cd163",
+                "sha256:c8a85b28d377cc7737e46e2d9f2b4f44ee3c0e1deac6bf46ddefc7187d30797a"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==4.4.0"
+            "index": "pypi",
+            "version": "==3.2.0"
         },
         "packaging": {
             "hashes": [
@@ -185,13 +182,13 @@
             "editable": true,
             "path": "."
         },
-        "setuptools": {
+        "six": {
             "hashes": [
-                "sha256:2404879cda71495fc4d5cbc445ed52fdaddf352b36e40be8dcc63147cb4edabe",
-                "sha256:68eb94073fc486091447fcb0501efd6560a0e5a1839ba249e5ff3c4c93f05f90"
+                "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
+                "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==60.5.0"
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==1.16.0"
         },
         "tqdm": {
             "hashes": [
