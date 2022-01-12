@@ -1,6 +1,6 @@
 (*
-   Type definitions for semgrep-core's input and command-line flags,
-   meant for the python wrapper, 'semgrep'.
+   Type definitions for semgrep-core's JSON input, coming from the
+   python wrapper, 'semgrep'.
 
    There are other very important form of inputs which are not specified here:
     - The rule syntax and schema (see rule_schema.yaml; only the
@@ -13,4 +13,14 @@
 (* Targets *)
 (*****************************************************************************)
 
-(* TODO: --targets format *)
+(* For -targets.
+ * coupling: if you change the type here, you probably also want to change
+ * semgrep-core/tests/e2e/target
+*)
+
+type target = {
+  path: string (* source file *);
+  (* TODO: language, rule_ids *)
+}
+
+type targets = target list

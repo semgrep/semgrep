@@ -1,20 +1,25 @@
 open Common
-open Runner_common
+open Runner_config
 module PI = Parse_info
 module E = Semgrep_error_code
 module MR = Mini_rule
 module R = Rule
-module SJ = Output_from_core_j
 module RP = Report
 module P = Parse_with_caching
+module In = Input_to_core_j
+module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-
-(* All the entry points to run semgrep *)
+(* Entry points to the semgrep engine with its command-line configuration.
+ *
+ * This used to be in Main.ml, but Main.ml started to become really big,
+ * and we also need a way to run the semgrep engine from semgrep-core
+ * variants, hence this callable library.
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -261,6 +266,9 @@ let exn_to_error file exn =
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
+(* TODO? this is currently deprecated, but pad still has hope the
+ * feature can be resurrected.
+ *)
 let parse_equivalences equivalences_file =
   match equivalences_file with
   | "" -> []
@@ -287,6 +295,7 @@ let parse_pattern lang_pattern str =
 let iter_files_and_get_matches_and_exn_to_errors config f files =
   files
   |> map_targets config.ncores (fun file ->
+         (* TODO let file = target.In.path in *)
          logger#info "Analyzing %s" file;
          let res, run_time =
            Common.with_time (fun () ->
@@ -348,6 +357,10 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
 (*****************************************************************************)
 (* File targeting and rule filtering *)
 (*****************************************************************************)
+(* TODO: this should be done by semgrep-python. We should just have
+ * a poor's man file targeting/filtering here, just enough to run
+ * semgrep-core independently of semgrep-python to test things.
+ *)
 
 let lang_opt_of_config config =
   match config.lang with
@@ -414,38 +427,54 @@ let file_and_more_of_file config langs file =
     lazy_ast_and_errors;
   }
 
-(* We should let semgrep-python computing the list of files (and pass it
- * via -target, but it's convenient to run semgrep-core without semgrep-python
- * and to recursively get a list of files.
- *)
-let files_of_roots config roots =
-  let lang_opt = lang_opt_of_config config in
-  Find_target.files_of_dirs_or_files lang_opt roots
+let targets_of_config (config : Runner_config.t) :
+    In.targets * Out.skipped_target list =
+  (* TODO: add config.lang there, and check for bad combinations? *)
+  match (config.target_file, config.roots) with
+  | "", roots ->
+      (* We usually let semgrep-python computes the list of targets (and pass it
+       * via -target), but it's convenient to also run semgrep-core without
+       * semgrep-python and to recursively get a list of targets.
+       *)
+      (* less: could also apply Common.fullpath? *)
+      let roots = roots |> Common.map replace_named_pipe_by_regular_file in
+      let lang_opt = lang_opt_of_config config in
+      let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
+      let targets = files |> List.map (fun file -> { In.path = file }) in
+      (targets, skipped)
+  | target_file, [] ->
+      let str = Common.read_file target_file in
+      let targets = In.targets_of_string str in
+      let skipped = [] in
+      (targets, skipped)
+  | _ -> failwith "if you use -targets, you should not specify files"
 
 (*****************************************************************************)
 (* Semgrep -config *)
 (*****************************************************************************)
 
 (* This is the main function used by the semgrep python wrapper right now.
- * It takes a language, a set of rules and a set of files or dirs and
- * recursively process those files or dirs.
+ * It takes a set of rules and a set of targets and
+ * recursively process those targets.
  *)
-let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
-  (* todo: at some point we should infer the lang from the rules and
-   * apply different rules with different languages and different files
-   * automatically, like the semgrep python wrapper.
-   *
-   * For now python wrapper passes down all files that should be scanned
-   *)
-  let files, skipped = files_of_roots config files_or_dirs in
-  logger#info "processing %d files, skipping %d files" (List.length files)
+let semgrep_with_rules config (rules, rule_parse_time) =
+  let targets, skipped = targets_of_config config in
+  logger#info "processing %d files, skipping %d files" (List.length targets)
     (List.length skipped);
+  (* TODO: rename iter_files_... to iter_targets and pass a target
+   * to callback instead of a file *)
+  let files = targets |> List.map (fun t -> t.In.path) in
 
   let file_results =
     files
     |> iter_files_and_get_matches_and_exn_to_errors config (fun file ->
+           (* TODO: let file = target.I.path in *)
+           (* TODO: use the information in target at some point instead
+            * of using those 2 functions below.
+            *)
            let langs = langs_of_file_or_config config file in
            let rules = rules_for_langs_and_file langs file rules in
+
            let file_and_more = file_and_more_of_file config langs file in
            let match_hook str env matched_tokens =
              if config.output_format = Text then
@@ -480,7 +509,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
   ( { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling },
     files )
 
-let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
+let semgrep_with_raw_results_and_exn_handler config =
   let rules_file = config.config_file in
   (* useful when using process substitution, e.g.
    * semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
@@ -492,7 +521,7 @@ let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
     let timed_rules =
       Common.with_time (fun () -> Parse_rule.parse rules_file)
     in
-    let res, files = semgrep_with_rules config timed_rules files_or_dirs in
+    let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
   with exn when not !Flag_semgrep.fail_fast ->
     let trace = Printexc.get_backtrace () in
@@ -507,10 +536,8 @@ let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
     in
     (Some exn, res, [])
 
-let semgrep_with_formatted_output config files_or_dirs =
-  let exn, res, files =
-    semgrep_with_raw_results_and_exn_handler config files_or_dirs
-  in
+let semgrep_with_formatted_output config =
+  let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -525,7 +552,7 @@ let semgrep_with_formatted_output config files_or_dirs =
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = SJ.string_of_match_results res in
+      let s = Out.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
       match exn with
@@ -569,6 +596,23 @@ let rule_of_pattern lang pattern_string pattern =
     metadata = None;
   }
 
+(* less: could be nice to generalize to rule_of_config, but we sometimes
+ * need to generate a rule, sometimes a minirule
+ *)
+let pattern_of_config lang config =
+  match (config.pattern_file, config.pattern_string) with
+  | "", "" -> failwith "I need a pattern; use -f or -e"
+  | s1, s2 when s1 <> "" && s2 <> "" ->
+      failwith "I need just one pattern; use -f OR -e (not both)"
+  | file, _ when file <> "" ->
+      let s = Common.read_file file in
+      (parse_pattern lang s, s)
+  (* this is for Emma, who often confuses -e with -f :) *)
+  | _, s when s =~ ".*\\.sgrep$" ->
+      failwith "you probably want -f with a .sgrep file, not -e"
+  | _, s when s <> "" -> (parse_pattern lang s, s)
+  | _ -> raise Impossible
+
 (* simpler code path compared to semgrep_with_rules *)
 (* FIXME: don't use a different processing logic depending on the output
    format:
@@ -576,41 +620,22 @@ let rule_of_pattern lang pattern_string pattern =
    - Have semgrep_with_patterns return the results and errors.
    - Print the final results (json or text) using dedicated functions.
 *)
-let semgrep_with_one_pattern config roots =
-  (* old: let xs = List.map Common.fullpath xs in
-   * better no fullpath here, not our responsability.
-   *)
+let semgrep_with_one_pattern config =
+  assert (config.config_file = "");
+
   (* TODO: support generic and regex patterns as well? See code in Deep. *)
   let lang = Xlang.lang_of_opt_xlang config.lang in
-  let pattern, pattern_string =
-    match (config.pattern_file, config.pattern_string) with
-    | "", "" -> failwith "I need a pattern; use -f or -e"
-    | s1, s2 when s1 <> "" && s2 <> "" ->
-        failwith "I need just one pattern; use -f OR -e (not both)"
-    | file, _ when file <> "" ->
-        let s = Common.read_file file in
-        (parse_pattern lang s, s)
-    (* this is for Emma, who often confuses -e with -f :) *)
-    | _, s when s =~ ".*\\.sgrep$" ->
-        failwith "you probably want -f with a .sgrep file, not -e"
-    | _, s when s <> "" -> (parse_pattern lang s, s)
-    | _ -> raise Impossible
-  in
-  let targets, _skipped =
-    Find_target.files_of_dirs_or_files (Some lang) roots
-  in
-  let targets = Common.map replace_named_pipe_by_regular_file targets in
+  let pattern, pattern_string = pattern_of_config lang config in
+
   match config.output_format with
   | Json ->
       let rule, rule_parse_time =
         Common.with_time (fun () ->
             [ rule_of_pattern lang pattern_string pattern ])
       in
-      let res, files =
-        semgrep_with_rules config (rule, rule_parse_time) targets
-      in
+      let res, files = semgrep_with_rules config (rule, rule_parse_time) in
       let json = JSON_report.match_results_of_matches_and_errors files res in
-      let s = SJ.string_of_match_results json in
+      let s = Out.string_of_match_results json in
       pr s
   | Text ->
       let minirule, _rule_parse_time =
@@ -618,7 +643,9 @@ let semgrep_with_one_pattern config roots =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in semgrep_with_rules *)
-      targets
+      let targets, _skipped = targets_of_config config in
+      let files = targets |> List.map (fun t -> t.In.path) in
+      files
       |> List.iter (fun file ->
              logger#info "processing: %s" file;
              let process file =
@@ -647,4 +674,11 @@ let semgrep_with_one_pattern config roots =
       let n = List.length !E.g_errors in
       if n > 0 then pr2 (spf "error count: %d" n);
       (* TODO: what's that? *)
-      Experiments.gen_layer_maybe _matching_tokens pattern_string targets
+      Experiments.gen_layer_maybe _matching_tokens pattern_string files
+
+(*****************************************************************************)
+(* Semgrep dispatch *)
+(*****************************************************************************)
+let semgrep_dispatch config =
+  if config.config_file <> "" then semgrep_with_formatted_output config
+  else semgrep_with_one_pattern config
