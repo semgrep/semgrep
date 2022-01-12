@@ -108,7 +108,7 @@ let map_targets ncores f (targets : In.target list) =
      This is needed only when ncores > 1, but to reduce discrepancy between
      the two modes, we always sort the target queue in the same way.
   *)
-  (* TODO   let targets = Find_target.sort_by_decreasing_size targets in *)
+  let targets = Find_target.sort_targets_by_decreasing_size targets in
   if ncores <= 1 then Common.map f targets
   else (
     (*
