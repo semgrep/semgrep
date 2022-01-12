@@ -29,16 +29,28 @@ repos:
         args: [--py36-plus]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.790"
+    rev: "v0.931"
     hooks:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
         args: [--config, mypy.ini, --show-error-codes]
+        additional_dependencies:
+          - types_all
+          - types-attrs
+          - types-click
+          - types-requests
+          - types-setuptools
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
         files: ^semgrep\/tests\/.+$
         args: [--config, mypy-tests.ini, --show-error-codes]
+        additional_dependencies:
+          - types_all
+          - types-attrs
+          - types-click
+          - types-requests
+          - types-setuptools
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: "3.8.4"

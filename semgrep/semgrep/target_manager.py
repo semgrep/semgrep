@@ -5,6 +5,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -319,7 +320,12 @@ class TargetManager:
 
         includes = TargetManager.preprocess_path_patterns(includes)
         return frozenset(
-            wcglob.globfilter(arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+            cast(
+                Iterable[Path],
+                wcglob.globfilter(
+                    arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                ),
+            )
         )
 
     @staticmethod
@@ -336,7 +342,12 @@ class TargetManager:
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
         return arr - frozenset(
-            wcglob.globfilter(arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+            cast(
+                Iterable[Path],
+                wcglob.globfilter(
+                    arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                ),
+            )
         )
 
     @staticmethod
