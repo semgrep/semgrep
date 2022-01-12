@@ -120,7 +120,10 @@ let generic_to_json env (key : key) ast =
                      error_at_expr env x
                        ("Expected key/value pair in " ^ fst key ^ " dictionary"))
           )
-    | _ -> error_at_expr env x "Unexpected generic representation of yaml"
+    | G.Alias (_alias, e) -> aux e
+    | _ ->
+        Common.pr2 (G.show_expr_kind x.G.e);
+        error_at_expr env x "Unexpected generic representation of yaml"
   in
   aux ast
 
