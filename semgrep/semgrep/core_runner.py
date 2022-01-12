@@ -283,7 +283,20 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
     ]:
-        import psutil
+        import psutil  # delay until needed
+
+        total_memory_mib = int(psutil.virtual_memory().total / 1024 / 1024)
+        max_memory_mib = (
+            int(0.85 * total_memory_mib) if self._jobs >= 2 else total_memory_mib
+        )
+        max_memory_mib = (
+            min(max_memory_mib, self._max_memory)
+            if self._max_memory > 0
+            else max_memory_mib
+        )
+        logger.debug(
+            f"Running with {total_memory_mib} MiB of physical memory for {self._jobs} jobs, setting a memory limit of {max_memory_mib} MiB per job"
+        )
 
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -345,7 +358,7 @@ class CoreRunner:
                             "-timeout",
                             str(self._timeout),
                             "-max_memory",
-                            str(self._max_memory),
+                            str(max_memory_mib),
                             "-json_time",
                         ]
 
