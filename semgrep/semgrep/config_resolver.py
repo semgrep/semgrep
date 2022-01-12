@@ -759,3 +759,27 @@ def get_config(
         )
 
     return config, errors
+
+
+def list_current_public_rulesets() -> List[JsonObject]:
+    import requests  # here for faster startup times
+
+    api_full_url = f"{SEMGREP_URL}/api/registry/ruleset"
+    headers = {"User-Agent": SEMGREP_USER_AGENT}
+    try:
+        r = requests.get(api_full_url, headers=headers, timeout=20)
+    except Exception as e:
+        raise SemgrepError(f"Failed to download list of public rulesets")
+
+    if not r.ok:
+        raise SemgrepError(
+            f"Bad status code: {r.status_code} returned by url: {api_full_url}"
+        )
+
+    logger.debug(f"Retrieved rulesets: {r.text}")
+    try:
+        ruleset_json = json.loads(r.text)
+    except json.decoder.JSONDecodeError as e:
+        raise SemgrepError(f"Failed to parse rulesets as valid json")
+
+    return ruleset_json  # type:ignore

@@ -3,24 +3,29 @@ import os
 from itertools import chain
 from typing import Any
 from typing import cast
+from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
 import click
+from click.shell_completion import CompletionItem  # type:ignore
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
 from semgrep import __VERSION__
 from semgrep import bytesize
+from semgrep.config_resolver import list_current_public_rulesets
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.notifications import possibly_notify_user
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.types import MetricsState
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -43,11 +48,77 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     return cast(str, lang)
 
 
+def __get_severity_options(
+    context: click.Context, param: str, incomplete: str
+) -> List[Any]:
+    return [
+        CompletionItem(e.value) for e in RuleSeverity if e.value.startswith(incomplete)
+    ]
+
+
+def __get_language_options(
+    context: click.Context, param: str, incomplete: str
+) -> List[Any]:
+    return [
+        CompletionItem(e)
+        for e in LANGUAGE.all_language_keys
+        if e.startswith(incomplete)
+    ]
+
+
+def __get_size_options(
+    context: click.Context, param: str, incomplete: str
+) -> List[Any]:
+    if incomplete.isnumeric():
+        sizes = [f"{incomplete}{u}" for u in bytesize.UNITS.keys()]
+        return [CompletionItem(s) for s in sizes if s.startswith(incomplete)]
+    else:
+        return []
+
+
+def __get_file_options(
+    context: click.Context, param: str, incomplete: str
+) -> List[Any]:
+    return [CompletionItem(f, type="file") for f in os.listdir(".")]
+
+
+def __get_config_options(
+    context: click.Context, param: str, incomplete: str
+) -> List[Any]:
+    if incomplete[:2] == "p/":
+        # Get list of rulesets
+        rulesets = list_current_public_rulesets()
+        rulesets = list(
+            filter(lambda r: "hidden" not in r or not r["hidden"], rulesets)
+        )
+        rulesets_names = list(map(lambda r: f"p/{r['name']}", rulesets))
+
+        return [CompletionItem(r) for r in rulesets_names if r.startswith(incomplete)]
+    else:
+        files = filter(
+            lambda f: f.endswith(".yaml") or f.endswith(".yml"), os.listdir(".")
+        )
+        return [CompletionItem(f) for f in list(files) if f.startswith(incomplete)]
+
+
+def __get_optimization_options(
+    context: click.Context, param: str, incomplete: str
+) -> List[Any]:
+    return [CompletionItem("all"), CompletionItem("none")]
+
+
 class MetricsStateType(click.ParamType):
     name = "metrics_state"
 
     def get_metavar(self, param: click.Parameter) -> str:
         return "[auto|on|off]"
+
+    def shell_complete(
+        self, context: click.Context, param: str, incomplete: str
+    ) -> List[Any]:
+        return [
+            CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
+        ]
 
     def convert(
         self,
@@ -106,6 +177,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "-l",
     help="Parse pattern and all files in specified language. Must be used "
     "with -e/--pattern.",
+    shell_complete=__get_language_options,
 )
 @click.option(
     "--metrics",
@@ -138,11 +210,12 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 @click.option(
     "--severity",
     multiple=True,
-    type=click.Choice(["INFO", "WARNING", "ERROR"]),
+    type=click.Choice([e.value for e in RuleSeverity]),
     help=(
         "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
-        "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
+        "Can add multiple times. Each should be one of INFO, WARNING, ERROR, or INVENTORY."
     ),
+    shell_complete=__get_severity_options,
 )
 @click.option(
     "--strict/--no-strict",
@@ -163,6 +236,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     " to the Semgrep registry."
     "\n\n"
     "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
+    shell_complete=__get_config_options,
 )
 @optgroup.option(
     "--pattern",
@@ -192,6 +266,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     " the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py"
     " as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives"
     " are ignored.",
+    shell_complete=__get_file_options,
 )
 @optgroup.option(
     "--include",
@@ -209,6 +284,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     " both 'src/foo.jsx' and 'lib/bar.js'."
     " Glob-style patterns follow the syntax supported by python,"
     " which is documented at https://docs.python.org/3/library/glob.html",
+    shell_complete=__get_file_options,
 )
 @optgroup.option(
     "--max-target-bytes",
@@ -220,6 +296,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
         "A zero or negative value disables this filter. "
         f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
     ),
+    shell_complete=__get_size_options,
 )
 @optgroup.option(
     "--use-git-ignore/--no-git-ignore",
@@ -273,6 +350,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     default="all",
     type=click.Choice(["all", "none"]),
     help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
+    shell_complete=__get_optimization_options,
 )
 @optgroup.option(
     "--timeout",
@@ -326,6 +404,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
         "Save search results to a file or post to URL. "
         "Default is to print to stdout."
     ),
+    shell_complete=__get_file_options,
 )
 @optgroup.option(
     "--rewrite-rule-ids/--no-rewrite-rule-ids",
