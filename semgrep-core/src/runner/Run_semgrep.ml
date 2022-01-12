@@ -368,7 +368,7 @@ let rules_for_xlang xlang rules =
          | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
          | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
 
-let file_and_more_of_file config xlang file =
+let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
@@ -379,7 +379,7 @@ let file_and_more_of_file config xlang file =
   in
 
   {
-    File_and_more.file;
+    Xtarget.file;
     xlang;
     lazy_content = lazy (Common.read_file file);
     lazy_ast_and_errors;
@@ -424,7 +424,7 @@ let targets_of_config (config : Runner_config.t) :
       (* TODO: ugly, this is because the code path for -e/-f requires
        * a language, even with a -target, see test_target_file.py
        *)
-      if lang_opt <> None && config.config_file <> "" then
+      if lang_opt <> None && config.rules_file <> "" then
         failwith
           "if you use -targets and -config, you should not specify a lang";
       (targets, skipped)
@@ -448,7 +448,7 @@ let semgrep_with_rules config (rules, rule_parse_time) =
            let xlang = Xlang.of_string target.In.language in
            let rules = rules_for_xlang xlang rules in
 
-           let file_and_more = file_and_more_of_file config xlang file in
+           let xtarget = xtarget_of_file config xlang file in
            let match_hook str env matched_tokens =
              if config.output_format = Text then
                let xs = Lazy.force matched_tokens in
@@ -459,7 +459,7 @@ let semgrep_with_rules config (rules, rule_parse_time) =
              Match_rules.check ~match_hook
                ( Config_semgrep.default_config,
                  parse_equivalences config.equivalences_file )
-               rules file_and_more
+               rules xtarget
            in
            RP.add_file file res)
   in
@@ -483,9 +483,9 @@ let semgrep_with_rules config (rules, rule_parse_time) =
     targets |> List.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
-  let rules_file = config.config_file in
+  let rules_file = config.rules_file in
   (* useful when using process substitution, e.g.
-   * semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
+   * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
    *)
   let rules_file = replace_named_pipe_by_regular_file rules_file in
   try
@@ -509,7 +509,7 @@ let semgrep_with_raw_results_and_exn_handler config =
     in
     (Some exn, res, [])
 
-let semgrep_with_formatted_output config =
+let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
@@ -594,7 +594,7 @@ let pattern_of_config lang config =
    - Print the final results (json or text) using dedicated functions.
 *)
 let semgrep_with_one_pattern config =
-  assert (config.config_file = "");
+  assert (config.rules_file = "");
 
   (* TODO: support generic and regex patterns as well? See code in Deep. *)
   let lang = Xlang.lang_of_opt_xlang config.lang in
@@ -653,5 +653,5 @@ let semgrep_with_one_pattern config =
 (* Semgrep dispatch *)
 (*****************************************************************************)
 let semgrep_dispatch config =
-  if config.config_file <> "" then semgrep_with_formatted_output config
+  if config.rules_file <> "" then semgrep_with_rules_and_formatted_output config
   else semgrep_with_one_pattern config

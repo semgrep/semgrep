@@ -1,7 +1,19 @@
-(* Main entry point *)
 val semgrep_dispatch : Runner_config.t -> unit
+(** Main entry point to the semgrep engine. This is called from Main.ml *)
 
-(* internal functions used in tests or semgrep-core variants *)
+(* engine functions used in tests or semgrep-core variants *)
+
+val semgrep_with_one_pattern : Runner_config.t -> unit
+(** this is the function used when running semgrep with -e or -f *)
+
+val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
+(** [semgrep_with_rules_and_formatted_output config] calls
+    [semgrep_with_raw_results_and_exn_handler] and
+    format the results on stdout either in a JSON or Textual format
+    (depending on the value in config.output_format)
+
+    This is the function used when running semgrep with -rules.
+*)
 
 val semgrep_with_raw_results_and_exn_handler :
   Runner_config.t -> exn option * Report.rule_result * Common.filename list
@@ -13,17 +25,12 @@ val semgrep_with_raw_results_and_exn_handler :
     due to being in the wrong language, too big, etc.
     It includes targets that couldn't be scanned, for instance due to
     a parsing error.
+
+    This run the core engine in Match_rules.check on every files, in
+    parallel, with some memory limits, and aggregate the results.
 *)
 
-val semgrep_with_formatted_output : Runner_config.t -> unit
-(** [semgrep_with_formatted_output config] calls
-    [semgrep_with_raw_results_and_exn_handler] and
-    format the results on stdout either in a JSON or Textual format
-    (depending on the value in config.output_format)
-*)
-
-val semgrep_with_one_pattern : Runner_config.t -> unit
-(** this is the function used when running semgrep with -e or -f *)
+(* utilities functions used in tests or semgrep-core variants *)
 
 val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
 (**

@@ -106,8 +106,8 @@ let pattern_string = ref ""
 (* -f *)
 let pattern_file = ref ""
 
-(* -config *)
-let config_file = ref ""
+(* -rules *)
+let rules_file = ref ""
 
 let equivalences_file = ref ""
 
@@ -303,7 +303,7 @@ let mk_config () =
     profile_start = !profile_start;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
-    config_file = !config_file;
+    rules_file = !rules_file;
     equivalences_file = !equivalences_file;
     lang = !lang;
     output_format = !output_format;
@@ -434,8 +434,8 @@ let options () =
     ( "-f",
       Arg.Set_string pattern_file,
       " <file> use the file content as the pattern" );
-    ( "-config",
-      Arg.Set_string config_file,
+    ( "-rules",
+      Arg.Set_string rules_file,
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
@@ -604,7 +604,7 @@ let main () =
 
   let usage_msg =
     spf
-      "Usage: %s [options] -lang <str> [-e|-f|-config] <pattern> \
+      "Usage: %s [options] -lang <str> [-e|-f|-rules] <pattern> \
        (<files_or_dirs> | -targets <file>) \n\
        Options:"
       (Filename.basename Sys.argv.(0))

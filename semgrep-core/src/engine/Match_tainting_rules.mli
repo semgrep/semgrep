@@ -7,7 +7,7 @@ val check :
     (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.taint_spec) list ->
-  File_and_more.t ->
+  Xtarget.t ->
   Report.times Report.match_result
 
 (* used by testing code *)
