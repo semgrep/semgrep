@@ -100,7 +100,7 @@ class ConfigPath:
         elif is_url(config_str):
             self._config_path = config_str
         elif is_policy_id(config_str):
-            self._config_path = policy_id_to_url(config_str)
+            self._config_path = url_for_policy(config_str)
         elif is_registry_id(config_str):
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
@@ -556,14 +556,32 @@ def registry_id_to_url(registry_id: str) -> str:
     return f"{SEMGREP_URL}{registry_id}"
 
 
+def url_for_policy(config_str: str) -> str:
+    """
+    Return url to download a policy for a given repo_name
+
+    For now uses envvar to know what repo_name is
+
+    Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
+    """
+    deployment_id = Authentication.get_deployment_id()
+    repo_name = os.environ.get("SEMGREP_REPO_NAME")
+    include_cai = os.environ.get("SEMGREP_POLICY_INCLUDE_CAI")
+
+    if repo_name is None:
+        raise SemgrepError(
+            "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
+        )
+
+    request_url = f"{(SEMGREP_URL)}api/agent/deployment/{deployment_id}/repos/{repo_name}/rules.yaml"
+
+    if include_cai:
+        return f"{request_url}?include_cai=1"
+    return request_url
+
+
 def is_policy_id(config_str: str) -> bool:
-    return config_str[:7] == "policy/"
-
-
-def policy_id_to_url(config_str: str) -> str:
-    deployment_id = 1
-    repo_name = config_str[7:]
-    return f"{(SEMGREP_URL)}api/agent/deployment/{deployment_id}/repos/{repo_name}/rules.yaml"
+    return config_str == "policy"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:

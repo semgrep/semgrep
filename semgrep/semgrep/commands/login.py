@@ -60,6 +60,22 @@ class Authentication:
         return r.ok
 
     @staticmethod
+    def get_deployment_id() -> Optional[int]:
+        """
+        Returns the deployment_id attached to an api_token as int
+        """
+        import requests
+
+        token = Authentication.get_token()
+
+        headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
+        r = requests.get(
+            f"{SEMGREP_URL}api/agent/deployment", timeout=10, headers=headers
+        )
+        data = r.json()
+        return data.get("deployment").get("id")  # type: ignore
+
+    @staticmethod
     def get_token() -> Optional[str]:
         """
         Get saved token in following order:
