@@ -3,7 +3,7 @@
    (Semgrep_core_response_t module)
 *)
 
-open Semgrep_core_response_t
+open Output_from_core_t
 
 let compare_position (a : position) b = Int.compare a.offset b.offset
 
