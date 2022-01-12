@@ -50,7 +50,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * and only have to display them.
  *
  * Alternatives considered were having `-check_rules` only run the OCaml checks
- * and have semgrep call `semgrep-core -config` on the checks
+ * and have semgrep call `semgrep-core -rules` on the checks
  *
  * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
  *

@@ -34,7 +34,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
    shell replaces by a named pipe like '/dev/fd/63'.
 
    update: This can be used also to fetch rules from the network,
-   e.g., semgrep-core -config <(curl https://semgrep.dev/c/p/ocaml) ...
+   e.g., semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
 
    coupling: this functionality is implemented also in semgrep-python.
 *)

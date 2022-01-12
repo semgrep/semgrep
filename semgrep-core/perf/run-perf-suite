@@ -85,7 +85,7 @@ def run_tests(
         flag = "-f"
         if test.is_config:
             ext = ".yaml"
-            flag = "-config"
+            flag = "-rules"
 
         pattern_file = os.path.join(dirname, test.name + ext)
         target_file = os.path.join(dirname, test.target)
