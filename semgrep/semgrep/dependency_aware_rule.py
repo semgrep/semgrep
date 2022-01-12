@@ -18,17 +18,19 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__file__)
 
 
+PACKAGE_MANAGER_MAP = {
+    "pypi": PackageManagers.PYPI,
+    "npm": PackageManagers.NPM,
+}
+
+
 def parse_depends_on_restrictions(
     entries: List[Dict[str, str]]
 ) -> Generator[ProjectDependsOnEntry, None, None]:
     for entry in entries:
         for package_manager, dep_name_and_version_str in entry.items():
-            pm = None
-            if package_manager == "pypi":
-                pm = PackageManagers.PYPI
-            elif package_manager == "npm":
-                pm = PackageManagers.NPM
-            else:
+            pm = PACKAGE_MANAGER_MAP.get(package_manager)
+            if pm is None:
                 raise SemgrepError(f"unknown package manager: {package_manager}")
             package_name = dep_name_and_version_str.split(" ")[0]
             semver_range = (

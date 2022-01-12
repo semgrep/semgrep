@@ -1,7 +1,5 @@
 import functools
-import operator
 from pathlib import Path
-from typing import Callable
 from typing import Dict
 from typing import Generator
 from typing import List
@@ -13,7 +11,7 @@ from dependencyparser.find_lockfiles import find_lockfiles
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.parse_lockfile import parse_lockfile_str
-from packaging.version import parse as parse_version
+from packaging.specifiers import SpecifierSet
 
 from semgrep.error import SemgrepError
 
@@ -38,27 +36,13 @@ class ProjectDependsOnEntry:
 
 def semver_matches(expression: str, actual_version: str) -> bool:
     # print(f'compare {expression} {actual_version}')
-
-    expression_operator = expression.split(" ")[0]
-    expression = expression.replace(expression_operator + " ", "", 1)
-    rhs = parse_version(expression)
-    lhs = parse_version(actual_version)
-    operator_map: Dict[
-        str, Callable[[packaging.version.Version, packaging.version.Version], bool]
-    ] = {
-        "==": operator.eq,
-        "<": operator.lt,
-        "<=": operator.le,
-        ">": operator.gt,
-        ">=": operator.ge,
-    }
-    if expression_operator == "*":
-        return True
-    if expression_operator not in operator_map:
+    try:
+        ss = SpecifierSet(expression)
+        return len(list(ss.filter(actual_version))) > 0
+    except packaging.specifiers.InvalidSpecifier:
         raise SemgrepError(
-            f"unknown package version comparison operator: {expression_operator}"
+            f"unknown package version comparison expression: {expression}"
         )
-    return operator_map[expression_operator](lhs, rhs)
 
 
 # compare vulnerable range to version in lockfile
