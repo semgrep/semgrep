@@ -68,7 +68,7 @@ def get_file_ignore() -> FileIgnore:
     workdir = Path.cwd()
     semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
     if not semgrepignore_path.is_file():
-        logger.verbose("No .semgrepignore found. Using default ignores rules")
+        logger.verbose("No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default rules: https://semgrep.dev/docs/cli-usage/#ignoring-files")
         semgrepignore_path = TEMPLATES_DIR / IGNORE_FILE_NAME
     else:
         logger.verbose("using path ignore rules from user provided .semgrepignore")
