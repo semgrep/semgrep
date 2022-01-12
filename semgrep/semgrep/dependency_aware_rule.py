@@ -28,20 +28,24 @@ def parse_depends_on_restrictions(
     entries: List[Dict[str, str]]
 ) -> Generator[ProjectDependsOnEntry, None, None]:
     for entry in entries:
-        for package_manager, dep_name_and_version_str in entry.items():
-            pm = PACKAGE_MANAGER_MAP.get(package_manager)
-            if pm is None:
-                raise SemgrepError(f"unknown package manager: {package_manager}")
-            package_name = dep_name_and_version_str.split(" ")[0]
-            semver_range = (
-                dep_name_and_version_str.replace(package_name + " ", "", 1)
-                .strip('"')
-                .strip("'")
+        # schema checks should gaurantee we have these fields, but we'll code defensively
+        namespace = entry.get("namespace")
+        if namespace is None:
+            raise SemgrepError(f"project-depends-on is missing `namespace`")
+        pm = PACKAGE_MANAGER_MAP.get(namespace)
+        if pm is None:
+            raise SemgrepError(
+                f"unknown package namespace: {namespace}, only {list(PACKAGE_MANAGER_MAP.keys())} are supported"
             )
-
-            yield ProjectDependsOnEntry(
-                namespace=pm, package_name=package_name, semver_range=semver_range
-            )
+        package_name = entry.get("package")
+        if package_name is None:
+            raise SemgrepError(f"project-depends-on is missing `package`")
+        semver_range = entry.get("version")
+        if semver_range is None:
+            raise SemgrepError(f"project-depends-on is missing `version`")
+        yield ProjectDependsOnEntry(
+            namespace=pm, package_name=package_name, semver_range=semver_range
+        )
 
 
 def run_dependency_aware_rule(
@@ -88,7 +92,6 @@ def run_dependency_aware_rule(
 
     try:
         depends_on_entries = list(parse_depends_on_restrictions(dependencies))
-
         output = list(
             dependencies_range_match_any(
                 depends_on_entries, find_and_parse_lockfiles(top_level_target)

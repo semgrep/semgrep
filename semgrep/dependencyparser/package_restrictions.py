@@ -18,6 +18,7 @@ from semgrep.error import SemgrepError
 
 @functools.lru_cache(maxsize=None)
 def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDependency]]:
+    # print('looking for lockfiles...')
     dependencies = {}
     for lockfile in find_lockfiles(current_dir):
         dependencies[lockfile] = list(
@@ -35,10 +36,12 @@ class ProjectDependsOnEntry:
 
 
 def semver_matches(expression: str, actual_version: str) -> bool:
-    # print(f'compare {expression} {actual_version}')
+
     try:
         ss = SpecifierSet(expression)
-        return len(list(ss.filter(actual_version))) > 0
+        matched = len(list(ss.filter([actual_version]))) > 0
+        # print(f'does {expression} match {actual_version}?: {matched}')
+        return matched
     except packaging.specifiers.InvalidSpecifier:
         raise SemgrepError(
             f"unknown package version comparison expression: {expression}"

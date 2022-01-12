@@ -12,10 +12,10 @@ import pytest
             "rules/dependency_aware/lodash-4.17.19.yaml",
             "dependency_aware/useslodash.js",
         ),
-        (
-            "rules/dependency_aware/lodash-4.17.19.yaml",
-            "dependency_aware_safe/useslodash.js",
-        ),
+        # (
+        #    "rules/dependency_aware/lodash-4.17.19.yaml",
+        #    "dependency_aware_safe/useslodash.js",
+        # ),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_in_tmp, snapshot, rule, target):

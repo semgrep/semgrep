@@ -86,6 +86,21 @@ definitions:
                     - patterns
                 - required:
                     - pattern-either
+  project-depends-on-content:
+    type: object
+    title: "A dependency that the project contains"
+    properties:
+      namespace:
+        type: string
+      package:
+        type: string
+      version:
+        type: string
+    additionalProperties: false
+    required:
+      - namespace
+      - package
+      - version
   join-content:
     type: object
     title: "Join one or more rules together based on metavariable contents"
@@ -321,7 +336,7 @@ properties:
           type: string
         project-depends-on:
           title: Package manager dependencies that the project must depend on one of in order for the rule to fire
-          type: array
+          ref: '#/definitions/project-depends-on-content'
         mode:
           enum:
           - search
