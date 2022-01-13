@@ -524,8 +524,12 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
         (spf "unexpected key %s, did you mean metavariable-regex" (fst key))
   (* These keys are handled in Python *)
   (* TODO create an empty construct instead of abusing Patterns *)
-  | "r2c-internal-project-depends-on" -> R.Patterns (t, [])
-  | "r2c-internal-patterns-from" -> R.Patterns (t, [])
+  | "r2c-internal-project-depends-on" ->
+      let x = (".*", t) in
+      R.Pat (R.mk_xpat (Regexp (parse_regexp env x)) x)
+  | "r2c-internal-patterns-from" ->
+      let x = (".*", t) in
+      R.Pat (R.mk_xpat (Regexp (parse_regexp env x)) x)
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
 (* let extra = parse_extra env x in
