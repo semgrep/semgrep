@@ -159,6 +159,8 @@ type formula_old =
   | PatEither of tok * formula_old list
   (* patterns: And *)
   | Patterns of tok * formula_old list
+  (* for fields handled in Python like depends-on *)
+  | PatNoOp of tok
 
 (* extra conditions, usually on metavariable content *)
 and extra =
@@ -356,6 +358,26 @@ let convert_extra x =
 *)
       failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
+let remove_noop (e : formula_old) : formula_old =
+  let valid_formula x =
+    match x with
+    | PatNoOp _ -> false
+    | _ -> true
+  in
+  let rec aux e =
+    match e with
+    | PatEither (t, xs) ->
+        let xs = List.map aux (List.filter valid_formula xs) in
+        PatEither (t, xs)
+    | Patterns (t, xs) ->
+        let xs = List.map aux (List.filter valid_formula xs) in
+        Patterns (t, xs)
+    | PatNoOp t ->
+        raise (InvalidYaml ("Key cannot be present without a pattern", t))
+    | _ -> e
+  in
+  aux e
+
 let (convert_formula_old : formula_old -> formula) =
  fun e ->
   let rec aux e =
@@ -370,10 +392,11 @@ let (convert_formula_old : formula_old -> formula) =
     | Patterns (t, xs) ->
         let fs, conds = Common.partition_either aux_and xs in
         And (t, fs, conds)
-    | PatExtra (t, _x) ->
+    | PatExtra (t, _) ->
         raise
           (InvalidYaml
              ("metavariable conditions must be inside a 'patterns:'", t))
+    | PatNoOp t -> raise (InvalidYaml ("Unexpected key", t))
   and aux_and e =
     match e with
     | PatExtra (t, x) ->
@@ -381,7 +404,7 @@ let (convert_formula_old : formula_old -> formula) =
         Right (t, e)
     | _ -> Left (aux e)
   in
-  aux e
+  aux (remove_noop e)
 
 let formula_of_pformula = function
   | New f -> f
