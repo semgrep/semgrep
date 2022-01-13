@@ -13,7 +13,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-from typing import NewType
 
 from ruamel.yaml import YAML
 
@@ -44,9 +43,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-TargetPath = NewType("TargetPath", str)
-RuleId = NewType("RuleId", str)
-Target = Tuple[TargetPath, Language]
 
 def setrlimits_preexec_fn() -> None:
     """
@@ -276,25 +272,6 @@ class CoreRunner:
             ) from ex
         return list(targets)
 
-    def _get_targets(self, rules: List[Rule], target_manager: TargetManager) -> List[str, Any]:
-        target_info : Dict[TargetPath, List[RuleId]] = {}
-
-        for rule in rules:
-            for language in rule.languages:
-                targets = self.get_files_for_language(
-                    language, rule, target_manager
-                )
-
-                for target in targets:
-                    if target in target_info:
-                        target_info[[target, language]].append(rule.id)
-                    else:
-                        target_info[target, language] = [rule.id] 
-
-        
-        return target_info
-
-
     def _run_rules_direct_to_semgrep_core(
         self,
         rules: List[Rule],
@@ -315,9 +292,6 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
 
         profiling_data: ProfilingData = ProfilingData()
-
-        print(json.dumps(self._get_targets(rules, target_manager)))
-
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
             for rule in progress_bar(
