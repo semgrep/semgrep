@@ -216,13 +216,10 @@ def main(
         lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
     )
-    dependency_aware_rules, _ = partition(
-        lambda rule: rule.project_depends_on is not None, rest_of_the_rules
-    )
-    runnable_rules, _ = partition(
-        lambda rule: rule.has_runable_semgrep_rules, rest_of_the_rules
-    )
-    filtered_rules = runnable_rules
+    dependency_aware_rules = [
+        r for r in rest_of_the_rules if r.project_depends_on is not None
+    ]
+    filtered_rules = rest_of_the_rules
 
     core_start_time = time.time()
     # actually invoke semgrep
