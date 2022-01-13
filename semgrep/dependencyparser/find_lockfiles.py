@@ -15,9 +15,10 @@ def find_lockfiles(
 ) -> Generator[Path, None, None]:
     for entry in os.scandir(current_dir):
         full_path = Path(os.path.join(current_dir, entry.name))
+        resolved_path = full_path.resolve()
         # avoid symlink loops by making sure we haven't seen this path before
-        if entry.is_dir() and (seen_paths is None or not (full_path in seen_paths)):
-            new_paths: Set[Path] = set([full_path]).union(
+        if entry.is_dir() and (seen_paths is None or not (resolved_path in seen_paths)):
+            new_paths: Set[Path] = set([resolved_path]).union(
                 seen_paths if seen_paths else set([])
             )
             yield from find_lockfiles(full_path, frozenset(new_paths))
