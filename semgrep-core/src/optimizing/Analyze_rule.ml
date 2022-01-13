@@ -457,20 +457,6 @@ let eval_and p (And xs) =
          if not v then logger#trace "this Or failed: %s" (Common.dump (Or xs));
          v)
 
-(*
-   At least for some languages, '"🚀"' is replaced by 'ZZZ' in the pattern
-   but not in the raw target file that we inspect as part of this optimization.
-   Because of this, we don't require a match in the target file if the
-   pattern contains 'ZZ' (at least two Zs in a row).
-*)
-let contains_substituted_non_ascii =
-  let re =
-    (* "ZZ" *)
-    Pcre.matching_exact_string
-      (String.make 2 Parse_info.unicode_hack_replacement_byte)
-  in
-  fun pat_str -> Pcre.run re pat_str
-
 let run_cnf_step2 cnf big_str =
   cnf
   |> eval_and (function
@@ -481,7 +467,7 @@ let run_cnf_step2 cnf big_str =
                   (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under Idents? *)
                   let re = Pcre.matching_exact_string id in
-                  contains_substituted_non_ascii id || Pcre.run re big_str)
+                  Pcre.run re big_str)
        | Regexp2 re -> Pcre.run re big_str)
   [@@profiling]
 
