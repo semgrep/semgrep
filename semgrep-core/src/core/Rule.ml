@@ -358,6 +358,9 @@ let convert_extra x =
 *)
       failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
+(* TODO This is ugly because depends-on is inside the formula
+   but handled in Python. It might be that the only sane answer is
+   to port it to OCaml *)
 let remove_noop (e : formula_old) : formula_old =
   let valid_formula x =
     match x with
