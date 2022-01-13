@@ -11,13 +11,13 @@ val check :
     (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.pformula) list ->
-  File_and_more.t ->
+  Xtarget.t ->
   Report.times Report.match_result
 
 val matches_of_formula :
   Config_semgrep_t.t * Equivalence.equivalences ->
   Rule.rule_id ->
-  File_and_more.t ->
+  Xtarget.t ->
   Rule.formula ->
   Range_with_metavars.t option ->
   Report.times Report.match_result * Range_with_metavars.ranges

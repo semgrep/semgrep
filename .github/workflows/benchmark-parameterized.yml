@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       CONFIG:
-        description: "--config"
+        description: "Config"
         default: "p/auto"
         required: true
       REPO:
@@ -13,8 +13,8 @@ on:
         required: true
 
 jobs:
-  build-test:
-    name: semgrep unit and e2e tests
+  run-benchmark:
+    name: run benchmark
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,7 +50,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           git clone --depth=1 ${{github.event.inputs.REPO}} target
           cd target
-          PIPENV_PIPFILE=../semgrep/Pipfile pipenv run semgrep --metrics=off --config=${{github.event.inputs.CONFIG}} --time --json . | tee -a times.json
+          PIPENV_PIPFILE=../semgrep/Pipfile /usr/bin/time pipenv run semgrep --metrics=off --config=${{github.event.inputs.CONFIG}} --time --json . >times.json
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:

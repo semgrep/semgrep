@@ -1,5 +1,5 @@
 (*
-   Type definitions for semgrep-core's json output, meant for the
+   Type definitions for semgrep-core's JSON output, meant for the
    python wrapper, 'semgrep'.
 
    This file is translated into OCaml modules by atdgen:

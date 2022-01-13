@@ -1,5 +1,5 @@
 open Common
-open Runner_common
+open Runner_config
 
 (*****************************************************************************)
 (* Purpose *)

@@ -16,10 +16,8 @@
 module G = AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
-module F = File_and_more
 module R = Rule
 module PM = Pattern_match
-module FM = File_and_more
 module RP = Report
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -114,7 +112,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   let lazy_ast_and_errors = lazy ast_and_errors in
   let file_and_more =
     {
-      F.file;
+      Xtarget.file;
       xlang = rule.languages;
       lazy_content = lazy (Common.read_file file);
       lazy_ast_and_errors;
@@ -248,7 +246,7 @@ let check ~match_hook default_config taint_rules file_and_more =
   match taint_rules with
   | [] -> RP.empty_semgrep_result
   | __else__ ->
-      let { FM.file; xlang; lazy_ast_and_errors; _ } = file_and_more in
+      let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = file_and_more in
       let lang =
         match xlang with
         | L (lang, _) -> lang

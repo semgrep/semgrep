@@ -1,13 +1,15 @@
+open Common
+
 (*
    Type definitions, mostly.
 *)
 
 type output_format = Text | Json [@@deriving show]
 
-type config = {
+type t = {
   (* Debugging/profiling/logging flags *)
-  log_config_file : string;
-  log_to_file : string option;
+  log_config_file : filename;
+  log_to_file : filename option;
   test : bool;
   debug : bool;
   profile : bool;
@@ -16,10 +18,11 @@ type config = {
   profile_start : float;
   (* Main flags *)
   pattern_string : string;
-  pattern_file : string;
-  config_file : string;
+  pattern_file : filename;
+  rules_file : filename;
   equivalences_file : string;
   lang : Xlang.t option;
+  roots : Common.path list;
   output_format : output_format;
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;

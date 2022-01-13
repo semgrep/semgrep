@@ -1,30 +1,36 @@
+val semgrep_dispatch : Runner_config.t -> unit
+(** Main entry point to the semgrep engine. This is called from Main.ml *)
+
+(* engine functions used in tests or semgrep-core variants *)
+
+val semgrep_with_one_pattern : Runner_config.t -> unit
+(** this is the function used when running semgrep with -e or -f *)
+
+val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
+(** [semgrep_with_rules_and_formatted_output config] calls
+    [semgrep_with_raw_results_and_exn_handler] and
+    format the results on stdout either in a JSON or Textual format
+    (depending on the value in config.output_format)
+
+    This is the function used when running semgrep with -rules.
+*)
+
 val semgrep_with_raw_results_and_exn_handler :
-  Runner_common.config ->
-  Common.filename list ->
-  exn option * Report.rule_result * Common.filename list
-(** [semgrep_with_raw_results_and_exn_handler config roots] runs the semgrep
-    engine starting from a list of [roots] and returns
+  Runner_config.t -> exn option * Report.rule_result * Common.filename list
+(** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep
+    engine with a starting list of targets and returns
     (success, result, targets).
     The targets are all the files that were considered valid targets for the
     semgrep scan. This excludes files that were filtered out on purpose
     due to being in the wrong language, too big, etc.
     It includes targets that couldn't be scanned, for instance due to
     a parsing error.
+
+    This run the core engine in Match_rules.check on every files, in
+    parallel, with some memory limits, and aggregate the results.
 *)
 
-val semgrep_with_formatted_output :
-  Runner_common.config -> Common.filename list -> unit
-(** [semgrep_with_formatted_output config roots] calls
-    [semgrep_with_raw_results_and_exn_handler] and
-    format the results on stdout either in a JSON or Textual format
-    (depending on the value in config.output_format)
-*)
-
-val semgrep_with_one_pattern :
-  Runner_common.config -> Common.filename list -> unit
-(** this is the function used when running semgrep with -e or -f *)
-
-(* internal functions used in tests or semgrep-core variants *)
+(* utilities functions used in tests or semgrep-core variants *)
 
 val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
 (**
@@ -51,12 +57,12 @@ val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val files_of_roots :
-  Runner_common.config ->
-  Common.path list ->
-  Common.filename list * Output_from_core_j.skipped_target list
+val targets_of_config :
+  Runner_config.t ->
+  Input_to_core_t.targets * Output_from_core_t.skipped_target list
 (**
-  Small wrapper over Find_target.files_of_dirs_or_files
+  Compute the set of targets, either by reading what was passed
+  in -target, or by using Find_target.files_of_dirs_or_files.
  *)
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :
