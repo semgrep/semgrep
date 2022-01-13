@@ -22,6 +22,7 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
+from semgrep.util import flatten
 
 
 class Rule:
@@ -148,7 +149,13 @@ class Rule:
 
     @property
     def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
-        return self._raw.get("project-depends-on")
+        # TODO: in initial implementation, this key is allowed only as a top-level key under `patterns`
+        PROJECT_DEPENDS_ON_KEY_NAME = "r2c-internal-project-depends-on"
+        matched_keys = [d for d in self._raw.get("patterns", [])]
+        depends_entries = [
+            list(_.values()) for _ in matched_keys if PROJECT_DEPENDS_ON_KEY_NAME in _
+        ]
+        return flatten(depends_entries)
 
     @property
     def languages(self) -> List[Language]:

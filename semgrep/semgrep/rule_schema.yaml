@@ -19,6 +19,7 @@ definitions:
       - $ref: '#/definitions/metavariable-regex'
       - $ref: '#/definitions/metavariable-pattern'
       - $ref: '#/definitions/metavariable-comparison'
+      - $ref: '#/definitions/r2c-internal-project-depends-on'
   pattern-either-content:
     type: array
     title: "Return finding where any of the nested conditions are true"
@@ -86,21 +87,23 @@ definitions:
                     - patterns
                 - required:
                     - pattern-either
-  project-depends-on-content:
+  r2c-internal-project-depends-on:
     type: object
     title: "A dependency that the project contains"
     properties:
-      namespace:
-        type: string
-      package:
-        type: string
-      version:
-        type: string
-    additionalProperties: false
-    required:
-      - namespace
-      - package
-      - version
+      r2c-internal-project-depends-on:
+        properties:
+          namespace:
+            type: string
+          package:
+            type: string
+          version:
+            type: string
+        additionalProperties: false
+        required:
+          - namespace
+          - package
+          - version
   join-content:
     type: object
     title: "Join one or more rules together based on metavariable contents"
@@ -334,9 +337,6 @@ properties:
         message:
           title: Description to attach to findings
           type: string
-        project-depends-on:
-          title: Package manager dependencies that the project must depend on one of in order for the rule to fire
-          ref: '#/definitions/project-depends-on-content'
         mode:
           enum:
           - search
@@ -462,8 +462,6 @@ properties:
             - languages
             - severity
           anyOf:
-            - required:
-                - project-depends-on
             - oneOf:
                 - required:
                     - pattern
