@@ -9,11 +9,11 @@ from typing import Any
 from typing import cast
 from typing import Dict
 from typing import List
+from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-from typing import NewType
 
 from ruamel.yaml import YAML
 
@@ -47,6 +47,7 @@ logger = getLogger(__name__)
 TargetPath = NewType("TargetPath", str)
 RuleId = NewType("RuleId", str)
 Target = Tuple[TargetPath, Language]
+
 
 def setrlimits_preexec_fn() -> None:
     """
@@ -276,25 +277,22 @@ class CoreRunner:
             ) from ex
         return list(targets)
 
-    def _get_targets(self, rules: List[Rule], target_manager: TargetManager) -> List[str, Any]:
-        target_info : Dict[TargetPath, List[RuleId]] = {}
+    def _get_targets(
+        self, rules: List[Rule], target_manager: TargetManager
+    ) -> List[str, Any]:
+        target_info: Dict[TargetPath, List[RuleId]] = {}
 
         for rule in rules:
             for language in rule.languages:
-                targets = self.get_files_for_language(
-                    language, rule, target_manager
-                )
+                targets = self.get_files_for_language(language, rule, target_manager)
 
                 for target in targets:
                     if target in target_info:
                         target_info[[target, language]].append(rule.id)
                     else:
-                        target_info[target, language] = [rule.id] 
+                        target_info[target, language] = [rule.id]
 
-        
-        
         return target_info
-
 
     def _run_rules_direct_to_semgrep_core(
         self,
