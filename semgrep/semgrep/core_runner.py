@@ -9,7 +9,6 @@ from typing import Any
 from typing import cast
 from typing import Dict
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -44,9 +43,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-TargetPath = NewType("TargetPath", str)
-RuleId = NewType("RuleId", str)
-Target = Tuple[TargetPath, Language]
+Target = Tuple[Path, Language]
 
 
 def setrlimits_preexec_fn() -> None:
@@ -279,20 +276,32 @@ class CoreRunner:
 
     def _get_targets(
         self, rules: List[Rule], target_manager: TargetManager
-    ) -> List[str, Any]:
-        target_info: Dict[TargetPath, List[RuleId]] = {}
+    ) -> List[Dict[str, Any]]:
+        target_info: Dict[Tuple[Path, Language], List[RuleId]] = {}
 
         for rule in rules:
             for language in rule.languages:
                 targets = self.get_files_for_language(language, rule, target_manager)
 
                 for target in targets:
-                    if target in target_info:
-                        target_info[[target, language]].append(rule.id)
+                    t = (target, language)
+                    if t in target_info:
+                        target_info[t].append(RuleId(rule.id))
                     else:
-                        target_info[target, language] = [rule.id]
+                        target_info[t] = [RuleId(rule.id)]
 
-        return target_info
+        targets_json = []
+        for target_and_lang in target_info:
+            rule_ids = target_info[target_and_lang]
+            targets_json.append(
+                {
+                    "path": target_and_lang[0].name,
+                    "language": target_and_lang[1],
+                    "rule_ids": rule_ids,
+                }
+            )
+
+        return targets_json
 
     def _run_rules_direct_to_semgrep_core(
         self,
