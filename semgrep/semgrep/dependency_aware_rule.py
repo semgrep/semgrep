@@ -66,6 +66,10 @@ def run_dependency_aware_rule(
     dependencies: List[Dict[str, str]] = rule.project_depends_on or []
     dep_rule_errors: List[SemgrepError] = []
 
+    if len(dependencies) == 0:
+        # no dependencies to process, so skip
+        return matches, []
+
     if len(matches) == 0:
         # if there are no semgrep patterns in the rule, just the dependency restriction,
         # we may still report a result if the dependency is present
