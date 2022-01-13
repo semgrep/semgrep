@@ -3,6 +3,9 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+- Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
+  allows rules to filter based on the presence of 3rd-party dependencies at specific 
+  version ranges.
 
 ### Added
 - Pre-alpha support for Dockerfile as a new target language
