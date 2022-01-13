@@ -207,7 +207,9 @@ class ConfigPath:
         headers = {"User-Agent": SEMGREP_USER_AGENT, **(self._extra_headers or {})}
 
         token = Authentication.get_token()
-        if token:
+        # For now c/p endpoint fails with auth so only add it for policy
+        if token and "api/agent/deployment" in config_url:
+            logger.verbose("Using token")
             headers["Authorization"] = f"Bearer {token}"
 
         r = requests.get(config_url, stream=True, headers=headers, timeout=20)
