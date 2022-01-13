@@ -319,6 +319,7 @@ class TargetManager:
             return arr
 
         includes = TargetManager.preprocess_path_patterns(includes)
+        # Need cast b/c types-wcmatch doesn't use generics properly :(
         return frozenset(
             cast(
                 Iterable[Path],
@@ -341,6 +342,7 @@ class TargetManager:
             return arr
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
+        # Need cast b/c types-wcmatch doesn't use generics properly :(
         return arr - frozenset(
             cast(
                 Iterable[Path],
