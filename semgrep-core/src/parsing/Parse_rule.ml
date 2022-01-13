@@ -522,6 +522,9 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "metavariable-regexp" ->
       error_at_key env key
         (spf "unexpected key %s, did you mean metavariable-regex" (fst key))
+  (* This key is handled in Python *)
+  (* TODO create an empty construct instead of abusing Patterns *)
+  | "r2c-internal-only-project-depends-on" -> R.Patterns (t, [])
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
 (* let extra = parse_extra env x in
