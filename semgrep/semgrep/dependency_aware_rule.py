@@ -63,7 +63,7 @@ def run_dependency_aware_rule(
         targets[0] if len(top_level_target_rooted) == 0 else top_level_target_rooted[-1]
     )
     # TODO fix this; run on the top-level of all the targets
-    dependencies: List[Dict[str, str]] = rule.project_depends_on or [{}]
+    dependencies: List[Dict[str, str]] = rule.project_depends_on or []
     dep_rule_errors: List[SemgrepError] = []
 
     if len(matches) == 0:
