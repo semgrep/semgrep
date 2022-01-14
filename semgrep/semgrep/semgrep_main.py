@@ -59,8 +59,8 @@ def notify_user_of_work(
             logger.info(f"- {exc}")
     logger.info(f"Running {len(filtered_rules)} rules...")
     logger.verbose("rules:")
-    for rule in filtered_rules:
-        logger.verbose(f"- {rule.id}")
+    for ruleid in sorted([rule.id for rule in filtered_rules]):
+        logger.verbose(f"- {ruleid}")
 
 
 def get_file_ignore() -> FileIgnore:
