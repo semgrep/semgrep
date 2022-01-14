@@ -294,7 +294,7 @@ class CoreRunner:
             rule_ids = target_info[target_and_lang]
             targets_json.append(
                 {
-                    "path": target_and_lang[0].name,
+                    "path": str(target_and_lang[0]),
                     "language": target_and_lang[1],
                     "rule_ids": rule_ids,
                 }
