@@ -118,7 +118,7 @@ class CoreRunner:
         self._optimizations = optimizations
 
     def _extract_core_output(
-        self, rule: Rule, core_run: subprocess.CompletedProcess
+        self, core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
         semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
 
@@ -136,36 +136,33 @@ class CoreRunner:
         # If semgrep-core prints anything on stderr when running with default
         # flags, it's a bug that should be fixed in semgrep-core.
         #
-        name = f"[rule '{rule.id}']"
         logger.debug(
-            f"--- semgrep-core stderr {name} ---\n"
+            f"--- semgrep-core stderr ---\n"
             f"{semgrep_error_output}"
-            f"--- end semgrep-core stderr {name} ---"
+            f"--- end semgrep-core stderr ---"
         )
 
         returncode = core_run.returncode
         if returncode != 0:
             output_json = self._parse_core_output(
-                rule, core_run, semgrep_output, semgrep_error_output, returncode
+                core_run, semgrep_output, semgrep_error_output, returncode
             )
 
             if "errors" in output_json:
-                parsed_output = CoreOutput.parse(output_json, RuleId(rule.id))
+                parsed_output = CoreOutput.parse(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
                         "non-zero exit status errors array is empty in json response",
-                        rule,
                         core_run,
                         returncode,
                         semgrep_output,
                         semgrep_error_output,
                     )
-                raise errors[0].to_semgrep_error(RuleId(rule.id))
+                raise errors[0].to_semgrep_error()
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
-                    rule,
                     core_run,
                     returncode,
                     semgrep_output,
@@ -173,13 +170,12 @@ class CoreRunner:
                 )
 
         output_json = self._parse_core_output(
-            rule, core_run, semgrep_output, semgrep_error_output, returncode
+            core_run, semgrep_output, semgrep_error_output, returncode
         )
         return output_json
 
     def _parse_core_output(
         self,
-        rule: Rule,
         core_run: subprocess.CompletedProcess,
         semgrep_output: str,
         semgrep_error_output: str,
@@ -198,7 +194,6 @@ class CoreRunner:
                 tip = ""
             self._fail(
                 f"Semgrep encountered an internal error.{tip}",
-                rule,
                 core_run,
                 returncode,
                 semgrep_output,
@@ -209,7 +204,6 @@ class CoreRunner:
     def _fail(
         self,
         reason: str,
-        rule: Rule,
         core_run: subprocess.CompletedProcess,
         returncode: int,
         semgrep_output: str,
@@ -231,7 +225,7 @@ class CoreRunner:
             "--- end semgrep-core stderr ---\n",
         )
         raise SemgrepError(
-            f"Error running `{rule.id}`: {reason}\n{details}"
+            f"Error while matching: {reason}\n{details}"
             f"{PLEASE_FILE_ISSUE_TEXT}"
         )
 
@@ -413,34 +407,31 @@ class CoreRunner:
                 )
 
                 # Process output
-                semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
-                print(semgrep_output)
-                """
-                output_json = self._extract_core_output(rule, core_run)
-                core_output = CoreOutput.parse(output_json, RuleId(rule.id))
+                output_json = self._extract_core_output(core_run)
+                print(json.dumps(output_json, indent=4))
+                core_output = CoreOutput.parse(output_json)
 
                 if "time" in output_json:
                     self._add_match_times(
                         rule, profiling_data, output_json["time"]
                     )
 
-                    # end with tempfile.NamedTemporaryFile(...) ...
-                    outputs[rule].extend(core_output.rule_matches(rule))
-                    parsed_errors = [
-                        e.to_semgrep_error(RuleId(rule.id)) for e in core_output.errors
-                    ]
-                    for err in core_output.errors:
-                        if err.is_timeout():
-                            assert err.path is not None
+                # end with tempfile.NamedTemporaryFile(...) ...
+                outputs[rule].extend(core_output.rule_matches(rule))
+                parsed_errors = [
+                    e.to_semgrep_error() for e in core_output.errors
+                ]
+                for err in core_output.errors:
+                    if err.is_timeout():
+                        assert err.path is not None
 
-                            file_timeouts[err.path] += 1
-                            if (
-                                self._timeout_threshold != 0
-                                and file_timeouts[err.path] >= self._timeout_threshold
-                            ):
-                                max_timeout_files.add(err.path)
-                    errors.extend(parsed_errors)
-                """
+                        file_timeouts[err.path] += 1
+                        if (
+                            self._timeout_threshold != 0
+                            and file_timeouts[err.path] >= self._timeout_threshold
+                        ):
+                            max_timeout_files.add(err.path)
+                errors.extend(parsed_errors)
 
         return outputs, errors, all_targets, profiling_data
 

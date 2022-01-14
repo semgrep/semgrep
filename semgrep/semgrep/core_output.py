@@ -146,7 +146,7 @@ class CoreError:
         """
         return self.error_type == CoreErrorType("Timeout")
 
-    def to_semgrep_error(self, rule_id: RuleId) -> SemgrepCoreError:
+    def to_semgrep_error(self) -> SemgrepCoreError:
         # TODO benchmarking code relies on error code value right now
         # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
         if self.error_type == CoreErrorType(
@@ -156,16 +156,10 @@ class CoreError:
         else:
             code = 2
 
-        # TODO https://github.com/returntocorp/semgrep/issues/3861
-        reported_rule_id = self.rule_id
-        if self.is_timeout() or self.error_type == CoreErrorType("Out of memory"):
-            reported_rule_id = rule_id
-
         return SemgrepCoreError(
             code,
             self.level,
             self.error_type,
-            reported_rule_id,
             self.path,
             self.start,
             self.end,
@@ -233,10 +227,13 @@ class CoreTiming:
     rule_parse_timings: List[CoreRuleParseTiming]
 
     @classmethod
-    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreTiming":
+    def parse(cls, raw_json: JsonObject) -> "CoreTiming":
+        raise "Emma Todo"
+
         if not raw_json:
             return cls([], [])
 
+        rules = raw_json.get("rules", [])
         target_timings = raw_json.get("targets", [])
         parsed_target_timings = []
         for obj in target_timings:
@@ -259,7 +256,7 @@ class CoreOutput:
     timing: CoreTiming
 
     @classmethod
-    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreOutput":
+    def parse(cls, raw_json: JsonObject) -> "CoreOutput":
         parsed_errors = []
         errors = raw_json["errors"]
         for error in errors:
@@ -277,8 +274,8 @@ class CoreOutput:
 
         timings = raw_json.get("time", {})
         parsed_timings = CoreTiming.parse(
-            timings, rule_id
-        )  # For now assume only one rule run at a time
+            timings
+        ) 
 
         return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
 
