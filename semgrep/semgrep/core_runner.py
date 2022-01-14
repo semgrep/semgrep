@@ -284,15 +284,14 @@ class CoreRunner:
         ProfilingData,
     ]:
         import psutil  # delay until needed
+
         total_memory_mib = int(psutil.virtual_memory().total / 1024 / 1024)
         mem_per_job_mib = int(total_memory_mib / self._jobs)
         min_memory_mib = 1024
-        max_memory_mib = min(max(min_memory_mib, int(1.8*mem_per_job_mib)), total_memory_mib)
-        max_memory_mib = (
-            max_memory_mib
-            if self._max_memory == 0
-            else self._max_memory
+        max_memory_mib = min(
+            max(min_memory_mib, int(1.8 * mem_per_job_mib)), total_memory_mib
         )
+        max_memory_mib = max_memory_mib if self._max_memory == 0 else self._max_memory
         logger.debug(
             f"Running with {total_memory_mib} MiB of physical memory for {self._jobs} jobs, setting a memory limit of {max_memory_mib} MiB per job"
         )
