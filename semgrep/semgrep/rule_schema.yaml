@@ -104,6 +104,8 @@ definitions:
           - namespace
           - package
           - version
+    required:
+      - r2c-internal-project-depends-on
   join-content:
     type: object
     title: "Join one or more rules together based on metavariable contents"
