@@ -358,15 +358,12 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
-let rules_for_xlang xlang rules =
-  rules
-  |> List.filter (fun r ->
-         match (xlang, r.R.languages) with
-         | Xlang.LRegex, Xlang.LRegex
-         | Xlang.LGeneric, Xlang.LGeneric ->
-             true
-         | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
-         | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
+module Rule_table = Map.Make (String)
+
+let mk_rule_table rules =
+  let rule_pairs = List.map (fun r -> (fst r.R.id, r)) rules in
+  let rule_seq = List.to_seq rule_pairs in
+  Rule_table.of_seq rule_seq
 
 let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
@@ -385,8 +382,8 @@ let xtarget_of_file config xlang file =
     lazy_ast_and_errors;
   }
 
-let targets_of_config (config : Runner_config.t) :
-    In.targets * Out.skipped_target list =
+let targets_of_config (config : Runner_config.t) (rule_ids : Rule.rule_id list)
+    : In.targets * Out.skipped_target list =
   match (config.target_file, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without
@@ -410,7 +407,7 @@ let targets_of_config (config : Runner_config.t) :
       let targets =
         files
         |> List.map (fun file ->
-               { In.path = file; language = Xlang.to_string xlang })
+               { In.path = file; language = Xlang.to_string xlang; rule_ids })
       in
       (targets, skipped)
   | "", _, None -> failwith "you need to specify a language with -lang"
@@ -438,7 +435,10 @@ let targets_of_config (config : Runner_config.t) :
  * recursively process those targets.
  *)
 let semgrep_with_rules config (rules, rule_parse_time) =
-  let targets, skipped = targets_of_config config in
+  let rule_table = mk_rule_table rules in
+  let targets, skipped =
+    targets_of_config config (List.map (fun r -> fst r.R.id) rules)
+  in
   logger#info "processing %d files, skipping %d files" (List.length targets)
     (List.length skipped);
   let file_results =
@@ -446,7 +446,11 @@ let semgrep_with_rules config (rules, rule_parse_time) =
     |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
            let file = target.In.path in
            let xlang = Xlang.of_string target.In.language in
-           let rules = rules_for_xlang xlang rules in
+           let rules =
+             List.map
+               (fun r_id -> Rule_table.find r_id rule_table)
+               target.In.rule_ids
+           in
 
            let xtarget = xtarget_of_file config xlang file in
            let match_hook str env matched_tokens =
@@ -616,7 +620,9 @@ let semgrep_with_one_pattern config =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in semgrep_with_rules *)
-      let targets, _skipped = targets_of_config config in
+      let targets, _skipped =
+        targets_of_config config (List.map (fun r -> r.MR.id) minirule)
+      in
       let files = targets |> List.map (fun t -> t.In.path) in
       files
       |> List.iter (fun file ->

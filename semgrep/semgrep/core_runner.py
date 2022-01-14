@@ -367,8 +367,6 @@ class CoreRunner:
 
         profiling_data: ProfilingData = ProfilingData()
 
-        print(json.dumps(self._get_targets(rules, target_manager)))
-
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
             with tempfile.NamedTemporaryFile(
                 "w", suffix=".yaml"

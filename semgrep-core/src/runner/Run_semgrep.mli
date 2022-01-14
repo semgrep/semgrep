@@ -59,6 +59,7 @@ val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
 
 val targets_of_config :
   Runner_config.t ->
+  Rule.rule_id list ->
   Input_to_core_t.targets * Output_from_core_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
