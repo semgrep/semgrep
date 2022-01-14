@@ -115,7 +115,7 @@ if not SEMGREP_SKIP_BIN:
 install_requires = [
     "attrs>=19.3.0",
     "colorama>=0.4.3",
-    "psutil>=0.5",
+    "psutil>=0.5.9",
     "click>=8.0.1",
     "click-option-group>=0.5.3",
     "requests>=2.22.0",
