@@ -95,3 +95,17 @@ def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
         results,
         "results.json",
     )
+
+
+def test_parse_errors(run_semgrep_in_tmp, snapshot):
+    _results, errors = run_semgrep_in_tmp(
+        "rules/cli_test/parse_errors/",
+        options=["--verbose"],
+        target_name="cli_test/parse_errors/invalid_javascript.js",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+    )
+    snapshot.assert_match(
+        errors,
+        "errors.json",
+    )
