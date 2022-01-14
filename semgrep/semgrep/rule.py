@@ -155,7 +155,10 @@ class Rule:
         depends_entries = [
             list(_.values()) for _ in matched_keys if PROJECT_DEPENDS_ON_KEY_NAME in _
         ]
-        return flatten(depends_entries)
+        flattened = flatten(depends_entries)
+        if len(flattened) == 0:
+            return None
+        return flattened
 
     @property
     def languages(self) -> List[Language]:
