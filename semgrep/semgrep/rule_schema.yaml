@@ -461,48 +461,47 @@ properties:
             - message
             - languages
             - severity
-          anyOf:
-            - oneOf:
-                - required:
-                    - pattern
-                  not:
-                    anyOf:
-                      - required:
-                        - patterns
-                      - required:
-                        - pattern-either
-                      - required:
-                        - pattern-regex
-                - required:
+          oneOf:
+            - required:
+                - pattern
+              not:
+                anyOf:
+                  - required:
                     - patterns
-                  not:
-                    anyOf:
-                      - required:
-                          - pattern
-                      - required:
-                          - pattern-either
-                      - required:
-                          - pattern-regex
-                - required:
+                  - required:
                     - pattern-either
-                  not:
-                    anyOf:
-                      - required:
-                          - pattern
-                      - required:
-                          - patterns
-                      - required:
-                          - pattern-regex
-                - required:
+                  - required:
                     - pattern-regex
-                  not:
-                    anyOf:
-                      - required:
-                          - pattern
-                      - required:
-                          - patterns
-                      - required:
-                          - pattern-either
+            - required:
+                - patterns
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-either
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-regex
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
           not:
             anyOf:
               - required:
