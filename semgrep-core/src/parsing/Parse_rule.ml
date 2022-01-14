@@ -525,8 +525,8 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   (* These keys are handled in Python *)
   (* TODO really we should either remove these keys before sending
      the rules or handle them in OCaml, this is not good *)
-  | "r2c-internal-project-depends-on" -> R.PatNoOp t
-  | "r2c-internal-patterns-from" -> R.PatNoOp t
+  | "r2c-internal-project-depends-on" -> R.PatFilteredInPythonTodo t
+  | "r2c-internal-patterns-from" -> R.PatFilteredInPythonTodo t
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
 (* let extra = parse_extra env x in

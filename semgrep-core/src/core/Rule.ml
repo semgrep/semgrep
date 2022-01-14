@@ -160,7 +160,7 @@ type formula_old =
   (* patterns: And *)
   | Patterns of tok * formula_old list
   (* for fields handled in Python like depends-on *)
-  | PatNoOp of tok
+  | PatFilteredInPythonTodo of tok
 
 (* extra conditions, usually on metavariable content *)
 and extra =
@@ -364,7 +364,7 @@ let convert_extra x =
 let remove_noop (e : formula_old) : formula_old =
   let valid_formula x =
     match x with
-    | PatNoOp _ -> false
+    | PatFilteredInPythonTodo _ -> false
     | _ -> true
   in
   let rec aux e =
@@ -372,11 +372,19 @@ let remove_noop (e : formula_old) : formula_old =
     | PatEither (t, xs) ->
         let xs = List.map aux (List.filter valid_formula xs) in
         PatEither (t, xs)
-    | Patterns (t, xs) ->
-        let xs = List.map aux (List.filter valid_formula xs) in
-        Patterns (t, xs)
-    | PatNoOp t ->
-        raise (InvalidYaml ("Key cannot be present without a pattern", t))
+    | Patterns (t, xs) -> (
+        let xs' = List.map aux (List.filter valid_formula xs) in
+        (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
+           after this filter it will be an empty And. To prevent
+           an error, check for that *)
+        match (xs, xs') with
+        | [ x ], [] -> aux x
+        | _ -> Patterns (t, xs'))
+    | PatFilteredInPythonTodo t ->
+        (* If a PatFilteredInPythonTodo key is the only thing on the top
+           level, return no matches *)
+        let any = "a^" in
+        Pat (mk_xpat (Regexp (any, SPcre.regexp any)) (any, t))
     | _ -> e
   in
   aux e
@@ -399,7 +407,7 @@ let (convert_formula_old : formula_old -> formula) =
         raise
           (InvalidYaml
              ("metavariable conditions must be inside a 'patterns:'", t))
-    | PatNoOp t -> raise (InvalidYaml ("Unexpected key", t))
+    | PatFilteredInPythonTodo t -> raise (InvalidYaml ("Unexpected key", t))
   and aux_and e =
     match e with
     | PatExtra (t, x) ->
