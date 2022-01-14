@@ -24,6 +24,8 @@ let contents x = x.contents
 
 let length x = String.length x.contents
 
+let replace_contents x f = { x with contents = f x.contents }
+
 let of_string ?(source = String) contents = { source; contents }
 
 let partial_input max_len ic =

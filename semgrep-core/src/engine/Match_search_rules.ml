@@ -22,9 +22,8 @@ module MV = Metavariable
 module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
-module FM = File_and_more
 module E = Semgrep_error_code
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -112,7 +111,7 @@ type env = {
   config : Config_semgrep.t * Equivalence.equivalences;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
-  file_and_more : File_and_more.t;
+  file_and_more : Xtarget.t;
   rule_id : R.rule_id;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
@@ -129,7 +128,7 @@ let error env msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = PI.first_loc_of_file env.file_and_more.FM.file in
+  let loc = PI.first_loc_of_file env.file_and_more.Xtarget.file in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err = E.mk_error ~rule_id:(Some env.rule_id) loc msg E.MatchingError in
   Common.push err env.errors
@@ -256,7 +255,7 @@ let debug_semgrep config mini_rules file lang ast =
 (*****************************************************************************)
 
 let matches_of_patterns ?range_filter config file_and_more patterns =
-  let { FM.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
+  let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     file_and_more
   in
   match xlang with
@@ -588,7 +587,7 @@ let matches_of_combys combys lazy_content file =
 (*****************************************************************************)
 
 let matches_of_xpatterns config file_and_more xpatterns =
-  let { FM.file; lazy_content; _ } = file_and_more in
+  let { Xtarget.file; lazy_content; _ } = file_and_more in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -766,7 +765,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                   in
                   let file_and_more =
                     {
-                      FM.file;
+                      Xtarget.file;
                       xlang;
                       lazy_ast_and_errors;
                       lazy_content = lazy content;
@@ -980,7 +979,7 @@ let check_rule r hook (default_config, equivs) pformula file_and_more =
   }
 
 let check ~match_hook default_config rules file_and_more =
-  let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
+  let { Xtarget.file; lazy_ast_and_errors; _ } = file_and_more in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";

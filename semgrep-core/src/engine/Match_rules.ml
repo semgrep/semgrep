@@ -16,13 +16,12 @@
 open Common
 module R = Rule
 module RP = Report
-module FM = File_and_more
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let filter_and_partition_rules rules file_and_more =
-  let { FM.file; lazy_content; _ } = file_and_more in
+  let { Xtarget.file; lazy_content; _ } = file_and_more in
   let rules, skipped_rules =
     rules
     |> List.partition (fun r ->
@@ -43,7 +42,7 @@ let filter_and_partition_rules rules file_and_more =
   let search_rules, taint_rules = R.partition_rules rules in
   (search_rules, taint_rules, skipped_rules)
 
-let skipped_target_of_rule (file_and_more : FM.t) (rule : R.rule) :
+let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     Resp.skipped_target =
   let rule_id, _ = rule.id in
   let details =

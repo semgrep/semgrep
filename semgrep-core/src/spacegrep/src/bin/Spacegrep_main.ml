@@ -28,6 +28,7 @@ type config = {
   timeout : int option;
   warn : bool;
   no_skip_search : bool;
+  comment_style : Comment.style;
 }
 
 (* Those 2 types below are copy-pasted from Semgrep_core_response.atd
@@ -54,11 +55,19 @@ let detect_highlight when_use_color oc =
   | Never -> false
   | Auto -> Unix.isatty (Unix.descr_of_out_channel oc)
 
+let parse_pattern comment_style src =
+  let src = Comment.remove_comments_from_src comment_style src in
+  Parse_pattern.of_src src
+
+let parse_doc comment_style src =
+  let src = Comment.remove_comments_from_src comment_style src in
+  Parse_doc.of_src src
+
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
-    matches =
+let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search ~comment_style
+    patterns docs : matches =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
@@ -113,7 +122,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                     printf "parse document: %s\n%!"
                       (Src_file.source_string doc_src);
                   let doc, parse_time =
-                    Match.timef (fun () -> Parse_doc.of_src doc_src)
+                    Match.timef (fun () -> parse_doc comment_style doc_src)
                   in
                   let matches_in_file =
                     List.mapi
@@ -167,7 +176,8 @@ let run config =
     | None -> []
     | Some pat_str -> [ Src_file.of_string pat_str ])
     @ List.map Src_file.of_file pattern_files
-    |> List.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
+    |> List.map (fun pat_src ->
+           (pat_src, parse_pattern config.comment_style pat_src))
   in
   let patterns, errors =
     let rev_patterns, rev_errors =
@@ -206,7 +216,8 @@ let run config =
     run_all
       ~case_sensitive:(not config.case_insensitive)
       ~debug ~force:config.force ~warn:config.warn
-      ~no_skip_search:config.no_skip_search patterns docs
+      ~no_skip_search:config.no_skip_search ~comment_style:config.comment_style
+      patterns docs
   in
   (match config.output_format with
   | Text ->
@@ -385,11 +396,17 @@ let no_skip_search_term =
 
 let cmdline_term =
   let combine case_insensitive color output_format debug force pattern
-      pattern_files anon_doc_file doc_files time timeout warn no_skip_search =
+      pattern_files anon_doc_file doc_files time timeout warn no_skip_search
+      comment_style eol_comment_start multiline_comment_start
+      multiline_comment_end =
     let doc_files =
       match anon_doc_file with
       | None -> doc_files
       | Some x -> x :: doc_files
+    in
+    let comment_style =
+      Comment.CLI.merge_comment_options ~comment_style ~eol_comment_start
+        ~multiline_comment_start ~multiline_comment_end
     in
     {
       case_insensitive;
@@ -404,13 +421,17 @@ let cmdline_term =
       timeout;
       warn;
       no_skip_search;
+      comment_style;
     }
   in
   Term.(
     const combine $ case_insensitive_term $ color_term $ output_format_term
     $ debug_term $ force_term $ pattern_term $ pattern_file_term
     $ anon_doc_file_term $ doc_file_term $ time_term $ timeout_term $ warn_term
-    $ no_skip_search_term)
+    $ no_skip_search_term $ Comment.CLI.comment_style_term
+    $ Comment.CLI.eol_comment_start_term
+    $ Comment.CLI.multiline_comment_start_term
+    $ Comment.CLI.multiline_comment_end_term)
 
 let doc = "match a pattern against any program"
 

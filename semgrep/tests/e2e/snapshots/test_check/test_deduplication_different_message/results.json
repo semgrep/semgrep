@@ -11,63 +11,6 @@
       "extra": {
         "is_ignored": false,
         "lines": "foo(1,2)",
-        "message": "Error message with both metavars 2 foo",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "foo",
-            "end": {
-              "col": 4,
-              "line": 1,
-              "offset": 3
-            },
-            "start": {
-              "col": 1,
-              "line": 1,
-              "offset": 0
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          },
-          "$Y": {
-            "abstract_content": "2",
-            "end": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            },
-            "start": {
-              "col": 7,
-              "line": 1,
-              "offset": 6
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/deduplication/deduplication.py",
-      "start": {
-        "col": 1,
-        "line": 1,
-        "offset": 0
-      }
-    },
-    {
-      "check_id": "rules.deduplication.duplicate",
-      "end": {
-        "col": 9,
-        "line": 1,
-        "offset": 8
-      },
-      "extra": {
-        "is_ignored": false,
-        "lines": "foo(1,2)",
         "message": "Error message with both metavars 1 foo",
         "metadata": {},
         "metavars": {
@@ -99,6 +42,63 @@
               "col": 5,
               "line": 1,
               "offset": 4
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/deduplication/deduplication.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.deduplication.duplicate",
+      "end": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "foo(1,2)",
+        "message": "Error message with both metavars 2 foo",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "foo",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$Y": {
+            "abstract_content": "2",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
             },
             "unique_id": {
               "md5sum": "<masked in tests>",

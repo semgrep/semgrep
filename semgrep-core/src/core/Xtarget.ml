@@ -12,6 +12,15 @@
  * license.txt for more details.
  *)
 
+(* eXtended target.
+ *
+ * This type is mostly used in the engine, to pass around extra information
+ * associated to each target.
+ *
+ * related: Input_to_core.target, which is what is passed
+ * to semgrep-core via -target.
+ *)
+
 type t = {
   file : Common.filename;
   xlang : Xlang.t;

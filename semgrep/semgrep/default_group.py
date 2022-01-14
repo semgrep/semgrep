@@ -5,6 +5,7 @@ from typing import Tuple
 
 import click
 
+
 # Inspired by https://github.com/pallets/click/issues/430#issuecomment-207580492
 class DefaultGroup(click.Group):
     """

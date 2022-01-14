@@ -33,6 +33,12 @@ val contents : t -> string
 val length : t -> int
 
 (*
+   Replace some of the contents, typically for blanking out comments
+   as part of a preprocessing phase.
+*)
+val replace_contents : t -> (string -> string) -> t
+
+(*
    Extract a specific region specified as
    (start position, end position to be excluded).
  *)

@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.78.0](https://github.com/returntocorp/semgrep/releases/tag/v0.78.0) - 01-13-2022
+
 ### Added
 - Pre-alpha support for Dockerfile as a new target language
 - Semgrep is now able to symbolically propagate simple definitions. E.g., given
@@ -22,6 +24,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Rust: inner attributes are allowed again inside functions (#4444) (#4445)
 - Python: return statement can contain tuple expansions (#4461)
 - metavariable-comparison: do not throw a Not_found exn anymore (#4469)
+- better ordering of match results with respect to captured
+  metavariables (#4488)
 
 ### Changed
 - CLI: parse errors (reported with `--verbose`) appear once per file, 

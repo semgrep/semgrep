@@ -114,8 +114,3 @@ let unsupported_language_message lang =
   else
     Common.spf "unsupported language: %s; supported language tags are: %s" lang
       supported_langs
-
-let of_string s =
-  match lang_of_string_opt s with
-  | Some x -> x
-  | None -> failwith (unsupported_language_message s)

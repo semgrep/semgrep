@@ -265,7 +265,7 @@ let inspect_file_p (lang : Lang.t) path =
   eval test path
 
 let wrap_with_error_message lang path bool_res :
-    (string, Semgrep_core_response_t.skipped_target) result =
+    (string, Output_from_core_t.skipped_target) result =
   match bool_res with
   | true -> Ok path
   | false ->

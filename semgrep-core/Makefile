@@ -39,14 +39,28 @@ test: all
 	$(MAKE) -C src/spacegrep test
 	dune runtest -f --no-buffer
 
+# This may install more than you want.
+# See the 'dev' target if all you need is access to the semgrep-core
+# executable for testing.
 .PHONY: install
 install:
 	dune install
-	cp -f _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
+	rm -f ../semgrep/semgrep/bin/semgrep-core
+	cp _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
 
 ###############################################################################
 # Developer targets
 ###############################################################################
+
+# Build semgrep-core and place it where semgrep expects it.
+# This is for development purposes only as I'm not sure if a symlink is ok
+# for packaging things up on the python side.
+.PHONY: dev
+dev:
+	$(MAKE) all
+	rm -f ../semgrep/semgrep/bin/semgrep-core
+	ln -s ../../../semgrep-core/bin/semgrep-core \
+	  ../semgrep/semgrep/bin/semgrep-core
 
 .PHONY: e2etest
 e2etest:

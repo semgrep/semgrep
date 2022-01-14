@@ -5,12 +5,18 @@
    semgrep-python so we might want to move all file-targeting in one
    place.
 *)
+module In = Input_to_core_t
+module Resp = Output_from_core_t
 
-module Resp = Semgrep_core_response_t
+let sort_targets_by_decreasing_size targets =
+  targets
+  |> Common.map (fun target -> (target, Common2.filesize target.In.path))
+  |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
+  |> Common.map fst
 
-let sort_by_decreasing_size paths =
-  paths
-  |> Common.map (fun path -> (path, Common2.filesize path))
+let sort_files_by_decreasing_size files =
+  files
+  |> Common.map (fun file -> (file, Common2.filesize file))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
 
@@ -35,7 +41,7 @@ let files_of_dirs_or_files ?(keep_root_files = true)
   let skipped = Common.flatten [ skipped1; skipped2; skipped3; skipped4 ] in
   let paths = explicit_targets @ paths in
   let sorted_paths =
-    if sort_by_decr_size then sort_by_decreasing_size paths
+    if sort_by_decr_size then sort_files_by_decreasing_size paths
     else List.sort String.compare paths
   in
   let sorted_skipped =

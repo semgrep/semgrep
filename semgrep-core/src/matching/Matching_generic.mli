@@ -54,8 +54,6 @@ val empty_environment : tout Caching.Cache.t option -> Config_semgrep.t -> tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
-val get_mv_capture : Metavariable.mvar -> tin -> Metavariable.mvalue option
-
 (* Update the matching list of statements by providing a new matching
    statement. *)
 val extend_stmts_match_span : AST_generic.stmt -> tin -> tin
@@ -74,8 +72,6 @@ val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue -> tin -> tin option
 
 (* helpers *)
-val has_ellipsis_stmts : AST_generic.stmt list -> bool
-
 val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
 
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
@@ -103,8 +99,6 @@ val m_option_ellipsis_ok :
   AST_generic.expr matcher -> AST_generic.expr option matcher
 
 val m_option_none_can_match_some : 'a matcher -> 'a option matcher
-
-val m_ref : 'a matcher -> 'a ref matcher
 
 val m_list : 'a matcher -> 'a list matcher
 
