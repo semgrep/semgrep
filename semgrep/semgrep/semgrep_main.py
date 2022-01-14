@@ -118,6 +118,7 @@ def invoke_semgrep(
 
 def main(
     *,
+    dump_command_for_core: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -226,7 +227,7 @@ def main(
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-    ).invoke_semgrep(target_manager, profiler, filtered_rules)
+    ).invoke_semgrep(dump_command_for_core, target_manager, profiler, filtered_rules)
 
     if join_rules:
         import semgrep.join_rule as join_rule

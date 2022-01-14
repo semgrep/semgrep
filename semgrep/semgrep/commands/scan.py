@@ -454,6 +454,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     hidden=True
     # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
 )
+@click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 def scan(
     *,
     autofix: bool,
@@ -463,6 +464,7 @@ def scan(
     debugging_json: bool,
     dryrun: bool,
     dump_ast: bool,
+    dump_command_for_core: bool,
     emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
@@ -680,6 +682,7 @@ def scan(
                 semgrep.config_resolver.generate_config(fd, lang, pattern)
         else:
             semgrep.semgrep_main.main(
+                dump_command_for_core=dump_command_for_core,
                 output_handler=output_handler,
                 target=target_sequence,
                 pattern=pattern,

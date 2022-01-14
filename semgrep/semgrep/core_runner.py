@@ -2,6 +2,7 @@ import collections
 import json
 import resource
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -28,8 +29,6 @@ from semgrep.error import with_color
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
-from semgrep.progress_bar import debug_tqdm_write
-from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
@@ -303,6 +302,50 @@ class CoreRunner:
 
         return targets_json
 
+    def _dump_semgrep_core_command(
+        self, rules: List[Rule], target_manager: TargetManager, profiler: ProfileManager
+    ) -> None:
+        rules_file = "semgrep_rules.yaml"
+        targets_file = "semgrep_targets.txt"
+
+        with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
+            with open(rules_file, "w+") as rule_file, open(
+                targets_file, "w+"
+            ) as target_file:
+                targets_with_rules = self._get_targets(rules, target_manager)
+                target_file.write(json.dumps(targets_with_rules))
+                target_file.flush()
+
+                yaml = YAML()
+                yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
+                rule_file.flush()
+
+                # Run semgrep
+                cmd = [SemgrepCore.path()] + [
+                    "-json",
+                    "-rules",
+                    rule_file.name,
+                    "-j",
+                    str(self._jobs),
+                    "-targets",
+                    target_file.name,
+                    "-use_parsing_cache",
+                    semgrep_core_ast_cache_dir,
+                    "-timeout",
+                    str(self._timeout),
+                    "-max_memory",
+                    str(self._max_memory),
+                    "-json_time",
+                ]
+
+                if self._optimizations != "none":
+                    cmd.append("-fast")
+
+                if is_debug():
+                    cmd += ["-debug"]
+
+                print(" ".join(cmd))
+
     def _run_rules_direct_to_semgrep_core(
         self,
         rules: List[Rule],
@@ -326,82 +369,62 @@ class CoreRunner:
 
         print(json.dumps(self._get_targets(rules, target_manager)))
 
-        # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            for rule in progress_bar(
-                rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
-            ):
-                for language in rule.languages:
-                    debug_tqdm_write(f"Running rule {rule.id}...")
-                    with tempfile.NamedTemporaryFile(
-                        "w", suffix=".yaml"
-                    ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
-                        targets = self.get_files_for_language(
-                            language, rule, target_manager
-                        )
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".yaml"
+            ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+                targets_with_rules = self._get_targets(rules, target_manager)
+                target_file.write(json.dumps(targets_with_rules))
+                target_file.flush()
 
-                        targets = [
-                            target
-                            for target in targets
-                            if target not in max_timeout_files
-                        ]
+                yaml = YAML()
+                yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
+                rule_file.flush()
 
-                        # opti: no need to call semgrep-core if no target files
-                        if not targets:
-                            continue
-                        all_targets = all_targets.union(targets)
+                # Run semgrep
+                cmd = [SemgrepCore.path()] + [
+                    "-json",
+                    "-rules",
+                    rule_file.name,
+                    "-j",
+                    str(self._jobs),
+                    "-targets",
+                    target_file.name,
+                    "-use_parsing_cache",
+                    semgrep_core_ast_cache_dir,
+                    "-timeout",
+                    str(self._timeout),
+                    "-max_memory",
+                    str(self._max_memory),
+                    "-json_time",
+                ]
 
-                        # TODO: use atdgen-py
-                        # The format of this JSON is specified in
-                        # interfaces/Input_to_core.atd
-                        array = [
-                            {"path": str(p), "language": str(language)} for p in targets
-                        ]
-                        target_file.write(json.dumps(array))
-                        target_file.flush()
+                if self._optimizations != "none":
+                    cmd.append("-fast")
 
-                        yaml = YAML()
-                        yaml.dump({"rules": [rule._raw]}, rule_file)
-                        rule_file.flush()
+                stderr: Optional[int] = subprocess.PIPE
+                if is_debug():
+                    cmd += ["-debug"]
+                    stderr = None
 
-                        cmd = [SemgrepCore.path()] + [
-                            "-json",
-                            "-rules",
-                            rule_file.name,
-                            "-j",
-                            str(self._jobs),
-                            "-targets",
-                            target_file.name,
-                            "-use_parsing_cache",
-                            semgrep_core_ast_cache_dir,
-                            "-timeout",
-                            str(self._timeout),
-                            "-max_memory",
-                            str(self._max_memory),
-                            "-json_time",
-                        ]
+                core_run = sub_run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=stderr,
+                    preexec_fn=setrlimits_preexec_fn,
+                )
 
-                        if self._optimizations != "none":
-                            cmd.append("-fast")
+                # Process output
+                semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
+                print(semgrep_output)
+                """
+                output_json = self._extract_core_output(rule, core_run)
+                core_output = CoreOutput.parse(output_json, RuleId(rule.id))
 
-                        stderr: Optional[int] = subprocess.PIPE
-                        if is_debug():
-                            cmd += ["-debug"]
-                            stderr = None
-
-                        core_run = sub_run(
-                            cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=stderr,
-                            preexec_fn=setrlimits_preexec_fn,
-                        )
-                        output_json = self._extract_core_output(rule, core_run)
-                        core_output = CoreOutput.parse(output_json, RuleId(rule.id))
-
-                        if "time" in output_json:
-                            self._add_match_times(
-                                rule, profiling_data, output_json["time"]
-                            )
+                if "time" in output_json:
+                    self._add_match_times(
+                        rule, profiling_data, output_json["time"]
+                    )
 
                     # end with tempfile.NamedTemporaryFile(...) ...
                     outputs[rule].extend(core_output.rule_matches(rule))
@@ -419,8 +442,7 @@ class CoreRunner:
                             ):
                                 max_timeout_files.add(err.path)
                     errors.extend(parsed_errors)
-            # end for language ...
-        # end for rule ...
+                """
 
         return outputs, errors, all_targets, profiling_data
 
@@ -428,6 +450,7 @@ class CoreRunner:
 
     def invoke_semgrep(
         self,
+        dump_command_for_core: bool,
         target_manager: TargetManager,
         profiler: ProfileManager,
         rules: List[Rule],
@@ -437,6 +460,10 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
     ]:
+        if dump_command_for_core:
+            self._dump_semgrep_core_command(rules, target_manager, profiler)
+            sys.exit(0)
+
         """
         Takes in rules and targets and retuns object with findings
         """
