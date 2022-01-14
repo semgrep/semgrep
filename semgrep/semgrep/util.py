@@ -1,5 +1,7 @@
+import functools
 import itertools
 import logging
+import operator
 import os
 import subprocess
 import sys
@@ -200,3 +202,7 @@ def truncate(file_name: str, col_lim: int) -> str:
     if name_len > col_lim:
         file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
     return file_name
+
+
+def flatten(some_list: List[List[T]]) -> List[T]:
+    return functools.reduce(operator.iconcat, some_list, [])
