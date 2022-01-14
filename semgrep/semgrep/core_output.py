@@ -146,7 +146,7 @@ class CoreError:
         """
         return self.error_type == CoreErrorType("Timeout")
 
-    def to_semgrep_error(self, rule_id: RuleId) -> SemgrepCoreError:
+    def to_semgrep_error(self) -> SemgrepCoreError:
         reported_rule_id = self.rule_id
 
         # TODO benchmarking code relies on error code value right now
