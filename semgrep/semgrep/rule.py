@@ -148,7 +148,7 @@ class Rule:
         return self._mode
 
     @property
-    def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
+    def project_depends_on(self) -> Optional[List[List[Dict[str, str]]]]:
         # TODO: in initial implementation, this key is allowed only as a top-level key under `patterns`
         PROJECT_DEPENDS_ON_KEY_NAME = "r2c-internal-project-depends-on"
         matched_keys = [d for d in self._raw.get("patterns", [])]
@@ -203,7 +203,25 @@ class Rule:
 
     @property
     def has_runable_semgrep_rules(self) -> bool:
-        return any(k in self._raw for k in RuleValidation.PATTERN_KEYS)
+        """
+        # if there is only a single patterns key
+        single_patterns_key = rule.rawRuleValidation.PATTERN_KEYS
+        # and the patterns key only has `project-depends-on` as a child
+
+        # then it doesn't have any runable rules
+        return False
+        """
+
+        def has_runnable_rule(d: Dict[str, Any]) -> bool:
+            for k in d:
+                if k in RuleValidation.PATTERN_KEYS:
+                    children = d.get(k)
+                    if children is not None and isinstance(children, list):
+                        return any(has_runnable_rule(_) for _ in children)
+                    return True
+            return False
+
+        return has_runnable_rule(self._raw)
 
 
 def rule_without_metadata(rule: Rule) -> Rule:

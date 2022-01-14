@@ -25,27 +25,28 @@ PACKAGE_MANAGER_MAP = {
 
 
 def parse_depends_on_restrictions(
-    entries: List[Dict[str, str]]
+    entries: List[List[Dict[str, str]]]
 ) -> Generator[ProjectDependsOnEntry, None, None]:
-    for entry in entries:
-        # schema checks should gaurantee we have these fields, but we'll code defensively
-        namespace = entry.get("namespace")
-        if namespace is None:
-            raise SemgrepError(f"project-depends-on is missing `namespace`")
-        pm = PACKAGE_MANAGER_MAP.get(namespace)
-        if pm is None:
-            raise SemgrepError(
-                f"unknown package namespace: {namespace}, only {list(PACKAGE_MANAGER_MAP.keys())} are supported"
+    for wrapper_entry in entries:
+        for entry in wrapper_entry:
+            # schema checks should gaurantee we have these fields, but we'll code defensively
+            namespace = entry.get("namespace")
+            if namespace is None:
+                raise SemgrepError(f"project-depends-on is missing `namespace`")
+            pm = PACKAGE_MANAGER_MAP.get(namespace)
+            if pm is None:
+                raise SemgrepError(
+                    f"unknown package namespace: {namespace}, only {list(PACKAGE_MANAGER_MAP.keys())} are supported"
+                )
+            package_name = entry.get("package")
+            if package_name is None:
+                raise SemgrepError(f"project-depends-on is missing `package`")
+            semver_range = entry.get("version")
+            if semver_range is None:
+                raise SemgrepError(f"project-depends-on is missing `version`")
+            yield ProjectDependsOnEntry(
+                namespace=pm, package_name=package_name, semver_range=semver_range
             )
-        package_name = entry.get("package")
-        if package_name is None:
-            raise SemgrepError(f"project-depends-on is missing `package`")
-        semver_range = entry.get("version")
-        if semver_range is None:
-            raise SemgrepError(f"project-depends-on is missing `version`")
-        yield ProjectDependsOnEntry(
-            namespace=pm, package_name=package_name, semver_range=semver_range
-        )
 
 
 def run_dependency_aware_rule(
@@ -63,7 +64,7 @@ def run_dependency_aware_rule(
         targets[0] if len(top_level_target_rooted) == 0 else top_level_target_rooted[-1]
     )
     # TODO fix this; run on the top-level of all the targets
-    dependencies: List[Dict[str, str]] = rule.project_depends_on or []
+    dependencies: List[List[Dict[str, str]]] = rule.project_depends_on or []
     dep_rule_errors: List[SemgrepError] = []
 
     if len(dependencies) == 0:
