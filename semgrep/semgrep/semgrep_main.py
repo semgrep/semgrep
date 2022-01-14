@@ -242,7 +242,7 @@ def main(
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 
-    if dependency_aware_rules:
+    if len(dependency_aware_rules) > 0:
         import semgrep.dependency_aware_rule as dep_aware_rule
 
         for rule in dependency_aware_rules:
