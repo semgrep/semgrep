@@ -24,9 +24,13 @@ PACKAGE_MANAGER_MAP = {
 }
 
 
-def parse_depends_on_restrictions(
+def parse_depends_on_yaml(
     entries: List[List[Dict[str, str]]]
 ) -> Generator[ProjectDependsOnEntry, None, None]:
+    """
+    Convert the entries in the Yaml to ProjectDependsOnEntry objects that specify
+    namespace, package name, and semver ranges
+    """
     for wrapper_entry in entries:
         for entry in wrapper_entry:
             # schema checks should gaurantee we have these fields, but we'll code defensively
@@ -55,7 +59,9 @@ def run_dependency_aware_rule(
     targets: List[Path],
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
-    Run a dependency aware rule.
+    Run a dependency aware rule. These rules filters the results based on the precense or absence
+    of dependencies. Dependencies are determined by searching for lockfiles under the first entry
+    in the `targets` argument.
     """
 
     # print(list(targets[0].parents))
@@ -74,7 +80,7 @@ def run_dependency_aware_rule(
     if len(matches) == 0:
         # if there are no semgrep patterns in the rule, just the dependency restriction,
         # we may still report a result if the dependency is present
-        if rule.has_runable_semgrep_rules:
+        if rule.should_run_on_semgrep_core:
             return [], dep_rule_errors
         else:
             # the rule didn't actually have any runnable semgrep rules
@@ -96,7 +102,7 @@ def run_dependency_aware_rule(
             ]
 
     try:
-        depends_on_entries = list(parse_depends_on_restrictions(dependencies))
+        depends_on_entries = list(parse_depends_on_yaml(dependencies))
         output = list(
             dependencies_range_match_any(
                 depends_on_entries, find_and_parse_lockfiles(top_level_target)

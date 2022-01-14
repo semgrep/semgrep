@@ -149,6 +149,10 @@ class Rule:
 
     @property
     def project_depends_on(self) -> Optional[List[List[Dict[str, str]]]]:
+        """
+        If the rule contains `project-depends-on` keys under patterns, return the values of those keys
+        Otherwise return None
+        """
         # TODO: in initial implementation, this key is allowed only as a top-level key under `patterns`
         PROJECT_DEPENDS_ON_KEY_NAME = "r2c-internal-project-depends-on"
         matched_keys = [d for d in self._raw.get("patterns", [])]
@@ -205,14 +209,11 @@ class Rule:
         ).hexdigest()
 
     @property
-    def has_runable_semgrep_rules(self) -> bool:
+    def should_run_on_semgrep_core(self) -> bool:
         """
-        # if there is only a single patterns key
-        single_patterns_key = rule.rawRuleValidation.PATTERN_KEYS
-        # and the patterns key only has `project-depends-on` as a child
-
-        # then it doesn't have any runable rules
-        return False
+        Used to detect whether the rule had patterns that need to run on the core
+        (beyond Python-handled patterns, like `pattern-depends-on`).
+        Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
 
         def has_runnable_rule(d: Dict[str, Any]) -> bool:
