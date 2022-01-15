@@ -160,7 +160,7 @@ class CoreRunner:
                         semgrep_output,
                         semgrep_error_output,
                     )
-                raise errors[0].to_semgrep_error(RuleId(rule.id))
+                raise errors[0].to_semgrep_error()
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -317,21 +317,26 @@ class CoreRunner:
                             continue
                         all_targets = all_targets.union(targets)
 
-                        target_file.write("\n".join(map(lambda p: str(p), targets)))
+                        # TODO: use atdgen-py
+                        # The format of this JSON is specified in
+                        # interfaces/Input_to_core.atd
+                        array = [
+                            {"path": str(p), "language": str(language)} for p in targets
+                        ]
+                        target_file.write(json.dumps(array))
                         target_file.flush()
+
                         yaml = YAML()
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
 
                         cmd = [SemgrepCore.path()] + [
-                            "-lang",
-                            str(language),
                             "-json",
-                            "-config",
+                            "-rules",
                             rule_file.name,
                             "-j",
                             str(self._jobs),
-                            "-target_file",
+                            "-targets",
                             target_file.name,
                             "-use_parsing_cache",
                             semgrep_core_ast_cache_dir,
@@ -366,9 +371,7 @@ class CoreRunner:
 
                     # end with tempfile.NamedTemporaryFile(...) ...
                     outputs[rule].extend(core_output.rule_matches(rule))
-                    parsed_errors = [
-                        e.to_semgrep_error(RuleId(rule.id)) for e in core_output.errors
-                    ]
+                    parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                     for err in core_output.errors:
                         if err.is_timeout():
                             assert err.path is not None
@@ -465,8 +468,6 @@ class CoreRunner:
             output_json = self._extract_core_output(metachecks[0], core_run)
             core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
 
-            parsed_errors += [
-                e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
-            ]
+            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
 
         return dedup_errors(parsed_errors)

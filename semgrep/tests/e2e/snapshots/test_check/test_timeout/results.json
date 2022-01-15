@@ -3,9 +3,9 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Semgrep Core WARN - Timeout: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Run_semgrep.timeout_function:1",
+      "message": "Semgrep Core WARN - Timeout: When running forcetimeout on targets/equivalence/open_redirect.py: Run_semgrep.timeout_function:1",
       "path": "targets/equivalence/open_redirect.py",
-      "rule_id": "rules.forcetimeout",
+      "rule_id": "forcetimeout",
       "type": "Timeout"
     }
   ],
