@@ -567,6 +567,12 @@ def url_for_policy(config_str: str) -> str:
     Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
     """
     deployment_id = Authentication.get_deployment_id()
+
+    if deployment_id is None:
+        raise SemgrepError(
+            "Invalid API Key. Run `semgrep logout` and `semgrep login` again."
+        )
+
     repo_name = os.environ.get("SEMGREP_REPO_NAME")
     include_cai = os.environ.get("SEMGREP_POLICY_INCLUDE_CAI")
 
