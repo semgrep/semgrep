@@ -3,7 +3,7 @@
     {
       "code": 8,
       "level": "error",
-      "long_msg": "unsupported language: intercal. supported languages are: bash, c, c#, c++, cpp, csharp, generic, go, golang, hack, hcl, html, java, javascript, js, json, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, terraform, tf, ts, typescript, vue, yaml",
+      "long_msg": "unsupported language: intercal. supported languages are: bash, c, c#, c++, cpp, csharp, docker, dockerfile, generic, go, golang, hack, hcl, html, java, javascript, js, json, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, sol, solidity, terraform, tf, ts, typescript, vue, yaml",
       "short_msg": "invalid language: intercal",
       "spans": [
         {
