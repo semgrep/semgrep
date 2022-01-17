@@ -11,4 +11,4 @@ rules:
   severity: WARNING
   languages: [kt]
   patterns:
-  - patterns-from: r/kotlin.lang.security.cookie-missing-secure-flag
+  - r2c-internal-patterns-from: r/kotlin.lang.security.cookie-missing-secure-flag

@@ -7,7 +7,7 @@ rules:
           - pattern: |
               $EL.outerHTML = $HTML;
           - pattern: document.write(...)
-      - patterns-from: ./safe-document-html-filters.yaml
+      - r2c-internal-patterns-from: ./safe-document-html-filters.yaml
     message: User controlled data in methods like `innerHTML`, `outerHTML` or
       `document.write` is an anti-pattern that can lead to XSS vulnerabilities
     metadata:

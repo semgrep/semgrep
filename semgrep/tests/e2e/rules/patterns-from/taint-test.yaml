@@ -24,7 +24,7 @@ rules:
   mode: taint
   pattern-sources:
   - patterns:
-    - patterns-from: ./taint-sources.yaml
+    - r2c-internal-patterns-from: ./taint-sources.yaml
   pattern-sinks:
   - patterns:
-    - patterns-from: ./taint-sinks.yaml
+    - r2c-internal-patterns-from: ./taint-sinks.yaml

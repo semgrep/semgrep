@@ -16,7 +16,7 @@ definitions:
       - $ref: '#/definitions/pattern-regex'
       - $ref: '#/definitions/pattern-not-regex'
       - $ref: '#/definitions/pattern-where-python'
-      - $ref: '#/definitions/patterns-from'
+      - $ref: '#/definitions/r2c-internal-patterns-from'
       - $ref: '#/definitions/metavariable-regex'
       - $ref: '#/definitions/metavariable-pattern'
       - $ref: '#/definitions/metavariable-comparison'
@@ -320,14 +320,14 @@ definitions:
     required:
       - pattern-where-python
     additionalProperties: false
-  patterns-from:
+  r2c-internal-patterns-from:
     type: object
     properties:
-      patterns-from:
+      r2c-internal-patterns-from:
         title: Return finding where Python expression returns true
         type: string
     required:
-      - patterns-from
+      - r2c-internal-patterns-from
     additionalProperties: false
   path-array:
     type: array
