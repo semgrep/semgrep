@@ -649,7 +649,7 @@ let parse file =
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(program Program dockerfile_ast))
 
-let parse_pattern str =
+let parse_dockerfile_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () -> Tree_sitter_dockerfile.Parse.string str)
@@ -658,3 +658,10 @@ let parse_pattern str =
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(any input_kind dockerfile_ast))
+
+let parse_pattern str =
+  let dockerfile_res = parse_dockerfile_pattern str in
+  if dockerfile_res.errors = [] then dockerfile_res
+  else
+    let bash_res = Parse_bash_tree_sitter.parse_pattern str in
+    if bash_res.errors = [] then bash_res else dockerfile_res
