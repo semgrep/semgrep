@@ -160,7 +160,7 @@ class CoreRunner:
                         semgrep_output,
                         semgrep_error_output,
                     )
-                raise errors[0].to_semgrep_error(RuleId(rule.id))
+                raise errors[0].to_semgrep_error()
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -371,9 +371,7 @@ class CoreRunner:
 
                     # end with tempfile.NamedTemporaryFile(...) ...
                     outputs[rule].extend(core_output.rule_matches(rule))
-                    parsed_errors = [
-                        e.to_semgrep_error(RuleId(rule.id)) for e in core_output.errors
-                    ]
+                    parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                     for err in core_output.errors:
                         if err.is_timeout():
                             assert err.path is not None
@@ -470,8 +468,6 @@ class CoreRunner:
             output_json = self._extract_core_output(metachecks[0], core_run)
             core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
 
-            parsed_errors += [
-                e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
-            ]
+            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
 
         return dedup_errors(parsed_errors)

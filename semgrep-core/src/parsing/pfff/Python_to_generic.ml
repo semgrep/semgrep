@@ -548,6 +548,9 @@ and stmt_aux x =
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
+  (* TODO: v1 contains actually a list of lhs, because a = b = c is
+   * translated in Assign ([a;b], c)
+   *)
   | Assign (v1, v2, v3) -> (
       let v1 = list expr v1 and v2 = info v2 and v3 = expr v3 in
       match v1 with
@@ -625,7 +628,7 @@ and stmt_aux x =
             |> G.s;
           ])
   (* TODO: unsugar in sequence? *)
-  | With (_t, v1, v2, v3) ->
+  | With (_t, (v1, v2), v3) ->
       let v1 = expr v1 and v2 = option expr v2 and v3 = list_stmt1 v3 in
       let anys =
         match v2 with
