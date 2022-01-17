@@ -1,0 +1,260 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.patterns-from.insecure-document-method",
+      "end": {
+        "col": 49,
+        "line": 5,
+        "offset": 142
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "  el.innerHTML = '<div>' + userInput + '</div>';",
+        "message": "User controlled data in methods like `innerHTML`, `outerHTML` or `document.write` is an anti-pattern that can lead to XSS vulnerabilities",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "owasp": "A7: Cross-Site Scripting (XSS)",
+          "technology": [
+            "browser"
+          ]
+        },
+        "metavars": {
+          "$EL": {
+            "abstract_content": "el",
+            "end": {
+              "col": 5,
+              "line": 5,
+              "offset": 98
+            },
+            "start": {
+              "col": 3,
+              "line": 5,
+              "offset": 96
+            },
+            "unique_id": {
+              "sid": 1,
+              "type": "id"
+            }
+          },
+          "$HTML": {
+            "abstract_content": "'<div>'+userInput+'</div>'",
+            "end": {
+              "col": 48,
+              "line": 5,
+              "offset": 141
+            },
+            "start": {
+              "col": 18,
+              "line": 5,
+              "offset": 111
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/pattern-addr-test.js",
+      "start": {
+        "col": 3,
+        "line": 5,
+        "offset": 96
+      }
+    },
+    {
+      "check_id": "rules.patterns-from.insecure-document-method",
+      "end": {
+        "col": 39,
+        "line": 10,
+        "offset": 247
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "  document.body.outerHTML = userInput;",
+        "message": "User controlled data in methods like `innerHTML`, `outerHTML` or `document.write` is an anti-pattern that can lead to XSS vulnerabilities",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "owasp": "A7: Cross-Site Scripting (XSS)",
+          "technology": [
+            "browser"
+          ]
+        },
+        "metavars": {
+          "$EL": {
+            "abstract_content": "document.body",
+            "end": {
+              "col": 16,
+              "line": 10,
+              "offset": 224
+            },
+            "start": {
+              "col": 3,
+              "line": 10,
+              "offset": 211
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$HTML": {
+            "abstract_content": "userInput",
+            "end": {
+              "col": 38,
+              "line": 10,
+              "offset": 246
+            },
+            "start": {
+              "col": 29,
+              "line": 10,
+              "offset": 237
+            },
+            "unique_id": {
+              "sid": 5,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/pattern-addr-test.js",
+      "start": {
+        "col": 3,
+        "line": 10,
+        "offset": 211
+      }
+    },
+    {
+      "check_id": "rules.patterns-from.insecure-document-method",
+      "end": {
+        "col": 23,
+        "line": 16,
+        "offset": 383
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "  document.write(name);",
+        "message": "User controlled data in methods like `innerHTML`, `outerHTML` or `document.write` is an anti-pattern that can lead to XSS vulnerabilities",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "owasp": "A7: Cross-Site Scripting (XSS)",
+          "technology": [
+            "browser"
+          ]
+        },
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/pattern-addr-test.js",
+      "start": {
+        "col": 3,
+        "line": 16,
+        "offset": 363
+      }
+    },
+    {
+      "check_id": "rules.patterns-from.insecure-document-method",
+      "end": {
+        "col": 23,
+        "line": 22,
+        "offset": 496
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "  el.innerHTML = name;",
+        "message": "User controlled data in methods like `innerHTML`, `outerHTML` or `document.write` is an anti-pattern that can lead to XSS vulnerabilities",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "owasp": "A7: Cross-Site Scripting (XSS)",
+          "technology": [
+            "browser"
+          ]
+        },
+        "metavars": {
+          "$EL": {
+            "abstract_content": "el",
+            "end": {
+              "col": 5,
+              "line": 22,
+              "offset": 478
+            },
+            "start": {
+              "col": 3,
+              "line": 22,
+              "offset": 476
+            },
+            "unique_id": {
+              "sid": 1,
+              "type": "id"
+            }
+          },
+          "$HTML": {
+            "abstract_content": "name",
+            "end": {
+              "col": 22,
+              "line": 22,
+              "offset": 495
+            },
+            "start": {
+              "col": 18,
+              "line": 22,
+              "offset": 491
+            },
+            "unique_id": {
+              "sid": 11,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/pattern-addr-test.js",
+      "start": {
+        "col": 3,
+        "line": 22,
+        "offset": 476
+      }
+    },
+    {
+      "check_id": "rules.patterns-from.insecure-document-method",
+      "end": {
+        "col": 39,
+        "line": 27,
+        "offset": 587
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "  document.write(\"<div>it's ok</div>\");",
+        "message": "User controlled data in methods like `innerHTML`, `outerHTML` or `document.write` is an anti-pattern that can lead to XSS vulnerabilities",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "owasp": "A7: Cross-Site Scripting (XSS)",
+          "technology": [
+            "browser"
+          ]
+        },
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/pattern-addr-test.js",
+      "start": {
+        "col": 3,
+        "line": 27,
+        "offset": 551
+      }
+    }
+  ]
+}
