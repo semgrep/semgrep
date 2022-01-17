@@ -394,18 +394,18 @@ class Config:
         Replace patterns-from key references by looking them up in `rule_cache`, returning a new config
         """
         # TODO handle circular patterns-from
+
+        def replace_patterns_from(key: str, value: str) -> Tuple[Any, Any]:
+            if key != PATTERNS_FROM_KEY_NAME:
+                return key, value
+            remote_value = rule_cache[value].raw.get("patterns", [])
+            print(f"replacing with new value: {remote_value}")
+            return "patterns", remote_value
+
         new_configs = {}
         for config_id, rules in valid_configs.items():
             new_rules = []
             for rule in rules:
-
-                def replace_patterns_from(key: str, value: str) -> Any:
-                    if key != PATTERNS_FROM_KEY_NAME:
-                        return value
-                    remote_value = rule_cache[value].raw.get("patterns", [])
-                    # print(f'replacing with new value: {remote_value}')
-                    return remote_value
-
                 new_rule = copy.deepcopy(rule)
                 dict_mutate_keyvalues(new_rule.raw, replace_patterns_from)
                 new_rules.append(new_rule)
