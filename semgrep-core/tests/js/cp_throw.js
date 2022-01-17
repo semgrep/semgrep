@@ -1,7 +1,7 @@
 function foo(input) {
-  var x;
+  var x = "hello";
   if (random()) {
-    x = "hello";
+    bar();
   }
   else {
     throw "error";

@@ -60,16 +60,22 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Bash ->
         let res = Parse_bash_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Dockerfile ->
+        let res = Parse_dockerfile_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Rust ->
         let res = Parse_rust_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Kotlin ->
         let res = Parse_kotlin_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.HTML ->
+    | Lang.Solidity ->
+        let res = Parse_solidity_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Html ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    | Lang.HCL ->
+    | Lang.Hcl ->
         let res = Parse_hcl_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
@@ -80,18 +86,18 @@ let parse_pattern lang ?(print_errors = false) str =
         let any = Parse_python.any_of_string ~parsing_mode str in
         Python_to_generic.any any
     (* abusing JS parser so no need extend tree-sitter grammar*)
-    | Lang.Typescript
-    | Lang.Javascript
+    | Lang.Ts
+    | Lang.Js
     | Lang.Vue ->
         let any = Parse_js.any_of_string str in
         Js_to_generic.any any
-    | Lang.JSON ->
+    | Lang.Json ->
         let any = Parse_json.any_of_string str in
         Json_to_generic.any any
     | Lang.C ->
         let any = Parse_c.any_of_string str in
         C_to_generic.any any
-    | Lang.Cplusplus ->
+    | Lang.Cpp ->
         (* TODO: use tree-sitter-cpp at some point, probably more robust *)
         let any = Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus str in
         Cpp_to_generic.any any
@@ -101,7 +107,7 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Go ->
         let any = Parse_go.any_of_string str in
         Go_to_generic.any any
-    | Lang.OCaml ->
+    | Lang.Ocaml ->
         let any = Parse_ml.any_of_string str in
         Ml_to_generic.any any
     | Lang.Scala ->
@@ -110,12 +116,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Ruby ->
         let any = Parse_ruby.any_of_string str in
         Ruby_to_generic.any any
-    | Lang.PHP ->
+    | Lang.Php ->
         let any_cst = Parse_php.any_of_string str in
-        let any =
-          Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-              Ast_php_build.any any_cst)
-        in
+        let any = Ast_php_build.any any_cst in
         Php_to_generic.any any
     | Lang.Hack ->
         let res = Parse_hack_tree_sitter.parse_pattern str in

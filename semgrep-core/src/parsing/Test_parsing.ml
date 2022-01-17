@@ -16,7 +16,7 @@ module PI = Parse_info
 module G = AST_generic
 module J = JSON
 module FT = File_type
-module Resp = Semgrep_core_response_t
+module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -89,11 +89,14 @@ let dump_tree_sitter_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
-  | Lang.Javascript ->
+  | Lang.Solidity ->
+      Tree_sitter_solidity.Parse.file file
+      |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
+  | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
       |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
-  | Lang.Typescript ->
+  | Lang.Ts ->
       Tree_sitter_typescript.Parse.file file
       |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
   | Lang.Lua ->
@@ -102,32 +105,34 @@ let dump_tree_sitter_cst lang file =
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
-  | Lang.OCaml ->
+  | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
       |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
-  | Lang.Cplusplus ->
+  | Lang.Cpp ->
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
-  | Lang.HTML ->
+  | Lang.Html ->
       Tree_sitter_html.Parse.file file
       |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
   | Lang.Vue ->
       Tree_sitter_vue.Parse.file file
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
-  | Lang.PHP ->
+  | Lang.Php ->
       Tree_sitter_php.Parse.file file
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
-  | Lang.HCL ->
+  | Lang.Hcl ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
   let paths = List.map Common.fullpath root_paths in
-  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang paths in
+  let paths, _skipped_paths =
+    Find_target.files_of_dirs_or_files (Some lang) paths
+  in
   let stat_list = ref [] in
   paths
   |> Console.progress (fun k ->
@@ -150,32 +155,32 @@ let test_parse_tree_sitter lang root_paths =
                  | Lang.Kotlin ->
                      Tree_sitter_kotlin.Parse.file file
                      |> fail_on_error |> ignore
-                 | Lang.Javascript ->
+                 | Lang.Js ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Typescript ->
+                 | Lang.Ts ->
                      Tree_sitter_typescript.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.Rust ->
                      Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
-                 | Lang.OCaml ->
+                 | Lang.Ocaml ->
                      Tree_sitter_ocaml.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.C ->
                      Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Cplusplus ->
+                 | Lang.Cpp ->
                      Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HTML ->
+                 | Lang.Html ->
                      Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
                  | Lang.Vue ->
                      Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
-                 | Lang.PHP ->
+                 | Lang.Php ->
                      Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HCL ->
+                 | Lang.Hcl ->
                      Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
                  | _ ->
                      failwith
                        (spf "lang %s not supported with tree-sitter"
-                          (Lang.string_of_lang lang)));
+                          (Lang.to_string lang)));
                  PI.correct_stat file
                with exn ->
                  print_exn file exn;
@@ -238,7 +243,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     (* = absolute paths *)
     List.map Common.fullpath files_or_dirs
   in
-  let paths, skipped = Find_target.files_of_dirs_or_files lang paths in
+  let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
     paths
     |> List.rev_map (fun file ->
@@ -431,7 +436,7 @@ let diff_pfff_tree_sitter xs =
 
 let test_parse_rules roots =
   let targets, _skipped_paths =
-    Find_target.files_of_dirs_or_files Lang.Yaml roots
+    Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->

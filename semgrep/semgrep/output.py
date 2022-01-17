@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -88,6 +89,10 @@ def _build_time_target_json(
     return target_json
 
 
+# coupling: if you change the JSON schema below, you probably need to
+# also modify perf/run-benchmarks. Run locally
+#    $ ./run-benchmarks --dummy --upload
+# to double check everything still works
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
@@ -109,7 +114,7 @@ def _build_time_json(
     time_info["rule_parse_info"] = [
         profiling_data.get_rule_parse_time(rule) for rule in rules
     ]
-    time_info["total_time"] = profiler.calls["total_time"][0] if profiler else -1.0
+    time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
         _build_time_target_json(rules, target, num_bytes, profiling_data)
@@ -175,7 +180,6 @@ class OutputHandler:
         self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
-        self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.stats_line: Optional[str] = None
         self.all_targets: Set[Path] = set()
         self.profiler: Optional[ProfileManager] = None
@@ -255,7 +259,6 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
         all_targets: Set[Path],
         profiler: ProfileManager,
@@ -273,7 +276,6 @@ class OutputHandler:
         self.profiler = profiler
         self.all_targets = all_targets
         self.stats_line = stats_line
-        self.debug_steps_by_rule.update(debug_steps_by_rule)
         self.filtered_rules = filtered_rules
         self.profiling_data = profiling_data
         if severities:
@@ -319,18 +321,18 @@ class OutputHandler:
                 self.settings.output_per_finding_max_lines_limit,
                 self.settings.output_per_line_max_chars_limit,
             )
-            if output:
-                try:
-                    print(output, file=self.stdout)
-                except UnicodeEncodeError as ex:
-                    raise Exception(
-                        "Received output encoding error, please set PYTHONIOENCODING=utf-8"
-                    ) from ex
-            if self.stats_line:
-                logger.info(self.stats_line)
-
             if self.settings.output_destination:
                 self.save_output(self.settings.output_destination, output)
+            else:
+                if output:
+                    try:
+                        print(output, file=self.stdout)
+                    except UnicodeEncodeError as ex:
+                        raise Exception(
+                            "Received output encoding error, please set PYTHONIOENCODING=utf-8"
+                        ) from ex
+            if self.stats_line:
+                logger.info(self.stats_line)
 
         final_error = None
         error_stats = None
@@ -342,9 +344,14 @@ class OutputHandler:
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
-            # make a simplifying assumption that # errors = # files failed
-            # it's a quite a bit of work to simplify further because errors may or may not have path, span, etc.
-            num_errors = len(self.semgrep_structured_errors)
+            # Assumption: only the semgrep core errors pertain to files
+            semgrep_core_errors = [
+                cast(SemgrepCoreError, err)
+                for err in self.semgrep_structured_errors
+                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+            ]
+            paths = set(err.path for err in semgrep_core_errors)
+            num_errors = len(paths)
             plural = "s" if num_errors > 1 else ""
             error_stats = f"found problems analyzing {num_errors} file{plural}"
             final_error = self.semgrep_structured_errors[-1]
@@ -385,17 +392,13 @@ class OutputHandler:
         per_line_max_chars_limit: Optional[int],
     ) -> str:
         extra: Dict[str, Any] = {}
-        if self.settings.debug:
-            extra["debug"] = [
-                {rule.id: steps for rule, steps in self.debug_steps_by_rule.items()}
-            ]
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
                 "loc": make_loc_stats(self.all_targets),
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
-        if self.settings.output_time:
+        if self.settings.output_time or self.settings.verbose_errors:
             extra["time"] = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,

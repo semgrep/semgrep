@@ -146,17 +146,18 @@ class CoreError:
         """
         return self.error_type == CoreErrorType("Timeout")
 
-    def to_semgrep_error(self, rule_id: RuleId) -> SemgrepCoreError:
+    def to_semgrep_error(self) -> SemgrepCoreError:
+        reported_rule_id = self.rule_id
+
         # TODO benchmarking code relies on error code value right now
-        if self.error_type == CoreErrorType("Syntax error"):
+        # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
+        if self.error_type == CoreErrorType(
+            "Syntax error"
+        ) or self.error_type == CoreErrorType("Lexical error"):
             code = 3
+            reported_rule_id = None  # Rule id not important for parse errors
         else:
             code = 2
-
-        # TODO https://github.com/returntocorp/semgrep/issues/3861
-        reported_rule_id = self.rule_id
-        if self.is_timeout() or self.error_type == CoreErrorType("Out of memory"):
-            reported_rule_id = rule_id
 
         return SemgrepCoreError(
             code,

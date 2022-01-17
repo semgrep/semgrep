@@ -98,14 +98,6 @@ module G = AST_generic
    program. *)
 type env = AST_bash.input_kind
 
-let is_pattern = function
-  | Pattern -> true
-  | Program -> false
-
-let is_program = function
-  | Program -> true
-  | Pattern -> false
-
 (* Temporary representation.
    Avoids superfluous early wrapping of expressions in statements and
    vice-versa. *)
@@ -113,14 +105,14 @@ type stmt_or_expr = Stmt of loc * G.stmt | Expr of loc * G.expr
 
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
-let expr_of_stmt loc (st : G.stmt) : G.expr = G.stmt_to_expr st
+let expr_of_stmt (st : G.stmt) : G.expr = G.stmt_to_expr st
 
 let as_stmt : stmt_or_expr -> G.stmt = function
   | Stmt (loc, st) -> st
   | Expr (loc, e) -> stmt_of_expr loc e
 
 let as_expr : stmt_or_expr -> G.expr = function
-  | Stmt (loc, st) -> expr_of_stmt loc st
+  | Stmt (loc, st) -> expr_of_stmt st
   | Expr (loc, e) -> e
 
 let stmt_or_expr_loc = function
@@ -131,7 +123,7 @@ let stmt_or_expr_loc = function
 let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
   | several ->
-      let loc = list_loc stmt_or_expr_loc several in
+      let loc = Loc.of_list stmt_or_expr_loc several in
       let stmts = List.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
@@ -216,8 +208,6 @@ let todo_stmt (loc : loc) : G.stmt =
 let todo_expr (loc : loc) : G.expr =
   let t = fst loc in
   G.e (G.OtherExpr (("BashTodo", t), todo_tokens loc))
-
-let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
 let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 

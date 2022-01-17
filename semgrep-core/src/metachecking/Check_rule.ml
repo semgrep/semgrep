@@ -20,7 +20,7 @@ module E = Semgrep_error_code
 module PI = Parse_info
 module P = Pattern_match
 module RP = Report
-module SJ = Semgrep_core_response_j
+module SJ = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -50,7 +50,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * and only have to display them.
  *
  * Alternatives considered were having `-check_rules` only run the OCaml checks
- * and have semgrep call `semgrep-core -config` on the checks
+ * and have semgrep call `semgrep-core -rules` on the checks
  *
  * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
  *
@@ -165,13 +165,15 @@ let semgrep_check config metachecks rules =
   let config =
     {
       config with
-      Runner_common.lang = Some (Xlang.of_lang Yaml);
-      config_file = metachecks;
+      Runner_config.lang = Some (Xlang.of_lang Yaml);
+      rules_file = metachecks;
       output_format = Json;
+      (* the targets are actually the rules! metachecking! *)
+      roots = rules;
     }
   in
   let _success, res, _targets =
-    Run_semgrep.run_semgrep_with_rules config rules
+    Run_semgrep.semgrep_with_raw_results_and_exn_handler config
   in
   res.matches |> List.map match_to_semgrep_error
 

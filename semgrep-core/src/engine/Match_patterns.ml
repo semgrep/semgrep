@@ -171,13 +171,12 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
    * identifiers or strings from the pattern, then the pattern is too general
    * and we must analyze the stmt
    *)
-  match st.s_bf with
+  match st.s_strings with
   (* No bloom filter, expected if -bloom_filter is not used *)
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf ->
-      Bloom_filter.is_subset pattern_strs bf
-      = Bloom_filter.Maybe
+  | Some strs ->
+      Set_.subset pattern_strs strs
       |> Common.before_return (fun b ->
              if not b then logger#debug "skipping pattern on stmt %d" st.s_id)
 
@@ -193,8 +192,8 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
  *   filter allows us to avoid all that expensive stuff when matching expressions
  *   unless they fall in specific regions of the code.
  *   See also docs for {!check} in Match_pattern.mli. *)
-let check2 ~hook range_filter config rules equivs (file, lang, ast) =
-  logger#info "checking %s with %d mini rules" file (List.length rules);
+let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
+  logger#trace "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)
@@ -242,8 +241,8 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
            let push_with_annotation any pattern rules =
              let strs =
                if !Flag.use_bloom_filter then
-                 Bloom_annotation.list_of_pattern_strings any
-               else []
+                 Bloom_annotation.set_of_pattern_strings any
+               else Set_.empty
              in
              Common.push (pattern, strs, rule, cache) rules
            in
@@ -274,10 +273,8 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             |> List.iter (fun (pattern, _bf, rule, cache) ->
                    match V.range_of_any_opt (E x) with
                    | None ->
-                       (* TODO: Report a warning to the user? *)
-                       logger#error
-                         "Cannot report match because we lack range info: %s"
-                         (show_expr x);
+                       logger#error "Skipping because we lack range info: %s"
+                         (show_expr_kind x.e);
                        ()
                    | Some range_loc when range_filter range_loc ->
                        let env = MG.empty_environment cache config in
@@ -470,6 +467,6 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
     |> PM.uniq
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook ?(range_filter = fun _ -> true) config a b c =
-  Common.profile_code "Semgrep_generic.check" (fun () ->
-      check2 ~hook range_filter config a b c)
+let check ~hook ?(range_filter = fun _ -> true) config a b =
+  Common.profile_code "Match_patterns.check" (fun () ->
+      check2 ~hook range_filter config a b)

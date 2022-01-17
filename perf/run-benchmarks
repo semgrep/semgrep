@@ -51,17 +51,20 @@ handler.setFormatter(
 )
 logger.addHandler(handler)
 
+FINDINGS_SNAPSHOT_PATH = "snapshots/benchmark_findings.json"
+PERF_PATH = "semgrep/perf"
+PERF_RULE_PATH = "semgrep.perf"
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
 class SemgrepResult:
     def __init__(self, dict: dict) -> None:
         self.res = dict
+        dict2 = copy.deepcopy(dict)
 
         # We use self.str to compare dicts, so change this
         # to abstract away differences
-        if "extra" in dict:
-            dict2 = copy.deepcopy(dict)
+        if "extra" in dict2:
             # TODO: spacegrep.py calls dedent() on lines (not sure why)
             if "lines" in dict2["extra"]:
                 dict2["extra"]["lines"] = ""
@@ -75,9 +78,15 @@ class SemgrepResult:
                 # but with different metavars
                 dict2["extra"]["metavars"] = ""
 
-            self.str = json.dumps(dict2, sort_keys=True)
-        else:
-            self.str = json.dumps(dict, sort_keys=True)
+        # Abbreviate paths to avoid file-system differences
+        if "path" in dict2:
+            relative_path_start = dict2["path"].find(PERF_PATH)
+            dict2["path"] = dict2["path"][relative_path_start:]
+        if "check_id" in dict2:
+            relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
+            dict2["check_id"] = dict2["check_id"][relative_path_start:]
+
+        self.str = json.dumps(dict2, sort_keys=True)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
@@ -125,10 +134,12 @@ def upload_result(
     if variant_name == STD and timings is not None:
         # Compute bps from semgrep timing data
         assert "rules" in timings
-        assert "total_time" in timings
+        assert "profiling_times" in timings
         assert "total_bytes" in timings
+        prof_times = timings["profiling_times"]
+        assert "total_time" in prof_times
         num_rules = len(timings["rules"])
-        bps = timings["total_bytes"] / (timings["total_time"] * num_rules)
+        bps = timings["total_bytes"] / (prof_times["total_time"] * num_rules)
 
         bps_url = f"{DASHBOARD_URL}/api/metric/{BPS_ENDPOINT}"
         upload(bps_url, str(bps))
@@ -143,7 +154,7 @@ def upload_result(
                     num_lines += sum(1 for _ in f)
                 except UnicodeDecodeError:
                     pass
-        lps = num_lines / (timings["total_time"] * num_rules)
+        lps = num_lines / (prof_times["total_time"] * num_rules)
 
         lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
         upload(lps_url, str(lps))
@@ -173,6 +184,18 @@ def standardize_findings(findings: dict, include_time: bool) -> Tuple[dict, dict
     }
     timings = findings["time"] if include_time else None
     return results, timings
+
+
+def jsonify_findings(findings: dict) -> dict:
+    """
+    Turn findings into a jsonifiable dictionary.
+    This will later be used in scripts/compare_perf to confirm correctness of benchmarks.
+    Important that the results are sorted, so that the results are order-independent
+    """
+    return {
+        "errors": findings["errors"],
+        "results": [json.loads(finding.str) for finding in sorted(findings["results"])],
+    }
 
 
 def output_differences(
@@ -396,6 +419,8 @@ def run_benchmarks(
     include_time: bool,
     clean: bool,
     summary_file_path: str,
+    findings_file_path: str,
+    findings_snapshot_update: bool,
     called_dir: str,
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
@@ -417,6 +442,7 @@ def run_benchmarks(
     results_msgs = []
     durations = []
     results: dict = {variant.name: [] for variant in variants}
+    saved_findings = []
     output_per_rule_json_results = RepositoryTimePerRule(
         output_file=output_time_per_rule_json
     )
@@ -484,6 +510,8 @@ def run_benchmarks(
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
                 results_msgs.append(msg)
+
+                findings, timings = standardize_findings(semgrep_results, include_time)
                 durations.append(
                     {
                         "name": name,
@@ -491,8 +519,6 @@ def run_benchmarks(
                     }
                 )
                 results[variant.name].append(duration)
-
-                findings, timings = standardize_findings(semgrep_results, include_time)
 
                 if upload:
                     upload_result(variant.name, metric_name, duration, timings)
@@ -514,6 +540,13 @@ def run_benchmarks(
                 elif len(findings["errors"]) > len(std_findings["errors"]):
                     results_msgs[-1] += " WARNING: more errors than std"
 
+            saved_findings.append(
+                {
+                    "name": ".".join(["semgrep", "bench", corpus.name]),
+                    "findings": jsonify_findings(std_findings),
+                }
+            )
+
     # Show summary data
     print("\n".join(results_msgs))
 
@@ -521,6 +554,15 @@ def run_benchmarks(
         with chdir(called_dir):
             with open(summary_file_path, "w") as f:
                 json.dump(durations, f)
+
+    if findings_file_path:
+        with chdir(called_dir):
+            with open(findings_file_path, "w") as f:
+                json.dump(saved_findings, f)
+
+    if findings_snapshot_update:
+        with open(FINDINGS_SNAPSHOT_PATH, "w") as f:
+            json.dump(saved_findings, f)
 
     if plot_benchmarks:
         import matplotlib.pyplot as plt
@@ -595,12 +637,20 @@ def main() -> None:
         help="save timing summary to the json file given by the argument",
     )
     parser.add_argument(
-        "--plot-benchmarks",
-        help="display a graph of the benchmark results",
+        "--save-findings-to",
+        metavar="FILE_NAME",
+        type=str,
+        help="save findings to the json file given by the argument",
+    )
+    parser.add_argument(
+        "--snapshot-update",
+        help="update the snapshot to compare findings against",
         action="store_true",
     )
     parser.add_argument(
-        "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
+        "--plot-benchmarks",
+        help="display a graph of the benchmark results",
+        action="store_true",
     )
     parser.add_argument(
         "--hard-timeout",
@@ -645,6 +695,8 @@ def main() -> None:
             include_time=not args.no_time,
             clean=args.clean,
             summary_file_path=args.save_to,
+            findings_file_path=args.save_findings_to,
+            findings_snapshot_update=args.snapshot_update,
             called_dir=called_dir,
         )
 

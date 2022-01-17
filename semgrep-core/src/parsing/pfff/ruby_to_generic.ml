@@ -98,20 +98,31 @@ let rec expr e =
       let e2 = expr e2 in
       let e3 = expr e3 in
       G.Conditional (e1, e2, e3)
-  | Call (e, xs, bopt) ->
+  | Call (e, xs, bopt) -> (
       let e = expr e in
       let lb, xs, rb = bracket (list argument) xs in
-      (* TODO: maybe make an extra separate Call for the block? *)
-      let last = option expr bopt |> Common.opt_to_list in
-      G.Call (e, (lb, xs @ (last |> List.map G.arg), rb))
-  | DotAccess (e, t, m) ->
+      let e_call = G.Call (e, (lb, xs, rb)) in
+      match bopt with
+      | None -> e_call
+      | Some b ->
+          (* There is a block to pass to `e`. We add an extra `Call` so that
+           * `f(x) { |n| puts n }` is translated as `f(x)({ |n| puts n })`
+           * rather than as `f(x, { |n| puts n })`. This way the pattern
+           * `f(...)` will only match `f(x)` and not the entire block,
+           * and `f($X)` will match `f(x)`. *)
+          let barg = b |> expr |> G.arg in
+          G.Call (G.e e_call, (lb, [ barg ], rb)))
+  | DotAccess (e, t, m) -> (
       let e = expr e in
-      let fld =
-        match method_name m with
-        | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
-        | Right e -> G.FDynamic e
-      in
-      G.DotAccess (e, t, fld)
+      match m with
+      | MethodEllipsis t -> G.DotAccessEllipsis (e, t)
+      | _ ->
+          let fld =
+            match method_name m with
+            | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
+            | Right e -> G.FDynamic e
+          in
+          G.DotAccess (e, t, fld))
   | Splat (t, eopt) ->
       let xs = option expr eopt |> Common.opt_to_list |> List.map G.arg in
       let special = G.IdSpecial (G.Spread, t) |> G.e in
@@ -261,7 +272,7 @@ and variable_or_method_name = function
       | Left id -> id
       | Right _ -> failwith "TODO: variable_or_method_name")
 
-and method_name mn =
+and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   match mn with
   | MethodId v -> Left (variable v)
   | MethodIdAssign (id, teq, id_kind) ->
@@ -283,6 +294,8 @@ and method_name mn =
               let t = PI.combine_infos l [ t2; r ] in
               Left (s, t)
           | _ -> Right (string_contents_list (l, xs, r) |> G.e)))
+  (* sgrep-ext: this should be covered in the caller *)
+  | MethodEllipsis t -> raise (Parse_info.Parsing_error t)
 
 and string_contents_list (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in

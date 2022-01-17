@@ -88,7 +88,7 @@ def _assert_sentinel_results(
 
     if output["errors"]:
         pytest.fail(
-            f"Running on {repo_url} with lang {language} had errors ({semgrep_run.args}): "
+            f"Running on {repo_url} (cached in {repo_path}) with lang {language} had errors ({semgrep_run.args}): "
             + json.dumps(output["errors"], indent=4)
         )
 

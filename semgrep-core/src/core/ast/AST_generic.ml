@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -249,8 +249,8 @@ and resolved_name_kind =
    *)
   | Global
   (* Those could be merged, but again this is useful in codemap/efuns *)
-  | Local
-  | Param
+  | LocalVar
+  | Parameter
   (* For closures; can refer to a Local or Param.
    * With sid this is potentially less useful for scoping-related issues,
    * but this can be useful in codemap to again highlight specially
@@ -299,6 +299,8 @@ and resolved_name_kind =
  * analysis to disambiguate. In the meantime, you can use
  * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
  * into an IdQualified name.
+ *
+ * sgrep-ext: note that ident can be a metavariable.
  *)
 type name = Id of ident * id_info | IdQualified of qualified_info
 
@@ -338,12 +340,12 @@ and id_info = {
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
-   * note that we do not use the constness for equality (hence the adhoc
-   * @equal below) because the constness analysis is now controlflow-sensitive
-   * meaning the same variable might have different id_constness value
+   * note that we do not use the svalue for equality (hence the adhoc
+   * @equal below) because the svalue analysis is now controlflow-sensitive
+   * meaning the same variable might have different id_svalue value
    * depending where it is used.
    *)
-  id_constness : constness option ref; [@equal fun _a _b -> true]
+  id_svalue : svalue option ref; [@equal fun _a _b -> true]
   (* THINK: Drop option? *)
   (* id_hidden=true must be set for any artificial identifier that never
      appears in source code but is introduced in the AST after parsing.
@@ -497,13 +499,14 @@ and expr_kind =
   | StmtExpr of stmt
   (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
    * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
-   * Subshell in Ruby, Delete/Unset in JS/Hack,
-   * Unpack, ArrayAppend in PHP (the AST for $x[] = 1 used to be
+   * Subshell in Ruby, Delete/Unset in JS/Hack/Solidity/C++,
+   * Unpack/ArrayAppend in PHP (the AST for $x[] = 1 used to be
    * handled as an AssignOp with special Append).
-   * Define/Arguments/NewTarget//YieldStar in JS
-   * Exports/Module/Require/UseStrict in JS,
+   * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
+   * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
-   * TODO? of replace 'any list' by 'expr list'?
+   * TODO? of replace 'any list' by 'expr list'? any way there's still
+   * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
 
@@ -530,8 +533,13 @@ and literal =
 (* The type of an unknown constant. *)
 and const_type = Cbool | Cint | Cstr | Cany
 
-(* set by the constant propagation algorithm and used in semgrep *)
-and constness = Lit of literal | Cst of const_type | NotCst
+(* semantic value: set by the svalue propagation algorithm and used in semgrep
+ *
+ * Note that we can't track a constant and a symbolic expression at the same
+ * time. If this becomes a problem then we may want to have separate analyses
+ * for constant and symbolic propagation, but having a single one is more
+ * efficient (time- and memory-wise). *)
+and svalue = Lit of literal | Cst of const_type | Sym of expr | NotCst
 
 and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)
@@ -545,9 +553,10 @@ and container_operator =
    *)
   | Tuple
 
-(* For Python/HCL (and Haskell later). The 'expr' is a 'Tuple' to
+(* For Python/HCL (and Haskell later). The 'expr' can be a 'Tuple' to
  * represent a Key/Value pair (like in Container). See keyval() below.
- * newscope:
+ * newscope: for_or_if_comp introduce new local variables whose scope
+ *  is just the first expr.
  *)
 and comprehension = expr * for_or_if_comp list
 
@@ -786,9 +795,18 @@ and argument =
   | Arg of expr (* can be Call (IdSpecial Spread, Id foo) *)
   (* keyword argument *)
   | ArgKwd of ident * expr
+  (* optional keyword argument. This is the same as a keyword argument
+     except that a match is valid if such argument exists in the target
+     code but not in the pattern.
+
+     Warning: ArgKwdOptional arguments must be placed at the end of the
+              list of arguments so as to not shift the positional arguments
+              (Arg) and allow them to match.
+  *)
+  | ArgKwdOptional of ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
-  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
+  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml, ArgIds in Solidity *)
   | OtherArg of todo_kind * any list
 
 (*****************************************************************************)
@@ -831,8 +849,8 @@ and stmt = {
      and before matching.
   *)
   (* used in semgrep to skip some AST matching *)
-  mutable s_bf : Bloom_filter.t option;
-      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_strings : string Set_.t option;
+      [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
   (* used to quickly get the range of a statement *)
   mutable s_range :
     (Parse_info.token_location * Parse_info.token_location) option;
@@ -891,7 +909,7 @@ and stmt_kind =
   (* This is important to correctly compute a CFG. The any should not
    * contain any stmt! *)
   | OtherStmtWithStmt of other_stmt_with_stmt_operator * any list * stmt
-  (* any here should not contain any statement! otherwise the CFG will be
+  (* any here should _not_ contain any statement! otherwise the CFG will be
    * incorrect and some analysis (e.g., liveness) will be incorrect.
    * TODO: other_stmt_operator wrap, so enforce at least one token instead
    * of relying that the any list contains at least one token
@@ -947,6 +965,8 @@ and catch_exn =
    * alt: we could abuse pattern and use PatTyped, but ugly.
    *)
   | CatchParam of parameter_classic
+  (* e.g., CatchEmpty/CatchParams in Solidity *)
+  | OtherCatch of todo_kind * any list
 
 (* ptype should never be None *)
 
@@ -1003,7 +1023,7 @@ and other_stmt_with_stmt_operator =
   | OSWS_UncheckedBlock
   (* C/C++/cpp *)
   | OSWS_Iterator
-  (* Other *)
+  (* e.g., Assembly in Solidity *)
   | OSWS_Todo
 
 and other_stmt_operator =
@@ -1031,7 +1051,7 @@ and other_stmt_operator =
   | OS_Retry
   (* OCaml *)
   | OS_ExprStmt2
-  (* Other *)
+  (* Other: Leave/Emit in Solidity *)
   | OS_Todo
 
 (*****************************************************************************)
@@ -1058,7 +1078,7 @@ and pattern =
   (* less: generalize to other container_operator? *)
   | PatList of pattern list bracket
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
-  (* special case of PatId, =~ PatAny *)
+  (* special case of PatId, TODO: name PatAny *)
   | PatUnderscore of tok
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
@@ -1182,14 +1202,14 @@ and attribute =
 
 and keyword_attribute =
   (* the classic C modifiers (except Auto) *)
-  | Static
+  | Static (* a.k.a Intern in Solidity *)
   | Extern (* less: of string? like extern "C" in C++ or Rust *)
   | Volatile
   (* the classic C++ modifiers for fields/methods *)
   | Public
   | Private
   | Protected
-  | Abstract (* a.k.a virtual in C++ *)
+  | Abstract (* a.k.a virtual in C++/Solidity *)
   (* for fields/methods in classes and also classes *)
   | Final
   | Override
@@ -1242,8 +1262,9 @@ and definition = entity * definition_kind
  * entity (as in 'let (f: int -> int) = fun i -> i + 1), but we
  * currently abuse id_info.id_type for that.
  *
- * see special_multivardef_pattern below for many vardefs in one entity in
- * ident.
+ * Note that with the new entity_name type and EPattern, one entity value
+ * can actually correspond to the definition of multiple vairables.
+ *
  * less: could be renamed entity_def, and name is a kind of entity_use.
  *)
 and entity = {
@@ -1257,16 +1278,15 @@ and entity = {
   tparams : type_parameters;
 }
 
-(* TODO: extend to allow Pattern, to avoid the special multivardef hack.
- * old: used to be merged with field_name in a unique name_or_dynamic
- * but we want MultiEntity just here, hence the fork.
+(* old: used to be merged with field_name in a unique name_or_dynamic
+ * but we want multiple entities (via EPattern) just here, hence the fork.
  *)
 and entity_name =
   | EN of name
   | EDynamic of expr
   (* TODO: replace LetPattern and multivardef hack with that *)
   | EPattern of pattern
-  (* e.g., anon Bitfield in C++ *)
+  (* e.g., AnonBitfield in C++ *)
   | OtherEntity of todo_kind * any list
 
 and definition_kind =
@@ -1314,13 +1334,15 @@ and definition_kind =
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
   (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby,
-   * BitField in C/C++
+   * BitField in C/C++, Event/Modifier in Solidity
    *)
   | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
 and type_parameter =
   | TP of type_parameter_classic
+  (* sgrep-ext: *)
+  | TParamEllipsis of tok
   (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
    * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
    *)
@@ -1388,6 +1410,7 @@ and parameters = parameter list
 
 (* newvar: *)
 and parameter =
+  (* sgrep-ext: note that pname can be a metavariable *)
   | Param of parameter_classic
   (* in OCaml, but also now JS, Python2, Rust *)
   | ParamPattern of pattern
@@ -1544,8 +1567,8 @@ and class_definition = {
  * for EnumClass/AnnotationClass/etc. see keyword_attribute.
  *)
 and class_kind =
-  | Class (* or Struct *)
-  | Interface
+  | Class (* or Struct for C/Solidity *)
+  | Interface (* abused for Contract in Solidity *)
   | Trait
   (* Kotlin/Scala *)
   | Object
@@ -1630,7 +1653,7 @@ and directive_kind =
   | PackageEnd of tok
   | Pragma of ident * any list
   (* e.g., Dynamic include in C, Extern "C" in C++/Rust, Undef in C++/Ruby,
-   * Export/Reexport in Javascript
+   * Export/Reexport in Javascript, Using in Solidity
    * TODO: Declare, move OE_UseStrict here for JS?
    *)
   | OtherDirective of todo_kind * any list
@@ -1688,6 +1711,7 @@ and any =
   | Fld of field
   | Flds of field list
   | Args of argument list
+  | Params of parameter list
   | Partial of partial
   (* misc *)
   | I of ident
@@ -1704,6 +1728,7 @@ and any =
   | Modn of module_name
   | Ce of catch_exn
   | Cs of case
+  | ForOrIfComp of for_or_if_comp
   (* todo: get rid of some? *)
   | ModDk of module_definition_kind
   | En of entity
@@ -1775,7 +1800,7 @@ let s skind =
     s_id = AST_utils.Node_ID.create ();
     s_use_cache = false;
     s_backrefs = None;
-    s_bf = None;
+    s_strings = None;
     s_range = None;
   }
 
@@ -1806,7 +1831,7 @@ let empty_id_info ?(hidden = false) () =
   {
     id_resolved = ref None;
     id_type = ref None;
-    id_constness = ref None;
+    id_svalue = ref None;
     id_hidden = hidden;
   }
 
@@ -1814,7 +1839,7 @@ let basic_id_info ?(hidden = false) resolved =
   {
     id_resolved = ref (Some resolved);
     id_type = ref None;
-    id_constness = ref None;
+    id_svalue = ref None;
     id_hidden = hidden;
   }
 
@@ -1883,7 +1908,7 @@ let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
     pdefault;
     ptype;
     pattrs;
-    pinfo = basic_id_info (Param, sid_TODO);
+    pinfo = basic_id_info (Parameter, sid_TODO);
   }
 
 let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
@@ -1892,7 +1917,7 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
     pname;
     pdefault;
     pattrs;
-    pinfo = basic_id_info (Param, sid_TODO);
+    pinfo = basic_id_info (Parameter, sid_TODO);
   }
 
 (* ------------------------------------------------------------------------- *)

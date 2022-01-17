@@ -25,40 +25,20 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(*
-let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
-  match rs |> Common.find_some_opt (fun r ->
-    match r.R.languages with
-    | R.L (l, _) -> Some l
-    | _ -> None
-  ) with
-  | Some l -> l
-  | None -> failwith "could not find a language"
-*)
-
-let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
- fun rs -> rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq compare
-
-let first_xlang_of_rules rs =
-  match rs with
-  | [] -> failwith "no rules"
-  | { R.languages = x; _ } :: _ -> x
 
 let config =
   {
-    Runner_common.log_config_file = "";
+    Runner_config.log_config_file = "";
     log_to_file = None;
     test = false;
     debug = false;
     profile = false;
     report_time = false;
     error_recovery = false;
-    fail_fast = false;
     profile_start = 0.0;
     pattern_string = "";
     pattern_file = "";
     rules_file = "";
-    config_file = "";
     equivalences_file = "";
     lang = None;
     output_format = Text;
@@ -73,6 +53,7 @@ let config =
     target_file = "";
     action = "";
     version = "test";
+    roots = [];
   }
 
 (*****************************************************************************)

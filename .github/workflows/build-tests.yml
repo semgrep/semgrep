@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     steps:
+      - name: Install pipenv
+        run: sudo pip install pipenv
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -27,7 +29,7 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Build semgrep-core and spacegrep
+      - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
@@ -50,6 +52,8 @@ jobs:
           submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
       - name: Run OSX build
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
@@ -73,9 +77,7 @@ jobs:
       - name: Test build artifacts
         run: |
           chmod +x ./artifacts/semgrep-core
-          chmod +x ./artifacts/spacegrep
           ./artifacts/semgrep-core -help
-          ./artifacts/spacegrep --help
 
   release-ubuntu:
     name: Check builds for ubuntu

@@ -3,12 +3,33 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Collection
 
-from semgrep.constants import OutputFormat
-from semgrep.output import OutputHandler
-from semgrep.output import OutputSettings
+import pytest
+
+from semgrep.error import FilesNotFoundError
+from semgrep.ignores import FileIgnore
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import Language_util
 from semgrep.target_manager import TargetManager
+
+
+def test_nonexistent(tmp_path, monkeypatch):
+    """
+    Test that initializing TargetManager with targets that do not exist
+    raises FilesNotFoundError
+    """
+    foo = tmp_path / "foo"
+    foo.mkdir()
+    foo_a = foo / "a.py"
+    foo_a.touch()
+
+    monkeypatch.chdir(tmp_path)
+
+    # shouldnt raise an error
+    TargetManager([], [], 0, ["foo/a.py"], True, False, None)
+
+    with pytest.raises(FilesNotFoundError) as e:
+        TargetManager([], [], 0, ["foo/a.py", "foo/doesntexist.py"], True, False, None)
+    assert e.value.paths == (Path("foo/doesntexist.py"),)
 
 
 def test_filter_include():
@@ -380,9 +401,7 @@ def test_delete_git(tmp_path, monkeypatch):
     subprocess.run(["git", "status"])
 
     assert cmp_path_sets(
-        TargetManager.expand_targets(
-            [Path(".")], Language_util.resolve("python"), True
-        ),
+        TargetManager.expand_targets([Path(".")], LANGUAGE.resolve("python"), True),
         {bar},
     )
 
@@ -431,7 +450,7 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     in_bar = {bar_a, bar_b}
     in_all = in_foo.union(in_bar)
 
-    python_language = Language_util.resolve("python")
+    python_language = LANGUAGE.resolve("python")
 
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
@@ -668,21 +687,9 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
-    output_settings = OutputSettings(
-        output_format=OutputFormat.TEXT,
-        output_destination=None,
-        error_on_findings=False,
-        verbose_errors=False,
-        strict=False,
-        json_stats=False,
-        output_time=False,
-        output_per_finding_max_lines_limit=None,
-        output_per_line_max_chars_limit=None,
+    assert frozenset() == TargetManager([], [], 0, [foo], True, False, None).get_files(
+        language, [], []
     )
-    defaulthandler = OutputHandler(output_settings)
-    assert frozenset() == TargetManager(
-        [], [], 0, [foo], True, defaulthandler, False
-    ).get_files(language, [], [])
 
 
 def test_explicit_path(tmp_path, monkeypatch):
@@ -701,39 +708,26 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     # Should include explicitly passed python file
     foo_a = foo_a.relative_to(tmp_path)
-    output_settings = OutputSettings(
-        output_format=OutputFormat.TEXT,
-        output_destination=None,
-        error_on_findings=False,
-        verbose_errors=False,
-        strict=False,
-        json_stats=False,
-        output_time=False,
-        output_per_finding_max_lines_limit=None,
-        output_per_line_max_chars_limit=None,
-    )
-    defaulthandler = OutputHandler(output_settings)
-
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], 0, ["foo/a.py"], False, defaulthandler, False
+        [], [], 0, ["foo/a.py"], False, False, None
     ).get_files(python_language, [], [])
-    assert foo_a in TargetManager(
-        [], [], 0, ["foo/a.py"], False, defaulthandler, True
-    ).get_files(python_language, [], [])
+    assert foo_a in TargetManager([], [], 0, ["foo/a.py"], False, True, None).get_files(
+        python_language, [], []
+    )
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        [], ["foo/a.py"], 0, ["."], False, defaulthandler, False
+        [], ["foo/a.py"], 0, ["."], False, False, None
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, defaulthandler, False
+        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, False, None
     ).get_files(python_language, [], [])
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], 0, ["foo/a.go"], False, defaulthandler, False).get_files(
+        TargetManager([], [], 0, ["foo/a.go"], False, False, None).get_files(
             python_language, [], []
         )
         == frozenset()
@@ -741,7 +735,7 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
     assert cmp_path_sets(
-        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, False).get_files(
+        TargetManager([], [], 0, ["foo/noext"], False, False, None).get_files(
             python_language, [], []
         ),
         {foo_noext},
@@ -749,7 +743,7 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
     assert cmp_path_sets(
-        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, True).get_files(
+        TargetManager([], [], 0, ["foo/noext"], False, True, None).get_files(
             python_language, [], []
         ),
         set(),
@@ -758,7 +752,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert cmp_path_sets(
         TargetManager(
-            [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
+            [], [], 0, ["foo/noext", "foo/a.py"], False, True, None
         ).get_files(python_language, [], []),
         {foo_a},
     )
@@ -766,7 +760,74 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should respect includes/excludes passed to get_files even if target explicitly passed
     assert cmp_path_sets(
         TargetManager(
-            [], [], 0, ["foo/a.py", "foo/b.py"], False, defaulthandler, False
+            [], [], 0, ["foo/a.py", "foo/b.py"], False, False, None
         ).get_files(python_language, ["a.py"], []),
         {foo_a},
     )
+
+
+def test_ignores(tmp_path, monkeypatch):
+    def ignore(ignore_pats):
+        return TargetManager(
+            [], [], 0, [tmp_path], False, False, FileIgnore(tmp_path, ignore_pats)
+        ).get_files(Language("python"), [], [])
+
+    monkeypatch.chdir(tmp_path)
+    a = tmp_path / "a.py"
+    a.touch()
+
+    dir = tmp_path / "dir"
+    dir.mkdir()
+
+    dir_a = dir / "a.py"
+    dir_a.touch()
+
+    dir_b = dir / "b.py"
+    dir_b.touch()
+
+    dir_c = dir / "c.py"
+    dir_c.touch()
+
+    dir2 = dir / "dir2"
+    dir2.mkdir()
+
+    dir3 = dir2 / "dir3"
+    dir3.mkdir()
+    dir3_a = dir3 / "a.py"
+    dir3_a.touch()
+
+    # Ignore nothing
+    files = ignore([])
+    assert a in files
+
+    # Ignore file name
+    files = ignore(["a.py"])
+    assert a not in files
+    assert dir3_a not in files
+
+    # Ignore directory
+    files = ignore(["dir/"])
+    assert dir_a not in files
+    assert dir_b not in files
+    assert dir_c not in files
+    assert dir3_a not in files
+
+    # Ignore root file
+    files = ignore(["/a.py"])
+    assert dir3_a in files
+
+    # Ignore root file that does not exist
+    files = ignore(["/b.py"])
+    assert dir_b in files
+
+    # Ignore not nested
+    files = ignore(["dir2/dir3/a.py"])
+    assert dir3_a in files
+
+    # Ignore nested dir syntax
+    files = ignore(["dir3/"])
+    assert dir3_a not in files
+
+    # Ingore nested double star
+    files = ignore(["**/dir2/dir3/"])
+    assert dir3_a not in files

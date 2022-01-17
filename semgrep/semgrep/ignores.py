@@ -1,133 +1,242 @@
-"""
-Handles ignoring Semgrep findings via inline code comments
-
-Currently supports ignoring a finding on a single line by adding a
-`# nosemgrep:ruleid` comment (or `// nosemgrep:ruleid`).
-
-To use, create a RuleMatchMap, then pass it to process_ignores().
-"""
-from re import sub
-from typing import List
-from typing import Sequence
-from typing import Tuple
+import fnmatch
+import os
+import re
+from pathlib import Path
+from typing import FrozenSet
+from typing import Iterable
+from typing import Iterator
+from typing import Set
+from typing import TextIO
 
 import attr
 
-from semgrep.constants import COMMA_SEPARATED_LIST_RE
-from semgrep.constants import NOSEM_INLINE_RE
-from semgrep.error import Level
 from semgrep.error import SemgrepError
-from semgrep.output import logger
-from semgrep.output import OutputHandler
-from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.verbose_logging import getLogger
+
+CONTROL_REGEX = re.compile(r"(?!<\\):")  # Matches unescaped colons
+MULTI_CHAR_REGEX = re.compile(
+    r"(?!<\\)\[.*(?!<\\)\]"
+)  # Matches anything in unescaped brackets
+COMMENT_START_REGEX = re.compile(r"(?P<ignore_pattern>.*?)(?:\s+|^)#.*")
+IGNORE_FILE_NAME = ".semgrepignore"
+
+logger = getLogger(__name__)
+
+# For some reason path.is_relative_to produces a complaint that 'PosixPath' object has no attribute 'is_relative_to'
+# So we just copy its implementation
+def path_is_relative_to(p1: Path, p2: Path) -> bool:
+    try:
+        p1.relative_to(p2)
+        return True
+    except ValueError:
+        return False
 
 
-@attr.s(auto_attribs=True, frozen=True)
-class IgnoreResults:
-    """
-    Holds results of calculating ignores
+## TODO: This files duplicates the .semgrepignore functionality from semgrep-action.
+## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
 
-    :param num_matches: The number of ignored findings
-    :param matches: The findings to print to the caller
-    :param errors: Any errors detected in processing ignores
-    """
+# This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
+@attr.s
+class FileIgnore:
+    base_path = attr.ib(type=Path)
+    patterns = attr.ib(type=Set[str])
+    _processed_patterns = attr.ib(type=Set[str], init=False)
 
-    num_matches: int
-    matches: RuleMatchMap
-    errors: Sequence[SemgrepError]
+    def __attrs_post_init__(self) -> None:
+        self._processed_patterns = Processor(self.base_path).process(self.patterns)
 
+    def _survives(self, path: Path) -> bool:
+        """
+        Determines if a single Path survives the ignore filter.
+        """
+        for p in self._processed_patterns:
+            if path.is_dir() and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
+                return False
+            if fnmatch.fnmatch(str(path), p):
+                return False
 
-def process_ignores(
-    rule_matches: RuleMatchMap,
-    output_handler: OutputHandler,
-    *,
-    strict: bool,
-    disable_nosem: bool,
-) -> IgnoreResults:
-    """
-    Converts a mapping of findings to a mapping of findings that
-    will be shown to the caller.
+            # Check any subpath of path satisfies a pattern
+            # i.e. a/b/c/d is ignored with rule a/b
+            # This is a hack. TargetFileManager should be pruning while searching
+            # instead of post filtering to avoid this
+            # Note: Use relative to base to avoid ignore rules firing on parent directories
+            # i.e. /private/var/.../instabot should not be ignored with var/ rule
+            # in instabot dir as base_path
+            # Note: Append "/" to path before running fnmatch so **/pattern matches with pattern/stuff
+            if (
+                path_is_relative_to(path, self.base_path)
+                and p.endswith("/")
+                and fnmatch.fnmatch(
+                    "/" + str(path.relative_to(self.base_path)), p + "*"
+                )
+            ):
+                return False
+            if (
+                p.endswith("/")
+                and p.startswith(str(self.base_path))
+                and fnmatch.fnmatch(str(path), p + "*")
+            ):
+                return False
 
-    :param rule_matches: The input findings (typically from a Semgrep call)
-    :param output_handler: The output handler that will be used to print output;
-                           this is used to determine if ignored findings should be
-                           kept in the output
-    :param strict: The value of the --strict flag (affects error return)
-    :param disable_nosem: The value of the --disable-nosem flag
-    :return: An IgnoreResults object
-    """
-    filtered = {}
-    nosem_errors: List[SemgrepError] = []
-    for rule, matches in rule_matches.items():
-        evolved_matches = []
-        for match in matches:
-            ignored, returned_errors = _rule_match_nosem(match, strict)
-            evolved_matches.append(attr.evolve(match, is_ignored=ignored))
-            nosem_errors.extend(returned_errors)
-        filtered[rule] = evolved_matches
+        return True
 
-    num_findings_nosem = 0
-    if not disable_nosem:
-        if not output_handler.formatter.keep_ignores():
-            filtered = {
-                rule: [m for m in matches if not m._is_ignored]
-                for rule, matches in filtered.items()
-            }
-        num_findings_nosem = sum(
-            1 for rule, matches in filtered.items() for m in matches if m._is_ignored
+    def filter_paths(self, paths: Iterable[Path]) -> FrozenSet[Path]:
+        return frozenset(
+            p
+            for p in paths
+            if p.exists()
+            and (self._survives(p.absolute()) or p.absolute().samefile(self.base_path))
         )
 
-    return IgnoreResults(num_findings_nosem, filtered, nosem_errors)
 
+# This class is an exact duplicate of the Parser class in semgrep-action
+@attr.s(auto_attribs=True)
+class Parser:
+    """
+    A parser for semgrepignore syntax.
 
-def _rule_match_nosem(
-    rule_match: RuleMatch, strict: bool
-) -> Tuple[bool, Sequence[SemgrepError]]:
-    if not rule_match.lines:
-        return False, []
+    semgrepignore syntax mirrors gitignore syntax, with the following modifications:
+    - "Include" patterns (lines starting with "!") are not supported.
+    - "Character range" patterns (lines including a collection of characters inside brackets) are not supported.
+    - An ":include ..." directive is added, which allows another file to be included in the ignore pattern list;
+      typically this included file would be the project .gitignore. No attempt at cycle detection is made.
+    - Any line beginning with a colon, but not ":include ", will raise a SemgrepError.
+    - "\:" is added to escape leading colons.
 
-    # Only consider the first line of a match. This will keep consistent
-    # behavior on where we expect a 'nosem' comment to exist. If we allow these
-    # comments on any line of a match it will get confusing as to what finding
-    # the 'nosem' is referring to.
-    re_match = NOSEM_INLINE_RE.search(rule_match.lines[0])
-    if re_match is None:
-        return False, []
+    Unsupported patterns are silently removed from the pattern list (this is done so that gitignore files may be
+    included without raising errors), although the removal will be logged.
 
-    ids_str = re_match.groupdict()["ids"]
-    if ids_str is None:
-        logger.verbose(
-            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start.line}"
-        )
-        return True, []
+    Unfortunately there's no available parser for gitignore syntax in python, so we have
+    to make our own. The syntax is simple enough that we can just roll our own parser, so
+    I deliberately skip using a parser generator or combinator library, which would either need to
+    parse on a character-by-character basis or make use of a large number of regex scans.
 
-    # Strip quotes to allow for use of nosem as an HTML attribute inside tags.
-    # HTML comments inside tags are not allowed by the spec.
-    pattern_ids = {
-        pattern_id.strip().strip("\"'")
-        for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
-        if pattern_id.strip()
-    }
+    The parser steps are, for each line in the input stream:
+    1. Remove comments
+    2. Remove unsupported gitignore syntax
+    3. Expand directives
 
-    # Filter out ids that are not alphanum+dashes+underscores+periods.
-    # This removes trailing symbols from comments, such as HTML comments `-->`
-    # or C-like multiline comments `*/`.
-    pattern_ids = set(filter(lambda x: not sub(r"[\w\-\.]+", "", x), pattern_ids))
+    The end result of this parsing is a set of human-readable patterns corresponding to gitignore syntax.
+    To use these patterns with fnmatch, however, a final postprocessing step is needed, achieved by calling
+    Processor.process().
 
-    errors = []
-    result = False
-    for pattern_id in pattern_ids:
-        if rule_match.id == pattern_id:
-            logger.verbose(
-                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start.line}"
-            )
-            result = result or True
+    :param base_path:   The path relative to which :include directives should be evaluated
+    """
+
+    # Parser steps are each represented as Generators. This allows us to chain
+    # steps, whether the step is a transformation, a filter, an expansion, or any combination thereof.
+
+    base_path: Path
+
+    @staticmethod
+    def remove_comments(line: str) -> Iterator[str]:
+        """If a line has a comment, remove the comment and just return the ignore pattern"""
+        m = COMMENT_START_REGEX.match(line)
+        if m:
+            yield m.groupdict().get(
+                "ignore_pattern", ""
+            )  # return empty string if entire line is a comment
         else:
-            message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.id}'"
-            if strict:
-                errors.append(SemgrepError(message, level=Level.WARN))
-            else:
-                logger.verbose(message)
+            yield line.rstrip()
 
-    return result, errors
+    @staticmethod
+    def filter_supported(line: str) -> Iterator[str]:
+        """Remove unsupported gitignore patterns"""
+        if not line:
+            pass
+        elif line.startswith("!") or MULTI_CHAR_REGEX.search(line):
+            logger.debug(f"Skipping unsupported gitignore pattern '{line}'")
+        else:
+            yield line
+
+    def expand_directives(self, line: str) -> Iterable[str]:
+        """Load :include files"""
+        if line.startswith(":include "):
+            include_path = self.base_path / line[9:]
+            if include_path.is_file():
+                with include_path.open() as include_lines:
+                    sub_base = include_path.parent.resolve()
+                    sub_parser = Parser(sub_base)
+                    return sub_parser.parse(include_lines)
+            else:
+                logger.debug(
+                    f"Skipping `:include {include_path}` directive, file not found"
+                )
+                return []
+        elif CONTROL_REGEX.match(line):
+            raise SemgrepError(
+                f"Unknown ignore directive in Semgrep ignore file at {self.base_path}: '{line}'"
+            )
+        else:
+            return (line for _ in range(1))
+
+    def parse(self, stream: TextIO) -> Set[str]:
+        """Performs parsing of an input stream"""
+        return {
+            pattern
+            for line in stream
+            for no_comments in self.remove_comments(line)
+            for supported in self.filter_supported(no_comments)
+            for pattern in self.expand_directives(supported)
+        }
+
+
+# This class is an exact duplicate of the Processor class in semgrep-action
+@attr.s(auto_attribs=True)
+class Processor:
+    """
+    A post-processor for parsed semgrepignore files.
+
+    The postprocessor is responsible for converting the parser's intermediate representation to a set of
+    patterns compatible with fnmatch. The steps are:
+    1. Unescape escape characters
+    2. Convert gitignore patterns into fnmatch patterns
+    """
+
+    # Per Parser, each Processor step is represented as a Generator.
+
+    base_path: Path
+
+    @staticmethod
+    def unescape(line: str) -> Iterator[str]:
+        """Expands escape characters"""
+        out = ""
+        is_escape = False
+        for c in line:
+            if is_escape:
+                out += c
+                is_escape = False
+            elif c == "\\":
+                is_escape = True
+            else:
+                out += c
+        yield out
+
+    def to_fnmatch(self, pat: str) -> Iterator[str]:
+        """Convert a single pattern from gitignore to fnmatch syntax"""
+        if pat.rstrip("/").find("/") < 0:
+            # Handles:
+            #   file
+            #   path/
+            pat = os.path.join("**", pat)
+        if pat.startswith("./") or pat.startswith("/"):
+            # Handles:
+            #   /relative/to/root
+            #   ./relative/to/root
+            pat = pat.lstrip(".").lstrip("/")
+        if not pat.startswith("**"):
+            # Handles:
+            #   path/to/absolute
+            #   */to/absolute
+            #   path/**/absolute
+            pat = os.path.join(self.base_path, pat)
+        yield pat
+
+    def process(self, pre: Iterable[str]) -> Set[str]:
+        """Post-processes an intermediate representation"""
+        return {
+            pattern
+            for pat in pre
+            for unescaped in self.unescape(pat)
+            for pattern in self.to_fnmatch(unescaped)
+        }

@@ -4,4 +4,4 @@ val normalize_import_opt :
   (AST_generic.tok * AST_generic.module_name) option
 
 val constant_propagation_and_evaluate_literal :
-  AST_generic.expr -> AST_generic.constness option
+  AST_generic.expr -> AST_generic.svalue option

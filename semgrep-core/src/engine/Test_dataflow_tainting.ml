@@ -2,7 +2,7 @@ open Common
 open AST_generic
 module H = AST_generic_helpers
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = IL.node
 
   type edge = IL.edge

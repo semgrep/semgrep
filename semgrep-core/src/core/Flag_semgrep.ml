@@ -1,5 +1,10 @@
 (* debugging flags *)
 
+(* To not capture exn and instead let them bubble up to get a precise
+ * backtrace when there is an error. This is useful for debugging.
+ *)
+let fail_fast = ref false
+
 (* note that this will stop at the first fail(), but if you restrict
  * enough your pattern, this can help you debug your problem.*)
 let debug_matching = ref false
@@ -23,8 +28,6 @@ let filter_irrelevant_rules = ref false
 (* check for identifiers before attempting to match a stmt or stmt list *)
 let use_bloom_filter = ref true
 
-let set_instead_of_bloom_filter = ref false
-
 (* opt = optimization *)
 let with_opt_cache = ref true
 
@@ -41,3 +44,7 @@ let gc_tuning = ref true
  * code equivalences.
  *)
 let equivalence_mode = ref false
+
+(* Note that an important flag used during parsing is actually in pfff in
+ * Flag_parsing.sgrep_mode
+ *)

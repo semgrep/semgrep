@@ -1,4 +1,5 @@
-(* tin is for 'type in' and tout for 'type out' *)
+(* In what follows, tin stands for 'type in' and tout for 'type out' *)
+
 (* incoming environment *)
 type tin = {
   mv : Metavariable_capture.t;
@@ -17,7 +18,7 @@ and tout = tin list
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
-(* currently A and B are usually the same type as we use the
+(* currently A and B are the same type because we use the
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
@@ -46,14 +47,12 @@ val fail : unit -> tin -> tout
 
 val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
-(* shortcut for >>=, since OCaml 4.08 you can define those "extended-let" *)
+(* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
 val empty_environment : tout Caching.Cache.t option -> Config_semgrep.t -> tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
-
-val get_mv_capture : Metavariable.mvar -> tin -> Metavariable.mvalue option
 
 (* Update the matching list of statements by providing a new matching
    statement. *)
@@ -73,8 +72,6 @@ val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue -> tin -> tin option
 
 (* helpers *)
-val has_ellipsis_stmts : AST_generic.stmt list -> bool
-
 val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
 
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
@@ -103,18 +100,25 @@ val m_option_ellipsis_ok :
 
 val m_option_none_can_match_some : 'a matcher -> 'a option matcher
 
-val m_ref : 'a matcher -> 'a ref matcher
-
 val m_list : 'a matcher -> 'a list matcher
 
 val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*
-   Usage: m_list_with_dots f is_dots less_is_ok list_a list_b
+   Usage: m_list_with_dots less_is_ok f is_dots list_a list_b
 
    less_is_ok: whether the empty list pattern can match a non-empty list.
 *)
-val m_list_with_dots : 'a matcher -> ('a -> bool) -> bool -> 'a list matcher
+val m_list_with_dots :
+  less_is_ok:bool -> 'a matcher -> ('a -> bool) -> 'a list matcher
+
+val m_list_with_dots_and_metavar_ellipsis :
+  less_is_ok:bool ->
+  f:'a matcher ->
+  is_dots:('a -> bool) ->
+  is_metavar_ellipsis:
+    ('a -> (AST_generic.ident * ('a list -> Metavariable.mvalue)) option) ->
+  'a list matcher
 
 val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
 

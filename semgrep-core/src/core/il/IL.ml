@@ -51,9 +51,9 @@ module G = AST_generic
  * Note that we still want to be close to the original code so that
  * error reported on the IL can be mapped back to error on the original code
  * (source "maps"), or more importantly semantic information computed
- * on the IL (e.g., types, constness) can be mapped back to the generic AST.
+ * on the IL (e.g., types, svalue) can be mapped back to the generic AST.
  * This is why you will see some 'eorig', 'iorig' fields below and the use of
- * refs such as constness shared with the generic AST.
+ * refs such as svalue shared with the generic AST.
  *
  * history:
  *  - cst_php.ml (was actually called ast_php.ml)
@@ -119,6 +119,35 @@ type fixme_kind =
 [@@deriving show]
 
 (*****************************************************************************)
+(* Mapping back to Generic *)
+(*****************************************************************************)
+
+(* Only use `SameAs` when the IL expression or instruction is indeed "the same as"
+ * (i.e., semantically equivalent to) that Generic expression.
+ *
+ * When an IL expression is derived from some other Generic expression or
+ * construct, but not semantically equivalent, you can use `Related`. Note that
+ * this info will be used by taint-tracking to match sources/sanitizers/sinks;
+ * so make sure that the annotation makes sense, or it could lead to weird taint
+ * findings.
+ *
+ * When no orig info is needed, or it cannot be provided, then use NoOrig. For
+ * example, auxiliary assignments where the RHS has the right orig-info can be
+ * annotated with NoOrig. This also helps making -dump_il more readable.
+ *)
+type orig = SameAs of G.expr | Related of G.any | NoOrig
+[@@deriving show { with_path = false }]
+
+let related_tok tok = Related (G.Tk tok)
+
+let related_exp exp_gen = Related (G.E exp_gen)
+
+let any_of_orig = function
+  | SameAs e -> G.E e
+  | Related any -> any
+  | NoOrig -> G.Anys []
+
+(*****************************************************************************)
 (* Lvalue *)
 (*****************************************************************************)
 
@@ -164,7 +193,7 @@ and var_special = This | Super | Self | Parent
  * Here 'exp' does not contain any side effect!
  * todo: etype: typ;
  *)
-and exp = { e : exp_kind; eorig : G.expr }
+and exp = { e : exp_kind; eorig : orig }
 
 and exp_kind =
   | Fetch of lval (* lvalue used in a rvalue context *)
@@ -183,7 +212,9 @@ and exp_kind =
    * (they are too many intermediate _tmp variables then) *)
   | Operator of G.operator wrap * exp list
   | FixmeExp of
-      fixme_kind * G.any (* origin *) * exp (* partial translation *) option
+      fixme_kind
+      * G.any (* fixme source *)
+      * exp (* partial translation *) option
 
 and composite_kind =
   | CTuple
@@ -203,7 +234,7 @@ type argument = exp [@@deriving show]
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split into  instr vs exp vs lval.
  *)
-type instr = { i : instr_kind; iorig : G.expr }
+type instr = { i : instr_kind; iorig : orig }
 
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
@@ -276,7 +307,7 @@ and other_stmt =
   (* everything except VarDef (which is transformed in a Set instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
-  | Noop
+  | Noop of (* for debugging purposes *) string
 
 and label = ident * G.sid [@@deriving show { with_path = false }]
 
@@ -353,14 +384,6 @@ let lvar_of_instr_opt x =
   | Mem _ ->
       None
 
-let exps_of_instr x =
-  match x.i with
-  | Assign (_, exp) -> [ exp ]
-  | AssignAnon _ -> []
-  | Call (_, e1, args) -> e1 :: args
-  | CallSpecial (_, _, args) -> args
-  | FixmeInstr _ -> []
-
 let rexps_of_instr x =
   match x.i with
   | Assign (_, exp) -> [ exp ]
@@ -402,12 +425,6 @@ let rlvals_of_instr x =
   let exps = rexps_of_instr x in
   lvals_of_exps exps
 
-let rvars_of_instr x =
-  x |> rlvals_of_instr
-  |> Common.map_filter (function
-       | { base = Var var; _ } -> Some var
-       | ___else___ -> None)
-
 let rlvals_of_node = function
   | Enter
   | Exit
@@ -425,32 +442,9 @@ let rlvals_of_node = function
   | NTodo _ ->
       []
 
-let lval_of_node_opt = function
-  | NInstr x -> lval_of_instr_opt x
-  | Enter
-  | Exit
-  | TrueNode
-  | FalseNode
-  | NGoto _
-  | Join
-  | NCond _
-  | NReturn _
-  | NThrow _
-  | NOther _
-  | NTodo _ ->
-      None
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let str_of_name name = fst name.ident
 
 let str_of_label ((n, _), _) = n
-
-let find_node f cfg =
-  cfg#nodes#tolist
-  |> Common.find_some (fun (nodei, node) -> if f node then Some nodei else None)
-
-let find_exit cfg = find_node (fun node -> node.n = Exit) cfg
-
-let find_enter cfg = find_node (fun node -> node.n = Enter) cfg

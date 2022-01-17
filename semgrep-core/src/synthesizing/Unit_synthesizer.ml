@@ -1,7 +1,7 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
 module G = AST_generic
-module PPG = Pretty_print_generic
+module PPG = Pretty_print_AST
 
 (*****************************************************************************)
 (* Semgrep Unit tests *)
@@ -231,7 +231,8 @@ let tests =
                                 pr2 (AST_generic.show_any code));
                               Alcotest.(check bool)
                                 (spf "pattern:|%s| should match |%s" pat
-                                   (PPG.pattern_to_string lang code))
+                                   (Pretty_print_pattern.pattern_to_string lang
+                                      code))
                                 true (matches_with_env <> [])
                           | None ->
                               failwith

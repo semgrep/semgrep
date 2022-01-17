@@ -7,19 +7,22 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from typing import Union
 
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import JOIN_MODE
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import Language_util
 from semgrep.semgrep_types import SEARCH_MODE
+from semgrep.util import flatten
 
 
 class Rule:
@@ -48,17 +51,20 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = cast(Sequence[str], path_dict.get("include", []))
         self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
-        rule_languages = {
-            Language_util.resolve(l, self.languages_span)
+        rule_languages: Set[Language] = {
+            LANGUAGE.resolve(l, self.languages_span)
             for l in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
-        if any(language == Language.JAVASCRIPT for language in rule_languages):
-            rule_languages.add(Language.TYPESCRIPT)
-            self._raw["languages"] = [r.value for r in rule_languages]
+        # TODO: Move this hack to lang.json
+        if any(
+            language == LANGUAGE.resolve("javascript") for language in rule_languages
+        ):
+            rule_languages.add(LANGUAGE.resolve("typescript"))
+            self._raw["languages"] = [str(l) for l in rule_languages]
 
-        self._languages = sorted(rule_languages, key=lambda lang: lang.value)  # type: ignore
+        self._languages = sorted(rule_languages)
 
         # check taint/search mode
         if self._raw.get("mode") == JOIN_MODE:
@@ -66,7 +72,8 @@ class Rule:
         else:
             self._mode = SEARCH_MODE
 
-        if any(language == Language.REGEX for language in self._languages):
+        # TODO: Move this hack to lang.json
+        if any(language == LANGUAGE.resolve("regex") for language in self._languages):
             self._validate_none_language_rule()
 
     def _validate_none_language_rule(self) -> None:
@@ -141,6 +148,23 @@ class Rule:
         return self._mode
 
     @property
+    def project_depends_on(self) -> Optional[List[List[Dict[str, str]]]]:
+        """
+        If the rule contains `project-depends-on` keys under patterns, return the values of those keys
+        Otherwise return None
+        """
+        # TODO: in initial implementation, this key is allowed only as a top-level key under `patterns`
+        PROJECT_DEPENDS_ON_KEY_NAME = "r2c-internal-project-depends-on"
+        matched_keys = [d for d in self._raw.get("patterns", [])]
+        depends_entries = [
+            list(_.values()) for _ in matched_keys if PROJECT_DEPENDS_ON_KEY_NAME in _
+        ]
+        flattened = flatten(depends_entries)
+        if len(flattened) == 0:
+            return None
+        return flattened
+
+    @property
     def languages(self) -> List[Language]:
         return self._languages
 
@@ -183,6 +207,25 @@ class Rule:
         return hashlib.sha256(
             json.dumps(self._raw, sort_keys=True).encode()
         ).hexdigest()
+
+    @property
+    def should_run_on_semgrep_core(self) -> bool:
+        """
+        Used to detect whether the rule had patterns that need to run on the core
+        (beyond Python-handled patterns, like `pattern-depends-on`).
+        Remove this code once all rule runnning is done in the core and the answer is always 'yes'
+        """
+
+        def has_runnable_rule(d: Dict[str, Any]) -> bool:
+            for k in d:
+                if k in RuleValidation.PATTERN_KEYS:
+                    children = d.get(k)
+                    if children is not None and isinstance(children, list):
+                        return any(has_runnable_rule(_) for _ in children)
+                    return True
+            return False
+
+        return has_runnable_rule(self._raw)
 
 
 def rule_without_metadata(rule: Rule) -> Rule:

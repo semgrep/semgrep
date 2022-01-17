@@ -40,6 +40,9 @@ let str = H.str
 let type_parameters_with_constraints tparams constraints : type_parameter list =
   tparams
   |> List.map (function
+       (* we do not generate those semgrep constructs for now in
+        * semgrep-java, we parse Java patterns in the Java pfff parser *)
+       | TParamEllipsis _ -> raise Impossible
        | OtherTypeParam (x, anys) ->
            (* TODO: add constraints *)
            OtherTypeParam (x, anys)
@@ -1082,6 +1085,24 @@ and checked_expression (env : env) (x : CST.checked_expression) =
 and expression (env : env) (x : CST.expression) : G.expr =
   (match x with
   (* semgrep: *)
+  | `Member_access_ellips_exp (v1, v2, v3) ->
+      let e =
+        match v1 with
+        | `Exp x -> expression env x
+        | `Pred_type x ->
+            (* e.g. `int` in `int.maxValue` *)
+            let id = str env x in
+            N (Id (id, empty_id_info ())) |> G.e
+        | `Name x -> N (name env x) |> G.e
+      in
+      let _tdot =
+        match v2 with
+        | `DOT tok -> token env tok (* "." *)
+        | `DASHGT tok -> token env tok
+        (* "->" *)
+      in
+      let tdots = token env v3 in
+      DotAccessEllipsis (e, tdots)
   | `Ellips v1 -> Ellipsis (token env v1)
   | `Deep_ellips (v1, v2, v3) ->
       let v1 = token env v1 in

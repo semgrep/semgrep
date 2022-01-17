@@ -190,8 +190,6 @@ let ( let* ) o f = o >>= f
 let add_mv_capture key value (env : tin) =
   { env with mv = Env.add_capture key value env.mv }
 
-let get_mv_capture key (env : tin) = Env.get_capture key env.mv
-
 let extend_stmts_match_span rightmost_stmt (env : tin) =
   let stmts_match_span =
     Stmts_match_span.extend rightmost_stmt env.stmts_match_span
@@ -228,13 +226,12 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      * THINK: We could also equal two different variable occurrences that happen
      * to have the same constant value. *)
     | ( MV.E { e = G.L a_lit; _ },
-        MV.Id (_, Some { B.id_constness = { contents = Some (B.Lit b_lit) }; _ })
-      )
-    | ( MV.Id (_, Some { G.id_constness = { contents = Some (G.Lit a_lit) }; _ }),
+        MV.Id (_, Some { B.id_svalue = { contents = Some (B.Lit b_lit) }; _ }) )
+    | ( MV.Id (_, Some { G.id_svalue = { contents = Some (G.Lit a_lit) }; _ }),
         MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit
-    (* general case, equality modulo-position-and-constness.
+    (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
      * TODO? missing MV.Ss _, MV.Ss _ ??
@@ -246,6 +243,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     | MV.P _, MV.P _
     | MV.T _, MV.T _
     | MV.Text _, MV.Text _
+    | MV.Params _, MV.Params _
     | MV.Args _, MV.Args _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
@@ -263,22 +261,27 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          *)
         (* This will perform equality but not care about:
          * - position information (see adhoc AST_generic.equal_tok)
-         * - id_constness (see the special @equal for id_constness)
+         * - id_svalue (see the special @equal for id_svalue)
          *)
         MV.Structural.equal_mvalue a b
+    (* TODO still needed now that we have the better MV.Id of id_info? *)
     | MV.Id _, MV.E { e = G.N (G.Id (b_id, b_id_info)); _ } ->
-        (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (G.E), not id (G.I),
          * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
-         * but in some cases you have no choice and you need to match an expression
+         * but in some cases you have no choice and you need to match an expr
          * metavar with an id metavar.
-         * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
-         * (this is useful in the Javascript transpilation context of complex pattern parameter).
+         * For example, we want the pattern 'const $X = foo.$X' to match
+         *  'const bar = foo.bar'
+         * (this is useful in the Javascript transpilation context of
+         * complex pattern parameter).
          *)
         equal_ast_binded_code config a (MV.Id (b_id, Some b_id_info))
+    (* TODO: we should get rid of that too, we should properly bind to MV.N *)
+    | MV.E { e = G.N (G.Id (a_id, a_id_info)); _ }, MV.Id _ ->
+        equal_ast_binded_code config (MV.Id (a_id, Some a_id_info)) b
     | _, _ -> false
   in
 
@@ -324,14 +327,6 @@ let empty_environment opt_cache config =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* guard for deep stmt matching *)
-let has_ellipsis_stmts xs =
-  xs
-  |> List.exists (fun st ->
-         match st.G.s with
-         | G.ExprStmt ({ e = G.Ellipsis _; _ }, _) -> true
-         | _ -> false)
 
 let rec inits_and_rest_of_list = function
   | [] -> failwith "inits_1 requires a non-empty list"
@@ -454,14 +449,6 @@ let m_option_none_can_match_some f a b =
   | Some _, _ -> fail ()
 
 (* ---------------------------------------------------------------------- *)
-(* stdlib: ref *)
-(* ---------------------------------------------------------------------- *)
-let (m_ref : 'a matcher -> 'a ref matcher) =
- fun f a b ->
-  match (a, b) with
-  | { contents = xa }, { contents = xb } -> f xa xb
-
-(* ---------------------------------------------------------------------- *)
 (* stdlib: list *)
 (* ---------------------------------------------------------------------- *)
 
@@ -481,7 +468,7 @@ let rec m_list_prefix f a b =
   | [], _ -> return ()
   | _ :: _, _ -> fail ()
 
-let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
+let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   match (xsa, xsb) with
   | [], [] -> return ()
   (* less-is-ok: empty list can sometimes match non-empty list *)
@@ -490,15 +477,53 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   | [ a ], [] when is_dots a -> return ()
   | a :: xsa, xb :: xsb when is_dots a ->
       (* can match nothing *)
-      m_list_with_dots f is_dots less_is_ok xsa (xb :: xsb)
+      m_list_with_dots f is_dots ~less_is_ok xsa (xb :: xsb)
       >||> (* can match more *)
-      m_list_with_dots f is_dots less_is_ok (a :: xsa) xsb
+      m_list_with_dots f is_dots ~less_is_ok (a :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
-      f xa xb >>= fun () -> m_list_with_dots f is_dots less_is_ok aas bbs
+      f xa xb >>= fun () -> m_list_with_dots f is_dots ~less_is_ok aas bbs
   | [], _
   | _ :: _, _ ->
       fail ()
+
+let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
+    ~is_metavar_ellipsis xsa xsb =
+  let rec aux xsa xsb =
+    match (xsa, xsb) with
+    | [], [] -> return ()
+    (* less-is-ok: empty list can sometimes match non-empty list *)
+    | [], _ :: _ when less_is_ok -> return ()
+    (* dots: '...', can also match no argument *)
+    | [ a ], [] when is_dots a -> return ()
+    (* dots: metavars: $...ARGS *)
+    | a :: xsa, xsb when is_metavar_ellipsis a <> None -> (
+        match is_metavar_ellipsis a with
+        | None -> raise Impossible
+        | Some ((s, tok), metavar_build) ->
+            (* can match 0 or more arguments (just like ...) *)
+            let candidates = inits_and_rest_of_list_empty_ok xsb in
+            let rec aux2 xs =
+              match xs with
+              | [] -> fail ()
+              | (inits, rest) :: xs ->
+                  envf (s, tok) (metavar_build inits)
+                  >>= (fun () -> aux xsa rest)
+                  >||> aux2 xs
+            in
+            aux2 candidates)
+    | a :: xsa, xb :: xsb when is_dots a ->
+        (* can match nothing *)
+        aux xsa (xb :: xsb)
+        >||> (* can match more *)
+        aux (a :: xsa) xsb
+    (* the general case *)
+    | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> aux aas bbs
+    | [], _
+    | _ :: _, _ ->
+        fail ()
+  in
+  aux xsa xsb
 
 (* todo? opti? try to go faster to the one with split_when?
  * need reflect tin so we can call the matcher and query whether there
@@ -630,25 +655,30 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  let loc = PI.unsafe_token_location_of_info info in
-  let raw_str = loc.PI.str in
-  let re = Str.regexp_string s in
-  try
-    let pos = Str.search_forward re raw_str 0 in
-    let loc =
-      {
-        loc with
-        PI.str = s;
-        charpos = loc.charpos + pos;
-        column = loc.column + pos;
-      }
-    in
-    let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
-    (s, info)
-  with Not_found ->
-    logger#error "could not find %s in %s" s raw_str;
-    (* return original token ... better than failwith? *)
-    (s, info)
+  match PI.token_location_of_info info with
+  | Error _ ->
+      (* We have no token location to adjust (typically a fake token),
+       * this happens if the string is the result of constant folding. *)
+      (s, info)
+  | Ok loc -> (
+      let raw_str = loc.PI.str in
+      let re = Str.regexp_string s in
+      try
+        let pos = Str.search_forward re raw_str 0 in
+        let loc =
+          {
+            loc with
+            PI.str = s;
+            charpos = loc.charpos + pos;
+            column = loc.column + pos;
+          }
+        in
+        let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+        (s, info)
+      with Not_found ->
+        logger#error "could not find %s in %s" s raw_str;
+        (* return original token ... better than failwith? *)
+        (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket
@@ -658,7 +688,7 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
   match fst a with
   (* dots: '...' on string *)
   | "..." -> return ()
-  (* metavar: *)
+  (* metavar: "$MVAR" *)
   | astr when MV.is_metavar_name astr ->
       let text = adjust_info_remove_enclosing_quotes b in
       envf a (MV.Text text)

@@ -1,0 +1,59 @@
+name: tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      CONFIG:
+        description: "--config"
+        default: "p/auto"
+        required: true
+      REPO:
+        description: "Repository"
+        default: "https://github.com/returntocorp/semgrep.git"
+        required: true
+
+jobs:
+  build-test:
+    name: semgrep unit and e2e tests
+    runs-on: ubuntu-latest
+    needs: [build-core]
+    strategy:
+      matrix:
+        python: [3.7]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: tests.yml
+          workflow_conclusion: success
+          name: ocaml-build-artifacts
+          check_artifacts:  false
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      - name: Install semgrep
+        run: |
+          cd semgrep
+          export PATH=/github/home/.local/bin:$PATH
+          pip3 install pipenv==2021.5.29
+          pipenv install --dev
+      - name: Run benchmark
+        run: |
+          export PATH=/github/home/.local/bin:$PATH
+          git clone --depth=1 ${{github.event.inputs.REPO}} target
+          cd target
+          PIPENV_PIPFILE=../semgrep/Pipfile pipenv run semgrep -c ${{github.event.inputs.CONFIG}} --json --json-time . | tee -a times.json
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: times
+          path: target/times.json

@@ -316,7 +316,7 @@ and eval_concat_string env args : literal option =
 (*****************************************************************************)
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
-  logger#info "Constant_propagation.propagate_basic progran";
+  logger#trace "Constant_propagation.propagate_basic program";
   let env = default_env () in
 
   (* step1: first pass const analysis for languages without 'const/final' *)
@@ -348,7 +348,7 @@ let propagate_basic lang prog =
                     H.has_keyword_attr Const attrs
                     || H.has_keyword_attr Final attrs
                     || !(stats.lvalue) = 1
-                       && (lang = Lang.Javascript || lang = Lang.Typescript)
+                       && (lang = Lang.Js || lang = Lang.Ts)
                   then add_constant_env id (sid, literal) env;
                   k x
               | None ->
@@ -361,12 +361,12 @@ let propagate_basic lang prog =
           match x.e with
           | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
               match find_id env id id_info with
-              | Some literal -> id_info.id_constness := Some (Lit literal)
+              | Some literal -> id_info.id_svalue := Some (Lit literal)
               | _ -> ())
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
-              | Some literal -> id_info.id_constness := Some (Lit literal)
+              | Some literal -> id_info.id_svalue := Some (Lit literal)
               | _ -> ())
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
@@ -392,7 +392,7 @@ let propagate_basic lang prog =
                            !(stats.lvalue) = 1
                            (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
                            && (lang = Lang.Python || lang = Lang.Ruby
-                             || lang = Lang.PHP || Lang.is_js lang)
+                             || lang = Lang.Php || Lang.is_js lang)
                            && kind = Global
                          then add_constant_env id (sid, literal) env
                      | None ->
@@ -415,7 +415,7 @@ let propagate_basic a b =
   Common.profile_code "Constant_propagation.xxx" (fun () -> propagate_basic a b)
 
 let propagate_dataflow lang ast =
-  logger#info "Constant_propagation.propagate_dataflow progran";
+  logger#trace "Constant_propagation.propagate_dataflow program";
   let v =
     V.mk_visitor
       {
@@ -424,8 +424,8 @@ let propagate_dataflow lang ast =
           (fun (_k, _) def ->
             let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
-            let mapping = Dataflow_constness.fixpoint inputs flow in
-            Dataflow_constness.update_constness flow mapping);
+            let mapping = Dataflow_svalue.fixpoint inputs flow in
+            Dataflow_svalue.update_svalue flow mapping);
       }
   in
   v (Pr ast)

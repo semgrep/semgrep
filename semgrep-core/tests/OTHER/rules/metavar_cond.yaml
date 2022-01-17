@@ -5,6 +5,6 @@ rules:
   match:
     and:
     - foo($ARG)
-    - where: re.match($ARG, ".*bar.*")
+    - where: re.match(".*bar.*", $ARG)
   message: rule_template_message
   severity: ERROR

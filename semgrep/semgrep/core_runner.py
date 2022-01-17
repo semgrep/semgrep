@@ -34,9 +34,9 @@ from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_core import SemgrepCore
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
-from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import is_debug
 from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
@@ -160,7 +160,7 @@ class CoreRunner:
                         semgrep_output,
                         semgrep_error_output,
                     )
-                raise errors[0].to_semgrep_error(RuleId(rule.id))
+                raise errors[0].to_semgrep_error()
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -240,7 +240,7 @@ class CoreRunner:
         profiling_data: ProfilingData,
         output_time_json: Dict[str, Any],
     ) -> None:
-        """Collect the match times reported by semgrep-core (or spacegrep)."""
+        """Collect the match times reported by semgrep-core."""
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
@@ -267,7 +267,7 @@ class CoreRunner:
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(all_supported_languages())}",
+                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(LANGUAGE.all_language_keys)}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return list(targets)
@@ -279,7 +279,6 @@ class CoreRunner:
         profiler: ProfileManager,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
-        Dict[Rule, List[Any]],
         List[SemgrepError],
         Set[Path],
         ProfilingData,
@@ -318,21 +317,26 @@ class CoreRunner:
                             continue
                         all_targets = all_targets.union(targets)
 
-                        target_file.write("\n".join(map(lambda p: str(p), targets)))
+                        # TODO: use atdgen-py
+                        # The format of this JSON is specified in
+                        # interfaces/Input_to_core.atd
+                        array = [
+                            {"path": str(p), "language": str(language)} for p in targets
+                        ]
+                        target_file.write(json.dumps(array))
                         target_file.flush()
+
                         yaml = YAML()
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
 
                         cmd = [SemgrepCore.path()] + [
-                            "-lang",
-                            language.value,
                             "-json",
-                            "-config",
+                            "-rules",
                             rule_file.name,
                             "-j",
                             str(self._jobs),
-                            "-target_file",
+                            "-targets",
                             target_file.name,
                             "-use_parsing_cache",
                             semgrep_core_ast_cache_dir,
@@ -367,9 +371,7 @@ class CoreRunner:
 
                     # end with tempfile.NamedTemporaryFile(...) ...
                     outputs[rule].extend(core_output.rule_matches(rule))
-                    parsed_errors = [
-                        e.to_semgrep_error(RuleId(rule.id)) for e in core_output.errors
-                    ]
+                    parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                     for err in core_output.errors:
                         if err.is_timeout():
                             assert err.path is not None
@@ -384,7 +386,7 @@ class CoreRunner:
             # end for language ...
         # end for rule ...
 
-        return outputs, {}, errors, all_targets, profiling_data
+        return outputs, errors, all_targets, profiling_data
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -395,7 +397,6 @@ class CoreRunner:
         rules: List[Rule],
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
-        Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
         ProfilingData,
@@ -407,7 +408,6 @@ class CoreRunner:
 
         (
             findings_by_rule,
-            debug_steps_by_rule,
             errors,
             all_targets,
             profiling_data,
@@ -427,7 +427,6 @@ class CoreRunner:
 
         return (
             findings_by_rule,
-            debug_steps_by_rule,
             errors,
             all_targets,
             profiling_data,
@@ -469,8 +468,6 @@ class CoreRunner:
             output_json = self._extract_core_output(metachecks[0], core_run)
             core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
 
-            parsed_errors += [
-                e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
-            ]
+            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
 
         return dedup_errors(parsed_errors)

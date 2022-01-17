@@ -1,9 +1,12 @@
 import functools
 import itertools
+from itertools import groupby
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Iterable
 from typing import Iterator
+from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
@@ -17,10 +20,13 @@ from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_types import LANGUAGE
+from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
 from semgrep.util import with_color
@@ -132,13 +138,17 @@ class TextFormatter(BaseFormatter):
         return f' Details: {with_color("bright_blue", source_url)}'
 
     @staticmethod
-    def _build_text_timing_output(
+    def _build_summary(
         time_data: Mapping[str, Any],
+        error_output: Sequence[SemgrepError],
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
         col_lim = 70
 
+        targets = time_data["targets"]
+
+        # Compute summary timings
         rule_parsing_time = sum(
             parse_time for parse_time in time_data["rule_parse_info"]
         )
@@ -147,25 +157,81 @@ class TextFormatter(BaseFormatter):
                 lambda x, y: (x[0] + y[0], x[1] + y[1]),
                 (
                     (t["run_times"][i] - t["parse_times"][i], t["match_times"][i])
-                    for t in time_data["targets"]
+                    for t in targets
                 ),
                 (time_data["rule_parse_info"][i], 0.0),
             )
             for i, rule in enumerate(time_data["rules"])
         }
         file_parsing_time = sum(
-            sum(target["parse_times"]) for target in time_data["targets"]
+            sum(t for t in target["parse_times"] if t >= 0) for target in targets
         )
         file_timings = {
-            target["path"]: float(sum(target["run_times"]))
-            for target in time_data["targets"]
+            target["path"]: float(sum(t for t in target["run_times"] if t >= 0))
+            for target in targets
         }
 
         all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
-        total_matching_time = sum(i[1] for i in rule_timings.values())
+        total_matching_time = sum(i[1] for i in rule_timings.values() if i[1] >= 0)
 
-        # Output information
-        yield f"\nSemgrep-core timing summary:"
+        # Count errors
+
+        semgrep_core_errors = [
+            cast(SemgrepCoreError, err)
+            for err in error_output
+            if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+        ]
+        errors = {(err.path, err.error_type) for err in semgrep_core_errors}
+
+        error_types = {k: len(list(v)) for k, v in groupby(errors, lambda x: x[1])}
+        num_errors = len(errors)
+
+        # Compute summary by language
+
+        # TODO assumes languages correspond solely to extension
+        # Consider: get a report from semgrep-core on what language each
+        #           file was analyzed as
+        # However, this might make it harder for users to confirm
+        # semgrep counts against their expected file counts
+
+        ext_to_lang: Mapping[str, Language] = LANGUAGE.lang_by_ext
+
+        def lang_of_path(path: str) -> str:
+            ext = "." + path.split(".")[-1]
+            return ext_to_lang.get(ext, "generic")
+
+        ext_info = sorted(
+            [
+                (
+                    lang_of_path(target["path"]),
+                    (target["num_bytes"], sum(target["run_times"])),
+                )
+                for target in targets
+            ],
+            key=lambda x: x[0],
+        )
+        lang_info = {k: list(v) for k, v in groupby(ext_info, lambda x: x[0])}
+        langs = lang_info.keys()
+        lang_counts: Mapping[str, int] = {lang: len(lang_info[lang]) for lang in langs}
+        lang_bytes: Mapping[str, int] = {
+            lang: sum(info[1][0] for info in lang_info[lang]) for lang in langs
+        }
+        lang_times: Mapping[str, int] = {
+            lang: sum(info[1][1] for info in lang_info[lang]) for lang in langs
+        }
+
+        # Output semgrep summary
+        total_time = time_data["profiling_times"].get("total_time", 0.0)
+        config_time = time_data["profiling_times"].get("config_time", 0.0)
+        core_time = time_data["profiling_times"].get("core_time", 0.0)
+        ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
+
+        yield f"\n============================[ summary ]============================"
+
+        yield f"Total time: {total_time:.4f} Config time: {config_time:.4f} Core time: {core_time:.4f} Ignores time: {ignores_time:.4f}"
+
+        # Output semgrep-core information
+        yield f"\nSemgrep-core time:"
         yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
 
         yield f"Slowest {items_to_show}/{len(file_timings)} files"
@@ -184,6 +250,49 @@ class TextFormatter(BaseFormatter):
         for rule_id, (total_time, match_time) in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"
             yield f"{with_color('yellow', f'{rule_id:<71}')} run time {total_time:.4f}  match time {match_time:.4f}"
+
+        # Output other file information
+        ANALYZED = "Analyzed:"
+        FAILED = "Errors:"
+        headings = [ANALYZED, FAILED]
+        max_heading_len = max(len(h) for h in headings) + 1  # for the space
+
+        def add_heading(heading: str, lines: List[str]) -> List[str]:
+            heading = heading + " " * (max_heading_len - len(heading))
+            first = True
+            returned = []
+            for line in lines:
+                prefix = heading if first else " " * max_heading_len
+                returned.append(f"{prefix}{line}")
+                first = False
+            return returned
+
+        yield ""
+
+        by_lang = [
+            f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.3f} seconds)"
+            for lang in langs
+        ]
+        for line in add_heading(ANALYZED, by_lang):
+            yield line
+
+        # Output errors
+        def if_exists(num_errors: int, msg: str) -> str:
+            return "" if num_errors == 0 else msg
+
+        see_more = if_exists(
+            num_errors,
+            ", see output before the results for details or run with --strict",
+        )
+        error_msg = f"{ num_errors } files with errors{see_more}"
+        error_lines = [error_msg] + [
+            f"{type} ({num} files)" for (type, num) in error_types.items()
+        ]
+
+        for line in add_heading(FAILED, error_lines):
+            yield line
+
+        yield ""
 
     @staticmethod
     def _build_text_output(
@@ -256,8 +365,9 @@ class TextFormatter(BaseFormatter):
         )
 
         timing_output = (
-            self._build_text_timing_output(
+            self._build_summary(
                 extra.get("time", {}),
+                semgrep_structured_errors,
                 extra.get("color_output", False),
             )
             if "time" in extra

@@ -227,6 +227,9 @@ let top_func () =
   and expr_or_type v = either expr type_ v
   and expr e =
     (match e with
+    | DotAccessEllipsis (v1, v2) ->
+        let v1 = expr v1 in
+        G.DotAccessEllipsis (v1, v2)
     | BasicLit v1 ->
         let v1 = literal v1 in
         G.L v1

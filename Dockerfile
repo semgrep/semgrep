@@ -20,7 +20,9 @@ FROM returntocorp/ocaml:alpine-2021-07-15 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
-RUN apk add --no-cache pcre-dev
+# TODO: update root image to include python 3.9
+RUN apk add --update --no-cache pcre-dev python3
+RUN pip install --no-cache-dir pipenv==2021.11.23
 
 USER user
 WORKDIR /home/user
@@ -28,6 +30,8 @@ WORKDIR /home/user
 COPY --chown=user .gitmodules /semgrep/.gitmodules
 COPY --chown=user .git/ /semgrep/.git/
 COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
+# some .atd files in semgrep-core are symlinks to files in interfaces/
+COPY --chown=user interfaces/ /semgrep/interfaces/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
@@ -49,14 +53,13 @@ RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
 RUN eval "$(opam env)" && make -C semgrep-core/ all
 
 # Sanity checks
-RUN test -x ./semgrep-core/_build/install/default/bin/spacegrep
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
 # We change container, bringing only the 'semgrep-core' binary with us.
 #
 
-FROM python:3.9.1-alpine3.13
+FROM python:3.10.1-alpine3.15
 LABEL maintainer="support@r2c.dev"
 
 # ugly: circle CI requires valid git and ssh programs in the container
@@ -66,12 +69,6 @@ RUN apk add --no-cache git openssh
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
-
-#TODO: once we always use semgrep-core to run a rule, we can delete spacegrep
-COPY --from=build-semgrep-core \
-     /semgrep/semgrep-core/_build/install/default/bin/spacegrep \
-     /usr/local/bin/spacegrep
-RUN ln -sf spacegrep /usr/local/bin/spacecat
 
 COPY semgrep /semgrep
 RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep

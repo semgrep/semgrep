@@ -1,0 +1,20 @@
+# Tests that when "child_process" (a string in one required pattern)
+# is not present the file will not be parsed
+
+rules:
+- id: ajinabraham.njsscan.exec_os_command.generic_os_command_exec
+  patterns:
+  - pattern-inside: |
+      require('child_process')
+      ...
+  - pattern-either:
+    - pattern-inside: function ($REQ, $RES, ...) {...}
+    - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+  - pattern-either:
+    - pattern: |
+        $EXEC.exec(..., <... $REQ.$QUERY.$VAR ...>, ...)
+    - pattern: |
+        $EXEC.exec(..., <... $REQ.$QUERY ...>, ...)
+  languages: [js, ts]
+  severity: WARNING 
+  message: "test"

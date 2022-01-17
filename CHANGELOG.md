@@ -3,17 +3,152 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
-
-## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
-
-### Added
+- Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
+  allows rules to filter based on the presence of 3rd-party dependencies at specific 
+  version ranges.
 
 ### Changed
-- Dataflow: Assume that any function/method call inside a `try-catch` could
-  be raising an exception (#4091)
+- CLI: parse errors (reported with `--verbose`) appear once per file, 
+  not once per rule/file
+
+## [0.78.0](https://github.com/returntocorp/semgrep/releases/tag/v0.78.0) - 01-13-2022
+
+### Added
+- Pre-alpha support for Dockerfile as a new target language
+- Semgrep is now able to symbolically propagate simple definitions. E.g., given
+  an assignment `x = foo.bar()` followed by a call `x.baz()`, Semgrep will keep
+  track of `x`'s definition, and it will successfully match `x.baz()` with a
+  pattern like `foo.bar().baz()`. This feature should help writing simple yet
+  powerful rules, by letting the dataflow engine take care of any intermediate
+  assignments. Symbolic propagation is still experimental and it is disabled by
+  default, it must be enabled in a per-rule basis using `options:` and setting
+  `symbolic_propagation: true`. (#2783, #2859, #3207)
+- `--verbose` outputs a timing and file breakdown summary at the end
+- `metavariable-comparison` now handles metavariables that bind to arbitrary
+  constant expressions (instead of just code variables)
 
 ### Fixed
-- Performance: Deduplicate rules by rule-id + behavior so rules are not being run twice
+- Rust: inner attributes are allowed again inside functions (#4444) (#4445)
+- Python: return statement can contain tuple expansions (#4461)
+- metavariable-comparison: do not throw a Not_found exn anymore (#4469)
+- better ordering of match results with respect to captured
+  metavariables (#4488)
+- Go, JavaScript, Java, Python, TypeScript: correct matching of
+  multibyte characters (#4490)
+
+## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
+
+### Added
+- New language Solidity with experimental support.
+- Scala: Patterns like List(...) now correctly match against patterns in code
+- A default set of .semgrepignore patterns (in semgrep/templates/.semgrepignore)  are now used if no .semgrepignore file is provided
+- Java: Ellipsis metavariables can now be used for parameters (#4420)
+- `semgrep login` and `semgrep logout` commands to save api token
+
+### Fixed
+- Go: fixed bug where using an ellipsis to stand for a list of key-value pairs
+  would sometimes cause a parse error
+- Scala: Translate definitions using patterns like
+  `val List(x,y,z) = List(1,2,3)` to the generic AST
+- Allow name resolution on imported packages named just vN, where N is a number
+- The -json option in semgrep-core works again when used with -e/-f
+- Python: get the correct range when matching comprehension (#4221)
+- Python and other languages: allow matches of patterns containing
+  non-ascii characters, but still with possibly many false positives (#4336)
+- Java: parse correctly constructor method patterns (#4418)
+- Address several autofix output issues (#4428, #3577, #3338) by adding per-
+  file line/column offset tracking
+
+### Changed
+- Constant propagation is now a proper must-analysis, if a variable is undefined
+  in some path then it will be considered as non-constant
+- Dataflow: Only consider reachable nodes, which prevents some FPs/FNs
+- Timing output handles errors and reports profiling times
+- semgrep-core will log a warning when a worker process is consuming above 400 MiB
+  of memory, or reached 80% of the specified memory limit, whatever happens first.
+  This is meant to help diagnosing OOM-related crashes.
+
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+
+### Fixed
+- Python: set the right scope for comprehension variables (#4260)
+- Fixed bug where the presence of .semgrepignore would cause reported targets
+  to have absolute instead of relative file paths
+
+## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
+
+### Fixed
+- Fixed bug where the presence of .semgrepignore would cause runs to fail on
+  files that were not subpaths of the directory where semgrep was being run
+
+## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 12-06-2021
+
+### Added
+- Improved filtering of rules based on file content (important speedup
+  for nodejsscan rules notably)
+- Semgrep CLI now respects .semgrepignore files
+- Java: support ellipsis in generics, e.g., `class Foo<...>` (#4335)
+
+### Fixed
+- Java: class patterns not using generics will match classes using generics
+  (#4335), e.g., `class $X { ...}` will now match `class Foo<T> { }`
+- TS: parse correctly type definitions (#4330)
+- taint-mode: Findings are now reported when the LHS of an access operator is
+  a sink (e.g. as in `$SINK->method`), and the LHS operand is a tainted
+  variable (#4320)
+- metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
+- semgrep-core: Fix a segmentation fault on Apple M1 when using
+  `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
+- Python: generate proper lexical exn for unbalanced braces (#4310)  
+- YAML: fix off-by-one in location of arrays
+- Python: generate proper lexical exn for unbalanced braces (#4310)
+- Matching `"$MVAR"` patterns against string literals computed by constant folding
+  no longer causes a crash (#4371)
+
+### Changed
+- semgrep-core: Log messages are now tagged with the process id
+- Optimization: change bloom filters to use sets, move location of filter
+- Reduced the size of `--debug` dumps
+- Given `--output` Semgrep will no longer print search results to _stdout_,
+  but it will only save/post them to the specified file/URL
+
+## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
+
+### Fixed
+- semgrep-ci relies on `--disable-nosem` still tagging findings with `is_ignored`
+  correctly. Reverting optimization in 0.74.0 that left this field None when said
+  flag was used
+
+## [0.74.0](https://github.com/returntocorp/semgrep/releases/tag/v0.74.0) - 11-19-2021
+
+### Added
+- Support for method chaining patterns in Python, Golang, Ruby,
+  and C# (#4300), so all GA languages now have method chaining
+- Scala: translate infix operators to generic AST as method calls, 
+  so `$X.map($F)` matches `xs map f`
+- PHP: support method patterns (#4262)
+
+### Changed
+- Add `profiling_times` object in `--time --json` output for more fine
+  grained visibility into slow parts of semgrep
+- Constant propagation: Any kind of Python string (raw, byte, or unicode) is 
+  now evaluated to a string literal and can be matched by `"..."` (#3881)
+
+### Fixed
+- Ruby: blocks are now represented with an extra function call in Generic so that
+  both `f(...)` and `f($X)` correctly match `f(x)` in `f(x) { |n| puts n }` (#3880)
+- Apply generic filters excluding large files and binary files to
+  'generic' and 'regex' targets as it was already done for the other
+  languages.
+- Fix some Stack_overflow when using -filter_irrelevant_rules (#4305)
+- Dataflow: When a `switch` had no other statement following it, and the last
+  statement of the `switch`'s `default` case was a statement, such as `throw`,
+  that can exit the execution of the current function, this caused `break`
+  statements within the `switch` to not be resolved during the construction of
+  the CFG. This could led to e.g. constant propagation incorrectly flagging
+  variables as constants. (#4265)
 
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 
@@ -21,9 +156,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - experimental support for C++
 
 ### Changed
-- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
+- Dataflow: Assume that any function/method call inside a `try-catch` could
+  be raising an exception (#4091)
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even 
+  if valid configs are also passed
 
 ### Fixed
+- Performance: Deduplicate rules by rule-id + behavior so rules are not being run
+  twice
+- Scala: recognize metavariables in patterns
+- Scala: translate for loops to the generic ast properly
 - Catch PCRE errors
 - Constant propagation: Avoid "Impossible" errors due to unhandled cases
 

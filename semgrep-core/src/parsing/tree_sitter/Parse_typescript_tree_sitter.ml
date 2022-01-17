@@ -2984,18 +2984,18 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       []
       (* TODO *)
   | `Type_alias_decl (v1, v2, v3, v4, v5, v6) ->
-      let _v1 = token env v1 (* "type" *) in
-      let _v2 = token env v2 (* identifier *) in
-      let _v3 =
+      let typekwd = token env v1 (* "type" *) in
+      let id = str env v2 (* identifier *) in
+      let _tparamsTODO =
         match v3 with
         | Some x -> type_parameters env x
         | None -> []
       in
-      let _v4 = token env v4 (* "=" *) in
-      let _v5 = type_ env v5 in
-      let _v6 = semicolon env v6 in
-      []
-      (* TODO *)
+      let _teq = token env v4 (* "=" *) in
+      let ty = type_ env v5 in
+      let sc = semicolon env v6 in
+      let ent = basic_entity id in
+      [ (ent, DefTodo (("typedef", typekwd), [ Type ty; Tk sc ])) ]
   | `Enum_decl (v1, v2, v3, v4) ->
       let _v1 =
         match v1 with

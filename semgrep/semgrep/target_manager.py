@@ -5,12 +5,14 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
 from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Set
 
@@ -19,12 +21,12 @@ from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
-from semgrep.output import OutputHandler
+from semgrep.ignores import FileIgnore
+from semgrep.semgrep_types import FileExtension
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import LanguageDefinition
 from semgrep.semgrep_types import Shebang
-from semgrep.target_manager_extensions import ALL_EXTENSIONS
-from semgrep.target_manager_extensions import FileExtension
-from semgrep.target_manager_extensions import lang_to_exts_and_shebangs
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
@@ -32,6 +34,14 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
+
+
+ALL_EXTENSIONS: Collection[FileExtension] = {
+    ext
+    for definition in LANGUAGE.definition_by_id.values()
+    for ext in definition.exts
+    if ext != FileExtension("")
+}
 
 
 @contextlib.contextmanager
@@ -79,12 +89,26 @@ class TargetManager:
     includes: Sequence[str]
     excludes: Sequence[str]
     max_target_bytes: int
-    targets: Sequence[str]
+    targets: Sequence[str] = attr.ib()
     respect_git_ignore: bool
-    output_handler: OutputHandler
     skip_unknown_extensions: bool
+    file_ignore: Optional[FileIgnore]
 
     _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
+
+    @targets.validator
+    def _check_exists(self, attribute: str, value: Sequence[str]) -> None:
+        """
+        Raise FilesNotFoundError if any element of targets is not a dir/regular file or
+        symlink to a dir/regular file:
+
+        i.e. does not exist, is a mount/socket etc.
+        """
+        targets = self.resolve_targets(self.targets)
+        files, _directories = partition_set(lambda p: not p.is_dir(), targets)
+        _explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
+        if nonexistent_files:
+            raise FilesNotFoundError(tuple(nonexistent_files))
 
     @staticmethod
     def resolve_targets(targets: Sequence[str]) -> FrozenSet[Path]:
@@ -143,7 +167,7 @@ class TargetManager:
                 )
             return files
 
-        def _executes_with_shebang(f: Path, shebangs: Set[Shebang]) -> bool:
+        def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
             """
             Returns if a path is executable and executes with one of a set of programs
             """
@@ -161,8 +185,7 @@ class TargetManager:
 
         def _find_files_with_extension_or_shebang(
             paths: Iterable[Path],
-            extensions: Iterable[FileExtension],
-            shebangs: Set[Shebang],
+            definition: LanguageDefinition,
         ) -> FrozenSet[Path]:
             """
             Finds all files in a collection of paths that either:
@@ -175,24 +198,26 @@ class TargetManager:
             before = time.time()
             for path in paths:
                 if path.is_dir():
-                    res.update(p for ext in extensions for p in path.rglob(f"*{ext}"))
+                    res.update(
+                        p for ext in definition.exts for p in path.rglob(f"*{ext}")
+                    )
                     res.update(
                         Path(root) / f
                         for root, _, files in os.walk(str(curr_dir))
                         for f in files
-                        if _executes_with_shebang(Path(root) / f, shebangs)
+                        if _executes_with_shebang(Path(root) / f, definition.shebangs)
                     )
                 else:
-                    if any(str(path).endswith(ext) for ext in extensions):
+                    if any(str(path).endswith(ext) for ext in definition.exts):
                         res.add(path)
-                    if _executes_with_shebang(path, shebangs):
+                    if _executes_with_shebang(path, definition.shebangs):
                         res.add(path)
             logger.debug(
                 f"Scanned file system for matching files in {time.time() - before} s"
             )
             return frozenset(res)
 
-        extensions, shebangs = lang_to_exts_and_shebangs(language)
+        definition = LANGUAGE.definition_by_id[language]
 
         if respect_git_ignore:
             try:
@@ -230,22 +255,16 @@ class TargetManager:
                 untracked_unignored = _parse_output(untracked_output, curr_dir)
                 deleted = _parse_output(deleted_output, curr_dir)
                 paths = tracked.union(untracked_unignored).difference(deleted)
-                results = _find_files_with_extension_or_shebang(
-                    paths, extensions, shebangs
-                )
+                results = _find_files_with_extension_or_shebang(paths, definition)
 
             except (subprocess.CalledProcessError, FileNotFoundError):
                 logger.verbose(
                     f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
                 )
                 # Not a git directory or git not installed. Fallback to using rglob
-                results = _find_files_with_extension_or_shebang(
-                    [curr_dir], extensions, shebangs
-                )
+                results = _find_files_with_extension_or_shebang([curr_dir], definition)
         else:
-            results = _find_files_with_extension_or_shebang(
-                [curr_dir], extensions, shebangs
-            )
+            results = _find_files_with_extension_or_shebang([curr_dir], definition)
 
         return TargetManager._filter_valid_files(results)
 
@@ -300,8 +319,14 @@ class TargetManager:
             return arr
 
         includes = TargetManager.preprocess_path_patterns(includes)
+        # Need cast b/c types-wcmatch doesn't use generics properly :(
         return frozenset(
-            wcglob.globfilter(arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+            cast(
+                Iterable[Path],
+                wcglob.globfilter(
+                    arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                ),
+            )
         )
 
     @staticmethod
@@ -317,8 +342,14 @@ class TargetManager:
             return arr
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
+        # Need cast b/c types-wcmatch doesn't use generics properly :(
         return arr - frozenset(
-            wcglob.globfilter(arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+            cast(
+                Iterable[Path],
+                wcglob.globfilter(
+                    arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                ),
+            )
         )
 
     @staticmethod
@@ -353,16 +384,11 @@ class TargetManager:
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
+        # Non dir/non file should not exist cause of init time validation
+        # See _check_exists()
         targets = self.resolve_targets(self.targets)
-
         files, directories = partition_set(lambda p: not p.is_dir(), targets)
-
-        # Error on non-existent files
-        explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
-        if nonexistent_files:
-            self.output_handler.handle_semgrep_error(
-                FilesNotFoundError(tuple(nonexistent_files))
-            )
+        explicit_files, _ = partition_set(lambda p: p.is_file(), files)
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
@@ -373,7 +399,7 @@ class TargetManager:
         explicit_files_with_lang_extension = frozenset(
             f
             for f in explicit_files
-            if (any(f.match(f"*{ext}") for ext in lang_to_exts_and_shebangs(lang)[0]))
+            if (any(f.match(f"*{ext}") for ext in LANGUAGE.definition_by_id[lang].exts))
         )
         targets = targets.union(explicit_files_with_lang_extension)
 
@@ -385,6 +411,9 @@ class TargetManager:
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 
+        targets = (
+            self.file_ignore.filter_paths(targets) if self.file_ignore else targets
+        )
         self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
 

@@ -1,6 +1,7 @@
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -64,6 +65,29 @@ def _clean_output_json(output_json: str) -> str:
                 del r["path"]
 
     return json.dumps(output, indent=2, sort_keys=True)
+
+
+def _mask_times(result_json: str) -> str:
+    result = json.loads(result_json)
+
+    def zero_times(value):
+        if type(value) == float:
+            return 2.022
+        elif type(value) == list:
+            return [zero_times(val) for val in value]
+        elif type(value) == dict:
+            return {k: zero_times(v) for k, v in value.items()}
+        else:
+            return value
+
+    if "time" in result:
+        result["time"] = zero_times(result["time"])
+    return json.dumps(result, indent=2, sort_keys=True)
+
+
+def _mask_floats(text_output: str) -> str:
+    FLOATS = re.compile("([0-9]+).([0-9]+)")
+    return re.sub(FLOATS, "x.xxx", text_output)
 
 
 def _run_semgrep(
@@ -133,8 +157,10 @@ def _run_semgrep(
         options.append("--sarif")
 
     cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    # join here so that one can easily copy-paste the command
+    str_cmd = " ".join(str(c) for c in cmd)
     print(f"current directory: {os.getcwd()}")
-    print(f"semgrep command: {cmd}")
+    print(f"semgrep command: {str_cmd}")
     output = subprocess.run(
         cmd,
         encoding="utf-8",
@@ -153,7 +179,7 @@ def _run_semgrep(
         print("--- end semgrep stderr ---")
         raise subprocess.CalledProcessError(
             returncode=output.returncode,
-            cmd=cmd,
+            cmd=str_cmd,
             output=output.stdout,
             stderr=output.stderr,
         )
