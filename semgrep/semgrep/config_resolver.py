@@ -417,6 +417,7 @@ class Config:
                     new_rule.raw,
                     lambda k: cast(bool, (k == PATTERNS_FROM_KEY_NAME)),
                     (lambda _, v: rule_cache[v].raw.get("patterns", [])),
+                    "patterns",
                 )
                 new_rules.append(new_rule)
             new_configs[config_id] = new_rules

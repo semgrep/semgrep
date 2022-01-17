@@ -224,19 +224,29 @@ def dict_mutate_keyvalues(
     indict: Dict[Any, Any],
     predicate: Callable[[Any], bool],
     replacement: Callable[[Any, Any], List[Any]],
+    new_key_name: str,
 ) -> None:
     """
     For any child of `indict` which is a list value with a dictionary
     where `predicate(key)` holds true for a value in that dictionary
     remove the dictionary and replace its entry in the list by splicing in the
     value of `replacement(key, value)`
+
+    If a child which is a dictionary has a key which matches the predicate, delete
+    the matched key and insert a new key `new_key_name` with the value `replacement(key, value)`.
+
     """
     if isinstance(indict, dict):
-        # call `list` on items to avoid runtime error on dictionary size change
+
         for key, value in list(indict.items()):
             # print(f'{key}: {value}')
             if isinstance(value, dict):
-                dict_mutate_keyvalues(value, predicate, replacement)
+                # call `list` on items to avoid runtime error on dictionary size change
+                for subk, subv in list(value.items()):
+                    if predicate(subk):
+                        del value[subk]
+                        value[new_key_name] = replacement(subk, subv)
+                dict_mutate_keyvalues(value, predicate, replacement, new_key_name)
             elif isinstance(value, list):  # or isinstance(value, tuple):
                 new_list: List[Any] = []
                 dirty = False
@@ -256,6 +266,8 @@ def dict_mutate_keyvalues(
                         new_list.append(v)
                 if dirty:
                     indict[key] = new_list
+                for v in new_list:
+                    dict_mutate_keyvalues(v, predicate, replacement, new_key_name)
 
 
 def flatten(some_list: List[List[T]]) -> List[T]:
