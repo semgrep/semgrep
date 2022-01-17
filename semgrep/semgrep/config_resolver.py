@@ -408,9 +408,9 @@ class Config:
         """
         # TODO handle circular patterns-from
 
-        def replace_patterns_from(key: str, value: str) -> Tuple[Any, Any]:
+        def replace_patterns_from(key: str, value: str) -> Optional[Tuple[Any, Any]]:
             if key != PATTERNS_FROM_KEY_NAME:
-                return key, value
+                return None
             remote_value = rule_cache[value].raw.get("patterns", [])
             return "patterns", remote_value
 

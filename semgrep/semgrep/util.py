@@ -221,7 +221,7 @@ def dict_generator(indict: Dict[Any, Any]) -> Generator[Tuple[Any, Any], None, N
 
 
 def dict_mutate_keyvalues(
-    indict: Dict[Any, Any], f: Callable[[Any, Any], Tuple[Any, Any]]
+    indict: Dict[Any, Any], f: Callable[[Any, Any], Optional[Tuple[Any, Any]]]
 ) -> None:
     """
     For every non-{dict, list, tuple} key-value pair of the dict,
@@ -237,10 +237,11 @@ def dict_mutate_keyvalues(
                 for v in value:
                     dict_mutate_keyvalues(v, f)
             else:
-                # print(f'replaced {key}: {value} -> {f(key, value)}')
-                new_key, new_value = f(key, value)
-                del indict[key]
-                indict[new_key] = new_value
+                new_kv = f(key, value)
+                if new_kv is not None:
+                    # print(f'replaced {key}: {value} -> {f(key, value)}')
+                    del indict[key]
+                    indict[new_kv[0]] = new_kv[1]
     else:
         # yield [indict]
         pass
