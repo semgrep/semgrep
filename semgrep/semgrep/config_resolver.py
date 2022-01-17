@@ -305,6 +305,41 @@ class Config:
         errors.extend(parse_errors)
         return cls(valid), errors
 
+    def _fetch_remote_configs(
+        self, config_to_patterns_from: Dict[str, List[str]], no_rewrite_rule_ids: bool
+    ) -> Dict[str, Rule]:
+        remote_cache: Dict[str, Rule] = {}
+        for config_name, remotes in config_to_patterns_from.items():
+            for remote_name in remotes:
+                remote_config, remote_configs_errors = Config.from_config_list(
+                    [remote_name], relative_to_path=Path(config_name).parent
+                )
+                if remote_configs_errors:
+                    raise SemgrepError(
+                        f"There were errors resolving {PATTERNS_FROM_KEY_NAME} keys: {remote_configs_errors}"
+                    )
+                else:
+                    remote_rules = remote_config.get_rules(no_rewrite_rule_ids)
+                    if len(remote_rules) < 1:
+                        raise SemgrepError(
+                            f"There were no rules found in {remote_name}: exactly one is expected. Check the value of {PATTERNS_FROM_KEY_NAME}."
+                        )
+                    elif len(remote_rules) > 1:
+                        raise SemgrepError(
+                            f"There were {len(remote_rules)} rules found in {remote_name} but {PATTERNS_FROM_KEY_NAME} only allows 1."
+                        )
+                    else:
+                        logger.debug(
+                            f"found {PATTERNS_FROM_KEY_NAME} value for {remote_name}: {remote_rules[0]}"
+                        )
+                        if remote_rules[0].raw.get("patterns"):
+                            remote_cache[remote_name] = remote_rules[0]
+                        else:
+                            raise SemgrepError(
+                                f"Invalid pattern resolved from {PATTERNS_FROM_KEY_NAME}: {remote_name}; the remote rule needs a `patterns` key"
+                            )
+        return remote_cache
+
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
         Return list of rules
@@ -317,37 +352,16 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
 
-        config_to_patterns_from = {}
+        config_to_patterns_from: Dict[str, List[str]] = {}
         for config in configs:
             config_to_patterns_from[config] = list(
                 self._find_config_remote_references(configs)
             )
-        remote_cache = {}
-        for config_name, remotes in config_to_patterns_from.items():
-            for remote_name in remotes:
-                remote_config, remote_configs_errors = Config.from_config_list(
-                    [remote_name], relative_to_path=Path(config_name).parent
-                )
-                if remote_configs_errors:
-                    logger.error(
-                        f"There were errors resolving {PATTERNS_FROM_KEY_NAME} keys: {remote_configs_errors}"
-                    )
-                else:
-                    remote_rules = remote_config.get_rules(no_rewrite_rule_ids)
-                    if len(remote_rules) < 1:
-                        logger.error(
-                            f"There were no rules found in {remote_name}: exactly one is expected. Check the value of {PATTERNS_FROM_KEY_NAME}."
-                        )
-                    elif len(remote_rules) > 1:
-                        logger.error(
-                            f"There were {len(remote_rules)} rules found in {remote_name} but {PATTERNS_FROM_KEY_NAME} only allows 1."
-                        )
-                    else:
-                        logger.debug(
-                            f"found {PATTERNS_FROM_KEY_NAME} value for {remote_name}: {remote_rules[0]}"
-                        )
-                        remote_cache[remote_name] = remote_rules[0]
-
+        remote_cache = self._fetch_remote_configs(
+            config_to_patterns_from, no_rewrite_rule_ids
+        )
+        # if remote_cache is None:
+        #    raise SemgrepError(f'Fatal error occured while resolving remote configs found in {PATTERNS_FROM_KEY_NAME} key')
         new_configs = self._replace_patterns_from(configs, remote_cache)
         configs = new_configs.valid
 

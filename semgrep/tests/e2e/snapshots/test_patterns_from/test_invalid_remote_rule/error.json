@@ -1,0 +1,1 @@
+{"errors": [{"code": 2, "level": "error", "message": "Invalid pattern resolved from r2c-internal-patterns-from: ./taint-test.yaml; the remote rule needs a `patterns` key", "type": "SemgrepError"}], "results": []}

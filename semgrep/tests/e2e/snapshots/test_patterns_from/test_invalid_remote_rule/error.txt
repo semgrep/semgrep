@@ -1,0 +1,1 @@
+Invalid pattern resolved from r2c-internal-patterns-from: ./taint-test.yaml; the remote rule needs a `patterns` key

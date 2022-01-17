@@ -1,0 +1,30 @@
+rules:
+- id: md5-used-as-password
+  severity: WARNING
+  message: >-
+    It looks like MD5 is used as a password hash. MD5 is not considered a
+    secure password hash because it can be cracked by an attacker in a short
+    amount of time. Use SHA-256 or higher for password hashes (for example: `hashlib.sha256(...)`)
+  languages: [python]
+  metadata:
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    owasp:
+    - A02:2017 - Broken Authentication
+    - A02:2021 - Cryptographic Failures
+    references:
+    - https://tools.ietf.org/html/rfc6151
+    - https://crypto.stackexchange.com/questions/44151/how-does-the-flame-malware-take-advantage-of-md5-collision
+    - https://pycryptodome.readthedocs.io/en/latest/src/hash/sha3_256.html
+    - https://security.stackexchange.com/questions/211/how-to-securely-hash-passwords
+    category: security
+    technology:
+    - pycryptodome
+    - hashlib
+    - md5
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - r2c-internal-patterns-from: ./taint-test.yaml
+  pattern-sinks:
+  - patterns:
+    - r2c-internal-patterns-from: ./taint-sinks.yaml
