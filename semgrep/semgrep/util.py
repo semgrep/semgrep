@@ -229,7 +229,8 @@ def dict_mutate_keyvalues(
     """
 
     if isinstance(indict, dict):
-        for key, value in indict.items():  # nosemgrep
+        # call `list` on items to avoid runtime error on dictionary size change
+        for key, value in list(indict.items()):
             if isinstance(value, dict):
                 dict_mutate_keyvalues(value, f)
             elif isinstance(value, list) or isinstance(value, tuple):

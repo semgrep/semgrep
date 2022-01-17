@@ -129,7 +129,9 @@ class ConfigPath:
         if self.is_registry_url():
             metric_manager.set_using_server_true()
 
-    def resolve_config(self) -> Mapping[str, YamlTree]:
+    def resolve_config(
+        self, relative_to_path: Optional[Path]
+    ) -> Mapping[str, YamlTree]:
         """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
@@ -138,7 +140,7 @@ class ConfigPath:
         elif self._origin == ConfigType.CDN:
             config = download_pack_config(self._config_path)
         else:
-            config = self._load_config_from_local_path()
+            config = self._load_config_from_local_path(relative_to_path)
 
         if config:
             logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
@@ -175,12 +177,14 @@ class ConfigPath:
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
             )
 
-    def _load_config_from_local_path(self) -> Dict[str, YamlTree]:
+    def _load_config_from_local_path(
+        self, relative_to_path: Optional[Path]
+    ) -> Dict[str, YamlTree]:
         """
         Return config file(s) as dictionary object
         """
         location = self._config_path
-        base_path = get_base_path()
+        base_path = get_base_path() if not relative_to_path else relative_to_path
         loc = base_path.joinpath(location)
 
         logger.debug(f"Loading local config from {loc}")
@@ -253,7 +257,10 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: Sequence[str], project_url: Optional[str] = None
+        cls,
+        configs: Sequence[str],
+        project_url: Optional[str] = None,
+        relative_to_path: Optional[Path] = None,
     ) -> Tuple["Config", Sequence[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -273,7 +280,9 @@ class Config:
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = ConfigPath(config, project_url).resolve_config()
+                resolved_config = ConfigPath(config, project_url).resolve_config(
+                    relative_to_path
+                )
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
@@ -307,31 +316,36 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
 
-        remotes = list(self._find_config_remote_references(configs))
-        remote_cache = {}
-        for remote_name in set(remotes):
-            remote_config, remote_configs_errors = Config.from_config_list(
-                [remote_name]
+        config_to_patterns_from = {}
+        for config in configs:
+            config_to_patterns_from[config] = list(
+                self._find_config_remote_references(configs)
             )
-            if remote_configs_errors:
-                logger.error(
-                    f"There were errors resolving {PATTERNS_FROM_KEY_NAME} keys: {remote_configs_errors}"
+        remote_cache = {}
+        for config_name, remotes in config_to_patterns_from.items():
+            for remote_name in remotes:
+                remote_config, remote_configs_errors = Config.from_config_list(
+                    [remote_name], relative_to_path=Path(config_name).parent
                 )
-            else:
-                remote_rules = remote_config.get_rules(no_rewrite_rule_ids)
-                if len(remote_rules) < 1:
+                if remote_configs_errors:
                     logger.error(
-                        f"There were no rules found in {remote_name}: exactly one is expected. Check the value of {PATTERNS_FROM_KEY_NAME}."
-                    )
-                elif len(remote_rules) > 1:
-                    logger.error(
-                        f"There were {len(remote_rules)} rules found in {remote_name} but {PATTERNS_FROM_KEY_NAME} only allows 1."
+                        f"There were errors resolving {PATTERNS_FROM_KEY_NAME} keys: {remote_configs_errors}"
                     )
                 else:
-                    logger.debug(
-                        f"found {PATTERNS_FROM_KEY_NAME} value for {remote_name}: {remote_rules[0]}"
-                    )
-                    remote_cache[remote_name] = remote_rules[0]
+                    remote_rules = remote_config.get_rules(no_rewrite_rule_ids)
+                    if len(remote_rules) < 1:
+                        logger.error(
+                            f"There were no rules found in {remote_name}: exactly one is expected. Check the value of {PATTERNS_FROM_KEY_NAME}."
+                        )
+                    elif len(remote_rules) > 1:
+                        logger.error(
+                            f"There were {len(remote_rules)} rules found in {remote_name} but {PATTERNS_FROM_KEY_NAME} only allows 1."
+                        )
+                    else:
+                        logger.debug(
+                            f"found {PATTERNS_FROM_KEY_NAME} value for {remote_name}: {remote_rules[0]}"
+                        )
+                        remote_cache[remote_name] = remote_rules[0]
 
         new_configs = self._replace_patterns_from(configs, remote_cache)
         configs = new_configs.valid
@@ -398,7 +412,6 @@ class Config:
             if key != PATTERNS_FROM_KEY_NAME:
                 return key, value
             remote_value = rule_cache[value].raw.get("patterns", [])
-            print(f"replacing with new value: {remote_value}")
             return "patterns", remote_value
 
         new_configs = {}

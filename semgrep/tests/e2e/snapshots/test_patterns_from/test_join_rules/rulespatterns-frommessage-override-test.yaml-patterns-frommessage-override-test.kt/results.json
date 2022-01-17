@@ -1,0 +1,118 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.patterns-from.cookie-missing-secure-flag",
+      "end": {
+        "col": 35,
+        "line": 5,
+        "offset": 237
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "        response.addCookie(cookie)",
+        "message": "This is a custom message that uses the patterns from the registry",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute",
+          "owasp": "A3: Sensitive Data Exposure",
+          "source-rule-url": "https://find-sec-bugs.github.io/bugs.htm#INSECURE_COOKIE",
+          "technology": [
+            "kt"
+          ]
+        },
+        "metavars": {
+          "$COOKIE": {
+            "abstract_content": "cookie",
+            "end": {
+              "col": 34,
+              "line": 5,
+              "offset": 236
+            },
+            "start": {
+              "col": 28,
+              "line": 5,
+              "offset": 230
+            },
+            "unique_id": {
+              "sid": 3,
+              "type": "id"
+            }
+          },
+          "$RESPONSE": {
+            "abstract_content": "response",
+            "end": {
+              "col": 17,
+              "line": 5,
+              "offset": 219
+            },
+            "start": {
+              "col": 9,
+              "line": 5,
+              "offset": 211
+            },
+            "unique_id": {
+              "sid": 2,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/message-override-test.kt",
+      "start": {
+        "col": 9,
+        "line": 5,
+        "offset": 211
+      }
+    },
+    {
+      "check_id": "rules.patterns-from.cookie-missing-secure-flag",
+      "end": {
+        "col": 32,
+        "line": 26,
+        "offset": 1025
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "        cookie.setSecure(false)",
+        "message": "This is a custom message that uses the patterns from the registry",
+        "metadata": {
+          "category": "security",
+          "cwe": "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute",
+          "owasp": "A3: Sensitive Data Exposure",
+          "source-rule-url": "https://find-sec-bugs.github.io/bugs.htm#INSECURE_COOKIE",
+          "technology": [
+            "kt"
+          ]
+        },
+        "metavars": {
+          "$COOKIE": {
+            "abstract_content": "cookie",
+            "end": {
+              "col": 15,
+              "line": 26,
+              "offset": 1008
+            },
+            "start": {
+              "col": 9,
+              "line": 26,
+              "offset": 1002
+            },
+            "unique_id": {
+              "sid": 12,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/patterns-from/message-override-test.kt",
+      "start": {
+        "col": 9,
+        "line": 26,
+        "offset": 1002
+      }
+    }
+  ]
+}
