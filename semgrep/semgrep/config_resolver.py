@@ -7,6 +7,7 @@ from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import Generator
 from typing import IO
@@ -407,19 +408,16 @@ class Config:
         Replace patterns-from key references by looking them up in `rule_cache`, returning a new config
         """
         # TODO handle circular patterns-from
-
-        def replace_patterns_from(key: str, value: str) -> Optional[Tuple[Any, Any]]:
-            if key != PATTERNS_FROM_KEY_NAME:
-                return None
-            remote_value = rule_cache[value].raw.get("patterns", [])
-            return "patterns", remote_value
-
         new_configs = {}
         for config_id, rules in valid_configs.items():
             new_rules = []
             for rule in rules:
                 new_rule = copy.deepcopy(rule)
-                dict_mutate_keyvalues(new_rule.raw, replace_patterns_from)
+                dict_mutate_keyvalues(
+                    new_rule.raw,
+                    lambda k: cast(bool, (k == PATTERNS_FROM_KEY_NAME)),
+                    (lambda _, v: rule_cache[v].raw.get("patterns", [])),
+                )
                 new_rules.append(new_rule)
             new_configs[config_id] = new_rules
         return Config(new_configs)

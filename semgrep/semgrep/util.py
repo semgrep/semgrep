@@ -221,30 +221,41 @@ def dict_generator(indict: Dict[Any, Any]) -> Generator[Tuple[Any, Any], None, N
 
 
 def dict_mutate_keyvalues(
-    indict: Dict[Any, Any], f: Callable[[Any, Any], Optional[Tuple[Any, Any]]]
+    indict: Dict[Any, Any],
+    predicate: Callable[[Any], bool],
+    replacement: Callable[[Any, Any], List[Any]],
 ) -> None:
     """
-    For every non-{dict, list, tuple} key-value pair of the dict,
-    replace the key and value with the result of `f` of the key-value pair
+    For any child of `indict` which is a list value with a dictionary
+    where `predicate(key)` holds true for a value in that dictionary
+    remove the dictionary and replace its entry in the list by splicing in the
+    value of `replacement(key, value)`
     """
-
     if isinstance(indict, dict):
         # call `list` on items to avoid runtime error on dictionary size change
         for key, value in list(indict.items()):
+            # print(f'{key}: {value}')
             if isinstance(value, dict):
-                dict_mutate_keyvalues(value, f)
-            elif isinstance(value, list) or isinstance(value, tuple):
+                dict_mutate_keyvalues(value, predicate, replacement)
+            elif isinstance(value, list):  # or isinstance(value, tuple):
+                new_list: List[Any] = []
+                dirty = False
                 for v in value:
-                    dict_mutate_keyvalues(v, f)
-            else:
-                new_kv = f(key, value)
-                if new_kv is not None:
-                    # print(f'replaced {key}: {value} -> {f(key, value)}')
-                    del indict[key]
-                    indict[new_kv[0]] = new_kv[1]
-    else:
-        # yield [indict]
-        pass
+                    if isinstance(v, dict):
+                        for subk, subv in v.items():
+                            if predicate(subk):
+                                # we had [{k -> v}, {k2 -> v2}, {k3 -> Any}]
+                                # and `predicate(k)` was True
+                                # remove `k` from this list and splice in the list returned by `replacement(k, v)`
+                                # replace the k -> v with [replacment]
+                                new_list.extend(replacement(subk, subv))
+                                dirty = True
+                            else:
+                                new_list.append(v)
+                    else:
+                        new_list.append(v)
+                if dirty:
+                    indict[key] = new_list
 
 
 def flatten(some_list: List[List[T]]) -> List[T]:
