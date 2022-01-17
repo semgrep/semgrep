@@ -229,7 +229,7 @@ def dict_mutate_keyvalues(
     """
 
     if isinstance(indict, dict):
-        for key, value in indict.items():
+        for key, value in indict.items():  # nosemgrep
             if isinstance(value, dict):
                 dict_mutate_keyvalues(value, f)
             elif isinstance(value, list) or isinstance(value, tuple):
@@ -244,6 +244,6 @@ def dict_mutate_keyvalues(
         # yield [indict]
         pass
 
+
 def flatten(some_list: List[List[T]]) -> List[T]:
     return functools.reduce(operator.iconcat, some_list, [])
- 
