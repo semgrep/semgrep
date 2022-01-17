@@ -1905,39 +1905,7 @@ and map_statement (env : env) (x : CST.statement) : stmt =
         | None -> None
       in
       If (tif, Cond cond, then_, else_opt) |> G.s
-  | `For_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      let tfor = (* "for" *) token env v1 in
-      let _lp = (* "(" *) token env v2 in
-      let init =
-        match v3 with
-        | `Var_decl_stmt x ->
-            let ent, vdef = map_variable_declaration_statement env x in
-            [ ForInitVar (ent, vdef) ]
-        | `Exp_stmt x ->
-            let e, _sc = map_expression_statement env x in
-            [ ForInitExpr e ]
-        | `Semi tok ->
-            (* ";" *)
-            let _sc = token env tok in
-            []
-      in
-      let cond =
-        match v4 with
-        | `Exp_stmt x ->
-            let e, _sc = map_expression_statement env x in
-            Some e
-        | `Semi tok ->
-            let _sc = (* ";" *) token env tok in
-            None
-      in
-      let post =
-        match v5 with
-        | Some x -> Some (map_expression env x)
-        | None -> None
-      in
-      let _rp = (* ")" *) token env v6 in
-      let st = map_statement env v7 in
-      For (tfor, ForClassic (init, cond, post), st) |> G.s
+  | `For_stmt v1 -> map_for_statement env v1
   | `While_stmt (v1, v2, v3, v4, v5) ->
       let twhile = (* "while" *) token env v1 in
       let _lp = (* "(" *) token env v2 in
@@ -2002,6 +1970,50 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let st = Block (lb, xs, rb) |> G.s in
       OtherStmtWithStmt (OSWS_Todo, [ TodoK ("Assembly", tassembly) ], st)
       |> G.s
+
+and map_for_statement env v =
+  match v with
+  | `For_LPAR_choice_var_decl_stmt_choice_exp_stmt_opt_exp_RPAR_stmt
+      (v1, v2, v3, v4, v5, v6, v7) ->
+      let tfor = (* "for" *) token env v1 in
+      let _lp = (* "(" *) token env v2 in
+      let init =
+        match v3 with
+        | `Var_decl_stmt x ->
+            let ent, vdef = map_variable_declaration_statement env x in
+            [ ForInitVar (ent, vdef) ]
+        | `Exp_stmt x ->
+            let e, _sc = map_expression_statement env x in
+            [ ForInitExpr e ]
+        | `Semi tok ->
+            (* ";" *)
+            let _sc = token env tok in
+            []
+      in
+      let cond =
+        match v4 with
+        | `Exp_stmt x ->
+            let e, _sc = map_expression_statement env x in
+            Some e
+        | `Semi tok ->
+            let _sc = (* ";" *) token env tok in
+            None
+      in
+      let post =
+        match v5 with
+        | Some x -> Some (map_expression env x)
+        | None -> None
+      in
+      let _rp = (* ")" *) token env v6 in
+      let st = map_statement env v7 in
+      For (tfor, ForClassic (init, cond, post), st) |> G.s
+  | `For_LPAR_ellips_RPAR_stmt (v1, v2, v3, v4, v5) ->
+      let tfor = (* "for" *) token env v1 in
+      let _lp = (* "(" *) token env v2 in
+      let tellipsis = (* "..." *) token env v3 in
+      let _rp = (* ")" *) token env v4 in
+      let st = map_statement env v5 in
+      For (tfor, ForEllipsis tellipsis, st) |> G.s
 
 let map_function_body (env : env) ((v1, v2, v3) : CST.function_body) :
     function_body =
