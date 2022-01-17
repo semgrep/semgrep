@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import time
@@ -7,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Generator
 from typing import IO
 from typing import List
 from typing import Mapping
@@ -22,6 +24,7 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
+from semgrep.constants import PATTERNS_FROM_KEY_NAME
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
@@ -41,6 +44,8 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import Language
 from semgrep.types import JsonObject
+from semgrep.util import dict_generator
+from semgrep.util import dict_mutate_keyvalues
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
@@ -302,7 +307,35 @@ class Config:
         if not no_rewrite_rule_ids:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
-        self._resolve_patterns_from(configs, no_rewrite_rule_ids)
+
+        remotes = list(self._find_config_remote_references(configs))
+        remote_cache = {}
+        for remote_name in set(remotes):
+            remote_config, remote_configs_errors = Config.from_config_list(
+                [remote_name]
+            )
+            if remote_configs_errors:
+                logger.error(
+                    f"There were errors resolving {PATTERNS_FROM_KEY_NAME} keys: {remote_configs_errors}"
+                )
+            else:
+                remote_rules = remote_config.get_rules(no_rewrite_rule_ids)
+                if len(remote_rules) < 1:
+                    logger.error(
+                        f"There were no rules found in {remote_name}: exactly one is expected. Check the value of {PATTERNS_FROM_KEY_NAME}."
+                    )
+                elif len(remote_rules) > 1:
+                    logger.error(
+                        f"There were {len(remote_rules)} rules found in {remote_name} but {PATTERNS_FROM_KEY_NAME} only allows 1."
+                    )
+                else:
+                    logger.debug(
+                        f"found {PATTERNS_FROM_KEY_NAME} value for {remote_name}: {remote_rules[0]}"
+                    )
+                    remote_cache[remote_name] = remote_rules[0]
+
+        new_configs = self._replace_patterns_from(configs, remote_cache)
+        configs = new_configs.valid
 
         # deduplicate rules, ignoring metadata, which is not displayed
         # in the result
@@ -341,66 +374,43 @@ class Config:
                 )
 
     @staticmethod
-    def _resolve_patterns_from(valid_configs: Mapping[str, Sequence[Rule]], no_rewrite_rule_ids: bool) -> None:
-        # TODO add support for `pattern`, `pattern-either` etc as top-level keys. This assumes `patterns`
-        # TODO should we be mutating the internal structure of rules or generating a new one? Probably the latter
-        # TODO make sure we update rule.yaml or generate a new one and replace the whole rule
+    def _find_config_remote_references(
+        valid_configs: Mapping[str, Sequence[Rule]]
+    ) -> Generator[str, None, None]:
+        """
+        Report the value of every `patterns-from` key
+        """
+        for _, rules in valid_configs.items():
+            for rule in rules:
+                for k, v in dict_generator(rule.raw):
+                    if k == PATTERNS_FROM_KEY_NAME:
+                        yield v
+
+    @staticmethod
+    def _replace_patterns_from(
+        valid_configs: Mapping[str, Sequence[Rule]], rule_cache: Dict[str, Rule]
+    ) -> "Config":
+        """
+        Replace patterns-from key references by looking them up in `rule_cache`, returning a new config
+        """
         # TODO handle circular patterns-from
+        new_configs = {}
+        for config_id, rules in valid_configs.items():
+            new_rules = []
+            for rule in rules:
 
-        def replace_patterns(patterns: Sequence[Dict[str, Any]]) -> Sequence[Dict[str, Any]]:
-            # TODO make copy of patterns and return new_patterns
-            to_replace = {}
-            for idx, item in enumerate(patterns):
-                if 'patterns-from' in item: # TODO handle `patterns-from` not in top level
-                    value = item['patterns-from']
-                    # now resolve them as config objects
-                    config, errors = Config.from_config_list([value]) # TODO validate no errors
-                    if errors:
-                        logger.warning(f"There were errors resolving patterns-from: {errors}")
-                    rules = config.get_rules(no_rewrite_rule_ids)
-                    if len(rules) < 1:
-                        logger.error(f"There were no rules found in {value}. Please check the value of `pattern-from` and try again.")
-                    if len(rules) > 1:
-                        logger.warning(f"There were {len(rules)} rules found in {value}. Just using the first one")
-                    first_rule = rules[0]
-                    to_replace[idx] = first_rule.raw.get('patterns', [])
+                def replace_patterns_from(key: str, value: str) -> Any:
+                    if key != PATTERNS_FROM_KEY_NAME:
+                        return value
+                    remote_value = rule_cache[value].raw.get("patterns", [])
+                    # print(f'replacing with new value: {remote_value}')
+                    return remote_value
 
-            # replace the old ones TODO use yaml tree?
-            for idx, new_values_list in to_replace.items():
-                before = patterns[:idx]
-                item_to_replace = patterns[idx]
-                replacement = new_values_list
-                after = patterns[idx+1:]
-                patterns = before + replacement + after
-            return patterns
-
-        def replace_patterns_inside_key(key: Optional[str] = None) -> None:
-            for config_id, rules in valid_configs.items():
-                for rule in rules:
-                    # find all the `patterns-from`
-                    # TODO use YamlTree to find all recursively
-                    if key is not None:
-                        inside_wrapper_key = rule.raw.get(key, [])
-                        for item in inside_wrapper_key:
-                            if len(item) == 1 and 'patterns' in item:
-                                patterns = item['patterns']
-                                new_patterns = replace_patterns(patterns)
-                                item['patterns'] = new_patterns
-                            else:
-                                logger.warning("invalid state not supported yet for patterns-from")
-                    else:
-                        if 'patterns' in rule.raw:
-                            patterns = rule.raw['patterns']
-                            new_patterns = replace_patterns(patterns)
-                            rule.raw['patterns'] = new_patterns
-
-        # replace `patterns` key
-        replace_patterns_inside_key(None) # TOP LEVEL `patterns`
-        # now handle pattern-sources and pattern-sinks
-        replace_patterns_inside_key('pattern-sources')
-        replace_patterns_inside_key('pattern-sinks')
-        # TODO `pattern`, `pattern-either`,...
-                
+                new_rule = copy.deepcopy(rule)
+                dict_mutate_keyvalues(new_rule.raw, replace_patterns_from)
+                new_rules.append(new_rule)
+            new_configs[config_id] = new_rules
+        return Config(new_configs)
 
     @staticmethod
     def _validate(

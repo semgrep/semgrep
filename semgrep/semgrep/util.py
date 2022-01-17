@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import Dict
+from typing import Generator
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -196,3 +198,38 @@ def truncate(file_name: str, col_lim: int) -> str:
     if name_len > col_lim:
         file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
     return file_name
+
+
+def dict_generator(indict: Dict[Any, Any]) -> Generator[Tuple[Any, Any], None, None]:
+    if isinstance(indict, dict):
+        for key, value in indict.items():
+            if isinstance(value, dict):
+                yield from dict_generator(value)
+            elif isinstance(value, list) or isinstance(value, tuple):
+                for v in value:
+                    yield from dict_generator(v)
+            else:
+                yield (key, value)
+    else:
+        yield (None, indict)
+
+
+def dict_mutate_keyvalues(indict: Dict[Any, Any], f: Callable[[Any, Any], Any]) -> None:
+    """
+    For every non-{dict, list, tuple} key-value pair of the dict,
+    replace with `f` of the key-value pair
+    """
+
+    if isinstance(indict, dict):
+        for key, value in indict.items():
+            if isinstance(value, dict):
+                dict_mutate_keyvalues(value, f)
+            elif isinstance(value, list) or isinstance(value, tuple):
+                for v in value:
+                    dict_mutate_keyvalues(v, f)
+            else:
+                # print(f'replaced {key}: {value} -> {f(key, value)}')
+                indict[key] = f(key, value)
+    else:
+        # yield [indict]
+        pass
