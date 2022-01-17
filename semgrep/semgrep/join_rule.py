@@ -225,7 +225,9 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
     """
     config = {}
     for config_string in semgrep_config_strings:
-        resolved = ConfigPath(config_string, get_project_url()).resolve_config()
+        resolved = ConfigPath(config_string, get_project_url()).resolve_config(
+            relative_to_path=None
+        )
         # Some code-fu to get single rules
         config.update(
             {config_string: list(Config._validate(resolved)[0].values())[0][0]}
