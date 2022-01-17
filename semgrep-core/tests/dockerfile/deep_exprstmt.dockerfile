@@ -1,12 +1,12 @@
 RUN foo() { \
   # ERROR: match \
-  bar \
+  bar; \
   # ERROR: match \
-  x=$(bar) \
+  x=$(bar); \
   # ERROR: match \
-  foo2 "$(bar)" \
+  foo2 "$(bar)"; \
   # ERROR: match \
-  bloo | bar > /dev/null \
+  bloo | bar > /dev/null; \
 }
 
 # ERROR: match
