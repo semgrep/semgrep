@@ -4,7 +4,7 @@ rules:
 - rules.forcetimeout
 - rules.forcetimeout2
 - rules.forcetimeout3
-No .semgrepignore found. Using default ignores rules
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Warning: 2 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
 [rules.forcetimeout, rules.forcetimeout2]
 Semgrep stopped running rules on targets/equivalence/open_redirect.py after 2 timeout error(s). See `--timeout-
