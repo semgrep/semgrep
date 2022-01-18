@@ -1,1 +1,1 @@
-{"errors": [{"code": 2, "level": "error", "message": "There were errors resolving r2c-internal-patterns-from keys: [SemgrepError('WARNING: unable to find a config; path `rules/patterns-from/not-exist.yaml` does not exist')]", "type": "SemgrepError"}], "results": []}
+{"errors": [{"code": 2, "level": "error", "message": "WARNING: unable to find a config; path `rules/patterns-from/not-exist.yaml` does not exist", "type": "SemgrepError"}], "results": []}

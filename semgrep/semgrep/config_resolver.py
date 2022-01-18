@@ -314,10 +314,8 @@ class Config:
                 remote_config, remote_configs_errors = Config.from_config_list(
                     [remote_name], relative_to_path=Path(config_name).parent
                 )
-                if remote_configs_errors:
-                    raise SemgrepError(
-                        f"There were errors resolving {PATTERNS_FROM_KEY_NAME} keys: {remote_configs_errors}"
-                    )
+                if remote_configs_errors and len(remote_configs_errors):
+                    raise remote_configs_errors[0]
                 else:
                     remote_rules = remote_config.get_rules(no_rewrite_rule_ids)
                     if len(remote_rules) < 1:

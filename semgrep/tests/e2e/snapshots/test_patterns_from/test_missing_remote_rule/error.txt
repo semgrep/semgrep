@@ -1,1 +1,1 @@
-There were errors resolving r2c-internal-patterns-from keys: [SemgrepError('WARNING: unable to find a config; path `rules/patterns-from/not-exist.yaml` does not exist')]
+WARNING: unable to find a config; path `rules/patterns-from/not-exist.yaml` does not exist
