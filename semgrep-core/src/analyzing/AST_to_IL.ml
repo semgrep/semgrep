@@ -617,6 +617,7 @@ and expr_aux env ?(void = false) e_gen =
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
+  | G.Alias (_alias, e) -> expr env e
   | G.Ellipsis _
   | G.TypedMetavar (_, _, _)
   | G.DisjExpr (_, _)
