@@ -147,12 +147,15 @@ class CoreError:
         return self.error_type == CoreErrorType("Timeout")
 
     def to_semgrep_error(self) -> SemgrepCoreError:
+        reported_rule_id = self.rule_id
+
         # TODO benchmarking code relies on error code value right now
         # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
         if self.error_type == CoreErrorType(
             "Syntax error"
         ) or self.error_type == CoreErrorType("Lexical error"):
             code = 3
+            reported_rule_id = None  # Rule id not important for parse errors
         else:
             code = 2
 
@@ -160,6 +163,7 @@ class CoreError:
             code,
             self.level,
             self.error_type,
+            reported_rule_id,
             self.path,
             self.start,
             self.end,

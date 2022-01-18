@@ -520,8 +520,6 @@ class CoreRunner:
             output_json = self._extract_core_output(metachecks[0], core_run)
             core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
 
-            parsed_errors += [
-                e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
-            ]
+            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
 
         return dedup_errors(parsed_errors)

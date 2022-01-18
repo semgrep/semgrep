@@ -59,8 +59,8 @@ def notify_user_of_work(
             logger.info(f"- {exc}")
     logger.info(f"Running {len(filtered_rules)} rules...")
     logger.verbose("rules:")
-    for rule in filtered_rules:
-        logger.verbose(f"- {rule.id}")
+    for ruleid in sorted([rule.id for rule in filtered_rules]):
+        logger.verbose(f"- {ruleid}")
 
 
 def get_file_ignore() -> FileIgnore:
@@ -217,6 +217,9 @@ def main(
         lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
     )
+    dependency_aware_rules = [
+        r for r in rest_of_the_rules if r.project_depends_on is not None
+    ]
     filtered_rules = rest_of_the_rules
 
     core_start_time = time.time()
@@ -239,6 +242,21 @@ def main(
             join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
+
+    if len(dependency_aware_rules) > 0:
+        import semgrep.dependency_aware_rule as dep_aware_rule
+
+        for rule in dependency_aware_rules:
+            (
+                dep_rule_matches,
+                dep_rule_errors,
+            ) = dep_aware_rule.run_dependency_aware_rule(
+                rule_matches_by_rule.get(rule, []),
+                rule,
+                [Path(t) for t in target_manager.targets],
+            )
+            rule_matches_by_rule[rule] = dep_rule_matches
+            output_handler.handle_semgrep_errors(dep_rule_errors)
 
     profiler.save("core_time", core_start_time)
 
