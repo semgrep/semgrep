@@ -64,7 +64,7 @@ type env = {
 (* Helper functions *)
 (*****************************************************************************)
 
-exception UnrecognizedAlias
+exception UnrecognizedAlias of Parse_info.t
 
 let sgrep_ellipses_inline = "__sgrep_ellipses__"
 
@@ -182,7 +182,7 @@ let make_alias anchor pos env =
   let t = mk_tok pos anchor env in
   match Hashtbl.find_opt env.anchors anchor with
   | Some (expr, _p) -> (G.e (G.Alias ((anchor, t), expr)), pos)
-  | None -> raise UnrecognizedAlias
+  | None -> raise (UnrecognizedAlias t)
 
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
@@ -297,7 +297,7 @@ let parse (env : env) : G.expr list =
     match res with
     | E.Alias { anchor }, pos -> (
         try make_alias anchor pos env
-        with UnrecognizedAlias ->
+        with UnrecognizedAlias _ ->
           (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
     | E.Scalar { anchor; tag; value; _ }, pos ->
         make_node scalar anchor (tag, pos, value) env
