@@ -360,8 +360,6 @@ class Config:
         remote_cache = self._fetch_remote_configs(
             config_to_patterns_from, no_rewrite_rule_ids
         )
-        # if remote_cache is None:
-        #    raise SemgrepError(f'Fatal error occured while resolving remote configs found in {PATTERNS_FROM_KEY_NAME} key')
         new_configs = self._replace_patterns_from(configs, remote_cache)
         configs = new_configs.valid
 
