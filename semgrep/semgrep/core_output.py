@@ -277,9 +277,7 @@ class CoreOutput:
             parsed_skipped.append(CoreSkipped.parse(skip))
 
         timings = raw_json.get("time", {})
-        parsed_timings = CoreTiming.parse(
-            timings
-        ) 
+        parsed_timings = CoreTiming.parse(timings)
 
         return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
 

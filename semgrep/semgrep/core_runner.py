@@ -225,8 +225,7 @@ class CoreRunner:
             "--- end semgrep-core stderr ---\n",
         )
         raise SemgrepError(
-            f"Error while matching: {reason}\n{details}"
-            f"{PLEASE_FILE_ISSUE_TEXT}"
+            f"Error while matching: {reason}\n{details}" f"{PLEASE_FILE_ISSUE_TEXT}"
         )
 
     def _add_match_times(
@@ -412,15 +411,11 @@ class CoreRunner:
                 core_output = CoreOutput.parse(output_json)
 
                 if "time" in output_json:
-                    self._add_match_times(
-                        rule, profiling_data, output_json["time"]
-                    )
+                    self._add_match_times(rule, profiling_data, output_json["time"])
 
                 # end with tempfile.NamedTemporaryFile(...) ...
                 outputs[rule].extend(core_output.rule_matches(rule))
-                parsed_errors = [
-                    e.to_semgrep_error() for e in core_output.errors
-                ]
+                parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                 for err in core_output.errors:
                     if err.is_timeout():
                         assert err.path is not None
