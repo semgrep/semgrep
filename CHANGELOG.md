@@ -5,6 +5,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
+  allows rules to filter based on the presence of 3rd-party dependencies at specific 
+  version ranges.
+- Experimental support for Dockerfile syntax.
+- Add an experimental key for internal team use:
+  `r2c-internal-project-depends-on` that allows rules to filter based on the
+  presence of 3rd-party dependencies at specific version ranges.
+
+### Changed
+- CLI: parse errors (reported with `--verbose`) appear once per file, 
+  not once per rule/file
+
+### Fixed
+- Solidity: add support for `for(...)` patterns (#4530)
+
+## [0.78.0](https://github.com/returntocorp/semgrep/releases/tag/v0.78.0) - 01-13-2022
+
+### Added
 - Pre-alpha support for Dockerfile as a new target language
 - Semgrep is now able to symbolically propagate simple definitions. E.g., given
   an assignment `x = foo.bar()` followed by a call `x.baz()`, Semgrep will keep
@@ -25,6 +43,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-comparison: do not throw a Not_found exn anymore (#4469)
 - better ordering of match results with respect to captured
   metavariables (#4488)
+- Go, JavaScript, Java, Python, TypeScript: correct matching of
+  multibyte characters (#4490)
 
 ## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
 

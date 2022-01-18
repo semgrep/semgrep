@@ -45,7 +45,8 @@ test: all
 .PHONY: install
 install:
 	dune install
-	cp -f _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
+	rm -f ../semgrep/semgrep/bin/semgrep-core
+	cp _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
 
 ###############################################################################
 # Developer targets
