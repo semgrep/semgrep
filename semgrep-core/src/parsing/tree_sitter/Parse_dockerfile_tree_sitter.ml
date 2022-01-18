@@ -343,6 +343,21 @@ let parse_bash (env : env) shell_cmd : AST_bash.blist option =
      module of ocaml-tree-sitter-core. *)
   ts_res.program
 
+(* This is for reconstructing a shell snippet and preserve line/column
+   location.
+*)
+let comment_line (env : env)
+    (((hash_tok, comment_tok), backslash_tok) : CST.comment_line) : tok =
+  let tok =
+    PI.combine_infos (token env hash_tok)
+      [ token env comment_tok; token env backslash_tok ]
+  in
+  (* TODO: the token called backslash_tok should be a newline according
+     to the grammar, not a backslash. Looks like a bug in the parser.
+     We have to add the newline here to end the comment and get correct
+     line locations. *)
+  PI.tok_add_s "\n" tok
+
 let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
   match x with
   | `Str_array x ->
@@ -354,7 +369,7 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       let first_frag = shell_fragment env v1 in
       let more_frags =
         List.map
-          (fun (v1, _comments, v3) ->
+          (fun (v1, comment_lines, v3) ->
             (* Keep the line continuation so as to preserve the original
                locations when parsing the shell command.
 
@@ -372,8 +387,9 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
                  line numbers *)
               PI.rewrap_str "\\\n" dockerfile_line_cont
             in
+            let comment_lines = Common.map (comment_line env) comment_lines in
             let shell_frag = shell_fragment env v3 in
-            [ shell_line_cont; shell_frag ])
+            (shell_line_cont :: comment_lines) @ [ shell_frag ])
           v2
         |> List.flatten
       in
@@ -649,7 +665,7 @@ let parse file =
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(program Program dockerfile_ast))
 
-let parse_pattern str =
+let parse_dockerfile_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () -> Tree_sitter_dockerfile.Parse.string str)
@@ -658,3 +674,10 @@ let parse_pattern str =
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(any input_kind dockerfile_ast))
+
+let parse_pattern str =
+  let dockerfile_res = parse_dockerfile_pattern str in
+  if dockerfile_res.errors = [] then dockerfile_res
+  else
+    let bash_res = Parse_bash_tree_sitter.parse_pattern str in
+    if bash_res.errors = [] then bash_res else dockerfile_res
