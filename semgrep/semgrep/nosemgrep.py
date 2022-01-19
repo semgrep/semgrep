@@ -5,6 +5,12 @@ Currently supports ignoring a finding on a single line by adding a
 `# nosemgrep:ruleid` comment (or `// nosemgrep:ruleid`).
 
 To use, create a RuleMatchMap, then pass it to process_ignores().
+
+Coupling: semgrep-action uses a regexp to strip nosemgrep comments so as
+to normalize the code and not be sensitive to the addition or removal
+of nosemgrep comments.
+See https://github.com/returntocorp/semgrep-action/blob/develop/src/semgrep_agent/findings.py
+and check that it's compatible with any change we're making here.
 """
 from re import sub
 from typing import List
