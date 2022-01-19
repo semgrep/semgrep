@@ -12,6 +12,7 @@ from typing import Optional
 from typing import Sequence
 
 import colorama
+import click
 
 from semgrep.constants import BREAK_LINE
 from semgrep.constants import BREAK_LINE_CHAR
@@ -50,7 +51,7 @@ class TextFormatter(BaseFormatter):
         line = (
             line[:start_color]
             + with_color(
-                "bright_black", line[start_color : end_color + 1]
+                0, line[start_color : end_color + 1]
             )  # want the color to include the end_col
             + line[end_color + 1 :]
         )
@@ -90,7 +91,7 @@ class TextFormatter(BaseFormatter):
                             end_line,
                             end_col,
                         )
-                        line_number = with_color("green", f"{start_line + i}")
+                        line_number = with_color(0, f"{start_line + i}")
                     else:
                         line_number = f"{start_line + i}"
 
@@ -117,7 +118,7 @@ class TextFormatter(BaseFormatter):
                         # while stripping a string, the ANSI code for resetting color might also get stripped.
                         line = line + colorama.Style.RESET_ALL
 
-                yield f"{line_number}:{line}" if line_number else f"{line}"
+                yield f"        {line_number}┆ {line}" if line_number else f"{line}"
 
             if stripped:
                 yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
@@ -135,7 +136,7 @@ class TextFormatter(BaseFormatter):
         source_url = rule_match._metadata.get("shortlink")
         if not source_url:
             return ""
-        return f' Details: {with_color("bright_blue", source_url)}'
+        return f"Details: {with_color(0,  source_url, bold=False)}"
 
     @staticmethod
     def _build_summary(
@@ -314,7 +315,7 @@ class TextFormatter(BaseFormatter):
             if last_file is None or last_file != current_file:
                 if last_file is not None:
                     yield ""
-                yield with_color("green", str(current_file))
+                yield f"\n{with_color('cyan', f' {current_file} ', bold=False)}"
                 last_message = None
             # don't display the rule line if the check is empty
             if (
@@ -323,7 +324,7 @@ class TextFormatter(BaseFormatter):
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                yield f"{with_color('yellow', f'rule:{check_id}: {message}{shortlink}')}"
+                yield f"     {with_color(0, f'{check_id} ', bold=True)}\n{click.wrap_text(f'{message}', 84, '        ', '        ', True)}\n        {shortlink}\n"
 
             last_file = current_file
             last_message = message
@@ -334,10 +335,10 @@ class TextFormatter(BaseFormatter):
             )
 
             if fix:
-                yield f"{with_color('bright_blue', 'autofix:')} {fix}"
+                yield f"{with_color('green', '     ▶▶ Autofix')} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{with_color('bright_blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{with_color('green', '     ▶▶ Autofix')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False
