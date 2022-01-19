@@ -434,7 +434,7 @@ let targets_of_config (config : Runner_config.t) (rule_ids : Rule.rule_id list)
  * It takes a set of rules and a set of targets and
  * recursively process those targets.
  *)
-let semgrep_with_rules config (rules, rule_parse_time) =
+let semgrep_with_rules config (rules, rules_parse_time) =
   let rule_table = mk_rule_table rules in
   let targets, skipped =
     targets_of_config config (List.map (fun r -> fst r.R.id) rules)
@@ -468,7 +468,7 @@ let semgrep_with_rules config (rules, rule_parse_time) =
            RP.add_file file res)
   in
   let res =
-    RP.make_rule_result file_results config.report_time rule_parse_time
+    RP.make_final_result file_results rules config.report_time rules_parse_time
   in
   let res = { res with skipped = skipped @ res.skipped } in
   logger#info "found %d matches, %d errors, %d skipped targets"
@@ -483,7 +483,7 @@ let semgrep_with_rules config (rules, rule_parse_time) =
    *)
   let skipped = new_skipped @ res.skipped in
   let errors = new_errors @ res.errors in
-  ( { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling },
+  ( { RP.matches; errors; skipped; final_profiling = res.RP.final_profiling },
     targets |> List.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
@@ -508,7 +508,7 @@ let semgrep_with_raw_results_and_exn_handler config =
         RP.matches = [];
         errors = [ E.exn_to_error "" exn ];
         skipped = [];
-        rule_profiling = None;
+        final_profiling = None;
       }
     in
     (Some exn, res, [])
@@ -606,16 +606,16 @@ let semgrep_with_one_pattern config =
 
   match config.output_format with
   | Json ->
-      let rule, rule_parse_time =
+      let rule, rules_parse_time =
         Common.with_time (fun () ->
             [ rule_of_pattern lang pattern_string pattern ])
       in
-      let res, files = semgrep_with_rules config (rule, rule_parse_time) in
+      let res, files = semgrep_with_rules config (rule, rules_parse_time) in
       let json = JSON_report.match_results_of_matches_and_errors files res in
       let s = Out.string_of_match_results json in
       pr s
   | Text ->
-      let minirule, _rule_parse_time =
+      let minirule, _rules_parse_time =
         Common.with_time (fun () ->
             [ minirule_of_pattern lang pattern_string pattern ])
       in

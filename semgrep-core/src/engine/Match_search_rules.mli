@@ -12,12 +12,12 @@ val check :
   Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.pformula) list ->
   Xtarget.t ->
-  Report.times Report.match_result
+  Report.rule_profiling Report.match_result
 
 val matches_of_formula :
   Config_semgrep_t.t * Equivalence.equivalences ->
-  Rule.rule_id ->
+  Rule.rule ->
   Xtarget.t ->
   Rule.formula ->
   Range_with_metavars.t option ->
-  Report.times Report.match_result * Range_with_metavars.ranges
+  Report.rule_profiling Report.match_result * Range_with_metavars.ranges

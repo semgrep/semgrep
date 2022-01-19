@@ -181,7 +181,7 @@ type skip_reason = [
 
 type time = {
   targets: target_time list;
-  ?rule_parse_time: float option; (* not used in spacegrep *)
+  ?rules_parse_time: float option; (* not used in spacegrep *)
 }
 
 type target_time = {

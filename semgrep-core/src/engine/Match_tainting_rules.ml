@@ -123,15 +123,15 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     (* if perf is a problem, we could build an interval set here *)
     pfs
     |> List.concat_map
-         (range_w_metas_of_pformula config equivs file_and_more (fst rule.id))
+         (range_w_metas_of_pformula config equivs file_and_more rule)
   in
   let find_range_w_metas_santizers specs =
     specs
     |> List.concat_map (fun spec ->
            List.map
              (fun pf -> (spec.Rule.not_conflicting, pf))
-             (range_w_metas_of_pformula config equivs file_and_more
-                (fst rule.id) spec.pformula))
+             (range_w_metas_of_pformula config equivs file_and_more rule
+                spec.pformula))
   in
   let sources_ranges = find_range_w_metas spec.sources
   and sinks_ranges = find_range_w_metas spec.sinks in
