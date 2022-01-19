@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
-  allows rules to filter based on the presence of 3rd-party dependencies at specific 
+  allows rules to filter based on the presence of 3rd-party dependencies at specific
   version ranges.
 - Experimental support for Dockerfile syntax.
 - Add an experimental key for internal team use:
@@ -15,9 +15,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - FOR INTERNAL USE: if the environment variable SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE
   is set, then its value will be used as the path to find semgrepignore patterns, overriding
   any existing .semgrepignore file
+- Add experimental `semgrep login` and `semgrep logout` to store API token from semgrep.dev
+- Add experimenntal config key `semgrep --config policy` that uses stored API token to
+  retrieve configured rule policy on semgrep.dev
 
 ### Changed
-- CLI: parse errors (reported with `--verbose`) appear once per file, 
+- CLI: parse errors (reported with `--verbose`) appear once per file,
   not once per rule/file
 
 ### Fixed
@@ -114,7 +117,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
 - semgrep-core: Fix a segmentation fault on Apple M1 when using
   `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
-- Python: generate proper lexical exn for unbalanced braces (#4310)  
+- Python: generate proper lexical exn for unbalanced braces (#4310)
 - YAML: fix off-by-one in location of arrays
 - Python: generate proper lexical exn for unbalanced braces (#4310)
 - Matching `"$MVAR"` patterns against string literals computed by constant folding
@@ -139,14 +142,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Support for method chaining patterns in Python, Golang, Ruby,
   and C# (#4300), so all GA languages now have method chaining
-- Scala: translate infix operators to generic AST as method calls, 
+- Scala: translate infix operators to generic AST as method calls,
   so `$X.map($F)` matches `xs map f`
 - PHP: support method patterns (#4262)
 
 ### Changed
 - Add `profiling_times` object in `--time --json` output for more fine
   grained visibility into slow parts of semgrep
-- Constant propagation: Any kind of Python string (raw, byte, or unicode) is 
+- Constant propagation: Any kind of Python string (raw, byte, or unicode) is
   now evaluated to a string literal and can be matched by `"..."` (#3881)
 
 ### Fixed
@@ -171,7 +174,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 - Dataflow: Assume that any function/method call inside a `try-catch` could
   be raising an exception (#4091)
-- cli: if an invalid config is passed to semgrep, it will fail immediately, even 
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even
   if valid configs are also passed
 
 ### Fixed
