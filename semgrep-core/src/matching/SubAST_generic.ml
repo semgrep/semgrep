@@ -151,6 +151,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
+  | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   (* TODO? or call recursively on e? *)
   | ParenExpr (_, e, _) -> [ e ]

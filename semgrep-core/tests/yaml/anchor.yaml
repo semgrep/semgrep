@@ -1,0 +1,10 @@
+---
+# ERROR:
+anchor: &anchor
+  frame-src:
+    - "https://example.com/dangerous"
+production:
+  assets:
+  # ERROR:
+    route1:
+      *anchor

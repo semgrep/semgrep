@@ -273,6 +273,10 @@ and vof_expr e =
       let t = vof_tok t in
       let v1 = vof_expr v1 in
       OCaml.VSum ("DeRef", [ t; v1 ])
+  | Alias (alias, v1) ->
+      let alias = vof_wrap OCaml.vof_string alias in
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("Alias", [ alias; v1 ])
   | Ellipsis v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("Ellipsis", [ v1 ])

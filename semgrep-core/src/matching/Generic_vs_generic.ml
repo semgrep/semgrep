@@ -563,6 +563,9 @@ and m_expr a b =
   Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
+  (* alias: match on the expr inside *)
+  | G.Alias (_alias, a1), _ -> m_expr a1 b
+  | _, G.Alias (_alias, b1) -> m_expr a b1
   (* equivalence: user-defined equivalence! *)
   | G.DisjExpr (a1, a2), _b -> m_expr a1 b >||> m_expr a2 b
   (* equivalence: name resolving! *)

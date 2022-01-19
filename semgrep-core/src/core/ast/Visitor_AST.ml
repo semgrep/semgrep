@@ -379,6 +379,10 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_expr v1 in
           ()
+      | Alias (alias, v1) ->
+          let alias = v_wrap v_string alias in
+          let v1 = v_expr v1 in
+          ()
       | StmtExpr v1 ->
           let v1 = v_stmt v1 in
           ()
@@ -1352,7 +1356,16 @@ let (mk_visitor :
 let extract_info_visitor recursor =
   let globals = ref [] in
   let hooks =
-    { default_visitor with kinfo = (fun (_k, _) i -> Common.push i globals) }
+    {
+      default_visitor with
+      kinfo = (fun (_k, _) i -> Common.push i globals);
+      kexpr =
+        (fun (k, _) x ->
+          match x.e with
+          (* Ignore the tokens from the expression str is aliased to *)
+          | Alias ((_str, t), _e) -> Common.push t globals
+          | _ -> k x);
+    }
   in
   let vout = mk_visitor hooks in
   recursor vout;

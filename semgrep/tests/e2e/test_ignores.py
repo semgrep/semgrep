@@ -51,3 +51,19 @@ def test_file_not_relative_to_base_path(tmp_path, monkeypatch, snapshot):
     )
     stdout, _ = process.communicate("a")
     snapshot.assert_match(_clean_output_json(stdout), "results.json")
+
+
+def test_internal_explicit_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
+
+    (tmp_path / ".semgrepignore").symlink_to(
+        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+    )
+
+    explicit_ignore_file = tmp_path / ".semgrepignore_explicit"
+    explicit_ignore_file.touch()
+
+    env = {"SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE": str(explicit_ignore_file)}
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores", env=env)[0],
+        "results.json",
+    )

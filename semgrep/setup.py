@@ -82,7 +82,7 @@ def find_executable(env_name, exec_name):
 
 
 #
-# The default behavior is to copy the semgrep-core and spacegrep binaries
+# The default behavior is to copy the semgrep-core binary
 # into some other folder known to the semgrep wrapper. If somebody knows why,
 # please explain why we do this.
 #
