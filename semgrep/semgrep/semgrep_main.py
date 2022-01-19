@@ -65,6 +65,7 @@ def notify_user_of_work(
 
 
 def get_file_ignore() -> FileIgnore:
+    # Meant to be used only by semgrep-action
     if "EXPLICIT_SEMGREPIGNORE" in environ:
         semgrepignore_path = Path(environ["EXPLICIT_SEMGREPIGNORE"]).resolve()
         logger.verbose("Using explicit semgrepignore file from environment variable")
