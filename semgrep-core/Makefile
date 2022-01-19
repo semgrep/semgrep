@@ -103,7 +103,7 @@ report-perf:
 
 pr:
 	git push origin `git rev-parse --abbrev-ref HEAD`
-	hub pull-request -b develop -r mjambon -r IagoAbal -r emjin -r mmcqd
+	hub pull-request -b develop -r returntocorp/pa
 
 push:
 	git push origin `git rev-parse --abbrev-ref HEAD`
