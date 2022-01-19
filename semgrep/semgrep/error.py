@@ -162,7 +162,7 @@ class SemgrepCoreError(SemgrepError):
         """
         if self.error_type == "Fatal error":
             error_trace = self.details or "<no stack trace returned>"
-            return f"\nSemgrep failed to run this rule, please file a GitHub issue or contact us on Slack.\n\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
+            return f"\nSemgrep failed to run this rule. Please file a GitHub issue or report this on Slack.\n\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
             return ""
 
