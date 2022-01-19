@@ -283,7 +283,6 @@ def main(
     output_handler.handle_semgrep_errors(nosem_errors)
 
     num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
-    stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
     profiler.save("total_time", rule_start_time)
     if metric_manager.is_enabled():
         error_types = list(e.semgrep_error_type() for e in semgrep_errors)
@@ -306,7 +305,6 @@ def main(
 
     output_handler.handle_semgrep_core_output(
         filtered_matches_by_rule,
-        stats_line=stats_line,
         all_targets=all_targets,
         profiler=profiler,
         filtered_rules=filtered_rules,

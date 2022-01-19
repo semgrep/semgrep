@@ -180,7 +180,6 @@ class OutputHandler:
         self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
-        self.stats_line: Optional[str] = None
         self.all_targets: Set[Path] = set()
         self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
@@ -259,7 +258,6 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        stats_line: str,
         all_targets: Set[Path],
         profiler: ProfileManager,
         filtered_rules: List[Rule],
@@ -275,7 +273,6 @@ class OutputHandler:
         ]
         self.profiler = profiler
         self.all_targets = all_targets
-        self.stats_line = stats_line
         self.filtered_rules = filtered_rules
         self.profiling_data = profiling_data
         if severities:
@@ -331,8 +328,13 @@ class OutputHandler:
                         raise Exception(
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
                         ) from ex
-            if self.stats_line:
-                logger.info(self.stats_line)
+
+            if self.rule_matches:
+                num_findings = len(self.rule_matches)
+                num_targets = len(self.all_targets)
+                num_rules = len(self.rules)
+                stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
+                logger.info(stats_line)
 
         final_error = None
         error_stats = None
