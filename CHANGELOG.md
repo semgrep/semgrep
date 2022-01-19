@@ -3,16 +3,22 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+### Added
 - Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
   allows rules to filter based on the presence of 3rd-party dependencies at specific 
   version ranges.
 - Add an experimental key for internal team use: `r2c-internal-patterns-from` that
   allows importing of `patterns` from other rules both locally or from the registry 
   into a rule which allows for building reusable, composable rules.
+- Experimental support for Dockerfile syntax.
 
 ### Changed
 - CLI: parse errors (reported with `--verbose`) appear once per file, 
   not once per rule/file
+
+### Fixed
+- Solidity: add support for `for(...)` patterns (#4530)
 
 ## [0.78.0](https://github.com/returntocorp/semgrep/releases/tag/v0.78.0) - 01-13-2022
 
@@ -29,6 +35,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `--verbose` outputs a timing and file breakdown summary at the end
 - `metavariable-comparison` now handles metavariables that bind to arbitrary
   constant expressions (instead of just code variables)
+- YAML support for anchors and aliases (#3677)
 
 ### Fixed
 - Rust: inner attributes are allowed again inside functions (#4444) (#4445)

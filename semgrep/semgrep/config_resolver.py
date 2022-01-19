@@ -20,6 +20,7 @@ from typing import Tuple
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
+from semgrep.commands.login import Authentication
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -104,6 +105,8 @@ class ConfigPath:
             self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
             self._config_path = config_str
+        elif is_policy_id(config_str):
+            self._config_path = url_for_policy(config_str)
         elif is_registry_id(config_str):
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
@@ -212,6 +215,13 @@ class ConfigPath:
         config_url = self._config_path
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, **(self._extra_headers or {})}
+
+        token = Authentication.get_token()
+        # For now c/p endpoint fails with auth so only add it for policy
+        if token and "api/agent/deployment" in config_url:
+            logger.verbose("Using token")
+            headers["Authorization"] = f"Bearer {token}"
+
         r = requests.get(config_url, stream=True, headers=headers, timeout=20)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
@@ -641,6 +651,40 @@ def registry_id_to_url(registry_id: str) -> str:
     Convert from registry_id to semgrep.dev url
     """
     return f"{SEMGREP_URL}{registry_id}"
+
+
+def url_for_policy(config_str: str) -> str:
+    """
+    Return url to download a policy for a given repo_name
+
+    For now uses envvar to know what repo_name is
+
+    Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
+    """
+    deployment_id = Authentication.get_deployment_id()
+
+    if deployment_id is None:
+        raise SemgrepError(
+            "Invalid API Key. Run `semgrep logout` and `semgrep login` again."
+        )
+
+    repo_name = os.environ.get("SEMGREP_REPO_NAME")
+    include_cai = os.environ.get("SEMGREP_POLICY_INCLUDE_CAI")
+
+    if repo_name is None:
+        raise SemgrepError(
+            "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
+        )
+
+    request_url = f"{(SEMGREP_URL)}api/agent/deployment/{deployment_id}/repos/{repo_name}/rules.yaml"
+
+    if include_cai:
+        return f"{request_url}?include_cai=1"
+    return request_url
+
+
+def is_policy_id(config_str: str) -> bool:
+    return config_str == "policy"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:

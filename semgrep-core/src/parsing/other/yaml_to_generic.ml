@@ -56,12 +56,15 @@ type env = {
   (* From yaml.mli: "[parser] tracks the state of generating {!Event.t}
    * values" *)
   parser : S.parser;
+  anchors : (string, G.expr * E.pos) Hashtbl.t;
   mutable last_event : (E.t * E.pos) option;
 }
 
 (*****************************************************************************)
 (* Helper functions *)
 (*****************************************************************************)
+
+exception UnrecognizedAlias of Parse_info.t
 
 let sgrep_ellipses_inline = "__sgrep_ellipses__"
 
@@ -168,65 +171,80 @@ let do_parse env =
 (* Parser functions *)
 (*****************************************************************************)
 
-let make_alias anchor pos env : G.name = mk_id anchor pos env
+let make_node f anchor args env =
+  let node_expr = f args env in
+  (match anchor with
+  | Some anchor -> Hashtbl.add env.anchors anchor node_expr
+  | None -> ());
+  node_expr
+
+let make_alias anchor pos env =
+  let t = mk_tok pos anchor env in
+  match Hashtbl.find_opt env.anchors anchor with
+  | Some (expr, _p) -> (G.e (G.Alias ((anchor, t), expr)), pos)
+  | None -> raise (UnrecognizedAlias t)
 
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
-let make_scalar _anchor _tag pos value env : G.expr =
-  if AST_generic_.is_metavar_name value then G.N (mk_id value pos env) |> G.e
+let scalar (_tag, pos, value) env : G.expr * E.pos =
+  if AST_generic_.is_metavar_name value then
+    (G.N (mk_id value pos env) |> G.e, pos)
   else
     let token = mk_tok pos value env in
-    (match value with
-    | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
-    (* TODO: emma: I will put "" back to Null and have either a warning or
-     * an error when we try to parse a string and get Null in another PR.
-     *)
-    | "null"
-    | "NULL"
-    | "Null"
-    | "~" ->
-        G.L (G.Null token)
-    | "y"
-    | "Y"
-    | "yes"
-    | "Yes"
-    | "YES"
-    | "true"
-    | "True"
-    | "TRUE"
-    | "on"
-    | "On"
-    | "ON" ->
-        G.L (G.Bool (true, token))
-    | "n"
-    | "N"
-    | "no"
-    | "No"
-    | "NO"
-    | "false"
-    | "False"
-    | "FALSE"
-    | "off"
-    | "Off"
-    | "OFF" ->
-        G.L (G.Bool (false, token))
-    | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
-    | ".inf" -> G.L (G.Float (Some neg_infinity, token))
-    | ".nan"
-    | ".NaN"
-    | ".NAN" ->
-        G.L (G.Float (Some nan, token))
-    | _ -> (
-        try G.L (G.Float (Some (float_of_string value), token))
-        with _ -> G.L (G.String (value, token))))
-    |> G.e
+    let expr =
+      (match value with
+      | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
+      (* TODO: emma: I will put "" back to Null and have either a warning or
+       * an error when we try to parse a string and get Null in another PR.
+       *)
+      | "null"
+      | "NULL"
+      | "Null"
+      | "~" ->
+          G.L (G.Null token)
+      | "y"
+      | "Y"
+      | "yes"
+      | "Yes"
+      | "YES"
+      | "true"
+      | "True"
+      | "TRUE"
+      | "on"
+      | "On"
+      | "ON" ->
+          G.L (G.Bool (true, token))
+      | "n"
+      | "N"
+      | "no"
+      | "No"
+      | "NO"
+      | "false"
+      | "False"
+      | "FALSE"
+      | "off"
+      | "Off"
+      | "OFF" ->
+          G.L (G.Bool (false, token))
+      | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
+      | ".inf" -> G.L (G.Float (Some neg_infinity, token))
+      | ".nan"
+      | ".NaN"
+      | ".NAN" ->
+          G.L (G.Float (Some nan, token))
+      | _ -> (
+          try G.L (G.Float (Some (float_of_string value), token))
+          with _ -> G.L (G.String (value, token))))
+      |> G.e
+    in
+    (expr, pos)
 
 (* Sequences are arrays in the generic AST *)
-let make_sequence _anchor _tag start_pos (es, end_pos) env =
+let sequence (_tag, start_pos, (es, end_pos)) env =
   (G.Container (G.Array, mk_bracket (start_pos, end_pos) es env) |> G.e, end_pos)
 
 (* Mappings are dictionaries in the generic AST *)
-let make_mappings _anchor _tag start_pos (es, end_pos) env =
+let mappings (_tag, start_pos, (es, end_pos)) env =
   match es with
   | [ { G.e = G.Ellipsis e; _ } ] -> (G.Ellipsis e |> G.e, end_pos)
   | _ ->
@@ -277,13 +295,16 @@ let parse (env : env) : G.expr list =
       | Some r -> r
     in
     match res with
-    | E.Alias { anchor }, pos -> (G.N (make_alias anchor pos env) |> G.e, pos)
+    | E.Alias { anchor }, pos -> (
+        try make_alias anchor pos env
+        with UnrecognizedAlias _ ->
+          (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
     | E.Scalar { anchor; tag; value; _ }, pos ->
-        (make_scalar anchor tag pos value env, pos)
+        make_node scalar anchor (tag, pos, value) env
     | E.Sequence_start { anchor; tag; _ }, pos ->
-        make_sequence anchor tag pos (read_sequence []) env
+        make_node sequence anchor (tag, pos, read_sequence []) env
     | E.Mapping_start { anchor; tag; _ }, pos ->
-        make_mappings anchor tag pos (read_mappings []) env
+        make_node mappings anchor (tag, pos, read_mappings []) env
     | v, pos ->
         error "Expected a valid YAML element or end of sequence, got" v pos env
   and read_sequence acc : G.expr list * E.pos =
@@ -304,7 +325,7 @@ let parse (env : env) : G.expr list =
     let key, pos1 =
       match first_node with
       | E.Scalar { anchor; tag; value; _ }, pos ->
-          (make_scalar anchor tag pos value env, pos)
+          make_node scalar anchor (tag, pos, value) env
       | v, pos -> error "Expected a valid scalar, got" v pos env
     in
     let value, pos2 = read_node () in
@@ -480,7 +501,15 @@ let program file =
   let str = Common.read_file file in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
   let parser = get_res file (S.parser str) in
-  let env = { file; charpos_to_pos; parser; last_event = None } in
+  let env =
+    {
+      file;
+      charpos_to_pos;
+      parser;
+      anchors = Hashtbl.create 1;
+      last_event = None;
+    }
+  in
   let xs = parse env in
   List.map G.exprstmt xs
 
@@ -488,6 +517,14 @@ let any str =
   let file = "<pattern_file>" in
   let str = preprocess_yaml str in
   let parser = get_res file (S.parser str) in
-  let env = { file; charpos_to_pos = None; parser; last_event = None } in
+  let env =
+    {
+      file;
+      charpos_to_pos = None;
+      parser;
+      anchors = Hashtbl.create 1;
+      last_event = None;
+    }
+  in
   let xs = parse env in
   make_pattern_expr xs

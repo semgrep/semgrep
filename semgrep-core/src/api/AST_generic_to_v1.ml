@@ -283,6 +283,7 @@ and map_expr x : B.expr =
       let t = map_tok t in
       let v1 = map_expr v1 in
       `DeRef (t, v1)
+  | Alias (_alias, _v1) -> failwith "TODO"
   | Ellipsis v1 ->
       let v1 = map_tok v1 in
       `Ellipsis v1
