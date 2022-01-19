@@ -120,6 +120,15 @@ def with_color(
 ) -> str:
     """
     Wrap text in color & reset
+
+    Use ANSI color names or 8 bit colors (24-bit is not well supported by terminals)
+    In click bold always switches colors to their bright variant (if there is one)
+    0 = default foreground color
+    15 = the color 'bold' or bright foreground
+    7 = theme 'white'
+    256 = theme 'black'
+    16 = real black #000
+    231 = real white #fff
     """
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
