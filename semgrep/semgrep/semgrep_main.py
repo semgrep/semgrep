@@ -66,8 +66,10 @@ def notify_user_of_work(
 
 def get_file_ignore() -> FileIgnore:
     # Meant to be used only by semgrep-action
-    if "EXPLICIT_SEMGREPIGNORE" in environ:
-        semgrepignore_path = Path(environ["EXPLICIT_SEMGREPIGNORE"]).resolve()
+    if "SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE" in environ:
+        semgrepignore_path = Path(
+            environ["SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE"]
+        ).resolve()
         logger.verbose("Using explicit semgrepignore file from environment variable")
     else:
         TEMPLATES_DIR = Path(__file__).parent / "templates"
