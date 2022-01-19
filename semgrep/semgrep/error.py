@@ -168,7 +168,9 @@ class SemgrepCoreError(SemgrepError):
 
     def __str__(self) -> str:
         return (
-            with_color(231, f" ERROR ", bgcolor="red", bold=True)
+            with_color("red", f"[", bgcolor="red")
+            + with_color(231, f"ERROR", bgcolor="red", bold=True)
+            + with_color("red", f"]", bgcolor="red")
             + f" "
             + self._error_message
             + self._stack_trace
