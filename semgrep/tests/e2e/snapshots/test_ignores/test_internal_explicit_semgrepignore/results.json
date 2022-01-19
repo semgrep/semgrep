@@ -1,0 +1,205 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/find.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/ignore.min.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/ignore_test.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/ok/find.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/tests/ignore.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    }
+  ]
+}
