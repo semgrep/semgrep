@@ -118,6 +118,42 @@ class RuleMatch:
         return self._is_ignored
 
     @property
+    def previous_line(self) -> str:
+        """Return the line preceding the match, if any.
+
+        This is meant for checking for the presence of a nosemgrep comment.
+        This implementation was derived from the 'lines' method below.
+        Refer to it for relevant comments.
+        IT feels like a lot of duplication. Feel free to improve.
+        """
+        # see comments in 'lines' method
+        start_line = self.start.line - 2
+        end_line = start_line + 1
+        is_empty_file = self.end.line <= 0
+
+        if start_line < 0 or is_empty_file:
+            # no previous line
+            return ""
+
+        try:
+            res = self._lines_cache[(start_line, end_line)]
+            if res:
+                return res[0]
+            else:
+                return ""
+        except KeyError:
+            pass
+
+        with self.path.open(buffering=1, errors="replace") as fd:
+            res = list(itertools.islice(fd, start_line, end_line))
+
+        self._lines_cache[(start_line, end_line)] = res
+        if res:
+            return res[0]
+        else:
+            return ""
+
+    @property
     def lines(self) -> List[str]:
         """
         Return lines in file that this RuleMatch is referring to.
