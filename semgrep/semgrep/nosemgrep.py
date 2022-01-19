@@ -5,6 +5,12 @@ Currently supports ignoring a finding on a single line by adding a
 `# nosemgrep:ruleid` comment (or `// nosemgrep:ruleid`).
 
 To use, create a RuleMatchMap, then pass it to process_ignores().
+
+Coupling: semgrep-action uses a regexp to strip nosemgrep comments so as
+to normalize the code and not be sensitive to the addition or removal
+of nosemgrep comments.
+See https://github.com/returntocorp/semgrep-action/blob/develop/src/semgrep_agent/findings.py
+and check that it's compatible with any change we're making here.
 """
 from re import sub
 from typing import List
@@ -15,6 +21,7 @@ import attr
 
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
+from semgrep.constants import NOSEM_PREVIOUS_LINE_RE
 from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
@@ -75,16 +82,30 @@ def _rule_match_nosem(
     if not rule_match.lines:
         return False, []
 
+    ids: List[str] = []
+
     # Only consider the first line of a match. This will keep consistent
     # behavior on where we expect a 'nosem' comment to exist. If we allow these
     # comments on any line of a match it will get confusing as to what finding
     # the 'nosem' is referring to.
-    re_match = NOSEM_INLINE_RE.search(rule_match.lines[0])
-    if re_match is None:
+    lines_re_match = NOSEM_INLINE_RE.search(rule_match.lines[0])
+    if lines_re_match:
+        lines_ids_str = lines_re_match.groupdict()["ids"]
+        if lines_ids_str:
+            ids = ids + COMMA_SEPARATED_LIST_RE.split(lines_ids_str)
+
+    # Same thing, but inspect the line just before the match.
+    # This involves a different regexp. Also captures rule names as 'ids'.
+    prev_line_re_match = NOSEM_PREVIOUS_LINE_RE.search(rule_match.previous_line)
+    if prev_line_re_match:
+        prev_line_ids_str = prev_line_re_match.groupdict()["ids"]
+        if prev_line_ids_str:
+            ids = ids + COMMA_SEPARATED_LIST_RE.split(prev_line_ids_str)
+
+    if lines_re_match is None and prev_line_re_match is None:
         return False, []
 
-    ids_str = re_match.groupdict()["ids"]
-    if ids_str is None:
+    if not ids:
         logger.verbose(
             f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start.line}"
         )
@@ -93,9 +114,7 @@ def _rule_match_nosem(
     # Strip quotes to allow for use of nosem as an HTML attribute inside tags.
     # HTML comments inside tags are not allowed by the spec.
     pattern_ids = {
-        pattern_id.strip().strip("\"'")
-        for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
-        if pattern_id.strip()
+        pattern_id.strip().strip("\"'") for pattern_id in ids if pattern_id.strip()
     }
 
     # Filter out ids that are not alphanum+dashes+underscores+periods.
