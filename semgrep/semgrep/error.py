@@ -11,6 +11,7 @@ from typing import Tuple
 
 import attr
 
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
@@ -135,7 +136,11 @@ class SemgrepCoreError(SemgrepError):
         """
         Error message plus stack trace
         """
-        return self._error_message + self._stack_trace
+        return (
+            f"{with_color('red', f'[', bgcolor='red')}{with_color(231, f'{self.level.name}', bgcolor='red', bold=True)}{with_color('red', f']', bgcolor='red')} "
+            + self._error_message
+            + self._stack_trace
+        )
 
     @property
     def _error_message(self) -> str:
@@ -148,11 +153,11 @@ class SemgrepCoreError(SemgrepError):
                 self.error_type == "Rule parse error"
                 or self.error_type == "Pattern parse error"
             ):
-                msg = f"Semgrep Core {self.level.name} \n{self.error_type}: In rule {self.rule_id}: {self.message}"
+                msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nIn rule {self.rule_id}: {self.message}\n"
             else:
-                msg = f"Semgrep Core {self.level.name} \n{self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
+                msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nFailed to run {self.rule_id} on {self.path}: {self.message}\n"
         else:
-            msg = f"Semgrep Core {self.level.name} \n{self.error_type} in file {self.path}:{self.start.line}\n\t{self.message}"
+            msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nIn file {self.path}:{self.start.line}\n\t{self.message}\n"
         return msg
 
     @property
@@ -162,16 +167,13 @@ class SemgrepCoreError(SemgrepError):
         """
         if self.error_type == "Fatal error":
             error_trace = self.details or "<no stack trace returned>"
-            return f"\nSemgrep failed to run this rule.\nWe don't know yet why this happened, but happy to help. Please file a GitHub issue or report it on Slack.\n\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
+            return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
             return ""
 
     def __str__(self) -> str:
         return (
-            with_color("red", f"[", bgcolor="red")
-            + with_color(231, f"ERROR", bgcolor="red", bold=True)
-            + with_color("red", f"]", bgcolor="red")
-            + f" "
+            f"{with_color('red', f'[', bgcolor='red')}{with_color(231, f'{self.level.name}', bgcolor='red', bold=True)}{with_color('red', f']', bgcolor='red')} "
             + self._error_message
             + self._stack_trace
         )
