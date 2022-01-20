@@ -213,7 +213,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     type=click.Choice([e.value for e in RuleSeverity]),
     help=(
         "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
-        "Can add multiple times. Each should be one of INFO, WARNING, ERROR, or INVENTORY."
+        "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
     ),
     shell_complete=__get_severity_options,
 )
