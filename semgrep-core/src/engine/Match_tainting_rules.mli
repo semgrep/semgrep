@@ -8,14 +8,14 @@ val check :
   Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.taint_spec) list ->
   Xtarget.t ->
-  Report.times Report.match_result
+  Report.rule_profiling Report.match_result list
 
 (* used by testing code *)
 val check_bis :
   match_hook:
     (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
-  (Rule.rule * Rule.taint_spec) list ->
+  Rule.rule * Rule.taint_spec ->
   Common.filename ->
   Lang.t ->
   Target.t ->

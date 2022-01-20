@@ -5,18 +5,9 @@
 
 (* Different formats for profiling information as we have access to more data *)
 
-type file_profiling = {
-  file : Common.filename;
-  parse_time : float;
-  match_time : float;
-  run_time : float;
-}
+exception Unimplemented
 
-type partial_profiling = {
-  file : Common.filename;
-  parse_time : float;
-  match_time : float;
-}
+(* Save time information as we run each rule *)
 
 type rule_profiling = {
   rule : Rule.rule;
@@ -24,8 +15,20 @@ type rule_profiling = {
   match_time : float;
 }
 
-(* To store only time information, as semgrep.check reports *)
 type times = { parse_time : float; match_time : float }
+
+(* Save time information as we run each file *)
+
+type file_profiling = {
+  file : Common.filename;
+  rule_times : rule_profiling list;
+  run_time : float;
+}
+
+type partial_profiling = {
+  file : Common.filename;
+  rule_times : rule_profiling list;
+}
 
 (* Result object for the entire rule *)
 
@@ -53,7 +56,7 @@ type 'a match_result = {
 
 (* Create empty versions of match results *)
 
-let empty_partial_profiling file = { file; parse_time = 0.0; match_time = 0.0 }
+let empty_partial_profiling file = { file; rule_times = [] }
 
 let empty_semgrep_result =
   {
@@ -67,18 +70,8 @@ let empty_semgrep_result =
 
 let add_run_time :
     float -> partial_profiling match_result -> file_profiling match_result =
- fun run_time
-     { matches; errors; skipped; profiling = { file; parse_time; match_time } } ->
-  {
-    matches;
-    errors;
-    skipped;
-    profiling = { file; parse_time; match_time; run_time };
-  }
-
-let add_file file
-    { matches; errors; skipped; profiling = { parse_time; match_time } } =
-  { matches; errors; skipped; profiling = { file; parse_time; match_time } }
+ fun run_time { matches; errors; skipped; profiling = { file; rule_times } } ->
+  { matches; errors; skipped; profiling = { file; rule_times; run_time } }
 
 let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
  fun rule { matches; errors; skipped; profiling = { parse_time; match_time } } ->
@@ -115,6 +108,11 @@ let collate_pattern_results results =
     skipped = List.flatten skipped;
     profiling = { parse_time; match_time };
   }
+
+let collate_rule_results :
+    string -> rule_profiling match_result list -> partial_profiling match_result
+    =
+ fun _results -> raise Unimplemented
 
 let make_final_result results rules ~report_time ~rules_parse_time =
   let matches = results |> List.map (fun x -> x.matches) |> List.flatten in

@@ -1,17 +1,6 @@
-(* Full result information *)
+(* Save time information as we run each rule *)
 
-type file_profiling = {
-  file : Common.filename;
-  parse_time : float;
-  match_time : float;
-  run_time : float;
-}
-
-type partial_profiling = {
-  file : Common.filename;
-  parse_time : float;
-  match_time : float;
-}
+type times = { parse_time : float; match_time : float }
 
 type rule_profiling = {
   rule : Rule.rule;
@@ -19,8 +8,18 @@ type rule_profiling = {
   match_time : float;
 }
 
-(* To store only time information, as semgrep.check reports *)
-type times = { parse_time : float; match_time : float }
+(* Save time information as we run each file *)
+
+type partial_profiling = {
+  file : Common.filename;
+  rule_times : rule_profiling list;
+}
+
+type file_profiling = {
+  file : Common.filename;
+  rule_times : rule_profiling list;
+  run_time : float;
+}
 
 (* Substitute in the profiling type we have *)
 
@@ -53,9 +52,6 @@ val empty_semgrep_result : times match_result
 val add_run_time :
   float -> partial_profiling match_result -> file_profiling match_result
 
-val add_file :
-  Common.filename -> times match_result -> partial_profiling match_result
-
 val add_rule : Rule.rule -> times match_result -> rule_profiling match_result
 
 val collate_pattern_results : times match_result list -> times match_result
@@ -66,3 +62,6 @@ val make_final_result :
   report_time:bool ->
   rules_parse_time:float ->
   final_result
+
+val collate_rule_results :
+  string -> rule_profiling match_result list -> partial_profiling match_result

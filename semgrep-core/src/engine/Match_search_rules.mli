@@ -12,7 +12,7 @@ val check :
   Config_semgrep.t * Equivalence.equivalences ->
   (Rule.rule * Rule.pformula) list ->
   Xtarget.t ->
-  Report.rule_profiling Report.match_result
+  Report.rule_profiling Report.match_result list
 
 val matches_of_formula :
   Config_semgrep_t.t * Equivalence.equivalences ->

@@ -187,11 +187,20 @@ let error_to_error err =
   }
 
 let json_time_of_profiling_data profiling_data =
+  let json_time_of_rule_times rule_times =
+    rule_times
+    |> List.map (fun { RP.rule; parse_time; match_time } ->
+           { ST.rule_id = fst rule.Rule.id; parse_time; match_time })
+  in
   {
     ST.targets =
       profiling_data.RP.file_times
-      |> List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
-             { ST.path = target; parse_time; match_time; run_time });
+      |> List.map (fun { RP.file = target; rule_times; run_time } ->
+             {
+               ST.path = target;
+               rule_times = json_time_of_rule_times rule_times;
+               run_time;
+             });
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 

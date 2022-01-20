@@ -262,6 +262,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
   in
   match xlang with
   | Xlang.L (lang, _) ->
+      (* TODO can we only force this once? *)
       let (ast, errors), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in
@@ -926,7 +927,7 @@ and run_selector_on_ranges env selector_opt ranges =
       |> RM.intersect_ranges (fst env.config) !debug_matches ranges
 
 and matches_of_formula config rule file_and_more formula opt_context :
-    RP.times RP.match_result * RM.ranges =
+    RP.rule_profiling RP.match_result * RM.ranges =
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
@@ -1003,4 +1004,3 @@ let check ~match_hook default_config rules file_and_more =
                  skipped = [];
                  profiling = { rule = r; parse_time = -1.; match_time = -1. };
                }))
-  |> RP.collate_pattern_results
