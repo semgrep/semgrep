@@ -5,8 +5,6 @@
 
 (* Different formats for profiling information as we have access to more data *)
 
-exception Unimplemented
-
 (* Save time information as we run each rule *)
 
 type rule_profiling = {
@@ -112,7 +110,29 @@ let collate_pattern_results results =
 let collate_rule_results :
     string -> rule_profiling match_result list -> partial_profiling match_result
     =
- fun _results -> raise Unimplemented
+ fun file results ->
+  let unzip_results l =
+    let rec unzip all_matches all_errors all_skipped all_profiling = function
+      | { matches; errors; skipped; profiling } :: l ->
+          unzip (matches :: all_matches) (errors :: all_errors)
+            (skipped :: all_skipped)
+            (profiling :: all_profiling)
+            l
+      | [] ->
+          ( List.rev all_matches,
+            List.rev all_errors,
+            List.rev all_skipped,
+            List.rev all_profiling )
+    in
+    unzip [] [] [] [] l
+  in
+  let matches, errors, skipped, profiling = unzip_results results in
+  {
+    matches = List.flatten matches;
+    errors = List.flatten errors;
+    skipped = List.flatten skipped;
+    profiling = { file; rule_times = profiling };
+  }
 
 let make_final_result results rules ~report_time ~rules_parse_time =
   let matches = results |> List.map (fun x -> x.matches) |> List.flatten in
