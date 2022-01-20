@@ -210,7 +210,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 @click.option(
     "--severity",
     multiple=True,
-    type=click.Choice([e.value for e in RuleSeverity]),
+    type=click.Choice(["INFO", "WARNING", "ERROR"]),
     help=(
         "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
         "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
