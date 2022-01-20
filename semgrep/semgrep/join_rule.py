@@ -2,7 +2,7 @@ import json
 import tempfile
 from collections import defaultdict
 from enum import Enum
-from functools import partial, reduce
+from functools import reduce
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -15,8 +15,13 @@ from typing import Tuple
 from typing import Type
 
 import peewee as pw
+<<<<<<< HEAD
 from attrs import define
 from peewee import CTE, ModelSelect
+=======
+from peewee import CTE
+from peewee import ModelSelect
+>>>>>>> Handle weird case where sometimes raw match results come back as a normal string and others a binary string
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_main
@@ -352,7 +357,7 @@ def handle_recursive_conditions(
         model_map[aliases.get(collection, "")] = new_model
 
 
-def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -> CTE:
+def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -> CTE:  # type: ignore
     first_clause = model.select(
         getattr(model, column1),
         getattr(model, column2),
@@ -506,7 +511,10 @@ def run_join_rule(
     )
     if matched_on_conditions:  # This is ugly, but makes mypy happy
         for match in matched_on_conditions:
-            matches.append(json.loads(match.raw.decode("utf-8", errors="replace")))
+            try:
+                matches.append(json.loads(match.raw.decode("utf-8", errors="replace")))
+            except AttributeError:
+                matches.append(json.loads(match.raw))
 
     rule_matches = [
         RuleMatch(
