@@ -329,10 +329,10 @@ class OutputHandler:
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
                         ) from ex
 
-            if self.rule_matches:
+            if self.filtered_rules:
                 num_findings = len(self.rule_matches)
                 num_targets = len(self.all_targets)
-                num_rules = len(self.rules)
+                num_rules = len(self.filtered_rules)
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
                 logger.info(stats_line)
 
