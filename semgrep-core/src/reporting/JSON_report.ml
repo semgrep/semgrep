@@ -201,6 +201,7 @@ let json_time_of_profiling_data profiling_data =
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
+    rules = List.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 
