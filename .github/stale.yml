@@ -1,3 +1,15 @@
+#
+# Stalebot configuration file.
+# https://github.com/probot/stale
+#
+# We use stalebot as follows:
+# - it reminds us to prioritize issues that don't have a priority:* label
+# - it applies the `stale` label on issues that need prioritizing
+#
+# This allows us to filter issues by priority.
+# Issues aren't automatically closed.
+#
+
 # Label to use when marking an issue as stale
 staleLabel: stale
 
@@ -6,17 +18,25 @@ closeComment: Stale-bot has closed this stale item. Please reopen it if this is 
 
 pulls:
   daysUntilStale: 14
-  daysUntilClose: 7
-  markComment: >
-    This pull request is being marked `stale` because there hasn't been any activity in 30 days. Please leave a comment on the pull request to keep it open. Otherwise, we'll close this pull request in 7 days (you can always reopen it later).
+#  daysUntilClose: 7
+  markComment: >-
+    This pull request is being marked `stale` because there hasn't
+    been any activity in 14 days.
 
 issues:
-  daysUntilStale: 90
-  daysUntilClose: 7
+  daysUntilStale: 14
+#  daysUntilClose: 7
   exemptLabels:
     - tech-debt
     - new-language
     - bug
     - planned-project
-  markComment: >
-    This issue is being marked `stale` because there hasn't been any activity in 30 days. Please leave a comment if you think this issue is still relevant and should be prioritized, otherwise it will be automatically closed in 7 days (you can always reopen it later).
+    - priority:low
+    - priority:medium
+#    - priority:high
+  markComment: >-
+    This issue is being marked `stale` because there hasn't been any
+    activity in 14 days and either it wasn't prioritized or its priority
+    is high.
+    Please apply the appropriate `priority:*` label before removing the
+    `stale` label.
