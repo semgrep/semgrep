@@ -131,14 +131,14 @@ class TextFormatter(BaseFormatter):
                 if trimmed > 0:
                     yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
                 elif show_separator:
-                    yield f" " * 10 + f"╌┆" + f"╌" * 40
+                    yield f" " * 10 + f"⋮┆" + f"-" * 40
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
         source_url = rule_match._metadata.get("shortlink")
         if not source_url:
             return ""
-        return f"Details: {with_color(0,  source_url, bold=False)}"
+        return f"Details: {source_url}"
 
     @staticmethod
     def _build_summary(
@@ -337,10 +337,10 @@ class TextFormatter(BaseFormatter):
             )
 
             if fix:
-                yield f"{with_color('green', '     ▶▶ Autofix')} {fix}"
+                yield f"{with_color('green', '         ▶▶┆ Autofix ▶')} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{with_color('green', '     ▶▶ Autofix')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{with_color('green', '         ▶▶┆ Autofix ▶')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False
