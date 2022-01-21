@@ -541,7 +541,7 @@ def scan(
     from semgrep.dump_ast import dump_parsed_ast
     from semgrep.error import SemgrepError
     from semgrep.metric_manager import metric_manager
-    from semgrep.output import managed_output
+    from semgrep.output import OutputHandler
     from semgrep.output import OutputSettings
     from semgrep.project import get_project_url
     from semgrep.synthesize_patterns import synthesize
@@ -631,9 +631,9 @@ def scan(
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with converted_pipe_targets(target_sequence) as target_sequence, managed_output(
-        output_settings
-    ) as output_handler:
+    with converted_pipe_targets(target_sequence) as target_sequence:
+        output_handler = OutputHandler(output_settings)
+
         if dump_ast:
             dump_parsed_ast(
                 json, __validate_lang("--dump_ast", lang), pattern, target_sequence
@@ -672,36 +672,57 @@ def scan(
                     f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
                 )
                 if config_errors:
-                    OutputSettings.verbose_errors = True
                     output_handler.handle_semgrep_errors(config_errors)
+                    output_handler.output({}, all_targets=set(), filtered_rules=[])
                     raise SemgrepError("Please fix the above errors and try again.")
         elif generate_config:
             with open(DEFAULT_CONFIG_FILE, "w") as fd:
                 semgrep.config_resolver.generate_config(fd, lang, pattern)
         else:
-            semgrep.semgrep_main.main(
-                output_handler=output_handler,
-                target=target_sequence,
-                pattern=pattern,
-                lang=lang,
-                configs=(config or []),
-                no_rewrite_rule_ids=(not rewrite_rule_ids),
-                jobs=jobs,
-                include=include,
-                exclude=exclude,
-                max_target_bytes=max_target_bytes,
-                replacement=replacement,
-                strict=strict,
-                autofix=autofix,
-                dryrun=dryrun,
-                disable_nosem=(not enable_nosem),
-                no_git_ignore=(not use_git_ignore),
-                timeout=timeout,
-                max_memory=max_memory,
-                timeout_threshold=timeout_threshold,
-                skip_unknown_extensions=(not scan_unknown_extensions),
-                severity=severity,
-                optimizations=optimizations,
+            try:
+                (
+                    filtered_matches_by_rule,
+                    all_targets,
+                    filtered_rules,
+                    profiler,
+                    profiling_data,
+                    shown_severities,
+                ) = semgrep.semgrep_main.main(
+                    output_handler=output_handler,
+                    target=target_sequence,
+                    pattern=pattern,
+                    lang=lang,
+                    configs=(config or []),
+                    no_rewrite_rule_ids=(not rewrite_rule_ids),
+                    jobs=jobs,
+                    include=include,
+                    exclude=exclude,
+                    max_target_bytes=max_target_bytes,
+                    replacement=replacement,
+                    strict=strict,
+                    autofix=autofix,
+                    dryrun=dryrun,
+                    disable_nosem=(not enable_nosem),
+                    no_git_ignore=(not use_git_ignore),
+                    timeout=timeout,
+                    max_memory=max_memory,
+                    timeout_threshold=timeout_threshold,
+                    skip_unknown_extensions=(not scan_unknown_extensions),
+                    severity=severity,
+                    optimizations=optimizations,
+                )
+            except SemgrepError as e:
+                output_handler.handle_semgrep_errors([e])
+                output_handler.output({}, all_targets=set(), filtered_rules=[])
+                raise e
+
+            output_handler.output(
+                filtered_matches_by_rule,
+                all_targets=all_targets,
+                profiler=profiler,
+                filtered_rules=filtered_rules,
+                profiling_data=profiling_data,
+                severities=shown_severities,
             )
 
     if enable_version_check:
