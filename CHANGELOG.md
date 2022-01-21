@@ -4,19 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 01-20-2022
+
 ### Added
 - Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
   allows rules to filter based on the presence of 3rd-party dependencies at specific
   version ranges.
 - Experimental support for Dockerfile syntax.
-- Add an experimental key for internal team use:
-  `r2c-internal-project-depends-on` that allows rules to filter based on the
-  presence of 3rd-party dependencies at specific version ranges.
 - Support nosemgrep comments placed on the line before a match,
   causing such match to be ignored (#3521)
-- FOR INTERNAL USE: if the environment variable SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE
-  is set, then its value will be used as the path to find semgrepignore patterns, overriding
-  any existing .semgrepignore file
 - Add experimental `semgrep login` and `semgrep logout` to store API token from semgrep.dev
 - Add experimenntal config key `semgrep --config policy` that uses stored API token to
   retrieve configured rule policy on semgrep.dev
