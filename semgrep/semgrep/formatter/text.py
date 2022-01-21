@@ -91,7 +91,7 @@ class TextFormatter(BaseFormatter):
                             end_line,
                             end_col,
                         )
-                        line_number = with_color(0, f"{start_line + i}")
+                        line_number = f"{start_line + i}"
                     else:
                         line_number = f"{start_line + i}"
 
@@ -118,7 +118,9 @@ class TextFormatter(BaseFormatter):
                         # while stripping a string, the ANSI code for resetting color might also get stripped.
                         line = line + colorama.Style.RESET_ALL
 
-                yield f"        {line_number}┆ {line}" if line_number else f"{line}"
+                yield f" " * (
+                    11 - len(line_number)
+                ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
             if stripped:
                 yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
@@ -129,7 +131,7 @@ class TextFormatter(BaseFormatter):
                 if trimmed > 0:
                     yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
                 elif show_separator:
-                    yield BREAK_LINE
+                    yield f" " * 10 + f"╌┆" + f"╌" * 40
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
