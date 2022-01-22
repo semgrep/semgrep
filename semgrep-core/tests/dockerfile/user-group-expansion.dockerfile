@@ -6,4 +6,14 @@ USER nobody:nogroup
 USER $USER:$GROUP
 
 # MATCH:
+USER $WHO:$GROUP
+
+USER $USER:$TEAM
+
+# MATCH:
 USER ${USER}:${GROUP}
+
+# MATCH:
+USER ${WHO}:${GROUP}
+
+USER ${USER}:${TEAM}
