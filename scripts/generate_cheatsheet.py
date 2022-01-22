@@ -11,6 +11,9 @@
 #
 #   ./scripts/generate-cheatsheet
 #
+# If you add support for a new language, you may need to update
+# LANG_DIR_TO_EXT below.
+#
 # CHEATSHEET_ENTRIES defines the entries shown on the cheatsheet for each
 # language, regardless of whether a pair (pattern, target) exists.
 # The web UI will show a message like "missing example" where appropriate.
@@ -555,6 +558,7 @@ def lang_dir_to_ext(lang: str):
         "ocaml": "ml",
         "csharp": "cs",
         "rust": "rs",
+        "solidity": "sol",
     }
     return LANG_DIR_TO_EXT.get(lang, lang)
 
