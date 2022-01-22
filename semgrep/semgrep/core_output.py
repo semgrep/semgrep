@@ -36,6 +36,8 @@ CoreErrorType = NewType("CoreErrorType", str)
 SkipReason = NewType("SkipReason", str)
 SkipDetails = NewType("SkipDetails", str)
 
+CoreRulesParseTime = NewType("CoreRulesParseTime", float)
+
 
 @attr.s(auto_attribs=True, frozen=True)
 class MetavarValue:
@@ -73,7 +75,7 @@ class CoreMatch:
     Encapsulates finding returned by semgrep-core
     """
 
-    rule_id: RuleId
+    rule: Rule
     path: Path
     start: CoreLocation
     end: CoreLocation
@@ -81,8 +83,8 @@ class CoreMatch:
     metavars: CoreMetavars
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreMatch":
-        rule_id = RuleId(raw_json["rule_id"])
+    def parse(cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject) -> "CoreMatch":
+        rule_id = rule_table[RuleId(raw_json["rule_id"])]
         location = raw_json["location"]
         path_str = location["path"]
         assert isinstance(path_str, str)
@@ -196,56 +198,61 @@ class CoreSkipped:
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class CoreTargetTiming:
-    rule_id: RuleId
-    target: Path
+class CoreRuleTiming:  # For a given target
+    rule: Rule
     parse_time: float
     match_time: float
-    run_time: float
 
     @classmethod
-    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreTargetTiming":
-        # rule_id = RuleId(raw_json["rule_id"])
-        path = Path(raw_json["path"])
+    def parse(
+        cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject
+    ) -> "CoreRuleTiming":
+        rule = rule_table[RuleId(raw_json["rule_id"])]
         parse_time = raw_json["parse_time"]
         match_time = raw_json["match_time"]
-        run_time = raw_json["run_time"]
-        return cls(rule_id, path, parse_time, match_time, run_time)
+        return cls(rule, parse_time, match_time)
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class CoreRuleParseTiming:
-    rule_id: RuleId
-    parse_time: float
+class CoreTargetTiming:
+    target: Path
+    per_rule_timings: List[CoreRuleTiming]
+    run_time: float
 
     @classmethod
-    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreRuleParseTiming":
-        # rule_id = RuleId(raw_json["rule_id"])
-        parse_time = float(raw_json["rule_parse_time"])
-        return cls(rule_id, parse_time)
+    def parse(
+        cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject
+    ) -> "CoreTargetTiming":
+        target = Path(raw_json["path"])
+        per_rule_timings = [
+            CoreRuleTiming.parse(rule_table, timing)
+            for timing in raw_json["rule_times"]
+        ]
+        run_time = raw_json["run_time"]
+        return cls(target, per_rule_timings, run_time)
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class CoreTiming:
+    rules: List[Rule]
     target_timings: List[CoreTargetTiming]
-    rule_parse_timings: List[CoreRuleParseTiming]
+    rules_parse_time: CoreRulesParseTime
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreTiming":
-        raise "Emma Todo"
-
+    def parse(
+        cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject
+    ) -> "CoreTiming":
         if not raw_json:
-            return cls([], [])
+            return cls([], [], CoreRulesParseTime(0.0))
 
-        rules = raw_json.get("rules", [])
-        target_timings = raw_json.get("targets", [])
-        parsed_target_timings = []
-        for obj in target_timings:
-            parsed_target_timings.append(CoreTargetTiming.parse(obj, rule_id))
+        rules = [rule_table[RuleId(rule)] for rule in raw_json.get("rules", [])]
+        target_timings = [
+            CoreTargetTiming.parse(rule_table, target)
+            for target in raw_json.get("targets", [])
+        ]
+        rules_parse_time = raw_json.get("rules_parse_time", 0.0)
 
-        parsed_rule_parse_timings = [CoreRuleParseTiming.parse(raw_json, rule_id)]
-
-        return cls(parsed_target_timings, parsed_rule_parse_timings)
+        return cls(rules, target_timings, rules_parse_time)
 
 
 @attr.s(auto_attribs=True)
@@ -260,7 +267,9 @@ class CoreOutput:
     timing: CoreTiming
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreOutput":
+    def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
+        rule_table = {RuleId(rule.id): rule for rule in rules}
+
         parsed_errors = []
         errors = raw_json["errors"]
         for error in errors:
@@ -269,7 +278,7 @@ class CoreOutput:
         parsed_matches = []
         matches = raw_json["matches"]
         for match in matches:
-            parsed_matches.append(CoreMatch.parse(match))
+            parsed_matches.append(CoreMatch.parse(rule_table, match))
 
         parsed_skipped = []
         skipped = raw_json["skipped"]
@@ -277,11 +286,11 @@ class CoreOutput:
             parsed_skipped.append(CoreSkipped.parse(skip))
 
         timings = raw_json.get("time", {})
-        parsed_timings = CoreTiming.parse(timings)
+        parsed_timings = CoreTiming.parse(rule_table, timings)
 
         return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
 
-    def rule_matches(self, rule: Rule) -> List[RuleMatch]:
+    def rule_matches(self) -> List[RuleMatch]:
         """
         Convert core_match objects into RuleMatch objects that the rest of the codebase
         interacts with.
@@ -339,13 +348,14 @@ class CoreOutput:
 
             return result
 
-        def convert_to_rule_match(match: CoreMatch, rule: Rule) -> RuleMatch:
+        def convert_to_rule_match(match: CoreMatch) -> RuleMatch:
+            rule = match.rule
             metavariables = read_metavariables(match)
             message = interpolate(rule.message, metavariables)
             fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
             rule_match = RuleMatch(
-                rule.id,
+                rule,
                 message=message,
                 metadata=rule.metadata,
                 severity=rule.severity,
@@ -361,7 +371,7 @@ class CoreOutput:
 
         findings = []
         for match in self.matches:
-            rule_match = convert_to_rule_match(match, rule)
+            rule_match = convert_to_rule_match(match)
             findings.append(rule_match)
 
         # Sort results so as to guarantee the same results across different

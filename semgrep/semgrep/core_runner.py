@@ -20,6 +20,7 @@ from ruamel.yaml import YAML
 from semgrep.config_resolver import Config
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import CoreOutput
+from semgrep.core_output import CoreTiming
 from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
@@ -118,7 +119,7 @@ class CoreRunner:
         self._optimizations = optimizations
 
     def _extract_core_output(
-        self, core_run: subprocess.CompletedProcess
+        self, rules: List[Rule], core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
         semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
 
@@ -149,7 +150,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = CoreOutput.parse(output_json)
+                parsed_output = CoreOutput.parse(rules, output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -230,27 +231,21 @@ class CoreRunner:
 
     def _add_match_times(
         self,
-        rule: Rule,
         profiling_data: ProfilingData,
-        output_time_json: Dict[str, Any],
+        timing: CoreTiming,
     ) -> None:
-        """Collect the match times reported by semgrep-core."""
-        if "targets" in output_time_json:
-            for target in output_time_json["targets"]:
-                if "match_time" in target and "path" in target:
-                    profiling_data.set_run_times(
-                        rule,
-                        Path(target["path"]),
-                        Times(
-                            parse_time=target["parse_time"],
-                            match_time=target["match_time"],
-                            run_time=target["run_time"],
-                        ),
-                    )
-        if "rule_parse_time" in output_time_json:
-            profiling_data.set_rule_parse_time(
-                rule, output_time_json["rule_parse_time"]
-            )
+        rules = timing.rules
+        targets = [t.target for t in timing.target_timings]
+
+        profiling_data.init_empty(rules, targets)
+        profiling_data.set_rules_parse_time(timing.rules_parse_time)
+
+        for t in timing.target_timings:
+            rule_timings = {
+                rt.rule: Times(rt.parse_time, rt.match_time)
+                for rt in t.per_rule_timings
+            }
+            profiling_data.set_file_times(t.target, rule_timings, t.run_time)
 
     @staticmethod
     def get_files_for_language(
@@ -406,15 +401,16 @@ class CoreRunner:
                 )
 
                 # Process output
-                output_json = self._extract_core_output(core_run)
+                output_json = self._extract_core_output(rules, core_run)
                 print(json.dumps(output_json, indent=4))
-                core_output = CoreOutput.parse(output_json)
+                core_output = CoreOutput.parse(rules, output_json)
 
                 if "time" in output_json:
-                    self._add_match_times(rule, profiling_data, output_json["time"])
+                    self._add_match_times(profiling_data, core_output.timing)
 
                 # end with tempfile.NamedTemporaryFile(...) ...
-                outputs[rule].extend(core_output.rule_matches(rule))
+                for match in core_output.rule_matches():
+                    outputs[match.rule].append(match)
                 parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                 for err in core_output.errors:
                     if err.is_timeout():
@@ -511,9 +507,8 @@ class CoreRunner:
                 stdout=subprocess.PIPE,
                 stderr=stderr,
             )
-            # TODO make _extract_core_output not take a rule_id
-            output_json = self._extract_core_output(metachecks[0], core_run)
-            core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
+            output_json = self._extract_core_output(metachecks, core_run)
+            core_output = CoreOutput.parse(metachecks, output_json)
 
             parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
 
