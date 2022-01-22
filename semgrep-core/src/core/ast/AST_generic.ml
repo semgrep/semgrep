@@ -30,6 +30,8 @@
  *  - OCaml, Scala, Rust
  *  - TODO Bash, SQL, Docker
  *
+ * See Lang.ml for the list of supported languages.
+ *
  * rational: In the end, programming languages have a lot in Common.
  * Even though some interesting analysis are probably better done on a
  * per-language basis, many analysis are simple and require just an
