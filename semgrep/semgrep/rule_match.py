@@ -9,7 +9,6 @@ from typing import Tuple
 import attr
 
 from semgrep.constants import RuleSeverity
-from semgrep.rule import Rule
 from semgrep.types import JsonObject
 
 
@@ -56,7 +55,7 @@ class RuleMatch:
     A section of code that matches a single rule (which is potentially many patterns)
     """
 
-    _rule: Rule = attr.ib()
+    _id: str = attr.ib()
     _message: str = attr.ib(repr=False)
     _metadata: Dict[str, Any] = attr.ib(repr=False)
     _severity: RuleSeverity = attr.ib(repr=False)
@@ -73,12 +72,8 @@ class RuleMatch:
     _is_ignored: Optional[bool] = attr.ib(default=None)
 
     @property
-    def rule(self) -> Rule:
-        return self._rule
-
-    @property
     def id(self) -> str:
-        return self._rule.id
+        return self._id
 
     @property
     def path(self) -> Path:

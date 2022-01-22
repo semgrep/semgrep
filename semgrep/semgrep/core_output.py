@@ -290,7 +290,7 @@ class CoreOutput:
 
         return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
 
-    def rule_matches(self) -> List[RuleMatch]:
+    def rule_matches(self, rules: List[Rule]) -> Dict[Rule, List[RuleMatch]]:
         """
         Convert core_match objects into RuleMatch objects that the rest of the codebase
         interacts with.
@@ -355,7 +355,7 @@ class CoreOutput:
             fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
             rule_match = RuleMatch(
-                rule,
+                rule._id,
                 message=message,
                 metadata=rule.metadata,
                 severity=rule.severity,
@@ -369,16 +369,22 @@ class CoreOutput:
             )
             return rule_match
 
-        findings = []
+        def order_rule_matches(matches: List[RuleMatch]) -> List[RuleMatch]:
+            sorted_matches = sorted(
+                matches,
+                key=lambda rule_match: [rule_match.path, rule_match.start.offset],
+            )
+            return dedup(sorted_matches)
+
+        findings: Dict[Rule, List[RuleMatch]] = {rule: [] for rule in rules}
         for match in self.matches:
             rule_match = convert_to_rule_match(match)
-            findings.append(rule_match)
+            findings[match.rule].append(rule_match)
 
         # Sort results so as to guarantee the same results across different
         # runs. Results may arrive in a different order due to parallelism
         # (-j option).
-        findings = sorted(
-            findings, key=lambda rule_match: [rule_match.path, rule_match.start.offset]
-        )
-        findings = dedup(findings)
+        findings = {
+            rule: order_rule_matches(matches) for rule, matches in findings.items()
+        }
         return findings

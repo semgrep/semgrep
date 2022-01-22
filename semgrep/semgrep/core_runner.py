@@ -347,7 +347,6 @@ class CoreRunner:
     ]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
-        outputs: Dict[Rule, List[RuleMatch]] = collections.defaultdict(list)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
@@ -409,8 +408,7 @@ class CoreRunner:
                     self._add_match_times(profiling_data, core_output.timing)
 
                 # end with tempfile.NamedTemporaryFile(...) ...
-                for match in core_output.rule_matches():
-                    outputs[match.rule].append(match)
+                outputs = core_output.rule_matches(rules)
                 parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                 for err in core_output.errors:
                     if err.is_timeout():
