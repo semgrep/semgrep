@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -29,17 +29,62 @@ module H = AST_generic_helpers
  *  - call to (list stmt) should be converted to list_stmt
  *    to avoid intermediates Block
  *    (should use embedded-Semgrep-rule idea of rcoh!)
+ *  - transform more Assign in VarDef, e.g., also local variables
+ *    (but take care if same var defined first in different branch,
+ *     which one should be a VarDef?)
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-(* unused for now, but can be useful for transforming certain
- * Assign in VarDef, if we can detect all introduced entities
- * (e.g, parameters, imported entities, patterns, exn vars, iterators)
+(* We use the environment below for transforming certain Assign in VarDef.
+ * Indeed, Python does not have a special construct (e.g., 'let' in OCaml)
+ * to declare variables, and instead abuse Assign to do so (which then requires
+ * to have constructs like 'nonlocal' and 'global' to explicitely say you
+ * want to reuse an enclosing variable and not declare a new one, argh).
+ *
+ * To avoid transforming wrongly some actual assignments, we need to detect
+ * all introduced entities (e.g, parameters, imported entities, patterns,
+ * exn vars, iterators, 'nonlocal', 'global'), so when we see 'x = v',
+ * we check whether this x was previously declared. If not, then
+ * it's probably a VarDef.
+ *
+ * Note that it does not really matter for semgrep, which anyway has some
+ * vardef_to_assign magic. However, this is useful for codegraph to
+ * correctly detect all global entities.
  *)
-type env = unit
+type env = {
+  context : context;
+  assign_to_vardef : bool;
+  (* the different Python scopes *)
+  mutable imported : string list;
+  (* for now we just transform the toplevels Assign *)
+  mutable current_scope : string list;
+  (* TODO: put parameters here? or use separate fld? also add
+   * iterators, exn handler, and just push into it for each
+   * new "block" scope *)
+  from_parent_scope : string list;
+      (* TODO? parameters: string list *)
+      (* TODO? handle also iterator, exn? *)
+}
+
+and context = InSourceToplevel | InPattern | InClass | InFunctionOrMethod
+
+let empty_env ~assign_to_vardef context =
+  {
+    context;
+    imported = [];
+    current_scope = [];
+    from_parent_scope = [];
+    assign_to_vardef;
+  }
+
+(* lookup *)
+let is_in_scope env s =
+  List.mem s env.imported
+  || List.mem s env.current_scope
+  || List.mem s env.from_parent_scope
 
 (*****************************************************************************)
 (* Helpers *)
@@ -533,6 +578,7 @@ and fieldstmt x =
 and stmt_aux env x =
   match x with
   | FunctionDef (t, v1, v2, v3, v4, v5) ->
+      let env = { env with context = InFunctionOrMethod } in
       let v1 = name env v1
       and v2 = parameters env v2
       and v3 = option (type_ env) v3
@@ -549,6 +595,7 @@ and stmt_aux env x =
       in
       [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
   | ClassDef (v0, v1, v2, v3, v4) ->
+      let env = { env with context = InClass } in
       let v1 = name env v1
       and v2 = list (type_parent env) v2
       and v3 = list_stmt env v3
@@ -570,23 +617,48 @@ and stmt_aux env x =
    *)
   | Assign (v1, v2, v3) -> (
       let v1 = list (expr env) v1 and v2 = info v2 and v3 = expr env v3 in
+
       match v1 with
       | [] -> raise Impossible
       | [ a ] -> (
-          match a.G.e with
-          (* x: t = ... is definitely a VarDef *)
-          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
-              let ent =
-                { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
-              in
-              let var = G.VarDef { G.vinit = Some v3; vtype = Some t } in
-              [ G.DefStmt (ent, var) |> G.s ]
-          (* TODO: We should turn more Assign in G.VarDef!
-           * Is it bad for semgrep to turn only the typed assign in VarDef?
-           * No because we have some magic equivalences to convert some
-           * Vardef back in Assign in Generic_vs_generic.
+          (* Trying to convert certain Assign in VarDef, which can benefit
+           * Codegraph.
            *)
-          | _ -> [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ])
+          let to_vardef id idinfo topt =
+            let ent =
+              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
+            in
+            let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
+            [ G.DefStmt (ent, var) |> G.s ]
+          in
+          let default_res = [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ] in
+          match a.G.e with
+          (* x: t = ... is definitely a VarDef. This one does not need
+           * to be guarded by env.assign_to_vardef because it does not
+           * cause any regressions.
+           *)
+          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
+              to_vardef id idinfo (Some t)
+          (* x = ... at toplevel. This one is guarded by assign_to_vardef
+           * because it causes regressions in semgrep, probably because
+           * we do the translation for the target but not for the pattern.
+           * So, this is disabled in semgrep (and enabled in codegraph).
+           *)
+          | G.N (G.Id (id, idinfo))
+            when env.context = InSourceToplevel && env.assign_to_vardef ->
+              let s = fst id in
+              if not (is_in_scope env s) then (
+                env.current_scope <- s :: env.current_scope;
+                to_vardef id idinfo None)
+              else default_res
+          (* TODO: We should turn more Assign in G.VarDef!
+           * Is it bad for semgrep to turn all those Assign in VarDef?
+           * In theory no because we have some magic equivalences to
+           * convert some Vardef back in Assign in Generic_vs_generic anyway.
+           * In practice this leads to regressions in semgrep-rules, probably
+           * because we transform them in the target but not in the pattern
+           *)
+          | _ -> default_res)
       | xs ->
           [
             G.exprstmt
@@ -804,15 +876,21 @@ and decorator env (t, v1, v2) =
 
 and alias env (v1, v2) =
   let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
+  let imported_ident =
+    match v2 with
+    | None -> v1
+    | Some (id, _) -> id
+  in
+  env.imported <- fst imported_ident :: env.imported;
   (v1, v2)
 
-let program v =
-  let env : env = () in
+let program ?(assign_to_vardef = false) v =
+  let env : env = empty_env ~assign_to_vardef InSourceToplevel in
   let v = list_stmt env v in
   v
 
 let any x =
-  let env : env = () in
+  let env : env = empty_env ~assign_to_vardef:false InPattern in
   match x with
   | Expr v1 ->
       let v1 = expr env v1 in

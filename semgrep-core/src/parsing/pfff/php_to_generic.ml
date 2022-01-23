@@ -24,6 +24,8 @@ module H = AST_generic_helpers
 (* Ast_php to AST_generic.
  *
  * See AST_generic.ml for more information.
+ *
+ * TODO: convert some Assign in VarDef like Python_to_generic.ml
  *)
 
 (*****************************************************************************)
@@ -302,6 +304,9 @@ and expr e : G.expr =
    *   and v3 = expr v3
    *   in
    *   G.AssignOp (v1, (G.Append, t), v3)
+   *
+   * TODO: Some of those Assign are really VarDef. Do like in
+   * Python_to_generic.ml
    *)
   | Assign (v1, t, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
