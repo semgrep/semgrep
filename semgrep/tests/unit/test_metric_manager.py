@@ -141,18 +141,16 @@ def test_timings(snapshot) -> None:
         targets = [Path("a"), Path("b")]
 
         profiling_data = ProfilingData()
-        profiling_data.set_file_times(
-            rule1,
-            targets[0],
-            Times(match_time=0.2, run_time=0.4, parse_time=0.3),
-        )
-        profiling_data.set_file_times(
-            rule2,
-            targets[1],
-            Times(match_time=1.2, run_time=1.4, parse_time=0.2),
-        )
-        profiling_data.set_rule_parse_time(rule1, 0.05)
-        profiling_data.set_rule_parse_time(rule2, 0.04)
+
+        target_a_time = {
+            rule1: Times(match_time=0.2, parse_time=0.3),
+        }
+        target_b_time = {
+            rule2: Times(match_time=1.2, parse_time=0.2),
+        }
+        profiling_data.set_file_times(targets[0], target_a_time, 0.4)
+        profiling_data.set_file_times(targets[1], target_b_time, 1.4)
+        profiling_data.set_rules_parse_time(0.09)
 
         metric_manager.set_run_timings(profiling_data, targets, rules)
 
