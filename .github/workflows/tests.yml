@@ -286,3 +286,24 @@ jobs:
         run: |
           perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings semgrep/findings.json
+
+  # Testing dynamically updating Python version
+  test-homebrew-core-pr:
+    name: Update on Homebrew-Core
+    runs-on: macos-10.15
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
+          python-version: 3.9
+      - name: Brew update
+        run: brew update
+      - name: Install brew pipgrip
+        run: brew install pipgrip
+      - name: Install pip pipgrip
+        run: pip install pipgrip
+      - name: Point homebrew pipgrip to pip pipgrip
+        # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
+        # this tricks it into using our 3.9 pipgrip
+        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.9/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
