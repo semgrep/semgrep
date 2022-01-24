@@ -1,6 +1,7 @@
 import json
 import time
 from io import StringIO
+from os import environ
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -66,12 +67,22 @@ def notify_user_of_work(
 def get_file_ignore() -> FileIgnore:
     TEMPLATES_DIR = Path(__file__).parent / "templates"
     workdir = Path.cwd()
-    semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
-    if not semgrepignore_path.is_file():
-        logger.verbose("No .semgrepignore found. Using default ignores rules")
-        semgrepignore_path = TEMPLATES_DIR / IGNORE_FILE_NAME
+
+    # Meant to be used only by semgrep-action
+    if "SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE" in environ:
+        semgrepignore_path = Path(
+            environ["SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE"]
+        ).resolve()
+        logger.verbose("Using explicit semgrepignore file from environment variable")
     else:
-        logger.verbose("using path ignore rules from user provided .semgrepignore")
+        semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
+        if not semgrepignore_path.is_file():
+            logger.verbose(
+                "No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files"
+            )
+            semgrepignore_path = TEMPLATES_DIR / IGNORE_FILE_NAME
+        else:
+            logger.verbose("using path ignore rules from user provided .semgrepignore")
 
     with semgrepignore_path.open() as f:
         file_ignore = FileIgnore(
@@ -211,7 +222,7 @@ def main(
             file_ignore=get_file_ignore(),
         )
     except FilesNotFoundError as e:
-        output_handler.handle_semgrep_error(e)
+        raise SemgrepError(e)
 
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,

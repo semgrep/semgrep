@@ -304,6 +304,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let t = map_tok t in
             let v1 = map_expr v1 in
             DeRef (t, v1)
+        | Alias ((str, t), v1) ->
+            let t = map_tok t in
+            let v1 = map_expr v1 in
+            Alias ((str, t), v1)
         | Ellipsis v1 ->
             let v1 = map_tok v1 in
             Ellipsis v1

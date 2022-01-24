@@ -51,8 +51,10 @@ class FileIgnore:
         """
         for p in self._processed_patterns:
             if path.is_dir() and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
+                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
             if fnmatch.fnmatch(str(path), p):
+                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
 
             # Check any subpath of path satisfies a pattern
@@ -70,12 +72,14 @@ class FileIgnore:
                     "/" + str(path.relative_to(self.base_path)), p + "*"
                 )
             ):
+                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
             if (
                 p.endswith("/")
                 and p.startswith(str(self.base_path))
                 and fnmatch.fnmatch(str(path), p + "*")
             ):
+                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
 
         return True

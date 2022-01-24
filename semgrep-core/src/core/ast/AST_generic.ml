@@ -30,6 +30,10 @@
  *  - OCaml, Scala, Rust
  *  - TODO Bash, SQL, Docker
  *
+ * See Lang.ml for the list of supported languages.
+ * See IL.ml for a generic IL (Intermediate language) better suited for
+ * advanced static analysis (e.g., dataflow).
+ *
  * rational: In the end, programming languages have a lot in Common.
  * Even though some interesting analysis are probably better done on a
  * per-language basis, many analysis are simple and require just an
@@ -431,10 +435,15 @@ and expr_kind =
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
    * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.
-   * Assign can also be abused to declare new variables, but you should use
-   * variable_definition for that.
-   * less: should be in stmt, but most languages allow this at expr level :(
-   * todo: see IL.ml where we normalize this AST with expr/instr/stmt
+   *
+   * newvar: Assign is also sometimes abused to declare new variables
+   * (e.g., in Python/PHP), but you should prefer variable_definition if
+   * you can.
+   *
+   * less: it would be better to have Assign as a stmt, but most languages
+   * allow this at expr level :(
+   * Note that IL.ml improves the situation by normalizing this AST with
+   * separate expr/instr/stmt types.
    * update: should even be in a separate simple_stmt, as in Go
    *)
   | Assign of
@@ -478,6 +487,14 @@ and expr_kind =
   (* less: could be in Special, but pretty important so I've lifted them here*)
   | Ref of tok (* &, address of *) * expr
   | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr
+  (* For YAML aliases
+     TODO a better solution would be to use symbolic propagation
+     This is a little tricky because YAML is a highly nested expression
+     and anchors can be nested. We can get around this by extracting
+     the aliases as VarDefs in the beginning and then using them later.
+     Revisit when symbolic propagation is more stable
+  *)
+  | Alias of string wrap * expr
   (* In some rare cases, we need to keep the parenthesis around an expression
    * otherwise in autofix semgrep could produce incorrect code. For example,
    * in Go a cast int(3.0) requires the parenthesis.
@@ -1298,6 +1315,7 @@ and definition_kind =
   (* newvar: can be used also for constants.
    * note: can contain special_multivardef_pattern!! ident in which case vinit
    * is the pattern assignment.
+   * TODO: still true? We should use EPattern for those cases no?
    *)
   | VarDef of variable_definition
   (* FieldDefColon can be used only inside a record (in a FieldStmt).

@@ -220,6 +220,17 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     | ( MV.Id ((s1, _), _),
         MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
         s1 = s2
+    (* In Ruby, they use atoms for metaprogramming to generate fields
+     * (e.g., 'serialize :tags ... post.tags') in which case we want
+     * a Text metavariable like :$INPUT to be compared with an Id
+     * metavariable like post.$INPUT.
+     * TODO? split MV.Text in a separate MV.Atom?
+     *)
+    | ( MV.Id ((s1, _), Some { G.id_resolved = { contents = None }; _ }),
+        MV.Text (s2, _) )
+    | ( MV.Text (s1, _),
+        MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
+        s1 = s2
     (* A variable occurrence that is known to have a constant value is equal to
      * that same constant value.
      *

@@ -5,16 +5,28 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
-  allows rules to filter based on the presence of 3rd-party dependencies at specific 
-  version ranges.
-- Experimental support for Dockerfile syntax.
-- Add an experimental key for internal team use:
-  `r2c-internal-project-depends-on` that allows rules to filter based on the
-  presence of 3rd-party dependencies at specific version ranges.
 
 ### Changed
-- CLI: parse errors (reported with `--verbose`) appear once per file, 
+- Ruby: a metavariable matching an atom can also be used to match an identifier
+  with the same name (#4550)
+
+### Fixed
+
+## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 01-20-2022
+
+### Added
+- Add an experimental key for internal team use: `r2c-internal-project-depends-on` that
+  allows rules to filter based on the presence of 3rd-party dependencies at specific
+  version ranges.
+- Experimental support for Dockerfile syntax.
+- Support nosemgrep comments placed on the line before a match,
+  causing such match to be ignored (#3521)
+- Add experimental `semgrep login` and `semgrep logout` to store API token from semgrep.dev
+- Add experimenntal config key `semgrep --config policy` that uses stored API token to
+  retrieve configured rule policy on semgrep.dev
+
+### Changed
+- CLI: parse errors (reported with `--verbose`) appear once per file,
   not once per rule/file
 
 ### Fixed
@@ -35,6 +47,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `--verbose` outputs a timing and file breakdown summary at the end
 - `metavariable-comparison` now handles metavariables that bind to arbitrary
   constant expressions (instead of just code variables)
+- YAML support for anchors and aliases (#3677)
 
 ### Fixed
 - Rust: inner attributes are allowed again inside functions (#4444) (#4445)
@@ -110,7 +123,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
 - semgrep-core: Fix a segmentation fault on Apple M1 when using
   `-filter_irrelevant_rules` on rules with very large `pattern-either`s (#4305)
-- Python: generate proper lexical exn for unbalanced braces (#4310)  
+- Python: generate proper lexical exn for unbalanced braces (#4310)
 - YAML: fix off-by-one in location of arrays
 - Python: generate proper lexical exn for unbalanced braces (#4310)
 - Matching `"$MVAR"` patterns against string literals computed by constant folding
@@ -135,14 +148,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Support for method chaining patterns in Python, Golang, Ruby,
   and C# (#4300), so all GA languages now have method chaining
-- Scala: translate infix operators to generic AST as method calls, 
+- Scala: translate infix operators to generic AST as method calls,
   so `$X.map($F)` matches `xs map f`
 - PHP: support method patterns (#4262)
 
 ### Changed
 - Add `profiling_times` object in `--time --json` output for more fine
   grained visibility into slow parts of semgrep
-- Constant propagation: Any kind of Python string (raw, byte, or unicode) is 
+- Constant propagation: Any kind of Python string (raw, byte, or unicode) is
   now evaluated to a string literal and can be matched by `"..."` (#3881)
 
 ### Fixed
@@ -167,7 +180,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 - Dataflow: Assume that any function/method call inside a `try-catch` could
   be raising an exception (#4091)
-- cli: if an invalid config is passed to semgrep, it will fail immediately, even 
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even
   if valid configs are also passed
 
 ### Fixed
