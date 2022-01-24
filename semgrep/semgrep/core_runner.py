@@ -262,7 +262,7 @@ class CoreRunner:
         return list(targets)
 
     def _get_targets(
-        self, rules: List[Rule], target_manager: TargetManager
+        self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> List[Dict[str, Any]]:
         target_info: Dict[Tuple[Path, Language], List[RuleId]] = {}
 
@@ -271,6 +271,7 @@ class CoreRunner:
                 targets = self.get_files_for_language(language, rule, target_manager)
 
                 for target in targets:
+                    all_targets.add(target)
                     t = (target, language)
                     if t in target_info:
                         target_info[t].append(RuleId(rule.id))
@@ -300,7 +301,7 @@ class CoreRunner:
             with open(rules_file, "w+") as rule_file, open(
                 targets_file, "w+"
             ) as target_file:
-                targets_with_rules = self._get_targets(rules, target_manager)
+                targets_with_rules = self._get_targets(rules, target_manager, set())
                 target_file.write(json.dumps(targets_with_rules))
                 target_file.flush()
 
@@ -358,7 +359,9 @@ class CoreRunner:
             with tempfile.NamedTemporaryFile(
                 "w", suffix=".yaml"
             ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
-                targets_with_rules = self._get_targets(rules, target_manager)
+                targets_with_rules = self._get_targets(
+                    rules, target_manager, all_targets
+                )
                 target_file.write(json.dumps(targets_with_rules))
                 target_file.flush()
 
