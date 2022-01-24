@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+### Changed
+- Ruby: a metavariable matching an atom can also be used to match an identifier
+  with the same name (#4550)
+
+### Fixed
+
 ## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 01-20-2022
 
 ### Added
