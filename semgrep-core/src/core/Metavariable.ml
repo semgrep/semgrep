@@ -66,8 +66,14 @@ type mvalue =
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
   | Params of AST_generic.parameter list
-  (* This is to match the content of a string or atom, without the
-   * enclosing quotes. For a string this can actually be empty. *)
+  (* Text below is used to match the content of a string or atom, without the
+   * enclosing quotes. For a string this can actually be empty.
+   * TODO? use a separate 'Atom of string wrap' for atoms? This could be useful
+   * to allow 'foo :$ATOM ... obj.$ATOM', but not
+   * '"$STR" ... obj.$STR'? (even though this could also be useful for PHP
+   * where strings are often used to represent entities (e.g., function
+   * names).
+   *)
   | Text of string AST_generic.wrap
 [@@deriving show, eq, hash]
 
