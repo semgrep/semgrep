@@ -115,8 +115,11 @@ class ProfilingData:
         self._file_run_time[target] = run_time
 
         parse_match_times = [times[rule] for rule in times]
-        self._file_parse_time[target] = max([time[0] for time in parse_match_times])
-        self._file_match_times[target] = sum([time[1] for time in parse_match_times])
+        if len(parse_match_times) > 0:
+            self._file_parse_time[target] = max([time[0] for time in parse_match_times])
+            self._file_match_times[target] = sum(
+                [time[1] for time in parse_match_times]
+            )
         self._file_num_times_scanned[target] = len(parse_match_times)
 
         for rule in times:
