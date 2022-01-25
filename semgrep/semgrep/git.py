@@ -148,7 +148,7 @@ class BaselineHandler:
 
         logger.debug("Initializing dirty paths")
         sub_out = subprocess.run(
-            ["git", "status", "--porcelain", "-z", "':!.semgrep_logs/'"],
+            ["git", "status", "--porcelain", "-z"],
             timeout=GIT_SH_TIMEOUT,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
