@@ -404,7 +404,6 @@ class CoreRunner:
 
                 # Process output
                 output_json = self._extract_core_output(rules, core_run)
-                print(json.dumps(output_json, indent=4))
                 core_output = CoreOutput.parse(rules, output_json)
 
                 if "time" in output_json:
