@@ -1002,5 +1002,5 @@ let check ~match_hook default_config rules file_and_more =
                  RP.matches = [];
                  errors = [ E.exn_to_error ~rule_id:(Some rule_id) file exn ];
                  skipped = [];
-                 profiling = { rule = r; parse_time = -1.; match_time = -1. };
+                 profiling = { rule_id; parse_time = -1.; match_time = -1. };
                }))

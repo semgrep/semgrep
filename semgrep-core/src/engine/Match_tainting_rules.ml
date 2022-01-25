@@ -268,5 +268,6 @@ let check ~match_hook default_config taint_rules file_and_more =
                RP.matches;
                errors;
                skipped = [];
-               profiling = { RP.rule; parse_time; match_time };
+               profiling =
+                 { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
              })

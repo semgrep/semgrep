@@ -3,7 +3,7 @@
 type times = { parse_time : float; match_time : float }
 
 type rule_profiling = {
-  rule : Rule.rule;
+  rule_id : Rule.rule_id;
   parse_time : float;
   match_time : float;
 }

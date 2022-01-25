@@ -8,7 +8,7 @@
 (* Save time information as we run each rule *)
 
 type rule_profiling = {
-  rule : Rule.rule;
+  rule_id : Rule.rule_id;
   parse_time : float;
   match_time : float;
 }
@@ -73,7 +73,12 @@ let add_run_time :
 
 let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
  fun rule { matches; errors; skipped; profiling = { parse_time; match_time } } ->
-  { matches; errors; skipped; profiling = { rule; parse_time; match_time } }
+  {
+    matches;
+    errors;
+    skipped;
+    profiling = { rule_id = fst rule.Rule.id; parse_time; match_time };
+  }
 
 (* Aggregate a list of semgrep results into one returned object *)
 

@@ -189,8 +189,8 @@ let error_to_error err =
 let json_time_of_profiling_data profiling_data =
   let json_time_of_rule_times rule_times =
     rule_times
-    |> List.map (fun { RP.rule; parse_time; match_time } ->
-           { ST.rule_id = fst rule.Rule.id; parse_time; match_time })
+    |> List.map (fun { RP.rule_id; parse_time; match_time } ->
+           { ST.rule_id; parse_time; match_time })
   in
   {
     ST.targets =
