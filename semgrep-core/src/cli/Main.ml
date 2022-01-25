@@ -427,6 +427,7 @@ let all_actions () =
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
+  @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =
   [
