@@ -188,7 +188,7 @@ type time = {
 type target_time = {
   path: string;
 
-  (* parse and match tiem for each rule on target *)
+  (* parse and match time for each rule on target *)
   rule_times: rule_times list;
 
   (* run time for all rules on target *)
