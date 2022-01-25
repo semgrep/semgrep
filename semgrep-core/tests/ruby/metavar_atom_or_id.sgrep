@@ -1,0 +1,6 @@
+class $CLASS < ActiveRecord::Base
+  ...
+  serialize :$INPUT
+  ...
+  $OBJECT.$INPUT = params[...]
+end

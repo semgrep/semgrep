@@ -88,6 +88,22 @@ NOSEM_INLINE_RE = re.compile(
     r" nosem(?:grep)?" + RULE_ID_RE_STR,
     re.IGNORECASE,
 )
+
+# A nosemgrep comment alone on its line.
+# Since we don't know the comment syntax for the particular language, we
+# assume it's enough that there isn't any word or number character before
+# 'nosemgrep'.
+# The following will not match:
+#   hello(); // nosemgrep
+#   + 42 // nosemgrep
+# The following will match:
+#   # nosemgrep
+#   print('nosemgrep');
+NOSEM_PREVIOUS_LINE_RE = re.compile(
+    r"^[^a-zA-Z0-9]* nosem(?:grep)?" + RULE_ID_RE_STR,
+    re.IGNORECASE,
+)
+
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
 
 MAX_LINES_FLAG_NAME = "--max-lines-per-finding"

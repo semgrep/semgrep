@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -29,7 +29,62 @@ module H = AST_generic_helpers
  *  - call to (list stmt) should be converted to list_stmt
  *    to avoid intermediates Block
  *    (should use embedded-Semgrep-rule idea of rcoh!)
+ *  - transform more Assign in VarDef, e.g., also local variables
+ *    (but take care if same var defined first in different branch,
+ *     which one should be a VarDef?)
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* We use the environment below for transforming certain Assign in VarDef.
+ * Indeed, Python does not have a special construct (e.g., 'let' in OCaml)
+ * to declare variables, and instead abuse Assign to do so (which then requires
+ * to have constructs like 'nonlocal' and 'global' to explicitely say you
+ * want to reuse an enclosing variable and not declare a new one, argh).
+ *
+ * To avoid transforming wrongly some actual assignments, we need to detect
+ * all introduced entities (e.g, parameters, imported entities, patterns,
+ * exn vars, iterators, 'nonlocal', 'global'), so when we see 'x = v',
+ * we check whether this x was previously declared. If not, then
+ * it's probably a VarDef.
+ *
+ * Note that it does not really matter for semgrep, which anyway has some
+ * vardef_to_assign magic. However, this is useful for codegraph to
+ * correctly detect all global entities.
+ *)
+type env = {
+  context : context;
+  assign_to_vardef : bool;
+  (* the different Python scopes *)
+  mutable imported : string list;
+  (* for now we just transform the toplevels Assign *)
+  mutable current_scope : string list;
+  (* TODO: put parameters here? or use separate fld? also add
+   * iterators, exn handler, and just push into it for each
+   * new "block" scope *)
+  from_parent_scope : string list;
+      (* TODO? parameters: string list *)
+      (* TODO? handle also iterator, exn? *)
+}
+
+and context = InSourceToplevel | InPattern | InClass | InFunctionOrMethod
+
+let empty_env ~assign_to_vardef context =
+  {
+    context;
+    imported = [];
+    current_scope = [];
+    from_parent_scope = [];
+    assign_to_vardef;
+  }
+
+(* lookup *)
+let is_in_scope env s =
+  List.mem s env.imported
+  || List.mem s env.current_scope
+  || List.mem s env.from_parent_scope
 
 (*****************************************************************************)
 (* Helpers *)
@@ -64,12 +119,12 @@ let wrap _of_a (v1, v2) =
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 
-let name v = wrap string v
+let name _env v = wrap string v
 
-let dotted_name v = list name v
+let dotted_name env v = list (name env) v
 
-let module_name (v1, dots) =
-  let v1 = dotted_name v1 in
+let module_name env (v1, dots) =
+  let v1 = dotted_name env v1 in
   match dots with
   | None -> G.DottedName v1
   (* transforming '. foo.bar' in G.Filename "./foo/bar" *)
@@ -107,10 +162,10 @@ let expr_context = function
   | AugStore -> ()
   | Param -> ()
 
-let rec expr (x : expr) =
+let rec expr env (x : expr) =
   match x with
   | DotAccessEllipsis (v1, v2) ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.DotAccessEllipsis (v1, v2) |> G.e
   | Bool v1 ->
       let v1 = wrap bool v1 in
@@ -122,7 +177,7 @@ let rec expr (x : expr) =
       let x = info x in
       G.Ellipsis x |> G.e
   | DeepEllipsis x ->
-      let x = bracket expr x in
+      let x = bracket (expr env) x in
       G.DeepEllipsis x |> G.e
   | Num v1 ->
       let v1 = number v1 in
@@ -148,7 +203,7 @@ let rec expr (x : expr) =
           fb
             (xs
             |> List.map (fun x ->
-                   let x = expr x in
+                   let x = expr env x in
                    G.Arg x)) )
       |> G.e
   | ConcatenatedString xs ->
@@ -158,57 +213,57 @@ let rec expr (x : expr) =
           fb
             (xs
             |> List.map (fun x ->
-                   let x = expr x in
+                   let x = expr env x in
                    G.Arg x)) )
       |> G.e
   | TypedExpr (v1, v2) ->
-      let v1 = expr v1 in
-      let v2 = type_ v2 in
+      let v1 = expr env v1 in
+      let v2 = type_ env v2 in
       G.Cast (v2, unsafe_fake ":", v1) |> G.e
   | TypedMetavar (v1, v2, v3) ->
-      let v1 = name v1 in
-      let v3 = type_ v3 in
+      let v1 = name env v1 in
+      let v3 = type_ env v3 in
       G.TypedMetavar (v1, v2, v3) |> G.e
   | ExprStar v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.Call
         (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
   | Name (v1, v2, v3) ->
-      let v1 = name v1
+      let v1 = name env v1
       and _v2TODO = expr_context v2
       and v3 = vref resolved_name v3 in
       G.N (G.Id (v1, { (G.empty_id_info ()) with G.id_resolved = v3 })) |> G.e
   | Tuple (CompList v1, v2) ->
-      let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
+      let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
       G.Container (G.Tuple, v1) |> G.e
   | Tuple (CompForIf (l, (v1, v2), r), v3) ->
-      let e1 = comprehension expr v1 v2 in
+      let e1 = comprehension env expr v1 v2 in
       let _v4TODO = expr_context v3 in
       G.Comprehension (G.Tuple, (l, e1, r)) |> G.e
   | List (CompList v1, v2) ->
-      let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
+      let v1 = bracket (list (expr env)) v1 and _v2TODO = expr_context v2 in
       G.Container (G.List, v1) |> G.e
   | List (CompForIf (l, (v1, v2), r), v3) ->
-      let e1 = comprehension expr v1 v2 in
+      let e1 = comprehension env expr v1 v2 in
       let _v3TODO = expr_context v3 in
       G.Comprehension (G.List, (l, e1, r)) |> G.e
   | Subscript (v1, v2, v3) ->
-      (let e = expr v1 and _v3TODO = expr_context v3 in
+      (let e = expr env v1 and _v3TODO = expr_context v3 in
        match v2 with
-       | l1, [ x ], l2 -> slice1 e (l1, x, l2)
+       | l1, [ x ], l2 -> slice1 env e (l1, x, l2)
        | l1, xs, _ ->
-           let xs = list (slice e) xs in
+           let xs = list (slice env e) xs in
            G.OtherExpr (("Slices", l1), xs |> List.map (fun x -> G.E x)))
       |> G.e
   | Attribute (v1, t, v2, v3) ->
-      let v1 = expr v1
+      let v1 = expr env v1
       and t = info t
-      and v2 = name v2
+      and v2 = name env v2
       and _v3TODO = expr_context v3 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
-      let v' = list dictorset_elt v in
+      let v' = list (dictorset_elt env) v in
       let kind =
         if
           v
@@ -224,22 +279,22 @@ let rec expr (x : expr) =
       in
       G.Container (kind, (t1, v', t2)) |> G.e
   | DictOrSet (CompForIf (l, (v1, v2), r)) ->
-      let e1 = comprehension2 dictorset_elt v1 v2 in
+      let e1 = comprehension2 env dictorset_elt v1 v2 in
       G.Comprehension (G.Dict, (l, e1, r)) |> G.e
   | BoolOp ((v1, tok), v2) ->
-      let v1 = boolop v1 and v2 = list expr v2 in
+      let v1 = boolop v1 and v2 = list (expr env) v2 in
       G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg))
       |> G.e
   | BinOp (v1, (v2, tok), v3) ->
-      let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
+      let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       G.Call
         (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
       |> G.e
   | UnaryOp ((v1, tok), v2) ->
-      let op = unaryop v1 and v2 = expr v2 in
+      let op = unaryop v1 and v2 = expr env v2 in
       G.opcall (op, tok) [ v2 ]
   | Compare (v1, v2, v3) -> (
-      let v1 = expr v1 and v2 = list cmpop v2 and v3 = list expr v3 in
+      let v1 = expr env v1 and v2 = list cmpop v2 and v3 = list (expr env) v3 in
       match (v2, v3) with
       | [ (op, tok) ], [ e ] ->
           G.Call
@@ -254,11 +309,11 @@ let rec expr (x : expr) =
           let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
           G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
   | Call (v1, v2) ->
-      let v1 = expr v1 in
-      let v2 = bracket (list argument) v2 in
+      let v1 = expr env v1 in
+      let v2 = bracket (list (argument env)) v2 in
       G.Call (v1, v2) |> G.e
   | Lambda (t0, v1, _t2, v2) ->
-      let v1 = parameters v1 and v2 = expr v2 in
+      let v1 = parameters env v1 and v2 = expr env v2 in
       G.Lambda
         {
           G.fparams = v1;
@@ -268,58 +323,60 @@ let rec expr (x : expr) =
         }
       |> G.e
   | IfExp (v1, v2, v3) ->
-      let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
+      let v1 = expr env v1 and v2 = expr env v2 and v3 = expr env v3 in
       G.Conditional (v1, v2, v3) |> G.e
   | Yield (t, v1, v2) ->
-      let v1 = option expr v1 and v2 = v2 in
+      let v1 = option (expr env) v1 and v2 = v2 in
       G.Yield (t, v1, v2) |> G.e
   | Await (t, v1) ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.Await (t, v1) |> G.e
   | Repr v1 ->
-      let l, v1, _ = bracket expr v1 in
+      let l, v1, _ = bracket (expr env) v1 in
       G.OtherExpr (("Repr", l), [ G.E v1 ]) |> G.e
-  | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e) |> G.e
+  | NamedExpr (v, t, e) -> G.Assign (expr env v, t, expr env e) |> G.e
 
-and argument = function
+and argument env = function
   | Arg e ->
-      let e = expr e in
+      let e = expr env e in
       G.Arg e
   | ArgStar (t, e) ->
-      let e = expr e in
+      let e = expr env e in
       G.Arg (G.Call (G.IdSpecial (G.Spread, t) |> G.e, fb [ G.arg e ]) |> G.e)
   | ArgPow (t, e) ->
-      let e = expr e in
+      let e = expr env e in
       G.Arg (G.Call (G.IdSpecial (G.HashSplat, t) |> G.e, fb [ G.arg e ]) |> G.e)
   | ArgKwd (n, e) ->
-      let n = name n in
-      let e = expr e in
+      let n = name env n in
+      let e = expr env e in
       G.ArgKwd (n, e)
   | ArgComp (e, xs) ->
-      let e = expr e in
-      G.Arg (G.Comprehension (G.List, G.fake_bracket (e, list for_if xs)) |> G.e)
+      let e = expr env e in
+      G.Arg
+        (G.Comprehension (G.List, G.fake_bracket (e, list (for_if env) xs))
+        |> G.e)
 
-and for_if = function
+and for_if env = function
   | CompFor (e1, e2) ->
-      let e1 = expr e1 in
-      let e2 = expr e2 in
+      let e1 = expr env e1 in
+      let e2 = expr env e2 in
       let p = H.expr_to_pattern e1 in
       G.CompFor (unsafe_fake "for", p, unsafe_fake "in", e2)
   | CompIf e1 ->
-      let e1 = expr e1 in
+      let e1 = expr env e1 in
       G.CompIf (unsafe_fake "if", e1)
 
-and dictorset_elt = function
+and dictorset_elt env = function
   | KeyVal (v1, v2) ->
-      let v1 = expr v1 in
-      let v2 = expr v2 in
+      let v1 = expr env v1 in
+      let v2 = expr env v2 in
       G.keyval v1 (unsafe_fake "=>") v2
   | Key v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       v1
   (* TODO: Spread? this is a DictSpread? *)
   | PowInline v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.Call
         (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
@@ -376,72 +433,76 @@ and cmpop (a, b) =
   | In -> (G.In, b)
   | NotIn -> (G.NotIn, b)
 
-and comprehension f v1 v2 : G.comprehension =
-  let v1 = f v1 in
-  let v2 = list for_if v2 in
+and comprehension env f v1 v2 : G.comprehension =
+  let v1 = f env v1 in
+  let v2 = list (for_if env) v2 in
   (v1, v2)
 
-and comprehension2 f v1 v2 : G.comprehension =
-  let v1 = f v1 in
-  let v2 = list for_if v2 in
+and comprehension2 env f v1 v2 : G.comprehension =
+  let v1 = f env v1 in
+  let v2 = list (for_if env) v2 in
   (v1, v2)
 
-and slice1 e1 (t1, e2, t2) : G.expr_kind =
+and slice1 env e1 (t1, e2, t2) : G.expr_kind =
   match e2 with
   | Index v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.ArrayAccess (e1, (t1, v1, t2))
   | Slice (v1, v2, v3) ->
-      let v1 = option expr v1 and v2 = option expr v2 and v3 = option expr v3 in
+      let v1 = option (expr env) v1
+      and v2 = option (expr env) v2
+      and v3 = option (expr env) v3 in
       G.SliceAccess (e1, (t1, (v1, v2, v3), t2))
 
-and slice e = function
+and slice env e = function
   | Index v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.ArrayAccess (e, fb v1) |> G.e
   | Slice (v1, v2, v3) ->
-      let v1 = option expr v1 and v2 = option expr v2 and v3 = option expr v3 in
+      let v1 = option (expr env) v1
+      and v2 = option (expr env) v2
+      and v3 = option (expr env) v3 in
       G.SliceAccess (e, fb (v1, v2, v3)) |> G.e
 
-and param_pattern = function
-  | PatternName n -> G.PatId (name n, G.empty_id_info ())
+and param_pattern env = function
+  | PatternName n -> G.PatId (name env n, G.empty_id_info ())
   | PatternTuple t ->
-      let t = list param_pattern t in
+      let t = list (param_pattern env) t in
       G.PatTuple (G.fake_bracket t)
 
-and parameters xs =
+and parameters env xs =
   xs
   |> List.map (function
        | ParamDefault ((n, topt), e) ->
-           let n = name n in
-           let topt = option type_ topt in
-           let e = expr e in
+           let n = name env n in
+           let topt = option (type_ env) topt in
+           let e = expr env e in
            G.Param { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
        | ParamPattern (PatternName n, topt) ->
-           let n = name n and topt = option type_ topt in
+           let n = name env n and topt = option (type_ env) topt in
            G.Param { (G.param_of_id n) with G.ptype = topt }
        | ParamPattern (PatternTuple pat, _) ->
-           let pat = list param_pattern pat in
+           let pat = list (param_pattern env) pat in
            G.ParamPattern (G.PatTuple (G.fake_bracket pat))
        | ParamStar (t, (n, topt)) ->
-           let n = name n in
-           let topt = option type_ topt in
+           let n = name env n in
+           let topt = option (type_ env) topt in
            G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
        | ParamPow (t, (n, topt)) ->
-           let n = name n in
-           let topt = option type_ topt in
+           let n = name env n in
+           let topt = option (type_ env) topt in
            G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
        | ParamEllipsis tok -> G.ParamEllipsis tok
        | ParamSingleStar tok -> G.OtherParam (("SingleStar", tok), [])
        | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
 
-and type_ v =
-  let v = expr v in
+and type_ env v =
+  let v = expr env v in
   H.expr_to_type v
 
 (* TODO: recognize idioms? *)
-and type_parent v : G.class_parent =
-  let v = argument v in
+and type_parent env v : G.class_parent =
+  let v = argument env v in
   match v with
   | G.Arg e -> H.expr_to_class_parent e
   (* less: could raise an error *)
@@ -450,8 +511,8 @@ and type_parent v : G.class_parent =
   (* see argument code *)
   | _ -> raise Impossible
 
-and list_stmt1 xs =
-  match list stmt xs with
+and list_stmt1 env xs =
+  match list (stmt env) xs with
   (* bugfix: We do not want actually to optimize and remove the
    * intermediate Block because otherwise sgrep will not work
    * correctly with a list of stmt.
@@ -488,7 +549,7 @@ and list_stmt1 xs =
 (* This will avoid intermediate Block. You should prefer this function
  * to calls to (list stmt)
  *)
-and list_stmt xs = list stmt_aux xs |> List.flatten
+and list_stmt env xs = list (stmt_aux env) xs |> List.flatten
 
 (* In Python, many Assign are actually VarDef. We should transform those,
  * because this would simplify Naming_AST.ml later, but this requires
@@ -514,14 +575,15 @@ and fieldstmt x =
       G.fld (ent, G.VarDef vdef)
   | _ -> G.F x
 
-and stmt_aux x =
+and stmt_aux env x =
   match x with
   | FunctionDef (t, v1, v2, v3, v4, v5) ->
-      let v1 = name v1
-      and v2 = parameters v2
-      and v3 = option type_ v3
-      and v4 = list_stmt1 v4
-      and v5 = list decorator v5 in
+      let env = { env with context = InFunctionOrMethod } in
+      let v1 = name env v1
+      and v2 = parameters env v2
+      and v3 = option (type_ env) v3
+      and v4 = list_stmt1 env v4
+      and v5 = list (decorator env) v5 in
       let ent = G.basic_entity v1 ~attrs:v5 in
       let def =
         {
@@ -533,10 +595,11 @@ and stmt_aux x =
       in
       [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
   | ClassDef (v0, v1, v2, v3, v4) ->
-      let v1 = name v1
-      and v2 = list type_parent v2
-      and v3 = list_stmt v3
-      and v4 = list decorator v4 in
+      let env = { env with context = InClass } in
+      let v1 = name env v1
+      and v2 = list (type_parent env) v2
+      and v3 = list_stmt env v3
+      and v4 = list (decorator env) v4 in
       let ent = G.basic_entity v1 ~attrs:v4 in
       let def =
         {
@@ -553,24 +616,49 @@ and stmt_aux x =
    * translated in Assign ([a;b], c)
    *)
   | Assign (v1, v2, v3) -> (
-      let v1 = list expr v1 and v2 = info v2 and v3 = expr v3 in
+      let v1 = list (expr env) v1 and v2 = info v2 and v3 = expr env v3 in
+
       match v1 with
       | [] -> raise Impossible
       | [ a ] -> (
-          match a.G.e with
-          (* x: t = ... is definitely a VarDef *)
-          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
-              let ent =
-                { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
-              in
-              let var = G.VarDef { G.vinit = Some v3; vtype = Some t } in
-              [ G.DefStmt (ent, var) |> G.s ]
-          (* TODO: We should turn more Assign in G.VarDef!
-           * Is it bad for semgrep to turn only the typed assign in VarDef?
-           * No because we have some magic equivalences to convert some
-           * Vardef back in Assign in Generic_vs_generic.
+          (* Trying to convert certain Assign in VarDef, which can benefit
+           * Codegraph.
            *)
-          | _ -> [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ])
+          let to_vardef id idinfo topt =
+            let ent =
+              { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
+            in
+            let var = G.VarDef { G.vinit = Some v3; vtype = topt } in
+            [ G.DefStmt (ent, var) |> G.s ]
+          in
+          let default_res = [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ] in
+          match a.G.e with
+          (* x: t = ... is definitely a VarDef. This one does not need
+           * to be guarded by env.assign_to_vardef because it does not
+           * cause any regressions.
+           *)
+          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
+              to_vardef id idinfo (Some t)
+          (* x = ... at toplevel. This one is guarded by assign_to_vardef
+           * because it causes regressions in semgrep, probably because
+           * we do the translation for the target but not for the pattern.
+           * So, this is disabled in semgrep (and enabled in codegraph).
+           *)
+          | G.N (G.Id (id, idinfo))
+            when env.context = InSourceToplevel && env.assign_to_vardef ->
+              let s = fst id in
+              if not (is_in_scope env s) then (
+                env.current_scope <- s :: env.current_scope;
+                to_vardef id idinfo None)
+              else default_res
+          (* TODO: We should turn more Assign in G.VarDef!
+           * Is it bad for semgrep to turn all those Assign in VarDef?
+           * In theory no because we have some magic equivalences to
+           * convert some Vardef back in Assign in Generic_vs_generic anyway.
+           * In practice this leads to regressions in semgrep-rules, probably
+           * because we transform them in the target but not in the pattern
+           *)
+          | _ -> default_res)
       | xs ->
           [
             G.exprstmt
@@ -578,22 +666,24 @@ and stmt_aux x =
               |> G.e);
           ])
   | AugAssign (v1, (v2, tok), v3) ->
-      let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
+      let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
   | Return (t, v1) ->
-      let v1 = option expr v1 in
+      let v1 = option (expr env) v1 in
       [ G.Return (t, v1, G.sc) |> G.s ]
   | Delete (_t, v1) ->
-      let v1 = list expr v1 in
+      let v1 = list (expr env) v1 in
       [ G.OtherStmt (G.OS_Delete, v1 |> List.map (fun x -> G.E x)) |> G.s ]
   | If (t, v1, v2, v3) ->
-      let v1 = expr v1 and v2 = list_stmt1 v2 and v3 = option list_stmt1 v3 in
+      let v1 = expr env v1
+      and v2 = list_stmt1 env v2
+      and v3 = option (list_stmt1 env) v3 in
       [ G.If (t, Cond v1, v2, v3) |> G.s ]
   | While (t, v1, v2, v3) -> (
       (* TODO? missing list_stmt1 for v3? *)
-      let v1 = expr v1
-      and v2 = list_stmt1 v2
-      and v3 = list_stmt v3 in
+      let v1 = expr env v1
+      and v2 = list_stmt1 env v2
+      and v3 = list_stmt env v3 in
       match v3 with
       | [] -> [ G.While (t, G.Cond v1, v2) |> G.s ]
       | _ ->
@@ -609,10 +699,10 @@ and stmt_aux x =
             |> G.s;
           ])
   | For (t, v1, t2, v2, v3, v4) -> (
-      let foreach = pattern v1
-      and ins = expr v2
-      and body = list_stmt1 v3
-      and orelse = list_stmt v4 in
+      let foreach = pattern env v1
+      and ins = expr env v2
+      and body = list_stmt1 env v3
+      and orelse = list_stmt env v4 in
       let header = G.ForEach (foreach, t2, ins) in
       match orelse with
       | [] -> [ G.For (t, header, body) |> G.s ]
@@ -630,7 +720,9 @@ and stmt_aux x =
           ])
   (* TODO: unsugar in sequence? *)
   | With (_t, (v1, v2), v3) ->
-      let v1 = expr v1 and v2 = option expr v2 and v3 = list_stmt1 v3 in
+      let v1 = expr env v1
+      and v2 = option (expr env) v2
+      and v3 = list_stmt1 env v3 in
       let anys =
         match v2 with
         | None -> []
@@ -640,32 +732,32 @@ and stmt_aux x =
   | Raise (t, v1) -> (
       match v1 with
       | Some (e, None) ->
-          let e = expr e in
+          let e = expr env e in
           [ G.Throw (t, e, G.sc) |> G.s ]
       | Some (e, Some from) ->
-          let e = expr e in
-          let from = expr from in
+          let e = expr env e in
+          let from = expr env from in
           let st = G.Throw (t, e, G.sc) |> G.s in
           [ G.OtherStmt (G.OS_ThrowFrom, [ G.E from; G.S st ]) |> G.s ]
       | None -> [ G.OtherStmt (G.OS_ThrowNothing, [ G.Tk t ]) |> G.s ])
   | RaisePython2 (t, e, v2, v3) -> (
-      let e = expr e in
+      let e = expr env e in
       let st = G.Throw (t, e, G.sc) |> G.s in
       match (v2, v3) with
       | Some args, Some loc ->
-          let args = expr args and loc = expr loc in
+          let args = expr env args and loc = expr env loc in
           [
             G.OtherStmt (G.OS_ThrowArgsLocation, [ G.E loc; G.E args; G.S st ])
             |> G.s;
           ]
       | Some args, None ->
-          let args = expr args in
+          let args = expr env args in
           [ G.OtherStmt (G.OS_ThrowArgsLocation, [ G.E args; G.S st ]) |> G.s ]
       | None, _ -> [ st ])
   | TryExcept (t, v1, v2, v3) -> (
-      let v1 = list_stmt1 v1
-      and v2 = list excepthandler v2
-      and orelse = list_stmt v3 in
+      let v1 = list_stmt1 env v1
+      and v2 = list (excepthandler env) v2
+      and orelse = list_stmt env v3 in
       match orelse with
       | [] -> [ G.Try (t, v1, v2, None) |> G.s ]
       | _ ->
@@ -681,38 +773,39 @@ and stmt_aux x =
             |> G.s;
           ])
   | TryFinally (t, v1, t2, v2) ->
-      let v1 = list_stmt1 v1 and v2 = list_stmt1 v2 in
+      let v1 = list_stmt1 env v1 and v2 = list_stmt1 env v2 in
       (* could lift down the Try in v1 *)
       [ G.Try (t, v1, [], Some (t2, v2)) |> G.s ]
   | Assert (t, v1, v2) ->
-      let v1 = expr v1 and v2 = option expr v2 in
+      let v1 = expr env v1 and v2 = option (expr env) v2 in
       let es = v1 :: Common.opt_to_list v2 in
       let args = es |> List.map G.arg in
       [ G.Assert (t, fb args, G.sc) |> G.s ]
   | ImportAs (t, v1, v2) ->
-      let mname = module_name v1 and nopt = option ident_and_id_info v2 in
+      let mname = module_name env v1
+      and nopt = option (ident_and_id_info env) v2 in
       [ G.DirectiveStmt (G.ImportAs (t, mname, nopt) |> G.d) |> G.s ]
   | ImportAll (t, v1, v2) ->
-      let mname = module_name v1 and v2 = info v2 in
+      let mname = module_name env v1 and v2 = info v2 in
       [ G.DirectiveStmt (G.ImportAll (t, mname, v2) |> G.d) |> G.s ]
   | ImportFrom (t, v1, v2) ->
-      let v1 = module_name v1 and v2 = list alias v2 in
+      let v1 = module_name env v1 and v2 = list (alias env) v2 in
       List.map
         (fun (a, b) ->
           G.DirectiveStmt (G.ImportFrom (t, v1, a, b) |> G.d) |> G.s)
         v2
   | Global (t, v1)
   | NonLocal (t, v1) ->
-      let v1 = list name v1 in
+      let v1 = list (name env) v1 in
       v1
       |> List.map (fun x ->
              let ent = G.basic_entity x in
              G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       [ G.exprstmt v1 ]
   | Async (t, x) -> (
-      let x = stmt x in
+      let x = stmt env x in
       match x.G.s with
       | G.DefStmt (ent, func) ->
           [
@@ -727,29 +820,30 @@ and stmt_aux x =
   (* python2: *)
   | Print (tok, _dest, vals, _nl) ->
       let id = Name (("print", tok), Load, ref NotResolved) in
-      stmt_aux (ExprStmt (Call (id, fb (vals |> List.map (fun e -> Arg e)))))
+      stmt_aux env
+        (ExprStmt (Call (id, fb (vals |> List.map (fun e -> Arg e)))))
   | Exec (tok, e, _eopt, _eopt2) ->
       let id = Name (("exec", tok), Load, ref NotResolved) in
-      stmt_aux (ExprStmt (Call (id, fb [ Arg e ])))
+      stmt_aux env (ExprStmt (Call (id, fb [ Arg e ])))
 
-and ident_and_id_info x =
-  let x = name x in
+and ident_and_id_info env x =
+  let x = name env x in
   (x, G.empty_id_info ())
 
 (* try avoid using that function as it may introduce
  * intermediate Block that could prevent some semgrep matching
  *)
-and stmt x = G.stmt1 (stmt_aux x)
+and stmt env x = G.stmt1 (stmt_aux env x)
 
-and pattern e =
-  let e = expr e in
+and pattern env e =
+  let e = expr env e in
   H.expr_to_pattern e
 
-and excepthandler = function
+and excepthandler env = function
   | ExceptHandler (t, v1, v2, v3) ->
-      let v1 = option expr v1 (* a type actually, even tuple of types *)
-      and v2 = option name v2
-      and v3 = list_stmt1 v3 in
+      let v1 = option (expr env) v1 (* a type actually, even tuple of types *)
+      and v2 = option (name env) v2
+      and v3 = list_stmt1 env v3 in
       let exn : G.catch_exn =
         match (v1, v2) with
         | Some e, None -> (
@@ -769,9 +863,9 @@ and excepthandler = function
       in
       (t, exn, v3)
 
-and decorator (t, v1, v2) =
-  let v1 = dotted_name v1 in
-  let v2 = option (bracket (list argument)) v2 in
+and decorator env (t, v1, v2) =
+  let v1 = dotted_name env v1 in
+  let v2 = option (bracket (list (argument env))) v2 in
   let args =
     match v2 with
     | Some (t1, x, t2) -> (t1, x, t2)
@@ -780,30 +874,39 @@ and decorator (t, v1, v2) =
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, args)
 
-and alias (v1, v2) =
-  let v1 = name v1 and v2 = option ident_and_id_info v2 in
+and alias env (v1, v2) =
+  let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
+  let imported_ident =
+    match v2 with
+    | None -> v1
+    | Some (id, _) -> id
+  in
+  env.imported <- fst imported_ident :: env.imported;
   (v1, v2)
 
-let program v =
-  let v = list_stmt v in
+let program ?(assign_to_vardef = false) v =
+  let env : env = empty_env ~assign_to_vardef InSourceToplevel in
+  let v = list_stmt env v in
   v
 
-let any = function
+let any x =
+  let env : env = empty_env ~assign_to_vardef:false InPattern in
+  match x with
   | Expr v1 ->
-      let v1 = expr v1 in
+      let v1 = expr env v1 in
       G.E v1
   | Stmt v1 -> (
-      let v1 = stmt v1 in
+      let v1 = stmt env v1 in
       (* in Python Assign is a stmt but in the generic AST it's an expression*)
       match v1.G.s with
       | G.ExprStmt (x, _t) -> G.E x
       | _ -> G.S v1)
   | Stmts v1 ->
-      let v1 = list_stmt v1 in
+      let v1 = list_stmt env v1 in
       G.Ss v1
   | Program v1 ->
-      let v1 = program v1 in
+      let v1 = list_stmt env v1 in
       G.Pr v1
   | DictElem v1 ->
-      let v1 = dictorset_elt v1 in
+      let v1 = dictorset_elt env v1 in
       G.E v1

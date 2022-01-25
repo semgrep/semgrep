@@ -242,7 +242,7 @@ def main(
             file_ignore=get_file_ignore(),
         )
     except FilesNotFoundError as e:
-        output_handler.handle_semgrep_errors([e])
+        raise SemgrepError(e)
 
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,
