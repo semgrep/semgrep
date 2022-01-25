@@ -120,21 +120,23 @@ let param (env : env) ((v1, v2, v3, v4) : CST.param) =
   let loc = (dashdash, snd value) in
   (loc, (dashdash, key, equal, value))
 
-let expose_port (env : env) ((v1, v2) : CST.expose_port) : string wrap =
-  let port = token env v1 (* pattern \d+ *) in
-  let protocol =
-    match v2 with
-    | Some x ->
-        [
-          (match x with
-          | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
-          | `SLAS_c773c8d tok -> token env tok)
-          (* "/udp" *);
-        ]
-    | None -> []
-  in
-  let tok = PI.combine_infos port protocol in
-  (PI.str_of_info tok, tok)
+let expose_port (env : env) (x : CST.expose_port) : expose_port =
+  match x with
+  | `Semg_ellips tok -> Expose_semgrep_ellipsis (token env tok (* "..." *))
+  | `Pat_217c202_opt_choice_SLAS (v1, v2) ->
+      let port = token env v1 (* pattern \d+ *) in
+      let protocol =
+        match v2 with
+        | Some x ->
+            [
+              (match x with
+              | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
+              | `SLAS_c773c8d tok -> token env tok (* "/udp" *));
+            ]
+        | None -> []
+      in
+      let tok = PI.combine_infos port protocol in
+      Expose_element (String_content (PI.str_of_info tok, tok))
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
   let colon = token env v1 (* ":" *) in
@@ -178,7 +180,12 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
   in
   (at, digest)
 
-let image_name (env : env) (xs : CST.image_name) =
+let image_name (env : env) ((x, xs) : CST.image_name) =
+  let first_fragment =
+    match x with
+    | `Pat_8165e5f tok -> String_content (str env tok (* pattern [^@:\s\$-]+ *))
+    | `Expa x -> expansion env x
+  in
   let fragments =
     xs
     |> Common.map (fun x ->
@@ -187,6 +194,7 @@ let image_name (env : env) (xs : CST.image_name) =
                String_content (str env tok (* pattern [^@:\s\$]+ *))
            | `Expa x -> expansion env x)
   in
+  let fragments = first_fragment :: fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -354,24 +362,43 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
   let loc = (open_, close) in
   (loc, (open_, argv, close))
 
-let env_pair (env : env) ((v1, v2, v3) : CST.env_pair) : label_pair =
-  let k = str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
-  let eq = token env v2 (* "=" *) in
-  let v = string env v3 in
-  (k, eq, v)
+let env_pair (env : env) (x : CST.env_pair) : label_pair =
+  match x with
+  | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
+  | `Env_key_EQ_choice_double_quoted_str (v1, v2, v3) ->
+      let k =
+        Var_ident (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *))
+      in
+      let eq = token env v2 (* "=" *) in
+      let v = string env v3 in
+      let loc = (var_or_metavar_tok k, str_loc v |> snd) in
+      Label_pair (loc, k, eq, v)
 
 let spaced_env_pair (env : env) ((v1, v2, v3) : CST.spaced_env_pair) :
     label_pair =
-  let k = str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *) in
+  let k =
+    Var_ident (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *))
+  in
   let blank = token env v2 (* pattern \s+ *) in
   let v = string env v3 in
-  (k, blank, v)
+  let loc = (var_or_metavar_tok k, str_loc v |> snd) in
+  Label_pair (loc, k, blank, v)
 
-let label_pair (env : env) ((v1, v2, v3) : CST.label_pair) : label_pair =
-  let key = str env v1 (* pattern [-a-zA-Z0-9\._]+ *) in
-  let eq = token env v2 (* "=" *) in
-  let value = string env v3 in
-  (key, eq, value)
+let label_pair (env : env) (x : CST.label_pair) : label_pair =
+  match x with
+  | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
+  | `Choice_semg_meta_EQ_choice_double_quoted_str (v1, v2, v3) ->
+      let key =
+        match v1 with
+        | `Semg_meta tok ->
+            Var_semgrep_metavar (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
+        | `Pat_4128122 tok ->
+            Var_ident (str env tok (* pattern [-a-zA-Z0-9\._]+ *))
+      in
+      let eq = token env v2 (* "=" *) in
+      let value = string env v3 in
+      let loc = (var_or_metavar_tok key, str_loc value |> snd) in
+      Label_pair (loc, key, eq, value)
 
 (* hack to obtain correct locations when parsing a string extracted from
    a larger file. *)
@@ -516,11 +543,11 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             Common.map
               (fun x ->
                 match x with
-                | `Expose_port x -> String_content (expose_port env x)
-                | `Expa x -> expansion env x)
+                | `Expose_port x -> expose_port env x
+                | `Expa x -> Expose_element (expansion env x))
               v2
           in
-          let _, end_ = Loc.of_list string_fragment_loc port_protos in
+          let _, end_ = Loc.of_list expose_port_loc port_protos in
           let loc = (wrap_tok name, end_) in
           (env, Expose (loc, name, port_protos))
       | `Env_inst (v1, v2) ->
@@ -608,8 +635,15 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           (env, Workdir (loc, name, dir))
       | `Arg_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [aA][rR][gG] *) in
-          let key = str env v2 (* pattern [a-zA-Z0-9_]+ *) in
-          let loc = (wrap_tok name, wrap_tok key) in
+          let key =
+            match v2 with
+            | `Semg_meta tok ->
+                Var_semgrep_metavar
+                  (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
+            | `Pat_4de4cb9 tok ->
+                Var_ident (str env tok (* pattern [a-zA-Z0-9_]+ *))
+          in
+          let loc = (wrap_tok name, var_or_metavar_tok key) in
           let opt_value, loc =
             match v3 with
             | Some (v1, v2) ->
@@ -640,6 +674,9 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           in
           let arg =
             match v2 with
+            | `Semg_meta tok ->
+                Healthcheck_semgrep_metavar
+                  (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
             | `NONE tok -> Healthcheck_none (token env tok (* "NONE" *))
             | `Rep_param_cmd_inst (v1, (name (* CMD *), args)) ->
                 let params = Common.map (param env) v1 in

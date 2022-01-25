@@ -34,9 +34,9 @@ type shell_compatibility =
          in a SHELL directive *)
       string
 
-type variable_name =
-  | Simple_variable_name of (* FOO in ${FOO} *) string wrap
-  | Var_semgrep_metavar of (* $FOO in ${$FOO} *) string wrap
+type var_or_metavar =
+  | Var_ident of string wrap
+  | Var_semgrep_metavar of string wrap
 
 (* $foo or something like ${foo ...} *)
 type expansion =
@@ -90,7 +90,11 @@ type image_spec = {
 
 type image_alias = str
 
-type label_pair = string wrap (* key *) * tok (* = *) * str (* value *)
+type label_pair =
+  | Label_semgrep_ellipsis of tok
+  | Label_pair of loc * var_or_metavar (* key *) * tok (* = *) * str
+
+(* value *)
 
 type protocol = TCP | UDP
 
@@ -101,8 +105,13 @@ type array_or_paths = Array of loc * string_array | Paths of loc * path list
 type cmd = loc * string wrap * argv_or_shell
 
 type healthcheck =
+  | Healthcheck_semgrep_metavar of string wrap
   | Healthcheck_none of tok
   | Healthcheck_cmd of loc * param list * cmd
+
+type expose_port =
+  | Expose_semgrep_ellipsis of tok
+  | Expose_element of string_fragment
 
 type instruction =
   | From of
@@ -114,7 +123,7 @@ type instruction =
   | Run of cmd
   | Cmd of cmd
   | Label of loc * string wrap * label_pair list
-  | Expose of loc * string wrap * string_fragment list (* 123/udp 123 56/tcp *)
+  | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
   | Env of loc * string wrap * label_pair list
   | Add of loc * string wrap * param option * path * path
   | Copy of loc * string wrap * param option * path * path
@@ -126,7 +135,7 @@ type instruction =
       * str (* user *)
       * (tok (* : *) * str) (* group *) option
   | Workdir of loc * string wrap * path
-  | Arg of loc * string wrap * string wrap * (tok * str) option
+  | Arg of loc * string wrap * var_or_metavar * (tok * str) option
   | Onbuild of loc * string wrap * instruction
   | Stopsignal of loc * string wrap * str
   | Healthcheck of loc * string wrap * healthcheck
@@ -151,12 +160,12 @@ let wrap_loc ((_, tok) : _ wrap) = (tok, tok)
 
 let bracket_loc ((open_, _, close) : _ bracket) = (open_, close)
 
-let variable_name_tok = function
-  | Simple_variable_name (_, tok) -> tok
+let var_or_metavar_tok = function
+  | Var_ident (_, tok) -> tok
   | Var_semgrep_metavar (_, tok) -> tok
 
-let variable_name_loc x =
-  let tok = variable_name_tok x in
+let var_or_metavar_loc x =
+  let tok = var_or_metavar_tok x in
   (tok, tok)
 
 let expansion_tok = function
@@ -199,8 +208,9 @@ let image_spec_loc (x : image_spec) = x.loc
 
 let image_alias_loc = str_loc
 
-let label_pair_loc (((_, start), _, str) : label_pair) =
-  (start, str_loc str |> snd)
+let label_pair_loc = function
+  | Label_semgrep_ellipsis tok -> (tok, tok)
+  | Label_pair (loc, _, _, _) -> loc
 
 let string_array_loc = bracket_loc
 
@@ -212,8 +222,13 @@ let array_or_paths_loc = function
 let cmd_loc ((loc, _, _) : cmd) = loc
 
 let healthcheck_loc = function
+  | Healthcheck_semgrep_metavar (_, tok) -> (tok, tok)
   | Healthcheck_none tok -> (tok, tok)
   | Healthcheck_cmd (loc, _, _) -> loc
+
+let expose_port_loc = function
+  | Expose_semgrep_ellipsis tok -> (tok, tok)
+  | Expose_element x -> string_fragment_loc x
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc
