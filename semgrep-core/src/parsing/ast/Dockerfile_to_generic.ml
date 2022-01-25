@@ -59,9 +59,35 @@ let metavar_expr (x : string wrap) : G.expr = id_expr x
 
 let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
 
+let expansion_expr loc (x : expansion) =
+  let arg =
+    match x with
+    | Expand_var var -> id_expr var
+    | Expand_semgrep_metavar mv -> metavar_expr mv
+  in
+  let func = make_hidden_function loc "expand" in
+  let start, end_ = loc in
+  G.Call (func, (start, [ G.Arg arg ], end_)) |> G.e
+
+let string_fragment_expr (x : string_fragment) : G.expr =
+  match x with
+  | String_content s -> string_expr s
+  | Expansion (loc, x) -> expansion_expr loc x
+  | Frag_semgrep_metavar s -> metavar_expr s
+
+let str_expr ((loc, frags) : str) : G.expr =
+  let frags = Common.map string_fragment_expr frags in
+  match frags with
+  | [ x ] -> x
+  | _ ->
+      let func = make_hidden_function loc "concat" in
+      let args = Common.map (fun x -> G.Arg x) frags in
+      let start, end_ = loc in
+      G.Call (func, (start, args, end_)) |> G.e
+
 let array_elt_expr (x : array_elt) : G.expr =
   match x with
-  | Arr_string x -> string_expr x
+  | Arr_string x -> str_expr x
   | Arr_metavar x -> metavar_expr x
   | Arr_ellipsis x -> ellipsis_expr x
 
@@ -99,35 +125,34 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
   let opt_param = opt_param_arg opt_param in
-  let name = G.Arg (string_expr image_spec.name) in
+  let name = G.Arg (str_expr image_spec.name) in
   let tag =
     match image_spec.tag with
     | None -> []
-    | Some (colon, tag) -> [ G.ArgKwdOptional ((":", colon), string_expr tag) ]
+    | Some (colon, tag) -> [ G.ArgKwdOptional ((":", colon), str_expr tag) ]
   in
   let digest =
     match image_spec.digest with
     | None -> []
-    | Some (at, digest) -> [ G.ArgKwdOptional (("@", at), string_expr digest) ]
+    | Some (at, digest) -> [ G.ArgKwdOptional (("@", at), str_expr digest) ]
   in
   let optional_params (* must be placed last *) = tag @ digest @ opt_param in
   name :: optional_params
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
   kv_pairs
-  |> Common.map (fun (key, _eq, value) -> G.ArgKwd (key, string_expr value))
+  |> Common.map (fun (key, _eq, value) -> G.ArgKwd (key, str_expr value))
 
 let add_or_copy (opt_param : param option) (src : path) (dst : path) =
   let opt_param = opt_param_arg opt_param in
-  [ G.Arg (string_expr src); G.Arg (string_expr dst) ] @ opt_param
+  [ G.Arg (str_expr src); G.Arg (str_expr dst) ] @ opt_param
 
-let user_args (user : string wrap) (group : (tok * string wrap) option) =
-  let user = G.Arg (string_expr user) in
+let user_args (user : str) (group : (tok * str) option) =
+  let user = G.Arg (str_expr user) in
   let group =
     match group with
     | None -> []
-    | Some (colon, group) ->
-        [ G.ArgKwdOptional ((":", colon), string_expr group) ]
+    | Some (colon, group) -> [ G.ArgKwdOptional ((":", colon), str_expr group) ]
   in
   user :: group
 
@@ -149,14 +174,14 @@ let arg_args key opt_value : G.expr list =
   let value =
     match opt_value with
     | None -> []
-    | Some (_eq, x) -> [ string_expr x ]
+    | Some (_eq, x) -> [ str_expr x ]
   in
   key :: value
 
 let array_or_paths (x : array_or_paths) : G.expr list =
   match x with
   | Array (_loc, ar) -> [ string_array ar ]
-  | Paths (_loc, paths) -> Common.map string_expr paths
+  | Paths (_loc, paths) -> Common.map str_expr paths
 
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
@@ -167,7 +192,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Cmd (loc, name, x) -> cmd_instr_expr env loc name x
   | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
-      let args = Common.map string_expr port_protos in
+      let args = Common.map string_fragment_expr port_protos in
       call_exprs name loc args
   | Env (loc, name, pairs) -> call name loc (label_pairs pairs)
   | Add (loc, name, param, src, dst) ->
@@ -177,12 +202,12 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name x
   | Volume (loc, name, x) -> call_exprs name loc (array_or_paths x)
   | User (loc, name, user, group) -> call name loc (user_args user group)
-  | Workdir (loc, name, dir) -> call_exprs name loc [ string_expr dir ]
+  | Workdir (loc, name, dir) -> call_exprs name loc [ str_expr dir ]
   | Arg (loc, name, key, opt_value) ->
       call_exprs name loc (arg_args key opt_value)
   | Onbuild (loc, name, instr) ->
       call_exprs name loc [ instruction_expr env instr ]
-  | Stopsignal (loc, name, signal) -> call_exprs name loc [ string_expr signal ]
+  | Stopsignal (loc, name, signal) -> call_exprs name loc [ str_expr signal ]
   | Healthcheck (loc, name, Healthcheck_none tok) ->
       call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
   | Healthcheck (loc, name, Healthcheck_cmd (_cmd_loc, params, cmd)) ->
