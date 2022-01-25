@@ -1,0 +1,3 @@
+ENV PORT $PORT
+...
+RUN echo $PORT
