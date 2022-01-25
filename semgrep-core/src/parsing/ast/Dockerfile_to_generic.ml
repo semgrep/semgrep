@@ -57,6 +57,10 @@ let id_expr (x : string wrap) : G.expr =
 
 let metavar_expr (x : string wrap) : G.expr = id_expr x
 
+let string_or_metavar_expr (x : string wrap) : G.expr =
+  let s, _ = x in
+  if Metavariable.is_metavar_name s then metavar_expr x else string_expr x
+
 let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
 
 let expansion_expr loc (x : expansion) =
@@ -113,7 +117,7 @@ let param_arg (x : param) : G.argument =
   let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
   let option_tok = PI.combine_infos dashdash [ name_tok ] in
   let option_str = PI.str_of_info dashdash ^ name_str in
-  G.ArgKwdOptional ((option_str, option_tok), string_expr value)
+  G.ArgKwdOptional ((option_str, option_tok), string_or_metavar_expr value)
 
 let opt_param_arg (x : param option) : G.argument list =
   match x with
