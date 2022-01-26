@@ -89,6 +89,10 @@ let str_expr ((loc, frags) : str) : G.expr =
       let start, end_ = loc in
       G.Call (func, (start, args, end_)) |> G.e
 
+let str_or_ellipsis_expr = function
+  | Str_str str -> str_expr str
+  | Str_semgrep_ellipsis tok -> ellipsis_expr tok
+
 let array_elt_expr (x : array_elt) : G.expr =
   match x with
   | Arr_string x -> str_expr x
@@ -154,7 +158,8 @@ let label_pairs (kv_pairs : label_pair list) : G.argument list =
 
 let add_or_copy (opt_param : param option) (src : path) (dst : path) =
   let opt_param = opt_param_arg opt_param in
-  [ G.Arg (str_expr src); G.Arg (str_expr dst) ] @ opt_param
+  [ G.Arg (str_or_ellipsis_expr src); G.Arg (str_or_ellipsis_expr dst) ]
+  @ opt_param
 
 let user_args (user : str) (group : (tok * str) option) =
   let user = G.Arg (str_expr user) in
@@ -198,7 +203,7 @@ let arg_args key opt_value : G.expr list =
 let array_or_paths (x : array_or_paths) : G.expr list =
   match x with
   | Array (_loc, ar) -> [ string_array ar ]
-  | Paths (_loc, paths) -> Common.map str_expr paths
+  | Paths (_loc, paths) -> Common.map str_or_ellipsis_expr paths
 
 let expose_port_expr (x : expose_port) : G.expr =
   match x with
@@ -233,7 +238,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name x
   | Volume (loc, name, x) -> call_exprs name loc (array_or_paths x)
   | User (loc, name, user, group) -> call name loc (user_args user group)
-  | Workdir (loc, name, dir) -> call_exprs name loc [ str_expr dir ]
+  | Workdir (loc, name, dir) -> call_exprs name loc [ str_or_ellipsis_expr dir ]
   | Arg (loc, name, key, opt_value) ->
       call_exprs name loc (arg_args key opt_value)
   | Onbuild (loc, name, instr) ->

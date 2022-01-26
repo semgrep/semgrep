@@ -291,7 +291,7 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
-let path (env : env) ((v1, v2) : CST.path) : str =
+let path (env : env) ((v1, v2) : CST.path) : str_or_ellipsis =
   let first_fragment =
     match v1 with
     | `Pat_1167a92 tok -> String_content (str env tok (* pattern [^-\s\$] *))
@@ -307,8 +307,11 @@ let path (env : env) ((v1, v2) : CST.path) : str =
       v2
   in
   let fragments = first_fragment :: more_fragments |> simplify_fragments in
-  let loc = Loc.of_list string_fragment_loc fragments in
-  (loc, fragments)
+  match (env.extra, fragments) with
+  | (Pattern, _), [ String_content ("...", tok) ] -> Str_semgrep_ellipsis tok
+  | _, fragments ->
+      let loc = Loc.of_list string_fragment_loc fragments in
+      Str_str (loc, fragments)
 
 let stopsignal_value (env : env) (xs : CST.stopsignal_value) : str =
   let fragments =
@@ -625,7 +628,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let src = path env v3 in
           let _blank = token env v4 (* pattern [\t ]+ *) in
           let dst = path env v5 in
-          let loc = (wrap_tok name, str_loc dst |> snd) in
+          let loc = (wrap_tok name, str_or_ellipsis_loc dst |> snd) in
           (env, Add (loc, name, param, src, dst))
       | `Copy_inst (v1, v2, v3, v4, v5) ->
           (*
@@ -642,7 +645,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let src = path env v3 in
           let _blank = token env v4 (* pattern [\t ]+ *) in
           let dst = path env v5 in
-          let loc = (wrap_tok name, str_loc dst |> snd) in
+          let loc = (wrap_tok name, str_or_ellipsis_loc dst |> snd) in
           (env, Copy (loc, name, param, src, dst))
       | `Entr_inst (v1, v2) ->
           let loc, name, cmd = runlike_instruction (env : env) v1 v2 in
@@ -664,7 +667,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
                     v2
                 in
                 let paths = path0 :: paths in
-                let loc = Loc.of_list str_loc paths in
+                let loc = Loc.of_list str_or_ellipsis_loc paths in
                 Paths (loc, paths)
           in
           let loc = Loc.extend (array_or_paths_loc args) (wrap_tok name) in
@@ -686,7 +689,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
       | `Work_inst (v1, v2) ->
           let name = str env v1 (* pattern [wW][oO][rR][kK][dD][iI][rR] *) in
           let dir = path env v2 in
-          let loc = (wrap_tok name, str_loc dir |> snd) in
+          let loc = (wrap_tok name, str_or_ellipsis_loc dir |> snd) in
           (env, Workdir (loc, name, dir))
       | `Arg_inst (v1, v2, v3) ->
           let name = str env v1 (* pattern [aA][rR][gG] *) in

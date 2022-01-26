@@ -57,6 +57,8 @@ type string_fragment =
 (* Used for quoted and unquoted strings for now *)
 type str = loc * string_fragment list
 
+type str_or_ellipsis = Str_str of str | Str_semgrep_ellipsis of tok
+
 type array_elt =
   | Arr_string of str
   | Arr_metavar of string wrap
@@ -102,7 +104,7 @@ type label_pair =
 
 type protocol = TCP | UDP
 
-type path = str
+type path = str_or_ellipsis
 
 type array_or_paths = Array of loc * string_array | Paths of loc * path list
 
@@ -186,6 +188,10 @@ let string_fragment_loc = function
   | Frag_semgrep_metavar (_, tok) -> (tok, tok)
 
 let str_loc ((loc, _) : str) = loc
+
+let str_or_ellipsis_loc = function
+  | Str_str str -> str_loc str
+  | Str_semgrep_ellipsis tok -> (tok, tok)
 
 (* Re-using the type used for double-quoted strings in bash *)
 let quoted_string_loc = bracket_loc
