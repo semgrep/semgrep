@@ -212,7 +212,7 @@ let expose_port_expr (x : expose_port) : G.expr =
 
 let healthcheck env loc name (x : healthcheck) =
   match x with
-  | Healthcheck_semgrep_metavar id -> call_exprs name loc [ string_expr id ]
+  | Healthcheck_semgrep_metavar id -> call_exprs name loc [ metavar_expr id ]
   | Healthcheck_none tok ->
       call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
   | Healthcheck_cmd (_cmd_loc, params, cmd) ->
