@@ -988,6 +988,7 @@ let check ~match_hook default_config rules file_and_more =
   rules
   |> List.map (fun (r, pformula) ->
          let rule_id = fst r.R.id in
+         Rule.last_matched_rule := Some rule_id;
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
              check_rule r match_hook default_config pformula file_and_more))
   |> RP.collate_semgrep_results

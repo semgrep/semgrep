@@ -330,7 +330,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                      RP.matches = [];
                      errors =
                        [
-                         E.mk_error loc ""
+                         E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
                            (match exn with
                            | Main_timeout file ->
                                logger#info "Timeout on %s" file;
