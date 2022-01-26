@@ -70,6 +70,39 @@ let classify_shell ((_open, ar, _close) : string_array) :
   | Some name -> Some (Other name)
   | None -> None
 
+let is_metavar (env : env) (x : string wrap) =
+  match env.extra with
+  | Pattern, _ when Metavariable.is_metavar_name (fst x) -> true
+  | _ -> false
+
+(*
+   Return the position of the first non-blank character, if any.
+   This implementation turns out to be simpler than using Pcre.
+*)
+let find_nonblank (s : string) =
+  let pos = ref 0 in
+  try
+    for i = 0 to String.length s - 1 do
+      pos := i;
+      match s.[i] with
+      | ' '
+      | '\t'
+      | '\r'
+      | '\n' ->
+          ()
+      | _ -> raise Exit
+    done;
+    None
+  with Exit -> Some !pos
+
+let remove_blank_prefix (x : string wrap) : string wrap =
+  let s, tok = x in
+  match find_nonblank s with
+  | None -> x
+  | Some pos ->
+      let _blanks, tok = PI.split_info_at_pos pos tok in
+      (PI.str_of_info tok, tok)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -709,9 +742,14 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [mM][aA][iI][nN][tT][aA][iI][nN][eE][rR] *)
           in
-          let maintainer = str env v2 (* pattern .* *) in
+          let maintainer_data = str env v2 (* pattern .* *) in
+          let maintainer = remove_blank_prefix maintainer_data in
           let loc = (wrap_tok name, wrap_tok maintainer) in
-          (env, Maintainer (loc, name, maintainer))
+          let string_or_mv =
+            if is_metavar env maintainer then Str_semgrep_metavar maintainer
+            else Str_string maintainer
+          in
+          (env, Maintainer (loc, name, string_or_mv))
       | `Cross_build_inst (v1, v2) ->
           (* undocumented *)
           let name =

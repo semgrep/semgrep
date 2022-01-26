@@ -38,6 +38,10 @@ type var_or_metavar =
   | Var_ident of string wrap
   | Var_semgrep_metavar of string wrap
 
+type string_or_metavar =
+  | Str_string of string wrap
+  | Str_semgrep_metavar of string wrap
+
 (* $foo or something like ${foo ...} *)
 type expansion =
   | Expand_var of (* FOO in ${FOO} *) string wrap
@@ -140,7 +144,7 @@ type instruction =
   | Stopsignal of loc * string wrap * str
   | Healthcheck of loc * string wrap * healthcheck
   | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
-  | Maintainer (* deprecated *) of loc * string wrap * string wrap
+  | Maintainer (* deprecated *) of loc * string wrap * string_or_metavar
   | Cross_build_xxx
       (* e.g. CROSS_BUILD_COPY;
          TODO: who uses this exactly? and where is it documented? *) of

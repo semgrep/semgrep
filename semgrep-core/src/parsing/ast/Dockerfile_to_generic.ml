@@ -182,6 +182,10 @@ let var_or_metavar_expr = function
   | Var_ident key -> id_expr key
   | Var_semgrep_metavar mv -> metavar_expr mv
 
+let string_or_metavar_expr = function
+  | Str_string x -> string_expr x
+  | Str_semgrep_metavar mv -> metavar_expr mv
+
 let arg_args key opt_value : G.expr list =
   let key = var_or_metavar_expr key in
   let value =
@@ -238,7 +242,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Healthcheck (loc, name, x) -> healthcheck env loc name x
   | Shell (loc, name, array) -> call_exprs name loc [ string_array array ]
   | Maintainer (loc, name, maintainer) ->
-      call_exprs name loc [ string_expr maintainer ]
+      call_exprs name loc [ string_or_metavar_expr maintainer ]
   | Cross_build_xxx (loc, name, data) ->
       call_exprs name loc [ string_expr data ]
   | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
