@@ -1,6 +1,8 @@
 open Common
 module PI = Parse_info
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 type error = {
   rule_id : Rule.rule_id option;
   typ : error_kind;
@@ -52,6 +54,9 @@ let mk_error_tok ?(rule_id = None) tok msg err =
 let error rule_id loc msg err =
   Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
 
+(* TODO: why not capture AST_generic.error here? So we could get rid
+ * of Run_semgrep.exn_to_error wrapper.
+ *)
 let exn_to_error ?(rule_id = None) file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) ->
@@ -90,6 +95,8 @@ let exn_to_error ?(rule_id = None) file exn =
   | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg InvalidYaml
   | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok ~rule_id pos s InvalidYaml
   | Common.Timeout timeout_info ->
+      let s = Printexc.get_backtrace () in
+      logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
@@ -176,25 +183,29 @@ let severity_of_error typ =
 (*****************************************************************************)
 
 let try_with_exn_to_error file f =
-  try f () with exn -> Common.push (exn_to_error file exn) g_errors
+  try f () with
+  | Timeout _ as exn -> raise exn
+  | exn -> Common.push (exn_to_error file exn) g_errors
 
 let try_with_print_exn_and_reraise file f =
-  try f ()
-  with exn ->
-    let bt = Printexc.get_backtrace () in
-    let err = exn_to_error file exn in
-    pr2 (string_of_error err);
-    pr2 bt;
-    (* does not really re-raise :( lose some backtrace *)
-    raise exn
+  try f () with
+  | Timeout _ as exn -> raise exn
+  | exn ->
+      let bt = Printexc.get_backtrace () in
+      let err = exn_to_error file exn in
+      pr2 (string_of_error err);
+      pr2 bt;
+      (* does not really re-raise :( lose some backtrace *)
+      raise exn
 
 (* fast = no stack trace *)
 let try_with_print_exn_and_exit_fast file f =
-  try f ()
-  with exn ->
-    let err = exn_to_error file exn in
-    pr2 (string_of_error err);
-    exit 2
+  try f () with
+  | Timeout _ as exn -> raise exn
+  | exn ->
+      let err = exn_to_error file exn in
+      pr2 (string_of_error err);
+      exit 2
 
 (*****************************************************************************)
 (* Helper functions to use in testing code *)

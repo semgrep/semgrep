@@ -1,0 +1,34 @@
+rules:
+- id: tests.e2e.rules.forcetimeout
+  pattern: |
+    ...
+    <... $A ...>
+    ...
+    <... $B ...>
+    ...
+    <... $C ...>
+    ...
+    <... $D ...>
+    ...
+  message: >-
+    This rule will time out
+  severity: ERROR
+  languages:
+  - python
+- id: tests.e2e.rules.forcetimeout2
+  pattern: |
+    ...
+    <... $A ...>
+    ...
+    <... $B ...>
+    ...
+    <... $C ...>
+    ...
+    <... $D ...>
+    ...
+  message: >-
+    This rule will time out
+  severity: ERROR
+  languages:
+  - python
+  

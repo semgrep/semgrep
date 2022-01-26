@@ -145,8 +145,7 @@ let timeout_function file timeout f =
   let saved_busy_with_equal = !AST_utils.busy_with_equal in
   let timeout = if timeout <= 0. then None else Some timeout in
   match
-    Common.set_timeout_opt ~verbose:false ~name:"Run_semgrep.timeout_function"
-      timeout f
+    Common.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
   with
   | Some res -> res
   | None ->
@@ -344,6 +343,8 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                      skipped = [];
                      profiling = RP.empty_partial_profiling file;
                    }
+               (* those were converted in Main_timeout in timeout_function()*)
+               | Timeout _ -> assert false
                | exn when not !Flag_semgrep.fail_fast ->
                    {
                      RP.matches = [];
