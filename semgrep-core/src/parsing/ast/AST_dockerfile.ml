@@ -104,9 +104,13 @@ type label_pair =
 
 type protocol = TCP | UDP
 
-type path = str_or_ellipsis
+type path = str
 
-type array_or_paths = Array of loc * string_array | Paths of loc * path list
+type path_or_ellipsis = str_or_ellipsis
+
+type array_or_paths =
+  | Array of loc * string_array
+  | Paths of loc * path_or_ellipsis list
 
 type cmd = loc * string wrap * argv_or_shell
 
@@ -131,8 +135,8 @@ type instruction =
   | Label of loc * string wrap * label_pair list
   | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
   | Env of loc * string wrap * label_pair list
-  | Add of loc * string wrap * param option * path * path
-  | Copy of loc * string wrap * param option * path * path
+  | Add of loc * string wrap * param option * path_or_ellipsis * path
+  | Copy of loc * string wrap * param option * path_or_ellipsis * path
   | Entrypoint of loc * string wrap * argv_or_shell
   | Volume of loc * string wrap * array_or_paths
   | User of

@@ -156,10 +156,10 @@ let label_pairs (kv_pairs : label_pair list) : G.argument list =
            | Var_ident key -> G.ArgKwd (key, str_expr value)
            | Var_semgrep_metavar mv -> G.ArgKwd (mv, str_expr value)))
 
-let add_or_copy (opt_param : param option) (src : path) (dst : path) =
+let add_or_copy (opt_param : param option) (src : path_or_ellipsis) (dst : path)
+    =
   let opt_param = opt_param_arg opt_param in
-  [ G.Arg (str_or_ellipsis_expr src); G.Arg (str_or_ellipsis_expr dst) ]
-  @ opt_param
+  [ G.Arg (str_or_ellipsis_expr src); G.Arg (str_expr dst) ] @ opt_param
 
 let user_args (user : str) (group : (tok * str) option) =
   let user = G.Arg (str_expr user) in
@@ -238,7 +238,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Entrypoint (loc, name, x) -> cmd_instr_expr env loc name x
   | Volume (loc, name, x) -> call_exprs name loc (array_or_paths x)
   | User (loc, name, user, group) -> call name loc (user_args user group)
-  | Workdir (loc, name, dir) -> call_exprs name loc [ str_or_ellipsis_expr dir ]
+  | Workdir (loc, name, dir) -> call_exprs name loc [ str_expr dir ]
   | Arg (loc, name, key, opt_value) ->
       call_exprs name loc (arg_args key opt_value)
   | Onbuild (loc, name, instr) ->
