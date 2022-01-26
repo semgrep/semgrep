@@ -61,7 +61,7 @@ class BaselineHandler:
             ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
         )
         # TODO check returncode
-        repo_root_str = rev_parse.stdout
+        repo_root_str = rev_parse.stdout.strip()
         self._repo_root_dir = Path(repo_root_str)
 
         self._status = self._get_git_status()
