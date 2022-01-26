@@ -52,12 +52,21 @@ class BaselineHandler:
             we want to traverse
     """
 
-    def __init__(self, repo_root_dir: Path, base_commit: str) -> None:
+    def __init__(self, base_commit: str) -> None:
         self._base_commit = base_commit
-        # TODO error if not git repo or base_commit doesnt exist
-        self._repo_root_dir = repo_root_dir
-
         self._dirty_paths_by_status: Optional[Dict[str, List[Path]]] = None
+
+        # TODO error if not git repo or base_commit doesnt exist
+        rev_parse = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
+        )
+        # TODO check returncode
+        repo_root_str = rev_parse.stdout
+        self._repo_root_dir = Path(repo_root_str)
+
+        self._status = self._get_git_status()
+        self._abort_on_pending_changes()
+        self._abort_on_conflicting_untracked_paths(self._status)
 
     def _relative_to_repo_root_to_absolute(self, fname: str) -> Path:
         return (Path(self._repo_root_dir) / fname).resolve()
@@ -137,7 +146,7 @@ class BaselineHandler:
 
         return GitStatus(added, modified, removed, unmerged)
 
-    def get_dirty_paths_by_status(self) -> Dict[str, List[Path]]:
+    def _get_dirty_paths_by_status(self) -> Dict[str, List[Path]]:
         """
         Returns all paths that have a git status, grouped by change type.
 
@@ -178,7 +187,7 @@ class BaselineHandler:
         """
         Raises Exception if any tracked files are changed.
         """
-        if set(self.get_dirty_paths_by_status()) - {StatusCode.Untracked}:
+        if set(self._get_dirty_paths_by_status()) - {StatusCode.Untracked}:
             raise Exception(
                 "Found pending changes in tracked files. Diff-aware runs require a clean git state."
             )
@@ -194,7 +203,9 @@ class BaselineHandler:
         )
         untracked_paths = {
             self._relative_to_repo_root_to_absolute(str(path))
-            for path in (self.get_dirty_paths_by_status().get(StatusCode.Untracked, []))
+            for path in (
+                self._get_dirty_paths_by_status().get(StatusCode.Untracked, [])
+            )
         }
         overlapping_paths = untracked_paths & changed_paths
 
@@ -205,19 +216,14 @@ class BaselineHandler:
             )
 
     @contextmanager
-    def _baseline_context(self) -> Iterator[None]:
+    def baseline_context(self) -> Iterator[None]:
         """
         Runs a block of code on files from the current branch HEAD.
 
         :raises Exception: If git cannot detect a HEAD commit
         :raises Exception: If unmerged files are detected
         """
-        status = self._get_git_status()
-
-        # TODO error if not git repo?
-
-        self._abort_on_pending_changes()
-        self._abort_on_conflicting_untracked_paths(status)
+        status = self._status
 
         logger.debug("Running git write-tree")
         current_tree = (

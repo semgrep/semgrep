@@ -26,7 +26,6 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
-from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.progress_bar import debug_tqdm_write
@@ -277,7 +276,6 @@ class CoreRunner:
         self,
         rules: List[Rule],
         target_manager: TargetManager,
-        profiler: ProfileManager,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         List[SemgrepError],
@@ -394,7 +392,6 @@ class CoreRunner:
     def invoke_semgrep(
         self,
         target_manager: TargetManager,
-        profiler: ProfileManager,
         rules: List[Rule],
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
@@ -412,7 +409,7 @@ class CoreRunner:
             errors,
             all_targets,
             profiling_data,
-        ) = self._run_rules_direct_to_semgrep_core(rules, target_manager, profiler)
+        ) = self._run_rules_direct_to_semgrep_core(rules, target_manager)
 
         logger.debug(
             f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"

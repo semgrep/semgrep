@@ -22,6 +22,7 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
@@ -34,6 +35,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
@@ -140,6 +142,62 @@ def invoke_semgrep(
     return json.loads(output_handler._build_output())  # type: ignore
 
 
+def run_rules(
+    filtered_rules: List[Rule],
+    target_manager: TargetManager,
+    core_runner: CoreRunner,
+    output_handler: OutputHandler,
+) -> Tuple[Dict[Rule, List[RuleMatch]], List[SemgrepError], Set[Path], ProfilingData,]:
+    join_rules, rest_of_the_rules = partition(
+        lambda rule: rule.mode == JOIN_MODE,
+        filtered_rules,
+    )
+    dependency_aware_rules = [
+        r for r in rest_of_the_rules if r.project_depends_on is not None
+    ]
+    filtered_rules = rest_of_the_rules
+
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiling_data,
+    ) = core_runner.invoke_semgrep(target_manager, filtered_rules)
+
+    if join_rules:
+        import semgrep.join_rule as join_rule
+
+        for rule in join_rules:
+            join_rule_matches, join_rule_errors = join_rule.run_join_rule(
+                rule.raw, [Path(t) for t in target_manager.targets]
+            )
+            join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
+            rule_matches_by_rule.update(join_rule_matches_by_rule)
+            output_handler.handle_semgrep_errors(join_rule_errors)
+
+    if len(dependency_aware_rules) > 0:
+        import semgrep.dependency_aware_rule as dep_aware_rule
+
+        for rule in dependency_aware_rules:
+            (
+                dep_rule_matches,
+                dep_rule_errors,
+            ) = dep_aware_rule.run_dependency_aware_rule(
+                rule_matches_by_rule.get(rule, []),
+                rule,
+                [Path(t) for t in target_manager.targets],
+            )
+            rule_matches_by_rule[rule] = dep_rule_matches
+            output_handler.handle_semgrep_errors(dep_rule_errors)
+
+    return (
+        rule_matches_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiling_data,
+    )
+
+
 def main(
     *,
     output_handler: OutputHandler,
@@ -164,6 +222,7 @@ def main(
     skip_unknown_extensions: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
+    baseline_commit: Optional[str] = None,
 ) -> Tuple[
     RuleMatchMap,
     Set[Path],
@@ -244,52 +303,40 @@ def main(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
-    join_rules, rest_of_the_rules = partition(
-        lambda rule: rule.mode == JOIN_MODE,
-        filtered_rules,
-    )
-    dependency_aware_rules = [
-        r for r in rest_of_the_rules if r.project_depends_on is not None
-    ]
-    filtered_rules = rest_of_the_rules
-
     core_start_time = time.time()
-    # actually invoke semgrep
-    (rule_matches_by_rule, semgrep_errors, all_targets, profiling_data,) = CoreRunner(
+    core_runner = CoreRunner(
         jobs=jobs,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-    ).invoke_semgrep(target_manager, profiler, filtered_rules)
+    )
 
-    if join_rules:
-        import semgrep.join_rule as join_rule
-
-        for rule in join_rules:
-            join_rule_matches, join_rule_errors = join_rule.run_join_rule(
-                rule.raw, [Path(t) for t in target_manager.targets]
-            )
-            join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
-            rule_matches_by_rule.update(join_rule_matches_by_rule)
-            output_handler.handle_semgrep_errors(join_rule_errors)
-
-    if len(dependency_aware_rules) > 0:
-        import semgrep.dependency_aware_rule as dep_aware_rule
-
-        for rule in dependency_aware_rules:
-            (
-                dep_rule_matches,
-                dep_rule_errors,
-            ) = dep_aware_rule.run_dependency_aware_rule(
-                rule_matches_by_rule.get(rule, []),
-                rule,
-                [Path(t) for t in target_manager.targets],
-            )
-            rule_matches_by_rule[rule] = dep_rule_matches
-            output_handler.handle_semgrep_errors(dep_rule_errors)
-
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiling_data,
+    ) = run_rules(filtered_rules, target_manager, core_runner, output_handler)
     profiler.save("core_time", core_start_time)
+    output_handler.handle_semgrep_errors(semgrep_errors)
+
+    # Run baseline if needed
+    if baseline_commit:
+        try:
+            baseline_handler = BaselineHandler(baseline_commit)
+        # TODO better handling
+        except Exception as e:
+            raise e
+
+        with baseline_handler.baseline_context():
+            (
+                baseline_rule_matches_by_rule,
+                baseline_semgrep_errors,
+                baseline_targets,
+                baseline_profiling_data,
+            ) = run_rules(filtered_rules, target_manager, core_runner, output_handler)
+            output_handler.handle_semgrep_errors(baseline_semgrep_errors)
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
@@ -299,8 +346,6 @@ def main(
         strict=strict,
     )
     profiler.save("ignores_time", ignores_start_time)
-
-    output_handler.handle_semgrep_errors(semgrep_errors)
     output_handler.handle_semgrep_errors(nosem_errors)
 
     num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
