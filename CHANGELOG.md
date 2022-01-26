@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Dockerfile language: metavariables and ellipses are now
+  supported in most places where it makes sense (#4556, #4577)
+
 ### Changed
 - Ruby: a metavariable matching an atom can also be used to match an identifier
   with the same name (#4550)
