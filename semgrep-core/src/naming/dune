@@ -8,7 +8,9 @@
  (wrapped false)
  (libraries
    commons commons_core commons_ocollection
-   pfff-lang_GENERIC
+
+   pfff-graph_code ; in pfff
+   pfff-lang_GENERIC ; actually now in semgrep
  )
  (preprocess
     (pps
