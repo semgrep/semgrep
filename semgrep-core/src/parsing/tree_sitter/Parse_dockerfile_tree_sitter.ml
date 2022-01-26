@@ -52,6 +52,28 @@ let unsafe_concat_tokens toks : string wrap =
         let s = "" in
         (s, PI.unsafe_fake_info s)
 
+(*
+   Collapse consecutive literal string fragments.
+
+   This is useful to detect special fragments that otherwise could get split,
+   such as the ellipsis for COPY/ADD that get split into "." and "..".
+*)
+let simplify_fragments (fragments : string_fragment list) : string_fragment list
+    =
+  let concat toks tail =
+    match toks with
+    | [] -> tail
+    | first :: others ->
+        let tok = PI.combine_infos first others in
+        String_content (PI.str_of_info tok, tok) :: tail
+  in
+  let rec simplify acc = function
+    | [] -> concat (List.rev acc) []
+    | String_content (_, tok) :: xs -> simplify (tok :: acc) xs
+    | special :: xs -> concat (List.rev acc) (special :: simplify [] xs)
+  in
+  simplify [] fragments
+
 (* best effort to extract the name of the shell *)
 let classify_shell ((_open, ar, _close) : string_array) :
     shell_compatibility option =
@@ -284,7 +306,7 @@ let path (env : env) ((v1, v2) : CST.path) : str =
         | `Expa x -> expansion env x)
       v2
   in
-  let fragments = first_fragment :: more_fragments in
+  let fragments = first_fragment :: more_fragments |> simplify_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
