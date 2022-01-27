@@ -80,6 +80,23 @@
                 "level": "error"
               },
               "fullDescription": {
+                "text": "useless comparison"
+              },
+              "id": "rules.javascript-basic-eqeq-bad",
+              "name": "rules.javascript-basic-eqeq-bad",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "useless comparison"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
                 "text": "this function is only available on Python 3.7+"
               },
               "id": "rules.python37-compatability-os-module",

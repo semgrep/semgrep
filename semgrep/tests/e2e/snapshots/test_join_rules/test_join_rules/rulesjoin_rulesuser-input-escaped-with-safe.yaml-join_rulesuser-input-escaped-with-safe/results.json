@@ -2,7 +2,7 @@
   "errors": [],
   "results": [
     {
-      "check_id": "user-input-escaped-with-safe",
+      "check_id": "rules.join_rules.user-input-escaped-with-safe",
       "end": {
         "col": 38,
         "line": 19,
