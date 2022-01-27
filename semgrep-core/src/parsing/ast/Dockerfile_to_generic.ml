@@ -57,6 +57,10 @@ let id_expr (x : string wrap) : G.expr =
 
 let metavar_expr (x : string wrap) : G.expr = id_expr x
 
+let string_or_metavar_expr (x : string wrap) : G.expr =
+  let s, _ = x in
+  if Metavariable.is_metavar_name s then metavar_expr x else string_expr x
+
 let ellipsis_expr (tok : tok) : G.expr = G.Ellipsis tok |> G.e
 
 let expansion_expr loc (x : expansion) =
@@ -84,6 +88,10 @@ let str_expr ((loc, frags) : str) : G.expr =
       let args = Common.map (fun x -> G.Arg x) frags in
       let start, end_ = loc in
       G.Call (func, (start, args, end_)) |> G.e
+
+let str_or_ellipsis_expr = function
+  | Str_str str -> str_expr str
+  | Str_semgrep_ellipsis tok -> ellipsis_expr tok
 
 let array_elt_expr (x : array_elt) : G.expr =
   match x with
@@ -113,7 +121,7 @@ let param_arg (x : param) : G.argument =
   let _loc, (dashdash, (name_str, name_tok), _eq, value) = x in
   let option_tok = PI.combine_infos dashdash [ name_tok ] in
   let option_str = PI.str_of_info dashdash ^ name_str in
-  G.ArgKwdOptional ((option_str, option_tok), string_expr value)
+  G.ArgKwdOptional ((option_str, option_tok), string_or_metavar_expr value)
 
 let opt_param_arg (x : param option) : G.argument list =
   match x with
@@ -141,11 +149,17 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
   kv_pairs
-  |> Common.map (fun (key, _eq, value) -> G.ArgKwd (key, str_expr value))
+  |> Common.map (function
+       | Label_semgrep_ellipsis tok -> G.Arg (ellipsis_expr tok)
+       | Label_pair (_loc, key, _eq, value) -> (
+           match key with
+           | Var_ident key -> G.ArgKwd (key, str_expr value)
+           | Var_semgrep_metavar mv -> G.ArgKwd (mv, str_expr value)))
 
-let add_or_copy (opt_param : param option) (src : path) (dst : path) =
+let add_or_copy (opt_param : param option) (src : path_or_ellipsis) (dst : path)
+    =
   let opt_param = opt_param_arg opt_param in
-  [ G.Arg (str_expr src); G.Arg (str_expr dst) ] @ opt_param
+  [ G.Arg (str_or_ellipsis_expr src); G.Arg (str_expr dst) ] @ opt_param
 
 let user_args (user : str) (group : (tok * str) option) =
   let user = G.Arg (str_expr user) in
@@ -169,8 +183,16 @@ let healthcheck_cmd_args env (params : param list) (cmd : cmd) : G.argument list
   in
   cmd_arg :: opt_args
 
+let var_or_metavar_expr = function
+  | Var_ident key -> id_expr key
+  | Var_semgrep_metavar mv -> metavar_expr mv
+
+let string_or_metavar_expr = function
+  | Str_string x -> string_expr x
+  | Str_semgrep_metavar mv -> metavar_expr mv
+
 let arg_args key opt_value : G.expr list =
-  let key = string_expr key in
+  let key = var_or_metavar_expr key in
   let value =
     match opt_value with
     | None -> []
@@ -181,7 +203,21 @@ let arg_args key opt_value : G.expr list =
 let array_or_paths (x : array_or_paths) : G.expr list =
   match x with
   | Array (_loc, ar) -> [ string_array ar ]
-  | Paths (_loc, paths) -> Common.map str_expr paths
+  | Paths (_loc, paths) -> Common.map str_or_ellipsis_expr paths
+
+let expose_port_expr (x : expose_port) : G.expr =
+  match x with
+  | Expose_semgrep_ellipsis tok -> ellipsis_expr tok
+  | Expose_element x -> string_fragment_expr x
+
+let healthcheck env loc name (x : healthcheck) =
+  match x with
+  | Healthcheck_semgrep_metavar id -> call_exprs name loc [ metavar_expr id ]
+  | Healthcheck_none tok ->
+      call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
+  | Healthcheck_cmd (_cmd_loc, params, cmd) ->
+      let args = healthcheck_cmd_args env params cmd in
+      call name loc args
 
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
@@ -192,7 +228,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Cmd (loc, name, x) -> cmd_instr_expr env loc name x
   | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
-      let args = Common.map string_fragment_expr port_protos in
+      let args = Common.map expose_port_expr port_protos in
       call_exprs name loc args
   | Env (loc, name, pairs) -> call name loc (label_pairs pairs)
   | Add (loc, name, param, src, dst) ->
@@ -208,14 +244,10 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Onbuild (loc, name, instr) ->
       call_exprs name loc [ instruction_expr env instr ]
   | Stopsignal (loc, name, signal) -> call_exprs name loc [ str_expr signal ]
-  | Healthcheck (loc, name, Healthcheck_none tok) ->
-      call_exprs name loc [ string_expr (PI.str_of_info tok, tok) ]
-  | Healthcheck (loc, name, Healthcheck_cmd (_cmd_loc, params, cmd)) ->
-      let args = healthcheck_cmd_args env params cmd in
-      call name loc args
+  | Healthcheck (loc, name, x) -> healthcheck env loc name x
   | Shell (loc, name, array) -> call_exprs name loc [ string_array array ]
   | Maintainer (loc, name, maintainer) ->
-      call_exprs name loc [ string_expr maintainer ]
+      call_exprs name loc [ string_or_metavar_expr maintainer ]
   | Cross_build_xxx (loc, name, data) ->
       call_exprs name loc [ string_expr data ]
   | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e

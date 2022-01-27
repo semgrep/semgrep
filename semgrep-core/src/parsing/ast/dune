@@ -4,6 +4,7 @@
  (libraries
    commons
    pfff-lang_GENERIC
+   semgrep_core
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

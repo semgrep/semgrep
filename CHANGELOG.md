@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Autocomplete for CLI options
 - Dockerfile: add support for metavariables where argument expansion is already supported
 
+- Dockerfile language: metavariables and ellipses are now
+  supported in most places where it makes sense (#4556, #4577)
+
 ### Changed
 - Ruby: a metavariable matching an atom can also be used to match an identifier
   with the same name (#4550)

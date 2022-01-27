@@ -1,0 +1,2 @@
+# parsing bug: https://github.com/camdencheek/tree-sitter-dockerfile/issues/11
+ENV X=42
