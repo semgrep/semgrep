@@ -157,23 +157,17 @@ def test_timings(snapshot) -> None:
     assert metric_manager._rule_stats == [
         {
             "ruleHash": "720c14cd416c021bc45d6db0689dd0eb54d1d062bf9f446f85dae0cb5d1438c0",
-            "parseTime": 0.05,
             "matchTime": 0.2,
-            "runTime": 0.4,
             "bytesScanned": 1,
         },
         {
             "ruleHash": "a5360bb56a3b0a3c33c1bb2b6e7d6465e9a246ccb8940bc05710bc5b35a43e30",
-            "parseTime": 0.04,
             "matchTime": 1.2,
-            "runTime": 1.4,
             "bytesScanned": 2,
         },
         {
             "ruleHash": "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
-            "parseTime": 0.0,
             "matchTime": None,
-            "runTime": None,
             "bytesScanned": 0,
         },
     ]

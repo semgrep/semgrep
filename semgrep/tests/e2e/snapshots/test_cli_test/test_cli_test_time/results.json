@@ -3,14 +3,14 @@ rule:rules.cli_test.basic.basic-test: Basic test
 2:print(1 == 1)
 
 ============================[ summary ]============================
-Total time: x.xxx Config time: x.xxx Core time: x.xxx Ignores time: x.xxx
+Total time: x.xxxs Config time: x.xxxs Core time: x.xxxs
 
 Semgrep-core time:
-Total CPU time: x.xxx  File parse time: x.xxx  Rule parse time: x.xxx  Match time: x.xxx
+Total CPU time: x.xxxs  File parse time: x.xxxs  Rule parse time: x.xxxs  Match time: x.xxxs
 Slowest x.xxx files
-targets/cli_test/basic/basic.py                                        ( 35B):  x.xxx
-Slowest 5 rules to run (excluding parse time)
-rules.cli_test.basic.basic-test:                                        run time x.xxx  match time x.xxx
+targets/cli_test/basic/basic.py                    ( 35B):  x.xxxs (x.xxxs to parse)
+Slowest 5 rules to match
+rules.cli_test.basic.basic-test:                            x.xxxs
 
 Analyzed: 1 python files ( 35B in x.xxx seconds)
 Errors:   0 files with errors

@@ -7,36 +7,5 @@ No .semgrepignore found. Using default .semgrepignore rules. See the docs for th
 Semgrep Core WARN - Syntax error in file targets/bad/invalid_python.py:1
 	`
     ` was unexpected
+ran 2 rules on 1 files: 0 findings
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False
-Traceback (most recent call last):
-  File "/usr/local/Cellar/python@3.9/3.9.7/Frameworks/Python.framework/Versions/3.9/lib/python3.9/runpy.py", line 197, in _run_module_as_main
-    return _run_code(code, main_globals, None,
-  File "/usr/local/Cellar/python@3.9/3.9.7/Frameworks/Python.framework/Versions/3.9/lib/python3.9/runpy.py", line 87, in _run_code
-    exec(code, run_globals)
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/__main__.py", line 34, in <module>
-    sys.exit(main())
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/__main__.py", line 20, in main
-    cli()
-  File "/Users/emma/.local/share/virtualenvs/semgrep-oHxP9ao_/lib/python3.9/site-packages/click/core.py", line 1137, in __call__
-    return self.main(*args, **kwargs)
-  File "/Users/emma/.local/share/virtualenvs/semgrep-oHxP9ao_/lib/python3.9/site-packages/click/core.py", line 1062, in main
-    rv = self.invoke(ctx)
-  File "/Users/emma/.local/share/virtualenvs/semgrep-oHxP9ao_/lib/python3.9/site-packages/click/core.py", line 1668, in invoke
-    return _process_result(sub_ctx.command.invoke(sub_ctx))
-  File "/Users/emma/.local/share/virtualenvs/semgrep-oHxP9ao_/lib/python3.9/site-packages/click/core.py", line 1404, in invoke
-    return ctx.invoke(self.callback, **ctx.params)
-  File "/Users/emma/.local/share/virtualenvs/semgrep-oHxP9ao_/lib/python3.9/site-packages/click/core.py", line 763, in invoke
-    return __callback(*args, **kwargs)
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/commands/scan.py", line 800, in scan
-    output_handler.output(
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/output.py", line 282, in output
-    output = self._build_output()
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/output.py", line 378, in _build_output
-    return self.formatter.output(
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/formatter/base.py", line 26, in output
-    return self.format(
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/formatter/text.py", line 377, in format
-    return "\n".join(itertools.chain(output, timing_output))
-  File "/Users/emma/workspace/semgrep/semgrep/semgrep/formatter/text.py", line 152, in _build_summary
-    rule_parsing_time = sum(
-TypeError: 'float' object is not iterable
