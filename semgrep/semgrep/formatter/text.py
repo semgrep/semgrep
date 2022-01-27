@@ -143,7 +143,7 @@ class TextFormatter(BaseFormatter):
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
-        col_lim = 70
+        col_lim = 50
 
         targets = time_data["targets"]
 
@@ -217,11 +217,11 @@ class TextFormatter(BaseFormatter):
         total_time = time_data["profiling_times"].get("total_time", 0.0)
         config_time = time_data["profiling_times"].get("config_time", 0.0)
         core_time = time_data["profiling_times"].get("core_time", 0.0)
-        ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
+        _ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
 
         yield f"\n============================[ summary ]============================"
 
-        yield f"Total time: {total_time:.4f} s Config time: {config_time:.4f}s Core time: {core_time:.4f}s"
+        yield f"Total time: {total_time:.4f}s Config time: {config_time:.4f}s Core time: {core_time:.4f}s"
 
         # Output semgrep-core information
         yield f"\nSemgrep-core time:"
@@ -234,7 +234,7 @@ class TextFormatter(BaseFormatter):
         for file_name, (parse_time, run_time) in slowest_file_times:
             num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
             file_name = truncate(file_name, col_lim)
-            yield f"{with_color('green', f'{file_name:<40}')} {num_bytes:<9} {run_time:.4f}s ({parse_time:.4f}s to parse)"
+            yield f"{with_color('green', f'{file_name:<50}')} {num_bytes:<8} {run_time:.3f}s ({parse_time:.3f}s to parse)"
 
         yield f"Slowest {items_to_show} rules to match"
         slowest_rule_times = sorted(rule_match_timings.items(), reverse=True)[
@@ -242,7 +242,7 @@ class TextFormatter(BaseFormatter):
         ]
         for rule_id, match_time in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"
-            yield f"{with_color('yellow', f'{rule_id}')} {match_time:.4f}s"
+            yield f"{with_color('yellow', f'{rule_id:<59}')} {match_time:.3f}s"
 
         # Output other file information
         ANALYZED = "Analyzed:"
