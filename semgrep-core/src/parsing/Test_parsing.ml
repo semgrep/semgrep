@@ -255,9 +255,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
              try
                match
                  Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
-                     Common.set_timeout ~verbose:false
-                       ~name:"Test_parsing.parsing_common" timeout_seconds
-                       (fun () ->
+                     Common.set_timeout ~name:"Test_parsing.parsing_common"
+                       timeout_seconds (fun () ->
                          Parse_target
                          .parse_and_resolve_name_use_pfff_or_treesitter lang
                            file))
