@@ -769,6 +769,7 @@ def scan(
                     profiling_data,
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
+                    dump_command_for_core=dump_command_for_core,
                     output_handler=output_handler,
                     target=target_sequence,
                     pattern=pattern,

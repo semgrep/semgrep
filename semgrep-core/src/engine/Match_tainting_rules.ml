@@ -86,6 +86,8 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
+let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
+
 let any_in_ranges any rwms =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
@@ -180,6 +182,7 @@ let check_bis ~match_hook (default_config, equivs)
   let matches = ref [] in
 
   let rule, taint_spec = taint_rule in
+  Rule.last_matched_rule := Some (fst rule.Rule.id);
   let taint_config =
     let found_tainted_sink pms _env =
       PM.Set.iter (fun pm -> Common.push pm matches) pms
@@ -241,6 +244,7 @@ let check_bis ~match_hook (default_config, equivs)
          |> List.iter (fun (m : Pattern_match.t) ->
                 let str = Common.spf "with rule %s" m.rule_id.id in
                 match_hook str m.env m.tokens))
+  |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
 
 let check ~match_hook default_config taint_rules file_and_more =
   match taint_rules with
