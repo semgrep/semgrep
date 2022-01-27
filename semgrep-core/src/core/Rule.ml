@@ -255,6 +255,11 @@ type rules = rule list [@@deriving show]
 (* Error Management *)
 (*****************************************************************************)
 
+(* This is used to let the user know which rule the engine was using when
+ * a Timeout or OutOfMemory exn occured.
+ *)
+let (last_matched_rule : rule_id option ref) = ref None
+
 exception InvalidLanguage of rule_id * string * Parse_info.t
 
 (* TODO: the Parse_info.t is not precise for now, it corresponds to the
