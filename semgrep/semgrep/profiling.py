@@ -19,7 +19,6 @@ class ProfilingData:
         self._match_time_matrix: Dict[Semgrep_run, Times] = {}
 
         self._rule_match_times: Dict[Rule, float] = {}
-        self._rule_run_times: Dict[Rule, float] = {}
         self._rule_bytes_scanned: Dict[Rule, int] = {}
         self._file_match_times: Dict[Path, float] = {}
         self._file_num_times_scanned: Dict[Path, int] = {}
@@ -35,7 +34,6 @@ class ProfilingData:
         }
 
         self._rule_match_times = {rule: 0.0 for rule in rules}
-        self._rule_run_times = {rule: 0.0 for rule in rules}
         self._rule_bytes_scanned = {rule: 0 for rule in rules}
 
         self._file_match_times = {target: 0.0 for target in targets}
@@ -65,15 +63,6 @@ class ProfilingData:
         Return None if RULE has no timing information saved
         """
         return self._rule_match_times.get(rule)
-
-    def get_rule_run_time(self, rule: Rule) -> Optional[float]:
-        """
-        Return total run time for a given rule over all the files scanned with
-        said rule
-
-        Return None if RULE has no timing information saved
-        """
-        return self._rule_run_times.get(rule)
 
     def get_rule_bytes_scanned(self, rule: Rule) -> int:
         """
@@ -127,11 +116,6 @@ class ProfilingData:
 
             self._match_time_matrix[Semgrep_run(rule=rule, target=target)] = rule_times
 
-            self._rule_run_times[rule] = (
-                self._rule_run_times.get(rule, 0.0)
-                + rule_times.match_time
-                + rule_times.parse_time
-            )
             self._rule_match_times[rule] = (
                 self._rule_match_times.get(rule, 0.0) + rule_times.match_time
             )

@@ -162,9 +162,7 @@ class _MetricManager:
             rule_stats.append(
                 {
                     "ruleHash": rule.full_hash,
-                    "parseTime": profiling_data.get_rules_parse_time,
                     "matchTime": profiling_data.get_rule_match_time(rule),
-                    "runTime": profiling_data.get_rule_run_time(rule),
                     "bytesScanned": profiling_data.get_rule_bytes_scanned(rule),
                 }
             )
