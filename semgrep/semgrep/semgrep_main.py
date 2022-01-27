@@ -4,10 +4,13 @@ from io import StringIO
 from os import environ
 from pathlib import Path
 from typing import Any
+from typing import Collection
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Set
+from typing import Tuple
 from typing import Union
 
 from semgrep.autofix import apply_fixes
@@ -28,8 +31,10 @@ from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
+from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
@@ -107,8 +112,15 @@ def invoke_semgrep(
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
 
     io_capture = StringIO()
-    output_handler = OutputHandler(output_settings, stdout=io_capture)
-    main(
+    output_handler = OutputHandler(output_settings)
+    (
+        filtered_matches_by_rule,
+        all_targets,
+        filtered_rules,
+        profiler,
+        profiling_data,
+        shown_severities,
+    ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
         pattern="",
@@ -116,15 +128,16 @@ def invoke_semgrep(
         configs=[str(config)],
         **kwargs,
     )
-    output_handler.close()
 
-    result: Union[Dict[str, Any], str] = (
-        json.loads(io_capture.getvalue())
-        if output_settings.output_format.is_json()
-        else io_capture.getvalue()
-    )
+    output_handler.rules = frozenset(filtered_rules)
+    output_handler.rule_matches = [
+        m for ms in filtered_matches_by_rule.values() for m in ms
+    ]
+    output_handler.profiler = profiler
+    output_handler.profiling_data = profiling_data
+    output_handler.severities = shown_severities
 
-    return result
+    return json.loads(output_handler._build_output())  # type: ignore
 
 
 def main(
@@ -152,7 +165,14 @@ def main(
     skip_unknown_extensions: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
-) -> None:
+) -> Tuple[
+    RuleMatchMap,
+    Set[Path],
+    List[Rule],
+    ProfileManager,
+    ProfilingData,
+    Collection[RuleSeverity],
+]:
     if include is None:
         include = []
 
@@ -160,11 +180,10 @@ def main(
         exclude = []
 
     project_url = get_project_url()
-
     profiler = ProfileManager()
 
     rule_start_time = time.time()
-    configs_obj, errors = get_config(
+    configs_obj, config_errors = get_config(
         pattern, lang, configs, replacement=replacement, project_url=project_url
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
@@ -177,11 +196,11 @@ def main(
         shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
 
-    output_handler.handle_semgrep_errors(errors)
+    output_handler.handle_semgrep_errors(config_errors)
 
-    if errors and strict:
+    if config_errors and strict:
         raise SemgrepError(
-            f"run with --strict and there were {len(errors)} errors loading configs",
+            f"run with --strict and there were {len(config_errors)} errors loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
@@ -191,14 +210,16 @@ def main(
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
         )
         invalid_msg = (
-            f"({len(errors)} config files were invalid)" if len(errors) else ""
+            f"({len(config_errors)} config files were invalid)"
+            if len(config_errors)
+            else ""
         )
         logger.verbose(
             f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
         )
-        if len(errors) > 0:
+        if len(config_errors) > 0:
             raise SemgrepError(
-                f"invalid configuration file found ({len(errors)} configs were invalid)",
+                f"invalid configuration file found ({len(config_errors)} configs were invalid)",
                 code=MISSING_CONFIG_EXIT_CODE,
             )
         if len(configs_obj.valid) == 0:
@@ -284,7 +305,6 @@ def main(
     output_handler.handle_semgrep_errors(nosem_errors)
 
     num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
-    stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
     profiler.save("total_time", rule_start_time)
     if metric_manager.is_enabled():
         error_types = list(e.semgrep_error_type() for e in semgrep_errors)
@@ -305,15 +325,14 @@ def main(
             profiling_data, list(all_targets), filtered_rules
         )
 
-    output_handler.handle_semgrep_core_output(
-        filtered_matches_by_rule,
-        stats_line=stats_line,
-        all_targets=all_targets,
-        profiler=profiler,
-        filtered_rules=filtered_rules,
-        profiling_data=profiling_data,
-        severities=shown_severities,
-    )
-
     if autofix:
         apply_fixes(filtered_matches_by_rule, dryrun)
+
+    return (
+        filtered_matches_by_rule,
+        all_targets,
+        filtered_rules,
+        profiler,
+        profiling_data,
+        shown_severities,
+    )

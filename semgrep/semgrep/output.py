@@ -1,4 +1,3 @@
-import contextlib
 import pathlib
 import sys
 from collections import defaultdict
@@ -8,7 +7,6 @@ from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
-from typing import Generator
 from typing import IO
 from typing import List
 from typing import Mapping
@@ -139,20 +137,6 @@ class OutputSettings(NamedTuple):
     timeout_threshold: int = 0
 
 
-@contextlib.contextmanager
-def managed_output(output_settings: OutputSettings) -> Generator:
-    """
-    Context manager to capture uncaught exceptions &
-    """
-    output_handler = OutputHandler(output_settings)
-    try:
-        yield output_handler
-    except Exception as ex:
-        output_handler.handle_unhandled_exception(ex)
-    finally:
-        output_handler.close()
-
-
 class OutputHandler:
     """
     Handle all output in a central location. Rather than calling `print_stderr` directly,
@@ -178,7 +162,6 @@ class OutputHandler:
         self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
-        self.stats_line: Optional[str] = None
         self.all_targets: Set[Path] = set()
         self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
@@ -211,13 +194,13 @@ class OutputHandler:
                 assert err.rule_id  # Always defined for timeout errors
                 timeout_errors[err.path].append(err.rule_id)
             else:
-                self.handle_semgrep_error(err)
+                self._handle_semgrep_error(err)
 
         if timeout_errors and self.settings.output_format == OutputFormat.TEXT:
             t_errors = dict(timeout_errors)  # please mypy
-            self.handle_semgrep_timeout_errors(t_errors)
+            self._handle_semgrep_timeout_errors(t_errors)
 
-    def handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
+    def _handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
         self.has_output = True
         separator = ", "
         print_threshold_hint = False
@@ -240,7 +223,7 @@ class OutputHandler:
                 )
             )
 
-    def handle_semgrep_error(self, error: SemgrepError) -> None:
+    def _handle_semgrep_error(self, error: SemgrepError) -> None:
         """
         Reports generic exceptions that extend SemgrepError
         """
@@ -253,43 +236,7 @@ class OutputHandler:
             ):
                 logger.error(with_color("red", str(error)))
 
-    def handle_semgrep_core_output(
-        self,
-        rule_matches_by_rule: RuleMatchMap,
-        *,
-        stats_line: str,
-        all_targets: Set[Path],
-        profiler: ProfileManager,
-        filtered_rules: List[Rule],
-        profiling_data: ProfilingData,  # (rule, target) -> duration
-        severities: Optional[Collection[RuleSeverity]],
-    ) -> None:
-        self.has_output = True
-        self.rules = self.rules.union(rule_matches_by_rule.keys())
-        self.rule_matches += [
-            match
-            for matches_of_one_rule in rule_matches_by_rule.values()
-            for match in matches_of_one_rule
-        ]
-        self.profiler = profiler
-        self.all_targets = all_targets
-        self.stats_line = stats_line
-        self.filtered_rules = filtered_rules
-        self.profiling_data = profiling_data
-        if severities:
-            self.severities = severities
-
-    def handle_unhandled_exception(self, ex: Exception) -> None:
-        """
-        This is called by the context manager upon an unhandled exception. If you want to record a final
-        error & set the exit code, but keep executing to perform cleanup tasks, call this method.
-        """
-
-        if isinstance(ex, SemgrepError):
-            self.handle_semgrep_error(ex)
-        self.final_error = ex
-
-    def final_raise(self, ex: Optional[Exception], error_stats: Optional[str]) -> None:
+    def _final_raise(self, ex: Optional[Exception], error_stats: Optional[str]) -> None:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
@@ -306,21 +253,35 @@ class OutputHandler:
         else:
             raise ex
 
-    def close(self) -> None:
-        """
-        Close the output handler.
+    def output(
+        self,
+        rule_matches_by_rule: RuleMatchMap,
+        *,
+        all_targets: Set[Path],
+        filtered_rules: List[Rule],
+        profiler: Optional[ProfileManager] = None,
+        profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
+        severities: Optional[Collection[RuleSeverity]] = None,
+    ) -> None:
+        self.has_output = True
+        self.rules = self.rules.union(rule_matches_by_rule.keys())
+        self.rule_matches += [
+            match
+            for matches_of_one_rule in rule_matches_by_rule.values()
+            for match in matches_of_one_rule
+        ]
+        self.profiler = profiler
+        self.all_targets = all_targets
+        self.filtered_rules = filtered_rules
+        if profiling_data:
+            self.profiling_data = profiling_data
+        if severities:
+            self.severities = severities
 
-        This will write any output that hasn't been written so far. It returns
-        the exit code of the program.
-        """
         if self.has_output:
-            output = self.build_output(
-                self.settings.output_destination is None and self.stdout.isatty(),
-                self.settings.output_per_finding_max_lines_limit,
-                self.settings.output_per_line_max_chars_limit,
-            )
+            output = self._build_output()
             if self.settings.output_destination:
-                self.save_output(self.settings.output_destination, output)
+                self._save_output(self.settings.output_destination, output)
             else:
                 if output:
                     try:
@@ -329,8 +290,13 @@ class OutputHandler:
                         raise Exception(
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
                         ) from ex
-            if self.stats_line:
-                logger.info(self.stats_line)
+
+            if self.filtered_rules:
+                num_findings = len(self.rule_matches)
+                num_targets = len(self.all_targets)
+                num_rules = len(self.filtered_rules)
+                stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
+                logger.info(stats_line)
 
         final_error = None
         error_stats = None
@@ -353,12 +319,11 @@ class OutputHandler:
             plural = "s" if num_errors > 1 else ""
             error_stats = f"found problems analyzing {num_errors} file{plural}"
             final_error = self.semgrep_structured_errors[-1]
-        self.final_raise(final_error, error_stats)
+        self._final_raise(final_error, error_stats)
 
-    @classmethod
-    def save_output(cls, destination: str, output: str) -> None:
+    def _save_output(self, destination: str, output: str) -> None:
         if is_url(destination):
-            cls.post_output(destination, output)
+            self._post_output(destination, output)
         else:
             if Path(destination).is_absolute():
                 save_path = Path(destination)
@@ -370,8 +335,7 @@ class OutputHandler:
             with save_path.open(mode="w") as fout:
                 fout.write(output)
 
-    @classmethod
-    def post_output(cls, output_url: str, output: str) -> None:
+    def _post_output(self, output_url: str, output: str) -> None:
         import requests  # here for faster startup times
 
         logger.info(f"posting to {output_url}...")
@@ -383,11 +347,8 @@ class OutputHandler:
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
-    def build_output(
+    def _build_output(
         self,
-        color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
     ) -> str:
         extra: Dict[str, Any] = {}
         if self.settings.json_stats:
@@ -404,9 +365,15 @@ class OutputHandler:
                 self.profiler,
             )
         if self.settings.output_format == OutputFormat.TEXT:
-            extra["color_output"] = color_output
-            extra["per_finding_max_lines_limit"] = per_finding_max_lines_limit
-            extra["per_line_max_chars_limit"] = per_line_max_chars_limit
+            extra["color_output"] = (
+                self.settings.output_destination is None and self.stdout.isatty(),
+            )
+            extra[
+                "per_finding_max_lines_limit"
+            ] = self.settings.output_per_finding_max_lines_limit
+            extra[
+                "per_line_max_chars_limit"
+            ] = self.settings.output_per_line_max_chars_limit
 
         return self.formatter.output(
             self.rules,

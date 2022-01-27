@@ -18,20 +18,12 @@ let test_typing_generic ~parse_program file =
             let s = AST_generic.show_any (S body) in
             pr2 s;
             pr2 "==>";
-
             let xs = AST_to_IL.stmt lang body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
   in
   v (Pr ast)
-
-let test_naming_generic ~parse_program file =
-  let ast = parse_program file in
-  let lang = List.hd (Lang.langs_of_filename file) in
-  Naming_AST.resolve lang ast;
-  let s = AST_generic.show_any (AST_generic.Pr ast) in
-  pr2 s
 
 let test_constant_propagation ~parse_program file =
   let ast = parse_program file in
@@ -123,9 +115,6 @@ let actions ~parse_program =
     ( "-typing_generic",
       " <file>",
       Common.mk_action_1_arg (test_typing_generic ~parse_program) );
-    ( "-naming_generic",
-      " <file>",
-      Common.mk_action_1_arg (test_naming_generic ~parse_program) );
     ( "-constant_propagation",
       " <file>",
       Common.mk_action_1_arg (test_constant_propagation ~parse_program) );
