@@ -359,6 +359,16 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
 (* File targeting and rule filtering *)
 (*****************************************************************************)
 
+let rules_for_xlang xlang rules =
+  rules
+  |> List.filter (fun r ->
+         match (xlang, r.R.languages) with
+         | Xlang.LRegex, Xlang.LRegex
+         | Xlang.LGeneric, Xlang.LGeneric ->
+             true
+         | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
+         | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
+
 module Rule_table = Map.Make (String)
 
 let mk_rule_table rules =
