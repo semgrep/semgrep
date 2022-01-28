@@ -97,7 +97,6 @@ def run_dependency_aware_rule(
                     start=CoreLocation(0, 0, 0),
                     end=CoreLocation(0, 0, 0),
                     extra={},
-                    lines_cache={},
                 )
             ]
 
