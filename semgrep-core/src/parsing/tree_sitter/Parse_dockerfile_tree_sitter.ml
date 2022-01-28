@@ -427,15 +427,44 @@ let string_array (env : env) ((v1, v2, v3) : CST.string_array) :
   let loc = (open_, close) in
   (loc, (open_, argv, close))
 
+(*
+   Create the empty token that sits right after a given token.
+
+   TODO: move this function to Parse_info?
+*)
+let empty_token_after tok : tok =
+  match PI.token_location_of_info tok with
+  | Ok loc ->
+      let prev_len = String.length loc.str in
+      let loc =
+        {
+          loc with
+          str = "";
+          charpos = loc.charpos + prev_len;
+          column = loc.column + prev_len;
+        }
+      in
+      PI.mk_info_of_loc loc
+  | Error _ -> PI.rewrap_str "" tok
+
 let env_pair (env : env) (x : CST.env_pair) : label_pair =
   match x with
   | `Semg_ellips tok -> Label_semgrep_ellipsis (token env tok (* "..." *))
-  | `Env_key_EQ_choice_double_quoted_str (v1, v2, v3) ->
+  | `Env_key_EQ_opt_choice_double_quoted_str (v1, v2, v3) ->
       let k =
         Var_ident (str env v1 (* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *))
       in
       let eq = token env v2 (* "=" *) in
-      let v = string env v3 in
+      let v =
+        match v3 with
+        | None ->
+            (* the empty token gives us the correct location which we need
+               even if we returned an empty list of fragments. *)
+            let tok = empty_token_after eq in
+            let loc = (tok, tok) in
+            (loc, [ String_content (PI.str_of_info tok, tok) ])
+        | Some x -> string env x
+      in
       let loc = (var_or_metavar_tok k, str_loc v |> snd) in
       Label_pair (loc, k, eq, v)
 
@@ -509,34 +538,36 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
   | `Str_array x ->
       let loc, ar = string_array env x in
       Argv (loc, ar)
-  | `Shell_cmd (v1, v2) -> (
+  | `Shell_cmd (v1, v2, v3) -> (
       (* Stitch back the fragments together, then parse using the correct
          shell language. *)
-      let first_frag = shell_fragment env v1 in
+      let _comment_lines = List.map (comment_line env) v1 in
+      let first_frag = shell_fragment env v2 in
       let more_frags =
-        Common.map
-          (fun (v1, comment_lines, v3) ->
-            (* Keep the line continuation so as to preserve the original
-               locations when parsing the shell command.
+        v3
+        |> Common.map (fun (v1, comment_lines, v3) ->
+               (* Keep the line continuation so as to preserve the original
+                  locations when parsing the shell command.
 
-               Warning: dockerfile line continuation character may be different
-               than '\'. Since we reinject a line continuation into
-               the shell code to preserve locations, we must ensure that
-               we inject a backslash, not whatever dockerfile is using.
-            *)
-            let dockerfile_line_cont =
-              (* dockerfile's line continuation character without \n *)
-              token env v1
-            in
-            let shell_line_cont =
-              (* we would omit this if it weren't for preserving
-                 line numbers *)
-              PI.rewrap_str "\\\n" dockerfile_line_cont
-            in
-            let comment_lines = Common.map (comment_line env) comment_lines in
-            let shell_frag = shell_fragment env v3 in
-            (shell_line_cont :: comment_lines) @ [ shell_frag ])
-          v2
+                  Warning: dockerfile line continuation character may be different
+                  than '\'. Since we reinject a line continuation into
+                  the shell code to preserve locations, we must ensure that
+                  we inject a backslash, not whatever dockerfile is using.
+               *)
+               let dockerfile_line_cont =
+                 (* dockerfile's line continuation character without \n *)
+                 token env v1
+               in
+               let shell_line_cont =
+                 (* we would omit this if it weren't for preserving
+                    line numbers *)
+                 PI.rewrap_str "\\\n" dockerfile_line_cont
+               in
+               let comment_lines =
+                 Common.map (comment_line env) comment_lines
+               in
+               let shell_frag = shell_fragment env v3 in
+               (shell_line_cont :: comment_lines) @ [ shell_frag ])
         |> List.flatten
       in
       let raw_shell_code = concat_tokens first_frag more_frags in
@@ -625,19 +656,23 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           let _, end_ = Loc.of_list label_pair_loc pairs in
           let loc = (wrap_tok name, end_) in
           (env, Env (loc, name, pairs))
-      | `Add_inst (v1, v2, v3, v4, v5) ->
+      | `Add_inst (v1, v2, v3, v4) ->
           let name = str env v1 (* pattern [aA][dD][dD] *) in
           let param =
             match v2 with
             | Some x -> Some (param env x)
             | None -> None
           in
-          let src = path_or_ellipsis env v3 in
-          let _blank = token env v4 (* pattern [\t ]+ *) in
-          let dst = path env v5 in
+          let src =
+            v3
+            |> Common.map (fun (v1, v2) ->
+                   let _blank = token env v2 (* pattern [\t ]+ *) in
+                   path_or_ellipsis env v1)
+          in
+          let dst = path env v4 in
           let loc = (wrap_tok name, str_loc dst |> snd) in
           (env, Add (loc, name, param, src, dst))
-      | `Copy_inst (v1, v2, v3, v4, v5) ->
+      | `Copy_inst (v1, v2, v3, v4) ->
           (*
              COPY is the same as ADD but with less magic in the interpretation
              of the arguments.
@@ -649,9 +684,13 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | Some x -> Some (param env x)
             | None -> None
           in
-          let src = path_or_ellipsis env v3 in
-          let _blank = token env v4 (* pattern [\t ]+ *) in
-          let dst = path env v5 in
+          let src =
+            v3
+            |> Common.map (fun (v1, v2) ->
+                   let _blank = token env v2 (* pattern [\t ]+ *) in
+                   path_or_ellipsis env v1)
+          in
+          let dst = path env v4 in
           let loc = (wrap_tok name, str_loc dst |> snd) in
           (env, Copy (loc, name, param, src, dst))
       | `Entr_inst (v1, v2) ->

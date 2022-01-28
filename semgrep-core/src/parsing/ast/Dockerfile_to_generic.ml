@@ -156,10 +156,11 @@ let label_pairs (kv_pairs : label_pair list) : G.argument list =
            | Var_ident key -> G.ArgKwd (key, str_expr value)
            | Var_semgrep_metavar mv -> G.ArgKwd (mv, str_expr value)))
 
-let add_or_copy (opt_param : param option) (src : path_or_ellipsis) (dst : path)
-    =
+let add_or_copy (opt_param : param option) (src : path_or_ellipsis list)
+    (dst : path) =
   let opt_param = opt_param_arg opt_param in
-  [ G.Arg (str_or_ellipsis_expr src); G.Arg (str_expr dst) ] @ opt_param
+  let src = Common.map (fun x -> G.Arg (str_or_ellipsis_expr x)) src in
+  src @ [ G.Arg (str_expr dst) ] @ opt_param
 
 let user_args (user : str) (group : (tok * str) option) =
   let user = G.Arg (str_expr user) in
