@@ -191,7 +191,7 @@ class CoreSkipped:
             rule_info = f"rule {raw_rule_id}"
         else:
             rule_info = "all rules"
-        logger.debug(f"skipped '{path}' [{rule_info}]: {reason}: {details}")
+        logger.verbose(f"skipped '{path}' [{rule_info}]: {reason}: {details}")
         return cls(rule_id, path, reason, details)
 
 
