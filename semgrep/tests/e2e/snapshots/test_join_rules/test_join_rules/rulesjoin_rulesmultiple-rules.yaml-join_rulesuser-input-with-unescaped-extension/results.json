@@ -24,7 +24,7 @@
       }
     },
     {
-      "check_id": "rules.join_rules.user-input-with-unescaped-extension",
+      "check_id": "user-input-with-unescaped-extension",
       "end": {
         "col": 58,
         "line": 9,

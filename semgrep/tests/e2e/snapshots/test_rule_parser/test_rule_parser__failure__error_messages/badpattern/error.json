@@ -3,14 +3,14 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Semgrep Core ERROR - Pattern parse error: In rule rules.syntax.eqeq-is-bad: Invalid pattern for Python",
-      "rule_id": "rules.syntax.eqeq-is-bad",
+      "message": "Semgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python",
+      "rule_id": "eqeq-is-bad",
       "spans": [
         {
           "config_end": {
             "col": 24,
             "line": 4,
-            "offset": 73
+            "offset": 60
           },
           "config_path": [
             "rules",
@@ -22,7 +22,7 @@
           "config_start": {
             "col": 14,
             "line": 4,
-            "offset": 63
+            "offset": 50
           }
         }
       ],
