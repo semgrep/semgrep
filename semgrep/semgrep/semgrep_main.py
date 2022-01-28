@@ -35,7 +35,6 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
@@ -147,7 +146,7 @@ def run_rules(
     target_manager: TargetManager,
     core_runner: CoreRunner,
     output_handler: OutputHandler,
-) -> Tuple[Dict[Rule, List[RuleMatch]], List[SemgrepError], Set[Path], ProfilingData,]:
+) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
@@ -196,6 +195,43 @@ def run_rules(
         all_targets,
         profiling_data,
     )
+
+
+def remove_matches_in_baseline(
+    head_matches_by_rule: RuleMatchMap, baseline_matches_by_rule: RuleMatchMap
+) -> RuleMatchMap:
+    """
+    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
+    """
+    kept_matches_by_rule: RuleMatchMap = {}
+
+    for rule in head_matches_by_rule:
+        kept_matches = []
+
+        head_matches = head_matches_by_rule[rule]
+
+        # Copy so we can destructively modify
+        baseline_matches = list(baseline_matches_by_rule.get(rule, []))
+
+        # Note we cannot convert to sets and do set subtraction because
+        # the way we consider equality in head vs baseline cannot be used to
+        # assert that two matches in head are equal (finding can appear in head
+        # more than once with the same syntatic id). We also cannot simply
+        # remove elements in head_matches that appear in baseline_matches
+        # because the above non-uniqueness of id means we need to remove
+        # a match 1:1 (i.e. if match with id X appears 3 times in head but
+        # 2 times in baseline) this function needs to return an object with one
+        # match with id X.
+        for head_match in head_matches:
+            for idx in range(len(baseline_matches)):
+                if head_match.is_baseline_equivalent(baseline_matches[idx]):
+                    baseline_matches.pop(idx)
+                    break
+            else:
+                kept_matches.append(head_match)
+
+        kept_matches_by_rule[rule] = kept_matches
+    return kept_matches_by_rule
 
 
 def main(
@@ -336,6 +372,9 @@ def main(
                 baseline_targets,
                 baseline_profiling_data,
             ) = run_rules(filtered_rules, target_manager, core_runner, output_handler)
+            rule_matches_by_rule = remove_matches_in_baseline(
+                rule_matches_by_rule, baseline_rule_matches_by_rule
+            )
             output_handler.handle_semgrep_errors(baseline_semgrep_errors)
 
     ignores_start_time = time.time()

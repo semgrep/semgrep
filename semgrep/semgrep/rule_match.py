@@ -155,6 +155,7 @@ class RuleMatch:
 
     @property
     def lines(self) -> List[str]:
+        # TODO need to read on instantiation because of baseline_context
         """
         Return lines in file that this RuleMatch is referring to.
 
@@ -180,3 +181,13 @@ class RuleMatch:
 
         self._lines_cache[(start_line, end_line)] = result
         return result
+
+    def is_baseline_equivalent(self, other: "RuleMatch") -> bool:
+        # TODO handle file rename baseline equivalent
+        # TODO faster compare of lines (compare len, then hash, then full)
+        # Note should not override __eq__ of this object since technically not equal
+        return (
+            self.id == other.id
+            and self.path == other.path
+            and self.lines == other.lines
+        )
