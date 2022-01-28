@@ -274,9 +274,9 @@ class CoreRunner:
                     all_targets.add(target)
                     t = (target, language)
                     if t in target_info:
-                        target_info[t].append(RuleId(rule.id))
+                        target_info[t].append(RuleId(rule.orig_id))
                     else:
-                        target_info[t] = [RuleId(rule.id)]
+                        target_info[t] = [RuleId(rule.orig_id)]
 
         targets_json = []
         for target_and_lang in target_info:

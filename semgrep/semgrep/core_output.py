@@ -268,7 +268,7 @@ class CoreOutput:
 
     @classmethod
     def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
-        rule_table = {RuleId(rule.id): rule for rule in rules}
+        rule_table = {RuleId(rule.orig_id): rule for rule in rules}
 
         parsed_errors = []
         errors = raw_json["errors"]

@@ -150,7 +150,9 @@ class TextFormatter(BaseFormatter):
         # Compute summary timings
         rule_parsing_time = time_data["rule_parse_info"]
         rule_match_timings = {
-            rule["id"]: sum(t["match_times"][i] for t in targets)
+            rule["id"]: sum(
+                t["match_times"][i] for t in targets if t["match_times"][i] >= 0
+            )
             for i, rule in enumerate(time_data["rules"])
         }
         file_parsing_time = sum(
@@ -165,7 +167,7 @@ class TextFormatter(BaseFormatter):
         }
 
         all_total_time = sum(i[1] for i in file_timings.values()) + rule_parsing_time
-        total_matching_time = sum(i for i in rule_match_timings.values() if i >= 0)
+        total_matching_time = sum(i for i in rule_match_timings.values())
 
         # Count errors
 
