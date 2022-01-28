@@ -442,6 +442,10 @@ let options () =
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
         Xlang.supported_xlangs );
+    ( "-l",
+      Arg.String (fun s -> lang := Some (Xlang.of_string s)),
+      spf " <str> choose language (valid choices:\n     %s)"
+        Xlang.supported_xlangs );
     ( "-targets",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );
@@ -541,6 +545,7 @@ let options () =
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
     ("-debug", Arg.Set debug, " output debugging information");
+    ("--debug", Arg.Set debug, " output debugging information");
     ( "-debug_matching",
       Arg.Set Flag.debug_matching,
       " raise an exception at the first match failure" );
