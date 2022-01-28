@@ -1,3 +1,4 @@
+import hashlib
 import itertools
 from pathlib import Path
 from typing import Any
@@ -70,6 +71,7 @@ class RuleMatch:
 
     # derived attributes
     _lines: List[str] = attr.ib()
+    _lines_hash: str = attr.ib()
     _previous_line: str = attr.ib()
 
     @_lines.default
@@ -96,6 +98,10 @@ class RuleMatch:
             result = list(itertools.islice(fd, start_line, end_line))
 
         return result
+
+    @_lines_hash.default
+    def _initialize_lines_hash(self) -> str:
+        return hashlib.sha256("\n".join(self.lines).encode()).hexdigest()
 
     @property
     def id(self) -> str:
@@ -148,6 +154,13 @@ class RuleMatch:
         return self._lines
 
     @property
+    def lines_hash(self) -> str:
+        """
+        sha256 digest of lines of this rule_match
+        """
+        return self._lines_hash
+
+    @property
     def previous_line(self) -> str:
         return self._previous_line
 
@@ -178,11 +191,10 @@ class RuleMatch:
             return ""
 
     def is_baseline_equivalent(self, other: "RuleMatch") -> bool:
-        # TODO handle file rename baseline equivalent
-        # TODO faster compare of lines (compare len, then hash, then full)
         # Note should not override __eq__ of this object since technically not equal
         return (
             self.id == other.id
             and self.path == other.path
+            and self.lines_hash == other.lines_hash
             and self.lines == other.lines
         )
