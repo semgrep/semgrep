@@ -1,3 +1,11 @@
+(*
+type hooks = {
+  on_def: (Graph_code.node * AST_generic.definition) -> unit;
+}
+*)
+
+val default_hooks : Graph_code_AST_env.hooks
+
 (* Build the codegraph for any language thanks to the generic AST.
  *
  * alt: we could compute the list of targets in build() itself, but
@@ -10,6 +18,7 @@
  *)
 val build :
   root:Common.dirname ->
+  hooks:Graph_code_AST_env.hooks ->
   Lang.t ->
   (Common.filename * AST_generic.program) list ->
   Graph_code.t * Graph_code.statistics

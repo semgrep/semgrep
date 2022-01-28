@@ -38,12 +38,19 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *  - integrate the other language-specific graph_code_xxx.ml
  *)
 
-[@@@warning "-33"]
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 open Graph_code_AST_env
+
+(* TODO: does not parse well with pfff
+type hooks = Graph_code_AST_env.hooks = {
+  on_def: (Graph_code.node * AST_generic.definition) -> unit;
+}
+*)
+
+let default_hooks : hooks =
+  { on_def_node = (fun _ _ -> ()); on_misc = (fun _ -> ()) }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -60,35 +67,18 @@ open Graph_code_AST_env
 (*****************************************************************************)
 open Graph_code_AST_visitor
 
-let extract_defs_uses ~phase ~g ~ast ~lang ~readable =
-  ignore (phase, g, ast, readable);
-
-  let current_parent, current_qualifier =
-    Lang_specific.top_parent_and_qualifier ~lang ~readable ~ast
-  in
-
-  let env =
-    {
-      g;
-      phase;
-      current_parent;
-      current_qualifier;
-      file_qualifier = current_qualifier;
-    }
-  in
-
-  (if phase = Defs then
-   match current_parent with
+let extract_defs_uses env ast =
+  (if env.phase = Defs then
+   match env.current_parent with
    | base, E.File ->
-       let dir = Common2.dirname readable in
-       G.create_intermediate_directories_if_not_present g dir;
-       g |> G.add_node (base, E.File);
-       g |> G.add_edge ((dir, E.Dir), (base, E.File)) G.Has
+       let dir = Common2.dirname env.readable in
+       G.create_intermediate_directories_if_not_present env.g dir;
+       env.g |> G.add_node (base, E.File);
+       env.g |> G.add_edge ((dir, E.Dir), (base, E.File)) G.Has
    | str, E.Package ->
        let xs = H.dotted_ident_of_str str in
-       H.create_intermediate_packages_if_not_present g G.root xs
+       H.create_intermediate_packages_if_not_present env.g G.root xs
    | n -> failwith (spf "top parent not handled yet: %s" (G.string_of_node n)));
-
   map_program env ast |> ignore
 
 (*****************************************************************************)
@@ -97,32 +87,47 @@ let extract_defs_uses ~phase ~g ~ast ~lang ~readable =
 
 let verbose = true
 
-(* TODO: to expensive to have all ASTs in memory? use lazy?
+(* TODO: too expensive to have all ASTs in memory? use lazy?
  * but then how to free memory between the 2 passes?
  *)
-let build ~root lang xs =
+let build ~root ~hooks lang xs =
   let g = G.create () in
   let stats = G.empty_statistics () in
   G.create_initial_hierarchy g;
 
   (*  let lookup_fails = Common2.hash_with_default (fun () -> 0) in *)
+  let env_for_file phase file ast =
+    let readable = Common.readable ~root file in
+    logger#info "readable: %s" readable;
+    let current_parent, current_qualifier =
+      Lang_specific.top_parent_and_qualifier ~lang ~readable ~ast
+    in
+    {
+      g;
+      phase;
+      hooks;
+      current_parent;
+      current_qualifier;
+      file_qualifier = current_qualifier;
+      readable;
+    }
+  in
 
   (* step1: creating the nodes and 'Has' edges, the defs *)
-  logger#info "step1";
+  logger#info "step1: the definitions";
   xs
   |> Console.progress ~show:verbose (fun k ->
          List.iter (fun (file, ast) ->
              k ();
-             let readable = Common.readable ~root file in
-             logger#info "readable: %s" readable;
-             extract_defs_uses ~phase:Defs ~g ~ast ~lang ~readable));
+             let env = env_for_file Defs file ast in
+             extract_defs_uses env ast));
 
-  logger#info "step2";
+  logger#info "step2: the uses";
   xs
   |> Console.progress ~show:verbose (fun k ->
          List.iter (fun (file, ast) ->
              k ();
-             let readable = Common.readable ~root file in
-             extract_defs_uses ~phase:Uses ~g ~ast ~lang ~readable));
+             let env = env_for_file Uses file ast in
+             extract_defs_uses env ast));
 
   (g, stats)
