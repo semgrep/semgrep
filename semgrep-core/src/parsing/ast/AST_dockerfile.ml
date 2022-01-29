@@ -135,8 +135,8 @@ type instruction =
   | Label of loc * string wrap * label_pair list
   | Expose of loc * string wrap * expose_port list (* 123/udp 123 56/tcp *)
   | Env of loc * string wrap * label_pair list
-  | Add of loc * string wrap * param option * path_or_ellipsis * path
-  | Copy of loc * string wrap * param option * path_or_ellipsis * path
+  | Add of loc * string wrap * param option * path_or_ellipsis list * path
+  | Copy of loc * string wrap * param option * path_or_ellipsis list * path
   | Entrypoint of loc * string wrap * argv_or_shell
   | Volume of loc * string wrap * array_or_paths
   | User of
