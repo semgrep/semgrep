@@ -1,4 +1,3 @@
-# Handles logic that requires git
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
@@ -47,37 +46,62 @@ class StatusCode:
 class BaselineHandler:
     """
     base_commit: Git ref to compare against
-    base_path: Path to start walking files from
-    paths: List of Paths (absolute or relative to current working directory) that
-            we want to traverse
     """
 
     def __init__(self, base_commit: str) -> None:
+        """
+        Raises Exception if
+        - cwd is not in git repo
+        - base_commit is not valid git hash
+        - there are tracked files with pending changes
+        - there are untracked files that will be overwritten by a file in the base commit
+        """
         self._base_commit = base_commit
         self._dirty_paths_by_status: Optional[Dict[str, List[Path]]] = None
 
-        # TODO error if not git repo or base_commit doesnt exist
-        rev_parse = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
-        )
-        # TODO check returncode
-        repo_root_str = rev_parse.stdout.strip()
-        self._repo_root_dir = Path(repo_root_str)
-
-        self._status = self._get_git_status()
-        self._abort_on_pending_changes()
-        self._abort_on_conflicting_untracked_paths(self._status)
+        try:
+            self._repo_root_dir = Path(self._get_repo_root())
+            self._status = self._get_git_status()
+            self._abort_on_pending_changes()
+            self._abort_on_conflicting_untracked_paths(self._status)
+        except subprocess.CalledProcessError as e:
+            raise Exception(
+                f"Error initializing baseline. While running command {e.cmd} recieved non-zero exit status of {e.returncode}.\n(stdout)->{e.stdout}\n(strerr)->{e.stderr}"
+            )
 
     def _relative_to_repo_root_to_absolute(self, fname: str) -> Path:
         return (Path(self._repo_root_dir) / fname).resolve()
 
+    def _get_repo_root(self) -> Path:
+        """
+        Returns Path object to the root of the git project cwd is in
+
+        Raises CalledProcessError if cwd is not in a git project
+        """
+        rev_parse = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=GIT_SH_TIMEOUT,
+            check=True,
+        )
+        repo_root_str = rev_parse.stdout.strip()
+        return Path(rev_parse.stdout.strip())
+
     def _get_git_status(self) -> GitStatus:
         """
+        Read and parse git diff output to keep track of all status types
+        in GitStatus object
+
+        Paths in GitStatus object are absolute paths
+
         Ignores files that are symlinks to directories
+
+        Raises CalledProcessError if there are any problems running `git diff` command
         """
         logger.debug("Initializing git status")
 
-        # Output of git command will be relative to git project root
+        # Output of git command will be relative to git project root not cwd
         logger.debug("Running git diff")
         status_output = zsplit(
             subprocess.run(
@@ -94,11 +118,13 @@ class BaselineHandler:
                     f"{self._base_commit}",
                 ],
                 timeout=GIT_SH_TIMEOUT,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            ).stdout.decode("utf-8", errors="replace")
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
         )
         logger.debug("Finished git diff. Parsing git status output")
+        logger.debug(status_output)
         added = []
         modified = []
         removed = []
@@ -150,6 +176,9 @@ class BaselineHandler:
         """
         Returns all paths that have a git status, grouped by change type.
 
+        Raises CalledProcessError if `git status` command fails though
+        not clear how that would happen since at this point cwd must be valid repo
+
         These can be staged, unstaged, or untracked.
         """
         if self._dirty_paths_by_status is not None:
@@ -159,10 +188,11 @@ class BaselineHandler:
         sub_out = subprocess.run(
             ["git", "status", "--porcelain", "-z"],
             timeout=GIT_SH_TIMEOUT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
+            text=True,
+            check=True,
         )
-        git_status_output = sub_out.stdout.decode("utf-8", errors="replace")
+        git_status_output = sub_out.stdout
         logger.debug(f"Git status output: {git_status_output}")
         output = zsplit(git_status_output)
         logger.debug("finished getting dirty paths")
@@ -186,15 +216,19 @@ class BaselineHandler:
     def _abort_on_pending_changes(self) -> None:
         """
         Raises Exception if any tracked files are changed.
+
+        We are aborting for now to prevent inadvertently deleting files while
+        doing a baseline scan until we confidently stash and unstash said changes
         """
         if set(self._get_dirty_paths_by_status()) - {StatusCode.Untracked}:
             raise Exception(
-                "Found pending changes in tracked files. Diff-aware runs require a clean git state."
+                "Found pending changes in tracked files. Baseline scans runs require a clean git state."
             )
 
     def _abort_on_conflicting_untracked_paths(self, status: GitStatus) -> None:
         """
-        Raises Exception if untracked paths were touched in the baseline, too.
+        Raises Exception if untracked paths in head were touched in baseline commit
+        This would mean checking out the baseline would overwrite said file
 
         :raises Exception: If the git repo is not in a clean state
         """
@@ -211,8 +245,9 @@ class BaselineHandler:
 
         if overlapping_paths:
             raise Exception(
-                "Some paths that changed since the baseline commit now show up as untracked files. "
-                f"Please commit or stash your untracked changes in these paths: {overlapping_paths}."
+                f"Found files that are untracked by git but exist in {self._base_commit}",
+                "Running a baseline scan will cause changes to be overwritten, so aborting.",
+                f"Please commit or stash your untracked changes in these paths: {overlapping_paths}.",
             )
 
     @contextmanager
@@ -220,22 +255,23 @@ class BaselineHandler:
         """
         Runs a block of code on files from the current branch HEAD.
 
-        :raises Exception: If git cannot detect a HEAD commit
-        :raises Exception: If unmerged files are detected
+        Raises CalledProcessError if any calls to git return non-zero exit code
         """
         status = self._status
 
+        # Reabort in case for some reason aborting in __init__ did not cause
+        # semgrep to exit
+        self._abort_on_pending_changes()
+        self._abort_on_conflicting_untracked_paths(self._status)
+
         logger.debug("Running git write-tree")
-        current_tree = (
-            subprocess.run(
-                ["git", "write-tree"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=GIT_SH_TIMEOUT,
-            )
-            .stdout.decode("utf-8", errors="replace")
-            .strip()
-        )
+        current_tree = subprocess.run(
+            ["git", "write-tree"],
+            timeout=GIT_SH_TIMEOUT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
         try:
             for a in status.added:
                 try:
@@ -246,20 +282,21 @@ class BaselineHandler:
                     )
 
             logger.debug("Running git checkout for baseline context")
-            # TODO check output
             subprocess.run(
                 ["git", "checkout", f"{self._base_commit}", "--", "."],
                 timeout=GIT_SH_TIMEOUT,
+                check=True,
             )
             logger.debug("Finished git checkout for baseline context")
             yield
         finally:
+            # Return to non-baseline state
+
             # git checkout will fail if the checked-out index deletes all files in the repo
             # In this case, we still want to continue without error.
             # Note that we have no good way of detecting this issue without inspecting the checkout output
             # message, which means we are fragile with respect to git version here.
             logger.debug("Running git checkout to return original context")
-            # TODO check output
             x = subprocess.run(
                 ["git", "checkout", f"{current_tree.strip()}", "--", "."],
                 timeout=GIT_SH_TIMEOUT,

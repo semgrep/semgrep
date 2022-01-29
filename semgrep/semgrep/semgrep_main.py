@@ -203,7 +203,10 @@ def remove_matches_in_baseline(
     """
     Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
     """
+    logger.verbose("Removing matches that exist in baseline scan")
     kept_matches_by_rule: RuleMatchMap = {}
+
+    num_removed = 0
 
     for rule in head_matches_by_rule:
         kept_matches = []
@@ -226,11 +229,14 @@ def remove_matches_in_baseline(
             for idx in range(len(baseline_matches)):
                 if head_match.is_baseline_equivalent(baseline_matches[idx]):
                     baseline_matches.pop(idx)
+                    num_removed += 1
                     break
             else:
                 kept_matches.append(head_match)
 
         kept_matches_by_rule[rule] = kept_matches
+
+    logger.verbose(f"Removed {num_removed} matches that were in baseline scan")
     return kept_matches_by_rule
 
 
@@ -339,6 +345,15 @@ def main(
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 
+    # Initialize baseline before running rules to fail early on bad args
+    baseline_handler = None
+    if baseline_commit:
+        try:
+            baseline_handler = BaselineHandler(baseline_commit)
+        # TODO better handling
+        except Exception as e:
+            raise SemgrepError(e)
+
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
@@ -358,13 +373,8 @@ def main(
     output_handler.handle_semgrep_errors(semgrep_errors)
 
     # Run baseline if needed
-    if baseline_commit:
-        try:
-            baseline_handler = BaselineHandler(baseline_commit)
-        # TODO better handling
-        except Exception as e:
-            raise e
-
+    if baseline_handler:
+        logger.info(f"Running baseline scan with base set to: {baseline_commit}")
         with baseline_handler.baseline_context():
             (
                 baseline_rule_matches_by_rule,
