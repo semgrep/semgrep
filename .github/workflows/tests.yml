@@ -309,4 +309,4 @@ jobs:
       - name: Point homebrew pipgrip to pip pipgrip
         # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
         # this tricks it into using our 3.9 pipgrip
-        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.10/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
+        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.9/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
