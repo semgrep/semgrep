@@ -1,6 +1,6 @@
+import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -23,7 +23,7 @@ def test_semgrep_rules_repo(run_semgrep_in_tmp):
     )
 
     # Remove subdir that doesnt contain rules
-    Path("./semgrep-rules/stats").unlink()
+    shutil.rmtree("./semgrep-rules/stats")
 
     _fail_subprocess_on_error(
         [
