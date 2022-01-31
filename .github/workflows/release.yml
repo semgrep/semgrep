@@ -307,7 +307,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
-          python-version: 3.9
+          python-version: 3.9.10
       - name: Brew update
         run: brew update
       - name: Install brew pipgrip
@@ -317,7 +317,7 @@ jobs:
       - name: Point homebrew pipgrip to pip pipgrip
         # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
         # this tricks it into using our 3.9 pipgrip
-        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.9/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
+        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.10/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
