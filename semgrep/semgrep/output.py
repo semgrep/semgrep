@@ -35,6 +35,7 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
+from semgrep.semgrep.constants import Colors
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.util import is_url
@@ -215,12 +216,12 @@ class OutputHandler:
             print_threshold_hint = print_threshold_hint or (
                 num_errs > 5 and not self.settings.timeout_threshold
             )
-            logger.error(with_color("red", terminal_wrap(error_msg)))
+            logger.error(with_color(Colors.red, terminal_wrap(error_msg)))
 
         if print_threshold_hint:
             logger.error(
                 with_color(
-                    "red",
+                    Colors.red,
                     f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
                 )
             )
@@ -236,7 +237,7 @@ class OutputHandler:
             if self.settings.output_format == OutputFormat.TEXT and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
-                logger.error(with_color("red", str(error)))
+                logger.error(with_color(Colors.red, str(error)))
 
     def _final_raise(self, ex: Optional[Exception], error_stats: Optional[str]) -> None:
         if ex is None:

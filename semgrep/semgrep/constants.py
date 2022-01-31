@@ -2,6 +2,7 @@ import os
 import re
 from enum import auto
 from enum import Enum
+from types import SimpleNamespace
 from typing import Type
 
 from semgrep import __VERSION__
@@ -116,3 +117,20 @@ MAX_CHARS_FLAG_NAME = "--max-chars-per-line"
 DEFAULT_MAX_CHARS_PER_LINE = 160
 ELLIPSIS_STRING = " ... "
 DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
+
+
+class Colors(Enum):
+    # these colors come from user's terminal theme
+    foreground = 0
+    bright = 15  # also referred to as "bold color"
+    white = 7
+    black = 256
+    cyan = "cyan"  # for filenames
+    green = "green"  # for autofix
+    yellow = "yellow"  # TODO: benchmark timing output?
+    red = "red"  # for errors
+    bright_blue = "bright_blue"  # TODO: line numbers?
+
+    # these colors ignore user's terminal theme
+    forced_black = 16  # #000
+    forced_white = 231  # #FFF

@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 import click
 
+from semgrep.constants import Colors
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
@@ -112,9 +113,9 @@ def abort(message: str) -> None:
 
 
 def with_color(
-    color: str,
+    color: Colors,
     text: str,
-    bgcolor: str = None,
+    bgcolor: Optional[Colors] = None,
     bold: bool = False,
     underline: bool = False,
 ) -> str:
@@ -123,16 +124,16 @@ def with_color(
 
     Use ANSI color names or 8 bit colors (24-bit is not well supported by terminals)
     In click bold always switches colors to their bright variant (if there is one)
-    0 = default foreground color
-    15 = the color 'bold' or bright foreground
-    7 = theme 'white'
-    256 = theme 'black'
-    16 = real black #000
-    231 = real white #fff
     """
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
-    return click.style(text, fg=color, bg=bgcolor, underline=underline, bold=bold)
+    return click.style(
+        text,
+        fg=color.value,
+        bg=(bgcolor.value if bgcolor is not None else None),
+        underline=underline,
+        bold=bold,
+    )
 
 
 def terminal_wrap(text: str) -> str:

@@ -33,6 +33,7 @@ from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep.constants import Colors
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -218,7 +219,7 @@ class CoreRunner:
         # for proper quoting of the command line.
         shell_command = " ".join(core_run.args)
         details = with_color(
-            "white",
+            Colors.white,
             f"semgrep-core exit code: {returncode}\n"
             f"semgrep-core command: {shell_command}\n"
             f"unexpected non-json output while invoking semgrep-core:\n"

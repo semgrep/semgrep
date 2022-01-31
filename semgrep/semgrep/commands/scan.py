@@ -25,6 +25,7 @@ from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.notifications import possibly_notify_user
+from semgrep.semgrep.constants import Colors
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.types import MetricsState
 from semgrep.util import abort
@@ -633,7 +634,7 @@ def scan(
     if include and exclude:
         logger.warning(
             with_color(
-                "yellow",
+                Colors.yellow,
                 "Paths that match both --include and --exclude will be skipped by Semgrep.",
             )
         )
