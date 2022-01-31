@@ -2,7 +2,6 @@ import os
 import re
 from enum import auto
 from enum import Enum
-from types import SimpleNamespace
 from typing import Type
 
 from semgrep import __VERSION__
