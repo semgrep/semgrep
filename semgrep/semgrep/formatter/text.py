@@ -31,6 +31,18 @@ from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
 from semgrep.util import with_color
+from shutil import get_terminal_size
+
+MAX_TEXT_WIDTH = 120
+
+terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
+if terminal_size <= 0:
+    terminal_size = MAX_TEXT_WIDTH
+width = min(MAX_TEXT_WIDTH, terminal_size)
+if width <= 110:
+    width = width - 5
+else:
+    width = width - (width - 100)
 
 
 class TextFormatter(BaseFormatter):
@@ -326,7 +338,7 @@ class TextFormatter(BaseFormatter):
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                yield f"     {with_color(0, f'{check_id} ', bold=True)}\n{click.wrap_text(f'{message}', 84, '        ', '        ', True)}\n        {shortlink}\n"
+                yield f"{click.wrap_text(f'{with_color(0, check_id, bold=True)}', width + 10, '     ', '     ', False)}\n{click.wrap_text(f'{message}', width, '        ', '        ', True)}\n        {shortlink}\n"
 
             last_file = current_file
             last_message = message

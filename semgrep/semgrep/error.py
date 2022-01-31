@@ -155,7 +155,7 @@ class SemgrepCoreError(SemgrepError):
             ):
                 msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nIn rule {self.rule_id}: {self.message}\n"
             else:
-                msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nFailed to run {self.rule_id} on {self.path}: {self.message}\n"
+                msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nWhen running {self.rule_id} on {self.path}: {self.message}\n"
         else:
             msg = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}\n\nIn file {self.path}:{self.start.line}\n\t{self.message}\n"
         return msg
