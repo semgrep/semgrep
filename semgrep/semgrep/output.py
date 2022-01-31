@@ -17,6 +17,7 @@ from typing import Set
 from typing import Type
 
 from semgrep import config_resolver
+from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -35,7 +36,6 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
-from semgrep.semgrep.constants import Colors
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.util import is_url

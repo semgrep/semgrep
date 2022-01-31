@@ -17,6 +17,7 @@ from typing import Tuple
 from ruamel.yaml import YAML
 
 from semgrep.config_resolver import Config
+from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import RuleId
@@ -33,7 +34,6 @@ from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep.constants import Colors
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language

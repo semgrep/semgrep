@@ -11,13 +11,12 @@ from typing import Tuple
 
 import attr
 
-from semgrep.constants import ANSI_COLORS
+from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.rule_match import CoreLocation
-from semgrep.semgrep.constants import Colors
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0

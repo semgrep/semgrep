@@ -2,6 +2,7 @@ import functools
 import itertools
 from itertools import groupby
 from pathlib import Path
+from shutil import get_terminal_size
 from typing import Any
 from typing import cast
 from typing import Iterable
@@ -11,12 +12,13 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
-import colorama
 import click
+import colorama
 
 from semgrep.constants import BREAK_LINE_CHAR
 from semgrep.constants import BREAK_LINE_WIDTH
 from semgrep.constants import CLI_RULE_ID
+from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
@@ -27,11 +29,9 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep.constants import Colors
 from semgrep.util import format_bytes
 from semgrep.util import truncate
 from semgrep.util import with_color
-from shutil import get_terminal_size
 
 MAX_TEXT_WIDTH = 120
 

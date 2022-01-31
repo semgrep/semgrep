@@ -1,4 +1,4 @@
-from semgrep.semgrep.constants import Colors
+from semgrep.constants import Colors
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
