@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Handle missing target files without raising an exception (#4462)
+- Match resources in Java try-with-resources statements (#4228)
 
 ## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 01-20-2022
 
