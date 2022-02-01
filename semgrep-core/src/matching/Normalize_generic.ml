@@ -118,6 +118,7 @@ let rec eval x : svalue option =
       eval e
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> (
+      (* deep: *)
       match !hook_constant_propagation_and_evaluate_literal with
       | None -> None
       | Some f -> f x)

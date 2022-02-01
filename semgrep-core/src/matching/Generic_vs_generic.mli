@@ -22,3 +22,6 @@ val m_fields : AST_generic.field list Matching_generic.matcher
 
 (* used only for unit testing *)
 val m_any : AST_generic.any Matching_generic.matcher
+
+val hook_find_possible_parents :
+  (AST_generic.dotted_ident -> AST_generic.name list) option ref

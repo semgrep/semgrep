@@ -58,6 +58,11 @@ and phase =
 
 and hooks = {
   on_def_node : Graph_code.node -> AST_generic.definition -> unit;
+  on_extend_edge :
+    Graph_code.node ->
+    Graph_code.node ->
+    AST_generic.entity * AST_generic.class_definition ->
+    unit;
   (* TODO: fill with something useful *)
   on_misc : unit -> unit;
 }
