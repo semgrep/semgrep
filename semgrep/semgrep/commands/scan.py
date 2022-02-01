@@ -16,7 +16,6 @@ from click_option_group import optgroup
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.config_resolver import list_current_public_rulesets
-from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
@@ -634,7 +633,7 @@ def scan(
     if include and exclude:
         logger.warning(
             with_color(
-                Colors.yellow,
+                "yellow",
                 "Paths that match both --include and --exclude will be skipped by Semgrep.",
             )
         )
