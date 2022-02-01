@@ -35,6 +35,8 @@ open Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+let hook_find_possible_parents = ref None
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -60,6 +62,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    to support certain code equivalences (see equivalence: tag)
  *  - we do not care about differences in spaces/indentations/comments.
  *    we work at the AST-level.
+ *  - other equivalences using global analysis (see deep: tag)
  *
  * alternatives:
  *  - would it be simpler to work on a simpler AST, like a Term language,
@@ -2650,11 +2653,47 @@ and m_list__m_class_parent (xsa : G.class_parent list)
       (* less-is-ok: it's ok to not specify all the parents I think *)
     ~less_is_ok:true xsa xsb
 
-and m_class_parent (a1, a2) (b1, b2) =
+and m_class_parent_basic (a1, a2) (b1, b2) =
   let* () = m_type_ a1 b1 in
   (* less: m_option_none_can_match_some? *)
   let* () = m_option m_arguments a2 b2 in
   return ()
+
+and m_class_parent a b =
+  m_class_parent_basic a b >!> (* less: could be >||> *)
+                           fun () ->
+  match (a, b) with
+  (* less: this could be generalized, but let's go simple first *)
+  | ( (a1, None),
+      ( {
+          t =
+            B.TyN
+              (B.Id
+                ( _id,
+                  {
+                    id_resolved =
+                      { contents = Some (B.ImportedEntity xs, _sid) };
+                    _;
+                  } ));
+          _;
+        },
+        None ) ) ->
+      (* deep: *)
+      let candidates =
+        match !hook_find_possible_parents with
+        | None -> []
+        | Some f -> f xs
+      in
+      (* less: use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs ->
+            let t = B.TyN x |> B.t in
+            m_type_ a1 t >||> aux xs
+      in
+      aux candidates
+  | _ -> fail ()
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)

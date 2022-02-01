@@ -50,7 +50,11 @@ type hooks = Graph_code_AST_env.hooks = {
 *)
 
 let default_hooks : hooks =
-  { on_def_node = (fun _ _ -> ()); on_misc = (fun _ -> ()) }
+  {
+    on_def_node = (fun _ _ -> ());
+    on_extend_edge = (fun _ _ _ -> ());
+    on_misc = (fun _ -> ());
+  }
 
 (*****************************************************************************)
 (* Helpers *)
