@@ -37,7 +37,7 @@ module PI = Parse_info
 (*****************************************************************************)
 let id x = x
 
-let option = Common.map_opt
+let option = Option.map
 
 let list = List.map
 
@@ -124,7 +124,7 @@ let rec expr e =
           in
           G.DotAccess (e, t, fld))
   | Splat (t, eopt) ->
-      let xs = option expr eopt |> Common.opt_to_list |> List.map G.arg in
+      let xs = option expr eopt |> Option.to_list |> List.map G.arg in
       let special = G.IdSpecial (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->

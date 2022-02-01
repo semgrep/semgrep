@@ -33,7 +33,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 
-let option = Common.map_opt
+let option = Option.map
 
 let list = List.map
 
@@ -586,7 +586,7 @@ and class_def
   let def =
     {
       G.ckind = kind;
-      cextends = extends |> Common.opt_to_list;
+      cextends = extends |> Option.to_list;
       cimplements = implements;
       cmixins = uses;
       cparams = [];

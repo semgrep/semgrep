@@ -44,7 +44,7 @@ let token = H.token
 
 let str = H.str
 
-let option = Common.map_opt
+let option = Option.map
 
 (*****************************************************************************)
 (* Boilerplate converter *)

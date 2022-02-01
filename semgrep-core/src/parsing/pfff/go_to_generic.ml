@@ -34,7 +34,7 @@ let string = id
 
 let list = List.map
 
-let option = Common.map_opt
+let option = Option.map
 
 let either = OCaml.map_of_either
 
@@ -472,9 +472,7 @@ let top_func () =
         [ G.For (t, vx, v4) |> G.s ]
     | Return (v1, v2) ->
         let v1 = tok v1 and v2 = option (list expr) v2 in
-        [
-          G.Return (v1, v2 |> Common.map_opt list_to_tuple_or_expr, G.sc) |> G.s;
-        ]
+        [ G.Return (v1, v2 |> Option.map list_to_tuple_or_expr, G.sc) |> G.s ]
     | Break (v1, v2) ->
         let v1 = tok v1 and v2 = option ident v2 in
         [ G.Break (v1, H.opt_to_label_ident v2, G.sc) |> G.s ]

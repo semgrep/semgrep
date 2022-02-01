@@ -31,7 +31,7 @@ open Ast_c
 (*****************************************************************************)
 let id x = x
 
-let option = Common.map_opt
+let option = Option.map
 
 let list = Common.map
 

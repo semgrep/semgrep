@@ -173,7 +173,7 @@ let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
 let (take_opt :
       dict -> env -> (env -> key -> G.expr -> 'a) -> string -> 'a option) =
  fun dict env f key_str ->
-  Common.map_opt
+  Option.map
     (fun (key, value) ->
       let res = f env key value in
       Hashtbl.remove dict.h key_str;
@@ -197,7 +197,7 @@ let yaml_to_dict env =
 (* Mutates the Hashtbl! *)
 let (take_opt_no_env : dict -> (key -> G.expr -> 'a) -> string -> 'a option) =
  fun dict f key_str ->
-  Common.map_opt
+  Option.map
     (fun (key, value) ->
       let res = f key value in
       Hashtbl.remove dict.h key_str;

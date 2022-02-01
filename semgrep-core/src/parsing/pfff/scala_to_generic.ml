@@ -50,7 +50,7 @@ let v_bool = id
 
 let v_list = List.map
 
-let v_option = Common.map_opt
+let v_option = Option.map
 
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
