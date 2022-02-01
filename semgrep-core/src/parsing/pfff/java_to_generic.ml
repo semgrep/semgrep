@@ -421,18 +421,14 @@ and arguments v : G.argument list G.bracket = bracket (list argument) v
 
 and fix_op v = H.conv_incr v
 
-and resource (v : resource) : G.stmt =
+and resource t (v : resource) : G.stmt =
   match v with
   | Left v ->
       let ent, v = var_with_init v in
       G.DefStmt (ent, G.VarDef v) |> G.s
-  | Right e -> G.ExprStmt (expr e, unsafe_fake "") |> G.s
+  | Right e -> G.ExprStmt (expr e, t) |> G.s
 
-and resources (t1, v, t2) =
-  match v with
-  | [] -> G.Block (t1, [], t2) |> G.s
-  | [ v ] -> resource v
-  | _ :: _ -> G.Block (t1, list resource v, t2) |> G.s
+and resources (t1, v, t2) = G.Block (t1, list (resource t2) v, t2) |> G.s
 
 and stmt st =
   match st with
