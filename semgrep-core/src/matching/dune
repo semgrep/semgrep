@@ -11,7 +11,7 @@
 
    semgrep_core
    semgrep_optimizing
-   semgrep_typing
+   semgrep_lsp
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 ; restore once can compile semgrep with working ppxlib and
