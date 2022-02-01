@@ -309,7 +309,7 @@ and eval_concat_string env args : literal option =
         | _else -> None)
       (Some "")
   in
-  args |> go_concat |> map_opt literal_of_string
+  args |> go_concat |> Option.map literal_of_string
 
 (*****************************************************************************)
 (* Entry point *)
@@ -385,7 +385,7 @@ let propagate_basic lang prog =
                 _,
                 rexp ) ->
               eval_expr env rexp
-              |> do_option (fun literal ->
+              |> Option.iter (fun literal ->
                      match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
                      | Some stats ->
                          if

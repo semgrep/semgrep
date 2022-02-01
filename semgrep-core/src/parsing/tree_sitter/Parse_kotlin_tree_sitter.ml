@@ -580,7 +580,7 @@ and block (env : env) ((v1, v2, v3) : CST.block) =
   Block (v1, v2, v3) |> G.s
 
 and call_suffix (env : env) ((v1, v2) : CST.call_suffix) : G.arguments =
-  let _v1TODO = Common.map_opt (type_arguments env) v1 in
+  let _v1TODO = Option.map (type_arguments env) v1 in
   let v2 =
     match v2 with
     | `Opt_value_args_anno_lambda (v1, _v2) ->
@@ -1376,7 +1376,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       | None -> Return (tret, v2, sc tret) |> G.s
       | Some id ->
           let n = N (H2.name_of_id id) |> G.e in
-          let any = Common.opt_to_list v2 |> List.map (fun e -> E e) in
+          let any = Option.to_list v2 |> List.map (fun e -> E e) in
           OtherStmt (OS_Todo, TodoK ("return@", tret) :: E n :: any) |> G.s)
   | `Cont tok ->
       let v1 = token env tok (* "continue" *) in

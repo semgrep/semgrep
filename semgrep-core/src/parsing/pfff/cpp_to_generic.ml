@@ -231,7 +231,7 @@ and map_typeC env x : G.type_ =
   | TSized (v1, v2) ->
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
-      let allt = v1 @ Common.opt_to_list v2 in
+      let allt = v1 @ Option.to_list v2 in
       G.OtherType (("TSized", G.fake ""), allt |> List.map (fun t -> G.T t))
       |> G.t
   | TPointer (v1, v2, v3) ->
@@ -1015,7 +1015,7 @@ and map_jump env = function
       fun sc -> G.Break (v1, G.LNone, sc) |> G.s
   | Return (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_of_option (map_argument env) v2 in
-      let v2 = Common.map_opt H.argument_to_expr v2 in
+      let v2 = Option.map H.argument_to_expr v2 in
       fun sc -> G.Return (v1, v2, sc) |> G.s
   | GotoComputed (v1, v2, v3) ->
       let v1 = map_tok env v1
@@ -1130,7 +1130,7 @@ and map_decl env x : G.stmt list =
       let v1 = map_tok env v1
       and v2 = map_of_option (map_ident env) v2
       and _l, v3, r = map_declarations env v3 in
-      let dir1 = G.Package (v1, opt_to_list v2) |> G.d in
+      let dir1 = G.Package (v1, Option.to_list v2) |> G.d in
       let dir2 = G.PackageEnd r |> G.d in
       [ G.DirectiveStmt dir1 |> G.s ] @ v3 @ [ G.DirectiveStmt dir2 |> G.s ]
   | StaticAssert (v1, v2) ->

@@ -62,7 +62,7 @@ let add_arc (starti, nodei) g = g#add_arc ((starti, nodei), F.Direct)
 
 let add_arc_from_opt (starti_opt, nodei) g =
   starti_opt
-  |> Common.do_option (fun starti -> g#add_arc ((starti, nodei), F.Direct))
+  |> Option.iter (fun starti -> g#add_arc ((starti, nodei), F.Direct))
 
 let add_arc_opt_to_opt (starti_opt, nodei_opt) g =
   starti_opt

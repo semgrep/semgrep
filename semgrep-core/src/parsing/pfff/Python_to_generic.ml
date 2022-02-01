@@ -91,7 +91,7 @@ let is_in_scope env s =
 (*****************************************************************************)
 let id x = x
 
-let option = Common.map_opt
+let option = Option.map
 
 let list = List.map
 
@@ -778,7 +778,7 @@ and stmt_aux env x =
       [ G.Try (t, v1, [], Some (t2, v2)) |> G.s ]
   | Assert (t, v1, v2) ->
       let v1 = expr env v1 and v2 = option (expr env) v2 in
-      let es = v1 :: Common.opt_to_list v2 in
+      let es = v1 :: Option.to_list v2 in
       let args = es |> List.map G.arg in
       [ G.Assert (t, fb args, G.sc) |> G.s ]
   | ImportAs (t, v1, v2) ->

@@ -30,7 +30,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 
-let option = Common.map_opt
+let option = Option.map
 
 let list = List.map
 
@@ -320,7 +320,7 @@ and expr e =
       let anys =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
-        @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
+        @ (Option.to_list v4 |> List.map G.unbracket |> List.flatten
           |> List.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
@@ -482,7 +482,7 @@ and stmt st =
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      let es = v1 :: Common.opt_to_list v2 in
+      let es = v1 :: Option.to_list v2 in
       let args = es |> List.map G.arg in
       G.Assert (t, fb args, G.sc) |> G.s
 
@@ -652,7 +652,7 @@ and class_decl
   let cdef =
     {
       G.ckind = v2;
-      cextends = Common.opt_to_list v5;
+      cextends = Option.to_list v5;
       cimplements = v6;
       cmixins = [];
       cparams;

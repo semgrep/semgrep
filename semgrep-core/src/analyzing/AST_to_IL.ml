@@ -64,7 +64,7 @@ let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
 let locate opt_tok s =
   let opt_loc =
-    try map_opt Parse_info.string_of_info opt_tok
+    try Option.map Parse_info.string_of_info opt_tok
     with Parse_info.NoTokenLocation _ -> None
   in
   match opt_loc with
@@ -873,9 +873,7 @@ let rec stmt_aux env st =
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
-      let st2 =
-        List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
-      in
+      let st2 = List.map (stmt env) (st2 |> Option.to_list) |> List.flatten in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
       let ss, translate_cases =
