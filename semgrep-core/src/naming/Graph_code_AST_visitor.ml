@@ -1020,7 +1020,7 @@ and map_definition env def =
         let str = H.str_of_dotted_ident dotted_ident in
         let kind = H.entity_kind_of_definition env (v1, v2) in
         let node = (str, kind) in
-        if env.phase = Defs then
+        if env.phase = Defs then (
           if
             (* less: static? *)
             (* less: we just collapse all methods with same name together *)
@@ -1031,7 +1031,25 @@ and map_definition env def =
             env.g |> G.add_node node;
             env.g |> G.add_nodeinfo node (H.nodeinfo id);
             env.g |> G.add_edge (env.current_parent, node) G.Has);
-        env.hooks.on_def_node node def;
+          env.hooks.on_def_node node def);
+
+        (match v2 with
+        (* TODO: handle multiple inheritance? *)
+        (* TODO: handle if parent local class? dotted_ident_of_name_opt
+         * would fail in that situation no?
+         *)
+        | ClassDef
+            ({ cextends = [ ({ t = TyN parent; _ }, None) ]; _ } as classdef) ->
+            H.dotted_ident_of_name_opt parent
+            |> Option.iter (fun xs ->
+                   if env.phase = Uses then
+                     (* !!the uses!! *)
+                     let n2opt = L.lookup_dotted_ident_opt env xs in
+                     n2opt
+                     |> Option.iter (fun n2 ->
+                            env.hooks.on_extend_edge node n2 (v1, classdef)))
+        | _ -> ());
+
         { env with current_parent = node; current_qualifier = dotted_ident }
     | None ->
         (* TODO? handle also the qualified ident case? *)

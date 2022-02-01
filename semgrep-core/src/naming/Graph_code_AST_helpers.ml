@@ -43,6 +43,8 @@ let str_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
  *)
 let dotted_ident_of_str str = Common.split "\\." str
 
+(* see also AST_generic_helpers.name_of_ids *)
+
 let last_ident_of_dotted_ident xs =
   match List.rev xs with
   | [] -> raise Impossible
