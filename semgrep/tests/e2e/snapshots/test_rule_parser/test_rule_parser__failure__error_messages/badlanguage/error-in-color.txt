@@ -1,9 +1,9 @@
-[31m[31msemgrep error[0m: invalid language: intercal
+[31m[22m[24m[31m[22m[24msemgrep error[0m: invalid language: intercal
   --> rules/syntax/badlanguage.yaml:7
-[94m6 | [0m    message: "$X is being assigned to one or two"
-[94m7 | [0m    languages: [intercal]
-[94m  | [0m               [31m^^^^^^^^^^[0m
-[94m8 | [0m    severity: WARNING
+[94m[22m[24m6 | [0m    message: "$X is being assigned to one or two"
+[94m[22m[24m7 | [0m    languages: [intercal]
+[94m[22m[24m  | [0m               [31m[22m[24m^^^^^^^^^^[0m
+[94m[22m[24m8 | [0m    severity: WARNING
 
-[31munsupported language: intercal. supported languages are: bash, c, c#, c++, cpp, csharp, docker, dockerfile, generic, go, golang, hack, hcl, html, java, javascript, js, json, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, sol, solidity, terraform, tf, ts, typescript, vue, yaml[0m
+[31m[22m[24munsupported language: intercal. supported languages are: bash, c, c#, c++, cpp, csharp, docker, dockerfile, generic, go, golang, hack, hcl, html, java, javascript, js, json, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, sol, solidity, terraform, tf, ts, typescript, vue, yaml[0m
 [0m
