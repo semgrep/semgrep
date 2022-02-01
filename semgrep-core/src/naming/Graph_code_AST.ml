@@ -24,8 +24,32 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Prelude *)
 (*****************************************************************************)
 (* Graph of dependencies for the generic AST.
- * See graph_code.ml, AST_generic.ml, and main_codegraph.ml for more
- * information.
+ *
+ * See graph_code.ml (in pfff), AST_generic.ml (in semgrep), and
+ * main_codegraph.ml (in codegraph) for more information.
+ *
+ * On the location of Graph_code_AST.ml:
+ * Ideally, this file should be in the deep-semgrep repository, but
+ * this would prevent to use it in other OSS projects like codegraph or
+ * codecheck, or to use it for the .pyh checker that we want to use on semgrep.
+ *
+ * In theory, this file should be part of the codegraph repository, but
+ * this would add another dependency in deep-semgrep.
+ * Moreover, Graph_code_AST.ml leverages Naming_AST.ml and generalizes it
+ * to resolve names globally, so it makes sense to have them close together.
+ * It's also closer to AST_generic.ml. In any case, codegraph (the
+ * dependency explorer GUI) was designed to not be dependent of any
+ * language and any graph_code_xxx.ml, and instead rely on the serialized
+ * (general) graph_code.marshall on the disk. Thus, codegraph can still work
+ * even without a Graph_code_AST.ml (only codegraph_build is impacted,
+ * because instead people will have to use for example
+ * `semgrep-core -l python -build_codegraph`)
+ *
+ * Note that even though Graph_code_AST.ml is inside the semgrep repository,
+ * its library name is pfff-lang_GENERIC-naming and does not have dependencies to
+ * other semgrep modules, so we could easily extract it from semgrep
+ * at some point and move it in codegraph for example.
+ *
  *
  * related work:
  *  - stackgraph (and scope graph) by github
@@ -69,7 +93,7 @@ let default_hooks : hooks =
 (*****************************************************************************)
 (* Visitor *)
 (*****************************************************************************)
-open Graph_code_AST_visitor
+(* see Graph_code_AST_visitor *)
 
 let extract_defs_uses env ast =
   (if env.phase = Defs then
@@ -83,7 +107,8 @@ let extract_defs_uses env ast =
        let xs = H.dotted_ident_of_str str in
        H.create_intermediate_packages_if_not_present env.g G.root xs
    | n -> failwith (spf "top parent not handled yet: %s" (G.string_of_node n)));
-  map_program env ast |> ignore
+
+  Graph_code_AST_visitor.map_program env ast |> ignore
 
 (*****************************************************************************)
 (* Entry point *)
