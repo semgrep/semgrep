@@ -1,8 +1,8 @@
-[31m[31msemgrep error[0m: Invalid rule schema
+[31m[22m[24m[31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad7.yaml:3
-[94m3 | [0m  - id: 123
-[94m  | [0m        [31m^^^[0m
+[94m[22m[24m3 | [0m  - id: 123
+[94m[22m[24m  | [0m        [31m[22m[24m^^^[0m
 
-[31m123 is not of type 'string'[0m
+[31m[22m[24m123 is not of type 'string'[0m
 [0m
-[31mrun with --strict and there were 1 errors loading configs[0m
+[31m[22m[24mrun with --strict and there were 1 errors loading configs[0m

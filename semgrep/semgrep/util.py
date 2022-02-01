@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 import click
 
+from semgrep.constants import Colors
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
@@ -111,13 +112,28 @@ def abort(message: str) -> None:
     sys.exit(1)
 
 
-def with_color(color: str, text: str, bold: bool = False) -> str:
+def with_color(
+    color: Colors,
+    text: str,
+    bgcolor: Optional[Colors] = None,
+    bold: bool = False,
+    underline: bool = False,
+) -> str:
     """
     Wrap text in color & reset
+
+    Use ANSI color names or 8 bit colors (24-bit is not well supported by terminals)
+    In click bold always switches colors to their bright variant (if there is one)
     """
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
-    return click.style(text, fg=color)
+    return click.style(
+        text,
+        fg=color.value,
+        bg=(bgcolor.value if bgcolor is not None else None),
+        underline=underline,
+        bold=bold,
+    )
 
 
 def terminal_wrap(text: str) -> str:

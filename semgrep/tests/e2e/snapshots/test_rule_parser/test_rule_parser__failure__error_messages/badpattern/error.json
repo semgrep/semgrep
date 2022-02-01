@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Semgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python",
+      "message": "[ERROR] Semgrep Core \u2014 Pattern parse error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nIn rule eqeq-is-bad: Invalid pattern for Python\n",
       "rule_id": "eqeq-is-bad",
       "spans": [
         {

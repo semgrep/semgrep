@@ -17,6 +17,7 @@ from typing import Tuple
 from ruamel.yaml import YAML
 
 from semgrep.config_resolver import Config
+from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import RuleId
@@ -218,7 +219,7 @@ class CoreRunner:
         # for proper quoting of the command line.
         shell_command = " ".join(core_run.args)
         details = with_color(
-            "white",
+            Colors.white,
             f"semgrep-core exit code: {returncode}\n"
             f"semgrep-core command: {shell_command}\n"
             f"unexpected non-json output while invoking semgrep-core:\n"

@@ -1,8 +1,8 @@
-[31m[31msemgrep error[0m: Invalid rule schema
+[31m[22m[24m[31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad6.yaml:5
-[94m5 | [0m      - pattern-either: "$X == $X"
-[94m6 | [0m    message: "$X is being assigned to one or two"
+[94m[22m[24m5 | [0m      - pattern-either: "$X == $X"
+[94m[22m[24m6 | [0m    message: "$X is being assigned to one or two"
 
-[31m'$X == $X' is not of type 'array'[0m
+[31m[22m[24m'$X == $X' is not of type 'array'[0m
 [0m
-[31mrun with --strict and there were 1 errors loading configs[0m
+[31m[22m[24mrun with --strict and there were 1 errors loading configs[0m
