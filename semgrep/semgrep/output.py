@@ -193,8 +193,11 @@ class OutputHandler:
             ):
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
-                assert err.rule_id  # Always defined for timeout errors
-                timeout_errors[err.path].append(err.rule_id)
+
+                if not err.rule_id:
+                    timeout_errors[err.path].append("<unknown rule_id>")
+                else:
+                    timeout_errors[err.path].append(err.rule_id)
             else:
                 self._handle_semgrep_error(err)
 
