@@ -27,6 +27,7 @@ rules:
        - Unit_*.ml
        - Test_*.ml
        - runner/*.ml
+       - experiments/*
        - Check_*.ml
 
   - id: not-using-our-pcre-wrappers

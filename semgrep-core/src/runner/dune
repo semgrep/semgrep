@@ -11,6 +11,7 @@
     semgrep_matching
     semgrep_datalog
     semgrep_engine
+    semgrep_experiments_misc
  )
  (preprocess (pps
       ppx_deriving.show
