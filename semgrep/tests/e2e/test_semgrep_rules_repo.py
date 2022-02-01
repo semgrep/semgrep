@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 
@@ -20,6 +21,9 @@ def test_semgrep_rules_repo(run_semgrep_in_tmp):
     subprocess.check_output(
         ["git", "clone", "--depth=1", "https://github.com/returntocorp/semgrep-rules"]
     )
+
+    # Remove subdir that doesnt contain rules
+    shutil.rmtree("./semgrep-rules/stats")
 
     _fail_subprocess_on_error(
         [

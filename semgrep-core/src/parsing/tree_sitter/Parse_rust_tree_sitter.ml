@@ -2465,7 +2465,7 @@ and map_reference_type (env : env) ((v1, v2, v3, v4) : CST.reference_type) :
   in
   let type_ = map_type_ env v4 in
   (* TODO TyRef with lifetime *)
-  { t = G.TyRef (ref_, type_); t_attrs = mutability |> Common.opt_to_list }
+  { t = G.TyRef (ref_, type_); t_attrs = mutability |> Option.to_list }
 
 and map_return_expression (env : env) (x : CST.return_expression) : G.expr =
   let return_stmt =

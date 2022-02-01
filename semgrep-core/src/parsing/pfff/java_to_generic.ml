@@ -30,7 +30,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 
-let option = Common.map_opt
+let option = Option.map
 
 let list = List.map
 
@@ -320,7 +320,7 @@ and expr e =
       let anys =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
-        @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
+        @ (Option.to_list v4 |> List.map G.unbracket |> List.flatten
           |> List.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
@@ -421,6 +421,20 @@ and arguments v : G.argument list G.bracket = bracket (list argument) v
 
 and fix_op v = H.conv_incr v
 
+and resource t (v : resource) : G.stmt =
+  match v with
+  | Left v ->
+      let ent, v = var_with_init v in
+      G.DefStmt (ent, G.VarDef v) |> G.s
+  | Right e -> G.ExprStmt (expr e, t) |> G.s
+
+and resources (t1, v, t2) =
+  G.Block
+    ( t1,
+      (* TODO save the semicolon instead of using t2*) list (resource t2) v,
+      t2 )
+  |> G.s
+
 and stmt st =
   match st with
   | EmptyStmt t -> G.Block (t, [], t) |> G.s
@@ -469,9 +483,12 @@ and stmt st =
   | Sync (v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
       G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E v1 ], v2) |> G.s
-  | Try (t, _v0TODO, v1, v2, v3) ->
+  | Try (t, v0, v1, v2, v3) -> (
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
-      G.Try (t, v1, v2, v3) |> G.s
+      let try_stmt = G.Try (t, v1, v2, v3) |> G.s in
+      match v0 with
+      | None -> try_stmt
+      | Some r -> G.WithUsingResource (t, resources r, try_stmt) |> G.s)
   | Throw (t, v1) ->
       let v1 = expr v1 in
       G.Throw (t, v1, G.sc) |> G.s
@@ -482,7 +499,7 @@ and stmt st =
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      let es = v1 :: Common.opt_to_list v2 in
+      let es = v1 :: Option.to_list v2 in
       let args = es |> List.map G.arg in
       G.Assert (t, fb args, G.sc) |> G.s
 
@@ -652,7 +669,7 @@ and class_decl
   let cdef =
     {
       G.ckind = v2;
-      cextends = Common.opt_to_list v5;
+      cextends = Option.to_list v5;
       cimplements = v6;
       cmixins = [];
       cparams;

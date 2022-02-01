@@ -40,7 +40,7 @@ let map_of_bool _x = ()
 
 let map_of_ref _f _x = ()
 
-let map_of_option = Common.map_opt
+let map_of_option = Option.map
 
 let map_of_list = Common.map
 
@@ -104,21 +104,22 @@ and map_resolved_name_kind env = function
   | Macro -> ()
   | EnumConstant -> ()
 
-let rec map_name env = function
+let rec map_name env n =
+  H.dotted_ident_of_name_opt n
+  |> Option.iter (fun xs ->
+         if env.phase = Uses then
+           (* !!the uses!! *)
+           let n2opt = L.lookup_dotted_ident_opt env xs in
+           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
+  match n with
   | Id (v1, v2) ->
       (if env.phase = Uses then
        (* !!the uses!! *)
        match !(v2.id_resolved) with
-       | Some (ImportedEntity xs, _sid)
-       | Some (ImportedModule (DottedName xs), _sid) -> (
-           let n2opt = L.lookup_dotted_ident_opt env xs in
-           match n2opt with
-           | None -> ()
-           | Some n2 -> H.add_use_edge env n2)
        | None ->
            (* try locally *)
            let n2opt = L.lookup_local_file_opt env v1 in
-           n2opt |> Common.do_option (fun n2 -> H.add_use_edge env n2)
+           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2)
        (* TODO: ImportedModule Filename => lookup E.File *)
        | _ -> ());
       (* ----------- *)
@@ -200,7 +201,19 @@ and map_expr env { e = v_e; e_id = v_e_id; e_range = v_e_range } =
   let v_e = map_expr_kind env v_e in
   nothing env ()
 
-and map_expr_kind env = function
+and map_expr_kind env ekind =
+  match ekind with
+  | DotAccess (v1, v2, v3) ->
+      if env.phase = Uses then
+        H.dotted_ident_of_exprkind_opt ekind
+        |> Option.iter (fun xs ->
+               let n2opt = L.lookup_dotted_ident_opt env xs in
+               n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
+      (* boilerplate *)
+      let v1 = map_expr env v1
+      and v2 = map_tok env v2
+      and v3 = map_field_name env v3 in
+      nothing env (v1, v2, v3)
   (* TODO *)
   | Alias (_, _) -> ()
   (* ----------- *)
@@ -249,11 +262,6 @@ and map_expr_kind env = function
   | LetPattern (v1, v2) ->
       let v1 = map_pattern env v1 and v2 = map_expr env v2 in
       nothing env (v1, v2)
-  | DotAccess (v1, v2, v3) ->
-      let v1 = map_expr env v1
-      and v2 = map_tok env v2
-      and v3 = map_field_name env v3 in
-      nothing env (v1, v2, v3)
   | ArrayAccess (v1, v2) ->
       let v1 = map_expr env v1 and v2 = map_bracket env (map_expr env) v2 in
       nothing env (v1, v2)
@@ -1003,7 +1011,8 @@ and map_keyword_attribute env _ = ()
 (*****************************************************************************)
 (* Definitions *)
 (*****************************************************************************)
-and map_definition env (v1, v2) =
+and map_definition env def =
+  let v1, v2 = def in
   let env =
     match H.ident_of_entity_opt env v1 with
     | Some id ->
@@ -1011,16 +1020,36 @@ and map_definition env (v1, v2) =
         let str = H.str_of_dotted_ident dotted_ident in
         let kind = H.entity_kind_of_definition env (v1, v2) in
         let node = (str, kind) in
-        if env.phase = Defs then
+        if env.phase = Defs then (
           if
             (* less: static? *)
             (* less: we just collapse all methods with same name together *)
             G.has_node node env.g
+            (* todo? duplicate node warning? *)
           then ()
           else (
             env.g |> G.add_node node;
             env.g |> G.add_nodeinfo node (H.nodeinfo id);
             env.g |> G.add_edge (env.current_parent, node) G.Has);
+          env.hooks.on_def_node node def);
+
+        (match v2 with
+        (* TODO: handle multiple inheritance? *)
+        (* TODO: handle if parent local class? dotted_ident_of_name_opt
+         * would fail in that situation no?
+         *)
+        | ClassDef
+            ({ cextends = [ ({ t = TyN parent; _ }, None) ]; _ } as classdef) ->
+            H.dotted_ident_of_name_opt parent
+            |> Option.iter (fun xs ->
+                   if env.phase = Uses then
+                     (* !!the uses!! *)
+                     let n2opt = L.lookup_dotted_ident_opt env xs in
+                     n2opt
+                     |> Option.iter (fun n2 ->
+                            env.hooks.on_extend_edge node n2 (v1, classdef)))
+        | _ -> ());
+
         { env with current_parent = node; current_qualifier = dotted_ident }
     | None ->
         (* TODO? handle also the qualified ident case? *)

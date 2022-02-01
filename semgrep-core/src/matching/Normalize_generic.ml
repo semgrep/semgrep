@@ -66,6 +66,8 @@ let normalize_import_opt is_pattern i =
   | OtherDirective _ ->
       None
 
+let hook_constant_propagation_and_evaluate_literal = ref None
+
 (* see also Constant_propagation.ml. At some point we should remove
  * the code below and rely only on Constant_propagation.ml
  *)
@@ -115,6 +117,10 @@ let rec eval x : svalue option =
   | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
       eval e
   (* TODO: partial evaluation for ints/floats/... *)
-  | _ -> None
+  | _ -> (
+      (* deep: *)
+      match !hook_constant_propagation_and_evaluate_literal with
+      | None -> None
+      | Some f -> f x)
 
 let constant_propagation_and_evaluate_literal = eval

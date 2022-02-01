@@ -1264,14 +1264,14 @@ let mk_fix_token_locations fix =
           k
             {
               e with
-              e_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) e.e_range;
+              e_range = Option.map (fun (x, y) -> (fix x, fix y)) e.e_range;
             });
       kstmt =
         (fun (k, _) s ->
           k
             {
               s with
-              s_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) s.s_range;
+              s_range = Option.map (fun (x, y) -> (fix x, fix y)) s.s_range;
             });
       kinfo = (fun (_, _) t -> Parse_info.fix_token_location fix t);
     }

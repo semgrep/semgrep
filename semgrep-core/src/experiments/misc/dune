@@ -1,0 +1,13 @@
+(library
+ (public_name semgrep_experiments_misc)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-config
+   pfff-h_program-lang
+   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+
+   semgrep_core
+ )
+ (preprocess (pps ppx_profiling))
+)

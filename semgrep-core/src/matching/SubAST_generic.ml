@@ -60,14 +60,14 @@ let subexprs_of_stmt_kind = function
       match condopt with
       | None -> []
       | Some cond -> [ H.cond_to_expr cond ])
-  | Return (_, eopt, _) -> Common.opt_to_list eopt
+  | Return (_, eopt, _) -> Option.to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
       |> Common.map_filter (function
            | ForInitExpr e -> Some e
            | ForInitVar (_, vdef) -> vdef.vinit))
-      @ Common.opt_to_list eopt1 @ Common.opt_to_list eopt2
+      @ Option.to_list eopt1 @ Option.to_list eopt2
   | Assert (_, (_, args, _), _) ->
       args
       |> Common.map_filter (function
@@ -144,9 +144,8 @@ let subexprs_of_expr with_symbolic_propagation e =
       e1
       :: (e2 |> unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
-         |> List.map Common.opt_to_list
-         |> List.flatten)
-  | Yield (_, eopt, _) -> Common.opt_to_list eopt
+         |> List.map Option.to_list |> List.flatten)
+  | Yield (_, eopt, _) -> Option.to_list eopt
   | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
@@ -190,7 +189,7 @@ let substmts_of_stmt st =
   | OtherStmtWithStmt (_, _, st) ->
       [ st ]
   (* 2 *)
-  | If (_, _, st1, st2) -> st1 :: Common.opt_to_list st2
+  | If (_, _, st1, st2) -> st1 :: Option.to_list st2
   | WithUsingResource (_, st1, st2) -> [ st1; st2 ]
   (* n *)
   | Block (_, xs, _) -> xs

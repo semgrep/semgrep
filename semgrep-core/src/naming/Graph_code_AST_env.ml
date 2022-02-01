@@ -31,13 +31,15 @@ type env = {
   (* this is modified by side effects *)
   g : Graph_code.t;
   phase : phase;
+  hooks : hooks;
+  readable : Common.filename;
+  (* for lookup_local_file_opt *)
+  file_qualifier : AST.dotted_ident;
   (* the parent to connect to when creating new nodes *)
   current_parent : Graph_code.node;
   (* the current "scope", everthing that is enclosing the current code.
    * less: no support for functors or complex modules *)
   current_qualifier : AST.dotted_ident;
-  (* for lookup_local_file_opt *)
-  file_qualifier : AST.dotted_ident;
 }
 
 (* We need 2 phases:
@@ -53,3 +55,14 @@ and phase =
   | Defs
   (* still? | Inheritance *)
   | Uses
+
+and hooks = {
+  on_def_node : Graph_code.node -> AST_generic.definition -> unit;
+  on_extend_edge :
+    Graph_code.node ->
+    Graph_code.node ->
+    AST_generic.entity * AST_generic.class_definition ->
+    unit;
+  (* TODO: fill with something useful *)
+  on_misc : unit -> unit;
+}
