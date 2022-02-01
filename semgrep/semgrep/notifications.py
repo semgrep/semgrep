@@ -1,4 +1,3 @@
-from semgrep.constants import Colors
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -19,7 +18,7 @@ def possibly_notify_user() -> None:
     if not has_shown:
         logger.warning(
             with_color(
-                Colors.yellow,
+                "yellow",
                 "METRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev."
                 """\nTo disable Registry rule metrics, use "--metrics=off"."""
                 "\nUsing configs only from local files (like --config=xyz.yml) does not enable metrics."
