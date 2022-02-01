@@ -137,7 +137,7 @@ and map_anon_choice_temp_lit_c764a73 (env : env)
   match x with
   | `Temp_lit x ->
       let sopt = map_template_literal env x in
-      sopt |> Common.opt_to_list |> List.map (fun s -> Left3 s)
+      sopt |> Option.to_list |> List.map (fun s -> Left3 s)
   | `Temp_interp (v1, v2, v3, v4, v5) ->
       let v1 = (* template_interpolation_start *) token env v1 in
       (* TODO: what is this ~? *)

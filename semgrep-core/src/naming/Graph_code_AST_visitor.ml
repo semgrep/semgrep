@@ -40,7 +40,7 @@ let map_of_bool _x = ()
 
 let map_of_ref _f _x = ()
 
-let map_of_option = Common.map_opt
+let map_of_option = Option.map
 
 let map_of_list = Common.map
 
@@ -106,11 +106,11 @@ and map_resolved_name_kind env = function
 
 let rec map_name env n =
   H.dotted_ident_of_name_opt n
-  |> Common.do_option (fun xs ->
+  |> Option.iter (fun xs ->
          if env.phase = Uses then
            (* !!the uses!! *)
            let n2opt = L.lookup_dotted_ident_opt env xs in
-           n2opt |> Common.do_option (fun n2 -> H.add_use_edge env n2));
+           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
   match n with
   | Id (v1, v2) ->
       (if env.phase = Uses then
@@ -119,7 +119,7 @@ let rec map_name env n =
        | None ->
            (* try locally *)
            let n2opt = L.lookup_local_file_opt env v1 in
-           n2opt |> Common.do_option (fun n2 -> H.add_use_edge env n2)
+           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2)
        (* TODO: ImportedModule Filename => lookup E.File *)
        | _ -> ());
       (* ----------- *)
@@ -206,9 +206,9 @@ and map_expr_kind env ekind =
   | DotAccess (v1, v2, v3) ->
       if env.phase = Uses then
         H.dotted_ident_of_exprkind_opt ekind
-        |> Common.do_option (fun xs ->
+        |> Option.iter (fun xs ->
                let n2opt = L.lookup_dotted_ident_opt env xs in
-               n2opt |> Common.do_option (fun n2 -> H.add_use_edge env n2));
+               n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
       (* boilerplate *)
       let v1 = map_expr env v1
       and v2 = map_tok env v2

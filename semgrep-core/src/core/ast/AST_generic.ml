@@ -1906,7 +1906,7 @@ let interpolated (lquote, xs, rquote) =
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
                      in
-                     let args = eopt |> Common.opt_to_list |> List.map arg in
+                     let args = eopt |> Option.to_list |> List.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
                  | Common.Middle3 e -> Arg e),
             rquote ) )

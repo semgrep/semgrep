@@ -145,6 +145,6 @@ let gen_layer ~root ~query _matching_tokens file =
 
 let gen_layer_maybe _matching_tokens pattern_string xs =
   !layer_file
-  |> Common.do_option (fun file ->
+  |> Option.iter (fun file ->
          let root = Common2.common_prefix_of_files_or_dirs xs in
          gen_layer ~root ~query:pattern_string _matching_tokens file)
