@@ -375,17 +375,22 @@ def main(
     # Run baseline if needed
     if baseline_handler:
         logger.info(f"Running baseline scan with base set to: {baseline_commit}")
-        with baseline_handler.baseline_context():
-            (
-                baseline_rule_matches_by_rule,
-                baseline_semgrep_errors,
-                baseline_targets,
-                baseline_profiling_data,
-            ) = run_rules(filtered_rules, target_manager, core_runner, output_handler)
-            rule_matches_by_rule = remove_matches_in_baseline(
-                rule_matches_by_rule, baseline_rule_matches_by_rule
-            )
-            output_handler.handle_semgrep_errors(baseline_semgrep_errors)
+        try:
+            with baseline_handler.baseline_context():
+                (
+                    baseline_rule_matches_by_rule,
+                    baseline_semgrep_errors,
+                    baseline_targets,
+                    baseline_profiling_data,
+                ) = run_rules(
+                    filtered_rules, target_manager, core_runner, output_handler
+                )
+                rule_matches_by_rule = remove_matches_in_baseline(
+                    rule_matches_by_rule, baseline_rule_matches_by_rule
+                )
+                output_handler.handle_semgrep_errors(baseline_semgrep_errors)
+        except Exception as e:
+            raise SemgrepError(e)
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()

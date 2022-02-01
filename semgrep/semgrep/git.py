@@ -253,7 +253,17 @@ class BaselineHandler:
     @contextmanager
     def baseline_context(self) -> Iterator[None]:
         """
-        Runs a block of code on files from the current branch HEAD.
+        Yields context where pwd is modified to be self.commit_hash
+        upon exiting the context returns pwd to what it was initially
+
+        Usage:
+
+        bh = BaselineHandler(commit_hash)
+        with baseline_context():
+            # Do stuff here
+            # pwd will be on commit_hash
+        # pwd will be back to what it was
+
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
