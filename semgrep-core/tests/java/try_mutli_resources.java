@@ -2,9 +2,11 @@ class Test {
     public static void main(String[] args) {
         try (
         java.util.zip.ZipFile zf =
+            // ERROR:
              new java.util.zip.ZipFile(zipFileName);
         java.io.BufferedWriter writer = 
-            java.nio.file.Files.newBufferedWriter(outputFilePath, charset)
+            // ERROR: 
+            java.nio.file.Files.newBufferedWriter(zipFileName, charset)
     ) {
         // Enumerate each entry
         for (java.util.Enumeration entries =
