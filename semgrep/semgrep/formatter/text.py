@@ -2,7 +2,6 @@ import functools
 import itertools
 from itertools import groupby
 from pathlib import Path
-from shutil import get_terminal_size
 from typing import Any
 from typing import cast
 from typing import Iterable
@@ -12,13 +11,12 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
-import click
 import colorama
 
+from semgrep.constants import BREAK_LINE
 from semgrep.constants import BREAK_LINE_CHAR
 from semgrep.constants import BREAK_LINE_WIDTH
 from semgrep.constants import CLI_RULE_ID
-from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
@@ -32,17 +30,6 @@ from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
 from semgrep.util import with_color
-
-MAX_TEXT_WIDTH = 120
-
-terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
-if terminal_size <= 0:
-    terminal_size = MAX_TEXT_WIDTH
-width = min(MAX_TEXT_WIDTH, terminal_size)
-if width <= 110:
-    width = width - 5
-else:
-    width = width - (width - 100)
 
 
 class TextFormatter(BaseFormatter):
@@ -63,7 +50,7 @@ class TextFormatter(BaseFormatter):
         line = (
             line[:start_color]
             + with_color(
-                Colors.foreground, line[start_color : end_color + 1]
+                "bright_black", line[start_color : end_color + 1]
             )  # want the color to include the end_col
             + line[end_color + 1 :]
         )
@@ -103,7 +90,7 @@ class TextFormatter(BaseFormatter):
                             end_line,
                             end_col,
                         )
-                        line_number = f"{start_line + i}"
+                        line_number = with_color("green", f"{start_line + i}")
                     else:
                         line_number = f"{start_line + i}"
 
@@ -130,9 +117,7 @@ class TextFormatter(BaseFormatter):
                         # while stripping a string, the ANSI code for resetting color might also get stripped.
                         line = line + colorama.Style.RESET_ALL
 
-                yield f" " * (
-                    11 - len(line_number)
-                ) + f"{line_number}┆ {line}" if line_number else f"{line}"
+                yield f"{line_number}:{line}" if line_number else f"{line}"
 
             if stripped:
                 yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
@@ -143,14 +128,14 @@ class TextFormatter(BaseFormatter):
                 if trimmed > 0:
                     yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
                 elif show_separator:
-                    yield f" " * 10 + f"⋮┆" + f"-" * 40
+                    yield BREAK_LINE
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
         source_url = rule_match._metadata.get("shortlink")
         if not source_url:
             return ""
-        return f"Details: {source_url}"
+        return f' Details: {with_color("bright_blue", source_url)}'
 
     @staticmethod
     def _build_summary(
@@ -256,7 +241,7 @@ class TextFormatter(BaseFormatter):
         for file_name, parse_time in slowest_file_times:
             num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
             file_name = truncate(file_name, col_lim)
-            yield f"{with_color(Colors.green, f'{file_name:<70}')} {num_bytes:<9}{parse_time:.4f}"
+            yield f"{with_color('green', f'{file_name:<70}')} {num_bytes:<9}{parse_time:.4f}"
 
         yield f"Slowest {items_to_show} rules to run (excluding parse time)"
         slowest_rule_times = sorted(
@@ -264,7 +249,7 @@ class TextFormatter(BaseFormatter):
         )[:items_to_show]
         for rule_id, (total_time, match_time) in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"
-            yield f"{with_color(Colors.yellow, f'{rule_id:<71}')} run time {total_time:.4f}  match time {match_time:.4f}"
+            yield f"{with_color('yellow', f'{rule_id:<71}')} run time {total_time:.4f}  match time {match_time:.4f}"
 
         # Output other file information
         ANALYZED = "Analyzed:"
@@ -329,7 +314,7 @@ class TextFormatter(BaseFormatter):
             if last_file is None or last_file != current_file:
                 if last_file is not None:
                     yield ""
-                yield f"\n{with_color(Colors.cyan, f' {current_file} ', bold=False)}"
+                yield with_color("green", str(current_file))
                 last_message = None
             # don't display the rule line if the check is empty
             if (
@@ -338,18 +323,7 @@ class TextFormatter(BaseFormatter):
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                shortlink_text = (8 * " " + shortlink) if shortlink else ""
-                rule_id_text = click.wrap_text(
-                    f"{with_color(Colors.foreground, check_id, bold=True)}",
-                    width + 10,
-                    5 * " ",
-                    5 * " ",
-                    False,
-                )
-                message_text = click.wrap_text(
-                    f"{message}", width, 8 * " ", 8 * " ", True
-                )
-                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}\n"
+                yield f"{with_color('yellow', f'rule:{check_id}: {message}{shortlink}')}"
 
             last_file = current_file
             last_message = message
@@ -358,12 +332,12 @@ class TextFormatter(BaseFormatter):
                 if rule_index != len(sorted_rule_matches) - 1
                 else None
             )
-            autofix_tag = with_color(Colors.green, "         ▶▶┆ Autofix ▶")
+
             if fix:
-                yield f"{autofix_tag} {fix}"
+                yield f"{with_color('bright_blue', 'autofix:')} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{autofix_tag} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{with_color('bright_blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False

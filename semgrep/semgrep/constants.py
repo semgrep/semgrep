@@ -10,7 +10,7 @@ RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
 SEMGREP_URL = os.environ.get("SEMGREP_URL", "https://semgrep.dev/")
-PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
+PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
@@ -116,20 +116,3 @@ MAX_CHARS_FLAG_NAME = "--max-chars-per-line"
 DEFAULT_MAX_CHARS_PER_LINE = 160
 ELLIPSIS_STRING = " ... "
 DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
-
-
-class Colors(Enum):
-    # these colors come from user's terminal theme
-    foreground = 0
-    bright = 15  # also referred to as "bold color"
-    white = 7
-    black = 256
-    cyan = "cyan"  # for filenames
-    green = "green"  # for autofix
-    yellow = "yellow"  # TODO: benchmark timing output?
-    red = "red"  # for errors
-    bright_blue = "bright_blue"  # TODO: line numbers?
-
-    # these colors ignore user's terminal theme
-    forced_black = 16  # #000
-    forced_white = 231  # #FFF
