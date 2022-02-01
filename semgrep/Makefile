@@ -1,7 +1,7 @@
 test:
 	pipenv run pytest -v --tb=short tests/
 regenerate-tests:
-	pipenv run pytest tests/ --snapshot-update
+	pipenv run pytest tests/ --snapshot-update --ignore=tests/qa/test_public_repos.py
 
 setup:
 	pipenv install --dev
