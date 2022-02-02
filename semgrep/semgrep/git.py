@@ -94,7 +94,7 @@ class BaselineHandler:
             ["git", "rev-parse", "--show-toplevel"],
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            text=True,
+            encoding="utf-8",
             timeout=GIT_SH_TIMEOUT,
         )
         if rev_parse.returncode != 0:
@@ -137,7 +137,7 @@ class BaselineHandler:
                 timeout=GIT_SH_TIMEOUT,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                text=True,
+                encoding="utf-8",
                 check=True,
             ).stdout
         )
@@ -208,7 +208,7 @@ class BaselineHandler:
             timeout=GIT_SH_TIMEOUT,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            text=True,
+            encoding="utf-8",
             check=True,
         )
         git_status_output = sub_out.stdout
@@ -299,7 +299,7 @@ class BaselineHandler:
             timeout=GIT_SH_TIMEOUT,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            text=True,
+            encoding="utf-8",
             check=True,
         ).stdout.strip()
         try:

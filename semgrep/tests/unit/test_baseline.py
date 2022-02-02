@@ -32,7 +32,7 @@ def test_baseline_context(monkeypatch, tmp_path):
     subprocess.check_call(["git", "add", "."])
     subprocess.check_call(["git", "commit", "-m", "first"])
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Create bar/a.py and modify foo/a.py and remove foo/b.py and rename foo/c.py

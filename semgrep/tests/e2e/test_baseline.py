@@ -12,7 +12,7 @@ SENTINEL_1 = 23478921
 #     # doesn't break semgrep
 #     subprocess.run(["git", "commit", "--allow-empty", "-m", "first"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 #     base_commit = subprocess.check_output(
-#         ["git", "rev-parse", "HEAD"], text=True
+#         ["git", "rev-parse", "HEAD"], encoding="utf-8"
 #     ).strip()
 
 #     # Add head finding
@@ -24,13 +24,13 @@ SENTINEL_1 = 23478921
 #     subprocess.run(["git", "commit", "-m", "second"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
 #     # Non-baseline scan should report findings
-#     output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True, check=True)
+#     output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"], stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding="utf-8", check=True)
 #     snapshot.assert_match(output.stdout, "output.txt")
 #     assert output.stdout != ""
 #     snapshot.assert_match(output.stderr.replace(base_commit, "baseline-commit"), "error.txt")
 
 #     # Baseline scan should report same findings
-#     baseline_output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python", "--baseline-commit", base_commit], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+#     baseline_output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python", "--baseline-commit", base_commit], stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding="utf-8")
 #     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
 #     # assert baseline_output.stdout == output.stdout
 #     snapshot.assert_match(baseline_output.stderr.replace(base_commit, "baseline-commit"), "baseline_error.txt")
@@ -56,7 +56,7 @@ def run_normal_scan(check=True):
         ],
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        text=True,
+        encoding="utf-8",
         check=check,
         env=env,
     )
@@ -86,7 +86,7 @@ def run_baseline(base_commit, check=True):
         ],
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        text=True,
+        encoding="utf-8",
         check=check,
         env=env,
     )
@@ -110,7 +110,7 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add and commit noop change
@@ -160,7 +160,7 @@ def test_no_findings_both(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add files with no finding
@@ -211,7 +211,7 @@ def test_no_findings_head(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add head finding
@@ -261,7 +261,7 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add head finding
@@ -312,7 +312,7 @@ def test_some_intersection(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add head finding
@@ -364,7 +364,7 @@ def test_all_intersect(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add and commit noop change
@@ -412,7 +412,7 @@ def test_no_intersection(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     # Add head finding remove baseline finding
@@ -470,7 +470,7 @@ def test_unstaged_changes(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
     base_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
     foo_a.write_text(f"y = {SENTINEL_1}\n")
