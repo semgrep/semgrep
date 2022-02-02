@@ -14,6 +14,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Semgrep will not recover from timeouts in one rule by running others
 
 - Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
+- Bloom filter optimization now considers `import` module file names, thus
+  speeding up matching of patterns like `import { $X } from 'foo'`
 
 ### Fixed
 - Typescript: Patterns `E as T` will be matched correctly. E.g. previously

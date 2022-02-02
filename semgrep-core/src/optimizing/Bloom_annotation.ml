@@ -90,6 +90,19 @@ let rec statement_strings stmt =
       {
         V.default_visitor with
         V.kident = (fun (_k, _) (str, _tok) -> push str res);
+        V.kdir =
+          (fun (k, _) x ->
+            match x with
+            | { d = ImportFrom (_, FileName (str, _), _, _); _ }
+            | { d = ImportAs (_, FileName (str, _), _); _ }
+            | { d = ImportAll (_, FileName (str, _), _); _ }
+              when str <> "..."
+                   && (not (Metavariable.is_metavar_name str))
+                   && (* deprecated *) not (Pattern.is_regexp_string str) ->
+                (* Semgrep can match "foo" against "foo/bar", so we just overapproximate taking the sub-strings. *)
+                Common.split "/\\|\\\\" str |> List.iter (fun s -> push s res);
+                k x
+            | _ -> k x);
         V.kexpr =
           (fun (k, _) x ->
             match x.e with
