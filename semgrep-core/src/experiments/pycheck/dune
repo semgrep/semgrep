@@ -1,5 +1,5 @@
 ; this code could at some point live outside semgrep (e.g., in codegraph
-; or codecheck), so do add too many dependencies, and especiall do not
+; or codecheck), so don't add too many dependencies, and especially do not
 ; add dependencies to semgrep libraries (e.g., semgrep_core)
 (library
  (public_name pycheck)
