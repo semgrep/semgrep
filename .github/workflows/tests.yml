@@ -167,7 +167,8 @@ jobs:
       - name: Comment about any snapshot updates
         if: ${{ failure() && steps.snapshot-commit.outputs.pushed == 'true' }}
         run: |
-          echo ":camera_flash: The pytest shapshots changed in your PR" >> /tmp/message.txt
+          echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
+          echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
           echo >> /tmp/message.txt
           echo "1. Review the changes at https://github.com/returntocorp/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
           echo "2. Accept the new snapshots with" >> /tmp/message.txt
