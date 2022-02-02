@@ -32,7 +32,7 @@ let save_graph_on_disk = true
  * interfaces and have the compiler (or whatever tool) making sure this
  * interface is respected. This comes from David Parnas in the 70's.
  * Unfortunately, Python does not support interface, so I had to make a tool
- * to overcome this limimation by offering the possibility to Python
+ * to overcome this limitation by offering the possibility to Python
  * programmers to define the interface of a foo.py module in a
  * separate foo_.pyi file (the need for the '_' suffix is explained below).
  *
