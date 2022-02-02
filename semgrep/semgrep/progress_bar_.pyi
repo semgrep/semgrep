@@ -1,3 +1,7 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import Iterable, IO
+import sys
+from semgrep.util import T
 
 def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
     ...

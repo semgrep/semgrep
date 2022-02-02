@@ -33,19 +33,24 @@ let save_graph_on_disk = true
  * interface is respected. This comes from David Parnas in the 70's.
  * Unfortunately, Python does not support interface, so I had to make a tool
  * to overcome this limimation by offering the possibility to Python
- * programmers to define the interface of a .py module in a
- * separate .pyh (for python header) file.
- *
+ * programmers to define the interface of a foo.py module in a
+ * separate foo_.pyi file (the need for the '_' suffix is explained below).
  *
  *
  * Which extension should we use for python interfaces?
  * -------------------------------------------------------
- * We can't unfortunately use .pyi, because this confuses mypy (and pyre)
+ * We can't unfortunately use foo.pyi, because this confuses mypy (and pyre)
  * which were not designed with this use-case in mind (see my issue here:
  * https://github.com/facebook/pyre-check/issues/568)
  *
- * We could maybe use .pi (python interface), which is even shorter than .pyi
- * I opted for .pyh, for python header, to mimic .pyi.
+ * We could maybe use foo.pi (python interface), which is even shorter than .pyi
+ * or foo.pyh (for python header), to mimic .pyi, but in both cases tools
+ * like Emacs, or github are not aware of those extensions and so would not
+ * provide color highlighting.
+ *
+ * We can't use foo.pyi, but we can go over mypy restrictions by using
+ * foo_.pyi! That way we get the color highlighting of .pyi mypy interface
+ * file, as well as the module typechecking of mypy on those _.pyi files.
  *
  * Where should live this Python interface checker?
  * --------------------------------------------------------
@@ -91,6 +96,22 @@ let rec file_node_parent_of_node n g =
       let n = G.parent n g in
       file_node_parent_of_node n g
 
+let pyi_of_py file =
+  let d, b, e = Common2.dbe_of_filename file in
+  assert (e = "py");
+  (* coupling: note that in Graph_code_AST_lang_specific there is some
+   * hack to remove the _ suffix for .pyi file so we get the same
+   * entities that with the corresponding .py file
+   *)
+  let pyi = Common2.filename_of_dbe (d, b ^ "_", "pyi") in
+  pyi
+
+let py_of_pyi file =
+  let d, b, e = Common2.dbe_of_filename file in
+  assert (e = "pyi");
+  let b = if b =~ "^\\(.*\\)_$" then Common.matched1 b else b in
+  Common2.filename_of_dbe (d, b, "py")
+
 (*****************************************************************************)
 (* Build the graphs *)
 (*****************************************************************************)
@@ -106,22 +127,22 @@ let build_graphs root lang files =
   let ys =
     files
     |> Common.map_filter (fun file ->
-           let d, b, _e = Common2.dbe_of_filename file in
-           let pyh = Common2.filename_of_dbe (d, b, "pyh") in
-           if Sys.file_exists pyh then Some (pyh, parse_program lang pyh)
+           let pyi = pyi_of_py file in
+           if Sys.file_exists pyi then Some (pyi, parse_program lang pyi)
            else None)
   in
-  let gpyh, _stats = Graph_code_AST.build ~root ~hooks lang ys in
+  let hooks = Graph_code_AST.default_hooks in
+  let gpyi, _stats = Graph_code_AST.build ~root ~hooks lang ys in
   if save_graph_on_disk then
-    Graph_code.save gpyh (Filename.concat root "graph_code_pyh.marshall");
+    Graph_code.save gpyi (Filename.concat root "graph_code_pyi.marshall");
 
-  (gpy, gpyh)
+  (gpy, gpyi)
 
 (*****************************************************************************)
 (* Check the graphs *)
 (*****************************************************************************)
 
-let check_graphs_boundaries_when_pyh gpy gpyh =
+let check_graphs_boundaries_when_pyh gpy gpyi =
   logger#info "checking the graphs";
 
   let g = gpy in
@@ -137,7 +158,10 @@ let check_graphs_boundaries_when_pyh gpy gpyh =
                 let file_node_opt = file_node_parent_of_node n_def g in
                 file_node_opt
                 |> Option.iter (fun file_node ->
-                       if G.has_node file_node gpyh then
+                       if not (G.has_node file_node gpyi) then
+                         logger#info "no File node %s found in .pyi"
+                           (G.string_of_node file_node)
+                       else
                          let users = pred n_def in
                          let file_def = G.file_of_node n_def g in
                          let users_outside =
@@ -153,14 +177,14 @@ let check_graphs_boundaries_when_pyh gpy gpyh =
                          in
                          match users_outside with
                          | [] -> ()
-                         | x :: _ when not (G.has_node n_def gpyh) ->
+                         | x :: _ when not (G.has_node n_def gpyi) ->
                              pr2
                                (spf
                                   "This node\n\
                                    \t %s (in %s)\n\
                                   \ is used outside\n\
                                    \t (e.g., %s)\n\
-                                  \ but is not in the .pyh"
+                                  \ but is not in the _.pyi"
                                   (G.string_of_node n_def) file_def
                                   (G.string_of_node x))
                          | _ -> ())))
@@ -179,10 +203,15 @@ let pycheck root =
   let files, _skipped =
     Skip_code.filter_files_if_skip_list ~root:[ root ] files
   in
+  let files =
+    files
+    |> Common.exclude (fun file ->
+           file =~ ".*\\.pyi" && Sys.file_exists (py_of_pyi file))
+  in
   logger#info "processing %d files" (List.length files);
 
-  let gpy, gpyh = build_graphs root lang files in
+  let gpy, gpyi = build_graphs root lang files in
 
-  (* TODO: check_graphs_py_and_pyh_in_sync gpy gpyh *)
-  check_graphs_boundaries_when_pyh gpy gpyh;
+  (* TODO: check_graphs_py_and_pyh_in_sync gpy gpyi *)
+  check_graphs_boundaries_when_pyh gpy gpyi;
   ()

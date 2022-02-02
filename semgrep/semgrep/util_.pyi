@@ -1,5 +1,10 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import Iterable, Callable
+from typing import TypeVar
+from pathlib import Path
+import semgrep.constants as constants
 
-T = ...
+T = TypeVar("T")
 
 def is_quiet() -> bool:
     """
@@ -36,9 +41,9 @@ def abort(message: str) -> None:
 
 
 def with_color(
-    color: Colors,
+    color: constants.Colors,
     text: str,
-    bgcolor: Optional[Colors] = None,
+    bgcolor: Optional[constants.Colors] = None,
     bold: bool = False,
     underline: bool = False,
 ) -> str:

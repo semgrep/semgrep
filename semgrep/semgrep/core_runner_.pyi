@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple
+
 from pathlib import Path
 from semgrep.rule import Rule
 from semgrep.target_manager import TargetManager
@@ -6,7 +8,6 @@ from semgrep.rule_match import RuleMatch
 import semgrep.error as error
 import semgrep.profiling as profiling
 import semgrep.semgrep_types as semgrep_types
-from typing import Any, Dict, List, Sequence, Set, Tuple
 
 class CoreRunner:
     """

@@ -1,3 +1,4 @@
+import semgrep.types as types
 
 class CoreLocation:
     """
@@ -15,7 +16,7 @@ class CoreLocation:
     offset: int
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreLocation":
+    def parse(cls, raw_json: types.JsonObject) -> "CoreLocation":
         ...
 
 class RuleMatch:

@@ -1,8 +1,14 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import NamedTuple, IO
 
-DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = ...
+import sys
+import semgrep.constants as constants
+
+
+DEFAULT_SHOWN_SEVERITIES: Collection[constants.RuleSeverity] = ...
 
 class OutputSettings(NamedTuple):
-    output_format: OutputFormat
+    output_format: constants.OutputFormat
     output_destination: Optional[str] = None
     output_per_finding_max_lines_limit: Optional[int] = None
     output_per_line_max_chars_limit: Optional[int] = None

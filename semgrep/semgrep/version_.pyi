@@ -1,5 +1,6 @@
+from pathlib import Path
 
-VERSION_CACHE_PATH = ...
+VERSION_CACHE_PATH : Path = ...
 
 def version_check(version_cache_path: Path = VERSION_CACHE_PATH) -> None:
     """

@@ -1,3 +1,7 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import Iterator
+import contextlib
+import semgrep.ignores as ignores
 
 @contextlib.contextmanager
 def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
@@ -27,7 +31,7 @@ class TargetManager:
     includes: Sequence[str]
     excludes: Sequence[str]
     max_target_bytes: int
-    targets: Sequence[str] = attr.ib()
+    targets: Sequence[str]
     respect_git_ignore: bool
     skip_unknown_extensions: bool
-    file_ignore: Optional[FileIgnore]
+    file_ignore: Optional[ignores.FileIgnore]

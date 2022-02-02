@@ -1,2 +1,0 @@
-
-RuleMatchMap = Mapping[Rule, Sequence[RuleMatch]]

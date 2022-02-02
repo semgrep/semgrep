@@ -1,8 +1,12 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from pathlib import Path
+import semgrep.error as error
+from semgrep.rule_match import RuleMatch
 
 def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
-) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+) -> Tuple[List[RuleMatch], List[error.SemgrepError]]:
     """
     Run a 'join' mode rule.
 

@@ -1,3 +1,10 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import Mapping
+from pathlib import Path
+from semgrep.rule import Rule
+import semgrep.error as error
+import semgrep.types as types
+import semgrep.rule_lang as rule_lang
 
 class ConfigPath:
     def __init__(self, config_str: str, project_url: Optional[str]) -> None:
@@ -20,7 +27,7 @@ class Config:
     @classmethod
     def from_config_list(
         cls, configs: Sequence[str], project_url: Optional[str]
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+    ) -> Tuple["Config", Sequence[error.SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
         list of errors parsing said config files
@@ -32,8 +39,8 @@ class Config:
     #TODO: prefixed with _ but actuall used in join_rule.py
     @staticmethod
     def _validate(
-        config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
+        config_dict: Mapping[str, rule_lang.YamlTree]
+    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[error.SemgrepError]]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
@@ -53,8 +60,8 @@ def get_config(
     *,
     project_url: Optional[str],
     replacement: Optional[str] = None,
-) -> Tuple[Config, Sequence[SemgrepError]]:
+) -> Tuple[Config, Sequence[error.SemgrepError]]:
     ...
 
-def list_current_public_rulesets() -> List[JsonObject]:
+def list_current_public_rulesets() -> List[types.JsonObject]:
     ...

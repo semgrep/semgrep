@@ -10,6 +10,10 @@ Semgrep_core_response.atd, currently at:
 https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core-response/Semgrep_core_response.atd
 """
 
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+import attr
+import semgrep.types as types
+
 @attr.s(auto_attribs=True)
 class CoreOutput:
     """
@@ -17,5 +21,5 @@ class CoreOutput:
     """
 
     @classmethod
-    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreOutput":
+    def parse(cls, raw_json: types.JsonObject, rule_id: types.RuleId) -> "CoreOutput":
         ...

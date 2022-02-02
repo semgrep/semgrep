@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional
+from typing import Generic, TypeVar, NewType, Union
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
@@ -52,6 +54,8 @@ class Span:
 
 EmptySpan = ...
 
+# Actually recursive but mypy is unhelpful
+YamlValue = Union[str, int, List[Any], Dict[str, Any]]
 LocatedYamlValue = Union[str, int, List["YamlTree"], "YamlMap"]
 T = TypeVar("T", bound=LocatedYamlValue)
 

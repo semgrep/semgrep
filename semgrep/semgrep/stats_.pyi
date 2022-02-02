@@ -1,3 +1,6 @@
+from typing import Dict, Any, Set
+
+from pathlib import Path
 
 def make_target_stats(all_targets: Set[Path]) -> Dict[str, Any]:
     """

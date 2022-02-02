@@ -1,8 +1,12 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import Union
+from pathlib import Path
+import semgrep.output as output
 
 def invoke_semgrep(
     config: Path,
     targets: List[Path],
-    output_settings: Optional[OutputSettings] = None,
+    output_settings: Optional[output.OutputSettings] = None,
     **kwargs: Any,
 ) -> Union[Dict[str, Any], str]:
     """

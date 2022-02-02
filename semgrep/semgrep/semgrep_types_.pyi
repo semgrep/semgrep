@@ -1,8 +1,10 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import NewType
 
 FileExtension = NewType("FileExtension", str)
 Language = NewType("Language", str)
 
-Shebang = ...
+Shebang = str
 
 Mode = NewType("Mode", str)
 #TODO: type Mode?
