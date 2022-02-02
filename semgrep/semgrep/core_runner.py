@@ -269,6 +269,15 @@ class CoreRunner:
     def _get_targets(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> List[Dict[str, Any]]:
+        """
+        Gets the targets to run for each rule
+
+        Returns this information as a list of targets with language and rule ids,
+        which semgrep-core requires to know what rules to run for each file
+        Also updates all_targets, used by core_runner
+
+        Note: this is a list because a target can appear twice (e.g. Java + Generic)
+        """
         target_info: Dict[Tuple[Path, Language], List[RuleId]] = {}
 
         for rule in rules:
@@ -278,6 +287,8 @@ class CoreRunner:
                 for target in targets:
                     all_targets.add(target)
                     t = (target, language)
+                    # We use orig_id here because semgrep-core expects it
+                    # TODO will this cause deduplication problems? Is that better behavior?
                     if t in target_info:
                         target_info[t].append(RuleId(rule.orig_id))
                     else:
