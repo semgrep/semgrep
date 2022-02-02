@@ -1,5 +1,7 @@
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -32,6 +34,56 @@ SENTINEL_1 = 23478921
 #     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
 #     # assert baseline_output.stdout == output.stdout
 #     snapshot.assert_match(baseline_output.stderr.replace(base_commit, "baseline-commit"), "baseline_error.txt")
+def run_normal_scan():
+    env = {}
+    env["SEMGREP_USER_AGENT_APPEND"] = "testing"
+    unique_settings_file = tempfile.NamedTemporaryFile().name
+    Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
+    env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "semgrep",
+            "--disable-version-check",
+            "-e",
+            f"$X = {SENTINEL_1}",
+            "-l",
+            "python",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+
+
+def run_baseline(base_commit):
+    env = {}
+    env["SEMGREP_USER_AGENT_APPEND"] = "testing"
+    unique_settings_file = tempfile.NamedTemporaryFile().name
+    Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
+    env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "semgrep",
+            "--disable-version-check",
+            "-e",
+            f"$X = {SENTINEL_1}",
+            "-l",
+            "python",
+            "--baseline-commit",
+            base_commit,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
 
 
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
@@ -56,12 +108,7 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report findings
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
@@ -69,22 +116,7 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     assert baseline_output.stdout == ""
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -117,34 +149,14 @@ def test_no_findings_both(git_tmp_path, snapshot):
     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
 
     # Non-baseline scan should report no findings
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     assert output.stdout == ""
     snapshot.assert_match(
         output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
     )
 
     # Baseline scan should report no findings
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -176,34 +188,14 @@ def test_no_findings_head(git_tmp_path, snapshot):
     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
 
     # Non-baseline scan should report no findings
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     assert output.stdout == ""
     snapshot.assert_match(
         output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
     )
 
     # Baseline scan should report no findings
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -231,12 +223,7 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
 
     # Non-baseline scan should report findings
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
     snapshot.assert_match(
@@ -244,22 +231,7 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     )
 
     # Baseline scan should report same findings
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
@@ -287,12 +259,7 @@ def test_some_intersection(git_tmp_path, snapshot):
     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
 
     # Non-baseline scan should report 2 findings
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
     snapshot.assert_match(
@@ -300,22 +267,7 @@ def test_some_intersection(git_tmp_path, snapshot):
     )
 
     # Baseline scan should report 1 finding but hide 1
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     assert baseline_output.stdout != output.stdout
     snapshot.assert_match(
@@ -344,12 +296,7 @@ def test_all_intersect(git_tmp_path, snapshot):
     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
 
     # Non-baseline scan should report findings
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
@@ -357,22 +304,7 @@ def test_all_intersect(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     assert baseline_output.stdout == ""
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -400,12 +332,7 @@ def test_no_intersection(git_tmp_path, snapshot):
     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
 
     # Non-baseline scan should report 1 finding
-    output = subprocess.run(
-        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    output = run_normal_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
     snapshot.assert_match(
@@ -413,22 +340,7 @@ def test_no_intersection(git_tmp_path, snapshot):
     )
 
     # Baseline scan should report same finding
-    baseline_output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    baseline_output = run_baseline(base_commit)
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -456,14 +368,14 @@ def test_unstaged_changes(git_tmp_path, snapshot):
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
 
-    foo_a.write_text("y = 55555555\n")
+    foo_a.write_text(f"y = {SENTINEL_1}\n")
     output = subprocess.run(
         [
             sys.executable,
             "-m",
             "semgrep",
             "-e",
-            "$X = 55555555",
+            f"$X = {SENTINEL_1}",
             "-l",
             "python",
             "--baseline-commit",
