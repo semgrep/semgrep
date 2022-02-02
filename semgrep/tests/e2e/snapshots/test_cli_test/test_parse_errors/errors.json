@@ -4,8 +4,11 @@ rules:
 - rules.cli_test.parse_errors.eqeq-is-bad
 - rules.cli_test.parse_errors.func
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-Semgrep Core WARN - Syntax error in file targets/cli_test/parse_errors/invalid_javascript.js:5
-	`key:` was unexpected
+[WARN] Semgrep Core — Syntax error
+An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
+
+At line targets/cli_test/parse_errors/invalid_javascript.js:5: `key:` was unexpected
+
 ran 2 rules on 1 files: 3 findings
 found problems analyzing 1 file; run with --verbose for details or run with --strict to exit non-zero if any file cannot
 be analyzed cleanly
