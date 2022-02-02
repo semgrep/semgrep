@@ -262,7 +262,6 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
   in
   match xlang with
   | Xlang.L (lang, _) ->
-      (* TODO can we only force this once? *)
       let (ast, errors), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in

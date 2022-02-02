@@ -369,12 +369,9 @@ let rules_for_xlang xlang rules =
          | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
          | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
 
-module Rule_table = Map.Make (String)
-
 let mk_rule_table rules =
   let rule_pairs = List.map (fun r -> (fst r.R.id, r)) rules in
-  let rule_seq = List.to_seq rule_pairs in
-  Rule_table.of_seq rule_seq
+  Common.hash_of_list rule_pairs
 
 let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
@@ -393,8 +390,9 @@ let xtarget_of_file config xlang file =
     lazy_ast_and_errors;
   }
 
-let targets_of_config (config : Runner_config.t) (rule_ids : Rule.rule_id list)
-    : In.targets * Out.skipped_target list =
+let targets_of_config (config : Runner_config.t)
+    (all_rule_ids_when_no_target_file : Rule.rule_id list) :
+    In.targets * Out.skipped_target list =
   match (config.target_file, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without
@@ -418,7 +416,11 @@ let targets_of_config (config : Runner_config.t) (rule_ids : Rule.rule_id list)
       let targets =
         files
         |> List.map (fun file ->
-               { In.path = file; language = Xlang.to_string xlang; rule_ids })
+               {
+                 In.path = file;
+                 language = Xlang.to_string xlang;
+                 rule_ids = all_rule_ids_when_no_target_file;
+               })
       in
       (targets, skipped)
   | "", _, None -> failwith "you need to specify a language with -lang"
@@ -459,7 +461,7 @@ let semgrep_with_rules config (rules, rules_parse_time) =
            let xlang = Xlang.of_string target.In.language in
            let rules =
              List.map
-               (fun r_id -> Rule_table.find r_id rule_table)
+               (fun r_id -> Hashtbl.find rule_table r_id)
                target.In.rule_ids
            in
 

@@ -181,6 +181,9 @@ type skip_reason = [
 
 type time = {
   targets: target_time list;
+
+  (* List of rules received by core *)
+  (* Needs to be separate to include rules read but not run on any target *)
   rules: string list;
   ?rules_parse_time: float option; (* not used in spacegrep *)
 }
