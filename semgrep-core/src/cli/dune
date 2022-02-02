@@ -34,9 +34,12 @@
     semgrep_core
     semgrep_running
     semgrep_metachecking
+    semgrep_system
+
+    ; experiments
     semgrep_synthesizing
     semgrep_api
-    semgrep_system
+    pycheck
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug

@@ -1,0 +1,12 @@
+
+def run_dependency_aware_rule(
+    matches: List[RuleMatch],
+    rule: Rule,
+    targets: List[Path],
+) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+    """
+    Run a dependency aware rule. These rules filters the results based on the precense or absence
+    of dependencies. Dependencies are determined by searching for lockfiles under the first entry
+    in the `targets` argument.
+    """
+    ...

@@ -22,9 +22,11 @@ from semgrep.util import with_color
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
 FATAL_EXIT_CODE = 2
+# TODO: dead?
 INVALID_CODE_EXIT_CODE = 3
 INVALID_PATTERN_EXIT_CODE = 4
 UNPARSEABLE_YAML_EXIT_CODE = 5
+# TODO: dead?
 NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
@@ -72,6 +74,7 @@ class SemgrepError(Exception):
         """
         return {"message": str(self)}
 
+    # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
         return type(self).__name__
 
@@ -371,6 +374,7 @@ class _UnknownLanguageError(SemgrepInternalError):
     pass
 
 
+# TODO:  dead?
 class _UnknownExtensionError(SemgrepInternalError):
     pass
 

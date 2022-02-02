@@ -1,0 +1,5 @@
+
+def synthesize(
+    language: str, code_to_synthesize: str, targets_str: Sequence[str]
+) -> None:
+    ...
