@@ -430,7 +430,7 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
 
 
 def test_commit_doesnt_exist(git_tmp_path, snapshot):
-    # Should abourt baseline scan if baseline is not valid commit
+    # Should abort baseline scan if baseline is not valid commit
     foo = git_tmp_path / "foo"
     foo.mkdir()
     foo_a = foo / "a.py"
@@ -444,8 +444,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
             "-m",
             "semgrep",
             "--disable-version-check",
-            "--metrics",
-            "off",
+            "--metrics=off",
             "-e",
             "$X = 123",
             "-l",
