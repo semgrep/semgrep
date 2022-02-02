@@ -67,7 +67,8 @@ class BaselineHandler:
                 subprocess.run(
                     ["git", "cat-file", "-e", base_commit],
                     check=True,
-                    capture_output=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
                 )
             except subprocess.CalledProcessError:
                 raise Exception(f"{base_commit} does not resolve to a valid commit")
@@ -91,7 +92,8 @@ class BaselineHandler:
         """
         rev_parse = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
             text=True,
             timeout=GIT_SH_TIMEOUT,
         )
@@ -133,7 +135,8 @@ class BaselineHandler:
                     f"{self._base_commit}",
                 ],
                 timeout=GIT_SH_TIMEOUT,
-                capture_output=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
                 text=True,
                 check=True,
             ).stdout
@@ -203,7 +206,8 @@ class BaselineHandler:
         sub_out = subprocess.run(
             ["git", "status", "--porcelain", "-z"],
             timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
             text=True,
             check=True,
         )
@@ -293,7 +297,8 @@ class BaselineHandler:
         current_tree = subprocess.run(
             ["git", "write-tree"],
             timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
             text=True,
             check=True,
         ).stdout.strip()

@@ -10,7 +10,7 @@ SENTINEL_1 = 23478921
 # def test_empty_commit_baseline(git_tmp_path, snapshot):
 #     # Test that having a first commit that is empty (git commit --allow-empty)
 #     # doesn't break semgrep
-#     subprocess.run(["git", "commit", "--allow-empty", "-m", "first"], check=True, capture_output=True)
+#     subprocess.run(["git", "commit", "--allow-empty", "-m", "first"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 #     base_commit = subprocess.check_output(
 #         ["git", "rev-parse", "HEAD"], text=True
 #     ).strip()
@@ -20,17 +20,17 @@ SENTINEL_1 = 23478921
 #     bar = git_tmp_path / "bar.py"
 #     foo.write_text(f"x = {SENTINEL_1}\n")
 #     bar.write_text(f"y = {SENTINEL_1}\n")
-#     subprocess.run(["git", "add", "."], check=True, capture_output=True)
-#     subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+#     subprocess.run(["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+#     subprocess.run(["git", "commit", "-m", "second"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
 #     # Non-baseline scan should report findings
-#     output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"], capture_output=True, text=True, check=True)
+#     output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True, check=True)
 #     snapshot.assert_match(output.stdout, "output.txt")
 #     assert output.stdout != ""
 #     snapshot.assert_match(output.stderr.replace(base_commit, "baseline-commit"), "error.txt")
 
 #     # Baseline scan should report same findings
-#     baseline_output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python", "--baseline-commit", base_commit], capture_output=True, text=True)
+#     baseline_output = subprocess.run([sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python", "--baseline-commit", base_commit], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 #     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
 #     # assert baseline_output.stdout == output.stdout
 #     snapshot.assert_match(baseline_output.stderr.replace(base_commit, "baseline-commit"), "baseline_error.txt")
@@ -54,7 +54,8 @@ def run_normal_scan(check=True):
             "-l",
             "python",
         ],
-        capture_output=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
         text=True,
         check=check,
         env=env,
@@ -83,7 +84,8 @@ def run_baseline(base_commit, check=True):
             "--baseline-commit",
             base_commit,
         ],
-        capture_output=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
         text=True,
         check=check,
         env=env,
@@ -98,8 +100,15 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     bar = git_tmp_path / "bar.py"
     bar.write_text(f"y = {SENTINEL_1}\n")
 
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -108,7 +117,8 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     subprocess.run(
         ["git", "commit", "--allow-empty", "-m", "second"],
         check=True,
-        capture_output=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
     )
 
     # Non-baseline scan should report findings
@@ -140,8 +150,15 @@ def test_no_findings_both(git_tmp_path, snapshot):
     foo.write_text(f"x = 1\n")
 
     # Add files with no finding
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -149,8 +166,15 @@ def test_no_findings_both(git_tmp_path, snapshot):
     # Add files with no finding
     baz = git_tmp_path / "baz.py"
     baz.write_text("z = 1")
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "second"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     # Non-baseline scan should report no findings
     output = run_normal_scan()
@@ -177,8 +201,15 @@ def test_no_findings_head(git_tmp_path, snapshot):
     foo.write_text(f"x = {SENTINEL_1}\n")
 
     # Add baseline finding
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -188,8 +219,15 @@ def test_no_findings_head(git_tmp_path, snapshot):
     baz.write_text("z  = 1")
     foo.write_text("")  # Overwrite foo and baz to empty file
     bar.write_text("")
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "second"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     # Non-baseline scan should report no findings
     output = run_normal_scan()
@@ -213,8 +251,15 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     foo.write_text(f"x = 1")
 
     # Add baseline finding
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -223,8 +268,15 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     bar = git_tmp_path / "bar.py"
     bar.write_text(f"y = {SENTINEL_1}\n")
     foo.write_text(f"x = {SENTINEL_1}\n")
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "second"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     # Non-baseline scan should report findings
     output = run_normal_scan()
@@ -250,8 +302,15 @@ def test_some_intersection(git_tmp_path, snapshot):
     foo.write_text(f"x = {SENTINEL_1}\n")
 
     # Add baseline finding
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -259,8 +318,15 @@ def test_some_intersection(git_tmp_path, snapshot):
     # Add head finding
     bar = git_tmp_path / "bar.py"
     bar.write_text(f"y = {SENTINEL_1}\n")
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "second"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     # Non-baseline scan should report 2 findings
     output = run_normal_scan()
@@ -288,16 +354,30 @@ def test_all_intersect(git_tmp_path, snapshot):
     bar = git_tmp_path / "bar.py"
     bar.write_text(f"y = {SENTINEL_1}\n")
 
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
 
     # Add and commit noop change
     foo.write_text(foo.read_text() + "z = 1\n")  # Note write_text overwrites
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "second"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     # Non-baseline scan should report findings
     output = run_normal_scan()
@@ -322,8 +402,15 @@ def test_no_intersection(git_tmp_path, snapshot):
     foo.write_text(f"x = {SENTINEL_1}")
 
     # Add baseline finding
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -332,8 +419,15 @@ def test_no_intersection(git_tmp_path, snapshot):
     bar = git_tmp_path / "bar.py"
     bar.write_text(f"y = {SENTINEL_1}\n")
     foo.write_text("")  # Overwrite foo
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "second"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     # Non-baseline scan should report 1 finding
     output = run_normal_scan()
@@ -366,8 +460,15 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     foo.mkdir()
     foo_a = foo / "a.py"
     foo_a.touch()
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     base_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], text=True
     ).strip()
@@ -401,8 +502,15 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     foo.mkdir()
     foo_a = foo / "a.py"
     foo_a.touch()
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "first"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
 
     output = run_baseline("12345", check=False)
     assert output.returncode != 0
@@ -413,14 +521,25 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
 def git_tmp_path(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     # Initialize State
-    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+    )
     subprocess.run(
         ["git", "config", "user.email", "baselinetest@r2c.dev"],
         check=True,
-        capture_output=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
     )
     subprocess.run(
-        ["git", "config", "user.name", "Baseline Test"], check=True, capture_output=True
+        ["git", "config", "user.name", "Baseline Test"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
     )
-    subprocess.run(["git", "checkout", "-B", "main"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "checkout", "-B", "main"],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     yield tmp_path
