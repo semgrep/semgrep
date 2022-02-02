@@ -27,11 +27,65 @@ def test_symlink():
     pass
 
 
-def test_no_findings_both():
-    pass
+def test_no_findings_both(git_tmp_path, snapshot):
+    # Test if no findings in head or base semgrep doesnt explode
+    foo = git_tmp_path / "foo.py"
+    bar = git_tmp_path / "bar.py"
+    bar.write_text(f"y = 1\n")
+    foo.write_text(f"x = 1\n")
+
+    # Add files with no finding
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], text=True
+    ).strip()
+
+    # Add files with no finding
+    baz = git_tmp_path / "baz.py"
+    baz.write_text("z = 1")
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+
+    # Non-baseline scan should report no findings
+    output = subprocess.run(
+        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert output.stdout == ""
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
+
+    # Baseline scan should report no findings
+    baseline_output = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "semgrep",
+            "-e",
+            f"$X = {SENTINEL_1}",
+            "-l",
+            "python",
+            "--baseline-commit",
+            base_commit,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert baseline_output.stdout == output.stdout
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
+    )
 
 
 def test_no_findings_head(git_tmp_path, snapshot):
+    # Test that no findings in head reports no findings even if
+    # findings in baseline
     foo = git_tmp_path / "foo.py"
     bar = git_tmp_path / "bar.py"
     bar.write_text(f"y = {SENTINEL_1}\n")
@@ -257,8 +311,60 @@ def test_all_intersect(git_tmp_path, snapshot):
     )
 
 
-def test_no_intersection():
-    pass
+def test_no_intersection(git_tmp_path, snapshot):
+    # If no intersection of baseline and head finding should still report head finding
+    foo = git_tmp_path / "foo.py"
+    foo.write_text(f"x = {SENTINEL_1}")
+
+    # Add baseline finding
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], text=True
+    ).strip()
+
+    # Add head finding remove baseline finding
+    bar = git_tmp_path / "bar.py"
+    bar.write_text(f"y = {SENTINEL_1}\n")
+    foo.write_text("")  # Overwrite foo
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "second"], check=True, capture_output=True)
+
+    # Non-baseline scan should report 1 finding
+    output = subprocess.run(
+        [sys.executable, "-m", "semgrep", "-e", f"$X = {SENTINEL_1}", "-l", "python"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    snapshot.assert_match(output.stdout, "output.txt")
+    assert output.stdout != ""
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
+
+    # Baseline scan should report same finding
+    baseline_output = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "semgrep",
+            "-e",
+            f"$X = {SENTINEL_1}",
+            "-l",
+            "python",
+            "--baseline-commit",
+            base_commit,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert baseline_output.stdout == output.stdout
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
+    )
 
 
 def test_multiple_on_same_line():
@@ -270,6 +376,7 @@ def test_run_in_subdirectory():
 
 
 def test_unstaged_changes(git_tmp_path, snapshot):
+    # Should abort if have unstaged changes
     foo = git_tmp_path / "foo"
     foo.mkdir()
     foo_a = foo / "a.py"
