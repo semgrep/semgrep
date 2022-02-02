@@ -35,7 +35,7 @@ SENTINEL_1 = 23478921
 #     # assert baseline_output.stdout == output.stdout
 #     snapshot.assert_match(baseline_output.stderr.replace(base_commit, "baseline-commit"), "baseline_error.txt")
 def run_normal_scan(check=True):
-    env = {}
+    env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
@@ -62,7 +62,7 @@ def run_normal_scan(check=True):
 
 
 def run_baseline(base_commit, check=True):
-    env = {}
+    env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
