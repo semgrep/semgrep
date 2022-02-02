@@ -34,7 +34,7 @@ SENTINEL_1 = 23478921
 #     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
 #     # assert baseline_output.stdout == output.stdout
 #     snapshot.assert_match(baseline_output.stderr.replace(base_commit, "baseline-commit"), "baseline_error.txt")
-def run_normal_scan():
+def run_normal_scan(check=True):
     env = {}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
@@ -56,12 +56,12 @@ def run_normal_scan():
         ],
         capture_output=True,
         text=True,
-        check=True,
+        check=check,
         env=env,
     )
 
 
-def run_baseline(base_commit):
+def run_baseline(base_commit, check=True):
     env = {}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
@@ -85,7 +85,7 @@ def run_baseline(base_commit):
         ],
         capture_output=True,
         text=True,
-        check=True,
+        check=check,
         env=env,
     )
 
@@ -373,24 +373,7 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     ).strip()
 
     foo_a.write_text(f"y = {SENTINEL_1}\n")
-    output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
-        capture_output=True,
-        text=True,
-    )
+    output = run_baseline(base_commit, check=False)
     assert output.returncode != 0
     snapshot.assert_match(output.stderr, "error.txt")
 
@@ -407,24 +390,7 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     foo_a = foo / "a.py"
     foo_a.write_text("y = 55555555\n")
 
-    output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "-e",
-            "$X = 55555555",
-            "-l",
-            "python",
-            "--baseline-commit",
-            "12345",
-        ],
-        capture_output=True,
-        text=True,
-    )
+    output = run_baseline("12345", check=False)
     assert output.returncode != 0
     snapshot.assert_match(output.stderr, "error.txt")
 
@@ -438,23 +404,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", "first"], check=True, capture_output=True)
 
-    output = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics=off",
-            "-e",
-            "$X = 123",
-            "-l",
-            "python",
-            "--baseline-commit",
-            "12345",
-        ],
-        capture_output=True,
-        text=True,
-    )
+    output = run_baseline("12345", check=False)
     assert output.returncode != 0
     snapshot.assert_match(output.stderr, "error.txt")
 
