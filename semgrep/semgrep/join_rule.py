@@ -464,7 +464,6 @@ def run_join_rule(
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,
-            lines_cache={},
         )
         for match in matches
     ]

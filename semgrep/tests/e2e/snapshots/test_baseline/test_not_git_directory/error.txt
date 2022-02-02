@@ -1,0 +1,1 @@
+Current directory is not in a git project. Aborting baseline scan.

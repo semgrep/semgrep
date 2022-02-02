@@ -1,10 +1,10 @@
+import hashlib
 import itertools
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 import attr
 
@@ -64,12 +64,44 @@ class RuleMatch:
     _path: Path = attr.ib(repr=str)
     _start: CoreLocation = attr.ib()
     _end: CoreLocation = attr.ib()
-
     _extra: Dict[str, Any] = attr.ib(repr=False)
-    _lines_cache: Dict[Tuple[int, int], List[str]] = attr.ib(repr=False)
 
     # optional attributes
     _is_ignored: Optional[bool] = attr.ib(default=None)
+
+    # derived attributes
+    _lines: List[str] = attr.ib()
+    _lines_hash: str = attr.ib()
+    _previous_line: str = attr.ib()
+
+    @_lines.default
+    def _get_lines(self) -> List[str]:
+        """
+        Return lines in file that this RuleMatch is referring to.
+
+        Assumes file exists.
+
+        Need to do on initializtion instead of on read since file might not be the same
+        at read time
+        """
+        # Start and end line are one-indexed, but the subsequent slice call is
+        # inclusive for start and exclusive for end, so only subtract from start
+        start_line = self.start.line - 1
+        end_line = self.end.line
+
+        if start_line == -1 and end_line == 0:
+            # Completely empty file
+            return []
+
+        # buffering=1 turns on line-level reads
+        with self.path.open(buffering=1, errors="replace") as fd:
+            result = list(itertools.islice(fd, start_line, end_line))
+
+        return result
+
+    @_lines_hash.default
+    def _initialize_lines_hash(self) -> str:
+        return hashlib.sha256("\n".join(self.lines).encode()).hexdigest()
 
     @property
     def id(self) -> str:
@@ -118,7 +150,22 @@ class RuleMatch:
         return self._is_ignored
 
     @property
+    def lines(self) -> List[str]:
+        return self._lines
+
+    @property
+    def lines_hash(self) -> str:
+        """
+        sha256 digest of lines of this rule_match
+        """
+        return self._lines_hash
+
+    @property
     def previous_line(self) -> str:
+        return self._previous_line
+
+    @_previous_line.default
+    def _get_previous_line(self) -> str:
         """Return the line preceding the match, if any.
 
         This is meant for checking for the presence of a nosemgrep comment.
@@ -126,7 +173,7 @@ class RuleMatch:
         Refer to it for relevant comments.
         IT feels like a lot of duplication. Feel free to improve.
         """
-        # see comments in 'lines' method
+        # see comments in '_get_lines' method
         start_line = self.start.line - 2
         end_line = start_line + 1
         is_empty_file = self.end.line <= 0
@@ -135,48 +182,19 @@ class RuleMatch:
             # no previous line
             return ""
 
-        try:
-            res = self._lines_cache[(start_line, end_line)]
-            if res:
-                return res[0]
-            else:
-                return ""
-        except KeyError:
-            pass
-
         with self.path.open(buffering=1, errors="replace") as fd:
             res = list(itertools.islice(fd, start_line, end_line))
 
-        self._lines_cache[(start_line, end_line)] = res
         if res:
             return res[0]
         else:
             return ""
 
-    @property
-    def lines(self) -> List[str]:
-        """
-        Return lines in file that this RuleMatch is referring to.
-
-        Assumes file exists.
-        """
-        # Start and end line are one-indexed, but the subsequent slice call is
-        # inclusive for start and exclusive for end, so only subtract from start
-        start_line = self.start.line - 1
-        end_line = self.end.line
-
-        if start_line == -1 and end_line == 0:
-            # Completely empty file
-            return []
-
-        try:
-            return self._lines_cache[(start_line, end_line)]
-        except KeyError:
-            pass
-
-        # buffering=1 turns on line-level reads
-        with self.path.open(buffering=1, errors="replace") as fd:
-            result = list(itertools.islice(fd, start_line, end_line))
-
-        self._lines_cache[(start_line, end_line)] = result
-        return result
+    def is_baseline_equivalent(self, other: "RuleMatch") -> bool:
+        # Note should not override __eq__ of this object since technically not equal
+        return (
+            self.id == other.id
+            and self.path == other.path
+            and self.lines_hash == other.lines_hash
+            and self.lines == other.lines
+        )

@@ -26,14 +26,13 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
-from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.progress_bar import debug_tqdm_write
 from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
-from semgrep.rule_match import RuleMatch
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -277,16 +276,10 @@ class CoreRunner:
         self,
         rules: List[Rule],
         target_manager: TargetManager,
-        profiler: ProfileManager,
-    ) -> Tuple[
-        Dict[Rule, List[RuleMatch]],
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
-        outputs: Dict[Rule, List[RuleMatch]] = collections.defaultdict(list)
+        outputs: RuleMatchMap = collections.defaultdict(list)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
@@ -394,14 +387,8 @@ class CoreRunner:
     def invoke_semgrep(
         self,
         target_manager: TargetManager,
-        profiler: ProfileManager,
         rules: List[Rule],
-    ) -> Tuple[
-        Dict[Rule, List[RuleMatch]],
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         """
         Takes in rules and targets and retuns object with findings
         """
@@ -412,7 +399,7 @@ class CoreRunner:
             errors,
             all_targets,
             profiling_data,
-        ) = self._run_rules_direct_to_semgrep_core(rules, target_manager, profiler)
+        ) = self._run_rules_direct_to_semgrep_core(rules, target_manager)
 
         logger.debug(
             f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"

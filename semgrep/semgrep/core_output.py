@@ -354,7 +354,6 @@ class CoreOutput:
                 start=match.start,
                 end=match.end,
                 extra=match.extra,
-                lines_cache={},
             )
             return rule_match
 
