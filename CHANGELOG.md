@@ -4,8 +4,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+### Changed
+
+### Fixed
+
+## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 02-02-2022
+
+### Added
+- Dockerfile language: metavariables and ellipses are now
+  supported in most places where it makes sense (#4556, #4577)
+
 ### Fixed
 - Gracefully handle timeout errors with missing rule_id
+- Match resources in Java try-with-resources statements (#4228)
 
 ## [0.80.0](https://github.com/returntocorp/semgrep/releases/tag/v0.80.0) - 01-26-2022
 
@@ -13,16 +26,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Autocomplete for CLI options
 - Dockerfile: add support for metavariables where argument expansion is already supported
 
-- Dockerfile language: metavariables and ellipses are now
-  supported in most places where it makes sense (#4556, #4577)
-
 ### Changed
 - Ruby: a metavariable matching an atom can also be used to match an identifier
   with the same name (#4550)
 
 ### Fixed
 - Handle missing target files without raising an exception (#4462)
-- Match resources in Java try-with-resources statements (#4228)
 
 ## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 01-20-2022
 
