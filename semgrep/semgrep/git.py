@@ -61,6 +61,17 @@ class BaselineHandler:
 
         try:
             self._repo_root_dir = Path(self._get_repo_root())
+
+            # Check commit hash exists
+            try:
+                subprocess.run(
+                    ["git", "cat-file", "-e", base_commit],
+                    check=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError:
+                raise Exception(f"{base_commit} does not resolve to a valid commit")
+
             self._status = self._get_git_status()
             self._abort_on_pending_changes()
             self._abort_on_conflicting_untracked_paths(self._status)
@@ -76,15 +87,19 @@ class BaselineHandler:
         """
         Returns Path object to the root of the git project cwd is in
 
-        Raises CalledProcessError if cwd is not in a git project
+        Raises Exception if cwd is not in a git project
         """
         rev_parse = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
             timeout=GIT_SH_TIMEOUT,
-            check=True,
         )
+        if rev_parse.returncode != 0:
+            raise Exception(
+                "Current directory is not in a git project. Aborting baseline scan."
+            )
+
         repo_root_str = rev_parse.stdout.strip()
         return Path(rev_parse.stdout.strip())
 
