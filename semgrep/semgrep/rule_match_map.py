@@ -1,7 +1,7 @@
-from typing import Mapping
-from typing import Sequence
+from typing import Dict
+from typing import List
 
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
-RuleMatchMap = Mapping[Rule, Sequence[RuleMatch]]
+RuleMatchMap = Dict[Rule, List[RuleMatch]]
