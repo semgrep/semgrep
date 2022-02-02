@@ -1,5 +1,6 @@
 import collections
 import json
+import os
 import resource
 import subprocess
 import sys
@@ -45,6 +46,9 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 Target = Tuple[Path, Language]
+
+RULE_SAVE_FILE = "semgrep_rules.yaml"
+TARGET_SAVE_FILE = "semgrep_targets.txt"
 
 
 def setrlimits_preexec_fn() -> None:
@@ -292,55 +296,12 @@ class CoreRunner:
 
         return targets_json
 
-    def _dump_semgrep_core_command(
-        self, rules: List[Rule], target_manager: TargetManager, profiler: ProfileManager
-    ) -> None:
-        rules_file = "semgrep_rules.yaml"
-        targets_file = "semgrep_targets.txt"
-
-        with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            with open(rules_file, "w+") as rule_file, open(
-                targets_file, "w+"
-            ) as target_file:
-                targets_with_rules = self._get_targets(rules, target_manager, set())
-                target_file.write(json.dumps(targets_with_rules))
-                target_file.flush()
-
-                yaml = YAML()
-                yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
-                rule_file.flush()
-
-                # Run semgrep
-                cmd = [SemgrepCore.path()] + [
-                    "-json",
-                    "-rules",
-                    rule_file.name,
-                    "-j",
-                    str(self._jobs),
-                    "-targets",
-                    target_file.name,
-                    "-use_parsing_cache",
-                    semgrep_core_ast_cache_dir,
-                    "-timeout",
-                    str(self._timeout),
-                    "-max_memory",
-                    str(self._max_memory),
-                    "-json_time",
-                ]
-
-                if self._optimizations != "none":
-                    cmd.append("-fast")
-
-                if is_debug():
-                    cmd += ["-debug"]
-
-                print(" ".join(cmd))
-
     def _run_rules_direct_to_semgrep_core(
         self,
         rules: List[Rule],
         target_manager: TargetManager,
         profiler: ProfileManager,
+        dump_command_for_core: bool,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         List[SemgrepError],
@@ -356,10 +317,23 @@ class CoreRunner:
 
         profiling_data: ProfilingData = ProfilingData()
 
+        # TODO do we still need the ast cache dir?
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            with tempfile.NamedTemporaryFile(
-                "w", suffix=".yaml"
-            ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+            rule_file_name = (
+                RULE_SAVE_FILE
+                if dump_command_for_core
+                else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
+            )
+            target_file_name = (
+                TARGET_SAVE_FILE
+                if dump_command_for_core
+                else tempfile.NamedTemporaryFile("w").name
+            )
+
+            with open(rule_file_name, "w+") as rule_file, open(
+                target_file_name, "w+"
+            ) as target_file:
+
                 targets_with_rules = self._get_targets(
                     rules, target_manager, all_targets
                 )
@@ -379,13 +353,13 @@ class CoreRunner:
                     str(self._jobs),
                     "-targets",
                     target_file.name,
-                    "-use_parsing_cache",
-                    semgrep_core_ast_cache_dir,
                     "-timeout",
                     str(self._timeout),
                     "-max_memory",
                     str(self._max_memory),
                     "-json_time",
+                    "-use_parsing_cache",
+                    semgrep_core_ast_cache_dir,
                 ]
 
                 if self._optimizations != "none":
@@ -395,6 +369,10 @@ class CoreRunner:
                 if is_debug():
                     cmd += ["-debug"]
                     stderr = None
+
+                if dump_command_for_core:
+                    print(" ".join(cmd))
+                    sys.exit(0)
 
                 core_run = sub_run(
                     cmd,
@@ -425,6 +403,9 @@ class CoreRunner:
                             max_timeout_files.add(err.path)
                 errors.extend(parsed_errors)
 
+            os.remove(rule_file_name)
+            os.remove(target_file_name)
+
         return outputs, errors, all_targets, profiling_data
 
     # end _run_rules_direct_to_semgrep_core
@@ -441,9 +422,6 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
     ]:
-        if dump_command_for_core:
-            self._dump_semgrep_core_command(rules, target_manager, profiler)
-            sys.exit(0)
 
         """
         Takes in rules and targets and retuns object with findings
@@ -455,7 +433,9 @@ class CoreRunner:
             errors,
             all_targets,
             profiling_data,
-        ) = self._run_rules_direct_to_semgrep_core(rules, target_manager, profiler)
+        ) = self._run_rules_direct_to_semgrep_core(
+            rules, target_manager, profiler, dump_command_for_core
+        )
 
         logger.debug(
             f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"
