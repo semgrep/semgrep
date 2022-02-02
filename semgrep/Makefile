@@ -14,7 +14,6 @@ clean:
 	rm -rf semgrep/__pycache__ semgrep/*/__pycache__
 
 .PHONY: check
-# this needs to run in pipenv shell to access mypy
 check:
-	#mypy --config-file ../mypy.ini semgrep
+	pre-commit run -a mypy
 	semgrep-core -pycheck .
