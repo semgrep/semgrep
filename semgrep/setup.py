@@ -22,13 +22,6 @@ IS_WINDOWS = platform.system() == "Windows"
 WHEEL_CMD = "bdist_wheel"
 
 
-def is_python_before_3_7():
-    """Can't user packaging.version on old systems so use this hack"""
-    current = sys.version.split(" ")[0]
-    major, minor, sub = current.split(".")
-    return int(major) < 3 or int(minor) < 7
-
-
 if WHEEL_CMD in sys.argv:
     try:
         from wheel.bdist_wheel import bdist_wheel
@@ -42,7 +35,7 @@ if WHEEL_CMD in sys.argv:
 
         def get_tag(self):
             _, _, plat = bdist_wheel.get_tag(self)
-            python = "cp36.cp37.cp38.cp39.py36.py37.py38.py39"
+            python = "cp37.cp38.cp39.cp310.py37.py38.py39.py310"
             abi = "none"
             plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
             return python, abi, plat
@@ -153,13 +146,13 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     zip_safe=False,
 )

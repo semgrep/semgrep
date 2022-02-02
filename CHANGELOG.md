@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+- Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
+
 ### Fixed
 - Gracefully handle timeout errors with missing rule_id
 
