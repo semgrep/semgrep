@@ -1,4 +1,3 @@
-import functools
 import itertools
 from itertools import groupby
 from pathlib import Path
@@ -159,22 +158,15 @@ class TextFormatter(BaseFormatter):
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
-        col_lim = 70
+        col_lim = 50
 
         targets = time_data["targets"]
 
         # Compute summary timings
-        rule_parsing_time = sum(
-            parse_time for parse_time in time_data["rule_parse_info"]
-        )
-        rule_timings = {
-            rule["id"]: functools.reduce(
-                lambda x, y: (x[0] + y[0], x[1] + y[1]),
-                (
-                    (t["run_times"][i] - t["parse_times"][i], t["match_times"][i])
-                    for t in targets
-                ),
-                (time_data["rule_parse_info"][i], 0.0),
+        rule_parsing_time = time_data["rule_parse_info"]
+        rule_match_timings = {
+            rule["id"]: sum(
+                t["match_times"][i] for t in targets if t["match_times"][i] >= 0
             )
             for i, rule in enumerate(time_data["rules"])
         }
@@ -182,12 +174,15 @@ class TextFormatter(BaseFormatter):
             sum(t for t in target["parse_times"] if t >= 0) for target in targets
         )
         file_timings = {
-            target["path"]: float(sum(t for t in target["run_times"] if t >= 0))
+            target["path"]: (
+                sum(t for t in target["parse_times"] if t >= 0),
+                target["run_times"],
+            )
             for target in targets
         }
 
-        all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
-        total_matching_time = sum(i[1] for i in rule_timings.values() if i[1] >= 0)
+        all_total_time = sum(i[1] for i in file_timings.values()) + rule_parsing_time
+        total_matching_time = sum(i for i in rule_match_timings.values())
 
         # Count errors
 
@@ -219,7 +214,7 @@ class TextFormatter(BaseFormatter):
             [
                 (
                     lang_of_path(target["path"]),
-                    (target["num_bytes"], sum(target["run_times"])),
+                    (target["num_bytes"], target["run_times"]),
                 )
                 for target in targets
             ],
@@ -239,32 +234,32 @@ class TextFormatter(BaseFormatter):
         total_time = time_data["profiling_times"].get("total_time", 0.0)
         config_time = time_data["profiling_times"].get("config_time", 0.0)
         core_time = time_data["profiling_times"].get("core_time", 0.0)
-        ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
+        _ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
 
         yield f"\n============================[ summary ]============================"
 
-        yield f"Total time: {total_time:.4f} Config time: {config_time:.4f} Core time: {core_time:.4f} Ignores time: {ignores_time:.4f}"
+        yield f"Total time: {total_time:.4f}s Config time: {config_time:.4f}s Core time: {core_time:.4f}s"
 
         # Output semgrep-core information
         yield f"\nSemgrep-core time:"
-        yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
+        yield f"Total CPU time: {all_total_time:.4f}s  File parse time: {file_parsing_time:.4f}s" f"  Rule parse time: {rule_parsing_time:.4f}s  Match time: {total_matching_time:.4f}s"
 
         yield f"Slowest {items_to_show}/{len(file_timings)} files"
         slowest_file_times = sorted(
             file_timings.items(), key=lambda x: x[1], reverse=True
         )[:items_to_show]
-        for file_name, parse_time in slowest_file_times:
+        for file_name, (parse_time, run_time) in slowest_file_times:
             num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
             file_name = truncate(file_name, col_lim)
-            yield f"{with_color(Colors.green, f'{file_name:<70}')} {num_bytes:<9}{parse_time:.4f}"
+            yield f"{with_color(Colors.green, f'{file_name:<50}')} {num_bytes:<8} {run_time:.3f}s ({parse_time:.3f}s to parse)"
 
-        yield f"Slowest {items_to_show} rules to run (excluding parse time)"
-        slowest_rule_times = sorted(
-            rule_timings.items(), key=lambda x: float(x[1][0]), reverse=True
-        )[:items_to_show]
-        for rule_id, (total_time, match_time) in slowest_rule_times:
+        yield f"Slowest {items_to_show} rules to match"
+        slowest_rule_times = sorted(rule_match_timings.items(), reverse=True)[
+            :items_to_show
+        ]
+        for rule_id, match_time in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"
-            yield f"{with_color(Colors.yellow, f'{rule_id:<71}')} run time {total_time:.4f}  match time {match_time:.4f}"
+            yield f"{with_color(Colors.yellow, f'{rule_id:<59}')} {match_time:.3f}s"
 
         # Output other file information
         ANALYZED = "Analyzed:"

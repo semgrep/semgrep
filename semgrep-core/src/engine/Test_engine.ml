@@ -170,17 +170,23 @@ let make_tests ?(unit_testing = false) xs =
                  failwith
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
              in
-             if not (res.profiling.match_time >= 0.) then
-               (* match_time could be 0.0 if the rule contains no pattern or if the
-                  rules are skipped. Otherwise it's positive. *)
-               failwith
-                 (spf "invalid value for match time: %g (rule: %s, target: %s)"
-                    res.profiling.match_time file target);
-             if not (res.profiling.parse_time >= 0.) then
-               (* same for parse time *)
-               failwith
-                 (spf "invalid value for parse time: %g (rule: %s, target: %s)"
-                    res.profiling.parse_time file target);
+             res.profiling.rule_times
+             |> List.iter (fun rule_time ->
+                    if not (rule_time.RP.match_time >= 0.) then
+                      (* match_time could be 0.0 if the rule contains no pattern or if the
+                         rules are skipped. Otherwise it's positive. *)
+                      failwith
+                        (spf
+                           "invalid value for match time: %g (rule: %s, \
+                            target: %s)"
+                           rule_time.RP.match_time file target);
+                    if not (rule_time.RP.parse_time >= 0.) then
+                      (* same for parse time *)
+                      failwith
+                        (spf
+                           "invalid value for parse time: %g (rule: %s, \
+                            target: %s)"
+                           rule_time.RP.parse_time file target));
 
              res.matches |> List.iter JSON_report.match_to_error;
              if not (res.errors = []) then
