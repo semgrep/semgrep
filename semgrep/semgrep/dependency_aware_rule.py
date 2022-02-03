@@ -13,9 +13,6 @@ from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
-from semgrep.verbose_logging import getLogger
-
-logger = getLogger(__file__)
 
 
 PACKAGE_MANAGER_MAP = {
