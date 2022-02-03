@@ -43,6 +43,8 @@ let str_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
  *)
 let dotted_ident_of_str str = Common.split "\\." str
 
+let dotted_ident_of_dir str = Common.split "/" str
+
 (* see also AST_generic_helpers.name_of_ids *)
 
 let last_ident_of_dotted_ident xs =
@@ -131,6 +133,7 @@ let create_intermediate_packages_if_not_present g root xs =
 let add_use_edge env (name, kind) =
   let src = env.current_parent in
   let dst = (name, kind) in
+  logger#info "trying %s --> %s" (G.string_of_node src) (G.string_of_node dst);
   match () with
   | _ when not (G.has_node src env.g) ->
       logger#error "LOOKUP SRC FAIL %s --> %s, src does not exist???"
