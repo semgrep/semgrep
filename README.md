@@ -49,7 +49,7 @@ The Semgrep ecosystem includes:
 
 - Semgrep - the open-source command line tool at the heart of everything (this project)
 - [Semgrep CI](https://semgrep.dev/docs/semgrep-ci/) - a specialized Docker image for running Semgrep in CI environments
-- [Semgrep Playground](https://semgrep.dev/editor) - an online interactive editor for writing and sharing rules
+- [Semgrep Playground](https://semgrep.dev/editor) - an online interactive tool for writing and sharing rules
 - [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs
 - [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers.
 
@@ -88,6 +88,10 @@ Once installed, Semgrep can run with single rules or entire rulesets. Visit [Doc
 ```sh
 # Check for Python == where the left and right hand sides are the same (often a bug)
 $ semgrep -e '$X == $X' --lang=py path/to/src
+
+# Fetch rules automatically by examining your code's makeup (your source code
+# is not uploaded anywhere)
+$ semgrep --config auto
 
 # Run the r2c-ci ruleset (with rules for many languages) on your own code!
 $ semgrep --config=p/r2c-ci path/to/src
