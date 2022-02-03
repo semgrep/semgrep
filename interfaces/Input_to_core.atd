@@ -25,7 +25,8 @@ type target = {
    * allow (by design) to use types defined in other files.
    *)
   language: string;
-  (* TODO: rule_ids *)
+  (* If there is no rule_id, the default we will use is '-' *)
+  rule_ids: string list;
 }
 
 (* The same path can be present multiple times in targets below, with

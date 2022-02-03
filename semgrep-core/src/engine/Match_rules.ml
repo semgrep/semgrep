@@ -70,5 +70,7 @@ let check ~match_hook default_config rules file_and_more =
   let skipped =
     Common.map (skipped_target_of_rule file_and_more) skipped_rules
   in
-  let res = RP.collate_semgrep_results [ res_search; res_taint ] in
+  let res =
+    RP.collate_rule_results file_and_more.Xtarget.file (res_search @ res_taint)
+  in
   { res with skipped = skipped @ res.skipped }

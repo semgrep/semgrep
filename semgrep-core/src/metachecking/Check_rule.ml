@@ -233,7 +233,7 @@ let check_files mk_config fparser input =
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json ->
       let res =
-        { RP.matches = []; errors; skipped = []; rule_profiling = None }
+        { RP.matches = []; errors; skipped = []; final_profiling = None }
       in
       let json = JSON_report.match_results_of_matches_and_errors [] res in
       pr (SJ.string_of_match_results json)

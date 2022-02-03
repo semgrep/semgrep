@@ -112,7 +112,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file_and_more : Xtarget.t;
-  rule_id : R.rule_id;
+  rule : R.rule;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
   errors : E.error list ref;
@@ -130,7 +130,9 @@ let error env msg =
    * the target file. *)
   let loc = PI.first_loc_of_file env.file_and_more.Xtarget.file in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error ~rule_id:(Some env.rule_id) loc msg E.MatchingError in
+  let err =
+    E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg E.MatchingError
+  in
   Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =
@@ -596,7 +598,7 @@ let matches_of_xpatterns config file_and_more xpatterns =
   let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
 
   (* final result *)
-  RP.collate_semgrep_results
+  RP.collate_pattern_results
     [
       matches_of_patterns config file_and_more patterns;
       matches_of_spacegrep spacegreps file;
@@ -757,7 +759,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                               (spf
                                  "rule %s: metavariable-pattern: failed to \
                                   fully parse the content of %s"
-                                 env.rule_id mvar);
+                                 (fst env.rule.Rule.id) mvar);
                           (ast, errors)
                       | LRegex
                       | LGeneric ->
@@ -786,8 +788,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
 
 and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
-    matches_of_formula env.config env.rule_id env.file_and_more formula
-      opt_context
+    matches_of_formula env.config env.rule env.file_and_more formula opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
   match final_ranges with
@@ -924,11 +925,13 @@ and run_selector_on_ranges env selector_opt ranges =
       |> List.map RM.match_result_to_range
       |> RM.intersect_ranges (fst env.config) !debug_matches ranges
 
-and matches_of_formula config rule_id file_and_more formula opt_context :
-    RP.times RP.match_result * RM.ranges =
+and matches_of_formula config rule file_and_more formula opt_context :
+    RP.rule_profiling RP.match_result * RM.ranges =
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
-  let res = matches_of_xpatterns config file_and_more xpatterns in
+  let res =
+    matches_of_xpatterns config file_and_more xpatterns |> RP.add_rule rule
+  in
   logger#trace "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
@@ -938,7 +941,7 @@ and matches_of_formula config rule_id file_and_more formula opt_context :
       config;
       pattern_matches = pattern_matches_per_id;
       file_and_more;
-      rule_id;
+      rule;
       errors = ref [];
     }
   in
@@ -958,7 +961,7 @@ let check_rule r hook (default_config, equivs) pformula file_and_more =
   let formula = R.formula_of_pformula pformula in
   let rule_id = fst r.id in
   let res, final_ranges =
-    matches_of_formula (config, equivs) rule_id file_and_more formula None
+    matches_of_formula (config, equivs) r file_and_more formula None
   in
   {
     RP.matches =
@@ -991,4 +994,3 @@ let check ~match_hook default_config rules file_and_more =
          Rule.last_matched_rule := Some rule_id;
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
              check_rule r match_hook default_config pformula file_and_more))
-  |> RP.collate_semgrep_results

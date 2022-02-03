@@ -146,6 +146,7 @@ def run_rules(
     target_manager: TargetManager,
     core_runner: CoreRunner,
     output_handler: OutputHandler,
+    dump_command_for_core: bool,
 ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,
@@ -161,7 +162,9 @@ def run_rules(
         semgrep_errors,
         all_targets,
         profiling_data,
-    ) = core_runner.invoke_semgrep(target_manager, filtered_rules)
+    ) = core_runner.invoke_semgrep(
+        target_manager, filtered_rules, dump_command_for_core
+    )
 
     if join_rules:
         import semgrep.join_rule as join_rule
@@ -242,6 +245,7 @@ def remove_matches_in_baseline(
 
 def main(
     *,
+    dump_command_for_core: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -363,12 +367,13 @@ def main(
         optimizations=optimizations,
     )
 
-    (
-        rule_matches_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiling_data,
-    ) = run_rules(filtered_rules, target_manager, core_runner, output_handler)
+    (rule_matches_by_rule, semgrep_errors, all_targets, profiling_data,) = run_rules(
+        filtered_rules,
+        target_manager,
+        core_runner,
+        output_handler,
+        dump_command_for_core,
+    )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
 
@@ -383,7 +388,11 @@ def main(
                     baseline_targets,
                     baseline_profiling_data,
                 ) = run_rules(
-                    filtered_rules, target_manager, core_runner, output_handler
+                    filtered_rules,
+                    target_manager,
+                    core_runner,
+                    output_handler,
+                    dump_command_for_core,
                 )
                 rule_matches_by_rule = remove_matches_in_baseline(
                     rule_matches_by_rule, baseline_rule_matches_by_rule

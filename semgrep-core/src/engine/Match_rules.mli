@@ -9,4 +9,4 @@ val check :
   Config_semgrep.t * Equivalence.equivalences ->
   Rule.rules ->
   Xtarget.t ->
-  Report.times Report.match_result
+  Report.partial_profiling Report.match_result

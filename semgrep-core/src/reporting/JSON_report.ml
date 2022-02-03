@@ -187,12 +187,22 @@ let error_to_error err =
   }
 
 let json_time_of_profiling_data profiling_data =
+  let json_time_of_rule_times rule_times =
+    rule_times
+    |> List.map (fun { RP.rule_id; parse_time; match_time } ->
+           { ST.rule_id; parse_time; match_time })
+  in
   {
     ST.targets =
       profiling_data.RP.file_times
-      |> List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
-             { ST.path = target; parse_time; match_time; run_time });
-    rule_parse_time = Some profiling_data.RP.rule_parse_time;
+      |> List.map (fun { RP.file = target; rule_times; run_time } ->
+             {
+               ST.path = target;
+               rule_times = json_time_of_rule_times rule_times;
+               run_time;
+             });
+    rules = List.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
+    rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 
 let match_results_of_matches_and_errors files res =
@@ -212,7 +222,7 @@ let match_results_of_matches_and_errors files res =
     errors = errs |> List.map error_to_error;
     skipped = res.RP.skipped;
     stats = { okfiles = count_ok; errorfiles = count_errors };
-    time = res.RP.rule_profiling |> Option.map json_time_of_profiling_data;
+    time = res.RP.final_profiling |> Option.map json_time_of_profiling_data;
   }
   |> Output_from_core_util.sort_match_results
   [@@profiling]

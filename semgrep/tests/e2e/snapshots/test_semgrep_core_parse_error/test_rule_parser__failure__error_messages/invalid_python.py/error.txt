@@ -4,7 +4,6 @@ rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-skipped 'targets/bad/invalid_python.py' [rule assert-eqeq-is-ok]: irrelevant_rule: target doesn't contain some elements required by rule 'assert-eqeq-is-ok'
 [WARN] Semgrep Core — Syntax error
 An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
 

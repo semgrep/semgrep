@@ -1,4 +1,5 @@
 [ {"path": "tests/e2e/targets/basic.py",
-   "language": "python"
+   "language": "python",
+   "rule_ids": ["-"]
   }
 ]

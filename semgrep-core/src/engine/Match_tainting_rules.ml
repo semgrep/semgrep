@@ -86,6 +86,8 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
+let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
+
 let any_in_ranges any rwms =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
@@ -123,15 +125,15 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     (* if perf is a problem, we could build an interval set here *)
     pfs
     |> List.concat_map
-         (range_w_metas_of_pformula config equivs file_and_more (fst rule.id))
+         (range_w_metas_of_pformula config equivs file_and_more rule)
   in
   let find_range_w_metas_santizers specs =
     specs
     |> List.concat_map (fun spec ->
            List.map
              (fun pf -> (spec.Rule.not_conflicting, pf))
-             (range_w_metas_of_pformula config equivs file_and_more
-                (fst rule.id) spec.pformula))
+             (range_w_metas_of_pformula config equivs file_and_more rule
+                spec.pformula))
   in
   let sources_ranges = find_range_w_metas spec.sources
   and sinks_ranges = find_range_w_metas spec.sinks in
@@ -173,17 +175,20 @@ let lazy_force x = Lazy.force x [@@profiling]
 (*****************************************************************************)
 
 let check_bis ~match_hook (default_config, equivs)
-    (taint_rules : (Rule.rule * Rule.taint_spec) list) file lang ast =
+    (taint_rule : Rule.rule * Rule.taint_spec) file lang ast =
+  (* @Iago I went and modified this to work one rule at a time *)
+  (* Let me know if this interferes with anything; it shouldn't because
+     semgrep has always passed one rule at a time *)
   let matches = ref [] in
 
-  let taint_configs =
-    taint_rules
-    |> List.map (fun (rule, taint_spec) ->
-           let found_tainted_sink pms _env =
-             PM.Set.iter (fun pm -> Common.push pm matches) pms
-           in
-           taint_config_of_rule default_config equivs file (ast, []) rule
-             taint_spec found_tainted_sink)
+  let rule, taint_spec = taint_rule in
+  Rule.last_matched_rule := Some (fst rule.Rule.id);
+  let taint_config =
+    let found_tainted_sink pms _env =
+      PM.Set.iter (fun pm -> Common.push pm matches) pms
+    in
+    taint_config_of_rule default_config equivs file (ast, []) rule taint_spec
+      found_tainted_sink
   in
 
   let fun_env = Hashtbl.create 8 in
@@ -192,16 +197,14 @@ let check_bis ~match_hook (default_config, equivs)
     let xs = AST_to_IL.stmt lang def_body in
     let flow = CFG_build.cfg_of_stmts xs in
 
-    taint_configs
-    |> List.iter (fun taint_config ->
-           let mapping =
-             Dataflow_tainting.fixpoint taint_config fun_env opt_name flow
-           in
-           ignore mapping
-           (* TODO
-              logger#sdebug (DataflowY.mapping_to_str flow
-               (fun () -> "()") mapping);
-           *))
+    let mapping =
+      Dataflow_tainting.fixpoint taint_config fun_env opt_name flow
+    in
+    ignore mapping
+    (* TODO
+       logger#sdebug (DataflowY.mapping_to_str flow
+        (fun () -> "()") mapping);
+    *)
   in
 
   let v =
@@ -241,10 +244,11 @@ let check_bis ~match_hook (default_config, equivs)
          |> List.iter (fun (m : Pattern_match.t) ->
                 let str = Common.spf "with rule %s" m.rule_id.id in
                 match_hook str m.env m.tokens))
+  |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
 
 let check ~match_hook default_config taint_rules file_and_more =
   match taint_rules with
-  | [] -> RP.empty_semgrep_result
+  | [] -> []
   | __else__ ->
       let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = file_and_more in
       let lang =
@@ -254,16 +258,20 @@ let check ~match_hook default_config taint_rules file_and_more =
         | LRegex ->
             failwith "taint-mode and generic/regex matching are incompatible"
       in
+      (* TODO can we move this outside to Match_rules? *)
       let (ast, errors), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in
-      let matches, match_time =
-        Common.with_time (fun () ->
-            check_bis match_hook default_config taint_rules file lang ast)
-      in
-      {
-        RP.matches;
-        errors;
-        skipped = [];
-        profiling = { RP.parse_time; match_time };
-      }
+      taint_rules
+      |> List.map (fun ((rule, _) as taint_rule) ->
+             let matches, match_time =
+               Common.with_time (fun () ->
+                   check_bis match_hook default_config taint_rule file lang ast)
+             in
+             {
+               RP.matches;
+               errors;
+               skipped = [];
+               profiling =
+                 { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
+             })
