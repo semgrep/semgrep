@@ -22,18 +22,17 @@ from semgrep.util import with_color
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
 FATAL_EXIT_CODE = 2
-# TODO: dead?
-INVALID_CODE_EXIT_CODE = 3
+# the commented one below are not used anymore
+# INVALID_CODE_EXIT_CODE = 3
 INVALID_PATTERN_EXIT_CODE = 4
 UNPARSEABLE_YAML_EXIT_CODE = 5
-# TODO: dead?
-NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
+# NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
-MATCH_TIMEOUT_EXIT_CODE = 9
-MATCH_MAX_MEMORY_EXIT_CODE = 10
-LEXICAL_ERROR_EXIT_CODE = 11
-TOO_MANY_MATCHES_EXIT_CODE = 12
+# MATCH_TIMEOUT_EXIT_CODE = 9
+# MATCH_MAX_MEMORY_EXIT_CODE = 10
+# LEXICAL_ERROR_EXIT_CODE = 11
+# TOO_MANY_MATCHES_EXIT_CODE = 12
 
 
 class Level(Enum):
@@ -371,11 +370,6 @@ class UnknownLanguageError(ErrorWithSpan):
 
 
 class _UnknownLanguageError(SemgrepInternalError):
-    pass
-
-
-# TODO:  dead?
-class _UnknownExtensionError(SemgrepInternalError):
     pass
 
 

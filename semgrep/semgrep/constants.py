@@ -66,9 +66,6 @@ class RuleSeverity(Enum):
 
 RULE_ID_RE_STR = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"
 
-SEMGREP_OFF_RE = re.compile(r" semgrep-off" + RULE_ID_RE_STR, re.IGNORECASE)
-SEMGREP_ON_RE = re.compile(r" semgrep-on" + RULE_ID_RE_STR, re.IGNORECASE)
-
 # Inline 'noqa' implementation modified from flake8:
 # https://github.com/PyCQA/flake8/blob/master/src/flake8/defaults.py
 # We're looking for items that look like this:
