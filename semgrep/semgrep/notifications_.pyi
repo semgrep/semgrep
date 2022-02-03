@@ -1,0 +1,3 @@
+
+def possibly_notify_user() -> None:
+   ...

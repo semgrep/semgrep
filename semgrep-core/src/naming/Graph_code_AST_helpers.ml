@@ -166,9 +166,11 @@ let add_use_edge env (name, kind) =
               env.g |> G.add_edge (parent_target, dst) G.Has;
               env.g |> G.add_edge (src, dst) G.Use))
 
-let nodeinfo (_id, tk) =
-  {
-    G.pos = Parse_info.unsafe_token_location_of_info tk;
-    props = [];
-    typ = None;
-  }
+let nodeinfo_of_id env (_id, tk) =
+  let loc = Parse_info.unsafe_token_location_of_info tk in
+  let loc = { loc with Parse_info.file = env.readable } in
+  { G.pos = loc; props = []; typ = None }
+
+let nodeinfo_of_file readable =
+  let loc = Parse_info.first_loc_of_file readable in
+  { G.pos = loc; props = []; typ = None }
