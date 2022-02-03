@@ -11,6 +11,8 @@ semgrep_core/sgrep.install
 
 # pad's stuff (but better to put in ~pad/config/commons/gitignore)
 /top.ml
+# codegraph serialized database
+*.marshall
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

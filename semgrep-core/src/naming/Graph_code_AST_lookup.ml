@@ -31,6 +31,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
+  logger#info "looking up: %s" (xs |> List.map fst |> String.concat ".");
   let g = env.g in
   let rec aux current xs =
     match xs with
@@ -39,8 +40,12 @@ let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
         let children = G.children current g in
         let candidates =
           children
-          |> List.filter (fun (s2, _kind) ->
-                 let xs = H.dotted_ident_of_str s2 in
+          |> List.filter (fun (s2, kind) ->
+                 let xs =
+                   match kind with
+                   | E.Dir -> H.dotted_ident_of_dir s2
+                   | _ -> H.dotted_ident_of_str s2
+                 in
                  H.last_ident_of_dotted_ident xs = str)
         in
         match candidates with
