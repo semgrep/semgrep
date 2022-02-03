@@ -45,7 +45,13 @@ let top_parent_and_qualifier ~lang ~readable ~ast :
        *   - the parent node (a/b/foo, E.File) (without .py extension)
        *   - the qualifiers [a;b;foo]
        *)
-      let d, b, _e = Common2.dbe_of_filename readable in
+      let d, b, e = Common2.dbe_of_filename readable in
+      (* coupling: ugly hack for pycheck; we should move out in a hook *)
+      let b =
+        match (b, e) with
+        | s, "pyi" when s =~ "^\\(.*\\)_$" -> Common.matched1 s
+        | _ -> b
+      in
       let dotted_idents =
         Common.split "/" d @ [ b ] |> List.map (fun s -> (s, tk))
       in

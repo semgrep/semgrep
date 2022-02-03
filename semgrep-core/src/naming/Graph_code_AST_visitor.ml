@@ -1029,7 +1029,7 @@ and map_definition env def =
           then ()
           else (
             env.g |> G.add_node node;
-            env.g |> G.add_nodeinfo node (H.nodeinfo id);
+            env.g |> G.add_nodeinfo node (H.nodeinfo_of_id env id);
             env.g |> G.add_edge (env.current_parent, node) G.Has);
           env.hooks.on_def_node node def);
 

@@ -425,6 +425,7 @@ let all_actions () =
       " <pattern> <file>",
       Common.mk_action_2_arg Test_comby.test_comby );
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
+    ("-pycheck", " <root>", Common.mk_action_1_arg Pycheck.pycheck);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program

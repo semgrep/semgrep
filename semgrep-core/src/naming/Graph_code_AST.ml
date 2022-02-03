@@ -101,7 +101,9 @@ let extract_defs_uses env ast =
    | base, E.File ->
        let dir = Common2.dirname env.readable in
        G.create_intermediate_directories_if_not_present env.g dir;
-       env.g |> G.add_node (base, E.File);
+       let node = (base, E.File) in
+       env.g |> G.add_node node;
+       env.g |> G.add_nodeinfo node (H.nodeinfo_of_file env.readable);
        env.g |> G.add_edge ((dir, E.Dir), (base, E.File)) G.Has
    | str, E.Package ->
        let xs = H.dotted_ident_of_str str in

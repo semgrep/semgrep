@@ -55,6 +55,7 @@ def is_url(url: str) -> bool:
         return False
 
 
+# TODO: seems dead
 def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
@@ -98,6 +99,7 @@ def partition_set(
     return set(filter(pred, i1)), set(itertools.filterfalse(pred, i2))
 
 
+# TODO: seems dead
 # cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
 def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
     """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
@@ -182,6 +184,7 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     return matches[0] + suffix if len(matches) > 0 else None
 
 
+# TODO: seems dead
 def listendswith(l: List[T], tail: List[T]) -> bool:
     """
     E.g.

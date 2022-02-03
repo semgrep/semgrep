@@ -12,3 +12,8 @@ clean:
 	rm -rf .pytest_cache/ .benchmarks/
 	rm -f semgrep/bin/semgrep-core
 	rm -rf semgrep/__pycache__ semgrep/*/__pycache__
+
+.PHONY: check
+check:
+	pre-commit run -a mypy
+	semgrep-core -pycheck .
