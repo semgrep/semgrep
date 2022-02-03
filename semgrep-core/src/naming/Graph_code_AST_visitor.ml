@@ -18,6 +18,10 @@ module H = Graph_code_AST_helpers
 module L = Graph_code_AST_lookup
 open Graph_code_AST_env
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
+let debug = false
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -105,6 +109,8 @@ and map_resolved_name_kind env = function
   | EnumConstant -> ()
 
 let rec map_name env n =
+  if debug then
+    logger#trace "map_name: %s" (H.string_of_any (E (N n |> AST_generic.e)));
   H.dotted_ident_of_name_opt n
   |> Option.iter (fun xs ->
          if env.phase = Uses then
@@ -418,12 +424,15 @@ and map_for_or_if_comp env = function
       nothing env (v1, v2)
 
 and map_field_name env = function
+  | FN v1 ->
+      (* !!do not call map_name here!! any uses should be handled
+       * in the caller in DotAccess
+       *)
+      (* old: let v1 = map_name env v1 in *)
+      nothing env v1
   (* ----------- *)
   (* Boilerplate *)
   (* ----------- *)
-  | FN v1 ->
-      let v1 = map_name env v1 in
-      nothing env v1
   | FDynamic v1 ->
       let v1 = map_expr env v1 in
       nothing env v1
