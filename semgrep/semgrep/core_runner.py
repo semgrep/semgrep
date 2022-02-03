@@ -287,12 +287,10 @@ class CoreRunner:
                 for target in targets:
                     all_targets.add(target)
                     t = (target, language)
-                    # We use orig_id here because semgrep-core expects it
-                    # TODO will this cause deduplication problems? Is that better behavior?
                     if t in target_info:
-                        target_info[t].append(RuleId(rule.orig_id))
+                        target_info[t].append(RuleId(rule.id))
                     else:
-                        target_info[t] = [RuleId(rule.orig_id)]
+                        target_info[t] = [RuleId(rule.id)]
 
         targets_json = []
         for target_and_lang in target_info:

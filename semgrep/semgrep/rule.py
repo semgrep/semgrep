@@ -31,7 +31,6 @@ class Rule:
         self._raw: Dict[str, Any] = raw.unroll_dict()
 
         self._id = str(self._raw["id"])
-        self._orig_id = self._id
 
         paths_tree: Optional[YamlTree] = self._yaml.value.get("paths")
         if paths_tree is None:
@@ -199,10 +198,7 @@ class Rule:
 
     def rename_id(self, new_id: str) -> None:
         self._id = new_id
-
-    @property
-    def orig_id(self) -> str:
-        return self._orig_id
+        self._raw["id"] = new_id
 
     @property
     def full_hash(self) -> str:
