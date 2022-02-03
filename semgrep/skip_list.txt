@@ -1,0 +1,7 @@
+# This configuration file is used by semgrep-core -pycheck (as well
+# as other tools developed by pad to visualize dependencies such as
+# codegraph) to skip certain directories/files for some analysis.
+
+dir: tests
+dir: build
+file: setup.py
