@@ -37,6 +37,7 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
+from semgrep.target_manager import IgnoreLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
@@ -116,7 +117,8 @@ def invoke_semgrep(
     output_handler = OutputHandler(output_settings)
     (
         filtered_matches_by_rule,
-        all_targets,
+        _,
+        _,
         filtered_rules,
         profiler,
         profiling_data,
@@ -272,6 +274,7 @@ def main(
 ) -> Tuple[
     RuleMatchMap,
     Set[Path],
+    IgnoreLog,
     List[Rule],
     ProfileManager,
     ProfilingData,
@@ -438,6 +441,7 @@ def main(
     return (
         filtered_matches_by_rule,
         all_targets,
+        target_manager.ignore_log,
         filtered_rules,
         profiler,
         profiling_data,

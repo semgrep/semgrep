@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import FrozenSet
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -215,3 +216,31 @@ def truncate(file_name: str, col_lim: int) -> str:
 
 def flatten(some_list: List[List[T]]) -> List[T]:
     return functools.reduce(operator.iconcat, some_list, [])
+
+
+PathFilterCallable = Callable[..., FrozenSet[Path]]
+
+
+def log_removed_paths(function: PathFilterCallable) -> PathFilterCallable:
+    """A decorator you can apply to functions that filter paths, to keep track of what they filtered.
+
+    It assumes your filter function takes a set of candidate paths as its first parameter,
+    and returns a set of remaining paths.
+
+    It adds the keyword argument `removal_log` to the filtering function's signature.
+    When this keyword argument is passed, all removed paths are added to this set.
+    """
+
+    @functools.wraps(function)
+    def wrapper(
+        *args: Any,
+        candidates: FrozenSet[Path],
+        removal_log: Optional[Set[Path]] = None,
+        **kwargs: Any,
+    ) -> FrozenSet[Path]:
+        remaining = function(*args, candidates=candidates, **kwargs)
+        if removal_log is not None:
+            removal_log.update(candidates - remaining)
+        return remaining
+
+    return wrapper

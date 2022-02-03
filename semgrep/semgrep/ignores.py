@@ -11,6 +11,7 @@ from typing import TextIO
 import attr
 
 from semgrep.error import SemgrepError
+from semgrep.util import log_removed_paths
 from semgrep.verbose_logging import getLogger
 
 CONTROL_REGEX = re.compile(r"(?!<\\):")  # Matches unescaped colons
@@ -84,10 +85,11 @@ class FileIgnore:
 
         return True
 
-    def filter_paths(self, paths: Iterable[Path]) -> FrozenSet[Path]:
+    @log_removed_paths
+    def filter_paths(self, *, candidates: Iterable[Path]) -> FrozenSet[Path]:
         return frozenset(
             p
-            for p in paths
+            for p in candidates
             if p.exists()
             and (self._survives(p.absolute()) or p.absolute().samefile(self.base_path))
         )

@@ -4,7 +4,9 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import defaultdict
 from pathlib import Path
+from typing import Callable
 from typing import cast
 from typing import Collection
 from typing import Dict
@@ -12,23 +14,32 @@ from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import Tuple
 
 import attr
+import click
+from attr import Factory
+from typing_extensions import Literal
 from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
+from semgrep.constants import Colors
 from semgrep.error import FilesNotFoundError
+from semgrep.formatter.text import width
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import LanguageDefinition
 from semgrep.semgrep_types import Shebang
+from semgrep.util import log_removed_paths
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -74,6 +85,180 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
 
 
 @attr.s(auto_attribs=True)
+class IgnoreLog:
+    """Keeps track of which paths were ignored for what reason.
+
+    Each attribute is a distinct reason why files could be ignored.
+
+    Some reason can apply once per rule; these are mappings keyed on the rule id.
+    """
+
+    target_manager: "TargetManager"
+
+    semgrepignore: Set[Path] = Factory(set)
+    always_skipped: Set[Path] = Factory(set)
+    cli_includes: Set[Path] = Factory(set)
+    cli_excludes: Set[Path] = Factory(set)
+    size_limit: Set[Path] = Factory(set)
+
+    rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
+    rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
+    rule_size_limit: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
+
+    @property
+    def size_limited_paths(self) -> Set[Path]:
+        return {
+            *self.size_limit,
+            *(path for paths in self.rule_size_limit.values() for path in paths),
+        }
+
+    @property
+    def rule_ids_with_skipped_paths(self) -> FrozenSet[str]:
+        return frozenset(
+            {
+                *(rule_id for rule_id, skips in self.rule_includes.items() if skips),
+                *(rule_id for rule_id, skips in self.rule_excludes.items() if skips),
+            }
+        )
+
+    def __str__(self) -> str:
+        skip_fragments = []
+
+        if self.target_manager.respect_git_ignore:
+            skip_fragments.append("all .gitignored files")
+
+        if self.cli_includes:
+            skip_fragments.append(
+                f"{len(self.cli_includes)} files not matching --include patterns"
+            )
+        if self.cli_excludes:
+            skip_fragments.append(
+                f"{len(self.cli_excludes)} files matching --exclude patterns"
+            )
+        if self.size_limited_paths:
+            skip_fragments.append(
+                f"{len(self.size_limited_paths)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
+            )
+        if self.semgrepignore:
+            if self.target_manager.file_ignore:
+                skip_fragments.append(
+                    f"{len(self.semgrepignore)} files matching your .semgrepignore"
+                )
+            else:
+                skip_fragments.append(
+                    f"{len(self.semgrepignore)} files matching semgrep's default ignore patterns"
+                )
+
+        if not skip_fragments:
+            return "no files were skipped"
+
+        message = "skipped: " + ", ".join(skip_fragments)
+
+        if self.rule_ids_with_skipped_paths:
+            message += f"\nadditionally, {len(self.rule_ids_with_skipped_paths)} rules ran only on some files because they have their own include or exclude patterns"
+        message += "\nfor a detailed list of skipped files, run semgrep with the --verbose flag\n"
+        return message
+
+    def yield_verbose_lines(self) -> Iterator[Tuple[Literal[0, 1, 2], str]]:
+        yield 0, "Files skipped:"
+
+        yield 1, "Always skipped by Semgrep:"
+        if self.always_skipped:
+            for path in self.always_skipped:
+                yield 2, str(path)
+        else:
+            yield 2, "<none>"
+
+        yield 1, "Skipped by .gitignore:"
+        if self.target_manager.respect_git_ignore:
+            yield 1, "(Disable by passing --no-git-ignore)"
+            yield 2, "<list unavailable, but only paths tracked by git were considered, based on `git ls-files`>"
+        else:
+            yield 1, "(Disabled with --no-git-ignore)"
+            yield 2, "<none>"
+
+        if self.target_manager.file_ignore:
+            yield 1, "Used your custom .semgrepignore"
+        else:
+            yield 1, "Used semgrep's default, opinionated .semgrepignore"
+            yield 1, "See details at https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
+
+        yield 1, "Skipped by .semgrepignore:"
+        if self.semgrepignore:
+            for path in self.semgrepignore:
+                yield 2, str(path)
+        else:
+            yield 2, "<none>"
+
+        yield 1, "Skipped by --include patterns:"
+        if self.cli_includes:
+            for path in self.cli_includes:
+                yield 2, with_color(Colors.cyan, str(path))
+        else:
+            yield 2, "<none>"
+
+        yield 1, "Skipped by --exclude patterns:"
+        if self.cli_excludes:
+            for path in self.cli_excludes:
+                yield 2, with_color(Colors.cyan, str(path))
+        else:
+            yield 2, "<none>"
+
+        yield 1, f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:"
+        yield 1, "(Adjust with the --max-target-bytes flag)"
+        if self.size_limited_paths:
+            for path in self.size_limited_paths:
+                yield 2, with_color(Colors.cyan, str(path))
+        else:
+            yield 2, "<none>"
+
+        for rule_id in self.rule_ids_with_skipped_paths:
+            yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's include patterns:"
+            if self.rule_includes[rule_id]:
+                for path in self.rule_includes[rule_id]:
+                    yield 2, with_color(Colors.cyan, str(path))
+            else:
+                yield 2, "<none>"
+
+            yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's exclude patterns:"
+            if self.rule_excludes[rule_id]:
+                for path in self.rule_excludes[rule_id]:
+                    yield 2, with_color(Colors.cyan, str(path))
+            else:
+                yield 2, "<none>"
+
+    def verbose_output(self) -> str:
+        formatters_by_level: Mapping[int, Callable[[str], str]] = {
+            0: lambda line: "\n".join([40 * "=", line, 40 * "="]),
+            1: lambda line: click.wrap_text(
+                with_color(Colors.bright, line, bold=True),
+                width,
+                2 * " ",
+                2 * " ",
+                False,
+            ),
+            2: lambda line: click.wrap_text(
+                line,
+                width,
+                "   • ",
+                "     ",
+                False,
+            ),
+        }
+        output = ""
+
+        prev_level = None
+        for level, line in self.yield_verbose_lines():
+            if prev_level != level:
+                output += "\n"
+            formatter = formatters_by_level[level]
+            output += formatter(line) + "\n"
+            prev_level = level
+
+        return output
+
+
+@attr.s(auto_attribs=True)
 class TargetManager:
     """
     Handles all file include/exclude logic for semgrep
@@ -84,6 +269,8 @@ class TargetManager:
     If skip_unknown_extensions is False then targets with extensions that are
     not understood by semgrep will always be returned by get_files. Else will discard
     targets with unknown extensions
+
+    TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
     includes: Sequence[str]
@@ -93,6 +280,7 @@ class TargetManager:
     respect_git_ignore: bool
     skip_unknown_extensions: bool
     file_ignore: Optional[FileIgnore]
+    ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
 
     _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
 
@@ -307,16 +495,17 @@ class TargetManager:
         return result
 
     @staticmethod
+    @log_removed_paths
     def filter_includes(
-        arr: FrozenSet[Path], includes: Sequence[str]
+        includes: Sequence[str], *, candidates: FrozenSet[Path]
     ) -> FrozenSet[Path]:
         """
-        Returns all elements in arr that match any includes pattern
+        Returns all elements in candidates that match any includes pattern
 
-        If includes is empty, returns arr unchanged
+        If includes is empty, returns candidates unchanged
         """
         if not includes:
-            return arr
+            return candidates
 
         includes = TargetManager.preprocess_path_patterns(includes)
         # Need cast b/c types-wcmatch doesn't use generics properly :(
@@ -324,36 +513,42 @@ class TargetManager:
             cast(
                 Iterable[Path],
                 wcglob.globfilter(
-                    arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                    candidates, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
                 ),
             )
         )
 
     @staticmethod
+    @log_removed_paths
     def filter_excludes(
-        arr: FrozenSet[Path], excludes: Sequence[str]
+        excludes: Sequence[str], *, candidates: FrozenSet[Path]
     ) -> FrozenSet[Path]:
         """
-        Returns all elements in arr that do not match any excludes pattern
+        Returns all elements in candidates that do not match any excludes pattern
 
-        If excludes is empty, returns arr unchanged
+        If excludes is empty, returns candidates unchanged
         """
         if not excludes:
-            return arr
+            return candidates
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
+
         # Need cast b/c types-wcmatch doesn't use generics properly :(
-        return arr - frozenset(
+        removed = frozenset(
             cast(
                 Iterable[Path],
                 wcglob.globfilter(
-                    arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+                    candidates, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
                 ),
             )
         )
+        return candidates - removed
 
     @staticmethod
-    def filter_by_size(arr: FrozenSet[Path], max_target_bytes: int) -> FrozenSet[Path]:
+    @log_removed_paths
+    def filter_by_size(
+        max_target_bytes: int, *, candidates: FrozenSet[Path]
+    ) -> FrozenSet[Path]:
         """
         Return all the files whose size doesn't exceed the limit.
 
@@ -362,11 +557,11 @@ class TargetManager:
         result.
         """
         if max_target_bytes <= 0:
-            return arr
+            return candidates
         else:
             return frozenset(
                 path
-                for path in arr
+                for path in candidates
                 if TargetManager._is_valid_file(path)
                 and os.path.getsize(path) <= max_target_bytes
             )
@@ -391,9 +586,20 @@ class TargetManager:
         explicit_files, _ = partition_set(lambda p: p.is_file(), files)
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
-        targets = self.filter_includes(targets, self.includes)
-        targets = self.filter_excludes(targets, [*self.excludes, ".git"])
-        targets = self.filter_by_size(targets, self.max_target_bytes)
+        targets = self.filter_includes(
+            self.includes, candidates=targets, removal_log=self.ignore_log.cli_includes
+        )
+        targets = self.filter_excludes(
+            self.excludes, candidates=targets, removal_log=self.ignore_log.cli_excludes
+        )
+        targets = self.filter_excludes(
+            [".git"], candidates=targets, removal_log=self.ignore_log.always_skipped
+        )
+        targets = self.filter_by_size(
+            self.max_target_bytes,
+            candidates=targets,
+            removal_log=self.ignore_log.size_limit,
+        )
 
         # Remove explicit_files with known extensions.
         explicit_files_with_lang_extension = frozenset(
@@ -412,13 +618,21 @@ class TargetManager:
             targets = targets.union(explicit_files_with_unknown_extensions)
 
         targets = (
-            self.file_ignore.filter_paths(targets) if self.file_ignore else targets
+            self.file_ignore.filter_paths(
+                candidates=targets, removal_log=self.ignore_log.semgrepignore
+            )
+            if self.file_ignore
+            else targets
         )
         self._filtered_targets[lang] = targets
         return self._filtered_targets[lang]
 
     def get_files(
-        self, lang: Language, includes: Sequence[str], excludes: Sequence[str]
+        self,
+        lang: Language,
+        includes: Sequence[str],
+        excludes: Sequence[str],
+        rule_id: str,
     ) -> FrozenSet[Path]:
         """
         Returns list of files that should be analyzed for a LANG
@@ -432,7 +646,19 @@ class TargetManager:
         filter is then applied.
         """
         targets = self.filtered_files(lang)
-        targets = self.filter_includes(targets, includes)
-        targets = self.filter_excludes(targets, excludes)
-        targets = self.filter_by_size(targets, self.max_target_bytes)
+        targets = self.filter_includes(
+            includes,
+            candidates=targets,
+            removal_log=self.ignore_log.rule_includes[rule_id],
+        )
+        targets = self.filter_excludes(
+            excludes,
+            candidates=targets,
+            removal_log=self.ignore_log.rule_excludes[rule_id],
+        )
+        targets = self.filter_by_size(
+            self.max_target_bytes,
+            candidates=targets,
+            removal_log=self.ignore_log.rule_size_limit[rule_id],
+        )
         return targets
