@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
+import itertools
 from itertools import product
+from typing import Any
+from typing import Iterable
 from typing import Iterator
 from typing import Set
 from typing import Tuple
@@ -15,7 +18,14 @@ from semgrep.test import RULEID
 from semgrep.test import SPACE_OR_NO_SPACE
 from semgrep.test import TODOOK
 from semgrep.test import TODORULEID
-from semgrep.util import powerset
+
+# cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
+def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
+    """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
+    s = list(iterable)
+    return itertools.chain.from_iterable(
+        itertools.combinations(s, r) for r in range(len(s) + 1)
+    )
 
 
 ANNOTATIONS = (TODOOK, TODORULEID, OK, RULEID)

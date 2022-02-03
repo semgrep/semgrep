@@ -44,8 +44,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-Target = Tuple[Path, Language]
-
 RULE_SAVE_FILE = "semgrep_rules.yaml"
 TARGET_SAVE_FILE = "semgrep_targets.txt"
 
