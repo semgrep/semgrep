@@ -166,8 +166,7 @@ def _run_semgrep(
         encoding="utf-8",
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        # LANG is necessary to work with Python 3.6
-        env={**env, "LANG": "en_US.UTF-8"},
+        env=env,
     )
 
     if fail_on_nonzero and output.returncode > 0:

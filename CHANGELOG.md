@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   for each rule, reducing the overhead significantly. Other changes resulting from this:  Sarif output now includes all rules run. Error messages use full path of rules.
   Semgrep will not recover from timeouts in one rule by running others
 
+- Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
+
 ### Fixed
 
 ## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 02-02-2022
