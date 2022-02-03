@@ -29,12 +29,11 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
-from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
-from semgrep.rule_match import RuleMatch
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -309,16 +308,11 @@ class CoreRunner:
         self,
         rules: List[Rule],
         target_manager: TargetManager,
-        profiler: ProfileManager,
         dump_command_for_core: bool,
-    ) -> Tuple[
-        Dict[Rule, List[RuleMatch]],
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-    ]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
+        outputs: RuleMatchMap = collections.defaultdict(list)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
@@ -421,17 +415,10 @@ class CoreRunner:
 
     def invoke_semgrep(
         self,
-        dump_command_for_core: bool,
         target_manager: TargetManager,
-        profiler: ProfileManager,
         rules: List[Rule],
-    ) -> Tuple[
-        Dict[Rule, List[RuleMatch]],
-        List[SemgrepError],
-        Set[Path],
-        ProfilingData,
-    ]:
-
+        dump_command_for_core: bool,
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         """
         Takes in rules and targets and retuns object with findings
         """
@@ -443,7 +430,7 @@ class CoreRunner:
             all_targets,
             profiling_data,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, profiler, dump_command_for_core
+            rules, target_manager, dump_command_for_core
         )
 
         logger.debug(

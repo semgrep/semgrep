@@ -1,0 +1,2 @@
+Running baseline scan with base set to: baseline-commit
+ran 1 rules on 2 files: 2 findings

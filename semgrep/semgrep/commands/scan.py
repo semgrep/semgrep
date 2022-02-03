@@ -161,6 +161,14 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     ),
 )
 @click.option(
+    "--baseline-commit",
+    help=(
+        "[Experimental] Only show results that are not found in this commit hash. Aborts run if not currently"
+        "in a git directory, there are unstaged changes, or given baseline hash doesn't exist"
+    ),
+    hidden=True,
+)
+@click.option(
     "--replacement",
     help=(
         "An autofix expression that will be applied to any matches found with --pattern. "
@@ -538,6 +546,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 def scan(
     *,
     autofix: bool,
+    baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
@@ -793,6 +802,7 @@ def scan(
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,
+                    baseline_commit=baseline_commit,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])

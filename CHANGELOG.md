@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Experimental baseline scanning. Run with `--baseline-commit GIT_COMMIT` to only
+  show findings that currently exist but did not exist in GIT_COMMIT
 
 ### Changed
 
