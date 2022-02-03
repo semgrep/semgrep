@@ -116,7 +116,8 @@ let rec map_name env n =
       (if env.phase = Uses then
        (* !!the uses!! *)
        match !(v2.id_resolved) with
-       | None ->
+       | None
+       | Some (Global, _) ->
            (* try locally *)
            let n2opt = L.lookup_local_file_opt env v1 in
            n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2)

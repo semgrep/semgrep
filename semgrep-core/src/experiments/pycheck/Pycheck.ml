@@ -43,7 +43,7 @@ let save_graph_on_disk = true
  * which were not designed with this use-case in mind (see my issue here:
  * https://github.com/facebook/pyre-check/issues/568)
  *
- * We could maybe use foo.pi (python interface), which is even shorter than .pyi
+ * We could maybe use foo.pi (python interface), which is even shorter,
  * or foo.pyh (for python header), to mimic .pyi, but in both cases tools
  * like Emacs, or github are not aware of those extensions and so would not
  * provide color highlighting.
@@ -142,14 +142,14 @@ let build_graphs root lang files =
 (* Check the graphs *)
 (*****************************************************************************)
 
-let check_graphs_boundaries_when_pyh gpy gpyi =
+let check_graphs_boundaries_when_pyi gpy gpyi =
   logger#info "checking the graphs";
 
   let g = gpy in
   let pred = G.mk_eff_use_pred g in
 
   (* similar to graph_code_checker.ml in pfff/graph_code.
-   * alt: iter from .py files which have a .pyh
+   * alt: iter from .py files which have a _.pyi
    *)
   g
   |> G.iter_nodes (fun n_def ->
@@ -189,6 +189,24 @@ let check_graphs_boundaries_when_pyh gpy gpyi =
                                   (G.string_of_node x))
                          | _ -> ())))
 
+(* Similar to graph_code_checker.ml, but tuned for Python and our codebase *)
+let check_deadcode g =
+  let pred = G.mk_eff_use_pred g in
+  g
+  |> G.iter_nodes (fun n_def ->
+         let users = pred n_def in
+         match users with
+         | [] when n_def <> G.root -> (
+             let parent = G.parent n_def g in
+             match (n_def, parent) with
+             (* just toplevel entities for now, given that method resolution
+              * is not good (well inexistent) in Graph_code_AST.ml
+              *)
+             | (_, (Function | Global | Constant | Class)), (_, File) ->
+                 pr2 (spf "found deadcode: %s" (G.string_of_node n_def))
+             | _ -> ())
+         | _ -> ())
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -211,7 +229,7 @@ let pycheck root =
   logger#info "processing %d files" (List.length files);
 
   let gpy, gpyi = build_graphs root lang files in
-
-  (* TODO: check_graphs_py_and_pyh_in_sync gpy gpyi *)
-  check_graphs_boundaries_when_pyh gpy gpyi;
+  check_deadcode gpy;
+  (* TODO: check_graphs_py_and_pyi_in_sync gpy gpyi *)
+  check_graphs_boundaries_when_pyi gpy gpyi;
   ()
