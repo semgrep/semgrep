@@ -209,7 +209,12 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
-        if self._total > 1 and not is_quiet() and not is_debug():
+        if (
+            sys.stderr.isatty()
+            and self._total > 1
+            and not is_quiet()
+            and not is_debug()
+        ):
             # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
             self._progress_bar = tqdm(  # typing: ignore
                 total=self._total,
