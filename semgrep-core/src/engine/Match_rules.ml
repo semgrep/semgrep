@@ -126,7 +126,8 @@ let check_search_rules ~match_hook ~timeout ~timeout_threshold default_config
                      pformula xtarget)
              with Rule_timeout ->
                incr cnt_timeout;
-               if !cnt_timeout >= timeout_threshold then raise File_timeout;
+               if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold
+               then raise File_timeout;
                let loc = Parse_info.first_loc_of_file file in
                {
                  RP.matches = [];
