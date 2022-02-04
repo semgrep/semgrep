@@ -160,22 +160,15 @@ class IgnoreLog:
                 f"{len(self.size_limited_paths)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
             )
         if self.semgrepignored:
-            if self.target_manager.file_ignore:
-                skip_fragments.append(
-                    f"{len(self.semgrepignored)} files matching your .semgrepignore"
-                )
-            else:
-                skip_fragments.append(
-                    f"{len(self.semgrepignored)} files matching semgrep's default ignore patterns"
-                )
+            skip_fragments.append(
+                f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
+            )
 
         if not skip_fragments:
             return "no files were skipped"
 
         message = "skipped: " + ", ".join(skip_fragments)
 
-        if self.rule_ids_with_skipped_paths:
-            message += f"\nadditionally, {len(self.rule_ids_with_skipped_paths)} rules ran only on some files because they have their own include or exclude patterns"
         message += "\nfor a detailed list of skipped files, run semgrep with the --verbose flag\n"
         return message
 
@@ -197,18 +190,13 @@ class IgnoreLog:
         yield 1, "Skipped by .gitignore:"
         if self.target_manager.respect_git_ignore:
             yield 1, "(Disable by passing --no-git-ignore)"
-            yield 2, "<list unavailable, but only paths tracked by git were considered, based on `git ls-files`>"
+            yield 2, "<all files not listed by `git ls-files` were skipped>"
         else:
             yield 1, "(Disabled with --no-git-ignore)"
             yield 2, "<none>"
 
-        if self.target_manager.file_ignore:
-            yield 1, "Used your custom .semgrepignore"
-        else:
-            yield 1, "Used semgrep's default, opinionated .semgrepignore"
-            yield 1, "See details at https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
-
         yield 1, "Skipped by .semgrepignore:"
+        yield 1, "(Details: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
         if self.semgrepignored:
             for path in self.semgrepignored:
                 yield 2, str(path)
@@ -238,6 +226,9 @@ class IgnoreLog:
             yield 2, "<none>"
 
         for rule_id in self.rule_ids_with_skipped_paths:
+            if rule_id.startswith("fingerprints."):
+                # Skip fingerprint rules, since they all have include patterns
+                continue
             yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's include patterns:"
             if self.rule_includes[rule_id]:
                 for path in self.rule_includes[rule_id]:
