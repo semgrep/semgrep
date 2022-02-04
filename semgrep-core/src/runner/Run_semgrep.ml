@@ -310,10 +310,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                 * Timeout and would generate a TimeoutError code for it,
                 * but we intercept Timeout here to give a better diagnostic.
                 *)
-               | (Match_rules.File_timeout _ | Out_of_memory) as exn ->
-                   (* TODO: get rid of this now that rule timeout are
-                    * captured in Match_rules.ml?
-                    *)
+               | (Match_rules.File_timeout | Out_of_memory) as exn ->
                    (match !Match_patterns.last_matched_rule with
                    | None -> ()
                    | Some rule ->
@@ -327,7 +324,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        [
                          E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
                            (match exn with
-                           | Match_rules.File_timeout file ->
+                           | Match_rules.File_timeout ->
                                logger#info "Timeout on %s" file;
                                E.Timeout
                            | Out_of_memory ->
@@ -468,6 +465,7 @@ let semgrep_with_rules config (rules, rules_parse_time) =
                  Metavariable.ii_of_mval xs
            in
            Match_rules.check ~match_hook ~timeout:config.timeout
+             ~timeout_threshold:config.timeout_threshold
              ( Config_semgrep.default_config,
                parse_equivalences config.equivalences_file )
              rules xtarget)

@@ -31,7 +31,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 (* This can be captured in Run_semgrep.ml *)
-exception File_timeout of Common.filename
+exception File_timeout
 
 (* Locally-raised exn.
  * Note that because we now parse lazily a file, the rule timeout can
@@ -103,13 +103,15 @@ let lazy_force x = Lazy.force x [@@profiling]
         Match_rules.check! If you call this function directly, there is no
         filtering of irrelevant rules.
 *)
-let check_search_rules ~match_hook ~timeout default_config rules xtarget =
+let check_search_rules ~match_hook ~timeout ~timeout_threshold default_config
+    rules xtarget =
   let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
     lazy_force lazy_ast_and_errors |> ignore);
 
+  let cnt_timeout = ref 0 in
   (* TODO: have ~timeout_threshold and raise File_timeout if we get
    * too many rule timeouts
    *)
@@ -123,6 +125,8 @@ let check_search_rules ~match_hook ~timeout default_config rules xtarget =
                    Match_search_rules.check_rule r match_hook default_config
                      pformula xtarget)
              with Rule_timeout ->
+               incr cnt_timeout;
+               if !cnt_timeout >= timeout_threshold then raise File_timeout;
                let loc = Parse_info.first_loc_of_file file in
                {
                  RP.matches = [];
@@ -171,12 +175,13 @@ let check_tainting_rules ~match_hook default_config taint_rules xtarget =
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout default_config rules xtarget =
+let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
   let search_rules, taint_rules, skipped_rules =
     filter_and_partition_rules rules xtarget
   in
   let res_search =
-    check_search_rules ~match_hook ~timeout default_config search_rules xtarget
+    check_search_rules ~match_hook ~timeout ~timeout_threshold default_config
+      search_rules xtarget
   in
   let res_taint =
     check_tainting_rules ~match_hook default_config taint_rules xtarget

@@ -28,9 +28,10 @@ type t = {
   mvars : Metavariable.mvar list;
   lsp : bool;
   (* Limits *)
+  (* maximum time to spend running a rule on a single file *)
   timeout : float;
-  (* per rule on a single file *)
-  (* TODO: timeout_threshold *)
+  (* maximum number of rules that can timeout on a file *)
+  timeout_threshold : int;
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
