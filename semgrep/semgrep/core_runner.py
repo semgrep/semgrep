@@ -116,6 +116,11 @@ class StreamingSemgrepCore:
     """
 
     def __init__(self, cmd: List[str], total: int) -> None:
+        """
+        cmd: semgrep-core command to run
+        total: how many rules to run / how many "." we expect to see
+               used to display progress_bar
+        """
         self._cmd = cmd
         self._total = total
         self._stdout = ""
@@ -124,19 +129,31 @@ class StreamingSemgrepCore:
 
     @property
     def stdout(self) -> str:
+        # stdout of semgrep-core sans "."
         return self._stdout
 
     @property
     def stderr(self) -> str:
+        # stderr of semgrep-core command
         return self._stderr
 
     async def _core_stdout_processor(
         self, stream: Optional[asyncio.StreamReader]
     ) -> None:
+        """
+        Asynchronously process stdout of semgrep-core
+
+        Updates progress bar one increment for every "." it sees from semgrep-core
+        stdout
+
+        When it sees non-"." output it saves it to self._stdout
+        """
         assert stream  # TODO stream is only None if pipe in command is None
         while True:
+            # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
 
+            # readline returns None on EOF
             if not line_bytes:
                 break
 
@@ -152,9 +169,18 @@ class StreamingSemgrepCore:
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
     ) -> None:
+        """
+        Asynchronously process stderr of semgrep-core
+
+        Basically works sychronnously and combines output to
+        stderr to self._stderr
+        """
         assert stream
         while True:
+            # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
+
+            # readline returns None on EOF
             if not line_bytes:
                 break
 
@@ -178,6 +204,12 @@ class StreamingSemgrepCore:
         return await process.wait()
 
     def execute(self) -> int:
+        """
+        Run semgrep-core and listen to stdout to update
+        progress_bar as necessary
+
+        Blocks til completion and returns exit code
+        """
         if self._total > 1 and not is_quiet() and not is_debug():
             # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
             self._progress_bar = tqdm(  # typing: ignore
