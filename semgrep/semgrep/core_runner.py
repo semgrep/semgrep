@@ -121,17 +121,19 @@ class CoreRunner:
         self._optimizations = optimizations
 
     def _extract_core_output(
-        self, rules: List[Rule], core_run: subprocess.CompletedProcess
+        self,
+        rules: List[Rule],
+        returncode: int,
+        shell_command: str,
+        semgrep_stdout: str,
+        semgrep_stderr: str,
     ) -> Dict[str, Any]:
-        semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
-
-        stderr = core_run.stderr
-        if stderr is None:
+        if semgrep_stderr is None:
             semgrep_error_output = (
                 "<semgrep-core stderr not captured, should be printed above>\n"
             )
         else:
-            semgrep_error_output = stderr.decode("utf-8", errors="replace")
+            semgrep_error_output = semgrep_stderr
 
         # By default, we print semgrep-core's error output, which includes
         # semgrep-core's logging if it was requested via --debug.
@@ -145,10 +147,9 @@ class CoreRunner:
             f"--- end semgrep-core stderr ---"
         )
 
-        returncode = core_run.returncode
         if returncode != 0:
             output_json = self._parse_core_output(
-                core_run, semgrep_output, semgrep_error_output, returncode
+                shell_command, semgrep_stdout, semgrep_error_output, returncode
             )
 
             if "errors" in output_json:
@@ -157,29 +158,29 @@ class CoreRunner:
                 if len(errors) < 1:
                     self._fail(
                         "non-zero exit status errors array is empty in json response",
-                        core_run,
+                        shell_command,
                         returncode,
-                        semgrep_output,
+                        semgrep_stdout,
                         semgrep_error_output,
                     )
                 raise errors[0].to_semgrep_error()
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
-                    core_run,
+                    shell_command,
                     returncode,
-                    semgrep_output,
+                    semgrep_stdout,
                     semgrep_error_output,
                 )
 
         output_json = self._parse_core_output(
-            core_run, semgrep_output, semgrep_error_output, returncode
+            shell_command, semgrep_stdout, semgrep_error_output, returncode
         )
         return output_json
 
     def _parse_core_output(
         self,
-        core_run: subprocess.CompletedProcess,
+        shell_command: str,
         semgrep_output: str,
         semgrep_error_output: str,
         returncode: int,
@@ -197,7 +198,7 @@ class CoreRunner:
                 tip = ""
             self._fail(
                 f"Semgrep encountered an internal error.{tip}",
-                core_run,
+                shell_command,
                 returncode,
                 semgrep_output,
                 semgrep_error_output,
@@ -207,14 +208,13 @@ class CoreRunner:
     def _fail(
         self,
         reason: str,
-        core_run: subprocess.CompletedProcess,
+        shell_command: str,
         returncode: int,
         semgrep_output: str,
         semgrep_error_output: str,
     ) -> None:
         # Once we require python >= 3.8, switch to using shlex.join instead
         # for proper quoting of the command line.
-        shell_command = " ".join(core_run.args)
         details = with_color(
             Colors.white,
             f"semgrep-core exit code: {returncode}\n"
@@ -383,7 +383,13 @@ class CoreRunner:
                 )
 
                 # Process output
-                output_json = self._extract_core_output(rules, core_run)
+                output_json = self._extract_core_output(
+                    rules,
+                    core_run.returncode,
+                    " ".join(core_run.args),
+                    core_run.stdout.decode("utf-8", errors="replace"),
+                    core_run.stderr.decode("utf-8", errors="replace"),
+                )
                 core_output = CoreOutput.parse(rules, output_json)
 
                 if "time" in output_json:
@@ -482,7 +488,13 @@ class CoreRunner:
                 stdout=subprocess.PIPE,
                 stderr=stderr,
             )
-            output_json = self._extract_core_output(metachecks, core_run)
+            output_json = self._extract_core_output(
+                metachecks,
+                core_run.returncode,
+                " ".join(core_run.args),
+                core_run.stdout.decode("utf-8", errors="replace"),
+                core_run.stderr.decode("utf-8", errors="replace"),
+            )
             core_output = CoreOutput.parse(metachecks, output_json)
 
             parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
