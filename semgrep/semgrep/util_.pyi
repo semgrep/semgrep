@@ -1,4 +1,14 @@
-from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import (
+    Any,
+    Dict,
+    FrozenSet,
+    List,
+    Sequence,
+    Set,
+    Tuple,
+    Optional,
+    Collection,
+)
 from typing import Iterable, Callable
 from typing import TypeVar
 from pathlib import Path
@@ -20,10 +30,7 @@ def is_debug() -> bool:
     """
     ...
 
-def is_url(url: str) -> bool:
-  ...
-
-
+def is_url(url: str) -> bool: ...
 def partition(
     pred: Callable[[T], Any], iterable: Iterable[T]
 ) -> Tuple[List[T], List[T]]:
@@ -36,10 +43,7 @@ def partition_set(
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     ...
 
-def abort(message: str) -> None:
-    ...
-
-
+def abort(message: str) -> None: ...
 def with_color(
     color: constants.Colors,
     text: str,
@@ -55,10 +59,7 @@ def with_color(
     """
     ...
 
-
-def terminal_wrap(text: str) -> str:
-    ...
-
+def terminal_wrap(text: str) -> str: ...
 def sub_run(cmd: List[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
     ...
@@ -74,17 +75,21 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     """
     ...
 
-def is_config_suffix(path: Path) -> bool:
-    ...
+def is_config_suffix(path: Path) -> bool: ...
+def is_config_test_suffix(path: Path) -> bool: ...
+def format_bytes(num: float) -> str: ...
+def truncate(file_name: str, col_lim: int) -> str: ...
+def flatten(some_list: List[List[T]]) -> List[T]: ...
 
-def is_config_test_suffix(path: Path) -> bool:
-    ...
+PathFilterCallable = Callable[..., FrozenSet[Path]]
 
-def format_bytes(num: float) -> str:
-    ...
+def log_removed_paths(function: PathFilterCallable) -> PathFilterCallable:
+    """A decorator you can apply to functions that filter paths, to keep track of what they filtered.
 
-def truncate(file_name: str, col_lim: int) -> str:
-    ...
+    It assumes your filter function takes a set of candidate paths as its first parameter,
+    and returns a set of remaining paths.
 
-def flatten(some_list: List[List[T]]) -> List[T]:
+    It adds the keyword argument `removal_log` to the filtering function's signature.
+    When this keyword argument is passed, all removed paths are added to this set.
+    """
     ...

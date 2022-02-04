@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
 from typing import Iterator
 import contextlib
@@ -15,6 +16,31 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
     :return: A sequence of non-pipe specifiers (Path(t).is_file() returns true)
     """
     ...
+
+class IgnoreLog:
+    """Keeps track of which paths were ignored for what reason.
+
+    Each attribute is a distinct reason why files could be ignored.
+
+    Some reason can apply once per rule; these are mappings keyed on the rule id.
+    """
+
+    target_manager: "TargetManager"
+
+    semgrepignored: Set[Path]
+    always_skipped: Set[Path]
+    cli_includes: Set[Path]
+    cli_excludes: Set[Path]
+    size_limit: Set[Path]
+
+    rule_includes: Dict[str, Set[Path]]
+    rule_excludes: Dict[str, Set[Path]]
+    rule_size_limit: Dict[str, Set[Path]]
+
+    @property
+    def size_limited_paths(self) -> Set[Path]: ...
+    @property
+    def rule_ids_with_skipped_paths(self) -> Set[Path]: ...
 
 class TargetManager:
     """
