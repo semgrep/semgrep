@@ -251,15 +251,13 @@ class CoreRunner:
         rules: List[Rule],
         returncode: int,
         shell_command: str,
-        semgrep_stdout: str,
-        semgrep_stderr: str,
+        core_stdout: str,
+        core_stderr: str,
     ) -> Dict[str, Any]:
-        if semgrep_stderr is None:
-            semgrep_error_output = (
+        if not core_stderr:
+            core_stderr = (
                 "<semgrep-core stderr not captured, should be printed above>\n"
             )
-        else:
-            semgrep_error_output = semgrep_stderr
 
         # By default, we print semgrep-core's error output, which includes
         # semgrep-core's logging if it was requested via --debug.
@@ -269,13 +267,13 @@ class CoreRunner:
         #
         logger.debug(
             f"--- semgrep-core stderr ---\n"
-            f"{semgrep_error_output}"
+            f"{core_stderr}"
             f"--- end semgrep-core stderr ---"
         )
 
         if returncode != 0:
             output_json = self._parse_core_output(
-                shell_command, semgrep_stdout, semgrep_error_output, returncode
+                shell_command, core_stdout, core_stderr, returncode
             )
 
             if "errors" in output_json:
@@ -286,8 +284,8 @@ class CoreRunner:
                         "non-zero exit status errors array is empty in json response",
                         shell_command,
                         returncode,
-                        semgrep_stdout,
-                        semgrep_error_output,
+                        core_stdout,
+                        core_stderr,
                     )
                 raise errors[0].to_semgrep_error()
             else:
@@ -295,12 +293,12 @@ class CoreRunner:
                     'non-zero exit status with missing "errors" field in json response',
                     shell_command,
                     returncode,
-                    semgrep_stdout,
-                    semgrep_error_output,
+                    core_stdout,
+                    core_stderr,
                 )
 
         output_json = self._parse_core_output(
-            shell_command, semgrep_stdout, semgrep_error_output, returncode
+            shell_command, core_stdout, core_stderr, returncode
         )
         return output_json
 
