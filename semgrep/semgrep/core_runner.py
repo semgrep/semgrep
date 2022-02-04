@@ -18,6 +18,7 @@ from typing import Set
 from typing import Tuple
 
 from ruamel.yaml import YAML
+from tqdm import tqdm
 
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
@@ -113,8 +114,9 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str]):
+    def __init__(self, cmd: List[str], progress_bar: Any) -> None:
         self._cmd = cmd
+        self._progress_bar = progress_bar
         self._stdout = ""
         self._stderr = ""
 
@@ -136,9 +138,10 @@ class StreamingSemgrepCore:
             if not line_bytes:
                 break
 
+            self._progress_bar.update(1)
             line = line_bytes.decode("utf-8")
             if line.strip() == ".":
-                print("working")
+                pass
             else:
                 self._stdout += line
 
@@ -453,8 +456,10 @@ class CoreRunner:
                     print(" ".join(cmd))
                     sys.exit(0)
 
-                runner = StreamingSemgrepCore(cmd)
+                progress_bar = tqdm(total=len(all_targets))
+                runner = StreamingSemgrepCore(cmd, progress_bar)
                 returncode = runner.execute()
+                progress_bar.close()
 
                 # Process output
                 output_json = self._extract_core_output(
