@@ -183,7 +183,7 @@ class IgnoreLog:
         yield 1, "Always skipped by Semgrep:"
         if self.always_skipped:
             for path in self.always_skipped:
-                yield 2, str(path)
+                yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
@@ -199,7 +199,7 @@ class IgnoreLog:
         yield 1, "(Details: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
         if self.semgrepignored:
             for path in self.semgrepignored:
-                yield 2, str(path)
+                yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
 
