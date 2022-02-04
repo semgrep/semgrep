@@ -147,7 +147,9 @@ class StreamingSemgrepCore:
 
         When it sees non-"." output it saves it to self._stdout
         """
-        assert stream  # TODO stream is only None if pipe in command is None
+        # appease mypy. stream is only None if call to create_subproccess_exec
+        # sets stdout/stderr stream to None
+        assert stream
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
