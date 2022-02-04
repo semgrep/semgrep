@@ -142,41 +142,20 @@ let check_search_rules ~match_hook ~timeout ~timeout_threshold default_config
    Return matches, errors, match time.
 *)
 let check_tainting_rules ~match_hook default_config taint_rules xtarget =
-  match taint_rules with
-  | [] -> []
-  | __else__ ->
-      let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
-      let lang =
-        match xlang with
-        | L (lang, _) -> lang
-        | LGeneric
-        | LRegex ->
-            failwith "taint-mode and generic/regex matching are incompatible"
-      in
-      (* TODO can we move this outside to Match_rules? *)
-      let (ast, errors), parse_time =
-        Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
-      in
-      taint_rules
-      |> List.map (fun ((rule, _) as taint_rule) ->
-             let matches, match_time =
-               Common.with_time (fun () ->
-                   Match_tainting_rules.check_rule match_hook default_config
-                     taint_rule file lang ast)
-             in
-             {
-               RP.matches;
-               errors;
-               skipped = [];
-               profiling =
-                 { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
-             })
+  taint_rules
+  |> List.map (fun (rule, taint_spec) ->
+         Rule.last_matched_rule := Some (fst rule.Rule.id);
+         Match_tainting_rules.check_rule rule match_hook default_config
+           taint_spec xtarget)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
+  (* TODO: get rid of filter_and_partition_rules and factorize rule
+   * iteration code with Timeout handling
+   *)
   let search_rules, taint_rules, skipped_rules =
     filter_and_partition_rules rules xtarget
   in

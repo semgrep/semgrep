@@ -168,19 +168,29 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     found_tainted_sink;
   }
 
+let lazy_force x = Lazy.force x [@@profiling]
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ~match_hook (default_config, equivs)
-    (taint_rule : Rule.rule * Rule.taint_spec) file lang ast =
+let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* @Iago I went and modified this to work one rule at a time *)
   (* Let me know if this interferes with anything; it shouldn't because
      semgrep has always passed one rule at a time *)
   let matches = ref [] in
 
-  let rule, taint_spec = taint_rule in
-  Rule.last_matched_rule := Some (fst rule.Rule.id);
+  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
+  let lang =
+    match xlang with
+    | L (lang, _) -> lang
+    | LGeneric
+    | LRegex ->
+        failwith "taint-mode and generic/regex matching are incompatible"
+  in
+  let (ast, errors), parse_time =
+    Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
+  in
   let taint_config =
     let found_tainted_sink pms _env =
       PM.Set.iter (fun pm -> Common.push pm matches) pms
@@ -231,15 +241,25 @@ let check_rule ~match_hook (default_config, equivs)
    * In scripting languages it is not unusual to write code outside
    * function declarations and we want to check this too. We simply
    * treat the program itself as an anonymous function. *)
-  check_stmt None (G.stmt1 ast);
+  let (), match_time =
+    Common.with_time (fun () -> check_stmt None (G.stmt1 ast))
+  in
 
-  !matches
-  (* same post-processing as for search-mode in Match_rules.ml *)
-  |> PM.uniq
-  |> PM.no_submatches (* see "Taint-tracking via ranges" *)
-  |> Common.before_return (fun v ->
-         v
-         |> List.iter (fun (m : Pattern_match.t) ->
-                let str = Common.spf "with rule %s" m.rule_id.id in
-                match_hook str m.env m.tokens))
-  |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
+  let matches =
+    !matches
+    (* same post-processing as for search-mode in Match_rules.ml *)
+    |> PM.uniq
+    |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+    |> Common.before_return (fun v ->
+           v
+           |> List.iter (fun (m : Pattern_match.t) ->
+                  let str = Common.spf "with rule %s" m.rule_id.id in
+                  match_hook str m.env m.tokens))
+    |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
+  in
+  {
+    RP.matches;
+    errors;
+    skipped = [];
+    profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
+  }

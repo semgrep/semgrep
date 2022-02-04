@@ -271,12 +271,20 @@ let tainting_test lang rules_file file =
   in
   let search_rules, taint_rules = Rule.partition_rules rules in
   assert (search_rules = []);
-  let matches = taint_rules |> List.map (fun taint_rule ->
+  let matches = taint_rules |> List.map (fun (rule, taint_spec) ->
     let equivs = [] in
-    Match_tainting_rules.check_rule
-      ~match_hook:(fun _ _ _ -> ())
-      (Config_semgrep.default_config, equivs)
-      taint_rule file lang ast) |> List.flatten
+    let xtarget = { Xtarget.file;
+        xlang = Xlang.L (lang, []);
+        lazy_content = lazy (Common.read_file file);
+        lazy_ast_and_errors = lazy (ast, []);
+    } in
+    let res = Match_tainting_rules.check_rule rule
+        (fun _ _ _ -> ())
+        (Config_semgrep.default_config, equivs)
+        taint_spec xtarget
+     in
+     res.matches
+     ) |> List.flatten
   in
   let actual =
     matches |> List.map (fun m ->
