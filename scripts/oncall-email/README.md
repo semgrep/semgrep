@@ -7,7 +7,7 @@ in generating the OnCall Update email Matt started to send.
 
 ### Usage
 
-First you need to generate a github authentification token to
+First you need to generate a github authentication token to
 access the github API. Go to https://github.com/settings/tokens and
 generate a new token. You'll need to give this token a few
 capabilities. See https://docs.github.com/en/graphql/guides/forming-calls-with-graphql#authenticating-with-graphql
