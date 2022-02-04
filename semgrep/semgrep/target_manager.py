@@ -247,7 +247,7 @@ class IgnoreLog:
         formatters_by_level: Mapping[int, Callable[[str], str]] = {
             0: lambda line: "\n".join([40 * "=", line, 40 * "="]),
             1: lambda line: click.wrap_text(
-                with_color(Colors.bright, line, bold=True),
+                with_color(Colors.foreground, line, bold=True),
                 width,
                 2 * " ",
                 2 * " ",
