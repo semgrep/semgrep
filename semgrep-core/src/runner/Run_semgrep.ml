@@ -498,7 +498,6 @@ let semgrep_with_rules config (rules, rules_parse_time) =
    *)
   let skipped = new_skipped @ res.skipped in
   let errors = new_errors @ res.errors in
-  (* Print done so Python knows to expect it *)
   ( { RP.matches; errors; skipped; final_profiling = res.RP.final_profiling },
     targets |> List.map (fun x -> x.In.path) )
 
