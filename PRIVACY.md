@@ -13,7 +13,7 @@ These principles inform our decisions around data collection:
 
 1. **Transparency**: Collect and use data in a way that is clearly explained to the user and benefits them
 2. **User control**: Put users in control of their data at all times
-3. **Limited data**: Collect what is needed, pseduoanonymize where possible, and delete when no longer necessary
+3. **Limited data**: Collect what is needed, pseudoanonymize where possible, and delete when no longer necessary
 
 ## Automatic collection, opt-in, and opt-out
 
@@ -97,7 +97,7 @@ Certain identifying data (e.g. project URLs) are pseudoanonymized before being s
 "Pseudoanonymized" means the data are transformed using a deterministic cryptographically secure hash. When the input data are unknown, this hash is expensive to reverse. However, when input data are known, a reverse dictionary of identifiers to hashes can be built. Hence, data are anonymous only when the source values are unknown.
 
 We use a deterministic hash to:
-* Track performance and value improvements over succesive runs on projects
+* Track performance and value improvements over successive runs on projects
 * Remove test data from our metrics
 
 Using a deterministic hash, however, implies:
@@ -125,7 +125,7 @@ r2c will:
 |   |CI |Notes if Semgrep is running in CI and the name of the provider |Reproduce and debug issues with specific CI providers  |GitLabCI v0.13.12  |String |
 |   |   |   |   |   |   |
 |Performance    |   |   |   |   |   |
-|   |Duration   |How long the command took to run   |Understanding agregate performance improvements and regressions    |14.13  |Number |
+|   |Duration   |How long the command took to run   |Understanding aggregate performance improvements and regressions    |14.13  |Number |
 |   |Total Rules    |Count of rules |Understand how duration is affected by #rules  |137    |Number |
 |   |Total Files    |Count of files |Understand how duration is affected by #files  |4378   |Number |
 |   |Total Bytes    |Summation of target file size  |Understand how duration is related to total size of all target files   |40838239   |Number |
