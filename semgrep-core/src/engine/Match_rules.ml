@@ -33,30 +33,23 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* This can be captured in Run_semgrep.ml *)
 exception File_timeout
 
-(* Locally-raised exn.
- * Note that because we now parse lazily a file, the rule timeout can
- * actually correspond to a parsing file timeout.
- *)
-exception Rule_timeout
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(* TODO: get rid of Rule_timeout and return an option, so simpler? *)
 let timeout_function rule file timeout f =
   let saved_busy_with_equal = !AST_utils.busy_with_equal in
   let timeout = if timeout <= 0. then None else Some timeout in
   match
     Common.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
   with
-  | Some res -> res
+  | Some res -> Some res
   | None ->
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
       AST_utils.busy_with_equal := saved_busy_with_equal;
       logger#info "timeout for rule %s on file %s" (fst rule.R.id) file;
-      raise Rule_timeout
+      None
 
 let filter_and_partition_rules rules file_and_more =
   let { Xtarget.file; lazy_content; _ } = file_and_more in
@@ -93,23 +86,13 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     rule_id = Some rule_id;
   }
 
-let lazy_force x = Lazy.force x [@@profiling]
-
-(*
-   Check search-mode rules.
-   Return matches, errors, match time.
-
-   NOTE: We used to filter irrelevant rules here, but now this is done in
-        Match_rules.check! If you call this function directly, there is no
-        filtering of irrelevant rules.
-*)
 let check_search_rules ~match_hook ~timeout ~timeout_threshold default_config
     rules xtarget =
   let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
-    lazy_force lazy_ast_and_errors |> ignore);
+    Lazy.force lazy_ast_and_errors |> ignore);
 
   let cnt_timeout = ref 0 in
   (* TODO: have ~timeout_threshold and raise File_timeout if we get
@@ -120,22 +103,26 @@ let check_search_rules ~match_hook ~timeout ~timeout_threshold default_config
          let rule_id = fst r.R.id in
          Rule.last_matched_rule := Some rule_id;
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-             try
+             match
                timeout_function r file timeout (fun () ->
                    Match_search_rules.check_rule r match_hook default_config
                      pformula xtarget)
-             with Rule_timeout ->
-               incr cnt_timeout;
-               if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold
-               then raise File_timeout;
-               let loc = Parse_info.first_loc_of_file file in
-               {
-                 RP.matches = [];
-                 errors =
-                   [ E.mk_error ~rule_id:(Some rule_id) loc "" E.Timeout ];
-                 skipped = [];
-                 profiling = RP.empty_rule_profiling r;
-               }))
+             with
+             | Some res -> res
+             (* Note that because we now parse lazily a file, this rule timeout
+              * can actually correspond to a parsing file timeout. *)
+             | None ->
+                 incr cnt_timeout;
+                 if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold
+                 then raise File_timeout;
+                 let loc = Parse_info.first_loc_of_file file in
+                 {
+                   RP.matches = [];
+                   errors =
+                     [ E.mk_error ~rule_id:(Some rule_id) loc "" E.Timeout ];
+                   skipped = [];
+                   profiling = RP.empty_rule_profiling r;
+                 }))
 
 (*
    Check tainting-mode rules.

@@ -115,8 +115,7 @@ let parse_generic parsing_cache version lang file =
            *  However this introduces some weird regressions in CI so we focus on
            *  just Timeout for now.
            *)
-        with
-        | (Match_rules.Rule_timeout | Match_rules.File_timeout) as e -> Right e)
+        with Match_rules.File_timeout as e -> Right e)
   in
   match v with
   | Left x -> x
