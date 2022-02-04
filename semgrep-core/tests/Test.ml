@@ -273,7 +273,7 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches = taint_rules |> List.map (fun taint_rule ->
     let equivs = [] in
-    Match_tainting_rules.check_bis
+    Match_tainting_rules.check_rule
       ~match_hook:(fun _ _ _ -> ())
       (Config_semgrep.default_config, equivs)
       taint_rule file lang ast) |> List.flatten

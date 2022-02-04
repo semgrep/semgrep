@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -132,6 +132,41 @@ let check_search_rules ~match_hook ~timeout default_config rules xtarget =
                  profiling = RP.empty_rule_profiling r;
                }))
 
+(*
+   Check tainting-mode rules.
+   Return matches, errors, match time.
+*)
+let check_tainting_rules ~match_hook default_config taint_rules xtarget =
+  match taint_rules with
+  | [] -> []
+  | __else__ ->
+      let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
+      let lang =
+        match xlang with
+        | L (lang, _) -> lang
+        | LGeneric
+        | LRegex ->
+            failwith "taint-mode and generic/regex matching are incompatible"
+      in
+      (* TODO can we move this outside to Match_rules? *)
+      let (ast, errors), parse_time =
+        Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
+      in
+      taint_rules
+      |> List.map (fun ((rule, _) as taint_rule) ->
+             let matches, match_time =
+               Common.with_time (fun () ->
+                   Match_tainting_rules.check_rule match_hook default_config
+                     taint_rule file lang ast)
+             in
+             {
+               RP.matches;
+               errors;
+               skipped = [];
+               profiling =
+                 { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
+             })
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -144,7 +179,7 @@ let check ~match_hook ~timeout default_config rules xtarget =
     check_search_rules ~match_hook ~timeout default_config search_rules xtarget
   in
   let res_taint =
-    Match_tainting_rules.check ~match_hook default_config taint_rules xtarget
+    check_tainting_rules ~match_hook default_config taint_rules xtarget
   in
   let skipped = Common.map (skipped_target_of_rule xtarget) skipped_rules in
   let res =

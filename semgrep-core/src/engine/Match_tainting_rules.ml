@@ -168,13 +168,11 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     found_tainted_sink;
   }
 
-let lazy_force x = Lazy.force x [@@profiling]
-
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_bis ~match_hook (default_config, equivs)
+let check_rule ~match_hook (default_config, equivs)
     (taint_rule : Rule.rule * Rule.taint_spec) file lang ast =
   (* @Iago I went and modified this to work one rule at a time *)
   (* Let me know if this interferes with anything; it shouldn't because
@@ -245,33 +243,3 @@ let check_bis ~match_hook (default_config, equivs)
                 let str = Common.spf "with rule %s" m.rule_id.id in
                 match_hook str m.env m.tokens))
   |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
-
-let check ~match_hook default_config taint_rules file_and_more =
-  match taint_rules with
-  | [] -> []
-  | __else__ ->
-      let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = file_and_more in
-      let lang =
-        match xlang with
-        | L (lang, _) -> lang
-        | LGeneric
-        | LRegex ->
-            failwith "taint-mode and generic/regex matching are incompatible"
-      in
-      (* TODO can we move this outside to Match_rules? *)
-      let (ast, errors), parse_time =
-        Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
-      in
-      taint_rules
-      |> List.map (fun ((rule, _) as taint_rule) ->
-             let matches, match_time =
-               Common.with_time (fun () ->
-                   check_bis match_hook default_config taint_rule file lang ast)
-             in
-             {
-               RP.matches;
-               errors;
-               skipped = [];
-               profiling =
-                 { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
-             })
