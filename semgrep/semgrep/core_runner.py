@@ -610,12 +610,17 @@ class CoreRunner:
                 stdout=subprocess.PIPE,
                 stderr=stderr,
             )
+
+            core_stderr = ""
+            if core_run.stderr:
+                core_stderr = core_run.stderr.decode("utf-8", errors="replace")
+
             output_json = self._extract_core_output(
                 metachecks,
                 core_run.returncode,
                 " ".join(core_run.args),
                 core_run.stdout.decode("utf-8", errors="replace"),
-                core_run.stderr.decode("utf-8", errors="replace"),
+                core_stderr,
             )
             core_output = CoreOutput.parse(metachecks, output_json)
 
