@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import json
 import os
@@ -97,6 +98,83 @@ def uniq_error_id(
     error: SemgrepCoreError,
 ) -> Tuple[int, Path, CoreLocation, CoreLocation, str]:
     return (error.code, error.path, error.start, error.end, error.message)
+
+
+class StreamingSemgrepCore:
+    """
+    Handles running semgrep-core in a streaming fashion
+
+    This behavior is assumed to be that semgrep-core:
+    - prints a "." on a newline for every file it finishes scanning
+    - prints "done"
+    - prints a single json blob of all results
+
+    Exposes the subprocess.CompletedProcess properties for
+    expediency in integrating
+    """
+
+    def __init__(self, cmd: List[str]):
+        self._cmd = cmd
+        self._stdout = ""
+        self._stderr = ""
+
+    @property
+    def stdout(self) -> str:
+        return self._stdout
+
+    @property
+    def stderr(self) -> str:
+        return self._stderr
+
+    async def _core_stdout_processor(
+        self, stream: Optional[asyncio.StreamReader]
+    ) -> None:
+        assert stream  # TODO stream is only None if pipe in command is None
+        while True:
+            line_bytes = await stream.readline()
+
+            if not line_bytes:
+                break
+
+            line = line_bytes.decode("utf-8")
+            if line.strip() == ".":
+                print("working")
+            else:
+                self._stdout += line
+
+    async def _core_stderr_processor(
+        self, stream: Optional[asyncio.StreamReader]
+    ) -> None:
+        assert stream
+        while True:
+            line_bytes = await stream.readline()
+            if not line_bytes:
+                break
+
+            line = line_bytes.decode("utf-8")
+            self._stderr += line
+
+    async def _stream_subprocess(self) -> int:
+        process = await asyncio.create_subprocess_exec(
+            *self._cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            preexec_fn=setrlimits_preexec_fn,
+        )
+
+        await asyncio.wait(
+            [
+                asyncio.create_task(self._core_stdout_processor(process.stdout)),
+                asyncio.create_task(self._core_stderr_processor(process.stderr)),
+            ]
+        )
+        return await process.wait()
+
+    def execute(self) -> int:
+        loop = asyncio.get_event_loop()
+        rc = loop.run_until_complete(self._stream_subprocess())
+        loop.close()
+        return rc
 
 
 class CoreRunner:
@@ -375,20 +453,16 @@ class CoreRunner:
                     print(" ".join(cmd))
                     sys.exit(0)
 
-                core_run = sub_run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=stderr,
-                    preexec_fn=setrlimits_preexec_fn,
-                )
+                runner = StreamingSemgrepCore(cmd)
+                returncode = runner.execute()
 
                 # Process output
                 output_json = self._extract_core_output(
                     rules,
-                    core_run.returncode,
-                    " ".join(core_run.args),
-                    core_run.stdout.decode("utf-8", errors="replace"),
-                    core_run.stderr.decode("utf-8", errors="replace"),
+                    returncode,
+                    " ".join(cmd),
+                    runner.stdout,
+                    runner.stderr,
                 )
                 core_output = CoreOutput.parse(rules, output_json)
 
