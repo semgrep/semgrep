@@ -99,8 +99,10 @@ let rec statement_strings stmt =
               when str <> "..."
                    && (not (Metavariable.is_metavar_name str))
                    && (* deprecated *) not (Pattern.is_regexp_string str) ->
-                (* Semgrep can match "foo" against "foo/bar", so we just overapproximate taking the sub-strings. *)
-                Common.split "/\\|\\\\" str |> List.iter (fun s -> push s res);
+                (* Semgrep can match "foo" against "foo/bar", so we just
+                 * overapproximate taking the sub-strings, see
+                 * Generic_vs_generic.m_module_name_prefix. *)
+                Common.split {|/\|\\|} str |> List.iter (fun s -> push s res);
                 k x
             | _ -> k x);
         V.kexpr =
