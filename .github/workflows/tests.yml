@@ -296,8 +296,7 @@ jobs:
       - name: Get python version
         id: get_python_version
         run: |
-          echo "$(python -V)"
-          echo "::set-env name=python_version::${ python -V }"
+          echo "::set-env name=python_version::$(python -V | awk '{print $2}')"
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
