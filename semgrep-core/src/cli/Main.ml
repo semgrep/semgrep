@@ -532,10 +532,11 @@ let options () =
     ( "-tree_sitter_only",
       Arg.Set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );
+    (* TODO: timeout_threshold for maximum number of rules that can timeout *)
     ( "-timeout",
       Arg.Set_float timeout,
-      " <float> time limit to process one input program (in seconds); 0 \
-       disables timeouts (default is 0)" );
+      " <float> maxinum time to spend running a rule on a single file (in \
+       seconds); 0 disables timeouts (default is 0)" );
     ( "-max_memory",
       Arg.Set_int max_memory_mb,
       "<int>  maximum memory available (in MiB); allows for clean termination \

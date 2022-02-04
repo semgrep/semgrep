@@ -29,6 +29,8 @@ type t = {
   lsp : bool;
   (* Limits *)
   timeout : float;
+  (* per rule on a single file *)
+  (* TODO: timeout_threshold *)
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
@@ -39,12 +41,3 @@ type t = {
   (* Other *)
   version : string;
 }
-
-(*
-   Locally-raised exception containing the file name.
-   Note that the actual timeout function returns an option, so we could
-   use that if it's easier.
-
-   Originally was in main
-*)
-exception Main_timeout of string

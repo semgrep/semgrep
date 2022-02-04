@@ -164,8 +164,8 @@ let make_tests ?(unit_testing = false) xs =
              let res =
                try
                  Match_rules.check
-                   (fun _ _ _ -> ())
-                   (config, []) rules file_and_more
+                   ~match_hook:(fun _ _ _ -> ())
+                   ~timeout:0. (config, []) rules file_and_more
                with exn ->
                  failwith
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))

@@ -141,20 +141,6 @@ let map_targets ncores f (targets : In.target list) =
 (* Timeout *)
 (*****************************************************************************)
 
-let timeout_function file timeout f =
-  let saved_busy_with_equal = !AST_utils.busy_with_equal in
-  let timeout = if timeout <= 0. then None else Some timeout in
-  match
-    Common.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
-  with
-  | Some res -> res
-  | None ->
-      (* Note that we could timeout while testing the equality of two ASTs and
-       * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
-      AST_utils.busy_with_equal := saved_busy_with_equal;
-      logger#info "Run_semgrep: timeout for file %s" file;
-      raise (Main_timeout file)
-
 (* Certain patterns may be too general and match too many times on big files.
  * This does not cause a Timeout during parsing or matching, but returning
  * a huge number of matches can stress print_matches_and_errors_json
@@ -301,24 +287,33 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                try
                  Memory_limit.run_with_memory_limit
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
-                     timeout_function file config.timeout (fun () ->
-                         f target |> fun v ->
-                         (* This is just to test -max_memory, to give a chance
-                          * to Gc.create_alarm to run even if the program does
-                          * not even need to run the Gc. However, this has a
-                          * slow perf penality on small programs, which is why
-                          * it's better to keep guarded when you're
-                          * not testing -max_memory.
-                          *)
-                         if config.test then Gc.full_major ();
-                         logger#trace "done with %s" file;
-                         v))
+                     (* we used to call timeout_function() here, but this
+                      * is now done in Match_rules because we now
+                      * timeout per rule, not per file since semgrep-python
+                      * pass all the rules to semgrep-core.
+                      *
+                      * old: timeout_function file config.timeout ...
+                      *)
+                     f target |> fun v ->
+                     (* This is just to test -max_memory, to give a chance
+                      * to Gc.create_alarm to run even if the program does
+                      * not even need to run the Gc. However, this has a
+                      * slow perf penality on small programs, which is why
+                      * it's better to keep guarded when you're
+                      * not testing -max_memory.
+                      *)
+                     if config.test then Gc.full_major ();
+                     logger#trace "done with %s" file;
+                     v)
                with
                (* note that Semgrep_error_code.exn_to_error already handles
                 * Timeout and would generate a TimeoutError code for it,
                 * but we intercept Timeout here to give a better diagnostic.
                 *)
-               | (Main_timeout _ | Out_of_memory) as exn ->
+               | (Match_rules.File_timeout _ | Out_of_memory) as exn ->
+                   (* TODO: get rid of this now that rule timeout are
+                    * captured in Match_rules.ml?
+                    *)
                    (match !Match_patterns.last_matched_rule with
                    | None -> ()
                    | Some rule ->
@@ -332,7 +327,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        [
                          E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
                            (match exn with
-                           | Main_timeout file ->
+                           | Match_rules.File_timeout file ->
                                logger#info "Timeout on %s" file;
                                E.Timeout
                            | Out_of_memory ->
@@ -472,7 +467,7 @@ let semgrep_with_rules config (rules, rules_parse_time) =
                print_match ~str config.match_format config.mvars env
                  Metavariable.ii_of_mval xs
            in
-           Match_rules.check ~match_hook
+           Match_rules.check ~match_hook ~timeout:config.timeout
              ( Config_semgrep.default_config,
                parse_equivalences config.equivalences_file )
              rules xtarget)
@@ -638,22 +633,23 @@ let semgrep_with_one_pattern config =
       |> List.iter (fun file ->
              logger#info "processing: %s" file;
              let process file =
-               timeout_function file config.timeout (fun () ->
-                   let ast, errors =
-                     P.parse_generic config.use_parsing_cache config.version
-                       lang file
-                   in
-                   if errors <> [] then
-                     pr2 (spf "WARNING: fail to fully parse %s" file);
-                   Match_patterns.check
-                     ~hook:(fun env matched_tokens ->
-                       let xs = Lazy.force matched_tokens in
-                       print_match config.match_format config.mvars env
-                         Metavariable.ii_of_mval xs)
-                     ( Config_semgrep.default_config,
-                       parse_equivalences config.equivalences_file )
-                     minirule (file, lang, ast)
-                   |> ignore)
+               (* TODO put back               timeout_function file config.timeout (fun () -> *)
+               let ast, errors =
+                 P.parse_generic config.use_parsing_cache config.version lang
+                   file
+               in
+               if errors <> [] then
+                 pr2 (spf "WARNING: fail to fully parse %s" file);
+               Match_patterns.check
+                 ~hook:(fun env matched_tokens ->
+                   let xs = Lazy.force matched_tokens in
+                   print_match config.match_format config.mvars env
+                     Metavariable.ii_of_mval xs)
+                 ( Config_semgrep.default_config,
+                   parse_equivalences config.equivalences_file )
+                 minirule (file, lang, ast)
+               |> ignore
+               (* TODO ) *)
              in
 
              if not config.error_recovery then

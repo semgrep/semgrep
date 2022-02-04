@@ -1,0 +1,26 @@
+rules:
+  - id: forcetimeout
+    pattern: |
+      ...
+      <... $A ...>
+      ...
+      <... $B ...>
+      ...
+      <... $C ...>
+      ...
+      <... $D ...>
+      ...
+    message: >-
+      This rule will time out
+    severity: ERROR
+    languages:
+      - python
+  - id: succeed
+    pattern: |
+        redirect(...)
+    message: >-
+      This rule will not time out
+    severity: ERROR
+    languages:
+      - python
+      

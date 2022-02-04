@@ -17,8 +17,46 @@ open Common
 module R = Rule
 module RP = Report
 module Resp = Output_from_core_t
+module E = Semgrep_error_code
 
 let logger = Logging.get_logger [ __MODULE__ ]
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Small wrapper around Match_search_rules and Match_tainting_rules
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+(* This can be captured in Run_semgrep.ml *)
+exception File_timeout of Common.filename
+
+(* Locally-raised exn.
+ * Note that because we now parse lazily a file, the rule timeout can
+ * actually correspond to a parsing file timeout.
+ *)
+exception Rule_timeout
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(* TODO: get rid of Rule_timeout and return an option, so simpler? *)
+let timeout_function rule file timeout f =
+  let saved_busy_with_equal = !AST_utils.busy_with_equal in
+  let timeout = if timeout <= 0. then None else Some timeout in
+  match
+    Common.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
+  with
+  | Some res -> res
+  | None ->
+      (* Note that we could timeout while testing the equality of two ASTs and
+       * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
+      AST_utils.busy_with_equal := saved_busy_with_equal;
+      logger#info "timeout for rule %s on file %s" (fst rule.R.id) file;
+      raise Rule_timeout
 
 let filter_and_partition_rules rules file_and_more =
   let { Xtarget.file; lazy_content; _ } = file_and_more in
@@ -55,22 +93,61 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     rule_id = Some rule_id;
   }
 
-let check ~match_hook default_config rules file_and_more =
+let lazy_force x = Lazy.force x [@@profiling]
+
+(*
+   Check search-mode rules.
+   Return matches, errors, match time.
+
+   NOTE: We used to filter irrelevant rules here, but now this is done in
+        Match_rules.check! If you call this function directly, there is no
+        filtering of irrelevant rules.
+*)
+let check_search_rules ~match_hook ~timeout default_config rules xtarget =
+  let { Xtarget.file; lazy_ast_and_errors; _ } = xtarget in
+  logger#trace "checking %s with %d rules" file (List.length rules);
+  if !Common.profile = Common.ProfAll then (
+    logger#info "forcing eval of ast outside of rules, for better profile";
+    lazy_force lazy_ast_and_errors |> ignore);
+
+  (* TODO: have ~timeout_threshold and raise File_timeout if we get
+   * too many rule timeouts
+   *)
+  rules
+  |> List.map (fun (r, pformula) ->
+         let rule_id = fst r.R.id in
+         Rule.last_matched_rule := Some rule_id;
+         Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+             try
+               timeout_function r file timeout (fun () ->
+                   Match_search_rules.check_rule r match_hook default_config
+                     pformula xtarget)
+             with Rule_timeout ->
+               let loc = Parse_info.first_loc_of_file file in
+               {
+                 RP.matches = [];
+                 errors =
+                   [ E.mk_error ~rule_id:(Some rule_id) loc "" E.Timeout ];
+                 skipped = [];
+                 profiling = RP.empty_rule_profiling r;
+               }))
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let check ~match_hook ~timeout default_config rules xtarget =
   let search_rules, taint_rules, skipped_rules =
-    filter_and_partition_rules rules file_and_more
+    filter_and_partition_rules rules xtarget
   in
   let res_search =
-    Match_search_rules.check ~match_hook default_config search_rules
-      file_and_more
+    check_search_rules ~match_hook ~timeout default_config search_rules xtarget
   in
   let res_taint =
-    Match_tainting_rules.check ~match_hook default_config taint_rules
-      file_and_more
+    Match_tainting_rules.check ~match_hook default_config taint_rules xtarget
   in
-  let skipped =
-    Common.map (skipped_target_of_rule file_and_more) skipped_rules
-  in
+  let skipped = Common.map (skipped_target_of_rule xtarget) skipped_rules in
   let res =
-    RP.collate_rule_results file_and_more.Xtarget.file (res_search @ res_taint)
+    RP.collate_rule_results xtarget.Xtarget.file (res_search @ res_taint)
   in
   { res with skipped = skipped @ res.skipped }

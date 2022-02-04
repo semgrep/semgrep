@@ -1,3 +1,11 @@
+(* TODO: this can be raised if timeout_threshold is set *)
+exception File_timeout of Common.filename
+
+(* TODO: this should not bubble up outside check:, but this is currently
+ * catched in Parse_with_caching.ml so needs to be in the .mli
+ *)
+exception Rule_timeout
+
 (*
    Return matches, errors, match time.
 
@@ -6,6 +14,7 @@
 val check :
   match_hook:
     (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  timeout:float ->
   Config_semgrep.t * Equivalence.equivalences ->
   Rule.rules ->
   Xtarget.t ->
