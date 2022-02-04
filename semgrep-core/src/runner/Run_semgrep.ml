@@ -472,10 +472,15 @@ let semgrep_with_rules config (rules, rules_parse_time) =
                print_match ~str config.match_format config.mvars env
                  Metavariable.ii_of_mval xs
            in
-           Match_rules.check ~match_hook
-             ( Config_semgrep.default_config,
-               parse_equivalences config.equivalences_file )
-             rules xtarget)
+           let res =
+             Match_rules.check ~match_hook
+               ( Config_semgrep.default_config,
+                 parse_equivalences config.equivalences_file )
+               rules xtarget
+           in
+           if config.output_format = Json then Printf.printf ".";
+           (* Print when each file is done so Python knows *)
+           res)
   in
   let res =
     RP.make_final_result file_results rules config.report_time rules_parse_time
@@ -493,6 +498,8 @@ let semgrep_with_rules config (rules, rules_parse_time) =
    *)
   let skipped = new_skipped @ res.skipped in
   let errors = new_errors @ res.errors in
+  if config.output_format = Json then Printf.printf "done";
+  (* Print done so Python knows to expect it *)
   ( { RP.matches; errors; skipped; final_profiling = res.RP.final_profiling },
     targets |> List.map (fun x -> x.In.path) )
 
