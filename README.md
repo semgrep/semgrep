@@ -94,7 +94,6 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 # The name of your project will be sent to Semgrep Registry as an identifier 
 # to make selecting relevant rules fast next time;
 # source code will not be uploaded.
-# is not uploaded anywhere)
 $ semgrep --config auto
 
 # Run the r2c-ci ruleset (with rules for many languages) on your own code!
