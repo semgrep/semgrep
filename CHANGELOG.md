@@ -10,9 +10,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Performance: send all rules directly to semgrep-core instead of invoking semgrep-core 
-  for each rule, reducing the overhead significantly. Other changes resulting from this:  Sarif output now includes all rules run. Error messages use full path of rules.
-  Semgrep will not recover from timeouts in one rule by running others
-
+  for each rule, reducing the overhead significantly. Other changes resulting from this:
+  Sarif output now includes all rules run. Error messages use full path of rules.
 - Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
 
 ### Fixed
