@@ -2,6 +2,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -34,56 +35,30 @@ SENTINEL_1 = 23478921
 #     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
 #     # assert baseline_output.stdout == output.stdout
 #     snapshot.assert_match(baseline_output.stderr.replace(base_commit, "baseline-commit"), "baseline_error.txt")
-def run_normal_scan(check=True):
+def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
     Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
 
-    return subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-        ],
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        encoding="utf-8",
-        check=check,
-        env=env,
-    )
-
-
-def run_baseline(base_commit, check=True):
-    env = {"LANG": "en_US.UTF-8"}
-    env["SEMGREP_USER_AGENT_APPEND"] = "testing"
-    unique_settings_file = tempfile.NamedTemporaryFile().name
-    Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
-    env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        "--disable-version-check",
+        "--metrics",
+        "off",
+        "-e",
+        f"$X = {SENTINEL_1}",
+        "-l",
+        "python",
+    ]
+    if base_commit:
+        cmd.extend(["--baseline-commit", base_commit])
 
     return subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "-e",
-            f"$X = {SENTINEL_1}",
-            "-l",
-            "python",
-            "--baseline-commit",
-            base_commit,
-        ],
+        cmd,
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
         encoding="utf-8",
@@ -122,7 +97,7 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report findings
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
@@ -130,7 +105,7 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == ""
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -177,14 +152,14 @@ def test_no_findings_both(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report no findings
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     assert output.stdout == ""
     snapshot.assert_match(
         output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
     )
 
     # Baseline scan should report no findings
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -230,14 +205,14 @@ def test_no_findings_head(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report no findings
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     assert output.stdout == ""
     snapshot.assert_match(
         output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
     )
 
     # Baseline scan should report no findings
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -279,7 +254,7 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report findings
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
     snapshot.assert_match(
@@ -287,7 +262,7 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     )
 
     # Baseline scan should report same findings
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
@@ -329,7 +304,7 @@ def test_some_intersection(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report 2 findings
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
     snapshot.assert_match(
@@ -337,7 +312,7 @@ def test_some_intersection(git_tmp_path, snapshot):
     )
 
     # Baseline scan should report 1 finding but hide 1
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     snapshot.assert_match(baseline_output.stdout, "baseline_output.txt")
     assert baseline_output.stdout != output.stdout
     snapshot.assert_match(
@@ -380,7 +355,7 @@ def test_all_intersect(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report findings
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert (
         output.stdout != ""
@@ -388,7 +363,7 @@ def test_all_intersect(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
     # Baseline scan should report 0 findings
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == ""
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -430,7 +405,7 @@ def test_no_intersection(git_tmp_path, snapshot):
     )
 
     # Non-baseline scan should report 1 finding
-    output = run_normal_scan()
+    output = run_sentinel_scan()
     snapshot.assert_match(output.stdout, "output.txt")
     assert output.stdout != ""
     snapshot.assert_match(
@@ -438,7 +413,7 @@ def test_no_intersection(git_tmp_path, snapshot):
     )
 
     # Baseline scan should report same finding
-    baseline_output = run_baseline(base_commit)
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
     assert baseline_output.stdout == output.stdout
     snapshot.assert_match(
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
@@ -474,7 +449,7 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     ).strip()
 
     foo_a.write_text(f"y = {SENTINEL_1}\n")
-    output = run_baseline(base_commit, check=False)
+    output = run_sentinel_scan(base_commit=base_commit, check=False)
     assert output.returncode != 0
     snapshot.assert_match(output.stderr, "error.txt")
 
@@ -491,7 +466,7 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     foo_a = foo / "a.py"
     foo_a.write_text("y = 55555555\n")
 
-    output = run_baseline("12345", check=False)
+    output = run_sentinel_scan(base_commit="12345", check=False)
     assert output.returncode != 0
     snapshot.assert_match(output.stderr, "error.txt")
 
@@ -512,7 +487,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
         stdout=subprocess.PIPE,
     )
 
-    output = run_baseline("12345", check=False)
+    output = run_sentinel_scan(base_commit="12345", check=False)
     assert output.returncode != 0
     snapshot.assert_match(output.stderr, "error.txt")
 
