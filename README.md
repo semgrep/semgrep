@@ -89,7 +89,10 @@ Once installed, Semgrep can run with single rules or entire rulesets. Visit [Doc
 # Check for Python == where the left and right hand sides are the same (often a bug)
 $ semgrep -e '$X == $X' --lang=py path/to/src
 
-# Fetch rules automatically by examining your code's makeup (your source code
+# Fetch rules automatically by setting the `--config auto` flag. 
+# This will fetch rules relevant to your project from Semgrep Registry.
+# The name of your project will be sent to Semgrep Registry as an identifier 
+# to make selecting relevant rules fast next time; source code will not be uploaded.
 # is not uploaded anywhere)
 $ semgrep --config auto
 
