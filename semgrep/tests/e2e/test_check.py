@@ -189,12 +189,12 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
     )
 
 
-# TODO: started to fail recently, commented until someone knows how to fix it
-# def test_auto_config(run_semgrep_in_tmp):
-#    # --config auto will change over time, so lets just make sure this doesn't error out
-#    # TODO: Mock config response for more detailed testing
-#    run_semgrep_in_tmp("auto")
-#    assert True
+def test_auto_config(run_semgrep_in_tmp):
+    # --config auto will change over time, so lets just make sure this doesn't error out
+    # TODO: Mock config response for more detailed testing
+    # Use --no-strict to avoid error from unmatched nosem comment
+    run_semgrep_in_tmp("auto", strict=False)
+    assert True
 
 
 def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
