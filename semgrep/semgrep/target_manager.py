@@ -95,7 +95,7 @@ class IgnoreLog:
 
     target_manager: "TargetManager"
 
-    semgrepignore: Set[Path] = Factory(set)
+    semgrepignored: Set[Path] = Factory(set)
     always_skipped: Set[Path] = Factory(set)
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
@@ -107,6 +107,20 @@ class IgnoreLog:
 
     @property
     def size_limited_paths(self) -> Set[Path]:
+        """
+        All paths that were skipped because they were larger than the max_target_bytes.
+
+        This is needed because sometimes a file is not targeted at first
+        when we initially filter files that are too large,
+        but then a rule includes it.
+        After a rule includes a file that wasn't previously there,
+        and we notice it's larger than the limit,
+        it's recorded in rule_size_limit instead of size_limit.
+
+        But during output, explaining all this would be too much noise,
+        and not particularly helpful since the user would likely just raise the size limit.
+        So we merge these sets here, and usually look at this property.
+        """
         return {
             *self.size_limit,
             *(path for paths in self.rule_size_limit.values() for path in paths),
@@ -114,6 +128,12 @@ class IgnoreLog:
 
     @property
     def rule_ids_with_skipped_paths(self) -> FrozenSet[str]:
+        """All rule IDs that have skipped paths.
+
+        Note that if a rule ID defines excludes/includes,
+        but they didn't skip any paths,
+        that rule ID will not show up here.
+        """
         return frozenset(
             {
                 *(rule_id for rule_id, skips in self.rule_includes.items() if skips),
@@ -139,14 +159,14 @@ class IgnoreLog:
             skip_fragments.append(
                 f"{len(self.size_limited_paths)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
             )
-        if self.semgrepignore:
+        if self.semgrepignored:
             if self.target_manager.file_ignore:
                 skip_fragments.append(
-                    f"{len(self.semgrepignore)} files matching your .semgrepignore"
+                    f"{len(self.semgrepignored)} files matching your .semgrepignore"
                 )
             else:
                 skip_fragments.append(
-                    f"{len(self.semgrepignore)} files matching semgrep's default ignore patterns"
+                    f"{len(self.semgrepignored)} files matching semgrep's default ignore patterns"
                 )
 
         if not skip_fragments:
@@ -160,6 +180,11 @@ class IgnoreLog:
         return message
 
     def yield_verbose_lines(self) -> Iterator[Tuple[Literal[0, 1, 2], str]]:
+        """Yields lines of verbose output for the skipped files.
+
+        The returned tuple is (level, message).
+        The level is a number; one of 0, 1, or 2, which sets the indentation when outputting the line.
+        """
         yield 0, "Files skipped:"
 
         yield 1, "Always skipped by Semgrep:"
@@ -184,8 +209,8 @@ class IgnoreLog:
             yield 1, "See details at https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
 
         yield 1, "Skipped by .semgrepignore:"
-        if self.semgrepignore:
-            for path in self.semgrepignore:
+        if self.semgrepignored:
+            for path in self.semgrepignored:
                 yield 2, str(path)
         else:
             yield 2, "<none>"
@@ -619,7 +644,7 @@ class TargetManager:
 
         targets = (
             self.file_ignore.filter_paths(
-                candidates=targets, removal_log=self.ignore_log.semgrepignore
+                candidates=targets, removal_log=self.ignore_log.semgrepignored
             )
             if self.file_ignore
             else targets
