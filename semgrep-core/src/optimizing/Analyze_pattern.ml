@@ -50,6 +50,10 @@ let _error s = failwith s
 (* Extractions *)
 (*****************************************************************************)
 
+(* TODO(iago): This is partly redundant with Bloom_annotation.statement_strings,
+ * it might be more maintainable if we had a single visitor that worked for both
+ * statements and patterns. *)
+
 let extract_strings_and_mvars ?lang any =
   let strings = ref [] in
   let mvars = ref [] in
@@ -72,6 +76,22 @@ let extract_strings_and_mvars ?lang any =
                     We assume a match is possible without the identifier
                     being present in the target source, so we ignore it. *)
                 ()
+            | _ -> k x);
+        V.kdir =
+          (fun (k, _) x ->
+            match x with
+            | { d = ImportFrom (_, FileName (str, _), _, _); _ }
+            | { d = ImportAs (_, FileName (str, _), _); _ }
+            | { d = ImportAll (_, FileName (str, _), _); _ }
+              when str <> "..."
+                   && (not (Metavariable.is_metavar_name str))
+                   && (* deprecated *) not (Pattern.is_regexp_string str) ->
+                (* Semgrep can match "foo" against "foo/bar", so we just
+                 * overapproximate taking the sub-strings, see
+                 * Generic_vs_generic.m_module_name_prefix. *)
+                Common.split {|/\|\\|} str
+                |> List.iter (fun s -> Common.push s strings);
+                k x
             | _ -> k x);
         V.kexpr =
           (fun (k, _) x ->

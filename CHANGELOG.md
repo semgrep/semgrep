@@ -12,9 +12,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Performance: send all rules directly to semgrep-core instead of invoking semgrep-core 
   for each rule, reducing the overhead significantly. Other changes resulting from this:
   Sarif output now includes all rules run. Error messages use full path of rules.
+  Semgrep will not recover from timeouts in one rule by running others
 - Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
+- Bloom filter optimization now considers `import` module file names, thus
+  speeding up matching of patterns like `import { $X } from 'foo'`
 
 ### Fixed
+- Typescript: Patterns `E as T` will be matched correctly. E.g. previously
+  a pattern like `v as $T` would match `v` but not `v as any`, now it
+  correctly matches `v as any` but not `v`. (#4515)
 
 ## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 02-02-2022
 
