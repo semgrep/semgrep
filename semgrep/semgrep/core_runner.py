@@ -41,6 +41,7 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
+from semgrep.util import is_quiet
 from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 
@@ -114,11 +115,12 @@ class StreamingSemgrepCore:
     expediency in integrating
     """
 
-    def __init__(self, cmd: List[str], progress_bar: Any) -> None:
+    def __init__(self, cmd: List[str], total: int) -> None:
         self._cmd = cmd
-        self._progress_bar = progress_bar
+        self._total = total
         self._stdout = ""
         self._stderr = ""
+        self._progress_bar: Optional[tqdm] = None  # type: ignore
 
     @property
     def stdout(self) -> str:
@@ -138,7 +140,9 @@ class StreamingSemgrepCore:
             if not line_bytes:
                 break
 
-            self._progress_bar.update(1)
+            if self._progress_bar:
+                self._progress_bar.update(1)
+
             line = line_bytes.decode("utf-8")
             if line.strip() == ".":
                 pass
@@ -174,9 +178,21 @@ class StreamingSemgrepCore:
         return await process.wait()
 
     def execute(self) -> int:
+        if self._total > 1 and not is_quiet() and not is_debug():
+            # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
+            self._progress_bar = tqdm(  # typing: ignore
+                total=self._total,
+                file=sys.stderr,
+                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}",
+            )
+
         loop = asyncio.get_event_loop()
         rc = loop.run_until_complete(self._stream_subprocess())
         loop.close()
+
+        if self._progress_bar:
+            self._progress_bar.close()
+
         return rc
 
 
@@ -456,10 +472,8 @@ class CoreRunner:
                     print(" ".join(cmd))
                     sys.exit(0)
 
-                progress_bar = tqdm(total=len(all_targets))
-                runner = StreamingSemgrepCore(cmd, progress_bar)
+                runner = StreamingSemgrepCore(cmd, len(all_targets))
                 returncode = runner.execute()
-                progress_bar.close()
 
                 # Process output
                 output_json = self._extract_core_output(
