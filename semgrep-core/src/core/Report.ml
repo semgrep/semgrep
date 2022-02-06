@@ -56,6 +56,9 @@ type 'a match_result = {
 
 let empty_partial_profiling file = { file; rule_times = [] }
 
+let empty_rule_profiling rule =
+  { rule_id = fst rule.Rule.id; parse_time = 0.0; match_time = 0.0 }
+
 let empty_semgrep_result =
   {
     matches = [];

@@ -1,10 +1,10 @@
 open Common
-open Runner_config
+
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-
 (* Cache parsed ASTs between runs. This is necessary because the Python
  * wrapper makes multiple calls to semgrep-core. Previously was in Main.ml
  *
@@ -15,14 +15,11 @@ open Runner_config
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let logger = Logging.get_logger [ __MODULE__ ]
+let filemtime file = (Unix.stat file).Unix.st_mtime
 
 (*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
-
-let filemtime file = (Unix.stat file).Unix.st_mtime
 
 (* The function below is mostly a copy-paste of Common.cache_computation.
  * This function is slightly more flexible because we can put the cache file
@@ -34,8 +31,8 @@ let cache_computation ~parsing_cache_exists version_cur file cache_file_of_file
     f =
   if not parsing_cache_exists then f ()
   else if not (Sys.file_exists file) then (
-    pr2 ("WARNING: cache_computation: can't find file " ^ file);
-    pr2 "defaulting to calling the function";
+    logger#warning "cache_computation: can't find file %s " file;
+    logger#warning "defaulting to calling the function";
     f ())
   else
     Common.profile_code "Main.cache_computation" (fun () ->
@@ -80,6 +77,8 @@ let cache_file_of_file parsing_cache filename =
 (* It should really be just a call to Parse_target.parse_and_resolve...
  * but the semgrep python wrapper calls semgrep-core separately for each
  * rule, so we need to cache parsed AST to avoid extra work.
+ * TODO: simplify the code now that the semgrep-python calls us with all
+ * the rules.
  *)
 let parse_generic parsing_cache version lang file =
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
@@ -116,7 +115,7 @@ let parse_generic parsing_cache version lang file =
            *  However this introduces some weird regressions in CI so we focus on
            *  just Timeout for now.
            *)
-        with Main_timeout _ as e -> Right e)
+        with Match_rules.File_timeout as e -> Right e)
   in
   match v with
   | Left x -> x

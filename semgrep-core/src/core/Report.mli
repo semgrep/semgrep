@@ -47,6 +47,8 @@ type final_result = {
 
 val empty_partial_profiling : Common.filename -> partial_profiling
 
+val empty_rule_profiling : Rule.t -> rule_profiling
+
 val empty_semgrep_result : times match_result
 
 val add_run_time :
