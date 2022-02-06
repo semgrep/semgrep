@@ -28,7 +28,10 @@ type t = {
   mvars : Metavariable.mvar list;
   lsp : bool;
   (* Limits *)
+  (* maximum time to spend running a rule on a single file *)
   timeout : float;
+  (* maximum number of rules that can timeout on a file *)
+  timeout_threshold : int;
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
@@ -39,12 +42,3 @@ type t = {
   (* Other *)
   version : string;
 }
-
-(*
-   Locally-raised exception containing the file name.
-   Note that the actual timeout function returns an option, so we could
-   use that if it's easier.
-
-   Originally was in main
-*)
-exception Main_timeout of string
