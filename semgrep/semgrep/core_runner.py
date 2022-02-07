@@ -222,7 +222,7 @@ class StreamingSemgrepCore:
                 bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}",
             )
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
         rc = loop.run_until_complete(self._stream_subprocess())
         loop.close()
 
