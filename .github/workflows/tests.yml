@@ -298,6 +298,7 @@ jobs:
         run: |
           echo ::set-output name=py_version::$(python -V | awk '{print $2}')
           echo $py_version
+          ehco $(python -V | awk '{print $2}')
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
