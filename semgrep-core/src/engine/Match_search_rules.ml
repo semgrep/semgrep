@@ -956,12 +956,12 @@ and matches_of_formula config rule file_and_more formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule r hook (default_config, equivs) pformula file_and_more =
+let check_rule r hook (default_config, equivs) pformula xtarget =
   let config = r.R.options ||| default_config in
   let formula = R.formula_of_pformula pformula in
   let rule_id = fst r.id in
   let res, final_ranges =
-    matches_of_formula (config, equivs) r file_and_more formula None
+    matches_of_formula (config, equivs) r xtarget formula None
   in
   {
     RP.matches =
@@ -980,17 +980,3 @@ let check_rule r hook (default_config, equivs) pformula file_and_more =
     skipped = res.skipped;
     profiling = res.profiling;
   }
-
-let check ~match_hook default_config rules file_and_more =
-  let { Xtarget.file; lazy_ast_and_errors; _ } = file_and_more in
-  logger#trace "checking %s with %d rules" file (List.length rules);
-  if !Common.profile = Common.ProfAll then (
-    logger#info "forcing eval of ast outside of rules, for better profile";
-    lazy_force lazy_ast_and_errors |> ignore);
-
-  rules
-  |> List.map (fun (r, pformula) ->
-         let rule_id = fst r.R.id in
-         Rule.last_matched_rule := Some rule_id;
-         Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-             check_rule r match_hook default_config pformula file_and_more))

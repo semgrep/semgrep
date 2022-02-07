@@ -46,6 +46,7 @@ let config =
     mvars = [];
     lsp = false;
     timeout = 0.0;
+    timeout_threshold = 0;
     max_memory_mb = 0;
     max_match_per_file = 10000;
     ncores = 1;

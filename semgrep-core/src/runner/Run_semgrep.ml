@@ -33,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
    manually on the command line with e.g. <(echo 'eval(x)') which the
    shell replaces by a named pipe like '/dev/fd/63'.
 
-   update: This can be used also to fetch rules from the network,
+   update: This can be used also to fetch rules from the network!
    e.g., semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
 
    coupling: this functionality is implemented also in semgrep-python.
@@ -89,6 +89,17 @@ let print_match ?str match_format mvars mvar_binding ii_of_any
     ());
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
+let timeout_function file timeout f =
+  let timeout = if timeout <= 0. then None else Some timeout in
+  match
+    Common.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
+  with
+  | Some res -> res
+  | None ->
+      let loc = PI.first_loc_of_file file in
+      let err = E.mk_error loc "" E.Timeout in
+      Common.push err E.g_errors
+
 (*****************************************************************************)
 (* Parallelism *)
 (*****************************************************************************)
@@ -140,20 +151,6 @@ let map_targets ncores f (targets : In.target list) =
 (*****************************************************************************)
 (* Timeout *)
 (*****************************************************************************)
-
-let timeout_function file timeout f =
-  let saved_busy_with_equal = !AST_utils.busy_with_equal in
-  let timeout = if timeout <= 0. then None else Some timeout in
-  match
-    Common.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
-  with
-  | Some res -> res
-  | None ->
-      (* Note that we could timeout while testing the equality of two ASTs and
-       * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
-      AST_utils.busy_with_equal := saved_busy_with_equal;
-      logger#info "Run_semgrep: timeout for file %s" file;
-      raise (Main_timeout file)
 
 (* Certain patterns may be too general and match too many times on big files.
  * This does not cause a Timeout during parsing or matching, but returning
@@ -301,24 +298,30 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                try
                  Memory_limit.run_with_memory_limit
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
-                     timeout_function file config.timeout (fun () ->
-                         f target |> fun v ->
-                         (* This is just to test -max_memory, to give a chance
-                          * to Gc.create_alarm to run even if the program does
-                          * not even need to run the Gc. However, this has a
-                          * slow perf penality on small programs, which is why
-                          * it's better to keep guarded when you're
-                          * not testing -max_memory.
-                          *)
-                         if config.test then Gc.full_major ();
-                         logger#trace "done with %s" file;
-                         v))
+                     (* we used to call timeout_function() here, but this
+                      * is now done in Match_rules because we now
+                      * timeout per rule, not per file since semgrep-python
+                      * pass all the rules to semgrep-core.
+                      *
+                      * old: timeout_function file config.timeout ...
+                      *)
+                     f target |> fun v ->
+                     (* This is just to test -max_memory, to give a chance
+                      * to Gc.create_alarm to run even if the program does
+                      * not even need to run the Gc. However, this has a
+                      * slow perf penality on small programs, which is why
+                      * it's better to keep guarded when you're
+                      * not testing -max_memory.
+                      *)
+                     if config.test then Gc.full_major ();
+                     logger#trace "done with %s" file;
+                     v)
                with
                (* note that Semgrep_error_code.exn_to_error already handles
                 * Timeout and would generate a TimeoutError code for it,
                 * but we intercept Timeout here to give a better diagnostic.
                 *)
-               | (Main_timeout _ | Out_of_memory) as exn ->
+               | (Match_rules.File_timeout | Out_of_memory) as exn ->
                    (match !Match_patterns.last_matched_rule with
                    | None -> ()
                    | Some rule ->
@@ -332,7 +335,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        [
                          E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
                            (match exn with
-                           | Main_timeout file ->
+                           | Match_rules.File_timeout ->
                                logger#info "Timeout on %s" file;
                                E.Timeout
                            | Out_of_memory ->
@@ -473,10 +476,11 @@ let semgrep_with_rules config (rules, rules_parse_time) =
                  Metavariable.ii_of_mval xs
            in
            let res =
-             Match_rules.check ~match_hook
-               ( Config_semgrep.default_config,
-                 parse_equivalences config.equivalences_file )
-               rules xtarget
+              Match_rules.check ~match_hook ~timeout:config.timeout
+              ~timeout_threshold:config.timeout_threshold
+              ( Config_semgrep.default_config,
+               parse_equivalences config.equivalences_file )
+             rules xtarget
            in
            if config.output_format = Json then pr ".";
            (* Print when each file is done so Python knows *)
@@ -667,7 +671,7 @@ let semgrep_with_one_pattern config =
 
       let n = List.length !E.g_errors in
       if n > 0 then pr2 (spf "error count: %d" n);
-      (* TODO: what's that? *)
+      (* This is for pad's codemap visualizer *)
       Experiments.gen_layer_maybe _matching_tokens pattern_string files
 
 (*****************************************************************************)

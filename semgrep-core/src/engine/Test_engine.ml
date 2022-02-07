@@ -150,7 +150,7 @@ let make_tests ?(unit_testing = false) xs =
                  | LGeneric ->
                      assert false)
              in
-             let file_and_more =
+             let xtarget =
                {
                  Xtarget.file = target;
                  xlang;
@@ -164,8 +164,8 @@ let make_tests ?(unit_testing = false) xs =
              let res =
                try
                  Match_rules.check
-                   (fun _ _ _ -> ())
-                   (config, []) rules file_and_more
+                   ~match_hook:(fun _ _ _ -> ())
+                   ~timeout:0. ~timeout_threshold:0 (config, []) rules xtarget
                with exn ->
                  failwith
                    (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))

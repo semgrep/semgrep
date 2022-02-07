@@ -487,6 +487,8 @@ class CoreRunner:
                     target_file.name,
                     "-timeout",
                     str(self._timeout),
+                    "-timeout_threshold",
+                    str(self._timeout_threshold),
                     "-max_memory",
                     str(self._max_memory),
                     "-json_time",
