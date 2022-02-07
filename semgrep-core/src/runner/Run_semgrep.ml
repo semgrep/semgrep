@@ -477,10 +477,10 @@ let semgrep_with_rules config (rules, rules_parse_time) =
            in
            let res =
               Match_rules.check ~match_hook ~timeout:config.timeout
-              ~timeout_threshold:config.timeout_threshold
-              ( Config_semgrep.default_config,
-               parse_equivalences config.equivalences_file )
-             rules xtarget
+                ~timeout_threshold:config.timeout_threshold
+                ( Config_semgrep.default_config,
+                  parse_equivalences config.equivalences_file )
+                rules xtarget
            in
            if config.output_format = Json then pr ".";
            (* Print when each file is done so Python knows *)
