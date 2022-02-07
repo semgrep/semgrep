@@ -191,6 +191,7 @@ class StreamingSemgrepCore:
             *self._cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            limit=1024 * 1024,
             preexec_fn=setrlimits_preexec_fn,
         )
 
