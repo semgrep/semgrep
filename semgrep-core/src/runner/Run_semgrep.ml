@@ -33,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
    manually on the command line with e.g. <(echo 'eval(x)') which the
    shell replaces by a named pipe like '/dev/fd/63'.
 
-   update: This can be used also to fetch rules from the network,
+   update: This can be used also to fetch rules from the network!
    e.g., semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
 
    coupling: this functionality is implemented also in semgrep-python.
@@ -88,6 +88,17 @@ let print_match ?str match_format mvars mvar_binding ii_of_any
     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
     ());
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
+
+let timeout_function file timeout f =
+  let timeout = if timeout <= 0. then None else Some timeout in
+  match
+    Common.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
+  with
+  | Some res -> res
+  | None ->
+      let loc = PI.first_loc_of_file file in
+      let err = E.mk_error loc "" E.Timeout in
+      Common.push err E.g_errors
 
 (*****************************************************************************)
 (* Parallelism *)
@@ -631,23 +642,22 @@ let semgrep_with_one_pattern config =
       |> List.iter (fun file ->
              logger#info "processing: %s" file;
              let process file =
-               (* TODO put back               timeout_function file config.timeout (fun () -> *)
-               let ast, errors =
-                 P.parse_generic config.use_parsing_cache config.version lang
-                   file
-               in
-               if errors <> [] then
-                 pr2 (spf "WARNING: fail to fully parse %s" file);
-               Match_patterns.check
-                 ~hook:(fun env matched_tokens ->
-                   let xs = Lazy.force matched_tokens in
-                   print_match config.match_format config.mvars env
-                     Metavariable.ii_of_mval xs)
-                 ( Config_semgrep.default_config,
-                   parse_equivalences config.equivalences_file )
-                 minirule (file, lang, ast)
-               |> ignore
-               (* TODO ) *)
+               timeout_function file config.timeout (fun () ->
+                   let ast, errors =
+                     P.parse_generic config.use_parsing_cache config.version
+                       lang file
+                   in
+                   if errors <> [] then
+                     pr2 (spf "WARNING: fail to fully parse %s" file);
+                   Match_patterns.check
+                     ~hook:(fun env matched_tokens ->
+                       let xs = Lazy.force matched_tokens in
+                       print_match config.match_format config.mvars env
+                         Metavariable.ii_of_mval xs)
+                     ( Config_semgrep.default_config,
+                       parse_equivalences config.equivalences_file )
+                     minirule (file, lang, ast)
+                   |> ignore)
              in
 
              if not config.error_recovery then
@@ -656,7 +666,7 @@ let semgrep_with_one_pattern config =
 
       let n = List.length !E.g_errors in
       if n > 0 then pr2 (spf "error count: %d" n);
-      (* TODO: what's that? *)
+      (* This is for pad's codemap visualizer *)
       Experiments.gen_layer_maybe _matching_tokens pattern_string files
 
 (*****************************************************************************)
