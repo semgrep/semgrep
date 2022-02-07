@@ -296,9 +296,8 @@ jobs:
       - name: Get python version
         id: get_python_version
         run: |
-          echo ::set-output name=py_version::$(python -V | awk '{print $2}')
+          echo ::set-output name=py_version::$(python --version 2>&1 | awk '{print $2}')
           echo $py_version
-          echo $(python -V | awk '{print $2}')
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
