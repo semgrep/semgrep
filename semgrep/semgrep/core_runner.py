@@ -153,8 +153,8 @@ class StreamingSemgrepCore:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
 
-            # readline returns None on EOF but can be ""
-            if line_bytes is None:
+            # readline returns empty when EOF
+            if not line_bytes:
                 break
 
             line = line_bytes.decode("utf-8")
@@ -180,8 +180,8 @@ class StreamingSemgrepCore:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
 
-            # readline returns None on EOF but can be ""
-            if line_bytes is None:
+            # readline returns empty when EOF
+            if not line_bytes:
                 break
 
             line = line_bytes.decode("utf-8")
@@ -192,7 +192,7 @@ class StreamingSemgrepCore:
             *self._cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            limit=1024 * 1024 * 1024,
+            limit=1024 * 1024 * 1024,  # buffer limit to read
             preexec_fn=setrlimits_preexec_fn,
         )
 
