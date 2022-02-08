@@ -89,9 +89,9 @@ Once installed, Semgrep can run with single rules or entire rulesets. Visit [Doc
 # Check for Python == where the left and right hand sides are the same (often a bug)
 $ semgrep -e '$X == $X' --lang=py path/to/src
 
-# Fetch rules automatically by setting the `--config auto` flag. 
+# Fetch rules automatically by setting the `--config auto` flag.
 # This will fetch rules relevant to your project from Semgrep Registry.
-# The name of your project will be sent to Semgrep Registry as an identifier 
+# The name of your project will be sent to Semgrep Registry as an identifier
 # to make selecting relevant rules fast next time;
 # source code will not be uploaded.
 $ semgrep --config auto
@@ -111,7 +111,7 @@ Visit [Docs > Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/)
 | Ban dangerous APIs                | [Prevent use of exec](https://semgrep.dev/s/clintgibler:no-exec)                                                                                                                                                                                                                                                                                       |
 | Search routes and authentication  | [Extract Spring routes](https://semgrep.dev/s/clintgibler:spring-routes)                                                                                                                                                                                                                                                                               |
 | Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/s/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                      |
-| Tainted data flowing into sinks  | [ExpressJS dataflow into sandbox.run](https://semgrep.dev/s/ievans:simple-taint-dataflow)                                                                                                                                                                                                                                                                              |
+| Tainted data flowing into sinks   | [ExpressJS dataflow into sandbox.run](https://semgrep.dev/s/ievans:simple-taint-dataflow)                                                                                                                                                                                                                                                              |
 | Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/s/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/s/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                        |
 | Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/s/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                        |
 | Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.dev/s/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/s/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                           |
@@ -133,7 +133,7 @@ Using remote configuration from the [Registry](https://semgrep.dev/r) (like `--c
 
 Using configs from local files (like `--config=xyz.yml`) does **not** enable metrics.
 
-To disable Registry rule metrics, use `--metrics=off`. 
+To disable Registry rule metrics, use `--metrics=off`.
 
 [PRIVACY.md](PRIVACY.md) describes the principles that guide data-collection decisions and the breakdown of the data that are and are not collected when the metrics are enabled.
 

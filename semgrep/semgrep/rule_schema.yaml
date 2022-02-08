@@ -1,92 +1,92 @@
 $id: https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep/semgrep/rule_schema.yaml
 $schema: http://json-schema.org/draft-07/schema#
-$comment: '!!if you modify this file, you probably also need to update the one in semgrep-app:server/semgrep_app/rule_schema.yaml!!'
+$comment: "!!if you modify this file, you probably also need to update the one in semgrep-app:server/semgrep_app/rule_schema.yaml!!"
 definitions:
   patterns-content:
     type: array
     title: "Return finding where all of the nested conditions are true"
     items:
       anyOf:
-      - $ref: '#/definitions/patterns'
-      - $ref: '#/definitions/pattern-either'
-      - $ref: '#/definitions/pattern-inside'
-      - $ref: '#/definitions/pattern-not-inside'
-      - $ref: '#/definitions/pattern-not'
-      - $ref: '#/definitions/pattern'
-      - $ref: '#/definitions/pattern-regex'
-      - $ref: '#/definitions/pattern-not-regex'
-      - $ref: '#/definitions/pattern-where-python'
-      - $ref: '#/definitions/metavariable-regex'
-      - $ref: '#/definitions/metavariable-pattern'
-      - $ref: '#/definitions/metavariable-comparison'
-      - $ref: '#/definitions/r2c-internal-project-depends-on'
+        - $ref: "#/definitions/patterns"
+        - $ref: "#/definitions/pattern-either"
+        - $ref: "#/definitions/pattern-inside"
+        - $ref: "#/definitions/pattern-not-inside"
+        - $ref: "#/definitions/pattern-not"
+        - $ref: "#/definitions/pattern"
+        - $ref: "#/definitions/pattern-regex"
+        - $ref: "#/definitions/pattern-not-regex"
+        - $ref: "#/definitions/pattern-where-python"
+        - $ref: "#/definitions/metavariable-regex"
+        - $ref: "#/definitions/metavariable-pattern"
+        - $ref: "#/definitions/metavariable-comparison"
+        - $ref: "#/definitions/r2c-internal-project-depends-on"
   pattern-either-content:
     type: array
     title: "Return finding where any of the nested conditions are true"
     items:
       anyOf:
-      - $ref: '#/definitions/patterns'
-      - $ref: '#/definitions/pattern-either'
-      - $ref: '#/definitions/pattern-inside'
-      - $ref: '#/definitions/pattern'
-      - $ref: '#/definitions/pattern-regex'
+        - $ref: "#/definitions/patterns"
+        - $ref: "#/definitions/pattern-either"
+        - $ref: "#/definitions/pattern-inside"
+        - $ref: "#/definitions/pattern"
+        - $ref: "#/definitions/pattern-regex"
   taint-content:
     type: array
     items:
       anyOf:
-      - type: object
-        properties:
-          pattern:
-            title: Return finding where Semgrep pattern matches exactly
-            type: string
-          pattern-regex:
-            title: Return finding where regular expression matches exactly
-            type: string
-          patterns:
-            $ref: '#/definitions/patterns-content'
-          pattern-either:
-            $ref: '#/definitions/pattern-either-content'
-        oneOf:
-          - required:
-              - pattern
-            not:
-              anyOf:
-                - required:
-                  - patterns
-                - required:
-                  - pattern-either
-                - required:
-                  - pattern-regex
-          - required:
-              - patterns
-            not:
-              anyOf:
-                - required:
-                    - pattern
-                - required:
-                    - pattern-either
-                - required:
-                    - pattern-regex
-          - required:
-              - pattern-either
-            not:
-              anyOf:
-                - required:
-                    - pattern
-                - required:
-                    - patterns
-                - required:
-                    - pattern-regex
-          - required:
-              - pattern-regex
-            not:
-              anyOf:
-                - required:
-                    - pattern
-                - required:
-                    - patterns
-                - required:
-                    - pattern-either
+        - type: object
+          properties:
+            pattern:
+              title: Return finding where Semgrep pattern matches exactly
+              type: string
+            pattern-regex:
+              title: Return finding where regular expression matches exactly
+              type: string
+            patterns:
+              $ref: "#/definitions/patterns-content"
+            pattern-either:
+              $ref: "#/definitions/pattern-either-content"
+          oneOf:
+            - required:
+                - pattern
+              not:
+                anyOf:
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - patterns
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-either
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-regex
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
   r2c-internal-project-depends-on:
     type: object
     title: "A dependency that the project contains"
@@ -148,7 +148,7 @@ definitions:
           - regex
         additionalProperties: false
     required:
-    - metavariable-regex
+      - metavariable-regex
     additionalProperties: false
   metavariable-pattern:
     type: object
@@ -167,9 +167,9 @@ definitions:
             title: Return finding where regular expression matches exactly
             type: string
           patterns:
-            $ref: '#/definitions/patterns-content'
+            $ref: "#/definitions/patterns-content"
           pattern-either:
-            $ref: '#/definitions/pattern-either-content'
+            $ref: "#/definitions/pattern-either-content"
         required:
           - metavariable
         oneOf:
@@ -178,11 +178,11 @@ definitions:
             not:
               anyOf:
                 - required:
-                  - patterns
+                    - patterns
                 - required:
-                  - pattern-either
+                    - pattern-either
                 - required:
-                  - pattern-regex
+                    - pattern-regex
           - required:
               - patterns
             not:
@@ -215,7 +215,7 @@ definitions:
                     - pattern-either
         additionalProperties: false
     required:
-    - metavariable-pattern
+      - metavariable-pattern
     additionalProperties: false
   metavariable-comparison:
     type: object
@@ -236,7 +236,7 @@ definitions:
           - comparison
         additionalProperties: false
     required:
-    - metavariable-comparison
+      - metavariable-comparison
     additionalProperties: false
   pattern:
     type: object
@@ -245,7 +245,7 @@ definitions:
         title: Return finding where Semgrep pattern matches exactly
         type: string
     required:
-    - pattern
+      - pattern
     additionalProperties: false
   pattern-regex:
     type: object
@@ -254,7 +254,7 @@ definitions:
         title: Return finding where regular expression matches
         type: string
     required:
-    - pattern-regex
+      - pattern-regex
     additionalProperties: false
   pattern-not-regex:
     type: object
@@ -263,25 +263,25 @@ definitions:
         title: Do not return finding where regular expression matches
         type: string
     required:
-    - pattern-not-regex
+      - pattern-not-regex
     additionalProperties: false
   patterns:
     type: object
     properties:
       patterns:
         title: Return finding where all of the nested conditions are true
-        $ref: '#/definitions/patterns-content'
+        $ref: "#/definitions/patterns-content"
     required:
-    - patterns
+      - patterns
     additionalProperties: false
   pattern-either:
     type: object
     properties:
       pattern-either:
         title: Return finding where any of the nested conditions are true
-        $ref: '#/definitions/pattern-either-content'
+        $ref: "#/definitions/pattern-either-content"
     required:
-    - pattern-either
+      - pattern-either
     additionalProperties: false
   pattern-inside:
     type: object
@@ -290,7 +290,7 @@ definitions:
         title: Return findings only from within snippets Semgrep pattern matches
         type: string
     required:
-    - pattern-inside
+      - pattern-inside
     additionalProperties: false
   pattern-not-inside:
     type: object
@@ -299,7 +299,7 @@ definitions:
         title: Do not return findings from within snippets Semgrep pattern matches
         type: string
     required:
-    - pattern-not-inside
+      - pattern-not-inside
     additionalProperties: false
   pattern-not:
     type: object
@@ -308,7 +308,7 @@ definitions:
         title: Do not return finding where Semgrep pattern matches exactly
         type: string
     required:
-    - pattern-not
+      - pattern-not
     additionalProperties: false
   pattern-where-python:
     type: object
@@ -341,9 +341,9 @@ properties:
           type: string
         mode:
           enum:
-          - search
-          - taint
-          - join
+            - search
+            - taint
+            - join
         languages:
           title: Languages this pattern should run on
           type: array
@@ -354,25 +354,25 @@ properties:
           type: object
           properties:
             include:
-              $ref: '#/definitions/path-array'
+              $ref: "#/definitions/path-array"
             exclude:
-              $ref: '#/definitions/path-array'
+              $ref: "#/definitions/path-array"
           additionalProperties: false
         severity:
           title: Severity to report alongside this finding
           enum:
-          - ERROR
-          - WARNING
-          - INFO
-          - INVENTORY
+            - ERROR
+            - WARNING
+            - INFO
+            - INVENTORY
         pattern-sinks:
-          $ref: '#/definitions/taint-content'
+          $ref: "#/definitions/taint-content"
         pattern-sources:
-          $ref: '#/definitions/taint-content'
+          $ref: "#/definitions/taint-content"
         pattern-sanitizers:
-          $ref: '#/definitions/taint-content'
+          $ref: "#/definitions/taint-content"
         join:
-          $ref: '#/definitions/join-content'
+          $ref: "#/definitions/join-content"
         fix:
           title: Replacement text to fix matched code. Can use matched metavariables.
           type: string
@@ -406,9 +406,9 @@ properties:
           title: Return finding where regular expression matches exactly
           type: string
         patterns:
-          $ref: '#/definitions/patterns-content'
+          $ref: "#/definitions/patterns-content"
         pattern-either:
-          $ref: '#/definitions/pattern-either-content'
+          $ref: "#/definitions/pattern-either-content"
       additionalProperties: false
 
       oneOf:
@@ -426,15 +426,15 @@ properties:
           not:
             anyOf:
               - required:
-                - pattern
+                  - pattern
               - required:
-                - patterns
+                  - patterns
               - required:
-                - pattern-either
+                  - pattern-either
               - required:
-                - pattern-regex
+                  - pattern-regex
               - required:
-                - join
+                  - join
 
         - properties:
             mode:
@@ -447,13 +447,13 @@ properties:
           not:
             anyOf:
               - required:
-                - patterns
+                  - patterns
               - required:
-                - pattern
+                  - pattern
               - required:
-                - pattern-either
+                  - pattern-either
               - required:
-                - pattern-regex
+                  - pattern-regex
 
         - properties:
             mode:
@@ -469,11 +469,11 @@ properties:
               not:
                 anyOf:
                   - required:
-                    - patterns
+                      - patterns
                   - required:
-                    - pattern-either
+                      - pattern-either
                   - required:
-                    - pattern-regex
+                      - pattern-regex
             - required:
                 - patterns
               not:
@@ -507,10 +507,10 @@ properties:
           not:
             anyOf:
               - required:
-                - pattern-sinks
+                  - pattern-sinks
               - required:
-                - pattern-sources
+                  - pattern-sources
               - required:
-                - pattern-sanitizers
+                  - pattern-sanitizers
               - required:
-                - join
+                  - join

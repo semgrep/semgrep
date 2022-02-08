@@ -35,7 +35,7 @@ jobs:
           workflow: tests.yml
           workflow_conclusion: success
           name: ocaml-build-artifacts
-          check_artifacts:  false
+          check_artifacts: false
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz

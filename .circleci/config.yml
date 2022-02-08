@@ -1,6 +1,5 @@
 version: 2.1
 jobs:
-
   semgrep:
     docker:
       - image: returntocorp/semgrep:develop

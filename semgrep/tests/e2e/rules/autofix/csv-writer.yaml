@@ -1,16 +1,16 @@
 rules:
-- id: python.lang.security.unquoted-csv-writer.unquoted-csv-writer
-  patterns:
-  - pattern-not: csv.writer(..., quoting=csv.QUOTE_ALL, ...)
-  - pattern: csv.writer(...)
-  fix-regex:
-    regex: '(.*)\)'
-    replacement: '\1, quoting=csv.QUOTE_ALL)'
-  metadata:
-    cwe: 'CWE-1236: Improper Neutralization of Formula Elements in a CSV File'
-    owasp: 'A1: Injection'
-    references:
-    - https://affinity-it-security.com/how-to-prevent-csv-injection/
-  message: Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.
-  languages: [python]
-  severity: ERROR
+  - id: python.lang.security.unquoted-csv-writer.unquoted-csv-writer
+    patterns:
+      - pattern-not: csv.writer(..., quoting=csv.QUOTE_ALL, ...)
+      - pattern: csv.writer(...)
+    fix-regex:
+      regex: '(.*)\)'
+      replacement: '\1, quoting=csv.QUOTE_ALL)'
+    metadata:
+      cwe: "CWE-1236: Improper Neutralization of Formula Elements in a CSV File"
+      owasp: "A1: Injection"
+      references:
+        - https://affinity-it-security.com/how-to-prevent-csv-injection/
+    message: Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.
+    languages: [python]
+    severity: ERROR

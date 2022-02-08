@@ -1,13 +1,13 @@
 rules:
   - id: metavar-test-multi-regex
     patterns:
-      - pattern: 'metavariable_regex_test.$X($Y)'
+      - pattern: "metavariable_regex_test.$X($Y)"
       - metavariable-regex:
-          metavariable: '$X'
-          regex: 'method1'
+          metavariable: "$X"
+          regex: "method1"
       - metavariable-regex:
-          metavariable: '$Y'
-          regex: 'arg1'
+          metavariable: "$Y"
+          regex: "arg1"
     message: "Metavariable regex test multi regex"
     languages: [python]
     severity: ERROR

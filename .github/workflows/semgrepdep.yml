@@ -6,7 +6,7 @@ on:
 jobs:
   # commented out until ievans fixes it. Right now it's failing on
   # symlinks to a folder with the following error message:
-    # IsADirectoryError: [Errno 21] Is a directory: '/github/workspace/semgrep/semgrep/lang'
+  # IsADirectoryError: [Errno 21] Is a directory: '/github/workspace/semgrep/semgrep/lang'
 
   # semgrepdep:
   #   name: semgrepdep

@@ -77,30 +77,30 @@ with `e2e/targets` and `e2e/rules` available at `./targets` and `./rules`, respe
 
 When calling this, you specify the `--config` value as the first parameter:
 
-```run_semgrep_in_tmp("r2c/python")```
+`run_semgrep_in_tmp("r2c/python")`
 
 It runs on the files in `e2e/targets/basic/` by default,
 but you can change that to another directory next to that one:
 
-```run_semgrep_in_tmp("r2c/python", target="equivalence")```
+`run_semgrep_in_tmp("r2c/python", target="equivalence")`
 
 The return value is the JSON output from stdout,
 but you can ask for stderr to be merged into the returned string:
 
-```run_semgrep_in_tmp("r2c/python", stderr=True)```
+`run_semgrep_in_tmp("r2c/python", stderr=True)`
 
 You can add any additional CLI flag you'd like like so:
 
-```run_semgrep_in_tmp("r2c/python", options=["--exclude", "*.py"])```
+`run_semgrep_in_tmp("r2c/python", options=["--exclude", "*.py"])`
 
 To call semgrep without the `--json` flag:
 
-```run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.TEXT)```
+`run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.TEXT)`
 
 To call semgrep with the `--junit-xml` flag:
 
-```run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.JUNIT_XML)```
+`run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.JUNIT_XML)`
 
 To call semgrep with the `--sarif` flag instead of `--json`:
 
-```run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.SARIF)```
+`run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.SARIF)`

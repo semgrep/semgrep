@@ -1,89 +1,89 @@
 runs:
-- name: njs-box  # Some nodejsscan bench
-  repos:
-  - url: https://github.com/dropbox/dropbox-sdk-js
-    commit_hash: 268887672a0d7be58ffbfaf832731698e31d792d
-  rule_configs:
-  - njsscan
-  opts: []
-- name: njs-old-dvna  # nodejsscan rules on vulnerable app
-  repos:
-  - url: https://github.com/appsecco/dvna
-    commit_hash: c637437d6515bd4c732e91c58e62d38e88260d3c
-  rule_configs:
-  - njsscan
-  opts: []
-- name: netflix  # r2c-ci and r2c-security audit packs on a python/JS repo
-  repos:
-  - url: https://github.com/Netflix/lemur
-    commit_hash: 28b9a73a83d350b1c7ab71fdd739d64eec5d06aa
-  rule_configs:
-  - r2c-rules/r2c-ci.yml
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
-- name: socket  # javascript rules on a JS repo
-  repos:
-  - url: https://github.com/socketio/socket.io
-    commit_hash: 1faa7e3aea1414ec814aa935021356e8ed2b054c
-  rule_configs:
-  - r2c-rules/javascript.yml
-  opts: []
-- name: draios  # r2c-ci and r2c-security audit packs on a JS/other repo
-  repos:
-  - url: https://github.com/draios/sysdig-inspect
-    commit_hash: ba2912a2a55e59196c0d1da6a3060531f5cd4f7a
-  rule_configs:
-  - r2c-rules/r2c-ci.yml
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
-- name: django  # r2c-ci and r2c-security audit packs on a JS/other repo
-  repos:
-  - url: https://github.com/django/django
-    commit_hash: 9ee693bd6cf4074f04ec51c6f3cfe87cad392f12
-  rule_configs:
-  - r2c-rules/python.yml
-  - r2c-rules/django.yml
-  opts: []
-# Gitlab medium repos
-- name: draios  # Run our python and flask packs on a python repo
-  repos:
-  - url: https://github.com/draios/sysdig-inspect
-    commit_hash: ba2912a2a55e59196c0d1da6a3060531f5cd4f7a
-  rule_configs:
-  - r2c-rules/r2c-ci.yml
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
-- name: dropwizard  # r2c-ci and r2c-security audit packs on a java repo
-  repos:
-  - url: https://github.com/dropwizard/dropwizard
-    commit_hash: 433d00e3789b861327a6b9bb5934af828a87f3c9
-  rule_configs:
-  - r2c-rules/r2c-ci.yml
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
-- name: pmd  # r2c-ci and r2c-security audit packs on a java repo
-  repos:
-  - url: https://github.com/pmd/pmd
-    commit_hash: 81739da5caff948dbcd2136c17532b65c726c781
-  rule_configs:
-  - r2c-rules/r2c-ci.yml
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
-# Gitlab large repos
-- name: smacker # security-audit pack on a c repo
-  repos:
-  - url: https://github.com/spring-projects/spring-framework
-    commit_hash: 58e40d1aa2c23f6d9c41d4289f5b5debc10868f6
-  rule_configs:
-  - r2c-rules/java.yml
-  opts: []
-- name: gotree  # java pack on a java repo
-  repos:
-  - url: https://github.com/smacker/go-tree-sitter
-    commit_hash: 4a66a1484ecdc0b980f6317d8235e1f611529ab3
-  rule_configs:
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
+  - name: njs-box # Some nodejsscan bench
+    repos:
+      - url: https://github.com/dropbox/dropbox-sdk-js
+        commit_hash: 268887672a0d7be58ffbfaf832731698e31d792d
+    rule_configs:
+      - njsscan
+    opts: []
+  - name: njs-old-dvna # nodejsscan rules on vulnerable app
+    repos:
+      - url: https://github.com/appsecco/dvna
+        commit_hash: c637437d6515bd4c732e91c58e62d38e88260d3c
+    rule_configs:
+      - njsscan
+    opts: []
+  - name: netflix # r2c-ci and r2c-security audit packs on a python/JS repo
+    repos:
+      - url: https://github.com/Netflix/lemur
+        commit_hash: 28b9a73a83d350b1c7ab71fdd739d64eec5d06aa
+    rule_configs:
+      - r2c-rules/r2c-ci.yml
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
+  - name: socket # javascript rules on a JS repo
+    repos:
+      - url: https://github.com/socketio/socket.io
+        commit_hash: 1faa7e3aea1414ec814aa935021356e8ed2b054c
+    rule_configs:
+      - r2c-rules/javascript.yml
+    opts: []
+  - name: draios # r2c-ci and r2c-security audit packs on a JS/other repo
+    repos:
+      - url: https://github.com/draios/sysdig-inspect
+        commit_hash: ba2912a2a55e59196c0d1da6a3060531f5cd4f7a
+    rule_configs:
+      - r2c-rules/r2c-ci.yml
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
+  - name: django # r2c-ci and r2c-security audit packs on a JS/other repo
+    repos:
+      - url: https://github.com/django/django
+        commit_hash: 9ee693bd6cf4074f04ec51c6f3cfe87cad392f12
+    rule_configs:
+      - r2c-rules/python.yml
+      - r2c-rules/django.yml
+    opts: []
+  # Gitlab medium repos
+  - name: draios # Run our python and flask packs on a python repo
+    repos:
+      - url: https://github.com/draios/sysdig-inspect
+        commit_hash: ba2912a2a55e59196c0d1da6a3060531f5cd4f7a
+    rule_configs:
+      - r2c-rules/r2c-ci.yml
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
+  - name: dropwizard # r2c-ci and r2c-security audit packs on a java repo
+    repos:
+      - url: https://github.com/dropwizard/dropwizard
+        commit_hash: 433d00e3789b861327a6b9bb5934af828a87f3c9
+    rule_configs:
+      - r2c-rules/r2c-ci.yml
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
+  - name: pmd # r2c-ci and r2c-security audit packs on a java repo
+    repos:
+      - url: https://github.com/pmd/pmd
+        commit_hash: 81739da5caff948dbcd2136c17532b65c726c781
+    rule_configs:
+      - r2c-rules/r2c-ci.yml
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
+  # Gitlab large repos
+  - name: smacker # security-audit pack on a c repo
+    repos:
+      - url: https://github.com/spring-projects/spring-framework
+        commit_hash: 58e40d1aa2c23f6d9c41d4289f5b5debc10868f6
+    rule_configs:
+      - r2c-rules/java.yml
+    opts: []
+  - name: gotree # java pack on a java repo
+    repos:
+      - url: https://github.com/smacker/go-tree-sitter
+        commit_hash: 4a66a1484ecdc0b980f6317d8235e1f611529ab3
+    rule_configs:
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
 # Currently don't work in CI
 #- name: big-js  # single rule bench at the origin of the --filter-irrelevant-rules opti
 #  repos:

@@ -1,9 +1,9 @@
 rules:
   - id: metavar-test
     patterns:
-      - pattern: 'metavariable_regex_test($X)'
+      - pattern: "metavariable_regex_test($X)"
       - metavariable-regex:
-          metavariable: '$X'
+          metavariable: "$X"
           regex: '("test"|"example")'
     message: "Metavariable regex test"
     languages: [python]
