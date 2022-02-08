@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import json
 import os
@@ -17,6 +18,7 @@ from typing import Set
 from typing import Tuple
 
 from ruamel.yaml import YAML
+from tqdm import tqdm
 
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
@@ -39,7 +41,7 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
-from semgrep.util import sub_run
+from semgrep.util import is_quiet
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -99,6 +101,142 @@ def uniq_error_id(
     return (error.code, error.path, error.start, error.end, error.message)
 
 
+class StreamingSemgrepCore:
+    """
+    Handles running semgrep-core in a streaming fashion
+
+    This behavior is assumed to be that semgrep-core:
+    - prints a "." on a newline for every file it finishes scanning
+    - prints a single json blob of all results
+
+    Exposes the subprocess.CompletedProcess properties for
+    expediency in integrating
+    """
+
+    def __init__(self, cmd: List[str], total: int) -> None:
+        """
+        cmd: semgrep-core command to run
+        total: how many rules to run / how many "." we expect to see
+               used to display progress_bar
+        """
+        self._cmd = cmd
+        self._total = total
+        self._stdout = ""
+        self._stderr = ""
+        self._progress_bar: Optional[tqdm] = None  # type: ignore
+
+    @property
+    def stdout(self) -> str:
+        # stdout of semgrep-core sans "."
+        return self._stdout
+
+    @property
+    def stderr(self) -> str:
+        # stderr of semgrep-core command
+        return self._stderr
+
+    async def _core_stdout_processor(
+        self, stream: Optional[asyncio.StreamReader]
+    ) -> None:
+        """
+        Asynchronously process stdout of semgrep-core
+
+        Updates progress bar one increment for every "." it sees from semgrep-core
+        stdout
+
+        When it sees non-"." output it saves it to self._stdout
+        """
+        # appease mypy. stream is only None if call to create_subproccess_exec
+        # sets stdout/stderr stream to None
+        assert stream
+        while True:
+            # blocking read if buffer doesnt contain any lines or EOF
+            line_bytes = await stream.readline()
+
+            # readline returns empty when EOF
+            if not line_bytes:
+                break
+
+            line = line_bytes.decode("utf-8")
+            if line.strip() == ".":
+                if self._progress_bar:
+                    self._progress_bar.update()
+            else:
+                self._stdout += line
+
+    async def _core_stderr_processor(
+        self, stream: Optional[asyncio.StreamReader]
+    ) -> None:
+        """
+        Asynchronously process stderr of semgrep-core
+
+        Basically works synchronously and combines output to
+        stderr to self._stderr
+        """
+        if stream is None:
+            raise RuntimeError("subprocess was created without a stream")
+
+        while True:
+            # blocking read if buffer doesnt contain any lines or EOF
+            line_bytes = await stream.readline()
+
+            # readline returns empty when EOF
+            if not line_bytes:
+                break
+
+            line = line_bytes.decode("utf-8")
+            self._stderr += line
+
+    async def _stream_subprocess(self) -> int:
+        process = await asyncio.create_subprocess_exec(
+            *self._cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            limit=1024 * 1024 * 1024,  # buffer limit to read
+            preexec_fn=setrlimits_preexec_fn,
+        )
+
+        # Raise any exceptions from processing stdout/err
+        results = await asyncio.gather(
+            self._core_stdout_processor(process.stdout),
+            self._core_stderr_processor(process.stderr),
+            return_exceptions=True,
+        )
+        for r in results:
+            if isinstance(r, Exception):
+                raise SemgrepError(f"Error while running rules: {r}")
+
+        # Return exit code of cmd. process should already be done
+        return await process.wait()
+
+    def execute(self) -> int:
+        """
+        Run semgrep-core and listen to stdout to update
+        progress_bar as necessary
+
+        Blocks til completion and returns exit code
+        """
+        if (
+            sys.stderr.isatty()
+            and self._total > 1
+            and not is_quiet()
+            and not is_debug()
+        ):
+            # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
+            self._progress_bar = tqdm(  # typing: ignore
+                total=self._total,
+                file=sys.stderr,
+                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt} files",
+            )
+
+        rc = asyncio.run(self._stream_subprocess())
+
+        if self._progress_bar:
+            self._progress_bar.close()
+
+        return rc
+
+
 class CoreRunner:
     """
     Handles interactions between semgrep and semgrep-core
@@ -121,17 +259,17 @@ class CoreRunner:
         self._optimizations = optimizations
 
     def _extract_core_output(
-        self, rules: List[Rule], core_run: subprocess.CompletedProcess
+        self,
+        rules: List[Rule],
+        returncode: int,
+        shell_command: str,
+        core_stdout: str,
+        core_stderr: str,
     ) -> Dict[str, Any]:
-        semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
-
-        stderr = core_run.stderr
-        if stderr is None:
-            semgrep_error_output = (
+        if not core_stderr:
+            core_stderr = (
                 "<semgrep-core stderr not captured, should be printed above>\n"
             )
-        else:
-            semgrep_error_output = stderr.decode("utf-8", errors="replace")
 
         # By default, we print semgrep-core's error output, which includes
         # semgrep-core's logging if it was requested via --debug.
@@ -141,14 +279,13 @@ class CoreRunner:
         #
         logger.debug(
             f"--- semgrep-core stderr ---\n"
-            f"{semgrep_error_output}"
+            f"{core_stderr}"
             f"--- end semgrep-core stderr ---"
         )
 
-        returncode = core_run.returncode
         if returncode != 0:
             output_json = self._parse_core_output(
-                core_run, semgrep_output, semgrep_error_output, returncode
+                shell_command, core_stdout, core_stderr, returncode
             )
 
             if "errors" in output_json:
@@ -157,29 +294,29 @@ class CoreRunner:
                 if len(errors) < 1:
                     self._fail(
                         "non-zero exit status errors array is empty in json response",
-                        core_run,
+                        shell_command,
                         returncode,
-                        semgrep_output,
-                        semgrep_error_output,
+                        core_stdout,
+                        core_stderr,
                     )
                 raise errors[0].to_semgrep_error()
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
-                    core_run,
+                    shell_command,
                     returncode,
-                    semgrep_output,
-                    semgrep_error_output,
+                    core_stdout,
+                    core_stderr,
                 )
 
         output_json = self._parse_core_output(
-            core_run, semgrep_output, semgrep_error_output, returncode
+            shell_command, core_stdout, core_stderr, returncode
         )
         return output_json
 
     def _parse_core_output(
         self,
-        core_run: subprocess.CompletedProcess,
+        shell_command: str,
         semgrep_output: str,
         semgrep_error_output: str,
         returncode: int,
@@ -197,7 +334,7 @@ class CoreRunner:
                 tip = ""
             self._fail(
                 f"Semgrep encountered an internal error.{tip}",
-                core_run,
+                shell_command,
                 returncode,
                 semgrep_output,
                 semgrep_error_output,
@@ -207,14 +344,13 @@ class CoreRunner:
     def _fail(
         self,
         reason: str,
-        core_run: subprocess.CompletedProcess,
+        shell_command: str,
         returncode: int,
         semgrep_output: str,
         semgrep_error_output: str,
     ) -> None:
         # Once we require python >= 3.8, switch to using shlex.join instead
         # for proper quoting of the command line.
-        shell_command = " ".join(core_run.args)
         details = with_color(
             Colors.white,
             f"semgrep-core exit code: {returncode}\n"
@@ -379,15 +515,17 @@ class CoreRunner:
                     print(" ".join(cmd))
                     sys.exit(0)
 
-                core_run = sub_run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=stderr,
-                    preexec_fn=setrlimits_preexec_fn,
-                )
+                runner = StreamingSemgrepCore(cmd, len(targets_with_rules))
+                returncode = runner.execute()
 
                 # Process output
-                output_json = self._extract_core_output(rules, core_run)
+                output_json = self._extract_core_output(
+                    rules,
+                    returncode,
+                    " ".join(cmd),
+                    runner.stdout,
+                    runner.stderr,
+                )
                 core_output = CoreOutput.parse(rules, output_json)
 
                 if "time" in output_json:
@@ -479,14 +617,17 @@ class CoreRunner:
                 + list(configs)
             )
 
-            stderr: Optional[int] = subprocess.PIPE
+            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
+            returncode = runner.execute()
 
-            core_run = sub_run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=stderr,
+            # Process output
+            output_json = self._extract_core_output(
+                metachecks,
+                returncode,
+                " ".join(cmd),
+                runner.stdout,
+                runner.stderr,
             )
-            output_json = self._extract_core_output(metachecks, core_run)
             core_output = CoreOutput.parse(metachecks, output_json)
 
             parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
