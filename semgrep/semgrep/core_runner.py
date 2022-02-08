@@ -42,7 +42,6 @@ from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
 from semgrep.util import is_quiet
-from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -614,24 +613,16 @@ class CoreRunner:
                 + list(configs)
             )
 
-            stderr: Optional[int] = subprocess.PIPE
+            runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules
+            returncode = runner.execute()
 
-            core_run = sub_run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=stderr,
-            )
-
-            core_stderr = ""
-            if core_run.stderr:
-                core_stderr = core_run.stderr.decode("utf-8", errors="replace")
-
+            # Process output
             output_json = self._extract_core_output(
                 metachecks,
-                core_run.returncode,
-                " ".join(core_run.args),
-                core_run.stdout.decode("utf-8", errors="replace"),
-                core_stderr,
+                returncode,
+                " ".join(cmd),
+                runner.stdout,
+                runner.stderr,
             )
             core_output = CoreOutput.parse(metachecks, output_json)
 
