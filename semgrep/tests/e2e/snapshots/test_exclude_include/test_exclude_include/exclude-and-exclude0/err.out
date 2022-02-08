@@ -2,4 +2,8 @@ excluding files:
 - excluded.*
 - included.*
 Running 4 rules...
+
+skipped: all .gitignored files, 4 files matching --exclude patterns
+for a detailed list of skipped files, run semgrep with the --verbose flag
+
 ran 4 rules on 0 files: 0 findings

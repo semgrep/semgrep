@@ -1,2 +1,6 @@
 Running 4 rules...
+
+skipped: all .gitignored files, 14 files larger than 1e-06 MB
+for a detailed list of skipped files, run semgrep with the --verbose flag
+
 ran 4 rules on 0 files: 0 findings
