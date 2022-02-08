@@ -17,9 +17,9 @@
             "line": 10
           },
           "file": "rules/invalid-rules/invalid-pattern-child.yaml",
-          "source_hash": "3548a583fdaf3c3c141018a8806bc6ed6a554fed8fa9c9ce7c17aff907a26aea",
+          "source_hash": "7c72c8bfb793db2ffae1865a64f5da5fc44cbad7307eecef6c4a75cb3362a044",
           "start": {
-            "col": 5,
+            "col": 9,
             "line": 7
           }
         }

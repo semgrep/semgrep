@@ -17,9 +17,9 @@
             "line": 5
           },
           "file": "rules/syntax/bad3.yaml",
-          "source_hash": "b5c10ec06e8348dfbfe2dc7fe5431da300c68b6cbdb249519596ac9e96f0cee1",
+          "source_hash": "97733e185fa4cbd70969a362e968e43dd266202401e7a68a23b52c8d1cf3e547",
           "start": {
-            "col": 9,
+            "col": 7,
             "line": 4
           }
         }
