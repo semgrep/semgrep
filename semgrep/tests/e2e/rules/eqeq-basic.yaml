@@ -3,5 +3,5 @@ rules:
     patterns:
       - pattern: $X == $X
     message: "useless comparison"
-    languages: [js,go]
+    languages: [js, go]
     severity: ERROR

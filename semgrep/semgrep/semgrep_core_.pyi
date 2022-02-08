@@ -1,5 +1,3 @@
-
 class SemgrepCore:
     @classmethod
-    def path(cls) -> str:
-        ...
+    def path(cls) -> str: ...

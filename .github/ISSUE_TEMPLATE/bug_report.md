@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: ""
+assignees: ""
 ---
 
 **Describe the bug**
@@ -29,4 +28,4 @@ If applicable, add screenshots to help explain your problem.
 If not using semgrep.dev: are you running off docker, an official binary, a local build?
 
 **Use case**
-What will fixing this bug enable for you? 
+What will fixing this bug enable for you?

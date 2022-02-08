@@ -30,5 +30,4 @@ class DefaultGroup(click.Group):
     cli()
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        ...
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...

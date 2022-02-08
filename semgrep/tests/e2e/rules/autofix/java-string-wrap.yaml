@@ -1,7 +1,7 @@
 rules:
-- id: wrap-strings
-  pattern: (String $S)
-  message: Wrap strings
-  languages: [java]
-  severity: WARNING
-  fix: wrap($S)
+  - id: wrap-strings
+    pattern: (String $S)
+    message: Wrap strings
+    languages: [java]
+    severity: WARNING
+    fix: wrap($S)

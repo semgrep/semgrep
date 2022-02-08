@@ -21,8 +21,8 @@ FROM returntocorp/ocaml:alpine-2021-07-15 as build-semgrep-core
 USER root
 # for ocaml-pcre now used in semgrep-core
 # TODO: update root image to include python 3.9
-RUN apk add --update --no-cache pcre-dev python3
-RUN pip install --no-cache-dir pipenv==2021.11.23
+RUN apk add --update --no-cache pcre-dev python3 &&\
+     pip install --no-cache-dir pipenv==2021.11.23
 
 USER user
 WORKDIR /home/user
@@ -38,19 +38,18 @@ WORKDIR /semgrep
 
 # Protect against dirty environment during development.
 # (ideally, we should translate .gitignore to .dockerignore)
-RUN git clean -dfX
-RUN git submodule foreach --recursive git clean -dfX
-
-RUN git submodule update --init --recursive --depth 1
-
-#coupling: if you add dependencies here, you probably also need to update:
+#coupling: if you add dependencies above, you probably also need to update:
 #  - scripts/install-alpine-semgrep-core
 #  - the setup target in Makefile
-RUN eval "$(opam env)" && ./scripts/install-tree-sitter-runtime
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/pfff/
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
-RUN eval "$(opam env)" && make -C semgrep-core/ all
+RUN git clean -dfX && \
+     git submodule foreach --recursive git clean -dfX && \
+     git submodule update --init --recursive --depth 1 && \
+     eval "$(opam env)" && \
+     ./scripts/install-tree-sitter-runtime && \
+     opam install --deps-only -y semgrep-core/src/pfff/ && \
+     opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core && \
+     opam install --deps-only -y semgrep-core/ && \
+     make -C semgrep-core/ all
 
 # Sanity checks
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
@@ -61,6 +60,7 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 FROM python:3.10.1-alpine3.15
 LABEL maintainer="support@r2c.dev"
+ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
 
 # ugly: circle CI requires valid git and ssh programs in the container
 # when running semgrep on a repository containing submodules
@@ -71,13 +71,13 @@ COPY --from=build-semgrep-core \
 RUN semgrep-core -version
 
 COPY semgrep /semgrep
-RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep
-RUN semgrep --version
-
-RUN mkdir -p /src
-RUN chmod 777 /src
-RUN mkdir -p /tmp/.cache
-RUN chmod 777 /tmp/.cache
+# hadolint ignore=DL3013
+RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep && \
+     semgrep --version && \
+     mkdir -p /src && \
+     chmod 777 /src && \
+     mkdir -p /tmp/.cache && \
+     chmod 777 /tmp/.cache
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile

@@ -3,7 +3,7 @@
 
 # This script is meant to be run from 'src', the parent directory.
 
-if [ "x$1" = "x" ]; then
+if [ "$1" = "" ]; then
     echo "usage: $0 ./_build/default/dir/prog.bc [args...]"
     exit 2
 fi

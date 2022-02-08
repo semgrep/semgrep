@@ -1,21 +1,21 @@
 rules:
-- id: template-autoescape-off
-  message: |
-    Detected a segment of a Flask template where autoescaping is explicitly
-    disabled with '{% autoescape off %}'. This allows rendering of raw HTML
-    in this segment. Ensure no user data is rendered here, otherwise this
-    is a cross-site scripting (XSS) vulnerability.
-  metadata:
-    cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
-    owasp: 'A7: Cross-site Scripting (XSS)'
-    references:
-    - https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
-  languages:
-  - regex
-  paths:
-    include:
-    - "*.html"
-  severity: WARNING
-  patterns:
-  - pattern-regex: '{%.*%}'
-  - pattern-regex: '{% autoescape off %}'
+  - id: template-autoescape-off
+    message: |
+      Detected a segment of a Flask template where autoescaping is explicitly
+      disabled with '{% autoescape off %}'. This allows rendering of raw HTML
+      in this segment. Ensure no user data is rendered here, otherwise this
+      is a cross-site scripting (XSS) vulnerability.
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      owasp: "A7: Cross-site Scripting (XSS)"
+      references:
+        - https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
+    languages:
+      - regex
+    paths:
+      include:
+        - "*.html"
+    severity: WARNING
+    patterns:
+      - pattern-regex: "{%.*%}"
+      - pattern-regex: "{% autoescape off %}"

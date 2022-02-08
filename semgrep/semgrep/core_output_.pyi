@@ -42,7 +42,6 @@ class CoreMatch:
     extra: Dict[str, Any]
     metavars: CoreMetavars
 
-
 @attr.s(auto_attribs=True, frozen=True)
 class CoreRuleTiming:  # For a given target
     rule: Rule
@@ -105,5 +104,6 @@ class CoreOutput:
     timing: CoreTiming
 
     @classmethod
-    def parse(cls, raw_json: types.JsonObject, rule_id: types.RuleId) -> "CoreOutput":
-        ...
+    def parse(
+        cls, raw_json: types.JsonObject, rule_id: types.RuleId
+    ) -> "CoreOutput": ...

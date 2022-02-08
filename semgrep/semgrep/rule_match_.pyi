@@ -16,11 +16,11 @@ class CoreLocation:
     offset: int
 
     @classmethod
-    def parse(cls, raw_json: types.JsonObject) -> "CoreLocation":
-        ...
+    def parse(cls, raw_json: types.JsonObject) -> "CoreLocation": ...
 
 class RuleMatch:
     """
     A section of code that matches a single rule (which is potentially many patterns)
     """
+
     ...

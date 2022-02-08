@@ -1,12 +1,12 @@
 rules:
-- id: all-origins-allowed
-  patterns:
-  - pattern-inside: 'cors_rule { ... }'
-  - pattern: 'allowed_origins = ["*"]'
-  languages:
-  - generic
-  paths:
-    include:
-    - '*.tf'
-  severity: WARNING
-  message: CORS rule on bucket permits any origin
+  - id: all-origins-allowed
+    patterns:
+      - pattern-inside: "cors_rule { ... }"
+      - pattern: 'allowed_origins = ["*"]'
+    languages:
+      - generic
+    paths:
+      include:
+        - "*.tf"
+    severity: WARNING
+    message: CORS rule on bucket permits any origin

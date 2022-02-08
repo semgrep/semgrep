@@ -17,9 +17,9 @@
             "line": 8
           },
           "file": "rules/syntax/bad4.yaml",
-          "source_hash": "156e59613c09e6fd9edd1e4c4240b15559a486bcfae658b3afc13989701f5391",
+          "source_hash": "df19d059fbcde7ca517f3dcbd6d58733d738f332467bc02d1d11051ab62e2549",
           "start": {
-            "col": 9,
+            "col": 7,
             "line": 4
           }
         }

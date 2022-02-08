@@ -5,5 +5,4 @@ Times = NamedTuple(
 )
 
 class ProfilingData:
-    def __init__(self) -> None:
-       ...
+    def __init__(self) -> None: ...
