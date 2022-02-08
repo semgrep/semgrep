@@ -356,6 +356,9 @@ let rec just_parse_with_lang lang file =
 (*****************************************************************************)
 
 let parse_and_resolve_name_use_pfff_or_treesitter lang file =
+  if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
+    Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
+
   let { ast; errors; stat } = just_parse_with_lang lang file in
 
   (* to be deterministic, reset the gensym; anyway right now semgrep is
