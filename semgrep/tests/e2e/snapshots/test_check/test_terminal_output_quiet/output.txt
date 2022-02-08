@@ -12,4 +12,4 @@
         useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
         Details: https://sg.run/xyz1
 
-          3┆     return a + b == a + b
+          3┆ return a + b == a + b
