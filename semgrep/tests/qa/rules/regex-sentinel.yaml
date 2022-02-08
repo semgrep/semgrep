@@ -1,7 +1,7 @@
 rules:
   - id: test-regex
     patterns:
-      - pattern-regex: '. = 87518275812375164'
+      - pattern-regex: ". = 87518275812375164"
     message: "test regex message"
     languages: [python, javascript, go, ruby]
     severity: ERROR

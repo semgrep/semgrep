@@ -5,39 +5,39 @@
 rules:
   - id: no-print-in-semgrep
     patterns:
-    - pattern-either:
-      - pattern: pr ...
-    - pattern-not-inside: |
-       if !Flag.debug
-       then ...
-    - pattern-not-inside: |
-       let $F ... =
-          ...
-       [@@action]
+      - pattern-either:
+          - pattern: pr ...
+      - pattern-not-inside: |
+          if !Flag.debug
+          then ...
+      - pattern-not-inside: |
+          let $F ... =
+             ...
+          [@@action]
     message: you should not print anything on stdout as it may interfere with
-     the JSON output we must return to the semgrep python wrapper.
+      the JSON output we must return to the semgrep python wrapper.
     languages: [ocaml]
     severity: ERROR
     paths:
       exclude:
-       - cli/*.ml
-       - scripts/*
-       - Test.ml
-       - Matching_report.ml
-       - Unit_*.ml
-       - Test_*.ml
-       - runner/*.ml
-       - experiments/*
-       - Check_*.ml
+        - cli/*.ml
+        - scripts/*
+        - Test.ml
+        - Matching_report.ml
+        - Unit_*.ml
+        - Test_*.ml
+        - runner/*.ml
+        - experiments/*
+        - Check_*.ml
 
   - id: not-using-our-pcre-wrappers
     patterns:
-    - pattern-either:
-      - pattern: Pcre.regexp
-      - pattern: Pcre.pmatch
-      - pattern: Pcre.exec
-      - pattern: Pcre.exec_all
-      - pattern: Pcre.split
+      - pattern-either:
+          - pattern: Pcre.regexp
+          - pattern: Pcre.pmatch
+          - pattern: Pcre.exec
+          - pattern: Pcre.exec_all
+          - pattern: Pcre.split
     message: >-
       You should use one of the equivalent functions in SPcre, which
       automatically sets some flags and handles exceptions.
@@ -45,8 +45,7 @@ rules:
     severity: ERROR
     paths:
       exclude:
-       - SPcre.ml
-
+        - SPcre.ml
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |

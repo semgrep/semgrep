@@ -7,7 +7,7 @@ Language = NewType("Language", str)
 Shebang = str
 
 Mode = NewType("Mode", str)
-#TODO: type Mode?
+# TODO: type Mode?
 JOIN_MODE = ...
 
 class LanguageDefinition:
@@ -22,13 +22,11 @@ class LanguageDefinition:
     reverse_exts: Collection[str]
     shebangs: Collection[Shebang]
 
-
 class _LanguageData:
-    def __init__(self) -> None:
-       ...
+    def __init__(self) -> None: ...
 
-#TODO: type
+# TODO: type
 LANGUAGE = ...
 
-#TODO: type
+# TODO: type
 ALLOWED_GLOB_TYPES = ...

@@ -128,7 +128,7 @@ class ConfigPath:
             metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
-        """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
         if self._origin == ConfigType.REGISTRY:

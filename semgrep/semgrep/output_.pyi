@@ -4,7 +4,6 @@ from typing import NamedTuple, IO
 import sys
 import semgrep.constants as constants
 
-
 DEFAULT_SHOWN_SEVERITIES: Collection[constants.RuleSeverity] = ...
 
 class OutputSettings(NamedTuple):
@@ -39,5 +38,4 @@ class OutputHandler:
         output_settings: OutputSettings,
         stderr: IO = sys.stderr,
         stdout: IO = sys.stdout,
-    ):
-       ...
+    ): ...

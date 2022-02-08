@@ -1,4 +1,3 @@
-
 class BaselineHandler:
     """
     base_commit: Git ref to compare against
