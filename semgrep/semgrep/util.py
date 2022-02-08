@@ -141,14 +141,6 @@ def terminal_wrap(text: str) -> str:
     return "\n".join(wrapped_paras)
 
 
-def sub_run(cmd: List[str], **kwargs: Any) -> Any:
-    """A simple proxy function to minimize and centralize subprocess usage."""
-    # fmt: off
-    result = subprocess.run(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-    # fmt: on
-    return result
-
-
 def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
     # fmt: off
