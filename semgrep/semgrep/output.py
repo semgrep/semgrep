@@ -83,7 +83,7 @@ def _build_time_target_json(
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
     target_json["parse_times"] = [timing.parse_time for timing in timings]
     target_json["match_times"] = [timing.match_time for timing in timings]
-    target_json["run_times"] = profiling_data.get_file_run_time(target)
+    target_json["run_time"] = profiling_data.get_file_run_time(target)
 
     return target_json
 
@@ -110,7 +110,7 @@ def _build_time_json(
     # this list of all rules names is given here so they don't have to be
     # repeated for each target in the 'targets' field, saving space.
     time_info["rules"] = [{"id": rule.id} for rule in rules]
-    time_info["rule_parse_info"] = profiling_data.get_rules_parse_time()
+    time_info["rules_parse_time"] = profiling_data.get_rules_parse_time()
     time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
