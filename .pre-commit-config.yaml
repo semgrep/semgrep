@@ -35,10 +35,15 @@ repos:
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
-          - types_all
-          - types-attrs
-          - types-click
-          - types-requests
+          # will reuse this list in the mypy-test hook
+          # some packages ship with type definitions
+          - attrs~=21.4.0
+          - click~=8.0.0
+          - requests~=2.27.0
+          # other packages have separate typings published
+          - types-colorama~=0.4.0
+          - types-jsonschema~=4.4.0
+          - types-all
           - types-setuptools
       - id: mypy
         alias: mypy-test
