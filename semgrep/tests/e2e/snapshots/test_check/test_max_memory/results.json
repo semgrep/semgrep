@@ -16,12 +16,12 @@
       "ignores_time": 2.022,
       "total_time": 2.022
     },
-    "rule_parse_info": 2.022,
     "rules": [
       {
         "id": "rules.forcetimeout"
       }
     ],
+    "rules_parse_time": 2.022,
     "targets": [
       {
         "match_times": [
@@ -32,7 +32,7 @@
           2.022
         ],
         "path": "targets/equivalence/open_redirect.py",
-        "run_times": 2.022
+        "run_time": 2.022
       }
     ],
     "total_bytes": 1763
