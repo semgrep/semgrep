@@ -1,6 +1,5 @@
 import subprocess
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Collection
 
 import pytest
@@ -32,357 +31,6 @@ def test_nonexistent(tmp_path, monkeypatch):
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
 
-def test_filter_include():
-    all_file_names = [
-        "/foo/bar/baz/a.py",
-        "bar/baz",
-        "bar/baz/foo/a.py",
-        "bar/baz/foo/b.py",
-        "bar/baz/foo/c.py",
-        "bar/baz/qux/foo/a.py",
-        "bar/foo/baz/bar.go",
-        "bar/foo/foo.py",
-        "baz.go",
-        "baz.java",
-        "baz.py",
-        "baz/foo",
-        "foo",
-        "foo.go",
-        "foo.java",
-        "foo.py",
-        "foo/bar.go",
-        "foo/bar.java",
-        "foo/bar.py",
-    ]
-    all_files = frozenset({Path(elem) for elem in all_file_names})
-
-    # All .py files
-    assert TargetManager.filter_includes(all_files, ["*.py"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/foo.py",
-            "baz.py",
-            "foo.py",
-            "foo/bar.py",
-        ]
-    }
-
-    # All go files
-    assert TargetManager.filter_includes(all_files, ["*.go"]) == {
-        Path(p)
-        for p in [
-            "bar/foo/baz/bar.go",
-            "baz.go",
-            "foo.go",
-            "foo/bar.go",
-        ]
-    }
-
-    # All go and java files
-    assert TargetManager.filter_includes(all_files, ["*.go", "*.java"]) == {
-        Path(p)
-        for p in [
-            "bar/foo/baz/bar.go",
-            "baz.go",
-            "baz.java",
-            "foo.go",
-            "foo.java",
-            "foo/bar.go",
-            "foo/bar.java",
-        ]
-    }
-
-    # All files named foo or in a foo directory ancestor
-    assert TargetManager.filter_includes(all_files, ["foo"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/baz/bar.go",
-            "bar/foo/foo.py",
-            "baz/foo",
-            "foo",
-            "foo/bar.go",
-            "foo/bar.java",
-            "foo/bar.py",
-        ]
-    }
-
-    # All files with an ancestor named bar/baz
-    assert TargetManager.filter_includes(all_files, ["bar/baz"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-        ]
-    }
-
-    # All go files with a direct ancestor named foo
-    assert TargetManager.filter_includes(all_files, ["foo/*.go"]) == {
-        Path(p)
-        for p in [
-            "foo/bar.go",
-        ]
-    }
-
-    # All go files with a ancestor named foo
-    assert TargetManager.filter_includes(all_files, ["foo/**/*.go"]) == {
-        Path(p)
-        for p in [
-            "bar/foo/baz/bar.go",
-            "foo/bar.go",
-        ]
-    }
-
-    # All py files with three-characters name
-    assert TargetManager.filter_includes(all_files, ["???.py"]) == {
-        Path(p)
-        for p in [
-            "bar/foo/foo.py",
-            "baz.py",
-            "foo.py",
-            "foo/bar.py",
-        ]
-    }
-
-    # Test some different variantions of the pattern yield the same result.
-    assert TargetManager.filter_includes(
-        all_files, ["baz/qux"]
-    ) == TargetManager.filter_includes(all_files, ["/baz/qux"])
-    assert TargetManager.filter_includes(
-        all_files, ["baz/qux"]
-    ) == TargetManager.filter_includes(all_files, ["baz/qux/"])
-    assert TargetManager.filter_includes(
-        all_files, ["baz/qux"]
-    ) == TargetManager.filter_includes(all_files, ["/baz/qux/"])
-    assert TargetManager.filter_includes(
-        all_files, ["baz/qux"]
-    ) == TargetManager.filter_includes(all_files, ["**/baz/qux"])
-    assert TargetManager.filter_includes(
-        all_files, ["baz/qux"]
-    ) == TargetManager.filter_includes(all_files, ["baz/qux/**"])
-    assert TargetManager.filter_includes(
-        all_files, ["baz/qux"]
-    ) == TargetManager.filter_includes(all_files, ["**/baz/qux/**"])
-
-
-def test_filter_exclude():
-    all_file_names = [
-        "/foo/bar/baz/a.py",
-        "bar/baz",
-        "bar/baz/foo/a.py",
-        "bar/baz/foo/b.py",
-        "bar/baz/foo/c.py",
-        "bar/baz/qux/foo/a.py",
-        "bar/foo/baz/bar.go",
-        "bar/foo/foo.py",
-        "baz.go",
-        "baz.java",
-        "baz.py",
-        "baz/foo",
-        "foo",
-        "foo.go",
-        "foo.java",
-        "foo.py",
-        "foo/bar.go",
-        "foo/bar.java",
-        "foo/bar.py",
-    ]
-    all_files = frozenset({Path(elem) for elem in all_file_names})
-
-    # Filter out .py files
-    assert TargetManager.filter_excludes(all_files, ["*.py"]) == {
-        Path(p)
-        for p in [
-            "bar/baz",
-            "bar/foo/baz/bar.go",
-            "baz.go",
-            "baz.java",
-            "baz/foo",
-            "foo",
-            "foo.go",
-            "foo.java",
-            "foo/bar.go",
-            "foo/bar.java",
-        ]
-    }
-
-    # Filter out go files
-    assert TargetManager.filter_excludes(all_files, ["*.go"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/foo.py",
-            "baz.java",
-            "baz.py",
-            "baz/foo",
-            "foo",
-            "foo.java",
-            "foo.py",
-            "foo/bar.java",
-            "foo/bar.py",
-        ]
-    }
-
-    # Filter out go and java files
-    assert TargetManager.filter_excludes(all_files, ["*.go", "*.java"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/foo.py",
-            "baz.py",
-            "baz/foo",
-            "foo",
-            "foo.py",
-            "foo/bar.py",
-        ]
-    }
-
-    # Filter out files named foo or in a foo directory ancestor
-    assert TargetManager.filter_excludes(all_files, ["foo"]) == {
-        Path(p)
-        for p in [
-            "bar/baz",
-            "baz.go",
-            "baz.java",
-            "baz.py",
-            "foo.go",
-            "foo.java",
-            "foo.py",
-        ]
-    }
-
-    # Filter out files with an ancestor named bar/baz
-    assert TargetManager.filter_excludes(all_files, ["bar/baz"]) == {
-        Path(p)
-        for p in [
-            "bar/foo/baz/bar.go",
-            "bar/foo/foo.py",
-            "baz.go",
-            "baz.java",
-            "baz.py",
-            "baz/foo",
-            "foo",
-            "foo.go",
-            "foo.java",
-            "foo.py",
-            "foo/bar.go",
-            "foo/bar.java",
-            "foo/bar.py",
-        ]
-    }
-
-    # Filter out go files with a direct ancestor named foo
-    assert TargetManager.filter_excludes(all_files, ["foo/*.go"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/baz/bar.go",
-            "bar/foo/foo.py",
-            "baz.go",
-            "baz.java",
-            "baz.py",
-            "baz/foo",
-            "foo",
-            "foo.go",
-            "foo.java",
-            "foo.py",
-            "foo/bar.java",
-            "foo/bar.py",
-        ]
-    }
-
-    # Filter out go files with a ancestor named foo
-    assert TargetManager.filter_excludes(all_files, ["foo/**/*.go"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/foo.py",
-            "baz.go",
-            "baz.java",
-            "baz.py",
-            "baz/foo",
-            "foo",
-            "foo.go",
-            "foo.java",
-            "foo.py",
-            "foo/bar.java",
-            "foo/bar.py",
-        ]
-    }
-
-    # Filter out py files with three-characters name
-    assert TargetManager.filter_excludes(all_files, ["???.py"]) == {
-        Path(p)
-        for p in [
-            "/foo/bar/baz/a.py",
-            "bar/baz",
-            "bar/baz/foo/a.py",
-            "bar/baz/foo/b.py",
-            "bar/baz/foo/c.py",
-            "bar/baz/qux/foo/a.py",
-            "bar/foo/baz/bar.go",
-            "baz.go",
-            "baz.java",
-            "baz/foo",
-            "foo",
-            "foo.go",
-            "foo.java",
-            "foo/bar.go",
-            "foo/bar.java",
-        ]
-    }
-
-
-def test_filter_by_size():
-    with NamedTemporaryFile() as fp:
-        fp.write(b"0123456789")
-        fp.flush()
-        path = Path(fp.name)
-        targets = frozenset({path})
-
-        # no max size
-        assert len(TargetManager.filter_by_size(targets, 0)) == 1
-
-        # file is under max size
-        assert len(TargetManager.filter_by_size(targets, 20)) == 1
-
-        # file is over max size
-        assert len(TargetManager.filter_by_size(targets, 5)) == 0
-
-
 def test_delete_git(tmp_path, monkeypatch):
     """
     Check that deleted files are not included in expanded targets
@@ -400,7 +48,7 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], LANGUAGE.resolve("python"), True),
         {bar},
     )
@@ -453,49 +101,49 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     python_language = LANGUAGE.resolve("python")
 
     monkeypatch.chdir(tmp_path)
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], python_language, True), in_all
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
         in_foo,
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo/bar")], python_language, True),
         in_foo_bar,
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets(
             [Path("foo/bar").resolve()], python_language, True
         ),
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], python_language, True), in_foo
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("./foo")], python_language, True), set()
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("..")], python_language, True), in_all
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
         in_foo_bar,
     )
@@ -515,61 +163,61 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     in_all = in_foo.union(in_bar)
 
     monkeypatch.chdir(tmp_path)
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], python_language, True), in_all
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
         in_foo,
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo/bar")], python_language, True),
         in_foo_bar,
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets(
             [Path("foo/bar").resolve()], python_language, True
         ),
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], python_language, True), in_foo
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("./foo")], python_language, True), set()
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("..")], python_language, True), in_all
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
         in_foo_bar,
     )
 
 
-def cmp_path_sets(a: Collection[Path], b: Collection[Path]) -> bool:
+def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]) -> bool:
     """
-    Check that two sets of path contain the same paths
+    Assert that two sets of path contain the same paths
     """
     a_abs = {elem.resolve() for elem in a}
     b_abs = {elem.resolve() for elem in b}
-    return a_abs == b_abs
+    assert a_abs == b_abs
 
 
 def test_expand_targets_not_git(tmp_path, monkeypatch):
@@ -608,24 +256,24 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     python_language = Language("python")
 
     monkeypatch.chdir(tmp_path)
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], python_language, False), in_all
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, False), in_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo")], python_language, False), in_foo
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo").resolve()], python_language, False),
         in_foo,
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("foo/bar")], python_language, False),
         in_foo_bar,
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets(
             [Path("foo/bar").resolve()], python_language, False
         ),
@@ -633,25 +281,25 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     )
 
     monkeypatch.chdir(foo)
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path(".")], python_language, False), in_foo
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("./foo")], python_language, False), set()
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("..")], python_language, False), in_all
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("../bar")], python_language, False), in_bar
     )
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([Path("../foo/bar")], python_language, False),
         in_foo_bar,
     )
@@ -667,12 +315,12 @@ def test_skip_symlink(tmp_path, monkeypatch):
 
     python_language = Language("python")
 
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([foo], python_language, False),
         {foo / "a.py"},
     )
 
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager.expand_targets([foo / "link.py"], python_language, False), set()
     )
 
@@ -688,7 +336,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
     assert frozenset() == TargetManager([], [], 0, [foo], True, False, None).get_files(
-        language, [], []
+        language, [], [], "dummy_rule_id"
     )
 
 
@@ -712,56 +360,56 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     assert foo_a in TargetManager(
         [], [], 0, ["foo/a.py"], False, False, None
-    ).get_files(python_language, [], [])
+    ).get_files(python_language, [], [], "dummy_rule_id")
     assert foo_a in TargetManager([], [], 0, ["foo/a.py"], False, True, None).get_files(
-        python_language, [], []
+        python_language, [], [], "dummy_rule_id"
     )
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
         [], ["foo/a.py"], 0, ["."], False, False, None
-    ).get_files(python_language, [], [])
+    ).get_files(python_language, [], [], "dummy_rule_id")
     assert foo_a in TargetManager(
         [], ["foo/a.py"], 0, [".", "foo/a.py"], False, False, None
-    ).get_files(python_language, [], [])
+    ).get_files(python_language, [], [], "dummy_rule_id")
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
         TargetManager([], [], 0, ["foo/a.go"], False, False, None).get_files(
-            python_language, [], []
+            python_language, [], [], "dummy_rule_id"
         )
         == frozenset()
     )
 
     # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager([], [], 0, ["foo/noext"], False, False, None).get_files(
-            python_language, [], []
+            python_language, [], [], "dummy_rule_id"
         ),
         {foo_noext},
     )
 
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager([], [], 0, ["foo/noext"], False, True, None).get_files(
-            python_language, [], []
+            python_language, [], [], "dummy_rule_id"
         ),
         set(),
     )
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager(
             [], [], 0, ["foo/noext", "foo/a.py"], False, True, None
-        ).get_files(python_language, [], []),
+        ).get_files(python_language, [], [], "dummy_rule_id"),
         {foo_a},
     )
 
     # Should respect includes/excludes passed to get_files even if target explicitly passed
-    assert cmp_path_sets(
+    assert_path_sets_equal(
         TargetManager(
             [], [], 0, ["foo/a.py", "foo/b.py"], False, False, None
-        ).get_files(python_language, ["a.py"], []),
+        ).get_files(python_language, ["a.py"], [], "dummy_rule_id"),
         {foo_a},
     )
 
@@ -770,7 +418,7 @@ def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats):
         return TargetManager(
             [], [], 0, [tmp_path], False, False, FileIgnore(tmp_path, ignore_pats)
-        ).get_files(Language("python"), [], [])
+        ).get_files(Language("python"), [], [], "dummy_rule_id")
 
     monkeypatch.chdir(tmp_path)
     a = tmp_path / "a.py"

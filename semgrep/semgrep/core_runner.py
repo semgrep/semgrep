@@ -254,7 +254,9 @@ class CoreRunner:
         language: Language, rule: Rule, target_manager: TargetManager
     ) -> List[Path]:
         try:
-            targets = target_manager.get_files(language, rule.includes, rule.excludes)
+            targets = target_manager.get_files(
+                language, rule.includes, rule.excludes, rule.id
+            )
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",

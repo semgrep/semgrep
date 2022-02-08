@@ -118,7 +118,6 @@ DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
 class Colors(Enum):
     # these colors come from user's terminal theme
     foreground = 0
-    bright = 15  # also referred to as "bold color"
     white = 7
     black = 256
     cyan = "cyan"  # for filenames

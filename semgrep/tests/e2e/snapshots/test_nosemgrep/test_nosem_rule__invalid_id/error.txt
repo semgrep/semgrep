@@ -1,2 +1,6 @@
 Running 1 rules...
+
+skipped: all .gitignored files
+for a detailed list of skipped files, run semgrep with the --verbose flag
+
 ran 1 rules on 1 files: 1 findings
