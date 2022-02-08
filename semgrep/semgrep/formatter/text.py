@@ -1,4 +1,5 @@
 import itertools
+import textwrap
 from itertools import groupby
 from pathlib import Path
 from shutil import get_terminal_size
@@ -62,7 +63,7 @@ class TextFormatter(BaseFormatter):
         line = (
             line[:start_color]
             + with_color(
-                Colors.foreground, line[start_color : end_color + 1]
+                Colors.foreground, line[start_color : end_color + 1], bold=True
             )  # want the color to include the end_col
             + line[end_color + 1 :]
         )
@@ -89,7 +90,15 @@ class TextFormatter(BaseFormatter):
                 trimmed = len(lines) - per_finding_max_lines_limit
                 lines = lines[:per_finding_max_lines_limit]
 
-            for i, line in enumerate(lines):
+            # we remove indentation at the start of the snippet to avoid wasting space
+            dedented_lines = textwrap.dedent("".join(lines)).splitlines()
+            indent_len = len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+
+            # since we dedented each line, we need to adjust where the highlighting is
+            start_col -= indent_len
+            end_col -= indent_len
+
+            for i, line in enumerate(dedented_lines):
                 line = line.rstrip()
                 line_number = ""
                 if start_line:
