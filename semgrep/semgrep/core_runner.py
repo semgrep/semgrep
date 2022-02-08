@@ -224,7 +224,7 @@ class StreamingSemgrepCore:
             self._progress_bar = tqdm(  # typing: ignore
                 total=self._total,
                 file=sys.stderr,
-                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}",
+                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt} files",
             )
 
         rc = asyncio.run(self._stream_subprocess())
