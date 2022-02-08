@@ -26,7 +26,6 @@ RUN pip install --no-cache-dir pipenv==2021.11.23
 
 USER user
 WORKDIR /home/user
-ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
 
 COPY --chown=user .gitmodules /semgrep/.gitmodules
 COPY --chown=user .git/ /semgrep/.git/
@@ -39,14 +38,14 @@ WORKDIR /semgrep
 
 # Protect against dirty environment during development.
 # (ideally, we should translate .gitignore to .dockerignore)
-RUN git clean -dfX && \
-     git submodule foreach --recursive git clean -dfX && \
-     git submodule update --init --recursive --depth 1
-
-#coupling: if you add dependencies here, you probably also need to update:
+#coupling: if you add dependencies above, you probably also need to update:
 #  - scripts/install-alpine-semgrep-core
 #  - the setup target in Makefile
-RUN eval "$(opam env)" && \./scripts/install-tree-sitter-runtime && \
+RUN git clean -dfX && \
+     git submodule foreach --recursive git clean -dfX && \
+     git submodule update --init --recursive --depth 1 && \
+     eval "$(opam env)" && \
+     ./scripts/install-tree-sitter-runtime && \
      opam install --deps-only -y semgrep-core/src/pfff/ && \
      opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core && \
      opam install --deps-only -y semgrep-core/ && \
@@ -61,6 +60,7 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 FROM python:3.10.1-alpine3.15
 LABEL maintainer="support@r2c.dev"
+ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
 
 # ugly: circle CI requires valid git and ssh programs in the container
 # when running semgrep on a repository containing submodules
@@ -71,6 +71,7 @@ COPY --from=build-semgrep-core \
 RUN semgrep-core -version
 
 COPY semgrep /semgrep
+# hadolint ignore=DL3013
 RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep && \
      semgrep --version && \
      mkdir -p /src && \
