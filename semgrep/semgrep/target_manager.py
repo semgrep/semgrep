@@ -36,7 +36,7 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import LanguageDefinition
 from semgrep.semgrep_types import Shebang
-from semgrep.util import log_removed_paths
+from semgrep.types import FilteredTargets
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
@@ -45,7 +45,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
-
+PATHS_ALWAYS_SKIPPED = (".git",)
 
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
@@ -103,28 +103,6 @@ class IgnoreLog:
 
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
-    rule_size_limit: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
-
-    @property
-    def size_limited_paths(self) -> Set[Path]:
-        """
-        All paths that were skipped because they were larger than the max_target_bytes.
-
-        This is needed because sometimes a file is not targeted at first
-        when we initially filter files that are too large,
-        but then a rule includes it.
-        After a rule includes a file that wasn't previously there,
-        and we notice it's larger than the limit,
-        it's recorded in rule_size_limit instead of size_limit.
-
-        But during output, explaining all this would be too much noise,
-        and not particularly helpful since the user would likely just raise the size limit.
-        So we merge these sets here, and usually look at this property.
-        """
-        return {
-            *self.size_limit,
-            *(path for paths in self.rule_size_limit.values() for path in paths),
-        }
 
     @property
     def rule_ids_with_skipped_paths(self) -> FrozenSet[str]:
@@ -155,9 +133,9 @@ class IgnoreLog:
             skip_fragments.append(
                 f"{len(self.cli_excludes)} files matching --exclude patterns"
             )
-        if self.size_limited_paths:
+        if self.size_limit:
             skip_fragments.append(
-                f"{len(self.size_limited_paths)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
+                f"{len(self.size_limit)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
             )
         if self.semgrepignored:
             skip_fragments.append(
@@ -196,7 +174,7 @@ class IgnoreLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by .semgrepignore:"
-        yield 1, "(Details: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
+        yield 1, "(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
         if self.semgrepignored:
             for path in self.semgrepignored:
                 yield 2, with_color(Colors.cyan, str(path))
@@ -219,8 +197,8 @@ class IgnoreLog:
 
         yield 1, f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:"
         yield 1, "(Adjust with the --max-target-bytes flag)"
-        if self.size_limited_paths:
-            for path in self.size_limited_paths:
+        if self.size_limit:
+            for path in self.size_limit:
                 yield 2, with_color(Colors.cyan, str(path))
         else:
             yield 2, "<none>"
@@ -298,7 +276,7 @@ class TargetManager:
     file_ignore: Optional[FileIgnore]
     ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
 
-    _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
+    _filtered_targets: Dict[Language, FilteredTargets] = attr.ib(factory=dict)
 
     @targets.validator
     def _check_exists(self, attribute: str, value: Sequence[str]) -> None:
@@ -309,8 +287,8 @@ class TargetManager:
         i.e. does not exist, is a mount/socket etc.
         """
         targets = self.resolve_targets(self.targets)
-        files, _directories = partition_set(lambda p: not p.is_dir(), targets)
-        _explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
+        files, _ = partition_set(lambda p: not p.is_dir(), targets)
+        _, nonexistent_files = partition_set(lambda p: p.is_file(), files)
         if nonexistent_files:
             raise FilesNotFoundError(tuple(nonexistent_files))
 
@@ -511,21 +489,20 @@ class TargetManager:
         return result
 
     @staticmethod
-    @log_removed_paths
     def filter_includes(
         includes: Sequence[str], *, candidates: FrozenSet[Path]
-    ) -> FrozenSet[Path]:
+    ) -> FilteredTargets:
         """
         Returns all elements in candidates that match any includes pattern
 
         If includes is empty, returns candidates unchanged
         """
         if not includes:
-            return candidates
+            return FilteredTargets(candidates)
 
         includes = TargetManager.preprocess_path_patterns(includes)
         # Need cast b/c types-wcmatch doesn't use generics properly :(
-        return frozenset(
+        kept = frozenset(
             cast(
                 Iterable[Path],
                 wcglob.globfilter(
@@ -533,19 +510,19 @@ class TargetManager:
                 ),
             )
         )
+        return FilteredTargets(kept, frozenset(candidates - kept))
 
     @staticmethod
-    @log_removed_paths
     def filter_excludes(
         excludes: Sequence[str], *, candidates: FrozenSet[Path]
-    ) -> FrozenSet[Path]:
+    ) -> FilteredTargets:
         """
         Returns all elements in candidates that do not match any excludes pattern
 
         If excludes is empty, returns candidates unchanged
         """
         if not excludes:
-            return candidates
+            return FilteredTargets(candidates)
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
 
@@ -558,13 +535,12 @@ class TargetManager:
                 ),
             )
         )
-        return candidates - removed
+        return FilteredTargets(frozenset(candidates - removed), removed)
 
     @staticmethod
-    @log_removed_paths
     def filter_by_size(
         max_target_bytes: int, *, candidates: FrozenSet[Path]
-    ) -> FrozenSet[Path]:
+    ) -> FilteredTargets:
         """
         Return all the files whose size doesn't exceed the limit.
 
@@ -573,16 +549,17 @@ class TargetManager:
         result.
         """
         if max_target_bytes <= 0:
-            return candidates
-        else:
-            return frozenset(
-                path
-                for path in candidates
-                if TargetManager._is_valid_file(path)
-                and os.path.getsize(path) <= max_target_bytes
-            )
+            return FilteredTargets(candidates)
 
-    def filtered_files(self, lang: Language) -> FrozenSet[Path]:
+        kept, removed = partition_set(
+            lambda path: TargetManager._is_valid_file(path)
+            and os.path.getsize(path) <= max_target_bytes,
+            candidates,
+        )
+
+        return FilteredTargets(kept, removed)
+
+    def filtered_files(self, lang: Language) -> FilteredTargets:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG that match any pattern in INCLUDES and do not
@@ -597,25 +574,37 @@ class TargetManager:
 
         # Non dir/non file should not exist cause of init time validation
         # See _check_exists()
-        targets = self.resolve_targets(self.targets)
-        files, directories = partition_set(lambda p: not p.is_dir(), targets)
+        discovered_paths = self.resolve_targets(self.targets)
+        files, directories = partition_set(lambda p: not p.is_dir(), discovered_paths)
         explicit_files, _ = partition_set(lambda p: p.is_file(), files)
 
-        targets = self.expand_targets(directories, lang, self.respect_git_ignore)
-        targets = self.filter_includes(
-            self.includes, candidates=targets, removal_log=self.ignore_log.cli_includes
+        discovered_paths = self.expand_targets(
+            directories, lang, self.respect_git_ignore
         )
-        targets = self.filter_excludes(
-            self.excludes, candidates=targets, removal_log=self.ignore_log.cli_excludes
+
+        filtered_targets = self.filter_includes(
+            self.includes,
+            candidates=discovered_paths,
         )
-        targets = self.filter_excludes(
-            [".git"], candidates=targets, removal_log=self.ignore_log.always_skipped
+        self.ignore_log.cli_includes.update(filtered_targets.removed)
+
+        filtered_targets = self.filter_excludes(
+            self.excludes,
+            candidates=filtered_targets.kept,
         )
-        targets = self.filter_by_size(
+        self.ignore_log.cli_excludes.update(filtered_targets.removed)
+
+        filtered_targets = self.filter_excludes(
+            PATHS_ALWAYS_SKIPPED,
+            candidates=filtered_targets.kept,
+        )
+        self.ignore_log.always_skipped.update(filtered_targets.removed)
+
+        filtered_targets = self.filter_by_size(
             self.max_target_bytes,
-            candidates=targets,
-            removal_log=self.ignore_log.size_limit,
+            candidates=filtered_targets.kept,
         )
+        self.ignore_log.size_limit.update(filtered_targets.removed)
 
         # Remove explicit_files with known extensions.
         explicit_files_with_lang_extension = frozenset(
@@ -623,7 +612,7 @@ class TargetManager:
             for f in explicit_files
             if (any(f.match(f"*{ext}") for ext in LANGUAGE.definition_by_id[lang].exts))
         )
-        targets = targets.union(explicit_files_with_lang_extension)
+        targets = filtered_targets.kept.union(explicit_files_with_lang_extension)
 
         if not self.skip_unknown_extensions:
             explicit_files_with_unknown_extensions = frozenset(
@@ -633,14 +622,17 @@ class TargetManager:
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 
-        targets = (
-            self.file_ignore.filter_paths(
-                candidates=targets, removal_log=self.ignore_log.semgrepignored
-            )
+        filtered_targets = (
+            self.file_ignore.filter_paths(candidates=targets)
             if self.file_ignore
-            else targets
+            else FilteredTargets(targets)
         )
-        self._filtered_targets[lang] = targets
+        self.ignore_log.semgrepignored.update(filtered_targets.removed)
+
+        self._filtered_targets[lang] = FilteredTargets(
+            filtered_targets.kept,
+            discovered_paths - filtered_targets.kept,
+        )
         return self._filtered_targets[lang]
 
     def get_files(
@@ -661,20 +653,21 @@ class TargetManager:
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        targets = self.filtered_files(lang)
-        targets = self.filter_includes(
-            includes,
-            candidates=targets,
-            removal_log=self.ignore_log.rule_includes[rule_id],
+        filtered_targets = self.filtered_files(lang)
+
+        filtered_targets = self.filter_includes(
+            includes, candidates=filtered_targets.kept
         )
-        targets = self.filter_excludes(
-            excludes,
-            candidates=targets,
-            removal_log=self.ignore_log.rule_excludes[rule_id],
+        self.ignore_log.rule_includes[rule_id].update(filtered_targets.removed)
+
+        filtered_targets = self.filter_excludes(
+            excludes, candidates=filtered_targets.kept
         )
-        targets = self.filter_by_size(
-            self.max_target_bytes,
-            candidates=targets,
-            removal_log=self.ignore_log.rule_size_limit[rule_id],
+        self.ignore_log.rule_excludes[rule_id].update(filtered_targets.removed)
+
+        filtered_targets = self.filter_by_size(
+            self.max_target_bytes, candidates=filtered_targets.kept
         )
-        return targets
+        self.ignore_log.size_limit.update(filtered_targets.removed)
+
+        return filtered_targets.kept

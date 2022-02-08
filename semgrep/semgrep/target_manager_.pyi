@@ -35,7 +35,6 @@ class IgnoreLog:
 
     rule_includes: Dict[str, Set[Path]]
     rule_excludes: Dict[str, Set[Path]]
-    rule_size_limit: Dict[str, Set[Path]]
 
     @property
     def size_limited_paths(self) -> Set[Path]: ...

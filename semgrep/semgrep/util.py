@@ -12,7 +12,6 @@ from typing import FrozenSet
 from typing import Iterable
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
@@ -94,10 +93,10 @@ def partition(
 
 def partition_set(
     pred: Callable[[T], Any], iterable: Iterable[T]
-) -> Tuple[Set[T], Set[T]]:
+) -> Tuple[FrozenSet[T], FrozenSet[T]]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
-    return set(filter(pred, i1)), set(itertools.filterfalse(pred, i2))
+    return frozenset(filter(pred, i1)), frozenset(itertools.filterfalse(pred, i2))
 
 
 def abort(message: str) -> None:
@@ -219,28 +218,3 @@ def flatten(some_list: List[List[T]]) -> List[T]:
 
 
 PathFilterCallable = Callable[..., FrozenSet[Path]]
-
-
-def log_removed_paths(function: PathFilterCallable) -> PathFilterCallable:
-    """A decorator you can apply to functions that filter paths, to keep track of what they filtered.
-
-    It assumes your filter function takes a set of candidate paths as its first parameter,
-    and returns a set of remaining paths.
-
-    It adds the keyword argument `removal_log` to the filtering function's signature.
-    When this keyword argument is passed, all removed paths are added to this set.
-    """
-
-    @functools.wraps(function)
-    def wrapper(
-        *args: Any,
-        candidates: FrozenSet[Path],
-        removal_log: Optional[Set[Path]] = None,
-        **kwargs: Any,
-    ) -> FrozenSet[Path]:
-        remaining = function(*args, candidates=candidates, **kwargs)
-        if removal_log is not None:
-            removal_log.update(candidates - remaining)
-        return remaining
-
-    return wrapper

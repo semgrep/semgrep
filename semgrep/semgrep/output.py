@@ -279,6 +279,8 @@ class OutputHandler:
         self.profiler = profiler
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
+        if ignore_log:
+            self.ignore_log = ignore_log
         if profiling_data:
             self.profiling_data = profiling_data
         if severities:
