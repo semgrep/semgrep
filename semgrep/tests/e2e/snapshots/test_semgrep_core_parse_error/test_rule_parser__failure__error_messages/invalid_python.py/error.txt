@@ -10,5 +10,41 @@ An error occurred while invoking the Semgrep engine. Please help us fix this by 
 At line targets/bad/invalid_python.py:1: `
     ` was unexpected
 
+
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+
+skipped: all .gitignored files
+for a detailed list of skipped files, run semgrep with the --verbose flag
+
 ran 2 rules on 1 files: 0 findings
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False
