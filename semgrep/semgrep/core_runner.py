@@ -153,8 +153,8 @@ class StreamingSemgrepCore:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
 
-            # readline returns None on EOF
-            if not line_bytes:
+            # readline returns None on EOF but can be ""
+            if line_bytes is None:
                 break
 
             line = line_bytes.decode("utf-8")
@@ -170,16 +170,18 @@ class StreamingSemgrepCore:
         """
         Asynchronously process stderr of semgrep-core
 
-        Basically works sychronnously and combines output to
+        Basically works synchronously and combines output to
         stderr to self._stderr
         """
-        assert stream
+        if stream is None:
+            raise RuntimeError("subprocess was created without a stream")
+
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
 
-            # readline returns None on EOF
-            if not line_bytes:
+            # readline returns None on EOF but can be ""
+            if line_bytes is None:
                 break
 
             line = line_bytes.decode("utf-8")
