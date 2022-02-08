@@ -147,9 +147,6 @@ let ncores = ref 1
 (* flags used by the semgrep-python wrapper *)
 (* ------------------------------------------------------------------------- *)
 
-(* path to cache (given by semgrep-python) *)
-let use_parsing_cache = ref ""
-
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
 
@@ -317,7 +314,6 @@ let mk_config () =
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
     ncores = !ncores;
-    use_parsing_cache = !use_parsing_cache;
     target_file = !target_file;
     action = !action;
     version = Version.version;
@@ -506,10 +502,6 @@ let options () =
     ( "-fail_fast",
       Arg.Set Flag.fail_fast,
       " stop at first exception (and get a backtrace)" );
-    ( "-use_parsing_cache",
-      Arg.Set_string use_parsing_cache,
-      " <dir> save and use parsed ASTs in a cache at given directory.\n\
-      \    It is the caller's responsiblity to clear the cache" );
     ( "-filter_irrelevant_patterns",
       Arg.Set Flag.filter_irrelevant_patterns,
       " filter patterns not containing any strings in target file" );

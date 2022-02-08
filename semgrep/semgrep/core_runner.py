@@ -456,98 +456,92 @@ class CoreRunner:
 
         profiling_data: ProfilingData = ProfilingData()
 
-        # TODO do we still need the ast cache dir?
-        with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            rule_file_name = (
-                RULE_SAVE_FILE
-                if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
+        rule_file_name = (
+            RULE_SAVE_FILE
+            if dump_command_for_core
+            else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
+        )
+        target_file_name = (
+            TARGET_SAVE_FILE
+            if dump_command_for_core
+            else tempfile.NamedTemporaryFile("w").name
+        )
+
+        with open(rule_file_name, "w+") as rule_file, open(
+            target_file_name, "w+"
+        ) as target_file:
+
+            targets_with_rules = self._get_targets(rules, target_manager, all_targets)
+            target_file.write(json.dumps(targets_with_rules))
+            target_file.flush()
+
+            yaml = YAML()
+            yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
+            rule_file.flush()
+
+            # Run semgrep
+            cmd = [SemgrepCore.path()] + [
+                "-json",
+                "-rules",
+                rule_file.name,
+                "-j",
+                str(self._jobs),
+                "-targets",
+                target_file.name,
+                "-timeout",
+                str(self._timeout),
+                "-timeout_threshold",
+                str(self._timeout_threshold),
+                "-max_memory",
+                str(self._max_memory),
+                "-json_time",
+            ]
+
+            if self._optimizations != "none":
+                cmd.append("-fast")
+
+            stderr: Optional[int] = subprocess.PIPE
+            if is_debug():
+                cmd += ["-debug"]
+                stderr = None
+
+            if dump_command_for_core:
+                print(" ".join(cmd))
+                sys.exit(0)
+
+            runner = StreamingSemgrepCore(cmd, len(targets_with_rules))
+            returncode = runner.execute()
+
+            # Process output
+            output_json = self._extract_core_output(
+                rules,
+                returncode,
+                " ".join(cmd),
+                runner.stdout,
+                runner.stderr,
             )
-            target_file_name = (
-                TARGET_SAVE_FILE
-                if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w").name
-            )
+            core_output = CoreOutput.parse(rules, output_json)
 
-            with open(rule_file_name, "w+") as rule_file, open(
-                target_file_name, "w+"
-            ) as target_file:
+            if "time" in output_json:
+                self._add_match_times(profiling_data, core_output.timing)
 
-                targets_with_rules = self._get_targets(
-                    rules, target_manager, all_targets
-                )
-                target_file.write(json.dumps(targets_with_rules))
-                target_file.flush()
+            # end with tempfile.NamedTemporaryFile(...) ...
+            outputs = core_output.rule_matches(rules)
+            parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
+            for err in core_output.errors:
+                if err.is_timeout():
+                    assert err.path is not None
 
-                yaml = YAML()
-                yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
-                rule_file.flush()
+                    file_timeouts[err.path] += 1
+                    if (
+                        self._timeout_threshold != 0
+                        and file_timeouts[err.path] >= self._timeout_threshold
+                    ):
+                        max_timeout_files.add(err.path)
+            errors.extend(parsed_errors)
 
-                # Run semgrep
-                cmd = [SemgrepCore.path()] + [
-                    "-json",
-                    "-rules",
-                    rule_file.name,
-                    "-j",
-                    str(self._jobs),
-                    "-targets",
-                    target_file.name,
-                    "-timeout",
-                    str(self._timeout),
-                    "-timeout_threshold",
-                    str(self._timeout_threshold),
-                    "-max_memory",
-                    str(self._max_memory),
-                    "-json_time",
-                    "-use_parsing_cache",
-                    semgrep_core_ast_cache_dir,
-                ]
-
-                if self._optimizations != "none":
-                    cmd.append("-fast")
-
-                stderr: Optional[int] = subprocess.PIPE
-                if is_debug():
-                    cmd += ["-debug"]
-                    stderr = None
-
-                if dump_command_for_core:
-                    print(" ".join(cmd))
-                    sys.exit(0)
-
-                runner = StreamingSemgrepCore(cmd, len(targets_with_rules))
-                returncode = runner.execute()
-
-                # Process output
-                output_json = self._extract_core_output(
-                    rules,
-                    returncode,
-                    " ".join(cmd),
-                    runner.stdout,
-                    runner.stderr,
-                )
-                core_output = CoreOutput.parse(rules, output_json)
-
-                if "time" in output_json:
-                    self._add_match_times(profiling_data, core_output.timing)
-
-                # end with tempfile.NamedTemporaryFile(...) ...
-                outputs = core_output.rule_matches(rules)
-                parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
-                for err in core_output.errors:
-                    if err.is_timeout():
-                        assert err.path is not None
-
-                        file_timeouts[err.path] += 1
-                        if (
-                            self._timeout_threshold != 0
-                            and file_timeouts[err.path] >= self._timeout_threshold
-                        ):
-                            max_timeout_files.add(err.path)
-                errors.extend(parsed_errors)
-
-            os.remove(rule_file_name)
-            os.remove(target_file_name)
+        os.remove(rule_file_name)
+        os.remove(target_file_name)
 
         return outputs, errors, all_targets, profiling_data
 
