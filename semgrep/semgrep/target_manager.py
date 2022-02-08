@@ -20,10 +20,18 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+# usually this would be a try...except ImportError
+# but mypy understands only this
+# see https://github.com/python/mypy/issues/1393
+if sys.version_info[:2] >= (3, 8):
+    # Literal is available in stdlib since Python 3.8
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
 import attr
 import click
 from attr import Factory
-from typing_extensions import Literal
 from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
