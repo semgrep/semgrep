@@ -1,4 +1,3 @@
-
 class _MetricManager:
     """
     To prevent sending unintended metrics, be sure that any data
@@ -10,8 +9,7 @@ class _MetricManager:
     be very explicit in what metrics are being collected
     """
 
-    def __init__(self) -> None:
-       ...
+    def __init__(self) -> None: ...
 
-#TODO: type
+# TODO: type
 metric_manager = ...

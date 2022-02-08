@@ -2,7 +2,7 @@ exclude: "^semgrep/tests/e2e/(targets|snapshots)|semgrep-core/tests"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v4.1.0
     hooks:
       - id: check-yaml
         args: [--allow-multiple-documents]
@@ -18,12 +18,12 @@ repos:
       - id: fix-byte-order-marker
 
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.1.0
     hooks:
       - id: black
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.3.6
+    rev: v2.7.1
     hooks:
       - id: reorder-python-imports
         args: [--py36-plus]
@@ -48,32 +48,32 @@ repos:
         additional_dependencies: *mypy-deps
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: "3.8.4"
+    rev: "3.9.2"
     hooks:
       - id: flake8
-        additional_dependencies: ["flake8-bugbear==20.1.4"]
+        additional_dependencies: ["flake8-bugbear==22.1.11"]
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
-  - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.71.0"
-    hooks:
-      - id: semgrep
-        name: Semgrep Python
-        types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/python", "--error"]
-      - id: semgrep
-        name: Semgrep Bandit
-        types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
+  # - repo: https://github.com/returntocorp/semgrep
+  #   rev: "v0.71.0"
+  #   hooks:
+  #     - id: semgrep
+  #       name: Semgrep Python
+  #       types: [python]
+  #       exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+  #       args: ["--config", "https://semgrep.dev/p/python", "--error"]
+  #     - id: semgrep
+  #       name: Semgrep Bandit
+  #       types: [python]
+  #       exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+  #       args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
 
   - repo: local
     hooks:
       - id: shellcheck
         name: shellcheck
         language: docker_image
-        entry: koalaman/shellcheck:v0.7.1
+        entry: koalaman/shellcheck:v0.8.0
         files: "[.]sh$"
 
   - repo: local
@@ -83,26 +83,26 @@ repos:
         language: docker_image
         types:
           - dockerfile
-        entry: hadolint/hadolint:v1.18.0 hadolint
+        entry: hadolint/hadolint:v2.8.0-alpine hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
 
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
-  - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.71.0"
-    hooks:
-      - id: semgrep-docker-develop
-        name: Semgrep Develop Python
-        types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/python", "--error"]
-        stages: [manual]
-      - id: semgrep-docker-develop
-        name: Semgrep Develop Bandit
-        types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
-        stages: [manual]
+  # - repo: https://github.com/returntocorp/semgrep
+  #   rev: "v0.71.0"
+  #   hooks:
+  #     - id: semgrep-docker-develop
+  #       name: Semgrep Develop Python
+  #       types: [python]
+  #       exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+  #       args: ["--config", "https://semgrep.dev/p/python", "--error"]
+  #       stages: [manual]
+  #     - id: semgrep-docker-develop
+  #       name: Semgrep Develop Bandit
+  #       types: [python]
+  #       exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+  #       args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
+  #       stages: [manual]
 
   # Reformat OCaml code (ml, mli) with ocamlformat if ocamlformat is
   # present. If ocamlformat is missing, this step will succeed.

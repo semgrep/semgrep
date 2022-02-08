@@ -23,7 +23,6 @@ class Config:
         and exposes ability to get all rules in parsed config files
         """
         ...
-
     @classmethod
     def from_config_list(
         cls, configs: Sequence[str], project_url: Optional[str]
@@ -35,8 +34,7 @@ class Config:
         If empty list is passed, tries to read config file at default locations
         """
         ...
-
-    #TODO: prefixed with _ but actuall used in join_rule.py
+    # TODO: prefixed with _ but actuall used in join_rule.py
     @staticmethod
     def _validate(
         config_dict: Mapping[str, rule_lang.YamlTree]
@@ -45,14 +43,8 @@ class Config:
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
 
-
-
-def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
-    ...
-
-def get_base_path() -> Path:
-    ...
-
+def resolve_targets(targets: Sequence[str]) -> Sequence[Path]: ...
+def get_base_path() -> Path: ...
 def get_config(
     pattern: Optional[str],
     lang: Optional[str],
@@ -60,8 +52,5 @@ def get_config(
     *,
     project_url: Optional[str],
     replacement: Optional[str] = None,
-) -> Tuple[Config, Sequence[error.SemgrepError]]:
-    ...
-
-def list_current_public_rulesets() -> List[types.JsonObject]:
-    ...
+) -> Tuple[Config, Sequence[error.SemgrepError]]: ...
+def list_current_public_rulesets() -> List[types.JsonObject]: ...

@@ -3,9 +3,7 @@ from typing import Iterable, IO
 import sys
 from semgrep.util import T
 
-def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
-    ...
-
+def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None: ...
 def progress_bar(
     iterable: Iterable[T], file: IO = sys.stderr, **kwargs: Any
 ) -> Iterable[T]:

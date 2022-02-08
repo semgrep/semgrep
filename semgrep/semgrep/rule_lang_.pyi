@@ -4,18 +4,16 @@ from typing import Generic, TypeVar, NewType, Union
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
 SourceFileHash = NewType("SourceFileHash", str)
 
-class EmptyYamlException(Exception):
-   ...
-
+class EmptyYamlException(Exception): ...
 
 class SourceTracker:
     """
     Singleton class tracking mapping from filehashes -> file contents to support
     building error messages from Spans
     """
+
     @classmethod
-    def source(cls, source_hash: SourceFileHash) -> List[str]:
-       ...
+    def source(cls, source_hash: SourceFileHash) -> List[str]: ...
 
 class Position:
     """
@@ -25,9 +23,9 @@ class Position:
 
     line & column are 0 indexed for compatibility with semgrep-core which also produces 1-indexed results
     """
+
     line: int
     col: int
-
 
 class Span:
     """
@@ -49,8 +47,7 @@ class Span:
     config_end: Optional[Position] = None
 
     @classmethod
-    def from_string(cls, s: str, filename: Optional[str] = None) -> "Span":
-        ...
+    def from_string(cls, s: str, filename: Optional[str] = None) -> "Span": ...
 
 EmptySpan = ...
 
@@ -60,9 +57,7 @@ LocatedYamlValue = Union[str, int, List["YamlTree"], "YamlMap"]
 T = TypeVar("T", bound=LocatedYamlValue)
 
 class YamlTree(Generic[T]):
-    def __init__(self, value: T, span: Span):
-       ...
-
+    def __init__(self, value: T, span: Span): ...
     @classmethod
     def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
         """
@@ -79,8 +74,7 @@ class YamlMap:
     necessary spans
     """
 
-    def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
-       ...
+    def __init__(self, internal: Dict[YamlTree[str], YamlTree]): ...
 
 def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
     """
@@ -92,5 +86,5 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     ...
 
 class RuleValidation:
-    #TODO: type?
+    # TODO: type?
     PATTERN_KEYS = ...

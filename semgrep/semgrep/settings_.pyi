@@ -14,8 +14,7 @@ callers should handle this gracefully.
 """
 
 class Settings:
-    def __init__(self) -> None:
-       ...
+    def __init__(self) -> None: ...
 
-#TODO: type
+# TODO: type
 SETTINGS = ...
