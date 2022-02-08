@@ -48,8 +48,9 @@ let tuple_hole_expr _env tok = OtherExpr (("TupleHole", tok), []) |> G.e
 let tuple_hole_pat _env tok = PatUnderscore tok |> G.p
 
 let stmt_of_def_or_dir = function
-  | Left def -> DefStmt def |> G.s
-  | Right dir -> DirectiveStmt dir |> G.s
+  | Left3 def -> DefStmt def |> G.s
+  | Right3 dir -> DirectiveStmt dir |> G.s
+  | Middle3 ellipsis_tok -> G.exprstmt (G.e (Ellipsis ellipsis_tok))
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -2159,24 +2160,27 @@ let map_modifier_definition (env : env)
   in
   (ent, FuncDef def)
 
+let map_contract_member (env : env) (x : CST.contract_member) =
+  match x with
+  | `Choice_func_defi x -> (
+      match x with
+      | `Func_defi x -> Left3 (map_function_definition env x)
+      | `Modi_defi x -> Left3 (map_modifier_definition env x)
+      | `State_var_decl x -> Left3 (map_state_variable_declaration env x)
+      | `Struct_decl x -> Left3 (map_struct_declaration env x)
+      | `Enum_decl x -> Left3 (map_enum_declaration env x)
+      | `Event_defi x -> Left3 (map_event_definition env x)
+      | `Using_dire x -> Right3 (map_using_directive env x)
+      | `Cons_defi x -> Left3 (map_constructor_definition env x)
+      | `Fall_rece_defi x -> Left3 (map_fallback_receive_definition env x))
+  | `Ellips tok ->
+      let t = (* "..." *) token env tok in
+      Middle3 t
+
 let map_contract_body (env : env) ((v1, v2, v3) : CST.contract_body) :
-    (definition, directive) either list bracket =
+    (definition, tok, directive) either3 list bracket =
   let lb = (* "{" *) token env v1 in
-  let xs =
-    List.map
-      (fun x ->
-        match x with
-        | `Func_defi x -> Left (map_function_definition env x)
-        | `Modi_defi x -> Left (map_modifier_definition env x)
-        | `State_var_decl x -> Left (map_state_variable_declaration env x)
-        | `Struct_decl x -> Left (map_struct_declaration env x)
-        | `Enum_decl x -> Left (map_enum_declaration env x)
-        | `Event_defi x -> Left (map_event_definition env x)
-        | `Using_dire x -> Right (map_using_directive env x)
-        | `Cons_defi x -> Left (map_constructor_definition env x)
-        | `Fall_rece_defi x -> Left (map_fallback_receive_definition env x))
-      v2
-  in
+  let xs = List.map (map_contract_member env) v2 in
   let rb = (* "}" *) token env v3 in
   (lb, xs, rb)
 
