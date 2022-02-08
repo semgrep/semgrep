@@ -176,9 +176,14 @@ def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
 
     _, stderr = run_semgrep_in_tmp(
         "rules/eqeq-basic.yaml",
+        # This set of options is carefully crafted
+        # to trigger one entry for most ignore reasons.
+        # Note that the print order is non-deterministic,
+        # so you must take care not to have two skips in a category.
         options=[
             "--include=ignore.*",
             "--include=tests",
+            "--include=find.*",
             "--exclude=*.min.js",
             "--max-target-bytes=100",
             "--verbose",
