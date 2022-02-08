@@ -20,12 +20,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
 - Bloom filter optimization now considers `import` module file names, thus
   speeding up matching of patterns like `import { $X } from 'foo'`
+- Indentation is now removed from matches to conserve horizontal space
 
 ### Fixed
 
 - Typescript: Patterns `E as T` will be matched correctly. E.g. previously
   a pattern like `v as $T` would match `v` but not `v as any`, now it
   correctly matches `v as any` but not `v`. (#4515)
+- Highlighting has been restored for matching code fragments within a finding
 
 ## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 02-02-2022
 
