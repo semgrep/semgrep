@@ -191,16 +191,21 @@ class StreamingSemgrepCore:
             *self._cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            limit=1024 * 1024,
+            limit=1024 * 1024 * 1024,
             preexec_fn=setrlimits_preexec_fn,
         )
 
-        await asyncio.wait(
-            [
-                asyncio.create_task(self._core_stdout_processor(process.stdout)),
-                asyncio.create_task(self._core_stderr_processor(process.stderr)),
-            ]
+        # Raise any exceptions from processing stdout/err
+        results = await asyncio.gather(
+            self._core_stdout_processor(process.stdout),
+            self._core_stderr_processor(process.stderr),
+            return_exceptions=True,
         )
+        for r in results:
+            if isinstance(r, Exception):
+                raise SemgrepError(f"Error while running rules: {r}")
+
+        # Return exit code of cmd. process should already be done
         return await process.wait()
 
     def execute(self) -> int:
@@ -223,9 +228,7 @@ class StreamingSemgrepCore:
                 bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}",
             )
 
-        loop = asyncio.new_event_loop()
-        rc = loop.run_until_complete(self._stream_subprocess())
-        loop.close()
+        rc = asyncio.run(self._stream_subprocess())
 
         if self._progress_bar:
             self._progress_bar.close()
