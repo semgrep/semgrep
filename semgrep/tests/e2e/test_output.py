@@ -1,5 +1,7 @@
 import collections
 import json
+import re
+from pathlib import Path
 from typing import Callable
 from typing import Dict
 from typing import Mapping
@@ -7,6 +9,7 @@ from xml.etree import cElementTree
 
 import pytest
 from tests.conftest import _clean_output_json
+from tests.conftest import TESTS_PATH
 
 from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
@@ -158,3 +161,38 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
     )
+
+
+IGNORE_LOG_REPORT_FIRST_LINE = "Files skipped:"
+IGNORE_LOG_REPORT_LAST_LINE = (
+    "for a detailed list of skipped files, run semgrep with the --verbose flag"
+)
+
+
+def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot):
+    (tmp_path / ".semgrepignore").symlink_to(
+        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+    )
+
+    _, stderr = run_semgrep_in_tmp(
+        "rules/eqeq-basic.yaml",
+        options=[
+            "--include=ignore.*",
+            "--include=tests",
+            "--exclude=*.min.js",
+            "--max-target-bytes=100",
+            "--verbose",
+        ],
+        output_format=OutputFormat.TEXT,
+        target_name="ignores",
+    )
+
+    report = re.search(
+        f"^{IGNORE_LOG_REPORT_FIRST_LINE}$.*?^{IGNORE_LOG_REPORT_LAST_LINE}$",
+        stderr,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    assert (
+        report is not None
+    ), "can't find ignore log report based on expected start and end lines"
+    snapshot.assert_match(report.group(), "report.txt")

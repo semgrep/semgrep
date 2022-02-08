@@ -1,0 +1,35 @@
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+
+   • targets/ignores/tests/ignore.js
+
+  Skipped by --include patterns:
+
+   • targets/ignores/find.js
+   • targets/ignores/ignore_test.js
+   • targets/ignores/ok/find.js
+
+  Skipped by --exclude patterns:
+
+   • targets/ignores/ignore.min.js
+
+  Skipped by limiting to files smaller than 100 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+
+skipped: all .gitignored files, 3 files not matching --include patterns, 1 files matching --exclude patterns, 1 files matching .semgrepignore patterns
+for a detailed list of skipped files, run semgrep with the --verbose flag
