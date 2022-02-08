@@ -62,7 +62,7 @@ class TextFormatter(BaseFormatter):
         line = (
             line[:start_color]
             + with_color(
-                Colors.bright, line[start_color : end_color + 1]
+                Colors.foreground, line[start_color : end_color + 1], bold=True
             )  # want the color to include the end_col
             + line[end_color + 1 :]
         )
