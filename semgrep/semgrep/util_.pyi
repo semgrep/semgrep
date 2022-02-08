@@ -1,4 +1,14 @@
-from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
+from typing import (
+    Any,
+    Dict,
+    FrozenSet,
+    List,
+    Sequence,
+    Set,
+    Tuple,
+    Optional,
+    Collection,
+)
 from typing import Iterable, Callable
 from typing import TypeVar
 from pathlib import Path
@@ -70,3 +80,16 @@ def is_config_test_suffix(path: Path) -> bool: ...
 def format_bytes(num: float) -> str: ...
 def truncate(file_name: str, col_lim: int) -> str: ...
 def flatten(some_list: List[List[T]]) -> List[T]: ...
+
+PathFilterCallable = Callable[..., FrozenSet[Path]]
+
+def log_removed_paths(function: PathFilterCallable) -> PathFilterCallable:
+    """A decorator you can apply to functions that filter paths, to keep track of what they filtered.
+
+    It assumes your filter function takes a set of candidate paths as its first parameter,
+    and returns a set of remaining paths.
+
+    It adds the keyword argument `removal_log` to the filtering function's signature.
+    When this keyword argument is passed, all removed paths are added to this set.
+    """
+    ...

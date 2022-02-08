@@ -475,11 +475,16 @@ let semgrep_with_rules config (rules, rules_parse_time) =
                print_match ~str config.match_format config.mvars env
                  Metavariable.ii_of_mval xs
            in
-           Match_rules.check ~match_hook ~timeout:config.timeout
-             ~timeout_threshold:config.timeout_threshold
-             ( Config_semgrep.default_config,
-               parse_equivalences config.equivalences_file )
-             rules xtarget)
+           let res =
+             Match_rules.check ~match_hook ~timeout:config.timeout
+               ~timeout_threshold:config.timeout_threshold
+               ( Config_semgrep.default_config,
+                 parse_equivalences config.equivalences_file )
+               rules xtarget
+           in
+           if config.output_format = Json then pr ".";
+           (* Print when each file is done so Python knows *)
+           res)
   in
   let res =
     RP.make_final_result file_results rules config.report_time rules_parse_time

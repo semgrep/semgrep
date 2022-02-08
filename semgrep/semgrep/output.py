@@ -38,6 +38,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
+from semgrep.target_manager import IgnoreLog
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
@@ -263,6 +264,7 @@ class OutputHandler:
         *,
         all_targets: Set[Path],
         filtered_rules: List[Rule],
+        ignore_log: Optional[IgnoreLog] = None,
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
@@ -277,6 +279,8 @@ class OutputHandler:
         self.profiler = profiler
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
+        if ignore_log:
+            self.ignore_log = ignore_log
         if profiling_data:
             self.profiling_data = profiling_data
         if severities:
@@ -299,8 +303,12 @@ class OutputHandler:
                 num_findings = len(self.rule_matches)
                 num_targets = len(self.all_targets)
                 num_rules = len(self.filtered_rules)
+
+                ignores_line = str(ignore_log or "No ignore information available")
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
-                logger.info(stats_line)
+                if ignore_log is not None:
+                    logger.verbose(ignore_log.verbose_output())
+                logger.info("\n" + ignores_line + "\n" + stats_line)
 
         final_error = None
         error_stats = None

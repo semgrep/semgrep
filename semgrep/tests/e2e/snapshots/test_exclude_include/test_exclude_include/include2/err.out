@@ -1,4 +1,8 @@
 including files:
 - included.vue
 Running 4 rules...
+
+skipped: all .gitignored files, 4 files not matching --include patterns
+for a detailed list of skipped files, run semgrep with the --verbose flag
+
 ran 4 rules on 0 files: 0 findings

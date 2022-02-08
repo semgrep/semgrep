@@ -9,6 +9,42 @@ Warning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running
 [rules.forcetimeout]
 Semgrep stopped running rules on targets/equivalence/open_redirect.py after 1 timeout error(s). See `--timeout-
 threshold` for more info.
+
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+
+skipped: all .gitignored files
+for a detailed list of skipped files, run semgrep with the --verbose flag
+
 ran 3 rules on 1 files: 0 findings
 found problems analyzing 1 file; run with --verbose for details or run with --strict to exit non-zero if any file cannot
 be analyzed cleanly

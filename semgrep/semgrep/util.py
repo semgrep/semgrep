@@ -8,10 +8,10 @@ import sys
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import FrozenSet
 from typing import Iterable
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
@@ -93,10 +93,10 @@ def partition(
 
 def partition_set(
     pred: Callable[[T], Any], iterable: Iterable[T]
-) -> Tuple[Set[T], Set[T]]:
+) -> Tuple[FrozenSet[T], FrozenSet[T]]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
-    return set(filter(pred, i1)), set(itertools.filterfalse(pred, i2))
+    return frozenset(filter(pred, i1)), frozenset(itertools.filterfalse(pred, i2))
 
 
 def abort(message: str) -> None:
@@ -139,14 +139,6 @@ def terminal_wrap(text: str) -> str:
     width = min(MAX_TEXT_WIDTH, terminal_size)
     wrapped_paras = ["\n".join(textwrap.wrap(p, width)) for p in paras]
     return "\n".join(wrapped_paras)
-
-
-def sub_run(cmd: List[str], **kwargs: Any) -> Any:
-    """A simple proxy function to minimize and centralize subprocess usage."""
-    # fmt: off
-    result = subprocess.run(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-    # fmt: on
-    return result
 
 
 def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
@@ -215,3 +207,6 @@ def truncate(file_name: str, col_lim: int) -> str:
 
 def flatten(some_list: List[List[T]]) -> List[T]:
     return functools.reduce(operator.iconcat, some_list, [])
+
+
+PathFilterCallable = Callable[..., FrozenSet[Path]]

@@ -774,6 +774,7 @@ def scan(
                 (
                     filtered_matches_by_rule,
                     all_targets,
+                    ignore_log,
                     filtered_rules,
                     profiler,
                     profiling_data,
@@ -812,6 +813,7 @@ def scan(
             output_handler.output(
                 filtered_matches_by_rule,
                 all_targets=all_targets,
+                ignore_log=ignore_log,
                 profiler=profiler,
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
