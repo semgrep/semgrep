@@ -5,7 +5,6 @@ module E = Semgrep_error_code
 module MR = Mini_rule
 module R = Rule
 module RP = Report
-module P = Parse_with_caching
 module In = Input_to_core_j
 module Out = Output_from_core_j
 
@@ -376,13 +375,18 @@ let mk_rule_table rules =
   let rule_pairs = List.map (fun r -> (fst r.R.id, r)) rules in
   Common.hash_of_list rule_pairs
 
-let xtarget_of_file config xlang file =
+let xtarget_of_file _config xlang file =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
         (* xlang from the language field in -target, which should be unique *)
         assert (other_langs = []);
-        lazy (P.parse_generic config.use_parsing_cache config.version lang file)
+        lazy
+          (let { Parse_target.ast; errors; _ } =
+             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
+               file
+           in
+           (ast, errors))
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 
@@ -648,8 +652,8 @@ let semgrep_with_one_pattern config =
              logger#info "processing: %s" file;
              let process file =
                timeout_function file config.timeout (fun () ->
-                   let ast, errors =
-                     P.parse_generic config.use_parsing_cache config.version
+                   let { Parse_target.ast; errors; _ } =
+                     Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
                        lang file
                    in
                    if errors <> [] then

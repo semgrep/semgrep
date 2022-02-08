@@ -35,9 +35,9 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
-  (* Flags used by the semgrep-python wrapper *)
-  use_parsing_cache : string;
+  (* Flag used by the semgrep-python wrapper *)
   target_file : string;
+  (* Common.ml action for the -dump_xxx *)
   action : string;
   (* Other *)
   version : string;

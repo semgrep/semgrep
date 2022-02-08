@@ -10,6 +10,9 @@ Requirements
 The `semgrep` command must be available, as well as generic development
 tools including git and python3.
 
+If you want to use the --plot-benchmarks option, you will need to install the
+tk package, as well as pip install the matplotlib and pandas Python libraries.
+
 Architecture
 --
 
