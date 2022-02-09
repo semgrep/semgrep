@@ -22,6 +22,8 @@ module AST = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+let ( let* ) = Option.bind
+
 (*****************************************************************************)
 (* Debugging helpers *)
 (*****************************************************************************)
@@ -86,19 +88,18 @@ let dotted_ident_of_name_opt = function
   (* TODO *)
   | IdQualified _ -> None
 
-(* This is also used in xxx-semgrep/.../Run.ml *)
+(* This is now used only in xxx-semgrep/.../Run.ml
+ * less: move it there?
+ *)
 let rec dotted_ident_of_exprkind_opt ekind =
   match ekind with
   | N name -> dotted_ident_of_name_opt name
   | DotAccess (v1, _v2, v3) -> (
-      let res = dotted_ident_of_exprkind_opt v1.e in
-      match res with
-      | None -> None
-      | Some xs -> (
-          match v3 with
-          (* TODO? we could potentially set idinfo.resolved here *)
-          | FN (Id (id, _idinfo)) -> Some (xs @ [ id ])
-          | _ -> None))
+      let* xs = dotted_ident_of_exprkind_opt v1.e in
+      match v3 with
+      (* TODO? we could potentially set idinfo.resolved here *)
+      | FN (Id (id, _idinfo)) -> Some (xs @ [ id ])
+      | _ -> None)
   | _ -> None
 
 (*****************************************************************************)
