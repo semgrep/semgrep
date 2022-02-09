@@ -390,9 +390,8 @@ class CoreRunner:
             }
             profiling_data.set_file_times(t.target, rule_timings, t.run_time)
 
-    @staticmethod
     def get_files_for_language(
-        language: Language, rule: Rule, target_manager: TargetManager
+        self, language: Language, rule: Rule, target_manager: TargetManager
     ) -> List[Path]:
         try:
             targets = target_manager.get_files(
@@ -406,7 +405,7 @@ class CoreRunner:
             ) from ex
         return list(targets)
 
-    def _get_targets(
+    def _create_core_run_planner(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> List[Dict[str, Any]]:
         """
@@ -476,7 +475,9 @@ class CoreRunner:
             target_file_name, "w+"
         ) as target_file:
 
-            targets_with_rules = self._get_targets(rules, target_manager, all_targets)
+            targets_with_rules = self._create_core_run_planner(
+                rules, target_manager, all_targets
+            )
             target_file.write(json.dumps(targets_with_rules))
             target_file.flush()
 
