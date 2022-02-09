@@ -140,6 +140,7 @@ let build ~root ~hooks lang xs =
       current_parent;
       current_qualifier;
       file_qualifier = current_qualifier;
+      class_qualifier = None;
       readable;
     }
   in

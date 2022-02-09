@@ -28,7 +28,8 @@
  *  - Go
  *  - JSON, YAML, HCL
  *  - OCaml, Scala, Rust
- *  - TODO Bash, SQL, Docker
+ *  - Bash, Docker
+ *  - TODO SQL
  *
  * See Lang.ml for the list of supported languages.
  * See IL.ml for a generic IL (Intermediate language) better suited for
