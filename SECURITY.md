@@ -6,7 +6,7 @@ This project is under active development and we do our best to support the lates
 
 | Version | Supported          |
 | ------- | ------------------ |
-| latest   | :white_check_mark: |
+| latest  | :white_check_mark: |
 
 ## Reporting a Vulnerability
 

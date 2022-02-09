@@ -4,10 +4,10 @@ rules:
       - pattern-inside: |
           def func():
               ...
-      - pattern: 'metavariable_regex_test.$X(...)'
+      - pattern: "metavariable_regex_test.$X(...)"
       - metavariable-regex:
-          metavariable: '$X'
-          regex: 'method'
+          metavariable: "$X"
+          regex: "method"
     message: "Metavariable regex test multi rule"
     languages: [python]
     severity: ERROR

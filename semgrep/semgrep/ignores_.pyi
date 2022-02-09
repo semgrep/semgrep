@@ -1,9 +1,6 @@
-
 IGNORE_FILE_NAME = ...
 
-class FileIgnore:
-    ...
-
+class FileIgnore: ...
 
 class Parser:
     """
@@ -36,4 +33,5 @@ class Parser:
 
     :param base_path:   The path relative to which :include directives should be evaluated
     """
+
     ...

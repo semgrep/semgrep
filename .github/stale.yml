@@ -18,14 +18,14 @@ closeComment: Stale-bot has closed this stale item. Please reopen it if this is 
 
 pulls:
   daysUntilStale: 14
-#  daysUntilClose: 7
+  #  daysUntilClose: 7
   markComment: >-
     This pull request is being marked `stale` because there hasn't
     been any activity in 14 days.
 
 issues:
   daysUntilStale: 14
-#  daysUntilClose: 7
+  #  daysUntilClose: 7
   exemptLabels:
     - tech-debt
     - new-language
@@ -33,7 +33,7 @@ issues:
     - planned-project
     - priority:low
     - priority:medium
-#    - priority:high
+  #    - priority:high
   markComment: >-
     This issue is being marked `stale` because there hasn't been any
     activity in 14 days and either it wasn't prioritized or its priority

@@ -9,6 +9,7 @@ class VerboseLogging(logging.Logger):
     Also expose a logging.verbose() method so there is no need
     to call log(VERBOSE_LEVEL, msg) every time
     """
+
     ...
 
 def getLogger(name: Optional[str]) -> VerboseLogging:

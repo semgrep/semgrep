@@ -10,7 +10,6 @@ class Level(Enum):
     ERROR = ...  # Always an error
     WARN = ...  # Only an error if "strict" is set
 
-
 class SemgrepError(Exception):
     """
     Parent class of all exceptions we anticipate in Semgrep commands
@@ -20,22 +19,15 @@ class SemgrepError(Exception):
 
     For pretty-printing, exceptions should override `__str__`.
     """
+
     def __init__(
         self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
-    ) -> None:
-        ...
+    ) -> None: ...
+    def semgrep_error_type(self) -> str: ...
 
-    def semgrep_error_type(self) -> str:
-        ...
-
-class LegacySpan:
-    ...
-
-class SemgrepCoreError(SemgrepError):
-    ...
-
-class FilesNotFoundError(SemgrepError):
-    ...
+class LegacySpan: ...
+class SemgrepCoreError(SemgrepError): ...
+class FilesNotFoundError(SemgrepError): ...
 
 class ErrorWithSpan(SemgrepError):
     """
@@ -66,13 +58,11 @@ class ErrorWithSpan(SemgrepError):
     :help help: An optional hint about how to fix the problem
     :cause cause: The underlying exception
     """
+
     ...
 
-class InvalidRuleSchemaError(ErrorWithSpan):
-   ...
-
-class UnknownLanguageError(ErrorWithSpan):
-   ...
+class InvalidRuleSchemaError(ErrorWithSpan): ...
+class UnknownLanguageError(ErrorWithSpan): ...
 
 class SemgrepInternalError(Exception):
     """
@@ -80,11 +70,11 @@ class SemgrepInternalError(Exception):
 
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
+
     ...
 
-#TODO: diff with the one above?
-class _UnknownLanguageError(SemgrepInternalError):
-   ...
+# TODO: diff with the one above?
+class _UnknownLanguageError(SemgrepInternalError): ...
 
-#TODO: type?
+# TODO: type?
 ERROR_MAP = ...

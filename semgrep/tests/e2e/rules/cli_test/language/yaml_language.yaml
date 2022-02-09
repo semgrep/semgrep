@@ -1,8 +1,8 @@
 rules:
-- id: yaml-language
-  pattern: |
-    rules:
-        ...
-  message: YAML language test
-  severity: ERROR
-  languages: [yaml]
+  - id: yaml-language
+    pattern: |
+      rules:
+          ...
+    message: YAML language test
+    severity: ERROR
+    languages: [yaml]

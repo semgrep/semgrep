@@ -15,4 +15,4 @@ def invoke_semgrep(
     """
     ...
 
-#TODO: also main(), special case that if called from somewhere??
+# TODO: also main(), special case that if called from somewhere??

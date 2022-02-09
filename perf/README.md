@@ -1,11 +1,9 @@
-Semgrep benchmarks
-==
+# Semgrep benchmarks
 
 This folder is for running realistic benchmarks for semgrep, as
 opposed to more focused tests.
 
-Requirements
---
+## Requirements
 
 The `semgrep` command must be available, as well as generic development
 tools including git and python3.
@@ -13,14 +11,14 @@ tools including git and python3.
 If you want to use the --plot-benchmarks option, you will need to install the
 tk package, as well as pip install the matplotlib and pandas Python libraries.
 
-Architecture
---
+## Architecture
 
 Each benchmark has a name. For each benchmark, we run the standard
 semgrep commands as well as variants which disable or enable certain
 optimizations.
 
 The workspace looks like this:
+
 ```
 .
 ├── bench
@@ -51,21 +49,20 @@ metrics such as memory usage could be reported in the future.
 The number of parallel jobs is the maximum number of logical CPUs
 offered by the host as is the default for `semgrep`.
 
-Manual operation
---
+## Manual operation
 
 Read and use the Makefile or call `./run-benchmarks` directly.
 The bare `make` command will use the local `semgrep` command and
 overall is safe to use.
+
 ```
 $ make
 ```
 
-This will *not upload* the results to the dashboard, as it is reserved
+This will _not upload_ the results to the dashboard, as it is reserved
 for CI jobs which run more or less in a consistent environment.
 
-Troubleshooting CI with the semgrep-dev Docker image
---
+## Troubleshooting CI with the semgrep-dev Docker image
 
 _CI uses CircleCI or GitHub Actions, configured in the standard places
 (`.circleci`, `.github/workflows`). See those files to determine which

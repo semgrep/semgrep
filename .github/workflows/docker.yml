@@ -8,7 +8,7 @@ on:
       - develop
   pull_request:
     paths-ignore:
-      - '**.md'
+      - "**.md"
 
 jobs:
   docker-build:

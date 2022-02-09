@@ -1,4 +1,5 @@
 import itertools
+import textwrap
 from itertools import groupby
 from pathlib import Path
 from shutil import get_terminal_size
@@ -62,7 +63,7 @@ class TextFormatter(BaseFormatter):
         line = (
             line[:start_color]
             + with_color(
-                Colors.foreground, line[start_color : end_color + 1]
+                Colors.foreground, line[start_color : end_color + 1], bold=True
             )  # want the color to include the end_col
             + line[end_color + 1 :]
         )
@@ -89,7 +90,15 @@ class TextFormatter(BaseFormatter):
                 trimmed = len(lines) - per_finding_max_lines_limit
                 lines = lines[:per_finding_max_lines_limit]
 
-            for i, line in enumerate(lines):
+            # we remove indentation at the start of the snippet to avoid wasting space
+            dedented_lines = textwrap.dedent("".join(lines)).splitlines()
+            indent_len = len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+
+            # since we dedented each line, we need to adjust where the highlighting is
+            start_col -= indent_len
+            end_col -= indent_len
+
+            for i, line in enumerate(dedented_lines):
                 line = line.rstrip()
                 line_number = ""
                 if start_line:
@@ -163,7 +172,7 @@ class TextFormatter(BaseFormatter):
         targets = time_data["targets"]
 
         # Compute summary timings
-        rule_parsing_time = time_data["rule_parse_info"]
+        rule_parsing_time = time_data["rules_parse_time"]
         rule_match_timings = {
             rule["id"]: sum(
                 t["match_times"][i] for t in targets if t["match_times"][i] >= 0
@@ -176,7 +185,7 @@ class TextFormatter(BaseFormatter):
         file_timings = {
             target["path"]: (
                 sum(t for t in target["parse_times"] if t >= 0),
-                target["run_times"],
+                target["run_time"],
             )
             for target in targets
         }
@@ -214,7 +223,7 @@ class TextFormatter(BaseFormatter):
             [
                 (
                     lang_of_path(target["path"]),
-                    (target["num_bytes"], target["run_times"]),
+                    (target["num_bytes"], target["run_time"]),
                 )
                 for target in targets
             ],
