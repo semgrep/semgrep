@@ -1,1 +1,0 @@
-[{"path": "targets/bad/invalid_python.py", "language": "python", "rule_ids": ["rules.assert-eqeq-is-ok", "rules.eqeq-is-bad"]}]

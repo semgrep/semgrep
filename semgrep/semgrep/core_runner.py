@@ -23,6 +23,7 @@ from tqdm import tqdm
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.constants import USER_DATA_FOLDER
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import CoreTiming
 from semgrep.core_output import RuleId
@@ -46,8 +47,12 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RULE_SAVE_FILE = "semgrep_rules.yaml"
-TARGET_SAVE_FILE = "semgrep_targets.txt"
+RULE_SAVE_FILE = str(
+    Path("~").expanduser() / USER_DATA_FOLDER / Path("semgrep_rules.yaml")
+)
+TARGET_SAVE_FILE = str(
+    Path("~").expanduser() / USER_DATA_FOLDER / Path("semgrep_targets.txt")
+)
 
 
 def setrlimits_preexec_fn() -> None:
