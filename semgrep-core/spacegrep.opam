@@ -14,7 +14,7 @@ depends: [
   "alcotest"
   "atdgen"
   "ANSITerminal"
-  "cmdliner"
+  "cmdliner" {= "1.0.4"}
   "dune" {>= "2.1"}
 ]
 
