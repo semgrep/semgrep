@@ -1,3 +1,6 @@
+from typing import Any, Dict, List, Sequence, Set, Tuple, Optional
+from typing import TextIO
+
 IGNORE_FILE_NAME = ...
 
 class FileIgnore: ...
@@ -34,4 +37,6 @@ class Parser:
     :param base_path:   The path relative to which :include directives should be evaluated
     """
 
-    ...
+    def parse(self, stream: TextIO) -> Set[str]:
+        """Performs parsing of an input stream"""
+        ...

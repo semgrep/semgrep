@@ -142,6 +142,7 @@ let build ~root ~hooks lang xs =
       file_qualifier = current_qualifier;
       class_qualifier = None;
       readable;
+      lang;
     }
   in
 
