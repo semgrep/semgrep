@@ -293,16 +293,16 @@ jobs:
     name: Update on Homebrew-Core
     runs-on: macos-10.15
     steps:
-      - name: Get python version
-        id: get_python_version
-        run: |
-          echo "py_version=$(python --version 2>&1 | awk '{print $2}')" >> $GITHUB_ENV
-          echo ${{ env.py_version }}
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
           # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
           python-version: 3.9
+      - name: Get python version
+        id: get_python_version
+        run: |
+          echo "py_version=$(python --version 2>&1 | awk '{print $2}')" >> $GITHUB_ENV
+          echo ${{ env.py_version }}
       - name: Brew update
         run: brew update
       - name: Install brew pipgrip
