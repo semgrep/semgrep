@@ -288,7 +288,6 @@ jobs:
           perf/compare-bench-findings semgrep/findings.json
 
 # Testing dynamically updating Python version
-
   test-homebrew-core-pr:
     name: Update on Homebrew-Core
     runs-on: macos-10.15
