@@ -6,13 +6,14 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import attr
+from attrs import define
+from attrs import field
 
 from semgrep.constants import RuleSeverity
 from semgrep.types import JsonObject
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreLocation:
     """
     parses:
@@ -49,30 +50,30 @@ class CoreLocation:
         return cls(line, col, offset)
 
 
-@attr.s(frozen=True)
+@define(frozen=True)
 class RuleMatch:
     """
     A section of code that matches a single rule (which is potentially many patterns)
     """
 
-    _id: str = attr.ib()
-    _message: str = attr.ib(repr=False)
-    _metadata: Dict[str, Any] = attr.ib(repr=False)
-    _severity: RuleSeverity = attr.ib(repr=False)
-    _fix: Optional[str] = attr.ib(repr=False)
-    _fix_regex: Optional[Dict[str, Any]] = attr.ib(repr=False)
-    _path: Path = attr.ib(repr=str)
-    _start: CoreLocation = attr.ib()
-    _end: CoreLocation = attr.ib()
-    _extra: Dict[str, Any] = attr.ib(repr=False)
+    _id: str = field()
+    _message: str = field(repr=False)
+    _metadata: Dict[str, Any] = field(repr=False)
+    _severity: RuleSeverity = field(repr=False)
+    _fix: Optional[str] = field(repr=False)
+    _fix_regex: Optional[Dict[str, Any]] = field(repr=False)
+    _path: Path = field(repr=str)
+    _start: CoreLocation = field()
+    _end: CoreLocation = field()
+    _extra: Dict[str, Any] = field(repr=False)
 
     # optional attributes
-    _is_ignored: Optional[bool] = attr.ib(default=None)
+    _is_ignored: Optional[bool] = field(default=None)
 
     # derived attributes
-    _lines: List[str] = attr.ib()
-    _lines_hash: str = attr.ib()
-    _previous_line: str = attr.ib()
+    _lines: List[str] = field()
+    _lines_hash: str = field()
+    _previous_line: str = field()
 
     @_lines.default
     def _get_lines(self) -> List[str]:

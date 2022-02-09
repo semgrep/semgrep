@@ -9,7 +9,9 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
-import attr
+from attrs import asdict
+from attrs import define
+from attrs import field
 
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -85,14 +87,14 @@ class SemgrepError(Exception):
         return cls(**data)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class LegacySpan:
     config_start: CoreLocation
     config_end: CoreLocation
     config_path: Tuple[str]
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
@@ -118,7 +120,7 @@ class SemgrepCoreError(SemgrepError):
             base["path"] = str(self.path)
 
         if self.spans:
-            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
+            base["spans"] = tuple([asdict(s) for s in self.spans])
 
         return base
 
@@ -184,7 +186,7 @@ class SemgrepInternalError(Exception):
     pass
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class FilesNotFoundError(SemgrepError):
     level = Level.ERROR
     code = FATAL_EXIT_CODE
@@ -203,7 +205,7 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     return tuple(spans)
 
 
-@attr.s(auto_attribs=True, eq=True, frozen=True)
+@define(auto_attribs=True, eq=True, frozen=True)
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass
@@ -234,10 +236,10 @@ class ErrorWithSpan(SemgrepError):
     :cause cause: The underlying exception
     """
 
-    short_msg: str = attr.ib()
-    long_msg: Optional[str] = attr.ib()
-    spans: List[Span] = attr.ib(converter=span_list_to_tuple)
-    help: Optional[str] = attr.ib(default=None)
+    short_msg: str = field()
+    long_msg: Optional[str] = field()
+    spans: List[Span] = field(converter=span_list_to_tuple)
+    help: Optional[str] = field(default=None)
 
     def __attrs_post_init__(self) -> None:
         if not hasattr(self, "code"):
@@ -251,7 +253,7 @@ class ErrorWithSpan(SemgrepError):
             short_msg=self.short_msg,
             long_msg=self.long_msg,
             level=self.level.name.lower(),
-            spans=[attr.asdict(s) for s in self.spans],
+            spans=[asdict(s) for s in self.spans],
         )
         # otherwise, we end up with `help: null` in JSON
         if self.help:
@@ -357,13 +359,13 @@ class ErrorWithSpan(SemgrepError):
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
 
 
-@attr.s(frozen=True, eq=True)
+@define(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
     level = Level.ERROR
 
 
-@attr.s(frozen=True, eq=True)
+@define(frozen=True, eq=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = Level.ERROR

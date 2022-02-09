@@ -17,7 +17,7 @@ from typing import NewType
 from typing import Optional
 from typing import Tuple
 
-import attr
+from attrs import define
 
 from semgrep.error import LegacySpan
 from semgrep.error import Level
@@ -39,7 +39,7 @@ SkipDetails = NewType("SkipDetails", str)
 CoreRulesParseTime = NewType("CoreRulesParseTime", float)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class MetavarValue:
     start: CoreLocation
     end: CoreLocation
@@ -51,7 +51,7 @@ class MetavarValue:
         return cls(start, end)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreMetavars:
     metavars: Dict[str, MetavarValue]
 
@@ -69,7 +69,7 @@ class CoreMetavars:
         return list(self.metavars.keys())
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreMatch:
     """
     Encapsulates finding returned by semgrep-core
@@ -96,7 +96,7 @@ class CoreMatch:
         return cls(rule_id, path, start, end, extra, metavars)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreError:
     """
     Encapsulates error object returned by semgrep-core
@@ -175,7 +175,7 @@ class CoreError:
         )
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreSkipped:
     rule_id: Optional[RuleId]
     path: Path
@@ -197,7 +197,7 @@ class CoreSkipped:
         return cls(rule_id, path, reason, details)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreRuleTiming:  # For a given target
     rule: Rule
     parse_time: float
@@ -213,7 +213,7 @@ class CoreRuleTiming:  # For a given target
         return cls(rule, parse_time, match_time)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreTargetTiming:
     target: Path
     per_rule_timings: List[CoreRuleTiming]
@@ -232,7 +232,7 @@ class CoreTargetTiming:
         return cls(target, per_rule_timings, run_time)
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class CoreTiming:
     rules: List[Rule]
     target_timings: List[CoreTargetTiming]
@@ -255,7 +255,7 @@ class CoreTiming:
         return cls(rules, target_timings, rules_parse_time)
 
 
-@attr.s(auto_attribs=True)
+@define(auto_attribs=True)
 class CoreOutput:
     """
     Parses output of semgrep-core

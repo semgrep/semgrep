@@ -6,7 +6,8 @@ from typing import FrozenSet
 from typing import Mapping
 from typing import NewType
 
-import attr
+from attrs import define
+from attrs import field
 
 JsonObject = Mapping[str, Any]
 
@@ -15,14 +16,14 @@ RuleId = NewType("RuleId", str)
 Targets = FrozenSet[Path]
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@define(auto_attribs=True, frozen=True)
 class FilteredTargets:
     """
     The return value of functions that filters target paths.
     """
 
     kept: Targets
-    removed: Targets = attr.ib(factory=frozenset)
+    removed: Targets = field(factory=frozenset)
 
 
 class MetricsState(Enum):

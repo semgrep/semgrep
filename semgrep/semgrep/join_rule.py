@@ -14,8 +14,8 @@ from typing import Set
 from typing import Tuple
 from typing import Type
 
-import attr
 import peewee as pw
+from attrs import define
 from peewee import ModelSelect
 from ruamel.yaml import YAML
 
@@ -71,14 +71,14 @@ class JoinOperator(Enum):
     SIMILAR_RIGHT = ">"
 
 
-@attr.s(auto_attribs=True)
+@define(auto_attribs=True)
 class Ref:
     id: str
     renames: Dict[str, str]
     alias: str
 
 
-@attr.s(auto_attribs=True)
+@define(auto_attribs=True)
 class Condition:
     collection_a: str
     property_a: str
