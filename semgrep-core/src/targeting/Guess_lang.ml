@@ -5,6 +5,12 @@
 
 open Common
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
+(****************************************************************************)
+(* Types *)
+(****************************************************************************)
+
 (*
    Evaluation will be left-to-right and lazy, using the usual (&&) and (||)
    operators.
@@ -155,6 +161,7 @@ let get_shebang_command path = get_first_line path |> parse_shebang_line
 
 let uses_shebang_command_name cmd_names =
   let f path =
+    logger#info "checking for a #! in %s" path;
     match get_shebang_command path with
     | Some ("/usr/bin/env" :: cmd_name :: _) -> List.mem cmd_name cmd_names
     | Some (cmd_path :: _) ->

@@ -27,6 +27,8 @@ module AST = AST_generic
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+type qualifier = AST.dotted_ident
+
 type env = {
   (* this is modified by side effects *)
   g : Graph_code.t;
@@ -34,12 +36,14 @@ type env = {
   hooks : hooks;
   readable : Common.filename;
   (* for lookup_local_file_opt *)
-  file_qualifier : AST.dotted_ident;
+  file_qualifier : qualifier;
   (* the parent to connect to when creating new nodes *)
   current_parent : Graph_code.node;
   (* the current "scope", everthing that is enclosing the current code.
    * less: no support for functors or complex modules *)
-  current_qualifier : AST.dotted_ident;
+  current_qualifier : qualifier;
+  (* for resolving self.foo() *)
+  class_qualifier : qualifier option;
 }
 
 (* We need 2 phases:
