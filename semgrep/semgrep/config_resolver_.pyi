@@ -15,6 +15,9 @@ class ConfigPath:
         is, also set the appropriate MetricManager flag
         """
         ...
+    def resolve_config(self) -> Mapping[str, rule_lang.YamlTree]:
+        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+        ...
 
 class Config:
     def __init__(self, valid_configs: Mapping[str, Sequence[Rule]]) -> None:

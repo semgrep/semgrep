@@ -35,6 +35,7 @@ type env = {
   phase : phase;
   hooks : hooks;
   readable : Common.filename;
+  lang : Lang.t;
   (* for lookup_local_file_opt *)
   file_qualifier : qualifier;
   (* the parent to connect to when creating new nodes *)

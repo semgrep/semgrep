@@ -228,9 +228,23 @@ and map_expr_kind env ekind : T.t option =
            n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
           Some (T.N final)
       | _ -> None)
-  | Call (v1, v2) ->
-      let v1 = map_expr env v1 and v2 = map_arguments env v2 in
-      todo_type
+  | Call (v1, v2) -> (
+      (* less: should do type checking on arguments matching parameters *)
+      let v1 = map_expr env v1
+      and _v2 = map_arguments env v2 in
+      let* t = v1 in
+      match t with
+      | T.N xs -> (
+          match env.lang with
+          (* in Python, calls to Foo() are actually disguised New that
+           * then should return the type Foo (the class Foo)
+           *)
+          | Lang.Python ->
+              (* less: could also link to __init__ method *)
+              Some (T.N xs)
+          (* should access the type signature of xs *)
+          | _ -> todo_type)
+      | _ -> None)
   | Alias (_, _) -> todo_type
   | L v1 ->
       let _v1 = map_literal env v1 in
