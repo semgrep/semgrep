@@ -16,6 +16,7 @@ let lang_has_no_dollar_ids =
     | Csharp
     | Kotlin
     | Lua
+    | Elixir
     | R
     | Html ->
         true

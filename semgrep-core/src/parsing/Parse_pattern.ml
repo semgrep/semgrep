@@ -69,6 +69,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Kotlin ->
         let res = Parse_kotlin_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Elixir ->
+        let res = Parse_elixir_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Solidity ->
         let res = Parse_solidity_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
