@@ -492,7 +492,6 @@ and map_argument = function
 
 and map_other_argument_operator _x = "TODO"
 
-
 and map_type_ { t; t_attrs } =
   let tk = map_type_kind t in
   let _attrsTODO = map_of_list map_attribute t_attrs in
