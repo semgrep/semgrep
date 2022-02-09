@@ -55,7 +55,9 @@ let v_option = Option.map
 let cases_to_lambda lb cases : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
   let param = G.Param (G.param_of_id id) in
-  let body = G.Switch (lb, Some (G.Cond (G.N (H.name_of_id id) |> G.e)), cases) |> G.s in
+  let body =
+    G.Switch (lb, Some (G.Cond (G.N (H.name_of_id id) |> G.e)), cases) |> G.s
+  in
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
@@ -466,7 +468,8 @@ and v_argument v =
   let v = v_expr v in
   G.Arg v
 
-and v_case_clauses v = v_list (fun a -> a |> v_case_clause |> case_clause_to_case_and_body) v
+and v_case_clauses v =
+  v_list (fun a -> a |> v_case_clause |> case_clause_to_case_and_body) v
 
 and v_case_clause
     {
@@ -489,10 +492,10 @@ and v_case_clause
     | None -> pat
     | Some (_t, e) -> PatWhen (pat, e)
   in
-  (icase,pat, G.Block (fb block) |> G.s)
+  (icase, pat, G.Block (fb block) |> G.s)
 
 and case_clause_to_case_and_body (icase, pat, block) =
-  G.CasesAndBody ([G.Case (icase,pat)], block)
+  G.CasesAndBody ([ G.Case (icase, pat) ], block)
 
 and v_guard (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr v2 in
@@ -621,11 +624,7 @@ and v_catch_clause (v1, v2) : G.catch list =
   | CatchCases (_lb, xs, _rb) ->
       let actions = List.map v_case_clause xs in
       actions
-      |> List.map (fun (icase, pat, st) ->
-             (* todo? e was the result of expr_of_block, so maybe we
-              * should revert because we want a stmt here with block_of_expr
-              *)
-             (icase, G.CatchPattern pat, st))
+      |> List.map (fun (icase, pat, st) -> (icase, G.CatchPattern pat, st))
   | CatchExpr e ->
       let e = v_expr e in
       let pat = G.PatUnderscore v1 in
