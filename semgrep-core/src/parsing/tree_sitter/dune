@@ -10,6 +10,7 @@
    tree-sitter-lang.c-sharp
    tree-sitter-lang.cpp
    tree-sitter-lang.dockerfile
+   tree-sitter-lang.elixir
    tree-sitter-lang.go
    tree-sitter-lang.hack
    tree-sitter-lang.hcl

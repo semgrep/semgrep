@@ -260,6 +260,8 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_kotlin_tree_sitter.parse ] (fun x -> x)
   | Lang.Solidity ->
       run file [ TreeSitter Parse_solidity_tree_sitter.parse ] (fun x -> x)
+  | Lang.Elixir ->
+      run file [ TreeSitter Parse_elixir_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
       run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
