@@ -44,7 +44,6 @@ let subexprs_of_stmt_kind = function
   (* 1 *)
   | ExprStmt (e, _)
   | DoWhile (_, _, e)
-  | Match (_, e, _)
   | DefStmt (_, VarDef { vinit = Some e; _ })
   | DefStmt (_, FieldDefColon { vinit = Some e; _ })
   | For (_, ForEach (_, _, e), _)
@@ -227,8 +226,6 @@ let substmts_of_stmt st =
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
             def.cbody |> unbracket |> Common.map (function F st -> st))
-  (* TODO *)
-  | Match _ -> []
 
 (*****************************************************************************)
 (* Visitors  *)

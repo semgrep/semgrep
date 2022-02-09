@@ -676,18 +676,6 @@ let (mk_visitor :
     let k x =
       (* todo? visit the s_id too? *)
       match x.s with
-      | Match (v0, v1, v2) ->
-          v_partial ~recurse:false (PartialMatch (v0, v1));
-          let v0 = v_tok v0 in
-          let v1 = v_expr v1
-          and v2 =
-            v_list
-              (fun (v1, v2) ->
-                let v1 = v_pattern v1 and v2 = v_expr v2 in
-                ())
-              v2
-          in
-          ()
       | DisjStmt (v1, v2) ->
           let v1 = v_stmt v1 in
           let v2 = v_stmt v2 in

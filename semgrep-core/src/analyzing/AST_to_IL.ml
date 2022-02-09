@@ -1092,7 +1092,6 @@ let rec stmt_aux env st =
   | G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E objorig ], stmt1) ->
       let ss, _TODO_obj = expr_with_pre_stmts env objorig in
       ss @ stmt env stmt1
-  | G.Match (_, _, _) -> todo (G.S st)
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)

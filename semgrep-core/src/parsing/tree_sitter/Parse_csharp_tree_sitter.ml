@@ -994,7 +994,7 @@ and initializer_expression (env : env)
   (v1, v2, v4)
 
 and switch_expression_arm (env : env)
-    ((v1, v2, v3, v4) : CST.switch_expression_arm) : action =
+    ((v1, v2, v3, v4) : CST.switch_expression_arm) =
   let v1 = pattern env v1 in
   let v2 =
     match v2 with
@@ -1003,7 +1003,7 @@ and switch_expression_arm (env : env)
   in
   let _v3 = token env v3 (* "=>" *) in
   let v4 = expression env v4 in
-  (v2, v4)
+  G.CasesAndBody ([G.Case (fake "case",v2)], G.exprstmt v4)
 
 and tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) =
   let v1 = token env v1 (* "(" *) in
@@ -1436,7 +1436,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let _v5 = token env v5 (* "}" *) in
       (* TODO: use Switch instead? *)
-      let st = Match (v2, v1, v4) |> G.s in
+      let st = G.Switch (v2, Some (G.Cond v1), v4) |> G.s in
       let x = G.stmt_to_expr st in
       x.G.e
   | `This_exp tok ->

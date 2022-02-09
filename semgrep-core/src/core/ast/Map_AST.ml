@@ -471,9 +471,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         and v2 = map_of_list map_any v2 in
         OtherArg (v1, v2)
   and map_other_argument_operator x = x
-  and map_action (v1, v2) =
-    let v1 = map_pattern v1 and v2 = map_expr v2 in
-    (v1, v2)
   and map_type_ { t; t_attrs } =
     let t = map_type_kind t in
     let t_attrs = map_of_list map_attribute t_attrs in
@@ -580,10 +577,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let k x =
       let skind =
         match x.s with
-        | Match (v0, v1, v2) ->
-            let v0 = map_tok v0 in
-            let v1 = map_expr v1 and v2 = map_of_list map_action v2 in
-            Match (v0, v1, v2)
         | DisjStmt (v1, v2) ->
             let v1 = map_stmt v1 in
             let v2 = map_stmt v2 in

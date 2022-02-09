@@ -897,10 +897,6 @@ and stmt_kind =
       tok (* 'switch', also 'select' in Go, or 'case' in Bash *)
       * condition option
       * case_and_body list (* TODO brace *)
-  (* todo: merge Match with Switch?
-   * In Scala and C# the match is infix (after the expr)
-   *)
-  | Match of tok * expr * action list
   | Continue of tok * label_ident * sc
   | Break of tok * label_ident * sc
   (* todo? remove stmt argument? more symetric to Goto *)
@@ -966,10 +962,6 @@ and case =
   | CaseEqualExpr of tok * expr
   (* e.g., CaseRange for C++ *)
   | OtherCase of todo_kind * any list
-
-(* todo: merge with case at some point *)
-(* newscope: newvar: *)
-and action = pattern * expr
 
 (* newvar: newscope: usually a PatVar *)
 and catch = tok (* 'catch', 'except' in Python *) * catch_exn * stmt

@@ -1444,8 +1444,8 @@ and map_expression_ending_with_block (env : env)
   | `Match_exp (v1, v2, v3) ->
       let t = token env v1 (* "match" *) in
       let expr = map_expression env v2 in
-      let actions = map_match_block env v3 in
-      let st = G.Match (t, expr, actions) |> G.s in
+      let actions = map_match_block env v3 |> List.map (fun (pat,e) -> G.CasesAndBody ([G.Case (G.fake "case",pat)], G.exprstmt e)) in
+      let st = G.Switch (t, Some (G.Cond expr), actions) |> G.s in
       G.stmt_to_expr st
   | `While_exp (v1, v2, v3, v4) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
@@ -1954,7 +1954,7 @@ and map_inner_attribute_item (env : env)
   AttrInner meta_item
 
 and map_last_match_arm (env : env) ((v1, v2, v3, v4, v5) : CST.last_match_arm) :
-    G.action =
+    (G.pattern * G.expr) =
   let _outer_attrs = List.map (map_outer_attribute_item env) v1 in
   let pattern = map_match_pattern env v2 in
   let _arrow = token env v3 (* "=>" *) in
@@ -1991,7 +1991,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
   in
   G.Call (G.N name |> G.e, (l, args, r)) |> G.e
 
-and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
+and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : (G.pattern * G.expr) =
   let _outer_attrs = List.map (map_outer_attribute_item env) v1 in
   let pattern =
     match v2 with
@@ -2011,7 +2011,7 @@ and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
   in
   (pattern, expr)
 
-and map_match_block (env : env) ((v1, v2, v3) : CST.match_block) : G.action list
+and map_match_block (env : env) ((v1, v2, v3) : CST.match_block) : (G.pattern * G.expr) list
     =
   let _lbrace = token env v1 (* "{" *) in
   let actions =
