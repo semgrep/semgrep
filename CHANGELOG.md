@@ -27,7 +27,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Typescript: Patterns `E as T` will be matched correctly. E.g. previously
   a pattern like `v as $T` would match `v` but not `v as any`, now it
   correctly matches `v as any` but not `v`. (#4515)
-- Solidity: ellipsis in contract body are now supported (#4587)  
+- Solidity: ellipsis in contract body are now supported (#4587)
 - Highlighting has been restored for matching code fragments within a finding
 
 ## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 02-02-2022
