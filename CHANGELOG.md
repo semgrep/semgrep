@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
+
 ### Added
 
 - Experimental baseline scanning. Run with `--baseline-commit GIT_COMMIT` to only
