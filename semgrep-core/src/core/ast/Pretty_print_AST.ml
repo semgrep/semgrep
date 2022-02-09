@@ -75,6 +75,7 @@ let print_bool env = function
       | Lang.Python2
       | Lang.Python3 ->
           "True"
+      | Lang.Elixir
       | Lang.Java
       | Lang.Go
       | Lang.C
@@ -106,6 +107,7 @@ let print_bool env = function
       | Lang.Python2
       | Lang.Python3 ->
           "False"
+      | Lang.Elixir
       | Lang.Java
       | Lang.Go
       | Lang.C
@@ -224,6 +226,7 @@ and if_stmt env level (tok, e, s, sopt) =
   let bracket_body = F.sprintf "%s %s" (* (if cond) body *) in
   let format_cond, elseif_str, format_block =
     match env.lang with
+    | Lang.Elixir
     | Lang.Bash
     | Lang.Dockerfile
     | Lang.Ruby
@@ -283,6 +286,7 @@ and while_stmt env level (tok, e, s) =
   let ruby_while = F.sprintf "%s %s\n %s\nend" in
   let while_format =
     match env.lang with
+    | Lang.Elixir
     | Lang.Bash
     | Lang.Php
     | Lang.Dockerfile
@@ -320,6 +324,7 @@ and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
   let do_while_format =
     match env.lang with
+    | Lang.Elixir
     | Lang.Bash
     | Lang.Php
     | Lang.Dockerfile
@@ -356,6 +361,7 @@ and do_while stmt env level (s, e) =
 and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     match env.lang with
+    | Lang.Elixir
     | Lang.Bash
     | Lang.Php
     | Lang.Html
@@ -421,6 +427,7 @@ and def_stmt env (entity, def_kind) =
   let var_def (ent, def) =
     let no_val, with_val =
       match env.lang with
+      | Lang.Elixir
       | Lang.Bash
       | Lang.Php
       | Lang.Dockerfile
@@ -486,6 +493,7 @@ and return env (tok, eopt) _sc =
     | Some e -> expr env e
   in
   match env.lang with
+  | Lang.Elixir
   | Lang.Bash
   | Lang.Php
   | Lang.Dockerfile
@@ -526,6 +534,7 @@ and break env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
+  | Lang.Elixir
   | Lang.Bash
   | Lang.Php
   | Lang.Dockerfile
@@ -566,6 +575,7 @@ and continue env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
+  | Lang.Elixir
   | Lang.Bash
   | Lang.Php
   | Lang.Dockerfile
@@ -676,6 +686,7 @@ and literal env l =
   | Char (s, _) -> F.sprintf "'%s'" s
   | String (s, _) -> (
       match env.lang with
+      | Lang.Elixir
       | Lang.Bash
       | Lang.Php
       | Lang.Dockerfile
