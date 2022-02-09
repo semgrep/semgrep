@@ -1062,7 +1062,7 @@ and map_definition env def =
 
         { env with current_parent = node; current_qualifier = dotted_ident }
     | None ->
-        (* TODO? handle also the qualified ident case? *)
+        (* less: handle also the qualified ident case? *)
         env
   in
   (* ----------- *)
