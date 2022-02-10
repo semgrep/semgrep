@@ -2,6 +2,7 @@ import os
 import re
 from enum import auto
 from enum import Enum
+from pathlib import Path
 from typing import Type
 
 from semgrep import __VERSION__
@@ -18,7 +19,8 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
-USER_DATA_FOLDER = ".semgrep"
+USER_DATA_FOLDER = Path.home() / ".semgrep"
+USER_LOG_FILE = Path(os.environ.get("SEMGREP_LOG_FILE", USER_DATA_FOLDER / "last.log"))
 SETTINGS_FILE = "settings.yml"
 SEMGREP_SETTING_ENVVAR_NAME = "SEMGREP_SETTINGS_FILE"
 SEMGREP_SETTINGS_FILE = os.environ.get(SEMGREP_SETTING_ENVVAR_NAME)

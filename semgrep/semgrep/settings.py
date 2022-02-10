@@ -58,7 +58,7 @@ class Settings:
         if SEMGREP_SETTINGS_FILE:
             return Path(SEMGREP_SETTINGS_FILE)
 
-        return Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
+        return USER_DATA_FOLDER / SETTINGS_FILE
 
     def add_setting(self, key: str, value: Any) -> None:
         """
