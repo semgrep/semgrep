@@ -42,7 +42,7 @@ repos:
           - requests~=2.27.0
           # other packages have separate typings published
           - types-colorama~=0.4.0
-          - types-jsonschema~=4.4.0
+          - types-jsonschema~=3.2.0
           - types-all
           - types-setuptools
       - id: mypy

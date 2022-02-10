@@ -16,7 +16,7 @@ types-requests = "*"
 types-setuptools = "*"
 
 [packages]
-click = "~=8.0.1"
-click-option-group = "~=0.5.3"
+click = "~=8.0.0"
+click-option-group = "~=0.5.0"
 jsonschema = "~=3.2.0"
 semgrep = {editable = true,path = "."}

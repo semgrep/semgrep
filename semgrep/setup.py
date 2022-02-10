@@ -110,14 +110,14 @@ install_requires = [
     "attrs~=21.4.0",
     "colorama~=0.4.0",
     "click~=8.0.1",
-    "click-option-group>=0.5.3",
+    "click-option-group~=0.5.0",
     "requests~=2.27.0",
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm>=4.46.1",
     "packaging>=20.4",
-    "jsonschema~=4.4.0",
+    "jsonschema~=3.2.0",
     "wcmatch==8.3",
-    "peewee~=3.14.4",
+    "peewee~=3.14.0",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because
     # it may interfere with other 'setuptools' installs on the system,
