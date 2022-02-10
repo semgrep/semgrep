@@ -41,10 +41,10 @@ repos:
           # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 
           # some packages ship with type definitions
-          - attrs~=21.4.0
-          - click~=8.0.0
+          - attrs~=21.0
+          - click~=8.0
           - packaging~=21.0
-          - requests~=2.27.0
+          - requests~=2.22
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-jsonschema~=3.2.0
