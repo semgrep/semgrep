@@ -18,6 +18,7 @@ from typing import Optional
 from typing import Tuple
 
 from attrs import define
+from attrs import frozen
 
 from semgrep.error import LegacySpan
 from semgrep.error import Level
@@ -39,7 +40,7 @@ SkipDetails = NewType("SkipDetails", str)
 CoreRulesParseTime = NewType("CoreRulesParseTime", float)
 
 
-@define(frozen=True)
+@frozen
 class MetavarValue:
     start: CoreLocation
     end: CoreLocation
@@ -51,7 +52,7 @@ class MetavarValue:
         return cls(start, end)
 
 
-@define(frozen=True)
+@frozen
 class CoreMetavars:
     metavars: Dict[str, MetavarValue]
 
@@ -69,7 +70,7 @@ class CoreMetavars:
         return list(self.metavars.keys())
 
 
-@define(frozen=True)
+@frozen
 class CoreMatch:
     """
     Encapsulates finding returned by semgrep-core
@@ -96,7 +97,7 @@ class CoreMatch:
         return cls(rule_id, path, start, end, extra, metavars)
 
 
-@define(frozen=True)
+@frozen
 class CoreError:
     """
     Encapsulates error object returned by semgrep-core
@@ -175,7 +176,7 @@ class CoreError:
         )
 
 
-@define(frozen=True)
+@frozen
 class CoreSkipped:
     rule_id: Optional[RuleId]
     path: Path
@@ -197,7 +198,7 @@ class CoreSkipped:
         return cls(rule_id, path, reason, details)
 
 
-@define(frozen=True)
+@frozen
 class CoreRuleTiming:  # For a given target
     rule: Rule
     parse_time: float
@@ -213,7 +214,7 @@ class CoreRuleTiming:  # For a given target
         return cls(rule, parse_time, match_time)
 
 
-@define(frozen=True)
+@frozen
 class CoreTargetTiming:
     target: Path
     per_rule_timings: List[CoreRuleTiming]
@@ -232,7 +233,7 @@ class CoreTargetTiming:
         return cls(target, per_rule_timings, run_time)
 
 
-@define(frozen=True)
+@frozen
 class CoreTiming:
     rules: List[Rule]
     target_timings: List[CoreTargetTiming]

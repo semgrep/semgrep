@@ -6,7 +6,7 @@ from typing import List
 from typing import Tuple
 
 import packaging.version
-from attrs import define
+from attrs import frozen
 from dependencyparser.find_lockfiles import find_lockfiles
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
@@ -28,7 +28,7 @@ def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDepen
     return dependencies
 
 
-@define(frozen=True, eq=True, order=True)
+@frozen(eq=True, order=True)
 class ProjectDependsOnEntry:
     namespace: PackageManagers
     package_name: str

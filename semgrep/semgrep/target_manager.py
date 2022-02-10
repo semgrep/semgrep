@@ -29,7 +29,8 @@ if sys.version_info[:2] >= (3, 8):
 else:
     from typing_extensions import Literal
 
-from attrs import define, field
+from attrs import define
+from attrs import field
 import click
 from attr import Factory
 from wcmatch import glob as wcglob
@@ -298,7 +299,7 @@ class TargetManager:
         files, _ = partition_set(lambda p: not p.is_dir(), targets)
         _, nonexistent_files = partition_set(lambda p: p.is_file(), files)
         if nonexistent_files:
-            raise FilesNotFoundError(tuple(nonexistent_files))
+            raise FilesNotFoundError(paths=tuple(nonexistent_files))
 
     @staticmethod
     def resolve_targets(targets: Sequence[str]) -> FrozenSet[Path]:

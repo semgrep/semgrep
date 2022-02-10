@@ -6,14 +6,14 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from attrs import define
 from attrs import field
+from attrs import frozen
 
 from semgrep.constants import RuleSeverity
 from semgrep.types import JsonObject
 
 
-@define(frozen=True)
+@frozen
 class CoreLocation:
     """
     parses:
@@ -50,7 +50,7 @@ class CoreLocation:
         return cls(line, col, offset)
 
 
-@define(frozen=True)
+@frozen
 class RuleMatch:
     """
     A section of code that matches a single rule (which is potentially many patterns)

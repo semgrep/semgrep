@@ -18,8 +18,8 @@ from typing import TypeVar
 from typing import Union
 
 import jsonschema.exceptions
-from attrs import define
 from attrs import evolve
+from attrs import frozen
 from jsonschema.validators import Draft7Validator
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
@@ -80,7 +80,7 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-@define(frozen=True, repr=False)
+@frozen(repr=False)
 class Position:
     """
     Position within a file.
@@ -106,7 +106,7 @@ class Position:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
-@define(frozen=True, repr=False)
+@frozen(repr=False)
 class Span:
     """
     Spans are immutable objects, representing segments of code. They have a central focus area, and

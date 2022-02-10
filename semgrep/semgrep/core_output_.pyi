@@ -12,7 +12,7 @@ https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core-respo
 
 from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
 from typing import NewType
-from attrs import define, field
+from attrs import define, frozen, field
 from pathlib import Path
 from semgrep.rule import Rule
 import semgrep.types as types
@@ -20,16 +20,16 @@ import semgrep.error as error
 import semgrep.types as types
 import semgrep.rule_match as rule_match
 
-@define(frozen=True)
+@frozen
 class MetavarValue:
     start: rule_match.CoreLocation
     end: rule_match.CoreLocation
 
-@define(frozen=True)
+@frozen
 class CoreMetavars:
     metavars: Dict[str, MetavarValue]
 
-@define(frozen=True)
+@frozen
 class CoreMatch:
     """
     Encapsulates finding returned by semgrep-core
@@ -42,13 +42,13 @@ class CoreMatch:
     extra: Dict[str, Any]
     metavars: CoreMetavars
 
-@define(frozen=True)
+@frozen
 class CoreRuleTiming:  # For a given target
     rule: Rule
     parse_time: float
     match_time: float
 
-@define(frozen=True)
+@frozen
 class CoreTargetTiming:
     target: Path
     per_rule_timings: List[CoreRuleTiming]
@@ -56,7 +56,7 @@ class CoreTargetTiming:
 
 CoreRulesParseTime = NewType("CoreRulesParseTime", float)
 
-@define(frozen=True)
+@frozen
 class CoreTiming:
     rules: List[Rule]
     target_timings: List[CoreTargetTiming]
@@ -65,7 +65,7 @@ class CoreTiming:
 CoreErrorType = NewType("CoreErrorType", str)
 CoreErrorMessage = NewType("CoreErrorMessage", str)
 
-@define(frozen=True)
+@frozen
 class CoreError:
     """
     Encapsulates error object returned by semgrep-core
@@ -85,7 +85,7 @@ class CoreError:
 SkipReason = NewType("SkipReason", str)
 SkipDetails = NewType("SkipDetails", str)
 
-@define(frozen=True)
+@frozen
 class CoreSkipped:
     rule_id: Optional[types.RuleId]
     path: Path
