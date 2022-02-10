@@ -9,7 +9,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
-import attr
+import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT

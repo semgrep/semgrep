@@ -17,7 +17,7 @@ from typing import List
 from typing import Sequence
 from typing import Tuple
 
-import attr
+from attrs import evolve
 
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
@@ -59,7 +59,7 @@ def process_ignores(
         evolved_matches = []
         for match in matches:
             ignored, returned_errors = _rule_match_nosem(match, strict)
-            evolved_matches.append(attr.evolve(match, is_ignored=ignored))
+            evolved_matches.append(evolve(match, is_ignored=ignored))
             nosem_errors.extend(returned_errors)
         filtered[rule] = evolved_matches
 

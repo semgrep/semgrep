@@ -29,7 +29,8 @@ if sys.version_info[:2] >= (3, 8):
 else:
     from typing_extensions import Literal
 
-import attr
+from attrs import define
+from attrs import field
 import click
 from attr import Factory
 from wcmatch import glob as wcglob
@@ -92,7 +93,7 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
         yield out_targets
 
 
-@attr.s(auto_attribs=True)
+@define
 class IgnoreLog:
     """Keeps track of which paths were ignored for what reason.
 
@@ -260,7 +261,7 @@ class IgnoreLog:
         return output
 
 
-@attr.s(auto_attribs=True)
+@define
 class TargetManager:
     """
     Handles all file include/exclude logic for semgrep
@@ -278,13 +279,13 @@ class TargetManager:
     includes: Sequence[str]
     excludes: Sequence[str]
     max_target_bytes: int
-    targets: Sequence[str] = attr.ib()
+    targets: Sequence[str] = field()
     respect_git_ignore: bool
     skip_unknown_extensions: bool
     file_ignore: Optional[FileIgnore]
     ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
 
-    _filtered_targets: Dict[Language, FilteredTargets] = attr.ib(factory=dict)
+    _filtered_targets: Dict[Language, FilteredTargets] = field(factory=dict)
 
     @targets.validator
     def _check_exists(self, attribute: str, value: Sequence[str]) -> None:
@@ -298,7 +299,7 @@ class TargetManager:
         files, _ = partition_set(lambda p: not p.is_dir(), targets)
         _, nonexistent_files = partition_set(lambda p: p.is_file(), files)
         if nonexistent_files:
-            raise FilesNotFoundError(tuple(nonexistent_files))
+            raise FilesNotFoundError(paths=tuple(nonexistent_files))
 
     @staticmethod
     def resolve_targets(targets: Sequence[str]) -> FrozenSet[Path]:
