@@ -892,15 +892,14 @@ and stmt_kind =
   (* newscope: *)
   | For of tok (* 'for', 'foreach'*) * for_header * stmt
   (* The expr can be None for Go and Ruby.
-   * less: could be merged with ExprStmt (MatchPattern ...) *)
+   * less: could be merged with ExprStmt (MatchPattern ...)
+   * Also used for 'match' in OCaml/Scala/Rust
+   * The 'match'/'switch' token is infix in Scala and C# *)
   | Switch of
-      tok (* 'switch', also 'select' in Go, or 'case' in Bash *)
+      tok
+      (* 'switch', also 'select' in Go, or 'case' in Bash, or 'match' in OCaml/Scala/Rust *)
       * condition option
       * case_and_body list (* TODO brace *)
-  (* todo: merge Match with Switch?
-   * In Scala and C# the match is infix (after the expr)
-   *)
-  | Match of tok * expr * action list
   | Continue of tok * label_ident * sc
   | Break of tok * label_ident * sc
   (* todo? remove stmt argument? more symetric to Goto *)
@@ -966,10 +965,6 @@ and case =
   | CaseEqualExpr of tok * expr
   (* e.g., CaseRange for C++ *)
   | OtherCase of todo_kind * any list
-
-(* todo: merge with case at some point *)
-(* newscope: newvar: *)
-and action = pattern * expr
 
 (* newvar: newscope: usually a PatVar *)
 and catch = tok (* 'catch', 'except' in Python *) * catch_exn * stmt
@@ -2006,3 +2001,23 @@ let unhandled_keywordattr (s, t) =
 (*****************************************************************************)
 
 let unbracket (_, x, _) = x
+
+(*****************************************************************************)
+(* Patterns *)
+(*****************************************************************************)
+
+let case_of_pat_and_expr ?(tok = None) (pat, expr) =
+  let tok =
+    match tok with
+    | None -> fake "case"
+    | Some tok -> tok
+  in
+  CasesAndBody ([ Case (tok, pat) ], exprstmt expr)
+
+let case_of_pat_and_stmt ?(tok = None) (pat, stmt) =
+  let tok =
+    match tok with
+    | None -> fake "case"
+    | Some tok -> tok
+  in
+  CasesAndBody ([ Case (tok, pat) ], stmt)

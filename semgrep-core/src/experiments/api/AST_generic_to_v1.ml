@@ -492,10 +492,6 @@ and map_argument = function
 
 and map_other_argument_operator _x = "TODO"
 
-and map_action (v1, v2) =
-  let v1 = map_pattern v1 and v2 = map_expr v2 in
-  (v1, v2)
-
 and map_type_ { t; t_attrs } =
   let tk = map_type_kind t in
   let _attrsTODO = map_of_list map_attribute t_attrs in
@@ -638,10 +634,6 @@ and map_other_attribute_operator _x = "TODO"
 and map_stmt x : B.stmt =
   let skind =
     match x.s with
-    | Match (_, v1, v2) ->
-        let v1 = map_expr v1 and v2 = map_of_list map_action v2 in
-        let e = `MatchPattern (v1, v2) in
-        `OtherStmt ("TODO", [ `E e ])
     | DisjStmt (v1, v2) ->
         let v1 = map_stmt v1 in
         let v2 = map_stmt v2 in
