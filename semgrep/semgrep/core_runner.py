@@ -47,12 +47,8 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RULE_SAVE_FILE = str(
-    Path("~").expanduser() / USER_DATA_FOLDER / Path("semgrep_rules.yaml")
-)
-TARGET_SAVE_FILE = str(
-    Path("~").expanduser() / USER_DATA_FOLDER / Path("semgrep_targets.txt")
-)
+RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.yaml"))
+TARGET_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_targets.txt"))
 
 
 def setrlimits_preexec_fn() -> None:

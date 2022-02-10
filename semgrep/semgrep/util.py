@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 import click
 
 from semgrep.constants import Colors
+from semgrep.constants import USER_LOG_FILE
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
@@ -55,7 +56,6 @@ def is_url(url: str) -> bool:
         return False
 
 
-# TODO: seems dead
 def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
@@ -65,6 +65,16 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     handler = logging.StreamHandler()
     formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
+
+    # USER_LOG_FILE dir must exist
+    USER_LOG_FILE.parent.mkdir(exist_ok=True)
+    file_handler = logging.FileHandler(USER_LOG_FILE)
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
 
     level = logging.INFO
     if verbose:
@@ -76,7 +86,7 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
 
     handler.setLevel(level)
     logger.addHandler(handler)
-    logger.setLevel(level)
+    logger.setLevel(logging.DEBUG)
 
     global FORCE_COLOR
     if force_color:
