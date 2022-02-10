@@ -10,13 +10,14 @@ pytest = "*"
 pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
-types-attrs = "*"
-types-click = "*"
-types-requests = "*"
+types-all = "*"
 types-setuptools = "*"
+types-colorama = "~=0.4.0"
+types-jsonschema = "~=3.2.0"
 
 [packages]
-click = "~=8.0.0"
-click-option-group = "~=0.5.0"
-jsonschema = "~=3.2.0"
+# versions must be manually synced:
+# - semgrep/setup.py lists dependencies
+# - semgrep/Pipfile lists type hint packages for dev env
+# - .pre-commit-config.yaml's mypy hooks also list type hint packages
 semgrep = {editable = true,path = "."}

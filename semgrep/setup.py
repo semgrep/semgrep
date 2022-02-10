@@ -106,7 +106,10 @@ if not SEMGREP_SKIP_BIN:
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
 
 install_requires = [
-    # keep versions in sync with .pre-commit-config.yaml's mypy hook
+    # versions must be manually synced:
+    # - semgrep/setup.py lists dependencies
+    # - semgrep/Pipfile lists type hint packages for dev env
+    # - .pre-commit-config.yaml's mypy hooks also list type hint packages
     "attrs~=21.4.0",
     "colorama~=0.4.0",
     "click~=8.0.1",
@@ -114,7 +117,7 @@ install_requires = [
     "requests~=2.27.0",
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm>=4.46.1",
-    "packaging>=20.4",
+    "packaging~=21.0",
     "jsonschema~=3.2.0",
     "wcmatch==8.3",
     "peewee~=3.14.0",
