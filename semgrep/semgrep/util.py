@@ -59,13 +59,25 @@ def is_url(url: str) -> bool:
 def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
-
     logger = logging.getLogger("semgrep")
-    logger.handlers = []
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(message)s")
-    handler.setFormatter(formatter)
+    logger.handlers = []  # Reset to no handlers
 
+    stdout_level = logging.INFO
+    if verbose:
+        stdout_level = logging.VERBOSE  # type: ignore[attr-defined]
+    elif debug:
+        stdout_level = logging.DEBUG
+    elif quiet:
+        stdout_level = logging.CRITICAL
+
+    # Setup stdout logging
+    stdout_handler = logging.StreamHandler()
+    stdout_formatter = logging.Formatter("%(message)s")
+    stdout_handler.setFormatter(stdout_formatter)
+    stdout_handler.setLevel(stdout_level)
+    logger.addHandler(stdout_handler)
+
+    # Setup file logging
     # USER_LOG_FILE dir must exist
     USER_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     file_handler = logging.FileHandler(USER_LOG_FILE)
@@ -76,16 +88,7 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
-    level = logging.INFO
-    if verbose:
-        level = logging.VERBOSE  # type: ignore[attr-defined]
-    elif debug:
-        level = logging.DEBUG
-    elif quiet:
-        level = logging.CRITICAL
-
-    handler.setLevel(level)
-    logger.addHandler(handler)
+    # Needs to be DEBUG otherwise will filter before sending to handlers
     logger.setLevel(logging.DEBUG)
 
     global FORCE_COLOR
