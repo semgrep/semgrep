@@ -4,7 +4,7 @@
 
 let test_match_limit_ok () =
   let rex = SPcre.regexp "(a+)+$" in
-  match SPcre.pmatch ~rex "aaaaaaaaaaaaaaaaaaa!" with
+  match SPcre.pmatch ~rex "aaaaaaaaaaaaaaaaa!" with
   | Ok _ -> ()
   | Error Pcre.MatchLimit ->
       Alcotest.fail "should not have failed with error MatchLimit"
@@ -12,7 +12,7 @@ let test_match_limit_ok () =
 
 let test_match_limit_fail () =
   let rex = SPcre.regexp "(a+)+$" in
-  match SPcre.pmatch ~rex "aaaaaaaaaaaaaaaaaaaaaaaaaa!" with
+  match SPcre.pmatch ~rex "aaaaaaaaaaaaaaaaaa!" with
   | Ok _ -> Alcotest.fail "should have failed with error MatchLimit"
   | Error Pcre.MatchLimit -> ()
   | Error _ -> Alcotest.fail "unexpected error"
