@@ -119,14 +119,6 @@ let has_case_ellipsis_and_filter_ellipsis xs =
       | _ -> false)
     xs
 
-let has_match_case_ellipsis_and_filter_ellipsis xs =
-  has_ellipsis_and_filter_ellipsis_gen
-    (fun (pat, body) ->
-      match (pat, body) with
-      | G.PatEllipsis _, { G.e = G.Ellipsis _; _ } -> true
-      | _ -> false)
-    xs
-
 let rec obj_and_method_calls_of_expr e =
   match e.G.e with
   | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
@@ -1006,14 +998,6 @@ and m_literal_svalue a b =
   | B.Sym _
   | B.NotCst ->
       fail ()
-
-and m_match_cases a b =
-  let has_ellipsis, a = has_match_case_ellipsis_and_filter_ellipsis a in
-  m_list_in_any_order ~less_is_ok:has_ellipsis m_action a b
-
-and m_action (a : G.action) (b : G.action) =
-  match (a, b) with
-  | (a1, a2), (b1, b2) -> m_pattern a1 b1 >>= fun () -> m_expr a2 b2
 
 and m_arithmetic_operator a b =
   Trace_matching.(if on then print_arithmetic_operator_pair a b);
@@ -2003,9 +1987,6 @@ and m_stmt a b =
   | G.Switch (at, a1, a2), B.Switch (bt, b1, b2) ->
       m_tok at bt >>= fun () ->
       m_option m_condition a1 b1 >>= fun () -> m_case_clauses a2 b2
-  | G.Match (a0, a1, a2), B.Match (b0, b1, b2) ->
-      let* () = m_tok a0 b0 in
-      m_expr a1 b1 >>= fun () -> m_match_cases a2 b2
   | G.Continue (a0, a1, asc), B.Continue (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_label_ident a1 b1 in
@@ -2050,7 +2031,6 @@ and m_stmt a b =
   | G.DoWhile _, _
   | G.For _, _
   | G.Switch _, _
-  | G.Match _, _
   | G.Return _, _
   | G.Continue _, _
   | G.Break _, _

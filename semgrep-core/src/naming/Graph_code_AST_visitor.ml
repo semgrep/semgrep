@@ -620,11 +620,6 @@ and map_stmt_kind env = function
       and v2 = map_of_option (map_condition env) v2
       and v3 = map_of_list (map_case_and_body env) v3 in
       nothing env (v1, v2, v3)
-  | Match (v1, v2, v3) ->
-      let v1 = map_tok env v1
-      and v2 = map_expr env v2
-      and v3 = map_of_list (map_action env) v3 in
-      nothing env (v1, v2, v3)
   | Continue (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_label_ident env v2
