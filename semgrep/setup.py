@@ -123,7 +123,7 @@ install_requires = [
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm~=4.46",
     "packaging~=21.0",
-    "jsonschema>=3.2.0,<5",
+    "jsonschema~=3.2",
     "wcmatch~=8.3",
     "peewee~=3.14",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
@@ -133,14 +133,6 @@ install_requires = [
     # in 'setuptools' for a very long time, so we don't need a recent
     # version.
     "setuptools",
-    # importlib.resources is an standard library package
-    # that has a backport on PyPI called .importlib-resources.
-    # jsonschema==4 uses a feature from it that was added in py3.9.
-    # Normally jsonschema==4 would install the backport on py3.8 and below,
-    # but because we pin jsonschema, just in development, to an old version,
-    # we never get the backport when running pipenv lock on a dev machine.
-    # So we add it manually here:
-    'importlib-resources;python_version<"3.9"',
 ]
 
 setuptools.setup(

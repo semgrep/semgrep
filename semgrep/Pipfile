@@ -4,9 +4,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-# pinned versions for development
-jsonschema = "~=3.2.0"
-
 # testing & linting packages
 appdirs = "*"
 mypy = "==0.931"
@@ -24,7 +21,7 @@ tox = "*"
 types-all = "*"
 types-setuptools = "*"
 types-colorama = "~=0.4.0"
-types-jsonschema = "~=3.2.0"
+types-jsonschema = "~=3.2"
 
 [packages]
 semgrep = {editable = true,path = "."}
