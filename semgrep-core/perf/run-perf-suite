@@ -52,6 +52,8 @@ TESTS = [
     Test("stmts-double-ellipsis-aaa", "js", "l1000.js"),
     # Svalue analysis of a large function
     Test("svalue", "csharp", "l5000.cs"),
+    # Stress test for regexp matching
+    Test("semgrep_targets", "regex", "semgrep_targets.txt", True),
     #
     # Real world examples (.sgrep or .yaml files when True last argument)
     #
