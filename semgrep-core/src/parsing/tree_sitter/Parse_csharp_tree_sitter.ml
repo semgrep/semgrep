@@ -1003,7 +1003,7 @@ and switch_expression_arm (env : env)
   in
   let _v3 = token env v3 (* "=>" *) in
   let v4 = expression env v4 in
-  G.CasesAndBody ([ G.Case (fake "case", v2) ], G.exprstmt v4)
+  G.case_of_pat_and_expr (v2, v4)
 
 and tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) =
   let v1 = token env v1 (* "(" *) in

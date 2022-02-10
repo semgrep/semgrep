@@ -1444,11 +1444,7 @@ and map_expression_ending_with_block (env : env)
   | `Match_exp (v1, v2, v3) ->
       let t = token env v1 (* "match" *) in
       let expr = map_expression env v2 in
-      let actions =
-        map_match_block env v3
-        |> List.map (fun (pat, e) ->
-               G.CasesAndBody ([ G.Case (G.fake "case", pat) ], G.exprstmt e))
-      in
+      let actions = map_match_block env v3 |> List.map G.case_of_pat_and_expr in
       let st = G.Switch (t, Some (G.Cond expr), actions) |> G.s in
       G.stmt_to_expr st
   | `While_exp (v1, v2, v3, v4) ->

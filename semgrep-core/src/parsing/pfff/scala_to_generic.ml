@@ -469,7 +469,11 @@ and v_argument v =
   G.Arg v
 
 and v_case_clauses v =
-  v_list (fun a -> a |> v_case_clause |> case_clause_to_case_and_body) v
+  v_list
+    (fun a ->
+      a |> v_case_clause |> fun (icase, p, s) ->
+      G.case_of_pat_and_stmt ~tok:(Some icase) (p, s))
+    v
 
 and v_case_clause
     {
@@ -493,9 +497,6 @@ and v_case_clause
     | Some (_t, e) -> PatWhen (pat, e)
   in
   (icase, pat, G.Block (fb block) |> G.s)
-
-and case_clause_to_case_and_body (icase, pat, block) =
-  G.CasesAndBody ([ G.Case (icase, pat) ], block)
 
 and v_guard (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr v2 in

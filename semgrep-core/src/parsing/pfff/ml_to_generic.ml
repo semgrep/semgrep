@@ -202,9 +202,7 @@ and stmt e : G.stmt =
       G.For (t, header, v5) |> G.s
   | Match (t, v1, v2) ->
       let v1 = expr v1
-      and v2 =
-        list (fun a -> a |> match_case |> match_case_to_switch_case) v2
-      in
+      and v2 = list (fun a -> a |> match_case |> G.case_of_pat_and_expr) v2 in
       G.Switch (t, Some (G.Cond v1), v2) |> G.s
   | e -> (
       let e = expr e in
@@ -365,14 +363,12 @@ and expr e =
       in
       G.Lambda def
   | Function (t, xs) ->
-      let xs =
-        list (fun a -> a |> match_case |> match_case_to_switch_case) xs
-      in
+      let xs = list (fun a -> a |> match_case |> G.case_of_pat_and_expr) xs in
       let id = ("!_implicit_param!", t) in
       let params = [ G.Param (G.param_of_id id) ] in
       let body_stmt =
         G.Switch
-          (t, Some (G.Cond (G.N (G.Id (id, G.empty_id_info ())) |> G.e)), xs)
+          (t, Some (G.Cond (G.N (AST_generic_helpers.name_of_id id) |> G.e)), xs)
         |> G.s
       in
       G.Lambda
@@ -435,9 +431,6 @@ and match_case (v1, (v3, _t, v2)) =
   match v3 with
   | None -> (v1, v2)
   | Some x -> (G.PatWhen (v1, x), v2)
-
-and match_case_to_switch_case (v1, v2) =
-  G.CasesAndBody ([ Case (fake "|", v1) ], G.exprstmt v2)
 
 and for_direction = function
   | To v1 ->
