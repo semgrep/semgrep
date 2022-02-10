@@ -23,8 +23,14 @@ let extra_flag = `UTF8
 let regexp ?study ?iflags ?(flags = []) ?chtables pat =
   (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)
   let flags = extra_flag :: flags in
-  Pcre.regexp ?study ~limit:10_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
-    ~limit_recursion:10_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
+  (* OCaml's Pcre library does not support setting timeouts, and since it's just
+   * a wrapper for a C library `Common.set_timeout` doesn't work... So, we set a
+   * lower `limit` and `limit_recursion` (default values are 10_000_000) to avoid
+   * spending too much time on regex matching. See perf/input/semgrep_targets.txt
+   * and perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
+   * hang (but it was just the Pcre engine taking way too much time). *)
+  Pcre.regexp ?study ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
+    ~limit_recursion:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
     ?iflags ~flags ?chtables pat
 
 let pmatch ?iflags ?flags ?rex ?pos ?callout subj =
