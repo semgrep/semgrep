@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- Configure the PCRE engine with lower match-attempts and recursion limits in order
+  to prevent regex matching from potentially "hanging" Semgrep
+
+## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
+
 ### Added
 
 - Experimental baseline scanning. Run with `--baseline-commit GIT_COMMIT` to only
@@ -17,6 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Performance: send all rules directly to semgrep-core instead of invoking semgrep-core
   for each rule, reducing the overhead significantly. Other changes resulting from this:
   Sarif output now includes all rules run. Error messages use full path of rules.
+  Progress bar reports by file instead of by rule
 - Required minimum version of python to run semgrep now 3.7 instead of EOL 3.6
 - Bloom filter optimization now considers `import` module file names, thus
   speeding up matching of patterns like `import { $X } from 'foo'`

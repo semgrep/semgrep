@@ -35,10 +35,20 @@ repos:
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
-          - types_all
-          - types-attrs
-          - types-click
-          - types-requests
+          # versions must be manually synced:
+          # - semgrep/setup.py lists dependencies
+          # - semgrep/Pipfile lists type hint packages for dev env
+          # - .pre-commit-config.yaml's mypy hooks also list type hint packages
+
+          # some packages ship with type definitions
+          - attrs~=21.0
+          - click~=8.0
+          - packaging~=21.0
+          - requests~=2.22
+          # other packages have separate typings published
+          - types-colorama~=0.4.0
+          - types-jsonschema~=3.2
+          - types-all
           - types-setuptools
       - id: mypy
         alias: mypy-test

@@ -447,7 +447,7 @@ class RuleValidation:
     BANNED_SENTINEL = "Additional properties are not allowed"
 
 
-def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:  # type: ignore
+def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:
     """
     Heuristic that returns meaningful error messages in all examples from
     tests/e2e/rules/syntax/badXXX.yaml

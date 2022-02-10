@@ -4,19 +4,24 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+# testing & linting packages
 appdirs = "*"
 mypy = "==0.931"
 pytest = "*"
 pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
-types-attrs = "*"
-types-click = "*"
-types-requests = "*"
+
+# versions must be manually synced:
+# - semgrep/setup.py lists dependencies
+# - semgrep/Pipfile lists type hint packages for dev env
+# - .pre-commit-config.yaml's mypy hooks also list type hint packages
+
+# type hints
+types-all = "*"
 types-setuptools = "*"
+types-colorama = "~=0.4.0"
+types-jsonschema = "~=3.2"
 
 [packages]
-click = "~=8.0.1"
-click-option-group = "~=0.5.3"
-jsonschema = "~=3.2.0"
 semgrep = {editable = true,path = "."}

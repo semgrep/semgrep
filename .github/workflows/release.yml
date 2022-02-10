@@ -252,15 +252,15 @@ jobs:
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
       - name: install package
-        run: /opt/python/cp36-cp36m/bin/pip install dist/*.whl
+        run: /opt/python/cp37-cp37m/bin/pip install dist/*.whl
       - name: test package
-        working-directory: /opt/python/cp36-cp36m/bin/
+        working-directory: /opt/python/cp37-cp37m/bin/
         run: ./semgrep --version
       - name: e2e semgrep-core test
-        working-directory: /opt/python/cp36-cp36m/bin/
+        working-directory: /opt/python/cp37-cp37m/bin/
         run: echo '1 == 1' | ./semgrep -l python -e '$X == $X' -
       - name: e2e spacegrep test
-        working-directory: /opt/python/cp36-cp36m/bin/
+        working-directory: /opt/python/cp37-cp37m/bin/
         run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
 
   upload-wheels:
