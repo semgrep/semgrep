@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- semgrep saves logs of last run to `~/.semgrep/last.log`
+
 ### Fixed
 
 - Configure the PCRE engine with lower match-attempts and recursion limits in order
