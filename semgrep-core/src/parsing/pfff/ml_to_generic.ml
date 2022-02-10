@@ -201,8 +201,9 @@ and stmt e : G.stmt =
       in
       G.For (t, header, v5) |> G.s
   | Match (t, v1, v2) ->
-      let v1 = expr v1 and v2 = list match_case v2 in
-      G.Match (t, v1, v2) |> G.s
+      let v1 = expr v1
+      and v2 = list (fun a -> a |> match_case |> G.case_of_pat_and_expr) v2 in
+      G.Switch (t, Some (G.Cond v1), v2) |> G.s
   | e -> (
       let e = expr e in
       (* bugfix: I was using 'G.exprstmt e' before, but then a pattern
@@ -362,11 +363,13 @@ and expr e =
       in
       G.Lambda def
   | Function (t, xs) ->
-      let xs = list match_case xs in
+      let xs = list (fun a -> a |> match_case |> G.case_of_pat_and_expr) xs in
       let id = ("!_implicit_param!", t) in
       let params = [ G.Param (G.param_of_id id) ] in
       let body_stmt =
-        G.Match (t, G.N (G.Id (id, G.empty_id_info ())) |> G.e, xs) |> G.s
+        G.Switch
+          (t, Some (G.Cond (G.N (AST_generic_helpers.name_of_id id) |> G.e)), xs)
+        |> G.s
       in
       G.Lambda
         {
