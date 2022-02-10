@@ -9,7 +9,7 @@ from typing import Sequence
 from typing import Tuple
 
 import click
-from click.shell_completion import CompletionItem  # type:ignore
+from click.shell_completion import CompletionItem
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
