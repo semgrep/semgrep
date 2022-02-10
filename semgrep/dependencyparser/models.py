@@ -19,7 +19,7 @@ class PackageManagers(Enum):
     PYPI = "pypy"
 
 
-@define(auto_attribs=True, frozen=True, eq=True, order=True)
+@define(frozen=True, eq=True, order=True)
 class LockfileDependency:
     name: str
     version: str

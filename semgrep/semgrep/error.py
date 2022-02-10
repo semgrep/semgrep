@@ -87,14 +87,14 @@ class SemgrepError(Exception):
         return cls(**data)
 
 
-@define(auto_attribs=True, frozen=True)
+@define(frozen=True)
 class LegacySpan:
     config_start: CoreLocation
     config_end: CoreLocation
     config_path: Tuple[str]
 
 
-@define(auto_attribs=True, frozen=True)
+@define(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
@@ -186,7 +186,7 @@ class SemgrepInternalError(Exception):
     pass
 
 
-@define(auto_attribs=True, frozen=True)
+@define(frozen=True)
 class FilesNotFoundError(SemgrepError):
     level = Level.ERROR
     code = FATAL_EXIT_CODE
@@ -205,7 +205,7 @@ def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     return tuple(spans)
 
 
-@define(auto_attribs=True, eq=True, frozen=True)
+@define(eq=True, frozen=True)
 class ErrorWithSpan(SemgrepError):
     """
     In general, you should not be constructing ErrorWithSpan directly, and instead be constructing a subclass

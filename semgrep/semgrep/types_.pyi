@@ -10,7 +10,7 @@ RuleId = NewType("RuleId", str)
 
 Targets = FrozenSet[Path]
 
-@attr.s(auto_attribs=True, frozen=True)
+@attr.s(frozen=True)
 class FilteredTargets:
     """
     The return value of functions that filters target paths.

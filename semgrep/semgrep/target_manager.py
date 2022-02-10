@@ -92,7 +92,7 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
         yield out_targets
 
 
-@define(auto_attribs=True)
+@define
 class IgnoreLog:
     """Keeps track of which paths were ignored for what reason.
 
@@ -260,7 +260,7 @@ class IgnoreLog:
         return output
 
 
-@define(auto_attribs=True)
+@define
 class TargetManager:
     """
     Handles all file include/exclude logic for semgrep

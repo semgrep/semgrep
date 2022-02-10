@@ -13,7 +13,7 @@ from semgrep.constants import RuleSeverity
 from semgrep.types import JsonObject
 
 
-@define(auto_attribs=True, frozen=True)
+@define(frozen=True)
 class CoreLocation:
     """
     parses:

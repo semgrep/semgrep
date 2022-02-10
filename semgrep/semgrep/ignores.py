@@ -99,7 +99,7 @@ class FileIgnore:
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
-@define(auto_attribs=True)
+@define
 class Parser:
     """
     A parser for semgrepignore syntax.
@@ -191,7 +191,7 @@ class Parser:
 
 
 # This class is an exact duplicate of the Processor class in semgrep-action
-@define(auto_attribs=True)
+@define
 class Processor:
     """
     A post-processor for parsed semgrepignore files.

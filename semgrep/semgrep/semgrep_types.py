@@ -20,7 +20,7 @@ JOIN_MODE = Mode("join")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
 
 
-@define(auto_attribs=True, frozen=True)
+@define(frozen=True)
 class LanguageDefinition:
     """
     Mirrors schema of lang.json (see lang/README.md) for each language

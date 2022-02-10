@@ -80,7 +80,7 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-@define(auto_attribs=True, frozen=True, repr=False)
+@define(frozen=True, repr=False)
 class Position:
     """
     Position within a file.
@@ -106,7 +106,7 @@ class Position:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
-@define(auto_attribs=True, frozen=True, repr=False)
+@define(frozen=True, repr=False)
 class Span:
     """
     Spans are immutable objects, representing segments of code. They have a central focus area, and

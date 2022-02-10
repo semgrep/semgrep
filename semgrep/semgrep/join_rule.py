@@ -71,14 +71,14 @@ class JoinOperator(Enum):
     SIMILAR_RIGHT = ">"
 
 
-@define(auto_attribs=True)
+@define
 class Ref:
     id: str
     renames: Dict[str, str]
     alias: str
 
 
-@define(auto_attribs=True)
+@define
 class Condition:
     collection_a: str
     property_a: str

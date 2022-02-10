@@ -28,7 +28,7 @@ def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDepen
     return dependencies
 
 
-@define(auto_attribs=True, frozen=True, eq=True, order=True)
+@define(frozen=True, eq=True, order=True)
 class ProjectDependsOnEntry:
     namespace: PackageManagers
     package_name: str
