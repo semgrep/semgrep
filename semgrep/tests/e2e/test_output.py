@@ -201,3 +201,33 @@ def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
         report is not None
     ), "can't find ignore log report based on expected start and end lines"
     snapshot.assert_match(report.group(), "report.txt")
+
+
+def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snapshot):
+    (tmp_path / ".semgrepignore").symlink_to(
+        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
+    )
+
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/eqeq-basic.yaml",
+        # This set of options is carefully crafted
+        # to trigger one entry for most ignore reasons.
+        # Note that the print order is non-deterministic,
+        # so you must take care not to have two skips in a category.
+        options=[
+            "--include=ignore.*",
+            "--include=tests",
+            "--include=find.*",
+            "--exclude=*.min.js",
+            "--max-target-bytes=100",
+            "--verbose",
+        ],
+        output_format=OutputFormat.JSON,
+        target_name="ignores",
+    )
+    parsed_output = json.loads(stdout)
+    assert "paths" in parsed_output
+
+    snapshot.assert_match(
+        json.dumps(parsed_output["paths"], indent=2, sort_keys=True), "report.json"
+    )
