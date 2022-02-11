@@ -134,7 +134,7 @@ let error env t s =
     match f with
     | P ( { pat; pstr = _pstr; pid = _pid}, _) -> Set.add pat mvs
     | Not (_, _) -> mvs
-    | Or (_, xs) -> 
+    | Or (_, xs) ->
       let mv_sets = List.map (collect_metavars mvs) xs in
       List.fold_left (fun acc mv_set -> if acc == Set.empty then mv_set else Set.inter acc mv_set) Set.empty mv_sets
     | And (_, xs, mv_conds) -> Set.empty
