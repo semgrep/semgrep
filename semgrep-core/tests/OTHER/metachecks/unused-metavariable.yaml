@@ -1,0 +1,13 @@
+rules:
+- id: bad-method
+  patterns:
+    - pattern: |
+        var $UTIL = require("something_or_other");
+        ...
+        $UTIL.$FUNC(...)
+    - metavariable-regex:
+        metavariable: $METHOD
+        regex: (a|b|c)
+  message: Bad method call
+  languages: [js]
+  severity: WARNING

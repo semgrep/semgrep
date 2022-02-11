@@ -21,6 +21,7 @@ module PI = Parse_info
 module P = Pattern_match
 module RP = Report
 module SJ = Output_from_core_j
+module Set = Set_
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -80,12 +81,9 @@ let error env t s =
   Common.push err env.errors
 
 (*****************************************************************************)
-(* Formula *)
+(* Checks *)
 (*****************************************************************************)
 
-let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y
-
-let check_formula env (lang : Xlang.t) f =
   (* check duplicated patterns, essentially:
    *  $K: $PAT
    *  ...
@@ -94,10 +92,11 @@ let check_formula env (lang : Xlang.t) f =
    *
    * See also now semgrep-rules/meta/identical_pattern.sgrep :)
    *)
-  let rec find_dupe f =
+  let rec find_dupe env f =
+    let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y in
     match f with
     | P _ -> ()
-    | Not (_, f) -> find_dupe f
+    | Not (_, f) -> find_dupe env f
     | Or (t, xs)
     | And (t, xs, _) ->
         let rec aux xs =
@@ -128,18 +127,35 @@ let check_formula env (lang : Xlang.t) f =
         (* breadth *)
         aux xs;
         (* depth *)
-        xs |> List.iter find_dupe
-  in
-  find_dupe f;
+        xs |> List.iter (find_dupe env)
+
+  let unknown_metavar_in_comparison f =
+    let rec collect_metavars mvs f =
+    match f with
+    | P ( { pat; pstr = _pstr; pid = _pid}, _) -> Set.add pat mvs
+    | Not (_, _) -> mvs
+    | Or (_, xs) -> 
+      let mv_sets = List.map (collect_metavars mvs) xs in
+      List.fold_left (fun acc mv_set -> if acc == Set.empty then mv_set else Set.inter acc mv_set) Set.empty mv_sets
+    | And (_, xs, mv_conds) -> Set.empty
+
   (* call Check_pattern subchecker *)
-  f
-  |> visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
+  let check_pattern (lang : Xlang.t) f =
+     visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
          match (pat, lang) with
          | Sem (semgrep_pat, _lang), L (lang, _rest) ->
              Check_pattern.check lang semgrep_pat
          | Spacegrep _spacegrep_pat, LGeneric -> ()
          | Regexp _, _ -> ()
-         | _ -> raise Impossible);
+         | _ -> raise Impossible) f
+
+(*****************************************************************************)
+(* Formula *)
+(*****************************************************************************)
+
+let check_formula env (lang : Xlang.t) f =
+  find_dupe env f;
+  check_pattern lang f;
   List.rev !(env.errors)
 
 (*****************************************************************************)
