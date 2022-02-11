@@ -248,13 +248,12 @@ class OutputHandler:
             if ex.level == Level.ERROR:
                 raise ex
             else:
+                message = f"{error_stats}; run with --verbose for details"
+                if not self.settings.strict:
+                    message += " or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
+                logger.info(terminal_wrap(message))
                 if self.settings.strict:
                     raise ex
-                logger.info(
-                    terminal_wrap(
-                        f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
-                    )
-                )
         else:
             raise ex
 
