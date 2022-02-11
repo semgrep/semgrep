@@ -39,5 +39,9 @@
       "type": "SemgrepError"
     }
   ],
+  "paths": {
+    "scanned": [],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": []
 }

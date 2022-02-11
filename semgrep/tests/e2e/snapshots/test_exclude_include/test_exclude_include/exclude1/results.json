@@ -1,5 +1,12 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/exclude_include/included/excluded.js",
+      "targets/exclude_include/included/included.js"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.javascript-basic-eqeq-bad",

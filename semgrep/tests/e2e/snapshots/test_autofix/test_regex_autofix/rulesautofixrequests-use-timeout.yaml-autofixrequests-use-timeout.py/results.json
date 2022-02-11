@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/requests-use-timeout.py"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",

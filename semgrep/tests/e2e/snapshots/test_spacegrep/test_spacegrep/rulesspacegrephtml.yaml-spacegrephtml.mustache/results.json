@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/spacegrep/html.mustache"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.spacegrep.var-in-script-tag",

@@ -1,1 +1,1 @@
-{"errors": [{"code": 2, "level": "error", "message": "File not found: targets/stupid-does-not-exist.p", "type": "SemgrepError"}], "results": []}
+{"errors": [{"code": 2, "level": "error", "message": "File not found: targets/stupid-does-not-exist.p", "type": "SemgrepError"}], "paths": {"scanned": [], "skipped": "<add --verbose for a list of skipped paths>"}, "results": []}

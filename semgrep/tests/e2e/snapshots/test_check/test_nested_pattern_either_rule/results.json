@@ -1,5 +1,13 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/basic/nested-patterns.js",
+      "targets/basic/nosem.js",
+      "targets/basic/stupid.js"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.test",

@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/deduplication/deduplication.py"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.deduplication.duplicate",

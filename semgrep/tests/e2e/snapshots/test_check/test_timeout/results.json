@@ -9,5 +9,11 @@
       "type": "Timeout"
     }
   ],
+  "paths": {
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": []
 }

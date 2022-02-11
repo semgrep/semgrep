@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "/var/folders/6m/1krt8ck117x_k5_yhh71sb5m0000gn/T/tmpd5j4twki/stdin"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "-",

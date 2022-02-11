@@ -1,4 +1,10 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/inventory/invent.py"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": []
 }

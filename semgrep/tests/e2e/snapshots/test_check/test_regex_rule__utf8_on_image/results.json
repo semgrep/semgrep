@@ -1,4 +1,10 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/image/semgrep.png"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": []
 }

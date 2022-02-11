@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/defaulthttpclient.java"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.autofix.java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-deprecated",

@@ -27,5 +27,9 @@
       "type": "Pattern parse error"
     }
   ],
+  "paths": {
+    "scanned": [],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": []
 }

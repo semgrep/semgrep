@@ -1,4 +1,10 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/useslodash.js"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": []
 }

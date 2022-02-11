@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/autofix/django-none-password-default.py"
+    ],
+    "skipped": "<add --verbose for a list of skipped paths>"
+  },
   "results": [
     {
       "check_id": "rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default",

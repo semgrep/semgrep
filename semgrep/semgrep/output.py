@@ -362,7 +362,16 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
-        extra: Dict[str, Any] = {}
+        # Extra, extra! This just in! 🗞️
+        # The extra dict is for blatantly skipping type checking and function signatures.
+        # - The text formatter uses it to store settings
+        # - But the JSON formatter uses it to store additional data to directly output
+        extra: Dict[str, Any] = {
+            "paths": {
+                "scanned": [str(path) for path in sorted(self.all_targets)],
+                "skipped": "<add --verbose for a list of skipped paths>",
+            }
+        }
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
@@ -375,6 +384,10 @@ class OutputHandler:
                 self.all_targets,
                 self.profiling_data,
                 self.profiler,
+            )
+        if self.settings.verbose_errors:
+            extra["paths"]["skipped"] = sorted(
+                self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
