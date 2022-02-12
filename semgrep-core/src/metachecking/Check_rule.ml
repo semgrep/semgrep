@@ -66,6 +66,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+exception No_metacheck_file of string
+
 type env = { r : Rule.t; errors : E.error list ref }
 
 (*****************************************************************************)
@@ -166,19 +168,26 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
             Set.empty mv_sets
         in
-        (* Check that all metavariables in this and's metavariable-comparison
-           clauses appear somewhere else *)
+        (* Check that all metavariables in this and-clause's metavariable-comparison clauses appear somewhere else *)
+        let mv_error mv t =
+          error env t
+            (mv
+           ^ " is used in a metavariable-cond/regexp but not present in a \
+              valid pattern (either any clause of a pattern-and or all clauses \
+              of a pattern-either)")
+        in
         metavar_conds
         |> List.iter (fun (t, metavar_cond) ->
                match metavar_cond with
                | CondEval _ -> ()
                | CondRegexp (mv, _) ->
-                   if not (Set.mem mv mvs) then error env t "nope"
+                   if not (Set.mem mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
-                   if not (Set.mem mv mvs) then error env t "nope");
+                   if not (Set.mem mv mvs) then mv_error mv t);
         mvs
   in
-  collect_metavars f
+  let _ = collect_metavars f in
+  ()
 
 (* call Check_pattern subchecker *)
 let check_pattern (lang : Xlang.t) f =
@@ -199,6 +208,7 @@ let check_pattern (lang : Xlang.t) f =
 let check_formula env (lang : Xlang.t) f =
   find_dupe env f;
   check_pattern lang f;
+  unknown_metavar_in_comparison env f;
   List.rev !(env.errors)
 
 (*****************************************************************************)
@@ -283,9 +293,10 @@ let check_files mk_config fparser input =
     match input with
     | []
     | [ _ ] ->
-        logger#error
-          "check_rules needs a metacheck file or directory and rules to run on";
-        []
+        raise
+          (No_metacheck_file
+             "check_rules needs a metacheck file or directory and rules to run \
+              on")
     | metachecks :: xs -> run_checks config fparser metachecks xs
   in
   match config.output_format with
