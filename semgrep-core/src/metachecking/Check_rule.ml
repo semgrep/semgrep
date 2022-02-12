@@ -22,6 +22,7 @@ module P = Pattern_match
 module RP = Report
 module SJ = Output_from_core_j
 module Set = Set_
+module V = Visitor_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -84,70 +85,112 @@ let error env t s =
 (* Checks *)
 (*****************************************************************************)
 
-  (* check duplicated patterns, essentially:
-   *  $K: $PAT
-   *  ...
-   *  $K2: $PAT
-   * but at the same level!
-   *
-   * See also now semgrep-rules/meta/identical_pattern.sgrep :)
-   *)
-  let rec find_dupe env f =
-    let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y in
-    match f with
-    | P _ -> ()
-    | Not (_, f) -> find_dupe env f
-    | Or (t, xs)
-    | And (t, xs, _) ->
-        let rec aux xs =
-          match xs with
-          | [] -> ()
-          | x :: xs ->
-              (* todo: for Pat, we could also check if exist PatNot
-               * in which case intersection will always be empty
-               *)
-              xs
-              |> List.iter (fun y ->
-                     if equal_formula x y then
-                       let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
-                       let kind = R.kind_of_formula x in
-                       error env ty
-                         (spf "Duplicate %s of %s at line %d" kind kind
-                            (PI.line_of_info tx)));
-              xs
-              |> List.iter (fun y ->
-                     if equal_formula (Not (t, x)) y then
-                       let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
-                       let kind = R.kind_of_formula x in
-                       error env ty
-                         (spf "Unsatisfiable formula with %s at line %d" kind
-                            (PI.line_of_info tx)));
-              aux xs
-        in
-        (* breadth *)
-        aux xs;
-        (* depth *)
-        xs |> List.iter (find_dupe env)
+(* check duplicated patterns, essentially:
+ *  $K: $PAT
+ *  ...
+ *  $K2: $PAT
+ * but at the same level!
+ *
+ * See also now semgrep-rules/meta/identical_pattern.sgrep :)
+ *)
+let rec find_dupe env f =
+  let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y in
+  match f with
+  | P _ -> ()
+  | Not (_, f) -> find_dupe env f
+  | Or (t, xs)
+  | And (t, xs, _) ->
+      let rec aux xs =
+        match xs with
+        | [] -> ()
+        | x :: xs ->
+            (* todo: for Pat, we could also check if exist PatNot
+             * in which case intersection will always be empty
+             *)
+            xs
+            |> List.iter (fun y ->
+                   if equal_formula x y then
+                     let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
+                     let kind = R.kind_of_formula x in
+                     error env ty
+                       (spf "Duplicate %s of %s at line %d" kind kind
+                          (PI.line_of_info tx)));
+            xs
+            |> List.iter (fun y ->
+                   if equal_formula (Not (t, x)) y then
+                     let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
+                     let kind = R.kind_of_formula x in
+                     error env ty
+                       (spf "Unsatisfiable formula with %s at line %d" kind
+                          (PI.line_of_info tx)));
+            aux xs
+      in
+      (* breadth *)
+      aux xs;
+      (* depth *)
+      xs |> List.iter (find_dupe env)
 
-  let unknown_metavar_in_comparison f =
-    let rec collect_metavars mvs f =
+let unknown_metavar_in_comparison env f =
+  let rec collect_metavars f : MV.mvar Set.t =
     match f with
-    | P ( { pat; pstr = _pstr; pid = _pid}, _) -> Set.add pat mvs
-    | Not (_, _) -> mvs
+    | P ({ pat; pstr = _pstr; pid = _pid }, _) ->
+        let mvs_in_pat = ref Set.empty in
+        (match pat with
+        | Sem (semgrep_pat, _lang) ->
+            let v =
+              V.mk_visitor
+                {
+                  V.default_visitor with
+                  V.kident =
+                    (fun (_k, _) (id, _t) ->
+                      mvs_in_pat := Set.add id !mvs_in_pat);
+                }
+            in
+            v semgrep_pat
+        | Spacegrep _
+        | Regexp _
+        | Comby _ ->
+            ());
+        !mvs_in_pat
+    | Not (_, _) -> Set.empty
     | Or (_, xs) ->
-      let mv_sets = List.map (collect_metavars mvs) xs in
-      List.fold_left (fun acc mv_set -> if acc == Set.empty then mv_set else Set.inter acc mv_set) Set.empty mv_sets
-    | And (_, xs, mv_conds) -> Set.empty
+        let mv_sets = List.map collect_metavars xs in
+        List.fold_left
+          (fun acc mv_set ->
+            if acc == Set.empty then mv_set else Set.inter acc mv_set)
+          Set.empty mv_sets
+    | And (_, xs, metavar_conds) ->
+        let mv_sets = List.map collect_metavars xs in
+        let mvs =
+          List.fold_left
+            (fun acc mv_set -> Set.union acc mv_set)
+            Set.empty mv_sets
+        in
+        (* Check that all metavariables in this and's metavariable-comparison
+           clauses appear somewhere else *)
+        metavar_conds
+        |> List.iter (fun (t, metavar_cond) ->
+               match metavar_cond with
+               | CondEval _ -> ()
+               | CondRegexp (mv, _) ->
+                   if not (Set.mem mv mvs) then error env t "nope"
+               | CondNestedFormula (mv, _, _) ->
+                   if not (Set.mem mv mvs) then error env t "nope");
+        mvs
+  in
+  collect_metavars f
 
-  (* call Check_pattern subchecker *)
-  let check_pattern (lang : Xlang.t) f =
-     visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
-         match (pat, lang) with
-         | Sem (semgrep_pat, _lang), L (lang, _rest) ->
-             Check_pattern.check lang semgrep_pat
-         | Spacegrep _spacegrep_pat, LGeneric -> ()
-         | Regexp _, _ -> ()
-         | _ -> raise Impossible) f
+(* call Check_pattern subchecker *)
+let check_pattern (lang : Xlang.t) f =
+  visit_new_formula
+    (fun { pat; pstr = _pat_str; pid = _ } ->
+      match (pat, lang) with
+      | Sem (semgrep_pat, _lang), L (lang, _rest) ->
+          Check_pattern.check lang semgrep_pat
+      | Spacegrep _spacegrep_pat, LGeneric -> ()
+      | Regexp _, _ -> ()
+      | _ -> raise Impossible)
+    f
 
 (*****************************************************************************)
 (* Formula *)
