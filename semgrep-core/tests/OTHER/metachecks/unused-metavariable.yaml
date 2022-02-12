@@ -1,10 +1,12 @@
 rules:
-- id: bad-method
+- id: unused-metavariable
   patterns:
+    # ruleid: test-rule-file-run
     - pattern: |
         var $UTIL = require("something_or_other");
         ...
         $UTIL.$FUNC(...)
+    # ruleid: semgrep-metacheck-builtin
     - metavariable-regex:
         metavariable: $METHOD
         regex: (a|b|c)

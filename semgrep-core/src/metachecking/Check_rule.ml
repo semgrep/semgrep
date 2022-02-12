@@ -55,12 +55,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * and have semgrep call `semgrep-core -rules` on the checks
  *
  * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
- *
- * TODO rules:
- *  - detect if scope of metavariable-regexp is wrong and should be put
- *    in a AND with the relevant pattern. If used with an AND of OR,
- *    make sure all ORs define the metavar.
- *    see https://github.com/returntocorp/semgrep/issues/2664
  *)
 
 (*****************************************************************************)
@@ -86,51 +80,6 @@ let error env t s =
 (*****************************************************************************)
 (* Checks *)
 (*****************************************************************************)
-
-(* check duplicated patterns, essentially:
- *  $K: $PAT
- *  ...
- *  $K2: $PAT
- * but at the same level!
- *
- * See also now semgrep-rules/meta/identical_pattern.sgrep :)
- *)
-let rec find_dupe env f =
-  let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y in
-  match f with
-  | P _ -> ()
-  | Not (_, f) -> find_dupe env f
-  | Or (t, xs)
-  | And (t, xs, _) ->
-      let rec aux xs =
-        match xs with
-        | [] -> ()
-        | x :: xs ->
-            (* todo: for Pat, we could also check if exist PatNot
-             * in which case intersection will always be empty
-             *)
-            xs
-            |> List.iter (fun y ->
-                   if equal_formula x y then
-                     let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
-                     let kind = R.kind_of_formula x in
-                     error env ty
-                       (spf "Duplicate %s of %s at line %d" kind kind
-                          (PI.line_of_info tx)));
-            xs
-            |> List.iter (fun y ->
-                   if equal_formula (Not (t, x)) y then
-                     let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
-                     let kind = R.kind_of_formula x in
-                     error env ty
-                       (spf "Unsatisfiable formula with %s at line %d" kind
-                          (PI.line_of_info tx)));
-            aux xs
-      in
-      (* breadth *)
-      aux xs;
-      (* depth *)
-      xs |> List.iter (find_dupe env)
 
 let unknown_metavar_in_comparison env f =
   let rec collect_metavars f : MV.mvar Set.t =
@@ -170,6 +119,8 @@ let unknown_metavar_in_comparison env f =
         in
         (* Check that all metavariables in this and-clause's metavariable-comparison clauses appear somewhere else *)
         let mv_error mv t =
+          (* TODO make this message more helpful by detecting specific
+             variants of this *)
           error env t
             (mv
            ^ " is used in a metavariable-cond/regexp but not present in a \
@@ -206,7 +157,6 @@ let check_pattern (lang : Xlang.t) f =
 (*****************************************************************************)
 
 let check_formula env (lang : Xlang.t) f =
-  find_dupe env f;
   check_pattern lang f;
   unknown_metavar_in_comparison env f;
   List.rev !(env.errors)

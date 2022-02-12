@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
+- `--validate` will check that metavariable-x doesn't use an invalid
+  metavariable
 
 ### Fixed
 
