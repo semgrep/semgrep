@@ -83,13 +83,21 @@ let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
       let x = str env tok in
       H.parse_number_literal x
 
+(* This is supposed to be a string, but we get a list of non-whitespace
+ * characters ('template_literal_chunk's or 'Token.t's), so we need to
+ * reconstruct the string from them.
+ *
+ * Note that we need to respect newlines and spaces so that HEREDOCs are
+ * correctly parsed, this is important e.g. if you later want to
+ * analyze the string with metavariable-regex or metavariable-pattern
+ * (see tests/OTHER/rules/terraform_nested_yaml).
+ *
+ * TODO: Could we handle this properly already in the Tree-sitter parser? *)
 let map_template_literal (env : env) (xs : CST.template_literal) :
     string wrap option =
   match xs with
   | [] -> None
   | ((x_pos, x_str) as x) :: xs ->
-      (* each character is a separate template_literal_chunk, so we need
-       * to merge them in a single string. *)
       let module Loc = Tree_sitter_run.Loc in
       let base_col = x_pos.Loc.start.column in
       let rec concat_chunks acc_str prev_row prev_col xs =
@@ -97,17 +105,13 @@ let map_template_literal (env : env) (xs : CST.template_literal) :
         | [] -> acc_str
         | x :: xs ->
             let x_loc, x_str = x in
-            let last_col =
+            let prev_col =
               if x_loc.Loc.start.row > prev_row then base_col else prev_col
             in
             let acc_str =
-              (* we need to respect newlines and spaces so that HEREDOCs are
-               * correctly parsed, this is important e.g. if you later want to
-               * analyze the string with metavariable-regex or metavariable-pattern.
-               * TODO: Can't we handle this properly already in the Tree-sitter parser? *)
               acc_str
               ^ String.make (max 0 (x_loc.Loc.start.row - prev_row)) '\n'
-              ^ String.make (max 0 (x_loc.Loc.start.column - last_col)) ' '
+              ^ String.make (max 0 (x_loc.Loc.start.column - prev_col)) ' '
               ^ x_str
             in
             concat_chunks acc_str x_loc.Loc.end_.row x_loc.Loc.end_.column xs
