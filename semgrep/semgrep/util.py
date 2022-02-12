@@ -28,6 +28,9 @@ T = TypeVar("T")
 global FORCE_COLOR
 FORCE_COLOR = False
 
+global VERBOSITY
+VERBOSITY = logging.INFO
+
 
 MAX_TEXT_WIDTH = 120
 
@@ -37,11 +40,7 @@ def is_quiet() -> bool:
     Returns true if logging level is quiet or quieter (higher)
     (i.e. only critical logs surfaced)
     """
-    handlers = logging.getLogger("semgrep").handlers
-    stream_handler = (
-        handlers[0] if isinstance(handlers[0], logging.StreamHandler) else handlers[-1]
-    )
-    return stream_handler.level >= logging.CRITICAL
+    return VERBOSITY >= logging.CRITICAL
 
 
 def is_debug() -> bool:
@@ -49,11 +48,7 @@ def is_debug() -> bool:
     Returns true if logging level is debug or noisier (lower)
     (i.e. want more logs)
     """
-    handlers = logging.getLogger("semgrep").handlers
-    stream_handler = (
-        handlers[0] if isinstance(handlers[0], logging.StreamHandler) else handlers[-1]
-    )
-    return stream_handler.level <= logging.DEBUG
+    return VERBOSITY <= logging.DEBUG
 
 
 def is_url(url: str) -> bool:
@@ -98,6 +93,9 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
 
     # Needs to be DEBUG otherwise will filter before sending to handlers
     logger.setLevel(logging.DEBUG)
+
+    global VERBOSITY
+    VERBOSITY = stdout_level
 
     global FORCE_COLOR
     if force_color:
