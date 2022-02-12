@@ -266,6 +266,10 @@ class TargetManager:
     """
     Handles all file include/exclude logic for semgrep
 
+    Assumes file system does not change during it's existence to cache
+    files for a given language etc. If file system changes (i.e. git checkout),
+    create a new TargetManager object
+
     If respect_git_ignore is true then will only consider files that are
     tracked or (untracked but not ignored) by git
 
