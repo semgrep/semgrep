@@ -513,7 +513,7 @@ class CoreRunner:
                 print(" ".join(cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, len(targets_with_rules))
+            runner = StreamingSemgrepCore(cmd, len(plan))
             returncode = runner.execute()
 
             # Process output
