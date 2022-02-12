@@ -85,16 +85,38 @@ let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
 
 let map_template_literal (env : env) (xs : CST.template_literal) :
     string wrap option =
-  (* each character is a separate template_literal_chunk, so we need
-   * to merge them in a single string.
-   *)
-  let xs = List.map (str env (* template_literal_chunk *)) xs in
   match xs with
   | [] -> None
-  | (s1, t1) :: ys ->
-      let str = List.map fst ys |> String.concat "" in
-      let toks = List.map snd ys in
-      Some (s1 ^ str, PI.combine_infos t1 toks)
+  | ((x_pos, x_str) as x) :: xs ->
+      (* each character is a separate template_literal_chunk, so we need
+       * to merge them in a single string. *)
+      let module Loc = Tree_sitter_run.Loc in
+      let base_col = x_pos.Loc.start.column in
+      let rec concat_chunks acc_str prev_row prev_col xs =
+        match xs with
+        | [] -> acc_str
+        | x :: xs ->
+            let x_loc, x_str = x in
+            let last_col =
+              if x_loc.Loc.start.row > prev_row then base_col else prev_col
+            in
+            let acc_str =
+              (* we need to respect newlines and spaces so that HEREDOCs are
+               * correctly parsed, this is important e.g. if you later want to
+               * analyze the string with metavariable-regex or metavariable-pattern.
+               * TODO: Can't we handle this properly already in the Tree-sitter parser? *)
+              acc_str
+              ^ String.make (max 0 (x_loc.Loc.start.row - prev_row)) '\n'
+              ^ String.make (max 0 (x_loc.Loc.start.column - last_col)) ' '
+              ^ x_str
+            in
+            concat_chunks acc_str x_loc.Loc.end_.row x_loc.Loc.end_.column xs
+      in
+      let str =
+        concat_chunks x_str x_pos.Loc.end_.row x_pos.Loc.end_.column xs
+      in
+      let tok = PI.rewrap_str str (token env x) in
+      Some (str, tok)
 
 let map_identifier (env : env) (x : CST.identifier) : ident =
   match x with
