@@ -405,7 +405,7 @@ class CoreRunner:
             ) from ex
         return list(targets)
 
-    def _create_core_run_planner(
+    def _plan_core_run(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> List[Dict[str, Any]]:
         """
@@ -475,10 +475,8 @@ class CoreRunner:
             target_file_name, "w+"
         ) as target_file:
 
-            targets_with_rules = self._create_core_run_planner(
-                rules, target_manager, all_targets
-            )
-            target_file.write(json.dumps(targets_with_rules))
+            plan = self._plan_core_run(rules, target_manager, all_targets)
+            target_file.write(json.dumps(plan))
             target_file.flush()
 
             yaml = YAML()

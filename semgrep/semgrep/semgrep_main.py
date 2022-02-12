@@ -400,7 +400,7 @@ def main(
                 except FilesNotFoundError as e:
                     # This means a file existed in head but not
                     # in baseline context which is fine
-                    pass
+                    logger.debug(f"File not found in baseline: {e}")
 
                 (
                     baseline_rule_matches_by_rule,
