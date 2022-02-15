@@ -1,15 +1,29 @@
 import os
 import sys
+import time
 from typing import Optional
+from typing import Tuple
 
 import click
 
+from semgrep.constants import IN_DOCKER
+from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.settings import SETTINGS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+import uuid
+
+
+def make_login_url() -> Tuple[uuid.UUID, str]:
+    session_id = uuid.uuid4()
+    # @Tin to pick the URL here
+    return (
+        session_id,
+        f"{SEMGREP_URL}login-cli?t={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
+    )
 
 
 @click.command()
@@ -24,13 +38,66 @@ def login() -> None:
         )
         sys.exit(1)
 
-    login_token = click.prompt("Enter semgrep.dev API token", hide_input=True)
-    if Authentication.is_valid_token(login_token):
-        Authentication.set_token(login_token)
-        click.echo(f"Valid API Token saved in {SETTINGS.get_path_to_settings()}")
-    else:
-        click.echo("entered token is not valid. Please try again.")
+    if sys.stderr.isatty():
+        # TODO: give a way to pass --app-token or something as a flag
+        # login_token = click.prompt("Enter semgrep.dev API token", hide_input=True)
+        session_id, url = make_login_url()
+        click.echo(
+            "Login enables additional proprietary Semgrep Registry rules and running custom policies from Semgrep App."
+        )
+        click.echo(f"Login at: {url}")
+        click.echo(
+            "\nOnce you've logged in, return here and you'll be ready to start using new Semgrep rules."
+        )
+        MAX_RETRIES = 10
+        WAIT_BETWEEN_RETRY_IN_SEC = 5
+        import requests
+
+        for _ in range(MAX_RETRIES):
+            headers = {"User-Agent": SEMGREP_USER_AGENT}
+            r = requests.get(
+                # @Tin not sure what this URL should be
+                f"{SEMGREP_URL}api/agent/deployment",
+                timeout=10,
+                headers=headers,
+            )
+            if r.status_code == 200:
+                as_json = r.json()
+                if not save_token(as_json.get("token")):
+                    sys.exit(1)
+            elif r.status_code != 404:
+                click.echo(
+                    f"Unexpected failure from {SEMGREP_URL}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                    err=True,
+                )
+
+            time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
+
+        click.echo(
+            f"Failed to login: please check your internet connection or contact support@r2c.dev",
+            err=True,
+        )
         sys.exit(1)
+
+    else:
+        click.echo(
+            "Error: semgrep login is an interactive command: must run in an interactive terminal",
+            err=True,
+        )
+        sys.exit(1)
+
+
+def save_token(login_token: Optional[str]) -> bool:
+    if login_token is not None and Authentication.is_valid_token(login_token):
+        Authentication.set_token(login_token)
+        click.echo(
+            f"Saved login token\n\n\t{login_token}\n\n in {SETTINGS.get_path_to_settings()}."
+        )
+        click.echo(f"Note: You can always generate more tokens at {SEMGREP_URL}")
+        return True
+    else:
+        click.echo("Login token is not valid. Please try again.", err=True)
+        return False
 
 
 @click.command()
