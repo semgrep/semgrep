@@ -5,6 +5,6 @@ class B(A):
         return 3
     
 
-def use_A():
+def use_A_dead_ok():
     return A().foo()
     

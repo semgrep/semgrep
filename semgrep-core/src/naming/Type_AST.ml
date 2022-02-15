@@ -40,6 +40,7 @@ type t =
   | Function of AST.parameters (* TODO? normalize also params? *) * t
   (* todos *)
   | Todo of AST.todo_kind
+[@@deriving show]
 
 (*****************************************************************************)
 (* Converters *)

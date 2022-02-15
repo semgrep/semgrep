@@ -32,6 +32,9 @@ type qualifier = AST.dotted_ident
 type env = {
   (* this is modified by side effects *)
   g : Graph_code.t;
+  (* for resolving method calls, also modified by side effects *)
+  types : (Graph_code.node, Type_AST.t) Hashtbl.t;
+  (* non-mutable fields *)
   phase : phase;
   hooks : hooks;
   readable : Common.filename;
