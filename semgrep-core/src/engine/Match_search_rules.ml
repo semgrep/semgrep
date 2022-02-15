@@ -611,19 +611,23 @@ let matches_of_xpatterns config file_and_more xpatterns =
 (* Formula evaluation *)
 (*****************************************************************************)
 
-let satisfies_metavar_entropy_condition env bindings mvar =
+(*
+   Find the metavariable value, convert it back to a string, and
+   run it through an analyzer that returns true if there's a "match".
+*)
+let analyze_metavar env bindings mvar analyzer =
   match List.assoc_opt mvar bindings with
   | None ->
       error env
         (Common.spf
-           "metavariable-pattern failed because %s is not in scope, please \
+           "metavariable-analysis failed because %s is not in scope, please \
             check your rule"
            mvar);
       false
   | Some mval -> (
       match Eval_generic.text_of_binding mvar mval with
       | None -> false
-      | Some data -> Entropy.has_high_entropy data)
+      | Some data -> analyzer data)
 
 let rec filter_ranges env xs cond =
   xs
@@ -672,7 +676,15 @@ let rec filter_ranges env xs cond =
              Eval_generic.eval_bool env e
          | R.CondEntropy mvar ->
              let bindings = r.mvars in
-             satisfies_metavar_entropy_condition env bindings mvar)
+             analyze_metavar env bindings mvar Entropy.has_high_entropy
+         | R.CondReDoS mvar ->
+             let bindings = r.mvars in
+             let analyze re_str =
+               match ReDoS.regexp_may_explode re_str with
+               | Some res -> res
+               | None -> false
+             in
+             analyze_metavar env bindings mvar analyze)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in

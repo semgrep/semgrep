@@ -607,6 +607,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       let analyzer = take mv_analysis_dict env parse_string "analyzer" in
       match analyzer with
       | "entropy" -> R.MetavarEntropy metavar
+      | "redos" -> R.MetavarReDoS metavar
       | other -> error_at_key env key ("Unsupported analyzer: " ^ other))
   | "metavariable-regex" ->
       let mv_regex_dict =

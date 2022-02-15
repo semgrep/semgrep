@@ -136,6 +136,7 @@ and metavar_cond =
    *)
   | CondRegexp of MV.mvar * regexp
   | CondEntropy of MV.mvar
+  | CondReDoS of MV.mvar
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 [@@deriving show, eq]
 
@@ -169,6 +170,7 @@ and extra =
   | MetavarPattern of MV.mvar * Xlang.t option * formula
   | MetavarComparison of metavariable_comparison
   | MetavarEntropy of MV.mvar
+  | MetavarReDoS of MV.mvar
   (* arbitrary code! dangerous! *)
   | PatWherePython of string
 
@@ -359,6 +361,7 @@ let convert_extra x =
           in
           CondEval cond)
   | MetavarEntropy mvar -> CondEntropy mvar
+  | MetavarReDoS mvar -> CondReDoS mvar
   | PatWherePython _ ->
       (*
   logger#debug "convert_extra: %s" s;
