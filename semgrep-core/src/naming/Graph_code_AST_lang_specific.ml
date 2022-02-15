@@ -56,8 +56,8 @@ let top_parent_and_qualifier ~lang ~readable ~ast :
         Common.split "/" d @ [ b ] |> List.map (fun s -> (s, tk))
       in
       (* basically replacing "/" with "." *)
-      let str = H.str_of_dotted_ident dotted_idents in
-      let node = (str, E.File) in
+      let entname = H.entname_of_dotted_ident dotted_idents in
+      let node = (entname, E.File) in
       (node, dotted_idents)
   (* in Java, packages are explicit construct *)
   | Lang.Java -> (
@@ -67,8 +67,8 @@ let top_parent_and_qualifier ~lang ~readable ~ast :
           _;
         }
         :: _ ->
-          let str = H.str_of_dotted_ident dotted_idents in
-          let node = (str, E.Package) in
+          let entname = H.entname_of_dotted_ident dotted_idents in
+          let node = (entname, E.Package) in
           (node, dotted_idents)
       (* can this happen in practice? for test files maybe? *)
       (* for scripts, tests, or entry points? *)

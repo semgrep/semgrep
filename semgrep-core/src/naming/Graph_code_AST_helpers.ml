@@ -19,6 +19,7 @@ open AST_generic
 module E = Entity_code
 module G = Graph_code
 module AST = AST_generic
+module T = Type_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -38,12 +39,12 @@ let string_of_any any =
 
 (* When we create a node, we need to qualify it fully, because each
  * node must be unique (no duplicate nodes) *)
-let str_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
+let entname_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
 
 (* When we lookup things, we actually care only about the last part
  * of the name as we gradually go down in the graph.
  *)
-let dotted_ident_of_str str = Common.split "\\." str
+let dotted_ident_of_entname str = Common.split "\\." str
 
 let dotted_ident_of_dir str = Common.split "/" str
 
@@ -77,6 +78,26 @@ let entity_kind_of_definition _env (ent, defkind) =
       logger#error "entity kind not handled yet: %s"
         (string_of_any (Dk defkind));
       E.Other "Todo"
+
+let type_of_definition_opt _env dotted_ident (_ent, defkind) =
+  match defkind with
+  (* for a class, its name is his type *)
+  | ClassDef _ -> Some (T.N dotted_ident)
+  | _ -> None
+
+let type_of_module_opt env entname =
+  if env.lang = Python then
+    (* This is to allow to treat Python modules like classes
+     * where you can do mod.function like for a field access.
+     * The type of the module is then simply its name,
+     * which will allow lookup_type_of_dotted_ident_opt to work.
+     *)
+    let tk =
+      Parse_info.first_loc_of_file env.readable |> Parse_info.mk_info_of_loc
+    in
+    let xs = dotted_ident_of_entname entname in
+    Some (T.N (xs |> List.map (fun s -> (s, tk))))
+  else None
 
 let dotted_ident_of_name_opt = function
   | Id (_v1, v2) -> (
