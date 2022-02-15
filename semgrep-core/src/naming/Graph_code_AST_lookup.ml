@@ -13,7 +13,11 @@
  * license.txt for more details.
  *)
 open Graph_code_AST_env
+module G = Graph_code
+module E = Entity_code
 module H = Graph_code_AST_helpers
+module T = Type_AST
+module AST = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -27,10 +31,17 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let ( let* ) = Option.bind
+
+(*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
-let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
+let lookup_dotted_ident_opt (env : env) (xs : AST.dotted_ident) : G.node option
+    =
   logger#info "looking up: %s" (xs |> List.map fst |> String.concat ".");
   let g = env.g in
   let rec aux current xs =
@@ -44,7 +55,7 @@ let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
                  let xs =
                    match kind with
                    | E.Dir -> H.dotted_ident_of_dir s2
-                   | _ -> H.dotted_ident_of_str s2
+                   | _ -> H.dotted_ident_of_entname s2
                  in
                  H.last_ident_of_dotted_ident xs = str)
         in
@@ -69,6 +80,17 @@ let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
  * in other (e.g., C/C++) it depends whether it was "declared" via
  * a prototype before.
  *)
-let lookup_local_file_opt env id =
+let lookup_local_file_opt (env : env) (id : AST.ident) : G.node option =
   lookup_dotted_ident_opt env (env.file_qualifier @ [ id ])
   [@@profile]
+
+let lookup_type_of_node_opt env node =
+  logger#info "lookup type for node %s" (G.string_of_node node);
+  Hashtbl.find_opt env.types node
+
+let lookup_type_of_dotted_ident_opt env xs =
+  logger#info "looking up type for: %s" (xs |> List.map fst |> String.concat ".");
+  let* n = lookup_dotted_ident_opt env xs in
+  let* t = lookup_type_of_node_opt env n in
+  logger#info "found type for %s = %s" (G.string_of_node n) (T.show t);
+  Some t

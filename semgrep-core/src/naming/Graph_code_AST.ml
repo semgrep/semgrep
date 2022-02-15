@@ -16,6 +16,7 @@ open Common
 module E = Entity_code
 module H = Graph_code_AST_helpers
 module L = Graph_code_AST_lookup
+module T = Type_AST
 module Lang_specific = Graph_code_AST_lang_specific
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -74,11 +75,7 @@ type hooks = Graph_code_AST_env.hooks = {
 *)
 
 let default_hooks : hooks =
-  {
-    on_def_node = (fun _ _ -> ());
-    on_extend_edge = (fun _ _ _ -> ());
-    on_misc = (fun _ -> ());
-  }
+  { on_def_node = (fun _ _ -> ()); on_extend_edge = (fun _ _ _ -> ()) }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -104,9 +101,19 @@ let extract_defs_uses env ast =
        let node = (base, E.File) in
        env.g |> G.add_node node;
        env.g |> G.add_nodeinfo node (H.nodeinfo_of_file env.readable);
-       env.g |> G.add_edge ((dir, E.Dir), (base, E.File)) G.Has
-   | str, E.Package ->
-       let xs = H.dotted_ident_of_str str in
+       env.g |> G.add_edge ((dir, E.Dir), (base, E.File)) G.Has;
+       (* this is mostly for Python where files act also as class/module
+        * where you can also use the dot notation, but that means the name
+        * of the module is an entity that must contain a type for
+        * L.lookup_type_of_dotted_ident_opt to work
+        *)
+       H.type_of_module_opt env base
+       |> Option.iter (fun ty ->
+              logger#info "adding type for %s = %s" (G.string_of_node node)
+                (T.show ty);
+              Hashtbl.add env.types node ty)
+   | entname, E.Package ->
+       let xs = H.dotted_ident_of_entname entname in
        H.create_intermediate_packages_if_not_present env.g G.root xs
    | n -> failwith (spf "top parent not handled yet: %s" (G.string_of_node n)));
 
@@ -120,11 +127,13 @@ let verbose = true
 
 (* TODO: too expensive to have all ASTs in memory? use lazy?
  * but then how to free memory between the 2 passes?
+ * TODO: take also directory of stdlib and lazily index the defs in it
  *)
 let build ~root ~hooks lang xs =
   let g = G.create () in
   let stats = G.empty_statistics () in
   G.create_initial_hierarchy g;
+  let types = Hashtbl.create 101 in
 
   (*  let lookup_fails = Common2.hash_with_default (fun () -> 0) in *)
   let env_for_file phase file ast =
@@ -143,6 +152,7 @@ let build ~root ~hooks lang xs =
       class_qualifier = None;
       readable;
       lang;
+      types;
     }
   in
 
