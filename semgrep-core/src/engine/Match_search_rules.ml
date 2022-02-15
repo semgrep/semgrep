@@ -611,6 +611,20 @@ let matches_of_xpatterns config file_and_more xpatterns =
 (* Formula evaluation *)
 (*****************************************************************************)
 
+let satisfies_metavar_entropy_condition env bindings mvar =
+  match List.assoc_opt mvar bindings with
+  | None ->
+      error env
+        (Common.spf
+           "metavariable-pattern failed because %s is not in scope, please \
+            check your rule"
+           mvar);
+      false
+  | Some mval -> (
+      match Eval_generic.text_of_binding mvar mval with
+      | None -> false
+      | Some data -> Entropy.has_high_entropy data)
+
 let rec filter_ranges env xs cond =
   xs
   |> List.filter (fun r ->
@@ -655,7 +669,10 @@ let rec filter_ranges env xs cond =
                Eval_generic.bindings_to_env_with_just_strings (fst env.config)
                  bindings
              in
-             Eval_generic.eval_bool env e)
+             Eval_generic.eval_bool env e
+         | R.CondEntropy mvar ->
+             let bindings = r.mvars in
+             satisfies_metavar_entropy_condition env bindings mvar)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in

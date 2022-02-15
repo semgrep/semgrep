@@ -516,6 +516,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
       let x = parse_string_wrap env key value in
       let xpat = R.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
+  | "metavariable-analysis"
   | "metavariable-regex"
   | "metavariable-pattern"
   | "metavariable-comparison"
@@ -600,6 +601,13 @@ and parse_formula_and_new env (x : G.expr) :
  * contain itself a formula! *)
 and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   match fst key with
+  | "metavariable-analysis" -> (
+      let mv_analysis_dict = yaml_to_dict env key value in
+      let metavar = take mv_analysis_dict env parse_string "metavariable" in
+      let analyzer = take mv_analysis_dict env parse_string "analyzer" in
+      match analyzer with
+      | "entropy" -> R.MetavarEntropy metavar
+      | other -> error_at_key env key ("Unsupported analyzer: " ^ other))
   | "metavariable-regex" ->
       let mv_regex_dict =
         try yaml_to_dict env key value
