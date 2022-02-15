@@ -38,12 +38,12 @@ let string_of_any any =
 
 (* When we create a node, we need to qualify it fully, because each
  * node must be unique (no duplicate nodes) *)
-let str_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
+let entname_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
 
 (* When we lookup things, we actually care only about the last part
  * of the name as we gradually go down in the graph.
  *)
-let dotted_ident_of_str str = Common.split "\\." str
+let dotted_ident_of_entname str = Common.split "\\." str
 
 let dotted_ident_of_dir str = Common.split "/" str
 

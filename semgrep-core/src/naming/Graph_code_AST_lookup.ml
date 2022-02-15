@@ -27,10 +27,17 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let ( let* ) = Option.bind
+
+(*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
-let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
+let lookup_dotted_ident_opt (env : env) (xs : AST.dotted_ident) : G.node option
+    =
   logger#info "looking up: %s" (xs |> List.map fst |> String.concat ".");
   let g = env.g in
   let rec aux current xs =
@@ -44,7 +51,7 @@ let lookup_dotted_ident_opt (env : env) (xs : AST_generic.dotted_ident) =
                  let xs =
                    match kind with
                    | E.Dir -> H.dotted_ident_of_dir s2
-                   | _ -> H.dotted_ident_of_str s2
+                   | _ -> H.dotted_ident_of_entname s2
                  in
                  H.last_ident_of_dotted_ident xs = str)
         in

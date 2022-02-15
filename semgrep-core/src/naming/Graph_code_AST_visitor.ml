@@ -229,11 +229,10 @@ and map_expr_kind env ekind : T.t option =
           Some (T.N final)
       | _ -> None)
   | Call (v1, v2) -> (
-      (* less: should do type checking on arguments matching parameters *)
-      let v1 = map_expr env v1
-      and _v2 = map_arguments env v2 in
+      let v1 = map_expr env v1 and _v2 = map_arguments env v2 in
       let* t = v1 in
       match t with
+      (* less: should do type checking on arguments matching parameters *)
       | T.N xs -> (
           match env.lang with
           (* in Python, calls to Foo() are actually disguised New that
@@ -1000,9 +999,9 @@ and map_definition env (ent, def) =
     match H.ident_of_entity_opt env ent with
     | Some id -> (
         let dotted_ident = env.current_qualifier @ [ id ] in
-        let str = H.str_of_dotted_ident dotted_ident in
+        let entname = H.entname_of_dotted_ident dotted_ident in
         let kind = H.entity_kind_of_definition env (ent, def) in
-        let node = (str, kind) in
+        let node = (entname, kind) in
         if env.phase = Defs then (
           if
             (* less: static? *)

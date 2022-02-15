@@ -50,16 +50,8 @@ type env = {
 (* We need 2 phases:
  * - one to get all the definitions
  * - one to get all the Uses.
- *
- * - still? one to get the inheritance information,
- * The inheritance is a kind of use, but certain uses like using
- * a field needs the full inheritance tree to already be computed
- * as we may need to lookup entities up in the parents.
  *)
-and phase =
-  | Defs
-  (* still? | Inheritance *)
-  | Uses
+and phase = Defs | Uses
 
 and hooks = {
   on_def_node : Graph_code.node -> AST_generic.definition -> unit;
@@ -68,6 +60,4 @@ and hooks = {
     Graph_code.node ->
     AST_generic.entity * AST_generic.class_definition ->
     unit;
-  (* TODO: fill with something useful *)
-  on_misc : unit -> unit;
 }

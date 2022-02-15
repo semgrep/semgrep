@@ -74,11 +74,7 @@ type hooks = Graph_code_AST_env.hooks = {
 *)
 
 let default_hooks : hooks =
-  {
-    on_def_node = (fun _ _ -> ());
-    on_extend_edge = (fun _ _ _ -> ());
-    on_misc = (fun _ -> ());
-  }
+  { on_def_node = (fun _ _ -> ()); on_extend_edge = (fun _ _ _ -> ()) }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -105,8 +101,8 @@ let extract_defs_uses env ast =
        env.g |> G.add_node node;
        env.g |> G.add_nodeinfo node (H.nodeinfo_of_file env.readable);
        env.g |> G.add_edge ((dir, E.Dir), (base, E.File)) G.Has
-   | str, E.Package ->
-       let xs = H.dotted_ident_of_str str in
+   | entname, E.Package ->
+       let xs = H.dotted_ident_of_entname entname in
        H.create_intermediate_packages_if_not_present env.g G.root xs
    | n -> failwith (spf "top parent not handled yet: %s" (G.string_of_node n)));
 
@@ -120,6 +116,7 @@ let verbose = true
 
 (* TODO: too expensive to have all ASTs in memory? use lazy?
  * but then how to free memory between the 2 passes?
+ * TODO: take also directory of stdlib and lazily index the defs in it
  *)
 let build ~root ~hooks lang xs =
   let g = G.create () in

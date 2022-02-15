@@ -30,10 +30,17 @@ module AST = AST_generic
 
 (* TODO: polymorphic types *)
 type t =
-  (* fully qualified name, as in graph_code, for L.lookup_dotted_ident_opt *)
+  (* fully qualified name, as in graph_code, for L.lookup_dotted_ident_opt
+   * less: use Graph_code.node instead?
+   *)
   | N of AST.dotted_ident
   (* a few builtins *)
   | Builtin of string AST.wrap
   | List of t
+  | Function of AST.parameters (* TODO? normalize also params? *) * t
   (* todos *)
   | Todo of AST.todo_kind
+
+(*****************************************************************************)
+(* Converters *)
+(*****************************************************************************)
