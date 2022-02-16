@@ -13,6 +13,7 @@
  *)
 open Common
 module J = JSON
+module In = Input_to_core_j
 
 let expr_at_range s file =
   let r = Range.range_of_linecol_spec s file in
@@ -39,4 +40,33 @@ let generate_pattern_choices s =
   let config = Config_semgrep.default_config in
   let options = Synthesizer.print_pattern_from_targets config s in
   List.iter (fun s -> pr s) options
+  [@@action]
+
+let range_of_ast ast = Range.range_of_tokens (Visitor_AST.ii_of_any ast)
+
+let locate_function_from_diff f =
+  let str = Common.read_file f in
+  let diff_files = In.diff_files_of_string str in
+  let functions_from_file f =
+    let file = f.In.filename in
+    let function_from_range range =
+      let r = Range.range_of_linecol_spec range file in
+      let file_ast = Parse_target.parse_program file in
+      let func = Range_to_AST.function_at_range r file_ast in
+      match func with
+      | None -> ()
+      | Some func ->
+          let func_r =
+            let r2_opt = range_of_ast func in
+            match r2_opt with
+            (* NoTokenLocation issue for the expression, should fix! *)
+            | None -> failwith "No range found"
+            | Some r2 -> r2
+          in
+          let func_str = Range.content_at_range file func_r in
+          pr2 func_str
+    in
+    List.iter function_from_range f.In.diffs
+  in
+  List.iter functions_from_file diff_files
   [@@action]

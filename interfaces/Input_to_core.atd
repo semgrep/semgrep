@@ -42,3 +42,16 @@ type target = {
  * file with both PL and generic/regexp rules.
  *)
 type targets = target list
+
+
+(*****************************************************************************)
+(* Synthesizing from diffs *)
+(*****************************************************************************)
+
+type diff_file = {
+  filename : string;
+  file : string;
+  diffs : string list
+}
+
+type diff_files = diff_file list
