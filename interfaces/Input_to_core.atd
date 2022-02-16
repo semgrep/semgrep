@@ -50,7 +50,10 @@ type targets = target list
 
 type diff_file = {
   filename : string;
-  diffs : string list
+  diffs : string (* start_line-end_line *) list;
+  url : string
 }
 
-type diff_files = diff_file list
+type diff_files = {
+  cve_diffs : diff_file list;
+}

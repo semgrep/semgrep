@@ -42,4 +42,5 @@ let generate_pattern_choices s =
   List.iter (fun s -> pr s) options
   [@@action]
 
-let locate_function_from_diff f = Synthesizer.function_from_diff f [@@action]
+let locate_function_from_diff f = Synthesizer.synthesize_from_diff_list f
+  [@@action]
