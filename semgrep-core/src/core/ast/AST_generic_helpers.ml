@@ -198,7 +198,9 @@ let rec pattern_to_expr p =
 
 let expr_to_type e =
   match e.e with
-  | N n -> TyN n |> G.t
+  (* TODO: this introduces some regressions in semgrep-rules
+   * | N n -> TyN n |> G.t
+   *)
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
   | _ -> TyExpr e |> G.t
 
