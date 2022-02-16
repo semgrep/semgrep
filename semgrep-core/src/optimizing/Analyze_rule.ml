@@ -310,8 +310,7 @@ and metavarcond_step1 x =
        * TODO: remove the anchor so it's usable?
        *)
       if regexp_contain_anchor re then None else Some (MvarRegexp (mvar, re))
-  | R.CondEntropy _ -> None
-  | R.CondReDoS _ -> None
+  | R.CondAnalysis _ -> None
 
 (* todo: check for other special chars? *)
 and regexp_contain_anchor (s, _re) = s =~ ".*[^$]"

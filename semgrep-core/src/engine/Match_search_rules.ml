@@ -674,10 +674,10 @@ let rec filter_ranges env xs cond =
                  bindings
              in
              Eval_generic.eval_bool env e
-         | R.CondEntropy mvar ->
+         | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
              analyze_metavar env bindings mvar Entropy.has_high_score
-         | R.CondReDoS mvar ->
+         | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
                match ReDoS.regexp_may_explode re_str with
