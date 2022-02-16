@@ -1,5 +1,5 @@
 rules:
-- id: java-callgraph 
+- id: java-callgraph
   languages: [java]
   severity: INFO
   message: $CALLER, $CALLEE

@@ -17,4 +17,3 @@ rules:
     - metavariable-regex:
         metavariable: $SQLSTATEMENT
         regex: (?i)(select|delete|insert).*
-
