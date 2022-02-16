@@ -22,8 +22,8 @@ val entropy : string -> float
 val information_density : string -> float
 
 (*
-   For a string to have both a high score, it must have:
-   - high entropy (number of bits of information)
+   For a string to have a high score, it must have both:
+   - high entropy (number of bits of information, grows with string length)
    - high information density (bits of information / bits of data)
 
    The score is nonnegative. A high score is 2.
