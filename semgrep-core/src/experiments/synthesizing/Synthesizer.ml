@@ -33,7 +33,7 @@ let function_from_diff f =
   let functions_from_file f =
     let file = f.In.filename in
     let function_from_range range =
-      let r = Range.range_of_linecol_spec range file in
+      let r = Range.range_of_line_spec range file in
       let file_ast = Parse_target.parse_program file in
       let func = Range_to_AST.function_at_range r file_ast in
       match func with
