@@ -64,3 +64,11 @@ and hooks = {
     AST_generic.entity * AST_generic.class_definition ->
     unit;
 }
+
+(*****************************************************************************)
+(* Helpers used in all Graph_code_xxx modules *)
+(*****************************************************************************)
+
+let ( let* ) o f = Option.bind o f
+
+let ( let/ ) o f = Option.iter f o
