@@ -676,7 +676,7 @@ let rec filter_ranges env xs cond =
              Eval_generic.eval_bool env e
          | R.CondEntropy mvar ->
              let bindings = r.mvars in
-             analyze_metavar env bindings mvar Entropy.has_high_entropy
+             analyze_metavar env bindings mvar Entropy.has_high_score
          | R.CondReDoS mvar ->
              let bindings = r.mvars in
              let analyze re_str =
