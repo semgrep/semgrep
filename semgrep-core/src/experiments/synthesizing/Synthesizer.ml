@@ -26,7 +26,9 @@ let synthesize_patterns config s file =
 
 let range_of_ast ast = Range.range_of_tokens (Visitor_AST.ii_of_any ast)
 
-let pattern_from_diff f =
+let function_from_diff f =
+  let f = Common.read_file f in
+
   let diff_files = In.diff_files_of_string f in
   let functions_from_file f =
     let file = f.In.filename in

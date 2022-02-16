@@ -50,7 +50,6 @@ type targets = target list
 
 type diff_file = {
   filename : string;
-  file : string;
   diffs : string list
 }
 
