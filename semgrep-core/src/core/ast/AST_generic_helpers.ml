@@ -197,8 +197,10 @@ let rec pattern_to_expr p =
   |> G.e
 
 let expr_to_type e =
+  match e.e with
+  | N n -> TyN n |> G.t
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
-  TyExpr e |> G.t
+  | _ -> TyExpr e |> G.t
 
 (* TODO: recognize foo(args)? like in Kotlin/Java *)
 let expr_to_class_parent e : class_parent = (expr_to_type e, None)
