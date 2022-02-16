@@ -15,13 +15,9 @@ from typing import Tuple
 from typing import Type
 
 import peewee as pw
-<<<<<<< HEAD
 from attrs import define
-from peewee import CTE, ModelSelect
-=======
 from peewee import CTE
 from peewee import ModelSelect
->>>>>>> Handle weird case where sometimes raw match results come back as a normal string and others a binary string
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_main
