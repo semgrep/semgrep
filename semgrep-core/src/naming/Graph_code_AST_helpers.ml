@@ -34,6 +34,15 @@ let string_of_any any =
   s
 
 (*****************************************************************************)
+(* Defs/Uses control *)
+(*****************************************************************************)
+let when_defs_phase env f = if env.phase = Defs then f () else ()
+
+let when_uses_phase env f = if env.phase = Uses then f () else ()
+
+let when_uses_phase_or_none env f = if env.phase = Uses then f () else None
+
+(*****************************************************************************)
 (* AST generic accessors helpers *)
 (*****************************************************************************)
 
@@ -83,6 +92,7 @@ let type_of_definition_opt _env dotted_ident (_ent, defkind) =
   match defkind with
   (* for a class, its name is his type *)
   | ClassDef _ -> Some (T.N dotted_ident)
+  (* TODO: extract type for functions! fields! *)
   | _ -> None
 
 let type_of_module_opt env entname =
