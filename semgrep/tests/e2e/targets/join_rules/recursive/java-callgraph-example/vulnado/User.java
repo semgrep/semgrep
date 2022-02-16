@@ -18,7 +18,7 @@ public class User {
     this.hashedPassword = hashedPassword;
   }
 
-  public getUserString token(String secret) {
+  public String token(String secret) {
     SecretKey key = Keys.hmacShaKeyFor(secret.getBytes());
     String jws = Jwts.builder().setSubject(this.username).signWith(key).compact();
     return jws;

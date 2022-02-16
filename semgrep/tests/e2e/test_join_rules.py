@@ -16,14 +16,29 @@ import pytest
             "rules/join_rules/multiple-rules.yaml",
             "join_rules/user-input-with-unescaped-extension",
         ),
-        (
-            "rules/join_rules/recursive.yaml",
-            "join_rules/recursive",
-        )
     ],
 )
 def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target)[0],
         "results.json",
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/join_rules/recursive/java-callgraph-example/vulnado-sqli.yaml",
+            "join_rules/recursive/java-callgraph-example/vulnado",
+        ),
+        (
+            "rules/join_rules/recursive/java-callgraph-example/vulnado-sqli.yaml",
+            "join_rules/recursive/java-callgraph-example/vulnado-chain-broken",
+        ),
+    ],
+)
+def test_recursive_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(rule, target_name=target)[0], "results.json"
     )
