@@ -233,17 +233,16 @@ and map_expr_kind env ekind : T.t option =
       H.when_uses_phase_or_none env (fun () ->
           let* t = v1 in
           match t with
-          (* less: should do type checking on arguments matching parameters *)
-          | T.N xs -> (
-              match env.lang with
-              (* in Python, calls to Foo() are actually disguised New that
-               * then should return the type Foo (the class Foo)
-               *)
-              | Lang.Python ->
-                  (* less: could also link to __init__ method *)
-                  Some (T.N xs)
-              (* should access the type signature of xs *)
-              | _ -> todo_type)
+          (* less: should do type checking on arguments matching parameters.
+           * later: if polymorphic type, need to instantiate it with the
+           * type of the arguments.
+           *)
+          | T.Function (_params, ty) -> Some ty
+          (* in Python, calls to Foo() are actually disguised New that
+           * then should return the type Foo (the class Foo).
+           * less: could also link to __init__ method
+           *)
+          | T.N xs when env.lang = Lang.Python -> Some (T.N xs)
           | _ -> None)
   | Alias (_, _) -> todo_type
   | L v1 ->

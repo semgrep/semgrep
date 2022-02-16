@@ -88,13 +88,6 @@ let entity_kind_of_definition _env (ent, defkind) =
         (string_of_any (Dk defkind));
       E.Other "Todo"
 
-let type_of_definition_opt _env dotted_ident (_ent, defkind) =
-  match defkind with
-  (* for a class, its name is his type *)
-  | ClassDef _ -> Some (T.N dotted_ident)
-  (* TODO: extract type for functions! fields! *)
-  | _ -> None
-
 let type_of_module_opt env entname =
   if env.lang = Python then
     (* This is to allow to treat Python modules like classes
@@ -115,6 +108,9 @@ let dotted_ident_of_name_opt = function
       | Some (ImportedEntity xs, _sid)
       | Some (ImportedModule (DottedName xs), _sid) ->
           Some xs
+      (* TODO: even if not resolved, could be a local entity! use
+       * env.file_qualifier? or class_qualifier?
+       *)
       | _ -> None)
   (* TODO *)
   | IdQualified _ -> None
@@ -131,6 +127,26 @@ let rec dotted_ident_of_exprkind_opt ekind =
       (* TODO? we could potentially set idinfo.resolved here *)
       | FN (Id (id, _idinfo)) -> Some (xs @ [ id ])
       | _ -> None)
+  | _ -> None
+
+let type_of_type_generic_opt _env ty =
+  let aux ty =
+    match ty.t with
+    | TyN n ->
+        let* xs = dotted_ident_of_name_opt n in
+        Some (T.N xs)
+    | _ -> None
+  in
+  aux ty
+
+let type_of_definition_opt env dotted_ident (_ent, defkind) =
+  match defkind with
+  (* for a class, its name is his type *)
+  | ClassDef _ -> Some (T.N dotted_ident)
+  | VarDef { vtype = Some ty; _ } -> type_of_type_generic_opt env ty
+  | FuncDef { frettype = Some ty; fparams; _ } ->
+      let* ty = type_of_type_generic_opt env ty in
+      Some (T.Function (fparams, ty))
   | _ -> None
 
 (*****************************************************************************)
