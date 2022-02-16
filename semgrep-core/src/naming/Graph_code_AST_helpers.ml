@@ -23,8 +23,6 @@ module T = Type_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let ( let* ) = Option.bind
-
 (*****************************************************************************)
 (* Debugging helpers *)
 (*****************************************************************************)
@@ -43,7 +41,7 @@ let when_uses_phase env f = if env.phase = Uses then f () else ()
 let when_uses_phase_or_none env f = if env.phase = Uses then f () else None
 
 (*****************************************************************************)
-(* AST generic accessors helpers *)
+(* Dotted ident, entname, names *)
 (*****************************************************************************)
 
 (* When we create a node, we need to qualify it fully, because each
@@ -63,44 +61,6 @@ let last_ident_of_dotted_ident xs =
   match List.rev xs with
   | [] -> raise Impossible
   | x :: _ -> x
-
-(* For now we handle only sample entities like function/class definitions
- * where the name is a simple identifier.
- *)
-let ident_of_entity_opt _env ent =
-  match ent.name with
-  | EN (Id (id, _)) -> Some id
-  | _ -> None
-
-let entity_kind_of_definition _env (ent, defkind) =
-  match defkind with
-  | FuncDef _ -> E.Function (* less: could be also Method *)
-  | ClassDef _ -> E.Class
-  (* TODO: look parent node, if already in a function, then it's a local? *)
-  | VarDef _ ->
-      if
-        AST_generic_helpers.has_keyword_attr AST.Final ent.attrs
-        || AST_generic_helpers.has_keyword_attr AST.Const ent.attrs
-      then E.Constant
-      else E.Global
-  | _ ->
-      logger#error "entity kind not handled yet: %s"
-        (string_of_any (Dk defkind));
-      E.Other "Todo"
-
-let type_of_module_opt env entname =
-  if env.lang = Python then
-    (* This is to allow to treat Python modules like classes
-     * where you can do mod.function like for a field access.
-     * The type of the module is then simply its name,
-     * which will allow lookup_type_of_dotted_ident_opt to work.
-     *)
-    let tk =
-      Parse_info.first_loc_of_file env.readable |> Parse_info.mk_info_of_loc
-    in
-    let xs = dotted_ident_of_entname entname in
-    Some (T.N (xs |> List.map (fun s -> (s, tk))))
-  else None
 
 let dotted_ident_of_name_opt = function
   | Id (_v1, v2) -> (
@@ -129,12 +89,95 @@ let rec dotted_ident_of_exprkind_opt ekind =
       | _ -> None)
   | _ -> None
 
+(*****************************************************************************)
+(* Entity helpers *)
+(*****************************************************************************)
+
+(* For now we handle only sample entities like function/class definitions
+ * where the name is a simple identifier.
+ *)
+let ident_of_entity_opt _env ent =
+  match ent.name with
+  | EN (Id (id, _)) -> Some id
+  | _ -> None
+
+let entity_kind_of_definition _env (ent, defkind) =
+  match defkind with
+  | FuncDef _ -> E.Function (* less: could be also Method *)
+  | ClassDef _ -> E.Class
+  (* TODO: look parent node, if already in a function, then it's a local? *)
+  | VarDef _ ->
+      if
+        AST_generic_helpers.has_keyword_attr AST.Final ent.attrs
+        || AST_generic_helpers.has_keyword_attr AST.Const ent.attrs
+      then E.Constant
+      else E.Global
+  | _ ->
+      logger#error "entity kind not handled yet: %s"
+        (string_of_any (Dk defkind));
+      E.Other "Todo"
+
+(*****************************************************************************)
+(* Typing helpers *)
+(*****************************************************************************)
+
+let type_of_module_opt env entname =
+  if env.lang = Python then
+    (* This is to allow to treat Python modules like classes
+     * where you can do mod.function like for a field access.
+     * The type of the module is then simply its name,
+     * which will allow lookup_type_of_dotted_ident_opt to work.
+     *)
+    let tk =
+      Parse_info.first_loc_of_file env.readable |> Parse_info.mk_info_of_loc
+    in
+    let xs = dotted_ident_of_entname entname in
+    Some (T.N (xs |> List.map (fun s -> (s, tk))))
+  else None
+
+(* reverse of Generic_vs_generic.make_dotted
+ * transform a.b.c.d, which is parsed as (((a.b).c).d), in Some [d;c;b;a]
+ * precondition: Naming_AST must have been called.
+ *)
+let undot_expr_opt e =
+  let rec aux e =
+    match e.e with
+    (* TODO: Id itself can have been resolved!! so we need to
+     * concatenate. See tests/python/misc_regression[12].py
+     *)
+    | N (Id (id, _)) -> Some [ id ]
+    | DotAccess (e, _, FN (Id (id, _))) ->
+        let* ids = aux e in
+        Some (id :: ids)
+    | _ -> None
+  in
+  let* ids = aux e in
+  Some (List.rev ids)
+
+let expr_to_type_after_naming_opt e =
+  match e.e with
+  | N n -> Some (TyN n |> AST.t)
+  (* For Python we need to transform a.b.c DotAccess expr in a qualified name*)
+  | DotAccess (_, _, _) ->
+      let* ids = undot_expr_opt e in
+      Some (TyN (AST_generic_helpers.name_of_ids ids) |> AST.t)
+  | _ -> None
+
 let type_of_type_generic_opt _env ty =
-  let aux ty =
+  let rec aux ty =
     match ty.t with
     | TyN n ->
         let* xs = dotted_ident_of_name_opt n in
         Some (T.N xs)
+    (* Python uses those types, but we can't fix
+     * AST_generic_helpers.type_of_expr because this would introduce
+     * regressions because we need naming to be done to correctly do
+     * the transformation. This is why we do the transformation later
+     * here with expr_to_type_after_naming_opt.
+     *)
+    | TyExpr e ->
+        let* ty = expr_to_type_after_naming_opt e in
+        aux ty
     | _ -> None
   in
   aux ty
