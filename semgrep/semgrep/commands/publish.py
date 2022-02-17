@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 SEMGREP_REGISTRY_BASE_URL = SEMGREP_URL
 SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_BASE_URL}api/registry/rule"
 SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}r/"
+SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}s/"
 
 
 class VisibilityState(str, Enum):
@@ -176,10 +177,9 @@ def _upload_rule(
     rule = rules[0]
 
     # add metadata about the origin of the rule
-    existing_source = rule.metadata.get("source-rule-url")
-    rule.metadata["source-rule-url"] = (
-        existing_source + " " if existing_source else ""
-    ) + f"published from {rule_file} in {get_project_url()}"
+    rule.metadata[
+        "rule-origin-note"
+    ] = f"published from {rule_file} in {get_project_url()}"
 
     import requests
 
@@ -208,10 +208,14 @@ def _upload_rule(
         return False
     else:
         created_rule = response.json()
-        print(created_rule)  # TODO remove
+
         if visibility == VisibilityState.PUBLIC:
             click.echo(
                 f"    Pull request created for this public rule at: {created_rule['pr_url']}"
+            )
+        elif visibility == VisibilityState.UNLISTED:
+            click.echo(
+                f"    Published {visibility} rule at {SEMGREP_SNIPPET_VIEW_URL}{created_rule['rule']['id']}"
             )
         else:
             click.echo(
