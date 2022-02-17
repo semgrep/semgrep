@@ -1,0 +1,8 @@
+rules:
+- id: models
+  languages: [python]
+  message: $CLASS
+  severity: INFO
+  pattern: |
+    class $CLASS(db.Model):
+      ...

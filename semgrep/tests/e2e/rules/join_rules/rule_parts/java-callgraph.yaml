@@ -1,0 +1,11 @@
+rules:
+- id: java-callgraph
+  languages: [java]
+  severity: INFO
+  message: $CALLER, $CALLEE
+  patterns:
+  - pattern-inside: |
+      $TYPE $CALLER(...) {
+        ...
+      }
+  - pattern: $OBJ.$CALLEE(...)
