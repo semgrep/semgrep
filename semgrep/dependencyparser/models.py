@@ -7,16 +7,20 @@ from typing import Optional
 
 from attrs import frozen
 
-KNOWN_HASH_ALGORITHMS: Dict[str, Callable] = {
+KNOWN_HASH_ALGORITHMS: Dict[str, Optional[Callable]] = {
     "sha256": hashlib.sha256,
     "sha512": hashlib.sha512,
     "sha1": hashlib.sha1,
+    "gomod": None
+    # go.sum files use a non-standard hashing algorithm based on multiple uses of sha256 and conversion to base 64
 }
 
 
 class PackageManagers(Enum):
     NPM = "npm"
-    PYPI = "pypy"
+    PYPI = "pypi"
+    GEM = "gem"
+    GOMOD = "gomod"
 
 
 @frozen(eq=True, order=True)
@@ -34,6 +38,3 @@ class LockfileDependency:
             assert (
                 k in KNOWN_HASH_ALGORITHMS
             ), f"unknown hash type {k} not in {KNOWN_HASH_ALGORITHMS}"
-        for hash_list in self.allowed_hashes.values():
-            for h in hash_list:
-                assert h.lower() == h, "uhoh, hashes should always be lowercased..."

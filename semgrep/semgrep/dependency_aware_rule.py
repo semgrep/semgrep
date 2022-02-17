@@ -18,6 +18,8 @@ from semgrep.rule_match import RuleMatch
 PACKAGE_MANAGER_MAP = {
     "pypi": PackageManagers.PYPI,
     "npm": PackageManagers.NPM,
+    "gem": PackageManagers.GEM,
+    "gomod": PackageManagers.GOMOD,
 }
 
 

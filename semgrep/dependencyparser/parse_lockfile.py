@@ -21,12 +21,15 @@ def parse_lockfile_str(
     lockfile_text: str, filepath_for_reference: Path
 ) -> Generator[LockfileDependency, None, None]:
     # coupling with the github action, which decides to send files with these names back to us
-    if filepath_for_reference.name.lower() == "pipfile.lock":
+    filepath = filepath_for_reference.name.lower()
+    if filepath == "pipfile.lock":
         yield from parse_Pipfile_str(lockfile_text)
-    elif filepath_for_reference.name.lower() == "yarn.lock":
+    elif filepath == "yarn.lock":
         yield from parse_Yarnlock_str(lockfile_text)
-    elif filepath_for_reference.name.lower() == "package-lock.json":
+    elif filepath == "package-lock.json":
         yield from parse_NPM_package_lock_str(lockfile_text)
+    elif filepath == "gemfile.lock":
+        yield from parse_Gemfile_str(lockfile_text)
     else:
         raise SemgrepError(
             f"don't know how to parse this filename: {filepath_for_reference}"
@@ -161,3 +164,51 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
     develop_deps = as_json.get("develop")
     if develop_deps is not None:
         yield from parse_dependency_blob(develop_deps)
+
+
+def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    def parse_dep(s: str) -> LockfileDependency:
+        # s == "    $DEP ($VERSION)"
+        dep, paren_version = s.strip().split(" ")
+        version = paren_version[1:-1]
+        return LockfileDependency(
+            dep, version, PackageManagers.GEM, resolved_url=None, allowed_hashes={}
+        )
+
+    lines = lockfile_text.split("\n")
+    all_deps = lines[lines.index("GEM") + 1 : lines.index("PLATFORMS")]
+    yield from (
+        parse_dep(dep) for dep in all_deps if dep[:4] == " " * 4 and dep[5] != " "
+    )
+
+
+def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    def parse_dep(s: str) -> LockfileDependency:
+        dep, version, hash = s.split()
+        # drop 'v'
+        version = version[1:]
+
+        # drop /go.mod
+        if "/" in version:
+            version = version[: version.index("/")]
+        # drop +incompatible
+        if "+" in version:
+            version = version[: version.index("+")]
+
+        # drop pseudo version
+        if "-" in version:
+            version = version[: version.index("-")]
+
+        # drop h1: and =
+        hash = hash[3:-1]
+        return LockfileDependency(
+            dep,
+            version,
+            PackageManagers.GOMOD,
+            # go.sum dep names are already URLs
+            resolved_url=[dep],
+            allowed_hashes={"gomod": [hash]},
+        )
+
+    lines = lockfile_text.split("\n")
+    yield from (parse_dep(dep) for dep in lines)
