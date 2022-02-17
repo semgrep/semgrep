@@ -33,9 +33,16 @@ def compute_executable_path(exec_name: str) -> str:
 
 class SemgrepCore:
     _SEMGREP_PATH_: Optional[str] = None
+    _DEEP_PATH_: Optional[str] = None
 
     @classmethod
     def path(cls) -> str:
         if cls._SEMGREP_PATH_ is None:
             cls._SEMGREP_PATH_ = compute_executable_path("semgrep-core")
         return cls._SEMGREP_PATH_
+
+    @classmethod
+    def deep_path(cls) -> str:
+        if cls._DEEP_PATH_ is None:
+            cls._DEEP_PATH_ = compute_executable_path("deep-semgrep")
+        return cls._DEEP_PATH_

@@ -543,6 +543,13 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
 )
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
+@click.option(
+    "--deep",
+    "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
 def scan(
     *,
     autofix: bool,
@@ -551,6 +558,7 @@ def scan(
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
     debugging_json: bool,
+    deep: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -781,6 +789,7 @@ def scan(
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
                     dump_command_for_core=dump_command_for_core,
+                    deep=deep,
                     output_handler=output_handler,
                     target=target_sequence,
                     pattern=pattern,
