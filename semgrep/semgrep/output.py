@@ -306,9 +306,6 @@ class OutputHandler:
                 num_rules = len(self.filtered_rules)
 
                 ignores_line = str(ignore_log or "No ignore information available")
-                import pdb
-
-                pdb.set_trace()
                 if (
                     num_findings == 0
                     and num_targets > 0
