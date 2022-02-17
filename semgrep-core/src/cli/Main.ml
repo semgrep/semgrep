@@ -243,6 +243,8 @@ let dump_ast ?(naming = false) lang file =
         else Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
+      (* 80 columns is too little *)
+      Format.set_margin 120;
       let s = dump_v_to_format v in
       pr s;
       if errors <> [] then (
@@ -324,6 +326,40 @@ let mk_config () =
 (* Experiments *)
 (*****************************************************************************)
 (* See Experiments.ml now *)
+
+let build_codegraph root =
+  let lang =
+    match !lang with
+    | Some (Xlang.L (l, _)) -> l
+    | _ -> failwith "no language or not a valid language"
+  in
+
+  (* poor's man targeting (mostly copied from Run_semgrep.targets_of_config)
+   * TODO: should use info from --targets at some point, actually could
+   *  maybe simply reuse targets_of_config, but need also the root.
+   *)
+  let files, _skipped =
+    Find_target.files_of_dirs_or_files (Some lang) [ root ]
+  in
+  let files, _skipped =
+    Skip_code.filter_files_if_skip_list ~root:[ root ] files
+  in
+  let xs =
+    files
+    |> List.map (fun file ->
+           let res =
+             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
+               file
+           in
+           let ast = res.Parse_target.ast in
+           (file, ast))
+  in
+  let g, _stats =
+    Graph_code_AST.build lang ~hooks:Graph_code_AST.default_hooks ~root xs
+  in
+  let path = Filename.concat root "graph_code.marshall" in
+  Graph_code.save g path;
+  ()
 
 (*****************************************************************************)
 (* The options *)
@@ -425,6 +461,7 @@ let all_actions () =
       Common.mk_action_2_arg Test_comby.test_comby );
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
     ("-pycheck", " <root>", Common.mk_action_1_arg Pycheck.pycheck);
+    ("-build_codegraph", " <root>", Common.mk_action_1_arg build_codegraph);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program

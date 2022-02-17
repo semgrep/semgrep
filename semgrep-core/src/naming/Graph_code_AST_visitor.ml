@@ -47,17 +47,9 @@ let todo_type = None
 
 let map_of_string _x = ()
 
-let map_of_int _x = ()
-
-let map_of_float _x = ()
-
-let map_of_bool _x = ()
-
 let map_of_option = Option.map
 
 let map_of_list = Common.map
-
-let map_token_location _env _x = ()
 
 (* this used to be called todo() by the boilerplate generator *)
 let nothing _env _x = ()
@@ -100,9 +92,9 @@ let map_module_name env = function
       nothing env v1
 
 (* less: could return a type here too? or better in map_expr? *)
-let rec map_name env n =
+let rec map_name env n : unit =
   if debug then
-    logger#trace "map_name: %s" (H.string_of_any (E (N n |> AST_generic.e)));
+    logger#info "map_name: %s" (H.string_of_any (E (N n |> AST_generic.e)));
   H.when_uses_phase env (fun () ->
       let/ xs = H.dotted_ident_of_name_opt n in
       (* !!the uses!! *)
@@ -187,9 +179,13 @@ and map_id_info env
 (*****************************************************************************)
 
 (* this returns a type because we need one to resolve method/field access *)
-and map_expr env { e = v_e; e_id = _v_e_id; e_range = _v_e_range } : T.t option
-    =
-  let t = map_expr_kind env v_e in
+and map_expr env e : T.t option =
+  let t = map_expr_kind env e.e in
+  if debug && env.phase = Uses then (
+    logger#info "map_expr: %s" (H.string_of_any (E e));
+    match t with
+    | None -> logger#info "no type found"
+    | Some t -> logger#info "type = %s" (T.show t));
   t
 
 and map_expr_kind env ekind : T.t option =
@@ -202,31 +198,47 @@ and map_expr_kind env ekind : T.t option =
   | N v1 ->
       let _t = map_name env v1 in
       H.when_uses_phase_or_none env (fun () ->
-          let* xs = H.dotted_ident_of_name_opt v1 in
-          (* old: Some (T.N xs) *)
-          L.lookup_type_of_dotted_ident_opt env xs)
+          match H.dotted_ident_of_name_opt v1 with
+          | Some xs ->
+              (* old: Some (T.N xs) *)
+              L.lookup_type_of_dotted_ident_opt env xs
+          (* maybe a Local or Param that is not yet handled by
+           * dotted_ident_of_name_opt.
+           * TODO: add locals/params instead of relying on the poor's man
+           * type propagation of Naming_AST?
+           *)
+          | None -> (
+              match v1 with
+              | Id (_, { id_type = { contents = Some t }; _ }) ->
+                  H.type_of_type_generic_opt env t
+              | _ -> None))
   | IdSpecial (spec, tk) -> (
       let _spec = map_special env spec in
       match spec with
-      | Self ->
+      | Self
+      | This ->
           let* xs = env.class_qualifier in
           Some (T.N xs)
       | _ -> todo_type)
   | DotAccess (v1, v2, v3) ->
-      let v1 = map_expr env v1
+      let topt = map_expr env v1
       and _v2 = map_tok env v2
       and _v3 = map_field_name env v3 in
 
       H.when_uses_phase_or_none env (fun () ->
-          let* t = v1 in
+          let* t = topt in
           (* this is similar to H.dotted_ident_of_exprkind_opt but more general*)
           match (t, v3) with
-          (* TODO? we could potentially set idinfo.resolved here *)
-          | T.N xs, FN (Id (id, _idinfo)) ->
+          | T.N xs, FN (Id (id, _idinfo)) -> (
               let final = xs @ [ id ] in
               (let/ n2 = L.lookup_dotted_ident_opt env final in
                H.add_use_edge env n2);
-              Some (T.N final)
+              match L.lookup_type_of_dotted_ident_opt env final with
+              | Some t ->
+                  (* TODO? we should set idinfo.id_type here!! typed metavar! *)
+                  Some t
+              (* in Python they use a.b.c.d for module access too *)
+              | None -> Some (T.N final))
           | _ -> None)
   | Call (v1, v2) ->
       let v1 = map_expr env v1 and _v2 = map_arguments env v2 in
@@ -246,8 +258,8 @@ and map_expr_kind env ekind : T.t option =
           | _ -> None)
   | Alias (_, _) -> todo_type
   | L v1 ->
-      let _v1 = map_literal env v1 in
-      todo_type
+      let t = map_literal env v1 in
+      t
   | Container (v1, v2) ->
       let _v1 = map_container_operator env v1
       and _v2 = map_bracket env (map_of_list (map_expr env)) v2 in
@@ -305,10 +317,9 @@ and map_expr_kind env ekind : T.t option =
       and v2 = map_expr env v2
       and v3 = map_expr env v3 in
       todo_type
-  | Yield (v1, v2, v3) ->
-      let v1 = map_tok env v1
-      and v2 = map_of_option (map_expr env) v2
-      and v3 = map_of_bool v3 in
+  | Yield (v1, v2, _v3bool) ->
+      let v1 = map_tok env v1 in
+      let v2 = map_of_option (map_expr env) v2 in
       todo_type
   | Await (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_expr env v2 in
@@ -357,47 +368,24 @@ and map_expr_kind env ekind : T.t option =
       let v1 = map_todo_kind env v1 and v2 = map_of_list (map_any env) v2 in
       todo_type
 
-and map_literal env = function
+(* TODO: return builtin types *)
+and map_literal env x : T.t option =
+  match x with
   (* ----------- *)
   (* Boilerplate *)
   (* ----------- *)
-  | Bool v1 ->
-      let v1 = map_wrap env map_of_bool v1 in
-      nothing env v1
-  | Int v1 ->
-      let v1 = map_wrap env (map_of_option map_of_int) v1 in
-      nothing env v1
-  | Float v1 ->
-      let v1 = map_wrap env (map_of_option map_of_float) v1 in
-      nothing env v1
-  | Char v1 ->
-      let v1 = map_wrap env map_of_string v1 in
-      nothing env v1
-  | String v1 ->
-      let v1 = map_wrap env map_of_string v1 in
-      nothing env v1
-  | Regexp (v1, v2) ->
-      let v1 = map_bracket env (map_wrap env map_of_string) v1
-      and v2 = map_of_option (map_wrap env map_of_string) v2 in
-      nothing env (v1, v2)
-  | Atom (v1, v2) ->
-      let v1 = map_tok env v1 and v2 = map_wrap env map_of_string v2 in
-      nothing env (v1, v2)
-  | Unit v1 ->
-      let v1 = map_tok env v1 in
-      nothing env v1
-  | Null v1 ->
-      let v1 = map_tok env v1 in
-      nothing env v1
-  | Undefined v1 ->
-      let v1 = map_tok env v1 in
-      nothing env v1
-  | Imag v1 ->
-      let v1 = map_wrap env map_of_string v1 in
-      nothing env v1
-  | Ratio v1 ->
-      let v1 = map_wrap env map_of_string v1 in
-      nothing env v1
+  | Bool _v1 -> todo_type
+  | Int _v1 -> todo_type
+  | Float _v1 -> todo_type
+  | Char _v1 -> todo_type
+  | String _v1 -> todo_type
+  | Regexp (_v1, _v2) -> todo_type
+  | Atom (_v1, _v2) -> todo_type
+  | Unit _v1 -> todo_type
+  | Null _v1 -> todo_type
+  | Undefined v1 -> todo_type
+  | Imag _v1 -> todo_type
+  | Ratio v1 -> todo_type
 
 and map_container_operator _env _ = ()
 
@@ -759,14 +747,12 @@ and map_label_ident env = function
   (* ----------- *)
   | LNone -> ()
   | LId v1 ->
-      let v1 = map_label env v1 in
-      nothing env v1
-  | LInt v1 ->
-      let v1 = map_wrap env map_of_int v1 in
-      nothing env v1
+      let _v1 = map_label env v1 in
+      ()
+  | LInt _v1 -> ()
   | LDynamic v1 ->
-      let v1 = map_expr env v1 in
-      nothing env v1
+      let _v1 = map_expr env v1 in
+      ()
 
 and map_for_header env = function
   (* ----------- *)
@@ -957,9 +943,9 @@ and map_type_argument env = function
       let v1 = map_tok env v1
       and v2 =
         map_of_option
-          (fun (v1, v2) ->
-            let v1 = map_wrap env map_of_bool v1 and v2 = map_type_ env v2 in
-            (v1, v2))
+          (fun (_v1bool, v2) ->
+            let v2 = map_type_ env v2 in
+            v2)
           v2
       in
       nothing env (v1, v2)
