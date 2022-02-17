@@ -6,6 +6,8 @@ from typing import Tuple
 
 import click
 
+from semgrep.constants import IN_DOCKER
+from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.settings import SETTINGS
@@ -19,14 +21,16 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
     session_id = uuid.uuid4()
     return (
         session_id,
-        f"{SEMGREP_URL}login?cli-token={session_id}",
+        f"{SEMGREP_URL}login?cli-token={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
     )
 
 
 @click.command()
 def login() -> None:
     """
-    Prompts for API key to semgrep.dev and saves it to global settings file
+    Looks for an semgrep.dev API token in the environment variable SEMGREP_API_TOKEN_SETTINGS_KEY.
+    If not defined and running in a TTY, prompts interactively.
+    Once token is found, saves it to global settings file
     """
     saved_login_token = Authentication.read_token()
     if saved_login_token:
@@ -35,9 +39,16 @@ def login() -> None:
         )
         sys.exit(1)
 
+    # If the token is provided as an environment variable, save it to the settings file.
+    env_var_token = os.environ.get(Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
+    if env_var_token is not None and len(env_var_token) > 0:
+        if not save_token(env_var_token, echo_token=False):
+            sys.exit(1)
+        sys.exit(0)
+
+    # If token doesn't already exist in the settings file or as an environment variable,
+    # interactively prompt the user to supply it (if we are in a TTY).
     if sys.stderr.isatty():
-        # TODO: give a way to pass --app-token or something as a flag
-        # login_token = click.prompt("Enter semgrep.dev API token", hide_input=True)
         session_id, url = make_login_url()
         click.echo(
             "Login enables additional proprietary Semgrep Registry rules and running custom policies from Semgrep App."
@@ -60,7 +71,7 @@ def login() -> None:
             )
             if r.status_code == 200:
                 as_json = r.json()
-                if save_token(as_json.get("token")):
+                if save_token(as_json.get("token"), echo_token=True):
                     sys.exit(0)
                 else:
                     sys.exit(1)
@@ -80,19 +91,21 @@ def login() -> None:
 
     else:
         click.echo(
-            "Error: semgrep login is an interactive command: must run in an interactive terminal",
+            f"Error: semgrep login is an interactive command: run in an interactive terminal (or define {Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME}",
             err=True,
         )
         sys.exit(1)
 
 
-def save_token(login_token: Optional[str]) -> bool:
+def save_token(login_token: Optional[str], echo_token: bool) -> bool:
     if login_token is not None and Authentication.is_valid_token(login_token):
         Authentication.set_token(login_token)
         click.echo(
-            f"Saved login token\n\n\t{login_token}\n\n in {SETTINGS.get_path_to_settings()}."
+            f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {SETTINGS.get_path_to_settings()}."
         )
-        click.echo(f"Note: You can always generate more tokens at {SEMGREP_URL}orgs/-/settings/tokens")
+        click.echo(
+            f"Note: You can always generate more tokens at {SEMGREP_URL}orgs/-/settings/tokens"
+        )
         return True
     else:
         click.echo("Login token is not valid. Please try again.", err=True)
@@ -105,11 +118,11 @@ def logout() -> None:
     Remove all authentication tokens from global settings file
     """
     Authentication.delete_token()
-    click.echo("logged out")
+    click.echo("Logged out (log back in with `semgrep login`)")
 
 
 class Authentication:
-    SEMGREP_LOGIN_TOKEN_ENVVAR_NAME = "SEMGREP_LOGIN_TOKEN"
+    SEMGREP_LOGIN_TOKEN_ENVVAR_NAME = "SEMGREP_APP_TOKEN"
     SEMGREP_API_TOKEN_SETTINGS_KEY = "api_token"
 
     @staticmethod
