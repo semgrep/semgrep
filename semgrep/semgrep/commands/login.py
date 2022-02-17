@@ -6,8 +6,6 @@ from typing import Tuple
 
 import click
 
-from semgrep.constants import IN_DOCKER
-from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.settings import SETTINGS
@@ -19,10 +17,9 @@ import uuid
 
 def make_login_url() -> Tuple[uuid.UUID, str]:
     session_id = uuid.uuid4()
-    # @Tin to pick the URL here
     return (
         session_id,
-        f"{SEMGREP_URL}login-cli?t={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
+        f"{SEMGREP_URL}login?cli-token={session_id}",
     )
 
 
@@ -49,21 +46,23 @@ def login() -> None:
         click.echo(
             "\nOnce you've logged in, return here and you'll be ready to start using new Semgrep rules."
         )
-        MAX_RETRIES = 10
-        WAIT_BETWEEN_RETRY_IN_SEC = 5
+        WAIT_BETWEEN_RETRY_IN_SEC = 6  # So every 10 retries is a minute
+        MAX_RETRIES = 30  # Give users 3 minutes to log in / open link
         import requests
 
         for _ in range(MAX_RETRIES):
             headers = {"User-Agent": SEMGREP_USER_AGENT}
-            r = requests.get(
-                # @Tin not sure what this URL should be
-                f"{SEMGREP_URL}api/agent/deployment",
+            r = requests.post(
+                f"{SEMGREP_URL}api/agent/tokens/requests",
+                json={"token_request_key": str(session_id)},
                 timeout=10,
                 headers=headers,
             )
             if r.status_code == 200:
                 as_json = r.json()
-                if not save_token(as_json.get("token")):
+                if save_token(as_json.get("token")):
+                    sys.exit(0)
+                else:
                     sys.exit(1)
             elif r.status_code != 404:
                 click.echo(
@@ -93,7 +92,7 @@ def save_token(login_token: Optional[str]) -> bool:
         click.echo(
             f"Saved login token\n\n\t{login_token}\n\n in {SETTINGS.get_path_to_settings()}."
         )
-        click.echo(f"Note: You can always generate more tokens at {SEMGREP_URL}")
+        click.echo(f"Note: You can always generate more tokens at {SEMGREP_URL}orgs/-/settings/tokens")
         return True
     else:
         click.echo("Login token is not valid. Please try again.", err=True)
