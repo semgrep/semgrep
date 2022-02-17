@@ -1,5 +1,5 @@
 from dir1.foo import foo
 
-def bar():
+def bar_dead_ok():
     foo()
     return 2

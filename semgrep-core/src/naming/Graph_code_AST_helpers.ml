@@ -19,10 +19,9 @@ open AST_generic
 module E = Entity_code
 module G = Graph_code
 module AST = AST_generic
+module T = Type_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
-let ( let* ) = Option.bind
 
 (*****************************************************************************)
 (* Debugging helpers *)
@@ -33,17 +32,26 @@ let string_of_any any =
   s
 
 (*****************************************************************************)
-(* AST generic accessors helpers *)
+(* Defs/Uses control *)
+(*****************************************************************************)
+let when_defs_phase env f = if env.phase = Defs then f () else ()
+
+let when_uses_phase env f = if env.phase = Uses then f () else ()
+
+let when_uses_phase_or_none env f = if env.phase = Uses then f () else None
+
+(*****************************************************************************)
+(* Dotted ident, entname, names *)
 (*****************************************************************************)
 
 (* When we create a node, we need to qualify it fully, because each
  * node must be unique (no duplicate nodes) *)
-let str_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
+let entname_of_dotted_ident xs = xs |> List.map fst |> Common.join "."
 
 (* When we lookup things, we actually care only about the last part
  * of the name as we gradually go down in the graph.
  *)
-let dotted_ident_of_str str = Common.split "\\." str
+let dotted_ident_of_entname str = Common.split "\\." str
 
 let dotted_ident_of_dir str = Common.split "/" str
 
@@ -53,6 +61,37 @@ let last_ident_of_dotted_ident xs =
   match List.rev xs with
   | [] -> raise Impossible
   | x :: _ -> x
+
+let dotted_ident_of_name_opt = function
+  | Id (_v1, v2) -> (
+      match !(v2.id_resolved) with
+      | Some (ImportedEntity xs, _sid)
+      | Some (ImportedModule (DottedName xs), _sid) ->
+          Some xs
+      (* TODO: even if not resolved, could be a local entity! use
+       * env.file_qualifier? or class_qualifier?
+       *)
+      | _ -> None)
+  (* TODO *)
+  | IdQualified _ -> None
+
+(* This is now used only in xxx-semgrep/.../Run.ml
+ * less: move it there?
+ *)
+let rec dotted_ident_of_exprkind_opt ekind =
+  match ekind with
+  | N name -> dotted_ident_of_name_opt name
+  | DotAccess (v1, _v2, v3) -> (
+      let* xs = dotted_ident_of_exprkind_opt v1.e in
+      match v3 with
+      (* TODO? we could potentially set idinfo.resolved here *)
+      | FN (Id (id, _idinfo)) -> Some (xs @ [ id ])
+      | _ -> None)
+  | _ -> None
+
+(*****************************************************************************)
+(* Entity helpers *)
+(*****************************************************************************)
 
 (* For now we handle only sample entities like function/class definitions
  * where the name is a simple identifier.
@@ -78,28 +117,79 @@ let entity_kind_of_definition _env (ent, defkind) =
         (string_of_any (Dk defkind));
       E.Other "Todo"
 
-let dotted_ident_of_name_opt = function
-  | Id (_v1, v2) -> (
-      match !(v2.id_resolved) with
-      | Some (ImportedEntity xs, _sid)
-      | Some (ImportedModule (DottedName xs), _sid) ->
-          Some xs
-      | _ -> None)
-  (* TODO *)
-  | IdQualified _ -> None
+(*****************************************************************************)
+(* Typing helpers *)
+(*****************************************************************************)
 
-(* This is now used only in xxx-semgrep/.../Run.ml
- * less: move it there?
+let type_of_module_opt env entname =
+  if env.lang = Python then
+    (* This is to allow to treat Python modules like classes
+     * where you can do mod.function like for a field access.
+     * The type of the module is then simply its name,
+     * which will allow lookup_type_of_dotted_ident_opt to work.
+     *)
+    let tk =
+      Parse_info.first_loc_of_file env.readable |> Parse_info.mk_info_of_loc
+    in
+    let xs = dotted_ident_of_entname entname in
+    Some (T.N (xs |> List.map (fun s -> (s, tk))))
+  else None
+
+(* reverse of Generic_vs_generic.make_dotted
+ * transform a.b.c.d, which is parsed as (((a.b).c).d), in Some [d;c;b;a]
+ * precondition: Naming_AST must have been called.
  *)
-let rec dotted_ident_of_exprkind_opt ekind =
-  match ekind with
-  | N name -> dotted_ident_of_name_opt name
-  | DotAccess (v1, _v2, v3) -> (
-      let* xs = dotted_ident_of_exprkind_opt v1.e in
-      match v3 with
-      (* TODO? we could potentially set idinfo.resolved here *)
-      | FN (Id (id, _idinfo)) -> Some (xs @ [ id ])
-      | _ -> None)
+let undot_expr_opt e =
+  let rec aux e =
+    match e.e with
+    (* TODO: Id itself can have been resolved!! so we need to
+     * concatenate. See tests/python/misc_regression[12].py
+     *)
+    | N (Id (id, _)) -> Some [ id ]
+    | DotAccess (e, _, FN (Id (id, _))) ->
+        let* ids = aux e in
+        Some (id :: ids)
+    | _ -> None
+  in
+  let* ids = aux e in
+  Some (List.rev ids)
+
+let expr_to_type_after_naming_opt e =
+  match e.e with
+  | N n -> Some (TyN n |> AST.t)
+  (* For Python we need to transform a.b.c DotAccess expr in a qualified name*)
+  | DotAccess (_, _, _) ->
+      let* ids = undot_expr_opt e in
+      Some (TyN (AST_generic_helpers.name_of_ids ids) |> AST.t)
+  | _ -> None
+
+let type_of_type_generic_opt _env ty =
+  let rec aux ty =
+    match ty.t with
+    | TyN n ->
+        let* xs = dotted_ident_of_name_opt n in
+        Some (T.N xs)
+    (* Python uses those types, but we can't fix
+     * AST_generic_helpers.type_of_expr because this would introduce
+     * regressions because we need naming to be done to correctly do
+     * the transformation. This is why we do the transformation later
+     * here with expr_to_type_after_naming_opt.
+     *)
+    | TyExpr e ->
+        let* ty = expr_to_type_after_naming_opt e in
+        aux ty
+    | _ -> None
+  in
+  aux ty
+
+let type_of_definition_opt env dotted_ident (_ent, defkind) =
+  match defkind with
+  (* for a class, its name is his type *)
+  | ClassDef _ -> Some (T.N dotted_ident)
+  | VarDef { vtype = Some ty; _ } -> type_of_type_generic_opt env ty
+  | FuncDef { frettype = Some ty; fparams; _ } ->
+      let* ty = type_of_type_generic_opt env ty in
+      Some (T.Function (fparams, ty))
   | _ -> None
 
 (*****************************************************************************)

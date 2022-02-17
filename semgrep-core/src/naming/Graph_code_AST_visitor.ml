@@ -40,8 +40,6 @@ exception SemgrepConstruct of Parse_info.t
 (* Helpers *)
 (*****************************************************************************)
 
-let ( let* ) = Option.bind
-
 let todo_type = None
 
 (* TODO: remove this pragma! *)
@@ -105,24 +103,23 @@ let map_module_name env = function
 let rec map_name env n =
   if debug then
     logger#trace "map_name: %s" (H.string_of_any (E (N n |> AST_generic.e)));
-  H.dotted_ident_of_name_opt n
-  |> Option.iter (fun xs ->
-         if env.phase = Uses then
-           (* !!the uses!! *)
-           let n2opt = L.lookup_dotted_ident_opt env xs in
-           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
+  H.when_uses_phase env (fun () ->
+      let/ xs = H.dotted_ident_of_name_opt n in
+      (* !!the uses!! *)
+      let/ n2 = L.lookup_dotted_ident_opt env xs in
+      H.add_use_edge env n2);
   match n with
   | Id (v1, v2) ->
-      (if env.phase = Uses then
-       (* !!the uses!! *)
-       match !(v2.id_resolved) with
-       | None
-       | Some (Global, _) ->
-           (* try locally *)
-           let n2opt = L.lookup_local_file_opt env v1 in
-           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2)
-       (* TODO: ImportedModule Filename => lookup E.File *)
-       | _ -> ());
+      H.when_uses_phase env (fun () ->
+          (* !!the uses!! *)
+          match !(v2.id_resolved) with
+          | None
+          | Some (Global, _) ->
+              (* try locally *)
+              let/ n2 = L.lookup_local_file_opt env v1 in
+              H.add_use_edge env n2
+          (* TODO: ImportedModule Filename => lookup E.File *)
+          | _ -> ());
       (* ----------- *)
       (* Boilerplate *)
       (* ----------- *)
@@ -199,12 +196,15 @@ and map_expr_kind env ekind : T.t option =
   match ekind with
   (* TODO: fix Python_to_generic that should generate a special Self *)
   | N (Id (("self", tk), _)) ->
-      let* xs = env.class_qualifier in
-      Some (T.N xs)
+      H.when_uses_phase_or_none env (fun () ->
+          let* xs = env.class_qualifier in
+          Some (T.N xs))
   | N v1 ->
       let _t = map_name env v1 in
-      let* xs = H.dotted_ident_of_name_opt v1 in
-      Some (T.N xs)
+      H.when_uses_phase_or_none env (fun () ->
+          let* xs = H.dotted_ident_of_name_opt v1 in
+          (* old: Some (T.N xs) *)
+          L.lookup_type_of_dotted_ident_opt env xs)
   | IdSpecial (spec, tk) -> (
       let _spec = map_special env spec in
       match spec with
@@ -212,39 +212,38 @@ and map_expr_kind env ekind : T.t option =
           let* xs = env.class_qualifier in
           Some (T.N xs)
       | _ -> todo_type)
-  | DotAccess (v1, v2, v3) -> (
+  | DotAccess (v1, v2, v3) ->
       let v1 = map_expr env v1
       and _v2 = map_tok env v2
       and _v3 = map_field_name env v3 in
 
-      let* t = v1 in
-      (* this is similar to H.dotted_ident_of_exprkind_opt but more general*)
-      match (t, v3) with
-      (* TODO? we could potentially set idinfo.resolved here *)
-      | T.N xs, FN (Id (id, _idinfo)) ->
-          let final = xs @ [ id ] in
-          (if env.phase = Uses then
-           let n2opt = L.lookup_dotted_ident_opt env final in
-           n2opt |> Option.iter (fun n2 -> H.add_use_edge env n2));
-          Some (T.N final)
-      | _ -> None)
-  | Call (v1, v2) -> (
-      (* less: should do type checking on arguments matching parameters *)
-      let v1 = map_expr env v1
-      and _v2 = map_arguments env v2 in
-      let* t = v1 in
-      match t with
-      | T.N xs -> (
-          match env.lang with
-          (* in Python, calls to Foo() are actually disguised New that
-           * then should return the type Foo (the class Foo)
+      H.when_uses_phase_or_none env (fun () ->
+          let* t = v1 in
+          (* this is similar to H.dotted_ident_of_exprkind_opt but more general*)
+          match (t, v3) with
+          (* TODO? we could potentially set idinfo.resolved here *)
+          | T.N xs, FN (Id (id, _idinfo)) ->
+              let final = xs @ [ id ] in
+              (let/ n2 = L.lookup_dotted_ident_opt env final in
+               H.add_use_edge env n2);
+              Some (T.N final)
+          | _ -> None)
+  | Call (v1, v2) ->
+      let v1 = map_expr env v1 and _v2 = map_arguments env v2 in
+      H.when_uses_phase_or_none env (fun () ->
+          let* t = v1 in
+          match t with
+          (* less: should do type checking on arguments matching parameters.
+           * later: if polymorphic type, need to instantiate it with the
+           * type of the arguments.
            *)
-          | Lang.Python ->
-              (* less: could also link to __init__ method *)
-              Some (T.N xs)
-          (* should access the type signature of xs *)
-          | _ -> todo_type)
-      | _ -> None)
+          | T.Function (_params, ty) -> Some ty
+          (* in Python, calls to Foo() are actually disguised New that
+           * then should return the type Foo (the class Foo).
+           * less: could also link to __init__ method
+           *)
+          | T.N xs when env.lang = Lang.Python -> Some (T.N xs)
+          | _ -> None)
   | Alias (_, _) -> todo_type
   | L v1 ->
       let _v1 = map_literal env v1 in
@@ -1000,21 +999,25 @@ and map_definition env (ent, def) =
     match H.ident_of_entity_opt env ent with
     | Some id -> (
         let dotted_ident = env.current_qualifier @ [ id ] in
-        let str = H.str_of_dotted_ident dotted_ident in
+        let entname = H.entname_of_dotted_ident dotted_ident in
         let kind = H.entity_kind_of_definition env (ent, def) in
-        let node = (str, kind) in
-        if env.phase = Defs then (
-          if
-            (* less: static? *)
-            (* less: we just collapse all methods with same name together *)
-            G.has_node node env.g
-            (* todo? duplicate node warning? *)
-          then ()
-          else (
-            env.g |> G.add_node node;
-            env.g |> G.add_nodeinfo node (H.nodeinfo_of_id env id);
-            env.g |> G.add_edge (env.current_parent, node) G.Has);
-          env.hooks.on_def_node node (ent, def));
+        let node = (entname, kind) in
+        H.when_defs_phase env (fun () ->
+            if
+              (* less: static? *)
+              (* less: we just collapse all methods with same name together *)
+              G.has_node node env.g
+              (* todo? duplicate node warning? *)
+            then ()
+            else (
+              env.g |> G.add_node node;
+              env.g |> G.add_nodeinfo node (H.nodeinfo_of_id env id);
+              env.g |> G.add_edge (env.current_parent, node) G.Has);
+            env.hooks.on_def_node node (ent, def);
+            let/ ty = H.type_of_definition_opt env dotted_ident (ent, def) in
+            logger#info "adding type for %s = %s" (G.string_of_node node)
+              (T.show ty);
+            Hashtbl.add env.types node ty);
 
         let env =
           { env with current_parent = node; current_qualifier = dotted_ident }
@@ -1027,14 +1030,11 @@ and map_definition env (ent, def) =
         | ClassDef classdef ->
             (match classdef with
             | { cextends = [ ({ t = TyN parent; _ }, None) ]; _ } ->
-                H.dotted_ident_of_name_opt parent
-                |> Option.iter (fun xs ->
-                       if env.phase = Uses then
-                         (* !!the uses!! *)
-                         let n2opt = L.lookup_dotted_ident_opt env xs in
-                         n2opt
-                         |> Option.iter (fun n2 ->
-                                env.hooks.on_extend_edge node n2 (ent, classdef)))
+                H.when_uses_phase env (fun () ->
+                    let/ xs = H.dotted_ident_of_name_opt parent in
+                    (* !!the uses!! *)
+                    let/ n2 = L.lookup_dotted_ident_opt env xs in
+                    env.hooks.on_extend_edge node n2 (ent, classdef))
             | _ -> ());
             { env with class_qualifier = Some dotted_ident }
         | _ -> env)
