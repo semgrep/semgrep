@@ -17,6 +17,7 @@ from typing import Set
 from typing import Type
 
 from semgrep import config_resolver
+from semgrep import metric_manager
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -39,6 +40,7 @@ from semgrep.rule_match_map import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import IgnoreLog
+from semgrep.types import MetricsState
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
@@ -305,10 +307,20 @@ class OutputHandler:
                 num_rules = len(self.filtered_rules)
 
                 ignores_line = str(ignore_log or "No ignore information available")
+                is_registry_run = metric_manager.MetricsState != MetricsState.OFF
+                if (
+                    num_findings == 0
+                    and num_targets > 0
+                    and num_rules > 0
+                    and is_registry_run
+                ):
+                    suggestion_line = "(Looking for more rules? Try `semgrep login` for additional free Semgrep Registry rules)\n"
+                else:
+                    suggestion_line = ""
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
                 if ignore_log is not None:
                     logger.verbose(ignore_log.verbose_output())
-                logger.info("\n" + ignores_line + "\n" + stats_line)
+                logger.info("\n" + ignores_line + "\n" + suggestion_line + stats_line)
 
         final_error = None
         error_stats = None
