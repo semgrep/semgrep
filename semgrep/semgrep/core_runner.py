@@ -445,6 +445,7 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
+        deep: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -496,13 +497,39 @@ class CoreRunner:
                 str(self._max_memory),
                 "-json_time",
             ]
-
             if self._optimizations != "none":
                 cmd.append("-fast")
 
+            # TODO: use exact same command-line arguments so just
+            # need to replace the SemgrepCore.path() part.
+            if deep:
+                targets = target_manager.targets
+                if len(targets) == 1 and Path(targets[0]).is_dir():
+                    root = targets[0]
+                else:
+                    raise SemgrepError("deep mode needs a single target (root) dir")
+
+                cmd = [SemgrepCore.deep_path()] + [
+                    "--json",
+                    "--rules",
+                    rule_file.name,
+                    # "-j",
+                    # str(self._jobs),
+                    "--targets",
+                    target_file.name,
+                    "--root",
+                    root,
+                    # "--timeout",
+                    # str(self._timeout),
+                    # "--timeout_threshold",
+                    # str(self._timeout_threshold),
+                    # "--max_memory",
+                    # str(self._max_memory),
+                ]
+
             stderr: Optional[int] = subprocess.PIPE
             if is_debug():
-                cmd += ["-debug"]
+                cmd += ["--debug"]
                 stderr = None
 
             if dump_command_for_core:
@@ -552,6 +579,7 @@ class CoreRunner:
         target_manager: TargetManager,
         rules: List[Rule],
         dump_command_for_core: bool,
+        deep: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -564,7 +592,7 @@ class CoreRunner:
             all_targets,
             profiling_data,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core
+            rules, target_manager, dump_command_for_core, deep
         )
 
         logger.debug(

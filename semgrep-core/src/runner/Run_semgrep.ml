@@ -436,14 +436,14 @@ let targets_of_config (config : Runner_config.t)
       let str = Common.read_file target_file in
       let targets = In.targets_of_string str in
       let skipped = [] in
+      (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
-        failwith "if you use -targets, you should not specify files";
+        logger#error "if you use -targets, you should not specify files";
       (* TODO: ugly, this is because the code path for -e/-f requires
        * a language, even with a -target, see test_target_file.py
        *)
       if lang_opt <> None && config.rules_file <> "" then
-        failwith
-          "if you use -targets and -config, you should not specify a lang";
+        failwith "if you use -targets and -rules, you should not specify a lang";
       (targets, skipped)
 
 (*****************************************************************************)
