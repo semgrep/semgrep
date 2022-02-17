@@ -83,11 +83,6 @@ def publish(target: str, visibility: str) -> None:
         click.echo("run `semgrep login` before using upload", err=True)
 
 
-def _publish_rule_to_registry(rule_file: str) -> bool:
-    # TODO: clone semgrep-rules, checkout a fresh branch, update/overwrite the target rule, then suggest making a PR?
-    pass
-
-
 def _upload_rule(rule_file: str, token: str, visibility: str) -> bool:
     """
     Uploads rule in rule_file to private registry of deployment_id
