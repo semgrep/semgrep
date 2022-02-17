@@ -1,10 +1,14 @@
 import os
 import sys
+from enum import Enum
+from typing import Any
+from typing import Optional
 
 import click
 
 from semgrep.commands.login import Authentication
 from semgrep.config_resolver import get_config
+from semgrep.project import get_project_url
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -16,9 +20,53 @@ SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_BASE_URL}/api/registry/rule"
 SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}/r/"
 
 
+class VisibilityState(str, Enum):
+    ORG_PRIVATE: str = "org_private"
+    UNLISTED: str = "unlisted"
+    PUBLIC: str = "public"
+
+
+class VisibilityStateType(click.ParamType):
+    name = "visibility_state"
+
+    def get_metavar(self, param: click.Parameter) -> str:
+        return "[org_private|unlisted|public]"
+
+    def convert(
+        self,
+        value: Any,
+        param: Optional["click.Parameter"],
+        ctx: Optional["click.Context"],
+    ) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            lower = value.lower()
+            if lower == "org_private":
+                return VisibilityState.ORG_PRIVATE
+            if lower == "unlisted":
+                return VisibilityState.UNLISTED
+            if lower == "public":
+                return VisibilityState.PUBLIC
+        self.fail("expected 'org_private', 'unlisted', or 'public'")
+
+
+VISIBILITY_STATE = VisibilityStateType()
+
+
 @click.command()
 @click.argument("target", nargs=1, type=click.Path(allow_dash=True))
-def publish(target: str) -> None:
+@click.option(
+    "--visibility",
+    "visibility",
+    default="org_private",
+    type=VISIBILITY_STATE,
+    help="Sets visibility of the uploaded rules."
+    " If 'org_private', rules will be private to your org (default)"
+    " If 'unlisted', rules will be listed in your org, but not listed to non-org members"
+    " If 'public', rules will be published to the Semgrep Registry",
+)
+def publish(target: str, visibility: str) -> None:
     """
     If logged in, uploads a private rule to the Semgrep registry.
 
@@ -26,7 +74,7 @@ def publish(target: str) -> None:
     """
     saved_login_token = Authentication.read_token()
     if saved_login_token:
-        if _upload_rule(target, saved_login_token):
+        if _upload_rule(target, saved_login_token, visibility):
             sys.exit(0)
         else:
             sys.exit(1)
@@ -35,7 +83,12 @@ def publish(target: str) -> None:
         click.echo("run `semgrep login` before using upload", err=True)
 
 
-def _upload_rule(rule_file: str, token: str) -> bool:
+def _publish_rule_to_registry(rule_file: str) -> bool:
+    # TODO: clone semgrep-rules, checkout a fresh branch, update/overwrite the target rule, then suggest making a PR?
+    pass
+
+
+def _upload_rule(rule_file: str, token: str, visibility: str) -> bool:
     """
     Uploads rule in rule_file to private registry of deployment_id
     Args:
@@ -60,6 +113,11 @@ def _upload_rule(rule_file: str, token: str) -> bool:
 
     rule = rules[0]
 
+    # add metadata about the origin of the rule
+    rule.metadata[
+        "source-rule-url"
+    ] = f"published from {rule_file} in {get_project_url()}"
+
     import requests
 
     session = requests.Session()
@@ -67,7 +125,7 @@ def _upload_rule(rule_file: str, token: str) -> bool:
 
     request_json = {
         "definition": {"rules": [rule._raw]},
-        "visibility": "org_private",
+        "visibility": visibility,
         # below should always be defined if passed validation
         "languages": rule.languages,
         # TODO backend can infer deployment ID from token; shouldn't need this
@@ -85,7 +143,7 @@ def _upload_rule(rule_file: str, token: str) -> bool:
     else:
         created_rule = response.json()
         click.echo(
-            f"You can find your private rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['path']}"
+            f"You can find your {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['path']}"
         )
 
     return True
