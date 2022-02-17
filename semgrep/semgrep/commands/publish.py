@@ -63,6 +63,8 @@ def _get_test_code_for_config(
 ) -> Tuple[List[Path], Dict[Path, List[Path]]]:
     config = target
     config_filenames = get_config_filenames(config)
+    if len(config_filenames) == 0:
+        config_filenames = [target]
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
     return config_filenames, config_test_filenames
 
@@ -77,13 +79,20 @@ def _get_test_code_for_config(
     help="Sets visibility of the uploaded rules."
     " If 'org_private', rules will be private to your org (default)"
     " If 'unlisted', rules will be listed in your org, but not listed to non-org members"
-    " If 'public', rules will be published to the Semgrep Registry",
+    " If 'public', rules will be published to the Semgrep Registry (requires --registry-id)",
 )
-def publish(target: str, visibility: VisibilityState) -> None:
+@click.option(
+    "--registry-id",
+    "registry_id",
+    help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
+)
+def publish(
+    target: str, visibility: VisibilityState, registry_id: Optional[str]
+) -> None:
     """
-    If logged in, uploads a private rule to the Semgrep registry.
+    If logged in, uploads a rule to the Semgrep Registry with the specified visibility.
 
-    If not logged in, explains how to make a PR to semgrep-rules.
+    Public rules need registry_id to specify where in the public registry they should live.
     """
     saved_login_token = Authentication.get_token()
     fail_count = 0
@@ -92,8 +101,18 @@ def publish(target: str, visibility: VisibilityState) -> None:
             Path(target)
         )
         if len(config_filenames) == 0:
-            click.echo(f"No configs found: you must specify a directory", err=True)
+            click.echo(f"No valid Semgrep rules found in {target}", err=True)
             sys.exit(1)
+        if len(config_filenames) != 1 and visibility == VisibilityState.PUBLIC:
+            click.echo(
+                f"Only one public rule can be uploaded at a time: specify a single Semgrep rule",
+                err=True,
+            )
+            sys.exit(1)
+        if visibility == VisibilityState.PUBLIC and registry_id is None:
+            click.echo(f"--visibility=public requires --registry-id", err=True)
+            sys.exit(1)
+
         click.echo(
             f'Found {len(config_filenames)} configs to publish with visibility "{visibility}"'
         )
@@ -106,7 +125,11 @@ def publish(target: str, visibility: VisibilityState) -> None:
             first_test_case = test_cases[0] if len(test_cases) >= 1 else None
 
             if not _upload_rule(
-                config_filename, saved_login_token, visibility, first_test_case
+                config_filename,
+                saved_login_token,
+                visibility,
+                first_test_case,
+                registry_id,
             ):
                 fail_count += 1
         if fail_count == 0:
@@ -123,6 +146,7 @@ def _upload_rule(
     token: str,
     visibility: VisibilityState,
     test_code_file: Optional[Path],
+    registry_id: Optional[str],
 ) -> bool:
     """
     Uploads rule in rule_file with the specificied visibility
@@ -152,9 +176,10 @@ def _upload_rule(
     rule = rules[0]
 
     # add metadata about the origin of the rule
-    rule.metadata[
-        "source-rule-url"
-    ] = f"published from {rule_file} in {get_project_url()}"
+    existing_source = rule.metadata.get("source-rule-url")
+    rule.metadata["source-rule-url"] = (
+        existing_source + " " if existing_source else ""
+    ) + f"published from {rule_file} in {get_project_url()}"
 
     import requests
 
@@ -169,11 +194,8 @@ def _upload_rule(
         # TODO backend can infer deployment ID from token; shouldn't need this
         "deployment_id": Authentication.get_deployment_id(),
         "test_target": test_code_file.read_text() if test_code_file else None,
+        "registry_check_id": registry_id,
     }
-
-    import pdb
-
-    pdb.set_trace()
 
     response = session.post(SEMGREP_REGISTRY_UPLOAD_URL, json=request_json, timeout=30)
 
@@ -186,6 +208,7 @@ def _upload_rule(
         return False
     else:
         created_rule = response.json()
+        print(created_rule)  # TODO remove
         if visibility == VisibilityState.PUBLIC:
             click.echo(
                 f"    Pull request created for this public rule at: {created_rule['pr_url']}"
