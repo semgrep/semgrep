@@ -48,7 +48,7 @@ def login() -> None:
 
     # If token doesn't already exist in the settings file or as an environment variable,
     # interactively prompt the user to supply it (if we are in a TTY).
-    if sys.stderr.isatty():
+    if Authentication.is_a_tty():
         session_id, url = make_login_url()
         click.echo(
             "Login enables additional proprietary Semgrep Registry rules and running custom policies from Semgrep App."
@@ -91,7 +91,7 @@ def login() -> None:
 
     else:
         click.echo(
-            f"Error: semgrep login is an interactive command: run in an interactive terminal (or define {Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME}",
+            f"Error: semgrep login is an interactive command: run in an interactive terminal (or define {Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME})",
             err=True,
         )
         sys.exit(1)
@@ -205,3 +205,11 @@ class Authentication:
         """
         logger.debug("Deleting api token from settings file")
         SETTINGS.delete_setting(Authentication.SEMGREP_API_TOKEN_SETTINGS_KEY)
+
+    @staticmethod
+    def is_a_tty() -> bool:
+        """
+        Whether or not the terminal is interactive (a tty)
+        Separated out to make test mocking easier
+        """
+        return sys.stderr.isatty()
