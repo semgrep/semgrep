@@ -17,6 +17,7 @@ from typing import Set
 from typing import Type
 
 from semgrep import config_resolver
+from semgrep.commands.login import Authentication
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -311,6 +312,7 @@ class OutputHandler:
                     and num_targets > 0
                     and num_rules > 0
                     and metric_manager.get_is_using_server()
+                    and Authentication.get_token() is None
                 ):
                     suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
                 else:
