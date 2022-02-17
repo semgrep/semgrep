@@ -32,7 +32,7 @@ let synthesize_from_diff_list f =
   let diff_files = d.In.cve_diffs in
   let diffs = List.map Pattern_from_Diff.pattern_from_diff diff_files in
   let res = Out.string_of_cve_results diffs in
-  pr2 res
+  pr res
 
 let target_to_string lang target =
   "target:\n" ^ Pretty_print_pattern.pattern_to_string lang target ^ "\n"
