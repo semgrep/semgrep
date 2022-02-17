@@ -17,7 +17,7 @@ def login() -> None:
     """
     Prompts for API key to semgrep.dev and saves it to global settings file
     """
-    saved_login_token = Authentication.read_token()
+    saved_login_token = Authentication._read_token_from_settings_file()
     if saved_login_token:
         click.echo(
             f"API token already exists in {SETTINGS.get_path_to_settings()}. To login with a different token logout with `semgrep logout`"
@@ -43,7 +43,7 @@ def logout() -> None:
 
 
 class Authentication:
-    SEMGREP_LOGIN_TOKEN_ENVVAR_NAME = "SEMGREP_LOGIN_TOKEN"
+    SEMGREP_LOGIN_TOKEN_ENVVAR_NAME = "SEMGREP_APP_TOKEN"
     SEMGREP_API_TOKEN_SETTINGS_KEY = "api_token"
 
     @staticmethod
@@ -74,8 +74,11 @@ class Authentication:
         r = requests.get(
             f"{SEMGREP_URL}api/agent/deployment", timeout=10, headers=headers
         )
-        data = r.json()
-        return data.get("deployment", {}).get("id")  # type: ignore
+        if r.ok:
+            data = r.json()
+            return data.get("deployment", {}).get("id")  # type: ignore
+        else:
+            return None
 
     @staticmethod
     def get_token() -> Optional[str]:
@@ -92,10 +95,10 @@ class Authentication:
             )
             return login_token
 
-        return Authentication.read_token()
+        return Authentication._read_token_from_settings_file()
 
     @staticmethod
-    def read_token() -> Optional[str]:
+    def _read_token_from_settings_file() -> Optional[str]:
         """
         Read api token from settings file
 

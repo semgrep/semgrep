@@ -1,23 +1,27 @@
-import os
 import sys
 from enum import Enum
+from pathlib import Path
 from typing import Any
+from typing import Dict
+from typing import List
 from typing import Optional
+from typing import Tuple
 
 import click
 
 from semgrep.commands.login import Authentication
 from semgrep.config_resolver import get_config
+from semgrep.constants import SEMGREP_URL
 from semgrep.project import get_project_url
+from semgrep.test import get_config_filenames
+from semgrep.test import get_config_test_filenames
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-SEMGREP_REGISTRY_BASE_URL = os.environ.get(
-    "SEMGREP_REGISTRY_BASE_URL", "https://semgrep.dev"
-)
-SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_BASE_URL}/api/registry/rule"
-SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}/r/"
+SEMGREP_REGISTRY_BASE_URL = SEMGREP_URL
+SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_BASE_URL}api/registry/rule"
+SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}r/"
 
 
 class VisibilityState(str, Enum):
@@ -54,6 +58,15 @@ class VisibilityStateType(click.ParamType):
 VISIBILITY_STATE = VisibilityStateType()
 
 
+def _get_test_code_for_config(
+    target: Path,
+) -> Tuple[List[Path], Dict[Path, List[Path]]]:
+    config = target
+    config_filenames = get_config_filenames(config)
+    config_test_filenames = get_config_test_filenames(config, config_filenames, target)
+    return config_filenames, config_test_filenames
+
+
 @click.command()
 @click.argument("target", nargs=1, type=click.Path(allow_dash=True))
 @click.option(
@@ -66,42 +79,72 @@ VISIBILITY_STATE = VisibilityStateType()
     " If 'unlisted', rules will be listed in your org, but not listed to non-org members"
     " If 'public', rules will be published to the Semgrep Registry",
 )
-def publish(target: str, visibility: str) -> None:
+def publish(target: str, visibility: VisibilityState) -> None:
     """
     If logged in, uploads a private rule to the Semgrep registry.
 
     If not logged in, explains how to make a PR to semgrep-rules.
     """
-    saved_login_token = Authentication.read_token()
+    saved_login_token = Authentication.get_token()
+    fail_count = 0
     if saved_login_token:
-        if _upload_rule(target, saved_login_token, visibility):
+        config_filenames, config_test_filenames = _get_test_code_for_config(
+            Path(target)
+        )
+        if len(config_filenames) == 0:
+            click.echo(f"No configs found: you must specify a directory", err=True)
+            sys.exit(1)
+        click.echo(
+            f'Found {len(config_filenames)} configs to publish with visibility "{visibility}"'
+        )
+
+        for config_filename in config_filenames:
+            test_cases = config_test_filenames.get(config_filename, [])
+            click.echo(
+                f"--> Uploading {config_filename} (test cases: {[str(t) for t in test_cases]})"
+            )
+            first_test_case = test_cases[0] if len(test_cases) >= 1 else None
+
+            if not _upload_rule(
+                config_filename, saved_login_token, visibility, first_test_case
+            ):
+                fail_count += 1
+        if fail_count == 0:
             sys.exit(0)
         else:
+            click.echo(f"{fail_count} rules failed to upload", err=True)
             sys.exit(1)
-
     else:
         click.echo("run `semgrep login` before using upload", err=True)
 
 
-def _upload_rule(rule_file: str, token: str, visibility: str) -> bool:
+def _upload_rule(
+    rule_file: Path,
+    token: str,
+    visibility: VisibilityState,
+    test_code_file: Optional[Path],
+) -> bool:
     """
-    Uploads rule in rule_file to private registry of deployment_id
+    Uploads rule in rule_file with the specificied visibility
     Args:
         rule_file: path to valid rule yaml file that contains single
         rule to be uploaded
-        deployment_id: which deployment to upload a rule to
         token: token with permissions to upload a rule
+        visibility: the visibility of the uploaded rule
+        test_code_file: optional test case to attach with the rule
     """
-    config, errors = get_config(None, None, [rule_file], project_url=None)
+    config, errors = get_config(None, None, [str(rule_file)], project_url=None)
 
     if errors:
-        click.echo(f"Rule definition: {str(rule_file)} is invalid: {errors}", err=True)
+        click.echo(
+            f"    Rule definition: {str(rule_file)} is invalid: {errors}", err=True
+        )
         return False
 
     rules = config.get_rules(True)
     if len(rules) != 1:
         click.echo(
-            "Rule contains more than one rule: only yaml files with a single can be published",
+            "    Rule contains more than one rule: only yaml files with a single can be published",
             err=True,
         )
         return False
@@ -122,23 +165,34 @@ def _upload_rule(rule_file: str, token: str, visibility: str) -> bool:
         "definition": {"rules": [rule._raw]},
         "visibility": visibility,
         # below should always be defined if passed validation
-        "languages": rule.languages,
+        "language": rule.languages[0] if len(rule.languages) >= 1 else None,
         # TODO backend can infer deployment ID from token; shouldn't need this
         "deployment_id": Authentication.get_deployment_id(),
+        "test_target": test_code_file.read_text() if test_code_file else None,
     }
+
+    import pdb
+
+    pdb.set_trace()
 
     response = session.post(SEMGREP_REGISTRY_UPLOAD_URL, json=request_json, timeout=30)
 
     if not response.ok:
         click.echo(
-            f"Failed to upload rule with status_code {response.status_code}", err=True
+            f"    Failed to upload rule with status_code {response.status_code}",
+            err=True,
         )
         click.echo(response.text, err=True)
         return False
     else:
         created_rule = response.json()
-        click.echo(
-            f"You can find your {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['path']}"
-        )
+        if visibility == VisibilityState.PUBLIC:
+            click.echo(
+                f"    Pull request created for this public rule at: {created_rule['pr_url']}"
+            )
+        else:
+            click.echo(
+                f"    Published {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['rule']['path']}"
+            )
 
     return True
