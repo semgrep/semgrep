@@ -142,6 +142,7 @@ let print_expectations () =
 let test_pcre_pattern_explosion ~pat ~input expected =
   let res =
     try
+      (* nosemgrep: not-using-our-pcre-wrappers *)
       Pcre.pmatch ~pat input |> ignore;
       Succeeds
     with Pcre.Error Pcre.MatchLimit -> Blows_up
