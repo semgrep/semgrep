@@ -140,6 +140,7 @@ def publish(
             sys.exit(1)
     else:
         click.echo("run `semgrep login` before using upload", err=True)
+        sys.exit(1)
 
 
 def _upload_rule(
@@ -162,7 +163,8 @@ def _upload_rule(
 
     if errors:
         click.echo(
-            f"    Rule definition: {str(rule_file)} is invalid: {errors}", err=True
+            f"    Invalid rule definition: {str(rule_file)} is invalid: {errors}",
+            err=True,
         )
         return False
 

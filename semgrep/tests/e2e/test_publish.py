@@ -9,7 +9,7 @@ from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
-def test_login(tmp_path):
+def test_publish(tmp_path):
     runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
 
     tests_path = Path(TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "valid")
