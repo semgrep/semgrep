@@ -167,6 +167,7 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
 
 
 def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    # We currently ignore transitive dependencies because they do not have locked versions
     def parse_dep(s: str) -> LockfileDependency:
         # s == "    $DEP ($VERSION)"
         dep, paren_version = s.strip().split(" ")
@@ -183,6 +184,7 @@ def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
 
 
 def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    # We currently ignore the +incompatible flag, pseudo versions, and the difference between a go.mod and a direct download
     def parse_dep(s: str) -> LockfileDependency:
         dep, version, hash = s.split()
         # drop 'v'
@@ -212,3 +214,22 @@ def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
 
     lines = lockfile_text.split("\n")
     yield from (parse_dep(dep) for dep in lines)
+
+
+def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    def parse_dep(s: str) -> LockfileDependency:
+        lines = s.split("\n")[1:]
+        print(lines)
+        dep = lines[0].split("=")[1].strip()[1:-1]
+        version = lines[1].split("=")[1].strip()[1:-1]
+        hash = lines[3].split("=")[1].strip()[1:-1]
+        return LockfileDependency(
+            dep,
+            version,
+            PackageManagers.CARGO,
+            resolved_url=None,
+            allowed_hashes={"sha256": [hash]},
+        )
+
+    deps = lockfile_text.split("[[package]]")[1:]
+    yield from (parse_dep(dep) for dep in deps)

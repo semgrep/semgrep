@@ -20,6 +20,7 @@ PACKAGE_MANAGER_MAP = {
     "npm": PackageManagers.NPM,
     "gem": PackageManagers.GEM,
     "gomod": PackageManagers.GOMOD,
+    "cargo": PackageManagers.CARGO,
 }
 
 

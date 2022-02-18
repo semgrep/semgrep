@@ -12,6 +12,7 @@ TARGET_LOCKFILE_FILENAMES = [
     "package-lock.json",
     "gemfile.lock",
     "go.sum",
+    "cargo.lock",
 ]
 
 

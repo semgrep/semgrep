@@ -21,6 +21,7 @@ class PackageManagers(Enum):
     PYPI = "pypi"
     GEM = "gem"
     GOMOD = "gomod"
+    CARGO = "cargo"
 
 
 @frozen(eq=True, order=True)
