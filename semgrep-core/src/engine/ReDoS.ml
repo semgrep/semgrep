@@ -3,17 +3,220 @@
    analysis.
 *)
 
+open Pfff_lang_regexp
+
 let parse_regexp conf re_str =
-  try Some (Pfff_lang_regexp.Parse.string ~conf re_str)
-  with Parse_info.Parsing_error _ -> None
+  try Some (Parse.string ~conf re_str) with Parse_info.Parsing_error _ -> None
 
-let is_vulnerable _re =
-  (* TODO *)
-  true
+(* Iterate over all the nodes of a regexp *)
+let rec iter f (x : AST.t) =
+  f x;
+  match x with
+  | Empty _ -> ()
+  | Char _ -> ()
+  | Special _ -> ()
+  | Seq (_loc, a, b) ->
+      iter f a;
+      iter f b
+  | Alt (_loc, a, b) ->
+      iter f a;
+      iter f b
+  | Repeat (_loc, x, _repeat_range, _matching_pref) -> iter f x
+  | Group (_loc, _group_kind, x) ->
+      (* TODO: remove groups in a processing step? *)
+      iter f x
+  | Conditional (_loc, _condition, then_, else_) -> (
+      iter f then_;
+      match else_ with
+      | Some else_ -> iter f else_
+      | None -> ())
 
-let regexp_may_explode re_str =
-  (* TODO: specify correct regexp dialect *)
-  let conf = Pfff_lang_regexp.Dialect.default in
+(* Find nodes that match a predicate *)
+let find_all test x =
+  let acc = ref [] in
+  iter (fun x -> if test x then acc := x :: !acc) x;
+  List.rev !acc
+
+(* Same as 'find' but ignore which subnodes were matched *)
+let matches_deep test x = find_all test x <> []
+
+let matches_sequence test_left test_right (x : AST.t) =
+  match x with
+  | Seq (_, a, b) -> test_left a && test_right b
+  | _ -> false
+
+(* A choice that always allows two or more branches to match nonempty input.
+   Examples include:
+   - a|aa
+   - aa?        # same as a{1,2}
+   - a+
+   - ab|abab    # allows for periodic input
+   - [ab]|[ac]
+   - a|a?
+   - a*         # greedy repeat
+   - a*?        # lazy repeat
+
+   Examples do not include:
+   - a?         # one of the branches always matches empty input
+   - a|b        # at most one branch can match at a given position
+   - a|ab       # cannot match more than one branch multiple times in a row
+
+   Determining this correctly turns out to be hard!
+
+   Things to note:
+   - greedy or lazy repeats don't change anything since the explosion occurs
+     when matching fails. In these cases, all combinations are tried
+     so their order doesn't matter.
+   - possessive quantifiers prevent backtracking, so these are always safe.
+     They're not used very often, though.
+
+   Crude approach:
+   - look for <anything> repeated
+   - number of repeats must be greater than 1
+   - at least two values must be allowed for the number of repeats
+   This will cover:
+   - a*
+   - a+
+   - a{1,2}
+
+   The following won't be caught (TODO: preprocess the regexp tree to
+   transform these into a single repeated pattern):
+   - aa*        # same as a+
+   - aa?        # same as a{1,2}
+   - a|aa       # same as a{1,2}
+   - a|aaa
+*)
+let rec matches_in_two_nonempty_branches (x : AST.t) =
+  match x with
+  | Empty _ -> false
+  | Char _ -> false
+  | Special _ -> false
+  | Seq _ -> false
+  | Alt _ -> false
+  | Repeat (_, _x, (min_reps, max_reps), _matching_pref) -> (
+      (* repeats two different number of times that are greater than 0 *)
+      match max_reps with
+      | None -> true
+      | Some max_reps ->
+          (min_reps >= 1 && max_reps > min_reps)
+          || (min_reps = 0 && max_reps >= 2))
+  | Group (_, _, x) -> matches_in_two_nonempty_branches x
+  | Conditional (_, _cond, then_, else_) -> (
+      matches_in_two_nonempty_branches then_
+      ||
+      match else_ with
+      | None -> false
+      | Some x -> matches_in_two_nonempty_branches x)
+
+let matches_nonpossessive_repeat ~min_repeat test (x : AST.t) =
+  match x with
+  | Repeat (_, _, _, Possessive) -> false
+  | Repeat (_, x, (_min_reps, opt_max_reps), _) ->
+      let satisfies_min_repeats =
+        match opt_max_reps with
+        | None -> true
+        | Some max_reps -> max_reps >= min_repeat
+      in
+      satisfies_min_repeats && test x
+  | _ -> false
+
+let matches_not_everywhere (x : AST.t) =
+  let match_constraints =
+    x
+    |> find_all (function
+         | Empty _ -> false
+         | Char _ -> true
+         | Special (_loc, x) -> (
+             match x with
+             | Beginning_of_line
+             (* ^ *)
+             | End_of_line
+             (* $ *)
+             | Beginning_of_input
+             (* \A *)
+             | End_of_last_line
+             (* \Z *)
+             | End_of_input
+             (* \z *)
+             | Beginning_of_match
+             (* \G *)
+             | Numeric_back_reference _
+             | Named_back_reference _
+             | Word_boundary
+             (* \b *)
+             | Not_word_boundary (* \B *) ->
+                 (* possibly *) true
+             | Match_point_reset (* \K *) -> false
+             | Set_option _ -> false
+             | Clear_option _ -> false
+             | Callout _ -> (* presumably *) true
+             | Recurse_pattern _ -> (* hopefully *) true
+             | Call_subpattern_by_abs_number _
+             | Call_subpattern_by_rel_number _
+             | Call_subpattern_by_name _ ->
+                 (* presumably *) true)
+         | Seq _ -> false
+         | Alt _ -> false
+         | Repeat _ -> false
+         | Group _ -> false
+         | Conditional _ -> false)
+  in
+  match_constraints <> []
+
+(*
+   Return all the nodes that look vulnerable.
+*)
+let find_vulnerable_subpatterns =
+  find_all
+    (matches_sequence
+       (matches_deep
+          (matches_nonpossessive_repeat ~min_repeat:4
+             (matches_deep matches_in_two_nonempty_branches)))
+       matches_not_everywhere)
+
+(*
+   Repetition of a pattern for N times (N depending on maximum input size)
+   where this pattern is an alternative between two branches of nonzero
+   length. The repetition must be followed by something.
+*)
+let is_vulnerable (x : AST.t) = find_vulnerable_subpatterns x <> []
+
+(*
+   Assume:
+   \\ -> \
+   \' -> '
+   \" -> "
+*)
+let unescape =
+  let rex = SPcre.regexp "\\\\[\\\\'\"]" in
+  fun s ->
+    Pcre.substitute ~rex
+      ~subst:(fun s ->
+        assert (String.length s = 2);
+        String.sub s 1 1)
+      s
+
+(*
+   HACK!
+   Remove the quotes from string literals because string literals are
+   what we're getting. The generic AST should offer a view into
+   string content rather than the original quoted and escaped literals.
+*)
+let unquote s =
+  let len = String.length s in
+  if len < 2 then s
+  else
+    let first = s.[0] in
+    let last = s.[len - 1] in
+    match (first, last) with
+    | '\'', '\''
+    | '"', '"' ->
+        String.sub s 1 (len - 2) |> unescape
+    | _ -> s
+
+let regexp_may_be_vulnerable ?(dialect = Dialect.PCRE) re_str =
+  let re_str = (* TODO: take an already unquoted string *) unquote re_str in
+  let conf = Dialect.conf dialect in
   match parse_regexp conf re_str with
   | None -> None
   | Some re_ast -> Some (is_vulnerable re_ast)

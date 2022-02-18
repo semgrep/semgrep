@@ -680,9 +680,16 @@ let rec filter_ranges env xs cond =
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
-               match ReDoS.regexp_may_explode re_str with
+               logger#debug
+                 "Analyze regexp captured by %s for ReDoS vulnerability: %s"
+                 mvar re_str;
+               match ReDoS.regexp_may_be_vulnerable re_str with
                | Some res -> res
-               | None -> false
+               | None ->
+                   logger#debug
+                     "Failed to parse metavariable %s's value as a regexp: %s"
+                     mvar re_str;
+                   false
              in
              analyze_metavar env bindings mvar analyze)
 
