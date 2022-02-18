@@ -194,7 +194,7 @@ and map_expr_kind env ekind : T.t option =
   | N (Id (("self", tk), _)) ->
       H.when_uses_phase_or_none env (fun () ->
           let* xs = env.class_qualifier in
-          Some (T.N xs))
+          Some (T.TN xs))
   | N v1 ->
       let _t = map_name env v1 in
       H.when_uses_phase_or_none env (fun () ->
@@ -218,7 +218,7 @@ and map_expr_kind env ekind : T.t option =
       | Self
       | This ->
           let* xs = env.class_qualifier in
-          Some (T.N xs)
+          Some (T.TN xs)
       | _ -> todo_type)
   | DotAccess (v1, v2, v3) ->
       let topt = map_expr env v1
@@ -229,16 +229,19 @@ and map_expr_kind env ekind : T.t option =
           let* t = topt in
           (* this is similar to H.dotted_ident_of_exprkind_opt but more general*)
           match (t, v3) with
-          | T.N xs, FN (Id (id, _idinfo)) -> (
+          | T.TN xs, FN (Id (id, idinfo)) -> (
               let final = xs @ [ id ] in
               (let/ n2 = L.lookup_dotted_ident_opt env final in
                H.add_use_edge env n2);
               match L.lookup_type_of_dotted_ident_opt env final with
               | Some t ->
-                  (* TODO? we should set idinfo.id_type here!! typed metavar! *)
+                  (* we set idinfo.id_type here for deeper typed metavar
+                   * !!! we modify the AST here !!!
+                   *)
+                  idinfo.id_type := T.type_generic_of_type_opt t;
                   Some t
               (* in Python they use a.b.c.d for module access too *)
-              | None -> Some (T.N final))
+              | None -> Some (T.TN final))
           | _ -> None)
   | Call (v1, v2) ->
       let v1 = map_expr env v1 and _v2 = map_arguments env v2 in
@@ -249,12 +252,12 @@ and map_expr_kind env ekind : T.t option =
            * later: if polymorphic type, need to instantiate it with the
            * type of the arguments.
            *)
-          | T.Function (_params, ty) -> Some ty
+          | T.TFunction (_params, ty) -> Some ty
           (* in Python, calls to Foo() are actually disguised New that
            * then should return the type Foo (the class Foo).
            * less: could also link to __init__ method
            *)
-          | T.N xs when env.lang = Lang.Python -> Some (T.N xs)
+          | T.TN xs when env.lang = Lang.Python -> Some (T.TN xs)
           | _ -> None)
   | Alias (_, _) -> todo_type
   | L v1 ->
