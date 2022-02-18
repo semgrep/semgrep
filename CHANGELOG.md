@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+- The environment variable used by Semgrep login changed from `SEMGREP_LOGIN_TOKEN` to `SEMGREP_APP_TOKEN`
+- A new subcommand `semgrep publish` allows users to upload private, unlisted, or public rules to the Semgrep Registry
+
 ### Added
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`

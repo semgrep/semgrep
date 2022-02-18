@@ -10,6 +10,9 @@ from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 def test_login(tmp_path):
     runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
 
+    expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
+    fake_key = "key123"
+
     # Patch Token Validation:
     with patch.object(Authentication, "is_valid_token", return_value=True):
         # Logout
@@ -18,22 +21,34 @@ def test_login(tmp_path):
             ["logout"],
         )
         assert result.exit_code == 0
-        assert result.output == "logged out\n"
+        assert result.output == expected_logout_str
 
-        # Login
+        # Fail to login without a tty
         result = runner.invoke(
             cli,
             ["login"],
-            input="key123",
+            input=fake_key,
+        )
+        assert result.exit_code == 1
+        assert "semgrep login is an interactive command" in result.output
+
+        # Login with env token
+        # with patch.object(Authentication, "is_a_tty", return_value=True):
+        result = runner.invoke(
+            cli,
+            ["login"],
+            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
         print(result.output)
         assert result.exit_code == 0
-        assert "Valid API Token saved in" in result.output
+        assert result.output.startswith("Saved login token")
+        assert "<redacted>" in result.output
 
         # Login should fail on second call
         result = runner.invoke(
             cli,
             ["login"],
+            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
         assert result.exit_code == 1
         assert "API token already exists in" in result.output
@@ -44,7 +59,7 @@ def test_login(tmp_path):
             ["logout"],
         )
         assert result.exit_code == 0
-        assert result.output == "logged out\n"
+        assert result.output == expected_logout_str
 
         # Logout twice should work
         result = runner.invoke(
@@ -52,18 +67,16 @@ def test_login(tmp_path):
             ["logout"],
         )
         assert result.exit_code == 0
-        assert result.output == "logged out\n"
+        assert result.output == expected_logout_str
 
-        # Check registry config works while logged in
-        # Login
+        # Next we'll check registry config works while logged in, so we have to log back in
         result = runner.invoke(
             cli,
             ["login"],
-            input="key123",
+            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
-        print(result.output)
         assert result.exit_code == 0
-        assert "Valid API Token saved in" in result.output
+        assert result.output.startswith("Saved login token")
 
         # Run p/ci
         result = runner.invoke(
