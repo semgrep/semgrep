@@ -27,6 +27,7 @@ module AST = AST_generic
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+(* TODO? move to separate Qualified_name_AST.ml? *)
 type qualifier = AST.dotted_ident
 
 type env = {
