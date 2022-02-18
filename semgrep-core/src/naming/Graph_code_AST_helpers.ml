@@ -43,6 +43,7 @@ let when_uses_phase_or_none env f = if env.phase = Uses then f () else None
 (*****************************************************************************)
 (* Dotted ident, entname, names *)
 (*****************************************************************************)
+(* TODO: move in separate module? So can be called by Typing_AST? *)
 
 (* When we create a node, we need to qualify it fully, because each
  * node must be unique (no duplicate nodes) *)
@@ -132,43 +133,16 @@ let type_of_module_opt env entname =
       Parse_info.first_loc_of_file env.readable |> Parse_info.mk_info_of_loc
     in
     let xs = dotted_ident_of_entname entname in
-    Some (T.N (xs |> List.map (fun s -> (s, tk))))
+    Some (T.TN (xs |> List.map (fun s -> (s, tk))))
   else None
 
-(* reverse of Generic_vs_generic.make_dotted
- * transform a.b.c.d, which is parsed as (((a.b).c).d), in Some [d;c;b;a]
- * precondition: Naming_AST must have been called.
- *)
-let undot_expr_opt e =
-  let rec aux e =
-    match e.e with
-    (* TODO: Id itself can have been resolved!! so we need to
-     * concatenate. See tests/python/misc_regression[12].py
-     *)
-    | N (Id (id, _)) -> Some [ id ]
-    | DotAccess (e, _, FN (Id (id, _))) ->
-        let* ids = aux e in
-        Some (id :: ids)
-    | _ -> None
-  in
-  let* ids = aux e in
-  Some (List.rev ids)
-
-let expr_to_type_after_naming_opt e =
-  match e.e with
-  | N n -> Some (TyN n |> AST.t)
-  (* For Python we need to transform a.b.c DotAccess expr in a qualified name*)
-  | DotAccess (_, _, _) ->
-      let* ids = undot_expr_opt e in
-      Some (TyN (AST_generic_helpers.name_of_ids ids) |> AST.t)
-  | _ -> None
-
+(* TODO: move to Typing_AST, but need also dotted_ident_of_entname *)
 let type_of_type_generic_opt _env ty =
   let rec aux ty =
     match ty.t with
     | TyN n ->
         let* xs = dotted_ident_of_name_opt n in
-        Some (T.N xs)
+        Some (T.TN xs)
     (* Python uses those types, but we can't fix
      * AST_generic_helpers.type_of_expr because this would introduce
      * regressions because we need naming to be done to correctly do
@@ -176,7 +150,7 @@ let type_of_type_generic_opt _env ty =
      * here with expr_to_type_after_naming_opt.
      *)
     | TyExpr e ->
-        let* ty = expr_to_type_after_naming_opt e in
+        let* ty = T.expr_to_type_after_naming_opt e in
         aux ty
     | _ -> None
   in
@@ -185,11 +159,11 @@ let type_of_type_generic_opt _env ty =
 let type_of_definition_opt env dotted_ident (_ent, defkind) =
   match defkind with
   (* for a class, its name is his type *)
-  | ClassDef _ -> Some (T.N dotted_ident)
+  | ClassDef _ -> Some (T.TN dotted_ident)
   | VarDef { vtype = Some ty; _ } -> type_of_type_generic_opt env ty
   | FuncDef { frettype = Some ty; fparams; _ } ->
       let* ty = type_of_type_generic_opt env ty in
-      Some (T.Function (fparams, ty))
+      Some (T.TFunction (fparams, ty))
   | _ -> None
 
 (*****************************************************************************)
