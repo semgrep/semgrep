@@ -68,48 +68,49 @@ let pattern_expectations =
     ("(a|b)*$", aa, Succeeds, Succeeds, Succeeds);
     ("(a|ab)*$", aa, Succeeds, Succeeds, Succeeds);
     ("(a|ab)*$", ab, Succeeds, Succeeds, Succeeds);
-    ("(a|aa)*$", aa, Blows_up, Blows_up, Succeeds);
-    (* TODO *)
-    ("(a|a)*$", aa, Blows_up, Blows_up, Succeeds);
-    (* TODO: not useful *)
-    ("([ab]|[ac])*$", aa, Blows_up, Blows_up, Succeeds);
-    (* TODO: hard *)
-    ("(aa?)*$", aa, Blows_up, Blows_up, Succeeds);
-    (* TODO *)
+    ("(a|aa)*$", aa, Blows_up, Blows_up, Succeeds) (* TODO *);
+    ("(a|a)*$", aa, Blows_up, Blows_up, Succeeds) (* TODO: not useful *);
+    ("([ab]|[ac])*$", aa, Blows_up, Blows_up, Succeeds) (* TODO: hard *);
+    ("(aa?)*$", aa, Blows_up, Blows_up, Succeeds) (* TODO *);
     ("(a{1,2})*$", aa, Blows_up, Blows_up, Blows_up);
     ("(a*)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(a*?)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(a*)*?$", aa, Blows_up, Blows_up, Blows_up);
     ("(a+)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(a+)+$", aa, Blows_up, Blows_up, Blows_up);
-    ("(a|a?)+$", aa, Blows_up, Blows_up, Succeeds);
-    (* TODO *)
+    ("(a++)+$", aa, Succeeds, Succeeds (* unsupported by js *), Succeeds);
+    ("(a+)++$", aa, Succeeds, Succeeds (* unsupported by js *), Succeeds);
+    ("(a|a?)+$", aa, Blows_up, Blows_up, Succeeds) (* TODO *);
     ("(.*a){10}$", aa, Blows_up, Blows_up, Blows_up);
     ("(a*a){20}$", aa, Blows_up, Blows_up, Blows_up);
     ( "(.*a)(.*a)(.*a)(.*a)(.*a)(.*a)(.*a)(.*a)(.*a)(.*a)$",
       aa,
       Blows_up,
       Blows_up,
-      Succeeds );
-    (* TODO: not useful *)
+      Succeeds )
+    (* TODO: not useful *);
     ("(aa+)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(a+a)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(aa+a)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(aa*)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(a*a)*$", aa, Blows_up, Blows_up, Blows_up);
     ("(aa*a)*$", aa, Blows_up, Blows_up, Blows_up);
-    ("([ab]|ab|ba)+$", ab, Blows_up, Blows_up, Succeeds);
-    (* TODO: hard *)
-
+    ("([ab]|ab|ba)+$", ab, Blows_up, Blows_up, Succeeds) (* TODO: hard *);
     (* shortened email validation regexp from
        https://regexlib.com/REDetails.aspx?regexp_id=1757&AspxAutoDetectCookieSupport=1
        blows up with NodeJS but not with PCRE. <shrug>
     *)
-    ( "^([a-zA-Z0-9])(([\\-.]|[_]+)?([a-zA-Z0-9]+))*@$",
+    ( "^([a-zA-Z0-9])(([-.]|[_]+)?([a-zA-Z0-9]+))*@$",
       aa,
       Succeeds,
       Blows_up,
       Blows_up );
+    (* Fixed-up version using possessive quantifiers *)
+    ( "^([a-zA-Z0-9])(([-.]|[_]++)?+([a-zA-Z0-9]++))*+@$",
+      aa,
+      Succeeds,
+      Succeeds (* unsupported by js *),
+      Succeeds );
   ]
 
 let worse_of a b =
@@ -165,10 +166,14 @@ let test_vulnerability_prediction () =
   List.iter
     (fun (pat, _, _, _, expected_prediction) ->
       let prediction =
-        match ReDoS.regexp_may_be_vulnerable pat with
-        | None -> Alcotest.fail (sprintf "cannot parse regexp '%s'" pat)
-        | Some true -> Blows_up
-        | Some false -> Succeeds
+        match ReDoS.find_vulnerable_subpatterns pat with
+        | Error () -> Alcotest.fail (sprintf "cannot parse regexp '%s'" pat)
+        | Ok [] -> Succeeds
+        | Ok subpatterns ->
+            subpatterns
+            |> List.iter (fun pat ->
+                   printf "found vulnerable subpattern: %s\n" pat);
+            Blows_up
       in
       printf "pattern: %s\n  expected prediction: %s\n  prediction: %s\n%!" pat
         (string_of_result expected_prediction)

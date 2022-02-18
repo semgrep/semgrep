@@ -683,9 +683,17 @@ let rec filter_ranges env xs cond =
                logger#debug
                  "Analyze regexp captured by %s for ReDoS vulnerability: %s"
                  mvar re_str;
-               match ReDoS.regexp_may_be_vulnerable re_str with
-               | Some res -> res
-               | None ->
+               match ReDoS.find_vulnerable_subpatterns re_str with
+               | Ok [] -> false
+               | Ok subpatterns ->
+                   subpatterns
+                   |> List.iter (fun pat ->
+                          logger#info
+                            "The following subpattern was predicted to be \
+                             vulnerable to ReDoS attacks: %s"
+                            pat);
+                   true
+               | Error () ->
                    logger#debug
                      "Failed to parse metavariable %s's value as a regexp: %s"
                      mvar re_str;

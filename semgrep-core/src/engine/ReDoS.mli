@@ -7,10 +7,20 @@
    https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS
 *)
 
-(* Return whether the given string is vulnerable regexp.
-   Return None if the string can't be parsed as a regexp. *)
+(* Return whether the given string is a vulnerable regexp:
+   - Error() indicates that the string can't be parsed as a regexp.
+   - Ok(list) gives the list of subpatterns that are predicted to be
+     vulnerable to ReDoS attacks.
+*)
+val find_vulnerable_subpatterns :
+  ?dialect:Pfff_lang_regexp.Dialect.t -> string -> (string list, unit) result
+
+(*
+   Return true iff the regexp could be parsed and it looks vulnerable to
+   ReDoS attacks.
+*)
 val regexp_may_be_vulnerable :
-  ?dialect:Pfff_lang_regexp.Dialect.t -> string -> bool option
+  ?dialect:Pfff_lang_regexp.Dialect.t -> string -> bool
 
 (* Exposed only for testing purposes *)
 val unquote : string -> string

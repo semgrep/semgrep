@@ -93,7 +93,8 @@ let rec matches_in_two_nonempty_branches (x : AST.t) =
   | Special _ -> false
   | Seq _ -> false
   | Alt _ -> false
-  | Repeat (_, _x, (min_reps, max_reps), _matching_pref) -> (
+  | Repeat (_, _, _, Possessive) -> false
+  | Repeat (_, _, (min_reps, max_reps), (Default | Lazy)) -> (
       (* repeats two different number of times that are greater than 0 *)
       match max_reps with
       | None -> true
@@ -166,20 +167,13 @@ let matches_not_everywhere (x : AST.t) =
 (*
    Return all the nodes that look vulnerable.
 *)
-let find_vulnerable_subpatterns =
+let find_vulnerable_nodes =
   find_all
     (matches_sequence
        (matches_deep
           (matches_nonpossessive_repeat ~min_repeat:4
              (matches_deep matches_in_two_nonempty_branches)))
        matches_not_everywhere)
-
-(*
-   Repetition of a pattern for N times (N depending on maximum input size)
-   where this pattern is an alternative between two branches of nonzero
-   length. The repetition must be followed by something.
-*)
-let is_vulnerable (x : AST.t) = find_vulnerable_subpatterns x <> []
 
 (*
    Assume:
@@ -214,9 +208,34 @@ let unquote s =
         String.sub s 1 (len - 2) |> unescape
     | _ -> s
 
-let regexp_may_be_vulnerable ?(dialect = Dialect.PCRE) re_str =
+(* Take the requested substring if possible, otherwise return the original
+   string. *)
+let safe_sub s pos sublen =
+  let len = String.length s in
+  if pos < 0 || len < 0 || pos >= len || pos + sublen > len then s
+  else String.sub s pos sublen
+
+(*
+   Replace AST nodes by their source code.
+*)
+let recover_source re_str node =
+  let start, end_ = AST.location node in
+  let first_tok_pos = Parse_info.pos_of_info start in
+  let last_tok_pos = Parse_info.pos_of_info end_ in
+  let last_tok_str = Parse_info.str_of_info end_ in
+  let len = last_tok_pos + String.length last_tok_str - first_tok_pos in
+  safe_sub re_str first_tok_pos len
+
+let find_vulnerable_subpatterns ?(dialect = Dialect.PCRE) re_str =
   let re_str = (* TODO: take an already unquoted string *) unquote re_str in
   let conf = Dialect.conf dialect in
   match parse_regexp conf re_str with
-  | None -> None
-  | Some re_ast -> Some (is_vulnerable re_ast)
+  | None -> Error ()
+  | Some re_ast ->
+      Ok (find_vulnerable_nodes re_ast |> Common.map (recover_source re_str))
+
+let regexp_may_be_vulnerable ?dialect re_str =
+  match find_vulnerable_subpatterns ?dialect re_str with
+  | Ok [] -> false
+  | Ok _ -> true
+  | Error () -> false
