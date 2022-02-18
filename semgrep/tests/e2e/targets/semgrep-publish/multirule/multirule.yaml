@@ -1,0 +1,31 @@
+rules:
+  - id: print
+    pattern: print(...)
+    languages: [python]
+    severity: INFO
+    message: Found print
+  - id: user-input-with-unescaped-extension
+    mode: join
+    join:
+      refs:
+        - rule: rules/join_rules/rule_parts/flask-user-input.yaml
+          as: user-input
+        - rule: rules/join_rules/rule_parts/unescaped-template-extension.yaml
+          as: unescaped-extensions
+        - rule: rules/join_rules/rule_parts/any-template-var.yaml
+          renames:
+            - from: "$...EXPR"
+              to: "$VAR"
+          as: template-vars
+      on:
+        - "user-input.$VAR == unescaped-extensions.$VALUE"
+        - "unescaped-extensions.$VAR == template-vars.$VAR"
+        - "unescaped-extensions.$PATH ~ template-vars.path"
+    message: >-
+      The variable '$VAR' is most likely an XSS. This variable originates
+      from user input and is rendered in an unescaped manner. An attacker
+      could control this variable and input scripts onto rendered pages,
+      resulting in all manner of bad juju.
+      The best fix is to make sure your template extensions end in '.html',
+      which automatically escapes rendered variables.
+    severity: ERROR
