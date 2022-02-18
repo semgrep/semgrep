@@ -21,6 +21,7 @@ PACKAGE_MANAGER_MAP = {
     "gem": PackageManagers.GEM,
     "gomod": PackageManagers.GOMOD,
     "cargo": PackageManagers.CARGO,
+    "maven": PackageManagers.MAVEN,
 }
 
 

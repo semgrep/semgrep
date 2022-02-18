@@ -13,6 +13,7 @@ TARGET_LOCKFILE_FILENAMES = [
     "gemfile.lock",
     "go.sum",
     "cargo.lock",
+    "pom.xml",
 ]
 
 

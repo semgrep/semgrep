@@ -22,6 +22,7 @@ class PackageManagers(Enum):
     GEM = "gem"
     GOMOD = "gomod"
     CARGO = "cargo"
+    MAVEN = "maven"
 
 
 @frozen(eq=True, order=True)

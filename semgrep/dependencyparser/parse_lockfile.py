@@ -6,9 +6,16 @@ from typing import Any
 from typing import Dict
 from typing import Generator
 from typing import List
+from typing import Optional
+from xml.etree import ElementTree as ET
+
+from packaging.version import InvalidVersion
+from packaging.version import Version
 
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
+
+# VULNERABLE TO MALICIOUS XML CODE AND VERY BAD
 
 
 logger = getLogger(__name__)
@@ -219,7 +226,6 @@ def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
 def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
     def parse_dep(s: str) -> LockfileDependency:
         lines = s.split("\n")[1:]
-        print(lines)
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
         hash = lines[3].split("=")[1].strip()[1:-1]
@@ -233,3 +239,54 @@ def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, N
 
     deps = lockfile_text.split("[[package]]")[1:]
     yield from (parse_dep(dep) for dep in deps)
+
+
+def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, None]:
+    NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
+
+    def parse_dep(
+        properties: Optional[ET.Element], el: ET.Element
+    ) -> Optional[LockfileDependency]:
+        dep_el = el.find(f"{NAMESPACE}artifactId")
+        if dep_el is None:
+            return None
+        dep = dep_el.text
+        if dep is None:
+            return None
+        version_el = el.find(f"{NAMESPACE}version")
+        if version_el is None:
+            return None
+        version = version_el.text
+        if version is None:
+            return None
+        if version[0] == "$":
+            if properties is None:
+                raise SemgrepError("invalid pom.xml?")
+
+            version = version[2:-1]
+            prop_version = properties.find(f"{NAMESPACE}{version}")
+            if prop_version is None:
+                return None
+            version = prop_version.text
+            if version is None:
+                return None
+
+        try:
+            # pom.xml does not specify an exact version, so we give up
+            Version(version)
+        except InvalidVersion:
+            return None
+
+        return LockfileDependency(
+            dep, version, PackageManagers.MAVEN, resolved_url=None, allowed_hashes={}
+        )
+
+    root = ET.fromstring(manifest_text)
+    deps = root.find(f"{NAMESPACE}dependencies")
+    if deps is None:
+        raise SemgrepError("No dependencies in pom.xml?")
+    properties = root.find(f"{NAMESPACE}properties")
+    for dep in deps:
+        dep_opt = parse_dep(properties, dep)
+        if dep_opt:
+            yield dep_opt
