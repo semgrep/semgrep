@@ -35,7 +35,7 @@ def login() -> None:
     saved_login_token = Authentication._read_token_from_settings_file()
     if saved_login_token:
         click.echo(
-            f"API token already exists in {SETTINGS.get_path_to_settings()}. To login with a different token logout with `semgrep logout`"
+            f"API token already exists in {SETTINGS.get_path_to_settings()}. To login with a different token logout use `semgrep logout`"
         )
         sys.exit(1)
 

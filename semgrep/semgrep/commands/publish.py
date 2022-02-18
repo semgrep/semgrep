@@ -217,11 +217,11 @@ def _upload_rule(
             )
         elif visibility == VisibilityState.UNLISTED:
             click.echo(
-                f"    Published {visibility} rule at {SEMGREP_SNIPPET_VIEW_URL}{created_rule['rule']['id']}"
+                f"    Published {visibility} rule at {SEMGREP_SNIPPET_VIEW_URL}{created_rule['id']}"
             )
         else:
             click.echo(
-                f"    Published {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['rule']['path']}"
+                f"    Published {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['path']}"
             )
 
     return True
