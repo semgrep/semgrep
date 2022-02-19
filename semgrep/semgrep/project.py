@@ -23,8 +23,8 @@ def get_project_url(targets: Optional[Sequence[str]] = None) -> Optional[str]:
     target = None
     if targets and len(targets) > 0:
         if targets and len(targets) > 1:
-            logger.warn(
-                f"Config auto expects only on target: only rules for {targets[0]} will be examined"
+            logger.debug(
+                f"only examining directory {targets[0]} to determine project url"
             )
         target = targets[0]
 
