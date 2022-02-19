@@ -288,7 +288,7 @@ def main(
     if exclude is None:
         exclude = []
 
-    project_url = get_project_url()
+    project_url = get_project_url(target)
     profiler = ProfileManager()
 
     rule_start_time = time.time()

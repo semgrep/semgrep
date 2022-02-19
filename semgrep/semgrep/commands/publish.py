@@ -181,7 +181,7 @@ def _upload_rule(
     # add metadata about the origin of the rule
     rule.metadata[
         "rule-origin-note"
-    ] = f"published from {rule_file} in {get_project_url()}"
+    ] = f"published from {rule_file} in {get_project_url(str(rule_file))}"
 
     import requests
 

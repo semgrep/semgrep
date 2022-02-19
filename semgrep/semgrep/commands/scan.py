@@ -750,7 +750,10 @@ def scan(
                 )
             else:
                 resolved_configs, config_errors = semgrep.config_resolver.get_config(
-                    pattern, lang, config or [], project_url=get_project_url()
+                    pattern,
+                    lang,
+                    config or [],
+                    project_url=get_project_url(target_sequence),
                 )
 
                 # Run metachecks specifically on the config files
