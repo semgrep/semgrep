@@ -98,7 +98,7 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     VERBOSITY = stdout_level
 
     global FORCE_COLOR
-    if force_color:
+    if force_color or os.environ.get("SEMGREP_FORCE_COLOR") is not None:
         FORCE_COLOR = True
 
 
