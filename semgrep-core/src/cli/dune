@@ -39,7 +39,6 @@
     ; experiments
     semgrep_synthesizing
     semgrep_api
-    pycheck
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug
