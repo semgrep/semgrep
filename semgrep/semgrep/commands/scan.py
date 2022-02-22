@@ -152,6 +152,14 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 @click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
 @click.help_option("--help", "-h", help=("Show this message and exit."))
 @click.option(
+    "--apply",
+    is_flag=True,
+    help=(
+        "Print a list of job postings at r2c."
+    ),
+    # hidden=True, # Not sure if this should be hidden
+)
+@click.option(
     "-a",
     "--autofix/--no-autofix",
     is_flag=True,
@@ -553,6 +561,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 )
 def scan(
     *,
+    apply: bool,
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
@@ -630,6 +639,12 @@ def scan(
             from semgrep.version import version_check
 
             version_check()
+        return
+
+    if apply:
+        from semgrep.job_postings import print_job_postings
+        
+        print_job_postings()
         return
 
     # To keep version runtime fast, we defer non-version imports until here

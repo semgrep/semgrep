@@ -39,6 +39,7 @@ YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
 YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
 
+RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=json"
 
 class OutputFormat(Enum):
     TEXT = auto()
