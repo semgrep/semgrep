@@ -662,6 +662,8 @@ let parsing_error_tests =
 let tests = List.flatten [
   (* just expression vs expression testing for one language (Python) *)
   Unit_matcher.tests ~any_gen_of_string;
+  Unit_entropy.tests;
+  Unit_ReDoS.tests;
   Unit_synthesizer.tests;
   Unit_synthesizer_targets.tests;
   Unit_dataflow.tests Parse_target.parse_program;

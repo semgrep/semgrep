@@ -4,9 +4,11 @@
  (libraries
    pcre
    comby-kernel
+   alcotest
 
    pfff-testutil
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   pfff-lang_regexp
 
    spacegrep
 

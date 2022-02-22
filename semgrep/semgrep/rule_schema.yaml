@@ -16,6 +16,7 @@ definitions:
         - $ref: "#/definitions/pattern-regex"
         - $ref: "#/definitions/pattern-not-regex"
         - $ref: "#/definitions/pattern-where-python"
+        - $ref: "#/definitions/metavariable-analysis"
         - $ref: "#/definitions/metavariable-regex"
         - $ref: "#/definitions/metavariable-pattern"
         - $ref: "#/definitions/metavariable-comparison"
@@ -133,6 +134,29 @@ definitions:
         items:
           type: string
       additionalProperties: false
+  # This a generic version of metavariable-regex and metavariable-pattern.
+  # It is meant to allow a variety of built-in analyzers, each with a
+  # name and its own options. For example, this is used for the entropy
+  # analyzer.
+  metavariable-analysis:
+    type: object
+    properties:
+      metavariable-analysis:
+        type: object
+        properties:
+          analyzer:
+            type: string
+          metavariable:
+            type: string
+          options:
+            type: object
+        required:
+          - analyzer
+          - metavariable
+        additionalProperties: false
+    required:
+      - metavariable-analysis
+    additionalProperties: false
   metavariable-regex:
     type: object
     properties:

@@ -135,8 +135,10 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
+  | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
-[@@deriving show, eq]
+
+and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Old Formula style *)
@@ -167,6 +169,7 @@ and extra =
   | MetavarRegexp of MV.mvar * regexp
   | MetavarPattern of MV.mvar * Xlang.t option * formula
   | MetavarComparison of metavariable_comparison
+  | MetavarAnalysis of MV.mvar * metavar_analysis_kind
   (* arbitrary code! dangerous! *)
   | PatWherePython of string
 
@@ -356,6 +359,7 @@ let convert_extra x =
             | Some true -> rewrite_metavar_comparison_strip mvar comparison
           in
           CondEval cond)
+  | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
   | PatWherePython _ ->
       (*
   logger#debug "convert_extra: %s" s;

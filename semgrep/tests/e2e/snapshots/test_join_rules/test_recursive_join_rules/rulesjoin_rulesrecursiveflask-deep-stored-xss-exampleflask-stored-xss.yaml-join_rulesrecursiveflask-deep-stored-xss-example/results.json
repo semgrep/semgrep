@@ -1,0 +1,45 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.join_rules.recursive.flask-deep-stored-xss-example.flask-stored-xss",
+      "end": {
+        "col": 19,
+        "line": 2,
+        "offset": 46
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h2>{{ username }}</h2>",
+        "message": "stored xss",
+        "metadata": {},
+        "metavars": {
+          "$VAR": {
+            "abstract_content": " username",
+            "end": {
+              "col": 16,
+              "line": 2,
+              "offset": 43
+            },
+            "start": {
+              "col": 7,
+              "line": 2,
+              "offset": 34
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/join_rules/recursive/flask-deep-stored-xss-example/targets/app/templates/user.html.j2",
+      "start": {
+        "col": 5,
+        "line": 2,
+        "offset": 32
+      }
+    }
+  ]
+}

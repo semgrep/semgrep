@@ -305,31 +305,32 @@ let bindings_to_env (config : Config_semgrep.t) xs =
   in
   { mvars; constant_propagation }
 
+let text_of_binding mvar mval =
+  match mval with
+  | MV.Text (text, _) ->
+      (* Note that `text` may be produced by constant folding, in which
+       * case we will not have range info. *)
+      Some text
+  | ___else___ -> (
+      let any = MV.mvalue_to_any mval in
+      match Visitor_AST.range_of_any_opt any with
+      | None ->
+          (* TODO: Report a warning to the user? *)
+          logger#error "We lack range info for metavariable %s: %s" mvar
+            (G.show_any any);
+          None
+      | Some (min, max) ->
+          let file = min.Parse_info.file in
+          let range = Range.range_of_token_locations min max in
+          Some (Range.content_at_range file range))
+
 (* this is for metavariable-regexp *)
 let bindings_to_env_with_just_strings (config : Config_semgrep.t) bindings =
   let ( let* ) = Option.bind in
   let mvars =
     bindings
     |> Common.map_filter (fun (mvar, mval) ->
-           let* text =
-             match mval with
-             | MV.Text (text, _) ->
-                 (* Note that `text` may be produced by constant folding, in which
-                  * case we will not have range info. *)
-                 Some text
-             | ___else___ -> (
-                 let any = MV.mvalue_to_any mval in
-                 match Visitor_AST.range_of_any_opt any with
-                 | None ->
-                     (* TODO: Report a warning to the user? *)
-                     logger#error "We lack range info for metavariable %s: %s"
-                       mvar (G.show_any any);
-                     None
-                 | Some (min, max) ->
-                     let file = min.Parse_info.file in
-                     let range = Range.range_of_token_locations min max in
-                     Some (Range.content_at_range file range))
-           in
+           let* text = text_of_binding mvar mval in
            Some (mvar, String text))
     |> Common.hash_of_list
   in
