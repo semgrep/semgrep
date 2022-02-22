@@ -8,7 +8,7 @@ from semgrep.constants import RETURNTOCORP_LEVER_URL
 
 def print_job_postings() -> None:
     # http get postings
-    response = requests.get(RETURNTOCORP_LEVER_URL)
+    response = requests.get(RETURNTOCORP_LEVER_URL, timeout=30)
     postings = response.json()
 
     # organise per team
