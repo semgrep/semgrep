@@ -369,7 +369,6 @@ class OutputHandler:
         extra: Dict[str, Any] = {
             "paths": {
                 "scanned": [str(path) for path in sorted(self.all_targets)],
-                "skipped": "<add --verbose for a list of skipped paths>",
             }
         }
         if self.settings.json_stats:
@@ -389,6 +388,8 @@ class OutputHandler:
             extra["paths"]["skipped"] = sorted(
                 self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
+        else:
+            extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and self.stdout.isatty(),
