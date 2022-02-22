@@ -3,7 +3,7 @@
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "/var/folders/6m/1krt8ck117x_k5_yhh71sb5m0000gn/T/tmpgaakv223/stdin"
+      "/tmp/masked/path"
     ]
   },
   "results": [
