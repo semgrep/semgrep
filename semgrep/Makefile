@@ -16,4 +16,4 @@ clean:
 .PHONY: check
 check:
 	pre-commit run -a mypy
-	semgrep-core -pycheck .
+	#semgrep -pycheck .
