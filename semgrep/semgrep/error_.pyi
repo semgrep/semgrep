@@ -1,4 +1,8 @@
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+
 from enum import Enum
+from pathlib import Path
+import semgrep.rule_match as rule_match
 
 OK_EXIT_CODE = ...
 FINDINGS_EXIT_CODE = ...
@@ -24,9 +28,17 @@ class SemgrepError(Exception):
         self, *args: object, code: int = FATAL_EXIT_CODE, level: Level = Level.ERROR
     ) -> None: ...
     def semgrep_error_type(self) -> str: ...
+    def to_dict(self) -> Dict[str, Any]: ...
 
 class LegacySpan: ...
-class SemgrepCoreError(SemgrepError): ...
+
+class SemgrepCoreError(SemgrepError):
+    code: int
+    path: Path
+    start: rule_match.CoreLocation
+    end: rule_match.CoreLocation
+    message: str
+
 class FilesNotFoundError(SemgrepError): ...
 
 class ErrorWithSpan(SemgrepError):

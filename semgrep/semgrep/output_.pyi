@@ -3,6 +3,7 @@ from typing import NamedTuple, IO
 
 import sys
 import semgrep.constants as constants
+import semgrep.error as error
 
 DEFAULT_SHOWN_SEVERITIES: Collection[constants.RuleSeverity] = ...
 
@@ -39,3 +40,4 @@ class OutputHandler:
         stderr: IO = sys.stderr,
         stdout: IO = sys.stdout,
     ): ...
+    def handle_semgrep_errors(self, errors: Sequence[error.SemgrepError]) -> None: ...
