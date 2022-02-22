@@ -14,8 +14,8 @@
     }
   ],
   "paths": {
-    "scanned": [],
-    "skipped": "<add --verbose for a list of skipped paths>"
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
   },
   "results": []
 }

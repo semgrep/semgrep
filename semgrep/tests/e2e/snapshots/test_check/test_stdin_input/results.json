@@ -1,10 +1,10 @@
 {
   "errors": [],
   "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "/var/folders/6m/1krt8ck117x_k5_yhh71sb5m0000gn/T/tmpbmilk3mi/stdin"
-    ],
-    "skipped": "<add --verbose for a list of skipped paths>"
+      "/var/folders/6m/1krt8ck117x_k5_yhh71sb5m0000gn/T/tmpi1zuf3gc/stdin"
+    ]
   },
   "results": [
     {

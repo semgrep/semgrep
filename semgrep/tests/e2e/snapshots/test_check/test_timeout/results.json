@@ -10,10 +10,10 @@
     }
   ],
   "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
       "targets/equivalence/open_redirect.py"
-    ],
-    "skipped": "<add --verbose for a list of skipped paths>"
+    ]
   },
   "results": []
 }
