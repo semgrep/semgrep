@@ -150,11 +150,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
-@click.help_option(
-    "--help",
-    "-h",
-    help=("Show this message and exit.")
-)
+@click.help_option("--help", "-h", help=("Show this message and exit."))
 @click.option(
     "-a",
     "--autofix/--no-autofix",
