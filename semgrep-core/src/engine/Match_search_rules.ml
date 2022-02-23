@@ -611,6 +611,24 @@ let matches_of_xpatterns config file_and_more xpatterns =
 (* Formula evaluation *)
 (*****************************************************************************)
 
+(*
+   Find the metavariable value, convert it back to a string, and
+   run it through an analyzer that returns true if there's a "match".
+*)
+let analyze_metavar env bindings mvar analyzer =
+  match List.assoc_opt mvar bindings with
+  | None ->
+      error env
+        (Common.spf
+           "metavariable-analysis failed because %s is not in scope, please \
+            check your rule"
+           mvar);
+      false
+  | Some mval -> (
+      match Eval_generic.text_of_binding mvar mval with
+      | None -> false
+      | Some data -> analyzer data)
+
 let rec filter_ranges env xs cond =
   xs
   |> List.filter (fun r ->
@@ -655,7 +673,33 @@ let rec filter_ranges env xs cond =
                Eval_generic.bindings_to_env_with_just_strings (fst env.config)
                  bindings
              in
-             Eval_generic.eval_bool env e)
+             Eval_generic.eval_bool env e
+         | R.CondAnalysis (mvar, CondEntropy) ->
+             let bindings = r.mvars in
+             analyze_metavar env bindings mvar Entropy.has_high_score
+         | R.CondAnalysis (mvar, CondReDoS) ->
+             let bindings = r.mvars in
+             let analyze re_str =
+               logger#debug
+                 "Analyze regexp captured by %s for ReDoS vulnerability: %s"
+                 mvar re_str;
+               match ReDoS.find_vulnerable_subpatterns re_str with
+               | Ok [] -> false
+               | Ok subpatterns ->
+                   subpatterns
+                   |> List.iter (fun pat ->
+                          logger#info
+                            "The following subpattern was predicted to be \
+                             vulnerable to ReDoS attacks: %s"
+                            pat);
+                   true
+               | Error () ->
+                   logger#debug
+                     "Failed to parse metavariable %s's value as a regexp: %s"
+                     mvar re_str;
+                   false
+             in
+             analyze_metavar env bindings mvar analyze)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in

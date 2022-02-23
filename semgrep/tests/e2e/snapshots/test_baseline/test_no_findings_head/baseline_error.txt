@@ -1,6 +1,6 @@
 Running baseline scan with base set to: baseline-commit
 
-skipped: all .gitignored files, 1 files larger than 1.0 MB
+skipped: all .gitignored files
 for a detailed list of skipped files, run semgrep with the --verbose flag
 
 ran 1 rules on 3 files: 0 findings

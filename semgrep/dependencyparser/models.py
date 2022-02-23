@@ -5,7 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import attr
+from attrs import frozen
 
 KNOWN_HASH_ALGORITHMS: Dict[str, Callable] = {
     "sha256": hashlib.sha256,
@@ -19,7 +19,7 @@ class PackageManagers(Enum):
     PYPI = "pypy"
 
 
-@attr.s(auto_attribs=True, frozen=True, eq=True, order=True)
+@frozen(eq=True, order=True)
 class LockfileDependency:
     name: str
     version: str

@@ -196,9 +196,13 @@ let rec pattern_to_expr p =
   | _ -> raise NotAnExpr)
   |> G.e
 
-let expr_to_type e =
-  (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
-  TyExpr e |> G.t
+(* We would like to do more things here, like transform certain
+ * N in TyN, but we can't do that from the Xxx_to_generic.ml
+ * (e.g., Python_to_generic.ml). Indeed, certain transformations
+ * require Naming_AST to have correctly resolved certain Ids.
+ * See Graph_code_AST_xxx.expr_to_type_after_naming() below for that situation.
+ *)
+let expr_to_type e = TyExpr e |> G.t
 
 (* TODO: recognize foo(args)? like in Kotlin/Java *)
 let expr_to_class_parent e : class_parent = (expr_to_type e, None)

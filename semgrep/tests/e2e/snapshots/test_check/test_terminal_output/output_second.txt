@@ -1,15 +1,15 @@
 
- targets/basic/stupid.js 
-     rules.javascript-basic-eqeq-bad
+[36m[22m[24m targets/basic/stupid.js [0m
+     [1m[24mrules.javascript-basic-eqeq-bad[0m
         useless comparison
 
 
-          3┆ console.log(x == x)
+          3┆ console.log([1m[24mx == x[0m)
 
 
- targets/basic/stupid.py 
-     rules.eqeq-is-bad
+[36m[22m[24m targets/basic/stupid.py [0m
+     [1m[24mrules.eqeq-is-bad[0m
         useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
         Details: https://sg.run/xyz1
 
-          3┆ return a + b == a + b
+          3┆ return [1m[24ma + b == a + b[0m

@@ -183,6 +183,14 @@ let or_list m a bs =
  *)
 let ( let* ) o f = o >>= f
 
+(* TODO: could maybe also define
+let (let/) o f =
+  match o with
+  | None -> fail ()
+  | Some x -> f x
+useful in Generic_vs_generic when see code like 'None -> fail()'
+*)
+
 (*****************************************************************************)
 (* Environment *)
 (*****************************************************************************)

@@ -4,16 +4,25 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+- The environment variable used by Semgrep login changed from `SEMGREP_LOGIN_TOKEN` to `SEMGREP_APP_TOKEN`
+- A new subcommand `semgrep publish` allows users to upload private, unlisted, or public rules to the Semgrep Registry
+- Fix for: semgrep always highlights one extra character
+
 ### Added
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
+- A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
 
 ### Fixed
 
 - Configure the PCRE engine with lower match-attempts and recursion limits in order
   to prevent regex matching from potentially "hanging" Semgrep
+- Terraform: Parse heredocs respecting newlines and whitespaces, so that it is
+  possible to correctly match these strings with `metavariable-regex` or
+  `metavariable-pattern`. Previously, Semgrep had problems analyzing e.g. embedded
+  YAML content. (#4582)
 
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
 

@@ -243,6 +243,8 @@ let dump_ast ?(naming = false) lang file =
         else Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
+      (* 80 columns is too little *)
+      Format.set_margin 120;
       let s = dump_v_to_format v in
       pr s;
       if errors <> [] then (
@@ -424,7 +426,6 @@ let all_actions () =
       " <pattern> <file>",
       Common.mk_action_2_arg Test_comby.test_comby );
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
-    ("-pycheck", " <root>", Common.mk_action_1_arg Pycheck.pycheck);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program

@@ -17,8 +17,9 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
-import attr
 import jsonschema.exceptions
+from attrs import evolve
+from attrs import frozen
 from jsonschema.validators import Draft7Validator
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
@@ -79,7 +80,7 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-@attr.s(auto_attribs=True, frozen=True, repr=False)
+@frozen(repr=False)
 class Position:
     """
     Position within a file.
@@ -93,10 +94,10 @@ class Position:
     col: int
 
     def next_line(self) -> "Position":
-        return attr.evolve(self, line=self.line + 1)
+        return evolve(self, line=self.line + 1)
 
     def previous_line(self) -> "Position":
-        return attr.evolve(self, line=self.line - 1)
+        return evolve(self, line=self.line - 1)
 
     def to_dict(self) -> dict:
         return {"line": self.line, "col": self.col}
@@ -105,7 +106,7 @@ class Position:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
-@attr.s(auto_attribs=True, frozen=True, repr=False)
+@frozen(repr=False)
 class Span:
     """
     Spans are immutable objects, representing segments of code. They have a central focus area, and
@@ -181,8 +182,8 @@ class Span:
                     else:
                         # assign the span to the whitespace
                         start = Position(cur_line + 1, cur_col + 2)
-                        end = attr.evolve(start, col=cur_col + 3)
-                        return attr.evolve(self, start=start, end=end)
+                        end = evolve(start, col=cur_col + 3)
+                        return evolve(self, start=start, end=end)
                 cur_line -= 1
                 cur_col = len(src[cur_line]) - 1
         return self
@@ -194,7 +195,7 @@ class Span:
         - end_context is removed
         """
         if self.end.line - self.start.line > lines:
-            return attr.evolve(
+            return evolve(
                 self,
                 end=Position(line=self.start.line + lines, col=0),
                 context_end=None,
@@ -209,9 +210,9 @@ class Span:
         but unlike to core span area, they won't be highlighted in error messages.
         """
         if context_only:
-            return attr.evolve(self, context_end=span.context_end or span.end)
+            return evolve(self, context_end=span.context_end or span.end)
         else:
-            return attr.evolve(self, end=span.end, context_end=span.context_end)
+            return evolve(self, end=span.end, context_end=span.context_end)
 
     def with_context(
         self, before: Optional[int] = None, after: Optional[int] = None
@@ -221,13 +222,13 @@ class Span:
         """
         new = self
         if before is not None:
-            new = attr.evolve(
+            new = evolve(
                 new,
                 context_start=Position(col=0, line=max(0, self.start.line - before)),
             )
 
         if after is not None:
-            new = attr.evolve(
+            new = evolve(
                 new,
                 context_end=Position(
                     col=0,

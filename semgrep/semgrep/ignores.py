@@ -7,7 +7,8 @@ from typing import Iterator
 from typing import Set
 from typing import TextIO
 
-import attr
+from attrs import define
+from attrs import field
 
 from semgrep.error import SemgrepError
 from semgrep.types import FilteredTargets
@@ -37,11 +38,11 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 ## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
 
 # This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
-@attr.s
+@define
 class FileIgnore:
-    base_path = attr.ib(type=Path)
-    patterns = attr.ib(type=Set[str])
-    _processed_patterns = attr.ib(type=Set[str], init=False)
+    base_path: Path
+    patterns: Set[str]
+    _processed_patterns: Set[str] = field(init=False)
 
     def __attrs_post_init__(self) -> None:
         self._processed_patterns = Processor(self.base_path).process(self.patterns)
@@ -98,7 +99,7 @@ class FileIgnore:
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
-@attr.s(auto_attribs=True)
+@define
 class Parser:
     """
     A parser for semgrepignore syntax.
@@ -190,7 +191,7 @@ class Parser:
 
 
 # This class is an exact duplicate of the Processor class in semgrep-action
-@attr.s(auto_attribs=True)
+@define
 class Processor:
     """
     A post-processor for parsed semgrepignore files.
