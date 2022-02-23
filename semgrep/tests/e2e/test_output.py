@@ -64,6 +64,20 @@ CLEANERS: Mapping[str, Callable[[str], str]] = {
 }
 
 
+def test_output_highlighting(run_semgrep_in_tmp, snapshot):
+    results, _errors = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        force_color=True,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
 @pytest.mark.parametrize("format", ["--json", "--sarif", "--emacs", "--vim"])
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
@@ -189,6 +203,7 @@ def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
             "--verbose",
         ],
         output_format=OutputFormat.TEXT,
+        force_color=True,
         target_name="ignores",
     )
 

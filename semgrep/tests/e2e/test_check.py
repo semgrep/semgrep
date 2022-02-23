@@ -91,14 +91,20 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
     settings_file = tempfile.NamedTemporaryFile().name
 
     text_output = run_semgrep_in_tmp(
-        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, settings_file=settings_file
+        "rules/eqeq.yaml",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        settings_file=settings_file,
     )
     snapshot.assert_match(text_output[0], "output.txt")
     snapshot.assert_match(text_output[1], "error.txt")
 
     # Metric message should not appear in second output
     text_output = run_semgrep_in_tmp(
-        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, settings_file=settings_file
+        "rules/eqeq.yaml",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        settings_file=settings_file,
     )
     snapshot.assert_match(text_output[0], "output_second.txt")
     snapshot.assert_match(text_output[1], "error_second.txt")
@@ -111,6 +117,7 @@ def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
     text_output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         output_format=OutputFormat.TEXT,
+        force_color=True,
         quiet=True,
         # Pass named temporary file to force metric notice behavior on first scan
         # (but should not see anything cause of --quiet)
@@ -491,6 +498,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
             output_format=OutputFormat.TEXT,
+            force_color=True,
             options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
             target_name="equivalence",
             strict=False,
@@ -502,6 +510,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
             output_format=OutputFormat.TEXT,
+            force_color=True,
             options=["--verbose", "--timeout", "1", "--timeout-threshold", "2"],
             target_name="equivalence",
             strict=False,
