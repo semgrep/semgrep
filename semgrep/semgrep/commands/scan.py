@@ -155,7 +155,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "--apply",
     is_flag=True,
     help=("Print a list of job postings at r2c."),
-    # hidden=True, # Not sure if this should be hidden
+    hidden=True,
 )
 @click.option(
     "-a",

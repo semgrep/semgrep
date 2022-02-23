@@ -1,6 +1,7 @@
 from typing import Dict
 from typing import List
 
+import click
 import requests
 
 from semgrep.constants import RETURNTOCORP_LEVER_URL
@@ -22,27 +23,26 @@ def print_job_postings() -> None:
         url = posting["hostedUrl"]
         postings_dict[team].append({"title": title, "url": url})
 
-    print(
-        "We love that you're using Semgrep. Would you like to... work on it full time?! 😄 "
+    click.echo(
+        "We love that you're using Semgrep. Would you like to... work on it full time?! 😄 ",
+        err=True,
     )
-    print("")
+    click.echo("", err=True)
     # iterate over teams alphabetically
     for team in sorted(postings_dict):
         team_character_count = len(team)
 
-        print_n_hashtags(team_character_count + 4)
-        print("#", team, "#")
-        print_n_hashtags(team_character_count + 4)
-        print("")
+        click.echo((team_character_count + 4) * "#", err=True)
+        click.echo("# " + team + " #", err=True)
+        click.echo((team_character_count + 4) * "#", err=True)
+        click.echo("", err=True)
 
         for posting in postings_dict[team]:
-            print("*", posting["title"] + ":", posting["url"])
+            click.echo("* " + posting["title"] + ": " + posting["url"], err=True)
 
-        print("")
+        click.echo("", err=True)
 
-
-def print_n_hashtags(n: int) -> None:
-    s = ""
-    for _i in range(0, n):
-        s += "#"
-    print(s)
+    click.echo("", err=True)
+    click.echo(
+        "PS: Just wanted to apply autofixes? Use --autofix instead of --apply", err=True
+    )
