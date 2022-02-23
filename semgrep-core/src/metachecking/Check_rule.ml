@@ -119,6 +119,8 @@ let unknown_metavar_in_comparison env f =
                | CondRegexp (mv, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
+                   if not (Set.mem mv mvs) then mv_error mv t
+               | CondAnalysis (mv, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t);
         mvs
   in
