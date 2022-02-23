@@ -55,6 +55,7 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
             f"rules/syntax/{filename}.yaml",
             options=["--force-color"],
             output_format=OutputFormat.TEXT,
+            force_color=True,
         )
 
     snapshot.assert_match(
@@ -80,5 +81,6 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             options=["-e", "#include<asdf><<>>><$X>", "-l", "c"],
             output_format=OutputFormat.TEXT,
+            force_color=True,
         )
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
