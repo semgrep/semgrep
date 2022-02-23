@@ -84,25 +84,10 @@ let error env t s =
 let unknown_metavar_in_comparison env f =
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
-    | P ({ pat; pstr = _pstr; pid = _pid }, _) ->
-        let mvs_in_pat = ref Set.empty in
-        (match pat with
-        | Sem (semgrep_pat, _lang) ->
-            let v =
-              V.mk_visitor
-                {
-                  V.default_visitor with
-                  V.kident =
-                    (fun (_k, _) (id, _t) ->
-                      mvs_in_pat := Set.add id !mvs_in_pat);
-                }
-            in
-            v semgrep_pat
-        | Spacegrep _
-        | Regexp _
-        | Comby _ ->
-            ());
-        !mvs_in_pat
+    | P ({ pat = _pat; pstr = pstr, _; pid = _pid }, _) ->
+        let words = String.split_on_char ' ' pstr in
+        let metavars = List.filter Metavariable.is_metavar_name words in
+        Set.of_list metavars
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = List.map collect_metavars xs in
