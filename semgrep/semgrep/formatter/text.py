@@ -55,17 +55,20 @@ class TextFormatter(BaseFormatter):
         end_line: int,
         end_col: int,
     ) -> str:
+        """
+        Assumes column start and end numbers are 1-indexed
+        """
         start_color = 0 if line_number > start_line else start_col
-        # column offset
+        # adjust for 1-indexed column number
         start_color = max(start_color - 1, 0)
+        # put the end color at the end of the line if this isn't the last line in the output
         end_color = end_col if line_number >= end_line else len(line) + 1 + 1
+        # adjust for 1-indexed column number
         end_color = max(end_color - 1, 0)
         line = (
             line[:start_color]
-            + with_color(
-                Colors.foreground, line[start_color : end_color + 1], bold=True
-            )  # want the color to include the end_col
-            + line[end_color + 1 :]
+            + with_color(Colors.foreground, line[start_color:end_color], bold=True)
+            + line[end_color:]
         )
         return line
 
