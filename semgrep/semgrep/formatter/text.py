@@ -89,13 +89,18 @@ class TextFormatter(BaseFormatter):
         stripped = False
         if path:
             lines = rule_match.extra.get("fixed_lines") or rule_match.lines
+
             if per_finding_max_lines_limit:
                 trimmed = len(lines) - per_finding_max_lines_limit
                 lines = lines[:per_finding_max_lines_limit]
 
             # we remove indentation at the start of the snippet to avoid wasting space
             dedented_lines = textwrap.dedent("".join(lines)).splitlines()
-            indent_len = len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+            indent_len = (
+                len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+                if len(lines) > 0
+                else 0
+            )
 
             # since we dedented each line, we need to adjust where the highlighting is
             start_col -= indent_len
