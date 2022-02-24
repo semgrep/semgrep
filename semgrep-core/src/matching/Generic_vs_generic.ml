@@ -677,7 +677,7 @@ and m_expr a b =
         (fun x -> x.Config.constant_propagation)
         ~then_:
           (match
-             Normalize_generic.constant_propagation_and_evaluate_literal b
+             Constant_propagation.constant_propagation_and_evaluate_literal b
            with
           | Some b1 -> m_literal_svalue a1 b1
           | None -> fail ())
