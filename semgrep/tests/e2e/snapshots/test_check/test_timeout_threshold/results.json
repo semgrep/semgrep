@@ -9,6 +9,12 @@
       "type": "Timeout"
     }
   ],
+  "paths": {
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ],
+    "skipped": []
+  },
   "results": [],
   "time": {
     "profiling_times": {

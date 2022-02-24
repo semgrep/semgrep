@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/stupid.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.pattern-not-regex.test-regex",

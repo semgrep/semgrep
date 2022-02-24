@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/metavariable_propagation/metavariable-regex-propagation.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.metavariable_propagation.my_pattern_id",
