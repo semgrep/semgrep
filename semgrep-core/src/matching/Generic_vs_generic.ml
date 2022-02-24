@@ -676,11 +676,13 @@ and m_expr a b =
       if_config
         (fun x -> x.Config.constant_propagation)
         ~then_:
-          (match
-             Normalize_generic.constant_propagation_and_evaluate_literal b
-           with
-          | Some b1 -> m_literal_svalue a1 b1
-          | None -> fail ())
+          (with_lang (fun lang ->
+               match
+                 Constant_propagation.constant_propagation_and_evaluate_literal
+                   ?lang b
+               with
+               | Some b1 -> m_literal_svalue a1 b1
+               | None -> fail ()))
         ~else_:(fail ())
   | G.Container (G.Array, a2), B.Container (B.Array, b2) ->
       (m_bracket m_container_ordered_elements) a2 b2

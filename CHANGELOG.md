@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
 - Semgrep now lists the scanned paths in its JSON output under the `paths.scanned` key.
   - When using `--verbose`, the skipped paths are also listed under the `paths.skipped` key.
+- C#: added support for typed metavariables (#4657)
 
 ### Fixed
 
@@ -23,6 +24,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   possible to correctly match these strings with `metavariable-regex` or
   `metavariable-pattern`. Previously, Semgrep had problems analyzing e.g. embedded
   YAML content. (#4582)
+- Treat Go raw string literals like ordinary string literals (#3938)
+- Eliminate zombie uname processes (#4466)
+
+### Changed
+
+- Improved constant propagation for global constants
+- PHP: Constant propagation now has built-in knowledge of `escapeshellarg` and
+  `htmlspecialchars_decode`, if these functions are given constant arguments,
+  then Semgrep assumes that their output is also constant
 
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
 
