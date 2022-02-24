@@ -1,5 +1,9 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
   "results": [
     {
       "check_id": "rules.join_rules.recursive.java-callgraph-example.spring-sql-injection",

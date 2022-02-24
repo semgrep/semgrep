@@ -12,6 +12,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
 - A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
+- Semgrep now lists the scanned paths in its JSON output under the `paths.scanned` key.
+  - When using `--verbose`, the skipped paths are also listed under the `paths.skipped` key.
 - C#: added support for typed metavariables (#4657)
 
 ### Fixed
