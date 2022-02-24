@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
+
 - The environment variable used by Semgrep login changed from `SEMGREP_LOGIN_TOKEN` to `SEMGREP_APP_TOKEN`
 - A new subcommand `semgrep publish` allows users to upload private, unlisted, or public rules to the Semgrep Registry
 - Fix for: semgrep always highlights one extra character
@@ -12,9 +14,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
 - A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
-- Semgrep now lists the scanned paths in its JSON output under the `paths.scanned` key.
-  - When using `--verbose`, the skipped paths are also listed under the `paths.skipped` key.
 - C#: added support for typed metavariables (#4657)
+- Undocumented, experimental `metavariable-analysis` feature
+  supporting two kinds of analyses: prediction of regular expression
+  denial-of-service vulnerabilities (ReDoS, `redos` analyzer, #4700)
+  and high-entropy string detection (`entropy` analyzer, #4672).
 
 ### Fixed
 
@@ -34,7 +38,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `htmlspecialchars_decode`, if these functions are given constant arguments,
   then Semgrep assumes that their output is also constant
 
-## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
+## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 2022-02-08
 
 ### Added
 
@@ -63,7 +67,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Solidity: ellipsis in contract body are now supported (#4587)
 - Highlighting has been restored for matching code fragments within a finding
 
-## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 02-02-2022
+## [0.81.0](https://github.com/returntocorp/semgrep/releases/tag/v0.81.0) - 2022-02-02
 
 ### Added
 
@@ -75,7 +79,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Gracefully handle timeout errors with missing rule_id
 - Match resources in Java try-with-resources statements (#4228)
 
-## [0.80.0](https://github.com/returntocorp/semgrep/releases/tag/v0.80.0) - 01-26-2022
+## [0.80.0](https://github.com/returntocorp/semgrep/releases/tag/v0.80.0) - 2022-01-26
 
 ### Added
 
@@ -91,7 +95,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Handle missing target files without raising an exception (#4462)
 
-## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 01-20-2022
+## [0.79.0](https://github.com/returntocorp/semgrep/releases/tag/v0.79.0) - 2022-01-20
 
 ### Added
 
@@ -114,7 +118,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Solidity: add support for `for(...)` patterns (#4530)
 
-## [0.78.0](https://github.com/returntocorp/semgrep/releases/tag/v0.78.0) - 01-13-2022
+## [0.78.0](https://github.com/returntocorp/semgrep/releases/tag/v0.78.0) - 2022-01-13
 
 ### Added
 
@@ -142,7 +146,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Go, JavaScript, Java, Python, TypeScript: correct matching of
   multibyte characters (#4490)
 
-## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 12-16-2021
+## [0.77.0](https://github.com/returntocorp/semgrep/releases/tag/v0.77.0) - 2021-12-16
 
 ### Added
 
@@ -177,9 +181,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   of memory, or reached 80% of the specified memory limit, whatever happens first.
   This is meant to help diagnosing OOM-related crashes.
 
-## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 2021-12-08
 
-## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 12-08-2021
+## [0.76.2](https://github.com/returntocorp/semgrep/releases/tag/v0.76.2) - 2021-12-08
 
 ### Fixed
 
@@ -187,14 +191,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Fixed bug where the presence of .semgrepignore would cause reported targets
   to have absolute instead of relative file paths
 
-## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 12-07-2021
+## [0.76.1](https://github.com/returntocorp/semgrep/releases/tag/v0.76.1) - 2021-12-07
 
 ### Fixed
 
 - Fixed bug where the presence of .semgrepignore would cause runs to fail on
   files that were not subpaths of the directory where semgrep was being run
 
-## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 12-06-2021
+## [0.76.0](https://github.com/returntocorp/semgrep/releases/tag/v0.76.0) - 2021-12-06
 
 ### Added
 
@@ -228,7 +232,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Given `--output` Semgrep will no longer print search results to _stdout_,
   but it will only save/post them to the specified file/URL
 
-## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
+## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 2021-11-23
 
 ### Fixed
 
@@ -236,7 +240,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   correctly. Reverting optimization in 0.74.0 that left this field None when said
   flag was used
 
-## [0.74.0](https://github.com/returntocorp/semgrep/releases/tag/v0.74.0) - 11-19-2021
+## [0.74.0](https://github.com/returntocorp/semgrep/releases/tag/v0.74.0) - 2021-11-19
 
 ### Added
 
@@ -268,7 +272,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the CFG. This could led to e.g. constant propagation incorrectly flagging
   variables as constants. (#4265)
 
-## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
+## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 2021-11-12
 
 ### Added
 
@@ -290,7 +294,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Catch PCRE errors
 - Constant propagation: Avoid "Impossible" errors due to unhandled cases
 
-## [0.72.0](https://github.com/returntocorp/semgrep/releases/tag/v0.72.0) - 11-10-2021
+## [0.72.0](https://github.com/returntocorp/semgrep/releases/tag/v0.72.0) - 2021-11-10
 
 ### Added
 
@@ -336,7 +340,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Semgrep now scans executable scripts whose shebang interpreter matches the
   rule's language
 
-## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
+## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 2021-11-01
 
 ### Added
 
@@ -372,7 +376,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Bash: a simple expression pattern can now match any command argument rather
   than having to match the whole command
 
-## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
+## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 2021-10-19
 
 ### Added
 
@@ -393,14 +397,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Resolution of rulesets use legacy registry instead of cdn registry
 - Benchmark suite is easier to modify
 
-## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
+## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 2021-10-14
 
 ### Fixed
 
 - The `--enable-metrics` flag is now always a flag, does not optionally
   take an argument
 
-## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 10-13-2021
+## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 2021-10-13
 
 ### Added
 
@@ -427,7 +431,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   semantics of sanitizers is reverted back to the same as before 0.68.0, and
   `- pattern: $F(...)` is supported via the new not-conflicting sanitizers.
 
-## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
+## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 2021-10-07
 
 ### Fixed
 
@@ -436,7 +440,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Fixed (another) bug where a tainted sink could go unreported when
   the sink is a specific argument in a function call
 
-## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
+## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 2021-10-07
 
 ### Added
 
@@ -447,7 +451,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Respect rule level path filtering
 
-## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
+## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 2021-10-06
 
 ### Added
 
@@ -481,7 +485,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   a specific argument in a function call
 - PHP: allows more keywords as valid field names (#3954)
 
-## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
+## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 2021-09-29
 
 ### Added
 
@@ -505,7 +509,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
   incorrectly skip a file (#3755)
 
-## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
+## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 2021-09-22
 
 ### Added
 
@@ -538,7 +542,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
 - PHP: allows certain keywords as valid field names (#3907)
 
-## [0.65.0](https://github.com/returntocorp/semgrep/releases/tag/v0.65.0) - 09-13-2021
+## [0.65.0](https://github.com/returntocorp/semgrep/releases/tag/v0.65.0) - 2021-09-13
 
 ### Added
 
@@ -559,7 +563,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Fix semgrep-core crash when a cache file exceeds the file size limit
 - Sped up Semgrep interface with tree-sitter parsing
 
-## [0.64.0](https://github.com/returntocorp/semgrep/releases/tag/v0.64.0) - 09-01-2021
+## [0.64.0](https://github.com/returntocorp/semgrep/releases/tag/v0.64.0) - 2021-09-01
 
 ### Added
 
@@ -581,7 +585,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Taint mode should no longer report duplicate matches (#3742)
 - Only change source directory when running in docker context (#3732)
 
-## [0.63.0](https://github.com/returntocorp/semgrep/releases/tag/v0.63.0) - 08-25-2021
+## [0.63.0](https://github.com/returntocorp/semgrep/releases/tag/v0.63.0) - 2021-08-25
 
 ### Added
 
