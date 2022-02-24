@@ -92,8 +92,15 @@ let unknown_metavar_in_comparison env f =
     | Or (_, xs) ->
         let mv_sets = List.map collect_metavars xs in
         List.fold_left
+          (* TODO originally we took the intersection, since strictly
+           * speaking a metavariable needs to be in all cases of a pattern-either
+           * to be bound. However, due to how the pattern is transformed, this
+           * is not always enforced, so the metacheck is too strict
+           *
           (fun acc mv_set ->
             if acc == Set.empty then mv_set else Set.inter acc mv_set)
+           *)
+            (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
     | And (_, xs, metavar_conds) ->
         let mv_sets = List.map collect_metavars xs in
@@ -108,9 +115,8 @@ let unknown_metavar_in_comparison env f =
              variants of this *)
           error env t
             (mv
-           ^ " is used in a metavariable-cond/regexp but not present in a \
-              valid pattern (either any clause of a pattern-and or all clauses \
-              of a pattern-either)")
+           ^ " is used in a metavariable-cond/regexp but is never used or only \
+              used in a pattern-not )")
         in
         metavar_conds
         |> List.iter (fun (t, metavar_cond) ->
