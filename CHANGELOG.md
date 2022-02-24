@@ -31,6 +31,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: Constant propagation now has built-in knowledge of `escapeshellarg` and
   `htmlspecialchars_decode`, if these functions are given constant arguments,
   then Semgrep assumes that their output is also constant
+- When a `metavariable-comparison` has `strip: true` set,
+  instead of just removing surrounding quotes,
+  Semgrep will extract the first group of digits from the metavariable
+  and use that as an integer.
 
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
 
