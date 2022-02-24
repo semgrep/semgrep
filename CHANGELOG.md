@@ -25,6 +25,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Treat Go raw string literals like ordinary string literals (#3938)
 - Eliminate zombie uname processes (#4466)
 
+### Changed
+
+- Improved constant propagation for global constants
+- PHP: Constant propagation now has built-in knowledge of `escapeshellarg` and
+  `htmlspecialchars_decode`, if these functions are given constant arguments,
+  then Semgrep assumes that their output is also constant
+
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
 
 ### Added

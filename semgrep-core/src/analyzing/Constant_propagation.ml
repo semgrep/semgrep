@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 open AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
@@ -22,8 +21,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Deep Semgrep *)
 let hook_constant_propagation_and_evaluate_literal = ref None
 
-(* TODO: Remove duplication between first and second pass, move towards
-   making the first pass as light as possible. *)
+(* TODO: Remove duplication between the Generic-based and IL-based passes,
+   ideally we should have a single pass, the IL-based. *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,16 +37,17 @@ let hook_constant_propagation_and_evaluate_literal = ref None
  * This is mainly to provide advanced features to semgrep such as the
  * constant propagation of literals.
  *
- * See also semgrep/matching/Normalize_generic.ml which also performs
- * some expression evaluation. We should get rid of it though
- * once we have const analysis available on arguments.
+ * Partial evaluation for Generic is provided by core/ast/Normalize_generic.ml,
+ * we may not need it when we annotate every expression with constant/svalue info.
  *
- * Right now we just propagate constants when we're sure it's a constant
+ * Right now we just propagate constants when we are sure* that it is a constant
  * because:
  *  - the variable declaration use the 'const' keyword in Javascript/Go/...
  *  - the field declaration use the 'final' keyword in Java
  *  - we do a very basic const analysis where we check the variable
  *    is never assigned more than once.
+ *
+ * * We cannot be 100% sure e.g. due to aliasing.
  *
  * history:
  * - ver1: this used to be in Naming_AST.ml but better to split, even though
@@ -64,12 +64,14 @@ let hook_constant_propagation_and_evaluate_literal = ref None
 type var = string * AST_generic.sid
 
 type env = {
+  lang : Lang.t option;
   (* basic constant propagation of literals for semgrep *)
-  constants : (var, literal) assoc ref;
+  constants : (var, svalue) Hashtbl.t;
   in_lvalue : bool ref;
 }
 
-let default_env () = { constants = ref []; in_lvalue = ref false }
+let default_env lang =
+  { lang; constants = Hashtbl.create 64; in_lvalue = ref false }
 
 type lr_stats = {
   (* note that a VarDef defining the value will count as 1 *)
@@ -85,14 +87,30 @@ type var_stats = (var, lr_stats) Hashtbl.t
 (* Environment Helpers *)
 (*****************************************************************************)
 
-let add_constant_env ident (sid, literal) env =
-  env.constants := ((H.str_of_ident ident, sid), literal) :: !(env.constants)
+let is_lang env l2 =
+  match env.lang with
+  | None -> false
+  | Some l1 -> l1 = l2
+
+let is_js env =
+  match env.lang with
+  | None -> false
+  | Some lang -> Lang.is_js lang
+
+let add_constant_env ident (sid, svalue) env =
+  match svalue with
+  | Lit _
+  | Cst _ ->
+      Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
+  | Sym _
+  | NotCst ->
+      ()
 
 let find_id env id id_info =
   match id_info with
   | { id_resolved = { contents = Some (_kind, sid) }; _ } ->
       let s = H.str_of_ident id in
-      List.assoc_opt (s, sid) !(env.constants)
+      Hashtbl.find_opt env.constants (s, sid)
   | __else__ -> None
 
 let find_name env name =
@@ -108,55 +126,73 @@ let deep_constant_propagation_and_evaluate_literal x =
 (*****************************************************************************)
 (* Partial evaluation *)
 (*****************************************************************************)
+(* See also Dataflow_svalue.ml, for the IL-based version.... At some point
+ * we should remove the code below and rely only on Dataflow_svalue.ml.
+ * For that we may need to add `e_svalue` to AST_generic.expr and fill it in
+ * during constant-propagation.
+ *)
 
 let ( let* ) = Option.bind
 
-let add_int_lits i1 i2 =
-  let sign i = i asr (Sys.int_size - 1) in
+let fold_args1 f args =
+  match args with
+  | [] -> None
+  | a1 :: args -> List.fold_left f a1 args
+
+let find_type_args args =
+  args
+  |> List.find_map (function
+       | Some (Lit (Bool _)) -> Some Cbool
+       | Some (Lit (Int _)) -> Some Cint
+       | Some (Lit (String _)) -> Some Cstr
+       | Some (Cst ctype) -> Some ctype
+       | _arg -> None)
+
+let sign i = i asr (Sys.int_size - 1)
+
+let int_add n m =
+  let r = n + m in
+  if sign n = sign m && sign r <> sign n then None (* overflow *) else Some r
+
+let int_mult i1 i2 =
+  let overflow =
+    i1 <> 0 && i2 <> 0
+    && ((i1 < 0 && i2 = min_int) (* >max_int *)
+       || (i1 = min_int && i2 < 0) (* >max_int *)
+       ||
+       if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2) (* >max_int *)
+       else abs i1 > abs (min_int / i2) (* <min_int *))
+  in
+  if overflow then None else Some (i1 * i2)
+
+let binop_int_cst op i1 i2 =
   match (i1, i2) with
-  | None, _
-  | _, None ->
-      None
-  | Some i1, Some i2 ->
-      let r = i1 + i2 in
-      if sign i1 = sign i2 && sign r <> sign i1 then None (* overflow *)
-      else Some r
+  | Some (Lit (Int (Some n, t1))), Some (Lit (Int (Some m, _))) ->
+      let* r = op n m in
+      Some (Lit (Int (Some r, t1)))
+  | Some (Lit (Int _)), Some (Cst Cint)
+  | Some (Cst Cint), Some (Lit (Int _)) ->
+      Some (Cst Cint)
+  | _i1, _i2 -> None
 
-let mult_int_lits i1 i2 =
-  let sign i = i asr (Sys.int_size - 1) in
-  match (i1, i2) with
-  | None, _
-  | _, None ->
-      None
-  | Some i1, Some i2 ->
-      let overflow =
-        i1 <> 0 && i2 <> 0
-        && ((i1 < 0 && i2 = min_int) (* >max_int *)
-           || (i1 = min_int && i2 < 0) (* >max_int *)
-           ||
-           if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2)
-             (* >max_int *)
-           else abs i1 > abs (min_int / i2) (* <min_int *))
-      in
-      if overflow then None else Some (i1 * i2)
+let binop_bool_cst op b1 b2 =
+  match (b1, b2) with
+  | Some (Lit (Bool (b1, t1))), Some (Lit (Bool (b2, _))) ->
+      Some (Lit (Bool (op b1 b2, t1)))
+  | Some (Lit (Bool _)), Some (Cst Cbool)
+  | Some (Cst Cbool), Some (Lit (Bool _)) ->
+      Some (Cst Cbool)
+  | _b1, _b2 -> None
 
-let filter_bool_literals lits =
-  lits
-  |> List.filter_map (function
-       | Bool (b, _) -> Some b
-       | _lit -> None)
-
-let filter_int_literals lits =
-  lits
-  |> List.filter_map (function
-       | Int (i, _) -> Some i
-       | _lit -> None)
-
-let filter_string_literals lits =
-  lits
-  |> List.filter_map (function
-       | String (s, _) -> Some s
-       | _lit -> None)
+let concat_string_cst s1 s2 =
+  match (s1, s2) with
+  | Some (Lit (String (s1, t1))), Some (Lit (String (s2, _))) ->
+      Some (Lit (String (s1 ^ s2, t1)))
+  | Some (Lit (String _)), Some (Cst Cstr)
+  | Some (Cst Cstr), Some (Lit (String _))
+  | Some (Cst Cstr), Some (Cst Cstr) ->
+      Some (Cst Cstr)
+  | _b1, _b2 -> None
 
 let rec eval env x : svalue option =
   match x.e with
@@ -179,74 +215,53 @@ let rec eval env x : svalue option =
           Some (Lit str_lit))
   | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
       eval env e
-  | Call ({ e = IdSpecial (special, _); _ }, args) ->
-      eval_special env special args
+  | Call ({ e = IdSpecial special; _ }, args) -> eval_special env special args
+  | Call ({ e = N name; _ }, args) -> eval_call env name args
   | N name -> (
       match find_name env name with
-      | Some lit -> Some (Lit lit)
+      | Some svalue -> Some svalue
       | None -> deep_constant_propagation_and_evaluate_literal x)
   | _ ->
       (* deep: *)
       deep_constant_propagation_and_evaluate_literal x
 
-and eval_args_to_same_type_literals env args =
+and eval_args env args =
   args |> unbracket
-  |> List.fold_left
-       (fun acc arg ->
-         let* lits = acc in
-         match arg with
-         | Arg e -> (
-             let* e_sval = eval env e in
-             match (lits, e_sval) with
-             | [], Lit lit -> Some [ lit ]
-             | Bool _ :: _, Lit (Bool _ as lit)
-             | Int _ :: _, Lit (Int _ as lit)
-             | String _ :: _, Lit (String _ as lit) ->
-                 Some (lit :: lits)
-             | _lits, _sval -> None)
-         | _arg -> None)
-       (Some [])
-  |> Option.map List.rev
+  |> List.map (function
+       | Arg e -> eval env e
+       | _ -> None)
 
-and eval_special env special args =
-  let* lits = eval_args_to_same_type_literals env args in
-  match (special, lits) with
+and eval_special env (special, _) args =
+  match (special, eval_args env args) with
   (* booleans *)
-  | Op Not, [ Bool (b, t) ] -> Some (Lit (Bool (not b, t)))
-  | Op Or, Bool (_, t1) :: _ ->
-      let bools = filter_bool_literals lits in
-      let disj = List.exists Fun.id bools in
-      Some (Lit (Bool (disj, t1)))
-  | Op And, Bool (_, t1) :: _ ->
-      let bools = filter_bool_literals lits in
-      let conj = List.for_all Fun.id bools in
-      Some (Lit (Bool (conj, t1)))
+  | Op Not, [ Some (Lit (Bool (b, t))) ] -> Some (Lit (Bool (not b, t)))
+  | Op Or, args -> fold_args1 (binop_bool_cst ( || )) args
+  | Op And, args -> fold_args1 (binop_bool_cst ( && )) args
   (* integers *)
-  | Op Plus, Int (_, t1) :: _ ->
-      let ints = filter_int_literals lits in
-      let* sum = List.fold_left add_int_lits (Some 0) ints in
-      Some (Lit (Int (Some sum, t1)))
-  | Op Mult, Int (_, t1) :: _ ->
-      let ints = filter_int_literals lits in
-      let* prod = List.fold_left mult_int_lits (Some 1) ints in
-      Some (Lit (Int (Some prod, t1)))
+  | Op Plus, args when find_type_args args = Some Cint ->
+      fold_args1 (binop_int_cst int_add) args
+  | Op Mult, args when find_type_args args = Some Cint ->
+      fold_args1 (binop_int_cst int_mult) args
   (* strings *)
-  | (Op (Plus | Concat) | ConcatString _), String (_, t1) :: _ ->
-      let strs = filter_string_literals lits in
-      let concated = String.concat "" strs in
-      Some (Lit (String (concated, t1)))
+  | (Op (Plus | Concat) | ConcatString _), args
+    when find_type_args args = Some Cstr ->
+      fold_args1 concat_string_cst args
   | __else__ -> None
 
-let constant_propagation_and_evaluate_literal =
-  let env = default_env () in
-  eval env
+and eval_call env name args =
+  (* Built-in knowledge, we know these functions return constants when
+   * given constant arguments. *)
+  let args = eval_args env args in
+  match (env.lang, name, args) with
+  | ( Some Lang.Php,
+      Id ((("escapeshellarg" | "htmlspecialchars_decode"), _), _),
+      [ Some (Lit (String _) | Cst Cstr) ] ) ->
+      Some (Cst Cstr)
+  | _lang, _name, _args -> None
 
-let eval_expr env e =
-  match eval env e with
-  | Some (Lit lit) -> Some lit
-  | Some _
-  | None ->
-      None
+let constant_propagation_and_evaluate_literal ?lang =
+  let env = default_env lang in
+  eval env
 
 (*****************************************************************************)
 (* Poor's man const analysis *)
@@ -365,7 +380,7 @@ let var_stats prog : var_stats =
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
-  let env = default_env () in
+  let env = default_env (Some lang) in
 
   (* step1: first pass const analysis for languages without 'const/final' *)
   let stats = var_stats prog in
@@ -395,9 +410,8 @@ let propagate_basic lang prog =
                   if
                     H.has_keyword_attr Const attrs
                     || H.has_keyword_attr Final attrs
-                    || !(stats.lvalue) = 1
-                       && (lang = Lang.Js || lang = Lang.Ts)
-                  then add_constant_env id (sid, literal) env;
+                    || (!(stats.lvalue) = 1 && is_js env)
+                  then add_constant_env id (sid, Lit literal) env;
                   k x
               | None ->
                   logger#debug "No stats for (%s,%d)" (H.str_of_ident id) sid;
@@ -409,12 +423,12 @@ let propagate_basic lang prog =
           match x.e with
           | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
               match find_id env id id_info with
-              | Some literal -> id_info.id_svalue := Some (Lit literal)
+              | Some svalue -> id_info.id_svalue := Some svalue
               | _ -> ())
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
-              | Some literal -> id_info.id_svalue := Some (Lit literal)
+              | Some svalue -> id_info.id_svalue := Some svalue
               | _ -> ())
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
@@ -432,17 +446,17 @@ let propagate_basic lang prog =
                 },
                 _,
                 rexp ) ->
-              eval_expr env rexp
-              |> Option.iter (fun literal ->
+              eval env rexp
+              |> Option.iter (fun svalue ->
                      match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
                      | Some stats ->
                          if
                            !(stats.lvalue) = 1
                            (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
-                           && (lang = Lang.Python || lang = Lang.Ruby
-                             || lang = Lang.Php || Lang.is_js lang)
+                           && (is_lang env Lang.Python || is_lang env Lang.Ruby
+                             || is_lang env Lang.Php || is_js env)
                            && kind = Global
-                         then add_constant_env id (sid, literal) env
+                         then add_constant_env id (sid, svalue) env
                      | None ->
                          logger#debug "No stats for (%s,%d)" (H.str_of_ident id)
                            sid;
@@ -472,7 +486,7 @@ let propagate_dataflow lang ast =
           (fun (_k, _) def ->
             let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
-            let mapping = Dataflow_svalue.fixpoint inputs flow in
+            let mapping = Dataflow_svalue.fixpoint lang inputs flow in
             Dataflow_svalue.update_svalue flow mapping);
       }
   in

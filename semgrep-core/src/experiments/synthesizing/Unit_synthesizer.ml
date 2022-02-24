@@ -217,7 +217,7 @@ let tests =
                               in
                               let matches_with_env =
                                 let env =
-                                  Matching_generic.empty_environment None
+                                  Matching_generic.empty_environment None None
                                     Config_semgrep.default_config
                                 in
                                 Match_patterns.match_any_any pattern code env
