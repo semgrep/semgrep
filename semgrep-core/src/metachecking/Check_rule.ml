@@ -85,12 +85,8 @@ let unknown_metavar_in_comparison env f =
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
     | P ({ pat = _pat; pstr = pstr, _; pid = _pid }, _) ->
-        let words = Str.split (Str.regexp "[^a-zA-Z0-9]") pstr in
-        let metavars =
-          words
-          |> List.map (fun w -> "$" ^ w)
-          |> List.filter Metavariable.is_metavar_name
-        in
+        let words = Str.split (Str.regexp "[^a-zA-Z0-9$]") pstr in
+        let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.of_list metavars
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
