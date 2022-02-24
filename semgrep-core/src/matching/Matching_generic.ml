@@ -79,6 +79,7 @@ type tin = {
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  lang : Lang.t option;
   config : Config_semgrep.t;
 }
 
@@ -340,8 +341,14 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment opt_cache config =
-  { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; config }
+let empty_environment opt_cache opt_lang config =
+  {
+    mv = Env.empty;
+    stmts_match_span = Empty;
+    cache = opt_cache;
+    lang = opt_lang;
+    config;
+  }
 
 (*****************************************************************************)
 (* Helpers *)

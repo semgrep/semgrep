@@ -6,6 +6,7 @@ type tin = {
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  lang : Lang.t option;
   config : Config_semgrep.t;
 }
 
@@ -50,7 +51,8 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
-val empty_environment : tout Caching.Cache.t option -> Config_semgrep.t -> tin
+val empty_environment :
+  tout Caching.Cache.t option -> Lang.t option -> Config_semgrep.t -> tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 

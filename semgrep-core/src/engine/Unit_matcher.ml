@@ -114,8 +114,11 @@ let tests ~any_gen_of_string =
                  let pattern = any_gen_of_string spattern in
                  let code = any_gen_of_string scode in
                  let cache = None in
+                 let lang = None in
                  let config = Config_semgrep.default_config in
-                 let env = Matching_generic.empty_environment cache config in
+                 let env =
+                   Matching_generic.empty_environment cache lang config
+                 in
                  let matches_with_env =
                    Match_patterns.match_any_any pattern code env
                  in

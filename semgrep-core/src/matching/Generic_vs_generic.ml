@@ -675,12 +675,13 @@ and m_expr a b =
   | G.L a1, _b ->
       if_config
         (fun x -> x.Config.constant_propagation)
-        ~then_:
-          (match
-             Constant_propagation.constant_propagation_and_evaluate_literal b
-           with
-          | Some b1 -> m_literal_svalue a1 b1
-          | None -> fail ())
+        ~then_:(fun tin ->
+          match
+            Constant_propagation.constant_propagation_and_evaluate_literal
+              ?lang:tin.lang b
+          with
+          | Some b1 -> m_literal_svalue a1 b1 tin
+          | None -> fail () tin)
         ~else_:(fail ())
   | G.Container (G.Array, a2), B.Container (B.Array, b2) ->
       (m_bracket m_container_ordered_elements) a2 b2
