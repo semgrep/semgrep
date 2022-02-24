@@ -4,9 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+- The environment variable used by Semgrep login changed from `SEMGREP_LOGIN_TOKEN` to `SEMGREP_APP_TOKEN`
+- A new subcommand `semgrep publish` allows users to upload private, unlisted, or public rules to the Semgrep Registry
+- Fix for: semgrep always highlights one extra character
+
 ### Added
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
+- A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
 
 ### Fixed
 
@@ -17,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `metavariable-pattern`. Previously, Semgrep had problems analyzing e.g. embedded
   YAML content. (#4582)
 - Treat Go raw string literals like ordinary string literals (#3938)
+- Eliminate zombie uname processes (#4466)
 
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
 

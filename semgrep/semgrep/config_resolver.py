@@ -23,6 +23,8 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
+from semgrep.constants import IN_DOCKER
+from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
@@ -47,9 +49,6 @@ from semgrep.util import terminal_wrap
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
-IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 
 SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
 OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
