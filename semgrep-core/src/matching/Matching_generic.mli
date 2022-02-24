@@ -70,6 +70,8 @@ val if_config :
   tin ->
   tout
 
+val with_lang : (Lang.t option -> tin -> 'a) -> tin -> 'a
+
 val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue -> tin -> tin option
 

@@ -161,6 +161,8 @@ let ( >!> ) m1 else_cont tin =
 let if_config f ~then_ ~else_ tin =
   if f tin.config then then_ tin else else_ tin
 
+let with_lang f tin = f tin.lang tin
+
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin -> [ tin ]
 

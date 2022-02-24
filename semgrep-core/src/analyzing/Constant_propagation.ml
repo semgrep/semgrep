@@ -219,7 +219,7 @@ let rec eval env x : svalue option =
   | Call ({ e = N name; _ }, args) -> eval_call env name args
   | N name -> (
       match find_name env name with
-      | Some lit -> Some lit
+      | Some svalue -> Some svalue
       | None -> deep_constant_propagation_and_evaluate_literal x)
   | _ ->
       (* deep: *)
@@ -250,7 +250,7 @@ and eval_special env (special, _) args =
 
 and eval_call env name args =
   (* Built-in knowledge, we know these functions return constants when
-   * given constants arguments. *)
+   * given constant arguments. *)
   let args = eval_args env args in
   match (env.lang, name, args) with
   | ( Some Lang.Php,
@@ -262,8 +262,6 @@ and eval_call env name args =
 let constant_propagation_and_evaluate_literal ?lang =
   let env = default_env lang in
   eval env
-
-let eval_expr env e = eval env e
 
 (*****************************************************************************)
 (* Poor's man const analysis *)
@@ -448,7 +446,7 @@ let propagate_basic lang prog =
                 },
                 _,
                 rexp ) ->
-              eval_expr env rexp
+              eval env rexp
               |> Option.iter (fun svalue ->
                      match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
                      | Some stats ->

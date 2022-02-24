@@ -423,7 +423,7 @@ let transfer :
             let args_val = List.map (eval inp') args in
             match (lang, func, args_val) with
             (* Built-in knowledge, we know these functions return constants when
-             * given constants arguments. *)
+             * given constant arguments. *)
             | ( Lang.Php,
                 {
                   e =
