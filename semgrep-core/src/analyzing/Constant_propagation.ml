@@ -19,6 +19,9 @@ module V = Visitor_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* Deep Semgrep *)
+let hook_constant_propagation_and_evaluate_literal = ref None
+
 (* TODO: Remove duplication between first and second pass, move towards
    making the first pass as light as possible. *)
 
@@ -91,6 +94,159 @@ let find_id env id id_info =
       let s = H.str_of_ident id in
       List.assoc_opt (s, sid) !(env.constants)
   | __else__ -> None
+
+let find_name env name =
+  match name with
+  | Id (id, id_info) -> find_id env id id_info
+  | IdQualified _ -> None
+
+let deep_constant_propagation_and_evaluate_literal x =
+  match !hook_constant_propagation_and_evaluate_literal with
+  | None -> None
+  | Some f -> f x
+
+(*****************************************************************************)
+(* Partial evaluation *)
+(*****************************************************************************)
+
+let ( let* ) = Option.bind
+
+let add_int_lits i1 i2 =
+  let sign i = i asr (Sys.int_size - 1) in
+  match (i1, i2) with
+  | None, _
+  | _, None ->
+      None
+  | Some i1, Some i2 ->
+      let r = i1 + i2 in
+      if sign i1 = sign i2 && sign r <> sign i1 then None (* overflow *)
+      else Some r
+
+let mult_int_lits i1 i2 =
+  let sign i = i asr (Sys.int_size - 1) in
+  match (i1, i2) with
+  | None, _
+  | _, None ->
+      None
+  | Some i1, Some i2 ->
+      let overflow =
+        i1 <> 0 && i2 <> 0
+        && ((i1 < 0 && i2 = min_int) (* >max_int *)
+           || (i1 = min_int && i2 < 0) (* >max_int *)
+           ||
+           if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2)
+             (* >max_int *)
+           else abs i1 > abs (min_int / i2) (* <min_int *))
+      in
+      if overflow then None else Some (i1 * i2)
+
+let filter_bool_literals lits =
+  lits
+  |> List.filter_map (function
+       | Bool (b, _) -> Some b
+       | _lit -> None)
+
+let filter_int_literals lits =
+  lits
+  |> List.filter_map (function
+       | Int (i, _) -> Some i
+       | _lit -> None)
+
+let filter_string_literals lits =
+  lits
+  |> List.filter_map (function
+       | String (s, _) -> Some s
+       | _lit -> None)
+
+let rec eval env x : svalue option =
+  match x.e with
+  | L x -> Some (Lit x)
+  | N (Id (_, { id_svalue = { contents = Some x }; _ }))
+  | DotAccess
+      ( { e = IdSpecial (This, _); _ },
+        _,
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
+      Some x
+  | Call
+      ( { e = IdSpecial (EncodedString str_kind, _); _ },
+        (_, [ Arg { e = L (String (str, str_tok) as str_lit); _ } ], _) ) -> (
+      match str_kind with
+      | "r" ->
+          let str = String.escaped str in
+          Some (Lit (String (str, str_tok)))
+      | _else ->
+          (* THINK: is this good enough for "b" and "u"? *)
+          Some (Lit str_lit))
+  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
+      eval env e
+  | Call ({ e = IdSpecial (special, _); _ }, args) ->
+      eval_special env special args
+  | N name -> (
+      match find_name env name with
+      | Some lit -> Some (Lit lit)
+      | None -> deep_constant_propagation_and_evaluate_literal x)
+  | _ ->
+      (* deep: *)
+      deep_constant_propagation_and_evaluate_literal x
+
+and eval_args_to_same_type_literals env args =
+  args |> unbracket
+  |> List.fold_left
+       (fun acc arg ->
+         let* lits = acc in
+         match arg with
+         | Arg e -> (
+             let* e_sval = eval env e in
+             match (lits, e_sval) with
+             | [], Lit lit -> Some [ lit ]
+             | Bool _ :: _, Lit (Bool _ as lit)
+             | Int _ :: _, Lit (Int _ as lit)
+             | String _ :: _, Lit (String _ as lit) ->
+                 Some (lit :: lits)
+             | _lits, _sval -> None)
+         | _arg -> None)
+       (Some [])
+  |> Option.map List.rev
+
+and eval_special env special args =
+  let* lits = eval_args_to_same_type_literals env args in
+  match (special, lits) with
+  (* booleans *)
+  | Op Not, [ Bool (b, t) ] -> Some (Lit (Bool (not b, t)))
+  | Op Or, Bool (_, t1) :: _ ->
+      let bools = filter_bool_literals lits in
+      let disj = List.exists Fun.id bools in
+      Some (Lit (Bool (disj, t1)))
+  | Op And, Bool (_, t1) :: _ ->
+      let bools = filter_bool_literals lits in
+      let conj = List.for_all Fun.id bools in
+      Some (Lit (Bool (conj, t1)))
+  (* integers *)
+  | Op Plus, Int (_, t1) :: _ ->
+      let ints = filter_int_literals lits in
+      let* sum = List.fold_left add_int_lits (Some 0) ints in
+      Some (Lit (Int (Some sum, t1)))
+  | Op Mult, Int (_, t1) :: _ ->
+      let ints = filter_int_literals lits in
+      let* prod = List.fold_left mult_int_lits (Some 1) ints in
+      Some (Lit (Int (Some prod, t1)))
+  (* strings *)
+  | (Op (Plus | Concat) | ConcatString _), String (_, t1) :: _ ->
+      let strs = filter_string_literals lits in
+      let concated = String.concat "" strs in
+      Some (Lit (String (concated, t1)))
+  | __else__ -> None
+
+let constant_propagation_and_evaluate_literal =
+  let env = default_env () in
+  eval env
+
+let eval_expr env e =
+  match eval env e with
+  | Some (Lit lit) -> Some lit
+  | Some _
+  | None ->
+      None
 
 (*****************************************************************************)
 (* Poor's man const analysis *)
@@ -202,114 +358,6 @@ let var_stats prog : var_stats =
   let visitor = V.mk_visitor ~vardef_assign:false hooks in
   visitor (Pr prog);
   h
-
-(*****************************************************************************)
-(* Partial evaluation *)
-(*****************************************************************************)
-
-let literal_of_bool b =
-  let b_str = string_of_bool b in
-  let tok = Parse_info.unsafe_fake_info b_str in
-  Bool (b, tok)
-
-let bool_of_literal = function
-  | Bool (b, _) -> Some b
-  | __else__ -> None
-
-let eval_bop_bool op b1 b2 =
-  match op with
-  | Or -> Some (b1 || b2)
-  | And -> Some (b1 && b2)
-  | __else__ -> None
-
-let literal_of_int i =
-  let i_str = string_of_int i in
-  let tok = Parse_info.unsafe_fake_info i_str in
-  Int (Some i, tok)
-
-let int_of_literal = function
-  | Int (Some i, _) -> Some i
-  | __else__ -> None
-
-let eval_bop_int op i1 i2 =
-  match op with
-  | Plus -> Some (i1 + i2)
-  | Mult -> Some (i1 * i2)
-  | __else__ -> None
-
-let literal_of_string s =
-  let tok = Parse_info.unsafe_fake_info s in
-  String (s, tok)
-
-let string_of_literal = function
-  | String (s, _) -> Some s
-  | __else__ -> None
-
-let eval_bop_string op s1 s2 =
-  match op with
-  | Plus -> Some (s1 ^ s2)
-  | __else__ -> None
-
-let rec eval_expr env e =
-  match e.e with
-  | L literal -> Some literal
-  | N (Id (id, id_info)) -> find_id env id id_info
-  (* TODO: do what we do in Normalize_generic.ml.
-   * | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
-   *)
-  | Call ({ e = IdSpecial (Op op, _); _ }, (_, args, _)) -> eval_op env op args
-  | Call ({ e = IdSpecial (ConcatString _, _); _ }, (_, args, _)) ->
-      eval_concat_string env args
-  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
-      eval_expr env e
-  | __else__ -> None
-
-(* coupling: see also semgrep/matching/Normalize_generic.ml, even though
- * we should remove it because it's doing similar work.
- *)
-and eval_op env op args =
-  match args with
-  | [ Arg e ] -> (
-      match (op, eval_expr env e) with
-      | Not, Some (Bool _ as l) ->
-          bool_of_literal l >>= fun b -> Some (literal_of_bool (not b))
-      | Plus, Some (Int _ as l) ->
-          int_of_literal l >>= fun i -> Some (literal_of_int i)
-      | Minus, Some (Int _ as l) ->
-          int_of_literal l >>= fun i -> Some (literal_of_int (-i))
-      | __else__ -> None)
-  | [ Arg e1; Arg e2 ] -> (
-      match (eval_expr env e1, eval_expr env e2) with
-      | Some (Bool _ as l1), Some (Bool _ as l2) ->
-          bool_of_literal l1 >>= fun b1 ->
-          bool_of_literal l2 >>= fun b2 ->
-          eval_bop_bool op b1 b2 >>= fun r -> Some (literal_of_bool r)
-      | Some (Int _ as l1), Some (Int _ as l2) ->
-          int_of_literal l1 >>= fun i1 ->
-          int_of_literal l2 >>= fun i2 ->
-          eval_bop_int op i1 i2 >>= fun r -> Some (literal_of_int r)
-      | Some (String _ as l1), Some (String _ as l2) ->
-          string_of_literal l1 >>= fun s1 ->
-          string_of_literal l2 >>= fun s2 ->
-          eval_bop_string op s1 s2 >>= fun r -> Some (literal_of_string r)
-      | __else__ -> None)
-  | __else__ -> None
-
-and eval_concat_string env args : literal option =
-  let go_concat : argument list -> string option =
-    List.fold_left
-      (fun res arg ->
-        match arg with
-        | Arg e ->
-            let ( let* ) = ( >>= ) in
-            let* r = res in
-            let* lit = eval_expr env e in
-            let* s = string_of_literal lit in
-            Some (r ^ s)
-        | _else -> None)
-      (Some "")
-  in
-  args |> go_concat |> Option.map literal_of_string
 
 (*****************************************************************************)
 (* Entry point *)
