@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   possible to correctly match these strings with `metavariable-regex` or
   `metavariable-pattern`. Previously, Semgrep had problems analyzing e.g. embedded
   YAML content. (#4582)
+- Treat Go raw string literals like ordinary string literals (#3938)
 - Eliminate zombie uname processes (#4466)
 
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 02-08-2022
