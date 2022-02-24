@@ -387,10 +387,11 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
 
 let transfer :
+    lang:Lang.t ->
     enter_env:G.svalue Dataflow_core.env ->
     flow:F.cfg ->
     G.svalue Dataflow_core.transfn =
- fun ~enter_env ~flow
+ fun ~lang ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let node = flow.graph#nodes#assoc ni in
@@ -418,12 +419,37 @@ let transfer :
             (* var = exp *)
             let cexp = eval_or_sym_prop inp' exp in
             D.VarMap.add (str_of_name var) cexp inp'
-        | Call (Some { base = Var var; offset = NoOffset }, _, _) ->
-            (* Call to an arbitrary function, we are intraprocedural so we cannot
-             * propagate actual constants in this case, but we can propagate the
-             * call itself as a symbolic expression. *)
-            let ccall = sym_prop instr.iorig in
-            D.VarMap.add (str_of_name var) ccall inp'
+        | Call (Some { base = Var var; offset = NoOffset }, func, args) -> (
+            let args_val = List.map (eval inp') args in
+            match (lang, func, args_val) with
+            (* Built-in knowledge, we know these functions return constants when
+             * given constant arguments. *)
+            | ( Lang.Php,
+                {
+                  e =
+                    Fetch
+                      {
+                        base =
+                          Var
+                            {
+                              ident =
+                                ( ("escapeshellarg" | "htmlspecialchars_decode"),
+                                  _ );
+                              _;
+                            };
+                        offset = NoOffset;
+                      };
+                  _;
+                },
+                [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
+                D.VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
+            (* symbolic propagation *)
+            | _lang, _func, _args ->
+                (* Call to an arbitrary function, we are intraprocedural so we cannot
+                 * propagate actual constants in this case, but we can propagate the
+                 * call itself as a symbolic expression. *)
+                let ccall = sym_prop instr.iorig in
+                D.VarMap.add (str_of_name var) ccall inp')
         | CallSpecial
             (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
             (* var = concat(args) *)
@@ -450,8 +476,8 @@ let transfer :
 (* Entry point *)
 (*****************************************************************************)
 
-let (fixpoint : IL.name list -> F.cfg -> mapping) =
- fun inputs flow ->
+let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
+ fun lang inputs flow ->
   let enter_env =
     inputs |> List.to_seq
     |> Seq.map (fun var -> (str_of_name var, G.NotCst))
@@ -459,7 +485,7 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
   in
   DataflowX.fixpoint ~eq
     ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
-    ~trans:(transfer ~enter_env ~flow) (* svalue is a forward analysis! *)
+    ~trans:(transfer ~lang ~enter_env ~flow) (* svalue is a forward analysis! *)
     ~forward:true ~flow
 
 let update_svalue (flow : F.cfg) mapping =

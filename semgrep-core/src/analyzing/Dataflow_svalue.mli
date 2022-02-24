@@ -1,6 +1,6 @@
 type mapping = AST_generic.svalue Dataflow_core.mapping
 
-val fixpoint : IL.name list -> IL.cfg -> mapping
+val fixpoint : Lang.t -> IL.name list -> IL.cfg -> mapping
 (** Flow-sensitive constant-propagation.
  * !Note that this assumes Naming_AST.resolve has been called before!
 *)
