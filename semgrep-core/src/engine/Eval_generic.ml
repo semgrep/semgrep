@@ -158,9 +158,23 @@ let rec eval env code =
       match v with
       | Int _ -> v
       | String s -> (
-          match int_of_string_opt s with
+        (* This code is meant to emulate int(string) in Python.
+         * But! There is one difference:
+         * when called as int("12px"), it will still return 12 instead of erroring.
+         * We do this by finding the first group of digits with a regex.
+         * This is useful e.g. to write rules that work with generic captures in CSS.
+         * TODO: convert floats separately
+         *)
+        let has_digits = Str.string_match (Str.regexp "[-_0-9]+") s 0 in
+        if not has_digits
+        then
+          raise (NotHandled code)
+        else
+          let digits = Str.matched_string s in
+          match int_of_string_opt digits with
           | None -> raise (NotHandled code)
-          | Some i -> Int i)
+          | Some i -> Int i
+        )
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =

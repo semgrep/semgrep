@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: $PIXELS is more than 1
+    patterns:
+      - pattern: a = $PIXELS
+      - metavariable-comparison:
+          metavariable: $PIXELS
+          comparison: $PIXELS > 1
+          strip: true
+    severity: WARNING
