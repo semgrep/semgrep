@@ -32,11 +32,11 @@ jobs:
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - id: cache-check
-        name: Check if this semgrep-core binary is cached cache
+        name: Check if this semgrep-core binary is cached
         uses: actions/cache@v2
         with:
           path: ocaml-build-artifacts.tgz
-          key: ${{ runner.os }}-${{ hashFiles('semgrep-core/**') }}
+          key: ${{ runner.os }}-${{ hashFiles('**/semgrep-core/**', '**/.github/**') }}
       - name: Build semgrep-core
         if: steps.cache-primes.outputs.cache-hit != 'true'
         run: ./scripts/install-alpine-semgrep-core
@@ -63,6 +63,7 @@ jobs:
   test-core:
     name: semgrep-core tests
     runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine
     needs: [build-core]
     steps:
       - name: Pre-checkout fixes
@@ -105,6 +106,7 @@ jobs:
   benchmark-core:
     name: semgrep-core benchmarks
     runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine
     needs: [build-core]
     steps:
       - name: Pre-checkout fixes
