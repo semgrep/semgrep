@@ -99,7 +99,7 @@ let check_formula env (lang : Xlang.t) f =
     | P _ -> ()
     | Not (_, f) -> find_dupe f
     | Or (t, xs)
-    | And (t, xs, _) ->
+    | And (t, xs, _, _) ->
         let rec aux xs =
           match xs with
           | [] -> ()

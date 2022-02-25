@@ -109,8 +109,13 @@ type formula =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of xpattern (* a leaf pattern *) * inside option
-  (* see Match_rules.split_and() *)
-  | And of tok * formula list * (tok * metavar_cond) list
+  (* see Specialize_formula.split_and() *)
+  | And of
+      tok
+      * formula list
+      * (tok * metavar_cond) list
+      * (* focus-metavariable:'s *)
+      (tok * MV.mvar) list
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -152,7 +157,10 @@ type formula_old =
   | Pat of xpattern
   (* pattern-not: *)
   | PatNot of tok * xpattern
+  (* metavariable-xyz: *)
   | PatExtra of tok * extra
+  (* focus-metavariable: *)
+  | PatFocus of tok * MV.mvar
   (* pattern-inside: *)
   | PatInside of xpattern
   (* pattern-not-inside: *)
@@ -294,12 +302,12 @@ let rec visit_new_formula f formula =
   | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
-  | And (_, xs, _) ->
+  | And (_, xs, _, _) ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _, _)
+  | And (t, _, _, _)
   | Or (t, _)
   | Not (t, _) ->
       t
@@ -410,19 +418,23 @@ let (convert_formula_old : formula_old -> formula) =
         let xs = List.map aux xs in
         Or (t, xs)
     | Patterns (t, xs) ->
-        let fs, conds = Common.partition_either aux_and xs in
-        And (t, fs, conds)
+        let fs, conds, focus = Common.partition_either3 aux_and xs in
+        And (t, fs, conds, focus)
     | PatExtra (t, _) ->
         raise
           (InvalidYaml
              ("metavariable conditions must be inside a 'patterns:'", t))
+    | PatFocus (t, _) ->
+        raise
+          (InvalidYaml ("'focus-metavariable:' must be inside a 'patterns:'", t))
     | PatFilteredInPythonTodo t -> raise (InvalidYaml ("Unexpected key", t))
   and aux_and e =
     match e with
     | PatExtra (t, x) ->
         let e = convert_extra x in
-        Right (t, e)
-    | _ -> Left (aux e)
+        Middle3 (t, e)
+    | PatFocus (t, mvar) -> Right3 (t, mvar)
+    | _ -> Left3 (aux e)
   in
   aux (remove_noop e)
 

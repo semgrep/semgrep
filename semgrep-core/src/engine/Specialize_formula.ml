@@ -27,6 +27,7 @@ and sformula_and = {
   positives : sformula list;
   negatives : sformula list;
   conditionals : R.metavar_cond list;
+  focus : MV.mvar list;
 }
 [@@deriving show]
 
@@ -90,10 +91,10 @@ let formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
     | R.P (p, inside) -> Leaf (p, inside)
-    | R.And (_, fs, conds) -> And (convert_and_formulas fs conds)
+    | R.And (_, fs, conds, focus) -> And (convert_and_formulas fs conds focus)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
-  and convert_and_formulas fs cond =
+  and convert_and_formulas fs cond focus =
     let pos, neg = split_and fs in
     let pos = List.map formula_to_sformula pos in
     let neg = List.map formula_to_sformula neg in
@@ -108,6 +109,7 @@ let formula_to_sformula formula =
       positives = pos;
       negatives = neg;
       conditionals = cond |> List.map snd;
+      focus = focus |> List.map snd;
     }
   in
   formula_to_sformula formula

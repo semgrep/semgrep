@@ -134,12 +134,12 @@ let option_map f xs =
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And (t, xs, conds) ->
+  | R.And (t, xs, conds, focus) ->
       let ys = Common.map_filter remove_not xs in
       if null ys then (
         logger#warning "null And after remove_not";
         None)
-      else Some (R.And (t, ys, conds))
+      else Some (R.And (t, ys, conds, focus))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
@@ -156,7 +156,7 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       | R.Or (_, _xs) ->
           logger#warning "Not Or";
           None
-      | R.And (_, _xs, _conds) ->
+      | R.And (_, _xs, _conds, _focus) ->
           logger#warning "Not And";
           None)
   | R.P (pat, inside) -> Some (P (pat, inside))
@@ -195,7 +195,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.And (_, xs, conds) ->
+  | R.And (_, xs, conds, _focus) ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
@@ -518,7 +518,8 @@ let regexp_prefilter_of_taint_rule rule_tok taint_spec =
     (* Note that this formula would likely not yield any meaningful result
      * if executed by search-mode, but it works for the purpose of this
      * analysis! *)
-    R.And (rule_tok, [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ], [])
+    R.And
+      (rule_tok, [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ], [], [])
   in
   regexp_prefilter_of_formula f
 
