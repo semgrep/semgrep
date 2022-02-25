@@ -36,7 +36,15 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ocaml-build-artifacts.tgz
-          key: ${{ runner.os }}-${{ hashFiles('**/semgrep-core/**', '**/.github/**') }}
+          key: ${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**', '**/.github/**') }}
+      - name: Cache OPAM/OCaml packages
+        if: steps.cache-primes.outputs.cache-hit != 'true'
+        uses: actions/cache@v2
+        with:
+          path: /home/user/.opam/
+          key: ${{ runner.os }}-opam-${{ hashFiles('**.opam') }}
+          restore-keys: |
+            ${{ runner.os }}-opam-
       - name: Build semgrep-core
         if: steps.cache-primes.outputs.cache-hit != 'true'
         run: ./scripts/install-alpine-semgrep-core
@@ -74,6 +82,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
+          sudo chmod -R 777 /github
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* ./bin/
       - name: Test semgrep-core
@@ -119,6 +128,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
+          sudo chmod -R 777 /github
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* ./bin/
       # TODO: move this to a stable host for more reliable results.
