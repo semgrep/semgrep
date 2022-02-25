@@ -40,6 +40,7 @@ from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import IgnoreLog
 from semgrep.util import is_url
+from semgrep.util import partition
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -300,15 +301,22 @@ class OutputHandler:
                         ) from ex
 
             if self.filtered_rules:
-                num_findings = len(self.rule_matches)
+                fingerprint_matches, regular_matches = partition(
+                    lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
+                )
+                num_findings = len(regular_matches)
+                num_fingerprint_findings = len(fingerprint_matches)
                 num_targets = len(self.all_targets)
                 num_rules = len(self.filtered_rules)
 
                 ignores_line = str(ignore_log or "No ignore information available")
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
+                auto_line = f"({num_fingerprint_findings} fingerprint findings. Run --config auto again in a few seconds to run new recommendations)"
                 if ignore_log is not None:
                     logger.verbose(ignore_log.verbose_output())
-                logger.info("\n" + ignores_line + "\n" + stats_line)
+                output_text = "\n" + ignores_line + "\n" + stats_line
+                output_text += "\n" + auto_line if num_fingerprint_findings else ""
+                logger.info(output_text)
 
         final_error = None
         error_stats = None
