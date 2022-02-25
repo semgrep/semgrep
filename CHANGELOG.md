@@ -6,19 +6,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
 
-- The environment variable used by Semgrep login changed from `SEMGREP_LOGIN_TOKEN` to `SEMGREP_APP_TOKEN`
-- A new subcommand `semgrep publish` allows users to upload private, unlisted, or public rules to the Semgrep Registry
-- Fix for: semgrep always highlights one extra character
-
 ### Added
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
-- A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
+- A new recursive operator, `-->`, for join mode rules for recursively
+  chaining together Semgrep rules based on metavariable contents.
+- Semgrep now lists the scanned paths in its JSON output under the
+  `paths.scanned` key.
+- When using `--verbose`, the skipped paths are also listed under the
+  `paths.skipped` key.
 - C#: added support for typed metavariables (#4657)
 - Undocumented, experimental `metavariable-analysis` feature
   supporting two kinds of analyses: prediction of regular expression
   denial-of-service vulnerabilities (ReDoS, `redos` analyzer, #4700)
   and high-entropy string detection (`entropy` analyzer, #4672).
+- A new subcommand `semgrep publish` allows users to upload private,
+  unlisted, or public rules to the Semgrep Registry
 
 ### Fixed
 
@@ -30,6 +33,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   YAML content. (#4582)
 - Treat Go raw string literals like ordinary string literals (#3938)
 - Eliminate zombie uname processes (#4466)
+- Fix for: semgrep always highlights one extra character
 
 ### Changed
 
@@ -37,6 +41,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: Constant propagation now has built-in knowledge of `escapeshellarg` and
   `htmlspecialchars_decode`, if these functions are given constant arguments,
   then Semgrep assumes that their output is also constant
+- The environment variable used by Semgrep login changed from `SEMGREP_LOGIN_TOKEN` to `SEMGREP_APP_TOKEN`
 
 ## [0.82.0](https://github.com/returntocorp/semgrep/releases/tag/v0.82.0) - 2022-02-08
 
