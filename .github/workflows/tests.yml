@@ -66,6 +66,8 @@ jobs:
         run: sudo pip install pipenv
       - name: Post-checkout fixes
         run: ./.github/post-checkout
+      - name: Change to workspace directory
+        run: cd "$GITHUB_WORKSPACE"
       - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
@@ -73,7 +75,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          sudo cp ocaml-build-artifacts/bin/* ./bin/
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -109,6 +111,8 @@ jobs:
         run: sudo pip install pipenv
       - name: Post-checkout fixes
         run: ./.github/post-checkout
+      - name: Change to workspace directory
+        run: cd "$GITHUB_WORKSPACE"
       - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
@@ -116,7 +120,7 @@ jobs:
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          sudo cp ocaml-build-artifacts/bin/* ./bin/
       # TODO: move this to a stable host for more reliable results.
       #
       # It's not clear how to push the stats only when "on the main
