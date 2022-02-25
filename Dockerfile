@@ -32,6 +32,13 @@ COPY --chown=user .git/ /semgrep/.git/
 COPY --chown=user semgrep-core/ /semgrep/semgrep-core/
 # some .atd files in semgrep-core are symlinks to files in interfaces/
 COPY --chown=user interfaces/ /semgrep/interfaces/
+# we need this lang/ subdirectory to generate Lang.ml. In theory the data
+# should be in interfaces/ but Python does not like symlinks when making
+# packages, so interfaces/lang/ is actually a symlink towards
+# semgrep/semgrep/lang. Note that the 'git submodule --depth 1' below
+# would actually checkout this directory, but it's better to be explicit here
+# about all the things we need to compile semgrep-core.
+COPY --chown=user semgrep/semgrep/lang /semgrep/semgrep/semgrep/lang
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
