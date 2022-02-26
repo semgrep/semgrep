@@ -316,7 +316,7 @@ let kind_of_formula = function
 (* Converters *)
 (*****************************************************************************)
 
-(* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
+(* Substitutes `$MVAR` with `int(digits($MVAR))` in cond. *)
 let rewrite_metavar_comparison_strip mvar cond =
   let visitor =
     Map_AST.mk_visitor
@@ -329,7 +329,14 @@ let rewrite_metavar_comparison_strip mvar cond =
             match e.G.e with
             | G.N (G.Id ((s, tok), _idinfo)) when s = mvar ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
+                let py_digits = G.Id (("digits", tok), G.empty_id_info ()) in
+                let digits_expression =
+                  G.Call (G.N py_digits |> G.e, G.fake_bracket [ G.Arg e ])
+                  |> G.e
+                in
+                G.Call
+                  (G.N py_int |> G.e, G.fake_bracket [ G.Arg digits_expression ])
+                |> G.e
             | _ -> e);
       }
   in

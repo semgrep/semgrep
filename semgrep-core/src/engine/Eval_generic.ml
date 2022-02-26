@@ -155,23 +155,32 @@ let rec eval env code =
   (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
+      logger#trace "called int(%s)" (show_value v);
       match v with
       | Int _ -> v
       | String s -> (
-          (* This code is meant to emulate int(string) in Python.
-           * But! There is one difference:
-           * when called as int("12px"), it will still return 12 instead of erroring.
-           * We do this by finding the first group of digits with a regex.
-           * This is useful e.g. to write rules that work with generic captures in CSS.
-           * TODO: convert floats separately
-           *)
-          let has_digits = Str.string_match (Str.regexp "[-_0-9]+") s 0 in
+          match int_of_string_opt s with
+          | None -> raise (NotHandled code)
+          | Some i -> Int i)
+      | __else__ -> raise (NotHandled code))
+  (* Custom digits() operator
+   * This is a virtual builtin helper function provided by Semgrep.
+   * It returns the first group of digits in a value.
+   * It also keeps underscores, and leading minus signs.
+   * The returned value will always cleanly pass through Python's int().
+   * This is useful e.g. to write rules that work with generic captures in CSS.
+   *)
+  | G.Call ({ e = G.N (G.Id (("digits", _), _)); _ }, (_, [ Arg e ], _)) -> (
+      let v = eval env e in
+      logger#trace "called digits(%s)" (show_value v);
+      match v with
+      | Int _ -> v
+      | String s ->
+          let digits_pattern = Str.regexp "-?[0-9][0-9_]*" in
+          let has_digits = Str.string_match digits_pattern s 0 in
           if not has_digits then raise (NotHandled code)
-          else
-            let digits = Str.matched_string s in
-            match int_of_string_opt digits with
-            | None -> raise (NotHandled code)
-            | Some i -> Int i)
+          else logger#trace "digits of %s are %s" s (Str.matched_string s);
+          String (Str.matched_string s)
       | __else__ -> raise (NotHandled code))
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
