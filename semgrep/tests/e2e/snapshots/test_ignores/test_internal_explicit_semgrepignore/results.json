@@ -1,5 +1,15 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/ignores/find.js",
+      "targets/ignores/ignore.min.js",
+      "targets/ignores/ignore_test.js",
+      "targets/ignores/ok/find.js",
+      "targets/ignores/tests/ignore.js"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.eqeq-bad",

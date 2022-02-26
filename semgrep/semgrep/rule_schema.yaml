@@ -90,7 +90,7 @@ definitions:
                       - pattern-either
   r2c-internal-project-depends-on:
     type: object
-    title: "A dependency that the project contains"
+    title: "A dependency that the project contains in a lock file"
     properties:
       r2c-internal-project-depends-on:
         properties:

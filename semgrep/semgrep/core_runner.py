@@ -503,6 +503,8 @@ class CoreRunner:
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if deep:
+                print("!!!This is a proprietary extension of semgrep.!!!")
+                print("!!!You must be logged in to access this extension!!!")
                 targets = target_manager.targets
                 if len(targets) == 1 and Path(targets[0]).is_dir():
                     root = targets[0]
