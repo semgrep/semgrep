@@ -17,6 +17,7 @@ from typing import Set
 from typing import Type
 
 from semgrep import config_resolver
+from semgrep.commands.login import Authentication
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -31,6 +32,7 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.metric_manager import metric_manager
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -305,10 +307,20 @@ class OutputHandler:
                 num_rules = len(self.filtered_rules)
 
                 ignores_line = str(ignore_log or "No ignore information available")
+                if (
+                    num_findings == 0
+                    and num_targets > 0
+                    and num_rules > 0
+                    and metric_manager.get_is_using_server()
+                    and Authentication.get_token() is None
+                ):
+                    suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
+                else:
+                    suggestion_line = ""
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
                 if ignore_log is not None:
                     logger.verbose(ignore_log.verbose_output())
-                logger.info("\n" + ignores_line + "\n" + stats_line)
+                logger.info("\n" + ignores_line + "\n" + suggestion_line + stats_line)
 
         final_error = None
         error_stats = None
