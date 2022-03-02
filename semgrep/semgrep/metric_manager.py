@@ -74,6 +74,9 @@ class _MetricManager:
             )
         self._send_metrics = metrics_state or legacy_state or MetricsState.AUTO
 
+    def get_is_using_server(self) -> bool:
+        return self._using_server
+
     def set_using_server_true(self) -> None:
         if not self._using_server:
             logger.info("Fetching rules from https://semgrep.dev/registry ...")
