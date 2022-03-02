@@ -749,7 +749,7 @@ def scan(
 
         if dump_ast:
             dump_parsed_ast(
-                json, __validate_lang("--dump_ast", lang), pattern, target_sequence
+                json, __validate_lang("--dump-ast", lang), pattern, target_sequence
             )
         elif synthesize_patterns:
             synthesize(
