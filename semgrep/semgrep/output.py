@@ -311,7 +311,7 @@ class OutputHandler:
 
                 ignores_line = str(ignore_log or "No ignore information available")
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
-                auto_line = f"({num_fingerprint_findings} fingerprint findings. Run --config auto again in a few seconds to run new recommendations)"
+                auto_line = f"({num_fingerprint_findings} fingerprint findings. Run --config auto again in a few seconds use new rule recommendations)"
                 if ignore_log is not None:
                     logger.verbose(ignore_log.verbose_output())
                 output_text = "\n" + ignores_line + "\n" + stats_line
