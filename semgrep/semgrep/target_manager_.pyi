@@ -1,8 +1,9 @@
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Set, Tuple, Optional, Collection
-from typing import Iterator
+from typing import Iterator, FrozenSet
 import contextlib
 import semgrep.ignores as ignores
+import semgrep.semgrep_types as semgrep_types
 
 @contextlib.contextmanager
 def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
@@ -60,3 +61,23 @@ class TargetManager:
     respect_git_ignore: bool
     skip_unknown_extensions: bool
     file_ignore: Optional[ignores.FileIgnore]
+
+    def get_files(
+        self,
+        lang: semgrep_types.Language,
+        includes: Sequence[str],
+        excludes: Sequence[str],
+        rule_id: str,
+    ) -> FrozenSet[Path]:
+        """
+        Returns list of files that should be analyzed for a LANG
+
+        Given this object's TARGET, self.INCLUDE, and self.EXCLUDE will return list
+        of all descendant files of directories in TARGET that end in extension
+        typical for LANG. If self.INCLUDES is non empty then all files will have an ancestor
+        that matches a pattern in self.INCLUDES. Will not include any file that has
+        an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
+        in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
+        filter is then applied.
+        """
+        ...

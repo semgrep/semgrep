@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/autofix/flask-use-jsonify.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",

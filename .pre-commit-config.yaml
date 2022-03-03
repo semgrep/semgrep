@@ -99,19 +99,19 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.71.0"
+    rev: "v0.82.0"
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/python", "--error"]
+        args: ["--config", "p/python", "--error"]
         stages: [manual]
       - id: semgrep-docker-develop
         name: Semgrep Develop Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
+        args: ["--config", "p/bandit", "--error"]
         stages: [manual]
 
   # Reformat OCaml code (ml, mli) with ocamlformat if ocamlformat is

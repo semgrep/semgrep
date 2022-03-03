@@ -302,12 +302,19 @@ def get_config_filenames(original_config: Path) -> List[Path]:
 def get_config_test_filenames(
     original_config: Path, configs: List[Path], original_target: Path
 ) -> Dict[Path, List[Path]]:
-    targets = list(original_target.rglob("*"))
+    original_is_file_not_directory = original_target.is_file()
+    if original_is_file_not_directory:
+        targets = list(original_target.parent.rglob("*"))
+    else:
+        targets = list(original_target.rglob("*"))
 
     def target_matches_config(target: Path, config: Path) -> bool:
         correct_suffix = is_config_test_suffix(target) or not is_config_suffix(target)
         return (
-            relatively_eq(original_target, target, original_config, config)
+            (
+                original_is_file_not_directory
+                or relatively_eq(original_target, target, original_config, config)
+            )
             and target.is_file()
             and correct_suffix
         )

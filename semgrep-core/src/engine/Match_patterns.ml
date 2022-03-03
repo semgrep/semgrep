@@ -138,10 +138,11 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     pattern_string = mr.Mini_rule.pattern_string;
   }
 
-let match_rules_and_recurse config (file, hook, matches) rules matcher k any x =
+let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
+    any x =
   rules
   |> List.iter (fun (pattern, rule, cache) ->
-         let env = MG.empty_environment cache config in
+         let env = MG.empty_environment cache (Some lang) config in
          let matches_with_env = matcher rule pattern x env in
          if matches_with_env <> [] then
            (* Found a match *)
@@ -277,7 +278,9 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                          (show_expr_kind x.e);
                        ()
                    | Some range_loc when range_filter range_loc ->
-                       let env = MG.empty_environment cache config in
+                       let env =
+                         MG.empty_environment cache (Some lang) config
+                       in
                        let matches_with_env = match_e_e rule pattern x env in
                        if matches_with_env <> [] then
                          (* Found a match *)
@@ -313,7 +316,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
             let visit_stmt () =
               !stmt_rules
               |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                     let env = MG.empty_environment cache config in
+                     let env = MG.empty_environment cache (Some lang) config in
                      let matches_with_env = match_st_st rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
@@ -374,7 +377,9 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
             !stmts_rules
             |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
                    Common.profile_code "Semgrep_generic.kstmts" (fun () ->
-                       let env = MG.empty_environment cache config in
+                       let env =
+                         MG.empty_environment cache (Some lang) config
+                       in
                        let matches_with_env =
                          match_sts_sts rule pattern x env
                        in
@@ -406,38 +411,38 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
             k x);
         V.ktype_ =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !type_rules
-              match_t_t k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !type_rules match_t_t k
               (fun x -> T x)
               x);
         V.kpattern =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !pattern_rules
-              match_p_p k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !pattern_rules match_p_p k
               (fun x -> P x)
               x);
         V.kattr =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches)
+            match_rules_and_recurse lang config (file, hook, matches)
               !attribute_rules match_at_at k
               (fun x -> At x)
               x);
         V.kfield =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !fld_rules
+            match_rules_and_recurse lang config (file, hook, matches) !fld_rules
               match_fld_fld k
               (fun x -> Fld x)
               x);
         V.kfields =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !flds_rules
-              match_flds_flds k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !flds_rules match_flds_flds k
               (fun x -> Flds x)
               x);
         V.kpartial =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !partial_rules
-              match_partial_partial k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !partial_rules match_partial_partial k
               (fun x -> Partial x)
               x);
       }

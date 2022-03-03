@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/message_interpolation/multi_pattern_inside_nested.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.message_interpolation.test_rule_id",

@@ -1109,6 +1109,12 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v2 = expression env v2 in
       let v3 = token env v3 in
       DeepEllipsis (v1, v2, v3)
+  | `Typed_meta (v1, v2, v3, v4) ->
+      let lp = (* "(" *) token env v1 in
+      let ty = type_pattern env v2 in
+      let id = (* semgrep_metavariable *) str env v3 in
+      let _rp = (* ")" *) token env v4 in
+      TypedMetavar (id, lp, ty)
   | `Anon_meth_exp (v1, v2, v3, v4) ->
       let _v1TODO =
         match v1 with

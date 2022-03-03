@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/autofix/terraform-ec2-instance-metadata-options.hcl"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.autofix.ec2-instance-metadata-options",

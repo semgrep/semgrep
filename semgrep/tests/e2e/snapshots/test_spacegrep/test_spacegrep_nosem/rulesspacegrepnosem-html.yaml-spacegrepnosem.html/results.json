@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/spacegrep/nosem.html"
+    ]
+  },
   "results": [
     {
       "check_id": "var-in-href",

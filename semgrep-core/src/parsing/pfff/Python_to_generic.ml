@@ -612,6 +612,13 @@ and stmt_aux env x =
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
+  | ExprStmt (TypedExpr (Name (id, _kind, _ref), ty)) ->
+      (* no need to guard with assign_to_vardef here *)
+      let id = name env id in
+      let ty = type_ env ty in
+      let ent = G.basic_entity id in
+      let def = G.VarDef { G.vtype = Some ty; vinit = None } in
+      [ G.DefStmt (ent, def) |> G.s ]
   (* TODO: v1 contains actually a list of lhs, because a = b = c is
    * translated in Assign ([a;b], c)
    *)

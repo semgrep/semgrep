@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/autofix/python-assert-statement.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.autofix.assert_eq-true",

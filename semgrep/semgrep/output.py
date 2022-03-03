@@ -17,6 +17,7 @@ from typing import Set
 from typing import Type
 
 from semgrep import config_resolver
+from semgrep.commands.login import Authentication
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -31,6 +32,7 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.metric_manager import metric_manager
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -40,6 +42,7 @@ from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import IgnoreLog
 from semgrep.util import is_url
+from semgrep.util import partition
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -299,15 +302,32 @@ class OutputHandler:
                         ) from ex
 
             if self.filtered_rules:
-                num_findings = len(self.rule_matches)
+                fingerprint_matches, regular_matches = partition(
+                    lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
+                )
+                num_findings = len(regular_matches)
+                num_fingerprint_findings = len(fingerprint_matches)
                 num_targets = len(self.all_targets)
                 num_rules = len(self.filtered_rules)
 
                 ignores_line = str(ignore_log or "No ignore information available")
+                if (
+                    num_findings == 0
+                    and num_targets > 0
+                    and num_rules > 0
+                    and metric_manager.get_is_using_server()
+                    and Authentication.get_token() is None
+                ):
+                    suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
+                else:
+                    suggestion_line = ""
                 stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
+                auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
                 if ignore_log is not None:
                     logger.verbose(ignore_log.verbose_output())
-                logger.info("\n" + ignores_line + "\n" + stats_line)
+                output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
+                output_text += "\n" + auto_line if num_fingerprint_findings else ""
+                logger.info(output_text)
 
         final_error = None
         error_stats = None
@@ -361,7 +381,15 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
-        extra: Dict[str, Any] = {}
+        # Extra, extra! This just in! 🗞️
+        # The extra dict is for blatantly skipping type checking and function signatures.
+        # - The text formatter uses it to store settings
+        # - But the JSON formatter uses it to store additional data to directly output
+        extra: Dict[str, Any] = {
+            "paths": {
+                "scanned": [str(path) for path in sorted(self.all_targets)],
+            }
+        }
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
@@ -375,6 +403,12 @@ class OutputHandler:
                 self.profiling_data,
                 self.profiler,
             )
+        if self.settings.verbose_errors:
+            extra["paths"]["skipped"] = sorted(
+                self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
+            )
+        else:
+            extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and self.stdout.isatty(),
