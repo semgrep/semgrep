@@ -110,18 +110,23 @@ type formula =
    *)
   | P of xpattern (* a leaf pattern *) * inside option
   (* see Specialize_formula.split_and() *)
-  | And of
-      tok
-      * formula list
-      * (tok * metavar_cond) list
-      * (* focus-metavariable:'s *)
-      (tok * MV.mvar) list
+  | And of conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
    * But this could change? If we were moving to a different range semantic?
    *)
   | Not of tok * formula
+
+and conjunction = {
+  tok : tok;
+  (* pattern-inside:'s and pattern:'s *)
+  conjuncts : formula list;
+  (* metavariable-xyz:'s *)
+  conditions : (tok * metavar_cond) list;
+  (* focus-metavariable:'s *)
+  focus : (tok * MV.mvar) list;
+}
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
@@ -302,12 +307,12 @@ let rec visit_new_formula f formula =
   | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
-  | And (_, xs, _, _) ->
+  | And { conjuncts = xs; _ } ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _, _, _)
+  | And { tok = t; _ }
   | Or (t, _)
   | Not (t, _) ->
       t
@@ -419,7 +424,7 @@ let (convert_formula_old : formula_old -> formula) =
         Or (t, xs)
     | Patterns (t, xs) ->
         let fs, conds, focus = Common.partition_either3 aux_and xs in
-        And (t, fs, conds, focus)
+        And { tok = t; conjuncts = fs; conditions = conds; focus }
     | PatExtra (t, _) ->
         raise
           (InvalidYaml

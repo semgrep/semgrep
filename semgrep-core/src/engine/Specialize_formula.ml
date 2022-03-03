@@ -91,7 +91,8 @@ let formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
     | R.P (p, inside) -> Leaf (p, inside)
-    | R.And (_, fs, conds, focus) -> And (convert_and_formulas fs conds focus)
+    | R.And { tok = _; conjuncts = fs; conditions = conds; focus } ->
+        And (convert_and_formulas fs conds focus)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
   and convert_and_formulas fs cond focus =

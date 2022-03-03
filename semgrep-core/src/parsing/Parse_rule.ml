@@ -554,7 +554,14 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" ->
           let xs = parse_list env key parse_formula_and_new value in
           let fs, conds = Common.partition_either (fun x -> x) xs in
-          R.And (t, fs, conds, (* TODO: 'focus-metavariable:' *) [])
+          R.And
+            {
+              tok = t;
+              conjuncts = fs;
+              conditions = conds;
+              (* TODO: 'focus-metavariable:' *)
+              focus = [];
+            }
       | "or" -> R.Or (t, parse_list env key parse_formula_new value)
       | "not" -> R.Not (t, parse_formula_new env value)
       | "inside" -> R.P (parse_xpattern_expr env value, Some Inside)
