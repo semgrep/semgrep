@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    patterns:
+      - pattern-inside: foo($X, ...)
+      - focus-metavariable: $X
+      - pattern: $Y + ...
+      - focus-metavariable: $Y
+      - pattern: "1"
+    message: Test
+    languages:
+      - py
+    severity: ERROR
+

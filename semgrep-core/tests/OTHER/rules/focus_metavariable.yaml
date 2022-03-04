@@ -1,0 +1,10 @@
+rules:
+  - id: test
+    patterns:
+      - pattern-inside: foo($X, ...)
+      - focus-metavariable: $X
+    message: Test
+    languages:
+      - py
+    severity: ERROR
+
