@@ -246,10 +246,13 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "-f",
     multiple=True,
     help="YAML configuration file, directory of YAML files ending in "
-    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry name."
+    "YAML, URL of a configuration file, or Semgrep registry entry name."
     "\n\n"
     "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
     " to the Semgrep registry."
+    "\n\n"
+    "To run multiple rule files at once, use -f before every YAML, URL, or Semgrep registry entry name."
+    " For example `semgrep -f your/java.net.url. -f p/secrets.`"
     "\n\n"
     "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
     shell_complete=__get_config_options,
