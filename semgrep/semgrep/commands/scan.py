@@ -251,8 +251,8 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
     " to the Semgrep registry."
     "\n\n"
-    "To run multiple rule files simultaneously, use -f before every YAML, URL, or Semgrep registry entry name."
-    " For example `semgrep -f your/java.net.url. -f path/secrets.`"
+    "To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name."
+    " For example `semgrep --config p/python --config myrules/myrule.yaml`"
     "\n\n"
     "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
     shell_complete=__get_config_options,
