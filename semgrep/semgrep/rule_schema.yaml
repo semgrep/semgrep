@@ -9,6 +9,7 @@ definitions:
       anyOf:
         - $ref: "#/definitions/patterns"
         - $ref: "#/definitions/pattern-either"
+        - $ref: "#/definitions/focus-metavariable"
         - $ref: "#/definitions/pattern-inside"
         - $ref: "#/definitions/pattern-not-inside"
         - $ref: "#/definitions/pattern-not"
@@ -306,6 +307,15 @@ definitions:
         $ref: "#/definitions/pattern-either-content"
     required:
       - pattern-either
+    additionalProperties: false
+  focus-metavariable:
+    type: object
+    properties:
+      focus-metavariable:
+        title: Focus on what a given metavariable is matching
+        type: string
+    required:
+      - focus-metavariable
     additionalProperties: false
   pattern-inside:
     type: object
