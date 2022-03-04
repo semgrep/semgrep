@@ -246,7 +246,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "-f",
     multiple=True,
     help="YAML configuration file, directory of YAML files ending in "
-    "YAML, URL of a configuration file, or Semgrep registry entry name."
+    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry name."
     "\n\n"
     "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
     " to the Semgrep registry."
