@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/log4shell.java"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.dependency_aware.log4j2_tainted_argument",

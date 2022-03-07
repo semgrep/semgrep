@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/sca.go"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.dependency_aware.go-sca",

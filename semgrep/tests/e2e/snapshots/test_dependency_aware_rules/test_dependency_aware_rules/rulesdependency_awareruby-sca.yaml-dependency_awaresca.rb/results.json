@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/sca.rb"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.dependency_aware.ruby-sca",
