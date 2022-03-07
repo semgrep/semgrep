@@ -18,7 +18,7 @@ rules:
         $S = new $SANDBOX(...);
         ...
         $S.run(<... $REQ.$QUERY.$FOO ...>,...);
-    # ruleid: duplicate-pattern
+    # The rule lints catch duplicate patterns, but no built in metachecks do
     - pattern: |
         $S = new $SANDBOX(...);
         ...
