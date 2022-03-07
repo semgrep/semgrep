@@ -234,6 +234,11 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     shell_complete=__get_severity_options,
 )
 @click.option(
+    "--show-supported-languages",
+    is_flag=True,
+    help=("Print a list of languages that are currently supported by Semgrep."),
+)
+@click.option(
     "--strict/--no-strict",
     is_flag=True,
     default=False,
@@ -512,7 +517,6 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
         "Only works with the --autofix flag. Otherwise does nothing."
     ),
 )
-
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
@@ -603,6 +607,7 @@ def scan(
     save_test_output_tar: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
+    show_supported_languages: bool,
     strict: bool,
     synthesize_patterns: str,
     target: Tuple[str, ...],
@@ -646,6 +651,10 @@ def scan(
         from semgrep.job_postings import print_job_postings
 
         print_job_postings()
+        return
+
+    if show_supported_languages:
+        click.echo(LANGUAGE.show_suppported_langauges_message())
         return
 
     # To keep version runtime fast, we defer non-version imports until here
