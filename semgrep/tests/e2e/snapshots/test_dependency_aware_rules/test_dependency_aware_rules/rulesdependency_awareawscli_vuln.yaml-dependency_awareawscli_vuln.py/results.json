@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/awscli_vuln.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.dependency_aware.vulnerable-awscli-apr-2017",

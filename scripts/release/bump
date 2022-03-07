@@ -1,0 +1,114 @@
+#! /usr/bin/env bash
+#
+# Create a release branch for semgrep
+#
+
+case "$(uname -s)" in
+  Linux)
+    os_type=linux
+    ;;
+  *)
+    os_type=Darwin
+esac
+
+sed_in_place() {
+  if [[ "$os_type" = linux ]]; then
+    sed -i -e "$@"
+  else
+    sed -i '' "$@"
+  fi
+}
+
+error() {
+  echo "Error:" "$@" >&2
+  cat >&2
+  exit 1
+}
+
+update_changelog() {
+  target=CHANGELOG.md
+  targets+=" $target"
+  if grep -F "[$release]" "$target"; then
+    echo "Found [$release] in $target. Not touching it."
+    echo "Edit and commit $target manually if needed."
+  else
+    echo "Editing $target"
+    url=https://github.com/returntocorp/semgrep/releases/tag/v$release
+    date=$(date +%Y-%m-%d)
+    sed_in_place \
+      "s|## Unreleased|## Unreleased\n\n## [$release]($url) - $date|g" \
+      "$target"
+  fi
+  git add "$target"
+}
+
+update_init_py() {
+  target=semgrep/semgrep/__init__.py
+  targets+=" $target"
+  echo "Updating $target"
+  sed_in_place 's/__VERSION__ = ".*"/__VERSION__ = "'"$release"'"/g' "$target"
+  git add "$target"
+}
+
+update_setup_py() {
+  target=setup.py
+  targets+=" $target"
+  echo "Updating $target"
+  sed_in_place \
+    's/^    install_requires=\["semgrep==.*"\],$/    install_requires=["semgrep=='"$release"'"],/g' \
+    "$target"
+  git add "$target"
+}
+
+# Update files containing the release ID.
+#
+# Ideally this shouldn't modify source files,
+# but only write purely-generated files for simplicity and robustness.
+bump() {
+  update_changelog
+  update_init_py
+  update_setup_py
+}
+
+##### Interactive steps #####
+
+echo -n "Enter a release ID of the form X.X.X for the semgrep release: "
+read release
+
+case "$release" in
+  *.*.*)
+    ;;
+  '')
+    error "empty release ID"
+    ;;
+  *)
+    error "suspicious release ID"
+esac
+
+rel_branch=release-$release
+cur_branch=$(git branch --show-current)
+
+if [[ "$cur_branch" = "$rel_branch" ]]; then
+  echo "Already on branch $rel_branch, great."
+else
+  error <<EOF
+Please switch to a clean git branch named $rel_branch:
+- git checkout develop
+- git submodule update --init --recursive
+- git checkout -b $rel_branch
+EOF
+fi
+
+bump
+
+git status
+cat <<EOF
+The following files must have changes:
+ $targets
+
+Please review the changes and commit them:
+- git status
+- git diff --cached $targets
+- git commit
+- git push
+EOF

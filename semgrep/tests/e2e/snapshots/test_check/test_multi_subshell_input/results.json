@@ -1,5 +1,12 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "/tmp/masked/path",
+      "/tmp/masked/path"
+    ]
+  },
   "results": [
     {
       "check_id": "-",
