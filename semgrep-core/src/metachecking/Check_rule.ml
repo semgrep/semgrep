@@ -102,8 +102,8 @@ let unknown_metavar_in_comparison env f =
            *)
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
-    | And (_, xs, metavar_conds) ->
-        let mv_sets = List.map collect_metavars xs in
+    | And { conjuncts; conditions; _ } ->
+        let mv_sets = List.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
@@ -118,7 +118,7 @@ let unknown_metavar_in_comparison env f =
            ^ " is used in a metavariable-cond/regexp but is never used or only \
               used in a pattern-not )")
         in
-        metavar_conds
+        conditions
         |> List.iter (fun (t, metavar_cond) ->
                match metavar_cond with
                | CondEval _ -> ()
