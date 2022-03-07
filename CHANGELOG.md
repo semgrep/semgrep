@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- `--validate` will check that metavariable-x doesn't use an invalid
+  metavariable
+
 ### Fixed
 
 - Report parse errors even when invoked with `--strict`
@@ -14,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - semgrep saves logs of last run to `~/.semgrep/last.log`
+- A new recursive operator, `-->`, for join mode rules for recursively chaining together Semgrep rules based on metavariable contents.
 - A new recursive operator, `-->`, for join mode rules for recursively
   chaining together Semgrep rules based on metavariable contents.
 - Semgrep now lists the scanned paths in its JSON output under the
