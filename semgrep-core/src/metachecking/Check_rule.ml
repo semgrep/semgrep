@@ -85,7 +85,10 @@ let unknown_metavar_in_comparison env f =
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
     | P ({ pat = _pat; pstr = pstr, _; pid = _pid }, _) ->
-        let words = Str.split (Str.regexp "[^a-zA-Z0-9_$]") pstr in
+        (* TODO currently this guesses that the metavariables are the strings
+           that have a valid metavariable name. We should ideally have each
+           matcher expose the metavariables it detects. *)
+        let words = Str.split (Str.regexp "$[^a-zA-Z0-9_]") pstr in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.of_list metavars
     | Not (_, _) -> Set.empty
