@@ -1,0 +1,3 @@
+assert "a"
+assert "b"
+x = "abc"
