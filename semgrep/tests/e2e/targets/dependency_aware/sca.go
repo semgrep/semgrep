@@ -1,0 +1,3 @@
+func f() {
+	return bad()
+}

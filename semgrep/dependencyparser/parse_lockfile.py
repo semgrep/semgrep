@@ -7,15 +7,15 @@ from typing import Dict
 from typing import Generator
 from typing import List
 from typing import Optional
-from xml.etree import ElementTree as ET
 
+from defusedxml import ElementTree as ET  # type: ignore
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
-# VULNERABLE TO MALICIOUS XML CODE AND VERY BAD
+# NOTE: Defused XML doesn't export types :(
 
 
 logger = getLogger(__name__)
@@ -37,6 +37,12 @@ def parse_lockfile_str(
         yield from parse_NPM_package_lock_str(lockfile_text)
     elif filepath == "gemfile.lock":
         yield from parse_Gemfile_str(lockfile_text)
+    elif filepath == "go.sum":
+        yield from parse_Go_sum_str(lockfile_text)
+    elif filepath == "cargo.lock":
+        yield from parse_Cargo_str(lockfile_text)
+    elif filepath == "pom.xml":
+        yield from parse_Pom_str(lockfile_text)
     else:
         raise SemgrepError(
             f"don't know how to parse this filename: {filepath_for_reference}"
@@ -68,13 +74,11 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
         lodash@4.17.18:
         should parse as lodash
         """
-        # print(line)
         if '"' not in line:
             return line.split("@")[0]
         else:
             first_quoted = "".join(line.split('"')[1:2])
             parsed_name = "@".join(first_quoted.split("@")[:-1])
-            print(line, first_quoted, parsed_name)
             return parsed_name
 
     def remove_trailing_octothorpe(s: str) -> str:
@@ -83,8 +87,6 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
     package_name, version, resolved, integrity = None, None, None, None
     for line in lockfile_text.split("\n") + [""]:
         line = line.strip()
-        # print(line)
-        # print('>>>', package_name, version, resolved)
         if line.startswith("#"):
             continue
         if package_name is None and len(line) != 0:
@@ -174,7 +176,6 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
 
 
 def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
-    # We currently ignore transitive dependencies because they do not have locked versions
     def parse_dep(s: str) -> LockfileDependency:
         # s == "    $DEP ($VERSION)"
         dep, paren_version = s.strip().split(" ")
@@ -184,7 +185,14 @@ def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
         )
 
     lines = lockfile_text.split("\n")
-    all_deps = lines[lines.index("GEM") + 1 : lines.index("PLATFORMS")]
+    # No dependencies specified
+    if "GEM" not in lines:
+        yield from []
+    GEM_idx = lines.index("GEM") + 1
+    GEM_end_idx = lines[GEM_idx:].index(
+        ""
+    )  # A line with a single \n becomes the empty string upon splitting by \n
+    all_deps = lines[GEM_idx:GEM_end_idx]
     yield from (
         parse_dep(dep) for dep in all_deps if dep[:4] == " " * 4 and dep[5] != " "
     )
@@ -245,7 +253,10 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
     NAMESPACE = "{http://maven.apache.org/POM/4.0.0}"
 
     def parse_dep(
-        properties: Optional[ET.Element], el: ET.Element
+        properties: Any,
+        # Optional[ET.Element]
+        el: Any
+        # ET.Element
     ) -> Optional[LockfileDependency]:
         dep_el = el.find(f"{NAMESPACE}artifactId")
         if dep_el is None:

@@ -126,6 +126,7 @@ install_requires = [
     "jsonschema~=3.2",
     "wcmatch~=8.3",
     "peewee~=3.14",
+    "defusedxml~=0.7.1",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because
     # it may interfere with other 'setuptools' installs on the system,
