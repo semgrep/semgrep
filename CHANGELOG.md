@@ -2376,7 +2376,7 @@ def fetch_global_const():
 
 ### Added
 
-- Constant propagation for some langauges. Golang example:
+- Constant propagation for some languages. Golang example:
 
 ```
 pattern: dangerous1("...")
