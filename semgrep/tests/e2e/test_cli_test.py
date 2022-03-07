@@ -73,6 +73,20 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        options=["--show-supported-languages"],
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+    )
+
+    snapshot.assert_match(
+        results,
+        "results.json",
+    )
+
+
 def test_cli_test_suffixes(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/suffixes/",
