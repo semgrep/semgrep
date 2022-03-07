@@ -98,3 +98,8 @@ gitclean:
 .PHONY: release
 release:
 	./scripts/release/bump
+
+.PHONY: test
+test:
+	$(MAKE) -C semgrep-core test
+	$(MAKE) -C semgrep test
