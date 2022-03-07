@@ -80,11 +80,11 @@ class _LanguageData:
             spans = [span.with_context(before=1, after=1)] if span else []
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {normalized}",
-                long_msg=f"unsupported language: {normalized}. {self.show_suppported_langauges_message()}",
+                long_msg=f"unsupported language: {normalized}. {self.show_suppported_languages_message()}",
                 spans=spans,
             )
 
-    def show_suppported_langauges_message(self) -> str:
+    def show_suppported_languages_message(self) -> str:
         return f"supported languages are: {', '.join(self.all_language_keys)}"
 
 

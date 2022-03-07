@@ -654,7 +654,7 @@ def scan(
         return
 
     if show_supported_languages:
-        click.echo(LANGUAGE.show_suppported_langauges_message())
+        click.echo(LANGUAGE.show_suppported_languages_message())
         return
 
     # To keep version runtime fast, we defer non-version imports until here
