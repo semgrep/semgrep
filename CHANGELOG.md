@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Report parse errors even when invoked with `--strict`
 - Show correct findings count when using `--config auto` (#4674)
+- Kotlin: store trailing lambdas in the AST (#4741)
 
 ## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
 
