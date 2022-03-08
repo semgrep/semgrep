@@ -1057,8 +1057,8 @@ and m_special a b =
 and m_concat_string_kind a b =
   match (a, b) with
   (* fstring pattern should match only fstring *)
-  | G.FString, B.FString -> return ()
-  | G.FString, _ -> fail ()
+  | G.FString s1, B.FString s2 -> m_string s1 s2
+  | G.FString _, _ -> fail ()
   (* same for tagged template literals *)
   | G.TaggedTemplateLiteral, B.TaggedTemplateLiteral -> return ()
   | G.TaggedTemplateLiteral, _

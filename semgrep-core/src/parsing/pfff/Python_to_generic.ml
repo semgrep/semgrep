@@ -199,7 +199,8 @@ let rec expr env (x : expr) =
       |> G.e
   | InterpolatedString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.FString, unsafe_fake "concat") |> G.e,
+        ( G.IdSpecial (G.ConcatString (G.FString "f"), unsafe_fake "concat")
+          |> G.e,
           fb
             (xs
             |> List.map (fun x ->

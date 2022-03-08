@@ -411,7 +411,7 @@ and map_special x =
 and map_of_interpolated_kind = function
   | InterpolatedConcat -> `InterpolatedConcat
   | SequenceConcat -> `SequenceConcat
-  | FString -> `FString
+  | FString v1 -> `FString v1
   (* new: *)
   | TaggedTemplateLiteral -> `InterpolatedConcat
 
