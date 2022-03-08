@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/regex-nosemgrep.txt"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.detected-aws-account-id",

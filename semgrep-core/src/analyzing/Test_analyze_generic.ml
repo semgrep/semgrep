@@ -100,7 +100,7 @@ let test_dfg_svalue ~parse_program file =
             let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
             pr2 "Constness";
-            let mapping = Dataflow_svalue.fixpoint inputs flow in
+            let mapping = Dataflow_svalue.fixpoint lang inputs flow in
             Dataflow_svalue.update_svalue flow mapping;
             DataflowY.display_mapping flow mapping
               (Pretty_print_AST.svalue_to_string lang);

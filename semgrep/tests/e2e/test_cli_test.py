@@ -23,6 +23,7 @@ def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
         options=["--verbose"],
         target_name="cli_test/basic/",
         output_format=OutputFormat.TEXT,
+        force_color=True,
     )
 
     snapshot.assert_match(
@@ -37,6 +38,7 @@ def test_cli_test_time(run_semgrep_in_tmp, snapshot):
         options=["--time"],
         target_name="cli_test/basic/",
         output_format=OutputFormat.TEXT,
+        force_color=True,
     )
 
     snapshot.assert_match(
@@ -71,6 +73,20 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        options=["--show-supported-languages"],
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+    )
+
+    snapshot.assert_match(
+        results,
+        "results.json",
+    )
+
+
 def test_cli_test_suffixes(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/suffixes/",
@@ -90,6 +106,7 @@ def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
         options=["--test"],
         target_name="cli_test/multiple_annotations/",
         output_format=OutputFormat.TEXT,
+        force_color=True,
     )
     snapshot.assert_match(
         results,
@@ -103,6 +120,7 @@ def test_parse_errors(run_semgrep_in_tmp, snapshot):
         options=["--verbose"],
         target_name="cli_test/parse_errors/invalid_javascript.js",
         output_format=OutputFormat.TEXT,
+        force_color=True,
         strict=False,
     )
     snapshot.assert_match(

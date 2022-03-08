@@ -55,17 +55,20 @@ class TextFormatter(BaseFormatter):
         end_line: int,
         end_col: int,
     ) -> str:
+        """
+        Assumes column start and end numbers are 1-indexed
+        """
         start_color = 0 if line_number > start_line else start_col
-        # column offset
+        # adjust for 1-indexed column number
         start_color = max(start_color - 1, 0)
+        # put the end color at the end of the line if this isn't the last line in the output
         end_color = end_col if line_number >= end_line else len(line) + 1 + 1
+        # adjust for 1-indexed column number
         end_color = max(end_color - 1, 0)
         line = (
             line[:start_color]
-            + with_color(
-                Colors.foreground, line[start_color : end_color + 1], bold=True
-            )  # want the color to include the end_col
-            + line[end_color + 1 :]
+            + with_color(Colors.foreground, line[start_color:end_color], bold=True)
+            + line[end_color:]
         )
         return line
 
@@ -86,13 +89,18 @@ class TextFormatter(BaseFormatter):
         stripped = False
         if path:
             lines = rule_match.extra.get("fixed_lines") or rule_match.lines
+
             if per_finding_max_lines_limit:
                 trimmed = len(lines) - per_finding_max_lines_limit
                 lines = lines[:per_finding_max_lines_limit]
 
             # we remove indentation at the start of the snippet to avoid wasting space
             dedented_lines = textwrap.dedent("".join(lines)).splitlines()
-            indent_len = len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+            indent_len = (
+                len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+                if len(lines) > 0
+                else 0
+            )
 
             # since we dedented each line, we need to adjust where the highlighting is
             start_col -= indent_len

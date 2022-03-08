@@ -79,6 +79,7 @@ type tin = {
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  lang : Lang.t option;
   config : Config_semgrep.t;
 }
 
@@ -160,6 +161,8 @@ let ( >!> ) m1 else_cont tin =
 let if_config f ~then_ ~else_ tin =
   if f tin.config then then_ tin else else_ tin
 
+let with_lang f tin = f tin.lang tin
+
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin -> [ tin ]
 
@@ -182,6 +185,14 @@ let or_list m a bs =
  * then you can not use other PPX rewriters (which we do).
  *)
 let ( let* ) o f = o >>= f
+
+(* TODO: could maybe also define
+let (let/) o f =
+  match o with
+  | None -> fail ()
+  | Some x -> f x
+useful in Generic_vs_generic when see code like 'None -> fail()'
+*)
 
 (*****************************************************************************)
 (* Environment *)
@@ -332,8 +343,14 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment opt_cache config =
-  { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; config }
+let empty_environment opt_cache opt_lang config =
+  {
+    mv = Env.empty;
+    stmts_match_span = Empty;
+    cache = opt_cache;
+    lang = opt_lang;
+    config;
+  }
 
 (*****************************************************************************)
 (* Helpers *)

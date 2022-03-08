@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/advanced_nosem/nosem-unicode.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.\u5bff\u53f8",

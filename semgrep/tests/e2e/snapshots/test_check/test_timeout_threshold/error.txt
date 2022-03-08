@@ -5,39 +5,40 @@ rules:
 - rules.forcetimeout2
 - rules.forcetimeout3
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-Warning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
+[31m[22m[24mWarning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
 [rules.forcetimeout]
 Semgrep stopped running rules on targets/equivalence/open_redirect.py after 1 timeout error(s). See `--timeout-
-threshold` for more info.
+threshold` for more info.[0m
 
 ========================================
 Files skipped:
 ========================================
 
-  Always skipped by Semgrep:
+  [1m[24mAlways skipped by Semgrep:[0m
 
    • <none>
 
-  Skipped by .gitignore:
-  (Disable by passing --no-git-ignore)
+  [1m[24mSkipped by .gitignore:[0m
+  [1m[24m(Disable by passing --no-git-ignore)[0m
 
    • <all files not listed by `git ls-files` were skipped>
 
-  Skipped by .semgrepignore:
-  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+  [1m[24mSkipped by .semgrepignore:[0m
+  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
+  defaults)[0m
 
    • <none>
 
-  Skipped by --include patterns:
+  [1m[24mSkipped by --include patterns:[0m
 
    • <none>
 
-  Skipped by --exclude patterns:
+  [1m[24mSkipped by --exclude patterns:[0m
 
    • <none>
 
-  Skipped by limiting to files smaller than 1000000 bytes:
-  (Adjust with the --max-target-bytes flag)
+  [1m[24mSkipped by limiting to files smaller than 1000000 bytes:[0m
+  [1m[24m(Adjust with the --max-target-bytes flag)[0m
 
    • <none>
 

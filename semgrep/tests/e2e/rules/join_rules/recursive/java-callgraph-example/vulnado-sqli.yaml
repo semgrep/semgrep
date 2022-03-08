@@ -1,0 +1,18 @@
+rules:
+- id: spring-sql-injection
+  message: >-
+    SQLi
+  severity: ERROR
+  mode: join
+  join:
+    refs:
+    - rule: rules/join_rules/recursive/java-callgraph-example/rule-parts/java-spring-user-input.yaml
+      as: user-input
+    - rule: rules/join_rules/recursive/java-callgraph-example/rule-parts/method-parameter-formatted-sql.yaml
+      as: formatted-sql
+    - rule: rules/join_rules/recursive/java-callgraph-example/rule-parts/java-callgraph.yaml
+      as: callgraph
+    on:
+    - 'user-input.$SINK == callgraph.$CALLER'
+    - 'callgraph.$CALLER --> callgraph.$CALLEE'
+    - 'callgraph.$CALLEE == formatted-sql.$METHODNAME'

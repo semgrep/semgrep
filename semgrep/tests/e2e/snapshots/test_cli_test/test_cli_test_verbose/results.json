@@ -1,10 +1,10 @@
 
- targets/cli_test/basic/basic.py 
-     rules.cli_test.basic.basic-test
+[36m[22m[24m targets/cli_test/basic/basic.py [0m
+     [1m[24mrules.cli_test.basic.basic-test[0m
         Basic test
 
 
-          2┆ print(1 == 1)
+          2┆ print([1m[x.xxx == 1[0m)
 
 ============================[ summary ]============================
 Total time: x.xxxs Config time: x.xxxs Core time: x.xxxs
@@ -12,9 +12,9 @@ Total time: x.xxxs Config time: x.xxxs Core time: x.xxxs
 Semgrep-core time:
 Total CPU time: x.xxxs  File parse time: x.xxxs  Rule parse time: x.xxxs  Match time: x.xxxs
 Slowest x.xxx files
-targets/cli_test/basic/basic.py                    ( 35B):  x.xxxs (x.xxxs to parse)
+[32m[22m[24mtargets/cli_test/basic/basic.py                   [0m ( 35B):  x.xxxs (x.xxxs to parse)
 Slowest 5 rules to match
-rules.cli_test.basic.basic-test:                            x.xxxs
+[33m[22m[24mrules.cli_test.basic.basic-test:                           [0m x.xxxs
 
 Analyzed: 1 python files ( 35B in x.xxx seconds)
 Errors:   0 files with errors

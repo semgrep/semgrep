@@ -396,7 +396,7 @@ class CoreRunner:
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(LANGUAGE.all_language_keys)}",
+                long_msg=f"unsupported language: {language}. {LANGUAGE.show_suppported_languages_message()}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return list(targets)
@@ -503,6 +503,8 @@ class CoreRunner:
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if deep:
+                print("!!!This is a proprietary extension of semgrep.!!!")
+                print("!!!You must be logged in to access this extension!!!")
                 targets = target_manager.targets
                 if len(targets) == 1 and Path(targets[0]).is_dir():
                     root = targets[0]

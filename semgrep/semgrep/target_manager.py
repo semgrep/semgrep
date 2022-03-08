@@ -6,6 +6,7 @@ import tempfile
 import time
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Collection
@@ -259,6 +260,22 @@ class IgnoreLog:
             prev_level = level
 
         return output
+
+    def yield_json_objects(self) -> Iterable[Dict[str, Any]]:
+        for path in self.always_skipped:
+            yield {"path": str(path), "reason": "always_skipped"}
+        for path in self.semgrepignored:
+            yield {"path": str(path), "reason": "semgrepignore_patterns_match"}
+        for path in self.cli_includes:
+            yield {"path": str(path), "reason": "cli_include_flags_do_not_match"}
+        for path in self.cli_excludes:
+            yield {"path": str(path), "reason": "cli_exclude_flags_match"}
+        for path in self.size_limit:
+            yield {
+                "path": str(path),
+                "reason": "exceeded_size_limit",
+                "size_limit_bytes": self.target_manager.max_target_bytes,
+            }
 
 
 @define
