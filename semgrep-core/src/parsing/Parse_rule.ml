@@ -499,6 +499,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   match s with
   | "pattern" -> R.Pat (get_pattern value)
   | "pattern-not" -> R.PatNot (t, get_pattern value)
+  | "focus-metavariable" -> R.PatFocus (t, parse_string env key value)
   | "pattern-inside" -> R.PatInside (get_pattern value)
   | "pattern-not-inside" -> R.PatNotInside (t, get_pattern value)
   | "pattern-either" ->
@@ -516,6 +517,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
       let x = parse_string_wrap env key value in
       let xpat = R.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
+  | "metavariable-analysis"
   | "metavariable-regex"
   | "metavariable-pattern"
   | "metavariable-comparison"
@@ -552,7 +554,14 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" ->
           let xs = parse_list env key parse_formula_and_new value in
           let fs, conds = Common.partition_either (fun x -> x) xs in
-          R.And (t, fs, conds)
+          R.And
+            {
+              tok = t;
+              conjuncts = fs;
+              conditions = conds;
+              (* TODO: 'focus-metavariable:' *)
+              focus = [];
+            }
       | "or" -> R.Or (t, parse_list env key parse_formula_new value)
       | "not" -> R.Not (t, parse_formula_new env value)
       | "inside" -> R.P (parse_xpattern_expr env value, Some Inside)
@@ -600,6 +609,17 @@ and parse_formula_and_new env (x : G.expr) :
  * contain itself a formula! *)
 and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   match fst key with
+  | "metavariable-analysis" ->
+      let mv_analysis_dict = yaml_to_dict env key value in
+      let metavar = take mv_analysis_dict env parse_string "metavariable" in
+      let analyzer = take mv_analysis_dict env parse_string "analyzer" in
+      let kind =
+        match analyzer with
+        | "entropy" -> R.CondEntropy
+        | "redos" -> R.CondReDoS
+        | other -> error_at_key env key ("Unsupported analyzer: " ^ other)
+      in
+      R.MetavarAnalysis (metavar, kind)
   | "metavariable-regex" ->
       let mv_regex_dict =
         try yaml_to_dict env key value

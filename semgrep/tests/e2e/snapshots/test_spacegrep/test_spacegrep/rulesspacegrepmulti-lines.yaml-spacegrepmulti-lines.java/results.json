@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/spacegrep/multi-lines.java"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.spacegrep.multi-lines",

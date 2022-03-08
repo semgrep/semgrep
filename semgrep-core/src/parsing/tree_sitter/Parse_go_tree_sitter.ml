@@ -51,8 +51,20 @@ let rev = false
    to another type of tree.
 *)
 
-(* TODO: need remove enclosing `` *)
-let raw_string_literal env tok = str env tok
+(* TODO: Update grammar so that the leading and trailing backticks are tokenized
+ * separately, the way interpreted string literals are:
+ * https://github.com/tree-sitter/tree-sitter-go/blob/0fa917a7022d1cd2e9b779a6a8fc5dc7fad69c75/grammar.js#L839-L843
+ * *)
+let raw_string_literal env tok =
+  let loc, s = tok in
+  (* Remove leading and trailing backticks. The grammar guarantees that raw
+   * string literals will always have leading and trailing backticks, so this
+   * String.sub call should be safe. Let's check just to be sure. *)
+  if not Common.(s =~ "^`\\(.*\\)`$") then
+    failwith "Found unexpected raw string literal without delimiters";
+  let s = Common.matched1 s in
+  let tok = (loc, s) in
+  str env tok
 
 let expr1 xs =
   match xs with

@@ -1,0 +1,7 @@
+rules:
+- id: test-rule-file-run
+  patterns:
+    - pattern: require(...);
+  message: Confirm that the rule file is run
+  languages: [js]
+  severity: WARNING

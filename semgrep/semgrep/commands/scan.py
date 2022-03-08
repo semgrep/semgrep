@@ -150,6 +150,13 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
+@click.help_option("--help", "-h", help=("Show this message and exit."))
+@click.option(
+    "--apply",
+    is_flag=True,
+    help=("Print a list of job postings at r2c."),
+    hidden=True,
+)
 @click.option(
     "-a",
     "--autofix/--no-autofix",
@@ -227,6 +234,11 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     shell_complete=__get_severity_options,
 )
 @click.option(
+    "--show-supported-languages",
+    is_flag=True,
+    help=("Print a list of languages that are currently supported by Semgrep."),
+)
+@click.option(
     "--strict/--no-strict",
     is_flag=True,
     default=False,
@@ -243,6 +255,9 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "\n\n"
     "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
     " to the Semgrep registry."
+    "\n\n"
+    "To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name."
+    " For example `semgrep --config p/python --config myrules/myrule.yaml`"
     "\n\n"
     "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
     shell_complete=__get_config_options,
@@ -502,7 +517,6 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
         "Only works with the --autofix flag. Otherwise does nothing."
     ),
 )
-
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
@@ -543,14 +557,23 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
 )
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
+@click.option(
+    "--deep",
+    "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
 def scan(
     *,
+    apply: bool,
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
     debugging_json: bool,
+    deep: bool,
     dryrun: bool,
     dump_ast: bool,
     dump_command_for_core: bool,
@@ -584,6 +607,7 @@ def scan(
     save_test_output_tar: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
+    show_supported_languages: bool,
     strict: bool,
     synthesize_patterns: str,
     target: Tuple[str, ...],
@@ -621,6 +645,16 @@ def scan(
             from semgrep.version import version_check
 
             version_check()
+        return
+
+    if apply:
+        from semgrep.job_postings import print_job_postings
+
+        print_job_postings()
+        return
+
+    if show_supported_languages:
+        click.echo(LANGUAGE.show_suppported_languages_message())
         return
 
     # To keep version runtime fast, we defer non-version imports until here
@@ -727,7 +761,7 @@ def scan(
 
         if dump_ast:
             dump_parsed_ast(
-                json, __validate_lang("--dump_ast", lang), pattern, target_sequence
+                json, __validate_lang("--dump-ast", lang), pattern, target_sequence
             )
         elif synthesize_patterns:
             synthesize(
@@ -781,6 +815,7 @@ def scan(
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
                     dump_command_for_core=dump_command_for_core,
+                    deep=deep,
                     output_handler=output_handler,
                     target=target_sequence,
                     pattern=pattern,

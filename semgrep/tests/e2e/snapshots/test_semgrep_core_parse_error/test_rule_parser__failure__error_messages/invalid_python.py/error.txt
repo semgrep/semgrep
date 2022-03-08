@@ -4,41 +4,42 @@ rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-[WARN] Semgrep Core — Syntax error
+[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Semgrep Core — Syntax error
 An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
 
 At line targets/bad/invalid_python.py:1: `
     ` was unexpected
-
+[0m
 
 ========================================
 Files skipped:
 ========================================
 
-  Always skipped by Semgrep:
+  [1m[24mAlways skipped by Semgrep:[0m
 
    • <none>
 
-  Skipped by .gitignore:
-  (Disable by passing --no-git-ignore)
+  [1m[24mSkipped by .gitignore:[0m
+  [1m[24m(Disable by passing --no-git-ignore)[0m
 
    • <all files not listed by `git ls-files` were skipped>
 
-  Skipped by .semgrepignore:
-  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+  [1m[24mSkipped by .semgrepignore:[0m
+  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
+  defaults)[0m
 
    • <none>
 
-  Skipped by --include patterns:
+  [1m[24mSkipped by --include patterns:[0m
 
    • <none>
 
-  Skipped by --exclude patterns:
+  [1m[24mSkipped by --exclude patterns:[0m
 
    • <none>
 
-  Skipped by limiting to files smaller than 1000000 bytes:
-  (Adjust with the --max-target-bytes flag)
+  [1m[24mSkipped by limiting to files smaller than 1000000 bytes:[0m
+  [1m[24m(Adjust with the --max-target-bytes flag)[0m
 
    • <none>
 
@@ -47,4 +48,5 @@ skipped: all .gitignored files
 for a detailed list of skipped files, run semgrep with the --verbose flag
 
 ran 2 rules on 1 files: 0 findings
+found problems analyzing 1 file; run with --verbose for details
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False

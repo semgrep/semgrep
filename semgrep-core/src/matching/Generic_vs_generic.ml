@@ -18,6 +18,10 @@ open Common
  * we both use the same module but they may differ later
  * as the expressivity of the pattern language grows.
  *
+ * You might be tempted to just open AST_generic and get rid of G and B,
+ * but it's easy to be confused on what is a pattern and what is the target,
+ * so at least using different G and B helps a bit.
+ *
  * subtle: use 'b' to report errors, because 'a' is the sgrep pattern and it
  * has no file information usually.
  *)
@@ -672,11 +676,13 @@ and m_expr a b =
       if_config
         (fun x -> x.Config.constant_propagation)
         ~then_:
-          (match
-             Normalize_generic.constant_propagation_and_evaluate_literal b
-           with
-          | Some b1 -> m_literal_svalue a1 b1
-          | None -> fail ())
+          (with_lang (fun lang ->
+               match
+                 Constant_propagation.constant_propagation_and_evaluate_literal
+                   ?lang b
+               with
+               | Some b1 -> m_literal_svalue a1 b1
+               | None -> fail ()))
         ~else_:(fail ())
   | G.Container (G.Array, a2), B.Container (B.Array, b2) ->
       (m_bracket m_container_ordered_elements) a2 b2
@@ -1139,21 +1145,42 @@ and m_compatible_type typed_mvar t e =
         (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
       >>= fun () -> envf typed_mvar (MV.E e)
   (* for matching ids *)
+  (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
       (* NOTE: Name values must be represented with MV.Id! *)
       m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.Id (idb, Some id_infob))
-  | ( _ta,
-      ( B.N
-          (B.IdQualified
-            { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
-      | B.DotAccess
-          ( { e = IdSpecial (This, _); _ },
-            _,
-            FN (Id (idb, { B.id_type = tb; _ })) ) ) ) ->
-      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-      envf typed_mvar (MV.E e)
-  | _ -> fail ()
+  | _ta, _eb -> (
+      match type_of_expr e with
+      | Some (idb, tb) ->
+          m_type_option_with_hook idb (Some t) tb >>= fun () ->
+          envf typed_mvar (MV.E e)
+      | _ -> fail ())
+
+and type_of_expr e =
+  match e.B.e with
+  (* this is covered by the basic type propagation done in Naming_AST.ml *)
+  | B.N
+      (B.IdQualified
+        { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
+  | B.DotAccess
+      ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { B.id_type = tb; _ })))
+    ->
+      Some (idb, !tb)
+  (* deep: those are usually resolved only in deep mode *)
+  | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> Some (idb, !tb)
+  (* deep: same *)
+  | B.Call
+      ( { e = B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))); _ },
+        _args ) -> (
+      match !tb with
+      (* less: in OCaml functions can be curried, so we need to match
+       * _params and _args to calculate the resulting type.
+       *)
+      | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
+      | Some _ -> None
+      | None -> None)
+  | _ -> None
 
 (*---------------------------------------------------------------------------*)
 (* XML *)

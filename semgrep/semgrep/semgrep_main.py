@@ -149,6 +149,7 @@ def run_rules(
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
+    deep: bool,
 ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,
@@ -165,7 +166,7 @@ def run_rules(
         all_targets,
         profiling_data,
     ) = core_runner.invoke_semgrep(
-        target_manager, filtered_rules, dump_command_for_core
+        target_manager, filtered_rules, dump_command_for_core, deep
     )
 
     if join_rules:
@@ -248,6 +249,7 @@ def remove_matches_in_baseline(
 def main(
     *,
     dump_command_for_core: bool = False,
+    deep: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -376,6 +378,7 @@ def main(
         core_runner,
         output_handler,
         dump_command_for_core,
+        deep,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -385,6 +388,23 @@ def main(
         logger.info(f"Running baseline scan with base set to: {baseline_commit}")
         try:
             with baseline_handler.baseline_context():
+                # Need to reinstantiate target_manager since
+                # filesystem has changed
+                try:
+                    baseline_target_manager = TargetManager(
+                        includes=include,
+                        excludes=exclude,
+                        max_target_bytes=max_target_bytes,
+                        targets=target,
+                        respect_git_ignore=respect_git_ignore,
+                        skip_unknown_extensions=skip_unknown_extensions,
+                        file_ignore=get_file_ignore(),
+                    )
+                except FilesNotFoundError as e:
+                    # This means a file existed in head but not
+                    # in baseline context which is fine
+                    logger.debug(f"File not found in baseline: {e}")
+
                 (
                     baseline_rule_matches_by_rule,
                     baseline_semgrep_errors,
@@ -392,10 +412,11 @@ def main(
                     baseline_profiling_data,
                 ) = run_rules(
                     filtered_rules,
-                    target_manager,
+                    baseline_target_manager,
                     core_runner,
                     output_handler,
                     dump_command_for_core,
+                    deep,
                 )
                 rule_matches_by_rule = remove_matches_in_baseline(
                     rule_matches_by_rule, baseline_rule_matches_by_rule

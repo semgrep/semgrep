@@ -28,6 +28,9 @@ T = TypeVar("T")
 global FORCE_COLOR
 FORCE_COLOR = False
 
+global VERBOSITY
+VERBOSITY = logging.INFO
+
 
 MAX_TEXT_WIDTH = 120
 
@@ -37,7 +40,7 @@ def is_quiet() -> bool:
     Returns true if logging level is quiet or quieter (higher)
     (i.e. only critical logs surfaced)
     """
-    return logging.getLogger("semgrep").getEffectiveLevel() >= logging.CRITICAL
+    return VERBOSITY >= logging.CRITICAL
 
 
 def is_debug() -> bool:
@@ -45,7 +48,7 @@ def is_debug() -> bool:
     Returns true if logging level is debug or noisier (lower)
     (i.e. want more logs)
     """
-    return logging.getLogger("semgrep").getEffectiveLevel() <= logging.DEBUG
+    return VERBOSITY <= logging.DEBUG
 
 
 def is_url(url: str) -> bool:
@@ -91,8 +94,11 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     # Needs to be DEBUG otherwise will filter before sending to handlers
     logger.setLevel(logging.DEBUG)
 
+    global VERBOSITY
+    VERBOSITY = stdout_level
+
     global FORCE_COLOR
-    if force_color:
+    if force_color or os.environ.get("SEMGREP_FORCE_COLOR") is not None:
         FORCE_COLOR = True
 
 

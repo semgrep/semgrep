@@ -611,6 +611,24 @@ let matches_of_xpatterns config file_and_more xpatterns =
 (* Formula evaluation *)
 (*****************************************************************************)
 
+(*
+   Find the metavariable value, convert it back to a string, and
+   run it through an analyzer that returns true if there's a "match".
+*)
+let analyze_metavar env bindings mvar analyzer =
+  match List.assoc_opt mvar bindings with
+  | None ->
+      error env
+        (Common.spf
+           "metavariable-analysis failed because %s is not in scope, please \
+            check your rule"
+           mvar);
+      false
+  | Some mval -> (
+      match Eval_generic.text_of_binding mvar mval with
+      | None -> false
+      | Some data -> analyzer data)
+
 let rec filter_ranges env xs cond =
   xs
   |> List.filter (fun r ->
@@ -655,7 +673,33 @@ let rec filter_ranges env xs cond =
                Eval_generic.bindings_to_env_with_just_strings (fst env.config)
                  bindings
              in
-             Eval_generic.eval_bool env e)
+             Eval_generic.eval_bool env e
+         | R.CondAnalysis (mvar, CondEntropy) ->
+             let bindings = r.mvars in
+             analyze_metavar env bindings mvar Entropy.has_high_score
+         | R.CondAnalysis (mvar, CondReDoS) ->
+             let bindings = r.mvars in
+             let analyze re_str =
+               logger#debug
+                 "Analyze regexp captured by %s for ReDoS vulnerability: %s"
+                 mvar re_str;
+               match ReDoS.find_vulnerable_subpatterns re_str with
+               | Ok [] -> false
+               | Ok subpatterns ->
+                   subpatterns
+                   |> List.iter (fun pat ->
+                          logger#info
+                            "The following subpattern was predicted to be \
+                             vulnerable to ReDoS attacks: %s"
+                            pat);
+                   true
+               | Error () ->
+                   logger#debug
+                     "Failed to parse metavariable %s's value as a regexp: %s"
+                     mvar re_str;
+                   false
+             in
+             analyze_metavar env bindings mvar analyze)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in
@@ -815,8 +859,13 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       |> List.map (fun r -> { r with RM.kind })
   | S.Or xs -> xs |> List.map (evaluate_formula env opt_context) |> List.flatten
   | S.And
-      { selector_opt; positives = pos; negatives = neg; conditionals = conds }
-    -> (
+      {
+        selector_opt;
+        positives = pos;
+        negatives = neg;
+        conditionals = conds;
+        focus;
+      } -> (
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
@@ -895,8 +944,14 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
            *  - distribute filter_range in intersect_range?
            * See https://github.com/returntocorp/semgrep/issues/2664
            *)
-          conds
-          |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res)
+          let res =
+            conds
+            |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
+          in
+
+          let res = apply_focus_on_ranges env focus res in
+
+          res)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and run_selector_on_ranges env selector_opt ranges =
@@ -924,6 +979,40 @@ and run_selector_on_ranges env selector_opt ranges =
       res.matches
       |> List.map RM.match_result_to_range
       |> RM.intersect_ranges (fst env.config) !debug_matches ranges
+
+and apply_focus_on_ranges env focus ranges : RM.ranges =
+  let ( let* ) = Option.bind in
+  let apply_focus_mvar range focus_mvar =
+    let* _mvar, mval =
+      List.find_opt
+        (fun (mvar, _mval) -> MV.equal_mvar focus_mvar mvar)
+        range.RM.mvars
+    in
+    let* range_loc = Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval) in
+    let focus_match =
+      {
+        PM.rule_id = fake_rule_id (-1, focus_mvar);
+        PM.file = env.file_and_more.file;
+        PM.range_loc;
+        PM.tokens = lazy (MV.ii_of_mval mval);
+        PM.env = range.mvars;
+      }
+    in
+    let focus_range = RM.match_result_to_range focus_match in
+    (* Essentially, we are intersecting the ranges. *)
+    if Range.( $<=$ ) focus_range.r range.r then Some focus_range
+    else if Range.( $<=$ ) range.r focus_range.r then Some range
+    else None
+  in
+  let apply_focus init_range =
+    focus
+    |> List.fold_left
+         (fun opt_range focus_mvar ->
+           let* range = opt_range in
+           apply_focus_mvar range focus_mvar)
+         (Some init_range)
+  in
+  ranges |> List.filter_map apply_focus
 
 and matches_of_formula config rule file_and_more formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =

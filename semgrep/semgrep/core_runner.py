@@ -147,6 +147,8 @@ class StreamingSemgrepCore:
 
         When it sees non-"." output it saves it to self._stdout
         """
+        stdout_lines: List[str] = []
+
         # appease mypy. stream is only None if call to create_subproccess_exec
         # sets stdout/stderr stream to None
         assert stream
@@ -156,6 +158,7 @@ class StreamingSemgrepCore:
 
             # readline returns empty when EOF
             if not line_bytes:
+                self._stdout = "".join(stdout_lines)
                 break
 
             line = line_bytes.decode("utf-8")
@@ -163,7 +166,7 @@ class StreamingSemgrepCore:
                 if self._progress_bar:
                     self._progress_bar.update()
             else:
-                self._stdout += line
+                stdout_lines.append(line)
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
@@ -174,6 +177,8 @@ class StreamingSemgrepCore:
         Basically works synchronously and combines output to
         stderr to self._stderr
         """
+        stderr_lines: List[str] = []
+
         if stream is None:
             raise RuntimeError("subprocess was created without a stream")
 
@@ -183,10 +188,11 @@ class StreamingSemgrepCore:
 
             # readline returns empty when EOF
             if not line_bytes:
+                self._stderr = "".join(stderr_lines)
                 break
 
             line = line_bytes.decode("utf-8")
-            self._stderr += line
+            stderr_lines.append(line)
 
     async def _stream_subprocess(self) -> int:
         process = await asyncio.create_subprocess_exec(
@@ -386,9 +392,8 @@ class CoreRunner:
             }
             profiling_data.set_file_times(t.target, rule_timings, t.run_time)
 
-    @staticmethod
     def get_files_for_language(
-        language: Language, rule: Rule, target_manager: TargetManager
+        self, language: Language, rule: Rule, target_manager: TargetManager
     ) -> List[Path]:
         try:
             targets = target_manager.get_files(
@@ -397,12 +402,12 @@ class CoreRunner:
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(LANGUAGE.all_language_keys)}",
+                long_msg=f"unsupported language: {language}. {LANGUAGE.show_suppported_languages_message()}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return list(targets)
 
-    def _get_targets(
+    def _plan_core_run(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> List[Dict[str, Any]]:
         """
@@ -446,6 +451,7 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         dump_command_for_core: bool,
+        deep: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -472,8 +478,8 @@ class CoreRunner:
             target_file_name, "w+"
         ) as target_file:
 
-            targets_with_rules = self._get_targets(rules, target_manager, all_targets)
-            target_file.write(json.dumps(targets_with_rules))
+            plan = self._plan_core_run(rules, target_manager, all_targets)
+            target_file.write(json.dumps(plan))
             target_file.flush()
 
             yaml = YAML()
@@ -497,20 +503,48 @@ class CoreRunner:
                 str(self._max_memory),
                 "-json_time",
             ]
-
             if self._optimizations != "none":
                 cmd.append("-fast")
 
+            # TODO: use exact same command-line arguments so just
+            # need to replace the SemgrepCore.path() part.
+            if deep:
+                print("!!!This is a proprietary extension of semgrep.!!!")
+                print("!!!You must be logged in to access this extension!!!")
+                targets = target_manager.targets
+                if len(targets) == 1 and Path(targets[0]).is_dir():
+                    root = targets[0]
+                else:
+                    raise SemgrepError("deep mode needs a single target (root) dir")
+
+                cmd = [SemgrepCore.deep_path()] + [
+                    "--json",
+                    "--rules",
+                    rule_file.name,
+                    # "-j",
+                    # str(self._jobs),
+                    "--targets",
+                    target_file.name,
+                    "--root",
+                    root,
+                    # "--timeout",
+                    # str(self._timeout),
+                    # "--timeout_threshold",
+                    # str(self._timeout_threshold),
+                    # "--max_memory",
+                    # str(self._max_memory),
+                ]
+
             stderr: Optional[int] = subprocess.PIPE
             if is_debug():
-                cmd += ["-debug"]
+                cmd += ["--debug"]
                 stderr = None
 
             if dump_command_for_core:
                 print(" ".join(cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, len(targets_with_rules))
+            runner = StreamingSemgrepCore(cmd, len(plan))
             returncode = runner.execute()
 
             # Process output
@@ -553,6 +587,7 @@ class CoreRunner:
         target_manager: TargetManager,
         rules: List[Rule],
         dump_command_for_core: bool,
+        deep: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         """
         Takes in rules and targets and retuns object with findings
@@ -565,7 +600,7 @@ class CoreRunner:
             all_targets,
             profiling_data,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core
+            rules, target_manager, dump_command_for_core, deep
         )
 
         logger.debug(

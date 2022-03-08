@@ -23,3 +23,26 @@ def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
         run_semgrep_in_tmp(rule, target_name=target)[0],
         "results.json",
     )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/join_rules/recursive/java-callgraph-example/vulnado-sqli.yaml",
+            "join_rules/recursive/java-callgraph-example/vulnado",
+        ),
+        (
+            "rules/join_rules/recursive/java-callgraph-example/vulnado-sqli.yaml",
+            "join_rules/recursive/java-callgraph-example/vulnado-chain-broken",
+        ),
+        (
+            "rules/join_rules/recursive/flask-deep-stored-xss-example/flask-stored-xss.yaml",
+            "join_rules/recursive/flask-deep-stored-xss-example",
+        ),
+    ],
+)
+def test_recursive_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(rule, target_name=target)[0], "results.json"
+    )

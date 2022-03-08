@@ -64,6 +64,22 @@ def _clean_output_json(output_json: str) -> str:
             if p and "/tmp" in p:
                 del r["path"]
 
+    paths = output.get("paths", {})
+    if paths.get("scanned"):
+        paths["scanned"] = [
+            p if "/tmp" not in p else "/tmp/masked/path" for p in paths["scanned"]
+        ]
+    if paths.get("skipped"):
+        paths["skipped"] = [
+            {
+                **skip,
+                "path": skip["path"]
+                if "/tmp" not in skip["path"]
+                else "/tmp/masked/path",
+            }
+            for skip in paths["skipped"]
+        ]
+
     return json.dumps(output, indent=2, sort_keys=True)
 
 
@@ -101,6 +117,7 @@ def _run_semgrep(
     env: Optional[Dict[str, str]] = None,
     fail_on_nonzero: bool = True,
     settings_file: Optional[str] = None,
+    force_color: Optional[bool] = None,
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -119,6 +136,9 @@ def _run_semgrep(
 
     if not env:
         env = {}
+
+    if force_color:
+        env["SEMGREP_FORCE_COLOR"] = "true"
 
     if "SEMGREP_USER_AGENT_APPEND" not in env:
         env["SEMGREP_USER_AGENT_APPEND"] = "testing"

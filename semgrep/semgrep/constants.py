@@ -32,9 +32,14 @@ if SEMGREP_USER_AGENT_APPEND is not None:
 
 SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
 
+IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
+IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
+
 YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
 YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
+
+RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=json"
 
 
 class OutputFormat(Enum):

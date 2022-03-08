@@ -22,7 +22,7 @@ let get_resolved_type lang (vinit, vtype) =
       in
       (* Currently these vary between languages *)
       (* Alternative is to define a TyInt, TyBool, etc in the generic AST *)
-      (* so this is more portable across langauges *)
+      (* so this is more portable across languages *)
       match vinit with
       | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
       | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
