@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
+- PHP: .tpl files are now considered PHP files (#4763)
 
 ### Fixed
 
