@@ -12,10 +12,10 @@ import pytest
             "rules/dependency_aware/lodash-4.17.19.yaml",
             "dependency_aware/useslodash.js",
         ),
-        # (
-        #    "rules/dependency_aware/lodash-4.17.19.yaml",
-        #    "dependency_aware_safe/useslodash.js",
-        # ),
+        ("rules/dependency_aware/go-sca.yaml", "dependency_aware/sca.go"),
+        ("rules/dependency_aware/ruby-sca.yaml", "dependency_aware/sca.rb"),
+        ("rules/dependency_aware/log4shell.yaml", "dependency_aware/log4shell.java"),
+        ("rules/dependency_aware/rust-sca.yaml", "dependency_aware/sca.rs"),
     ],
 )
 def test_dependency_aware_rules(run_semgrep_in_tmp, snapshot, rule, target):
