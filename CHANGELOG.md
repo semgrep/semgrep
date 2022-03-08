@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Kotlin: store trailing lambdas in the AST (#4741)
 - Autofix: Semgrep no longer errors during `--dry-run`s where one fix changes the line numbers in a file that also has a second autofix.
 - Performance regression when running with --debug (#4761)
+- SARIF output formatter not handling lists of OWASP or CWE metadata (#4673)
 
 ## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
 
@@ -49,7 +50,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Treat Go raw string literals like ordinary string literals (#3938)
 - Eliminate zombie uname processes (#4466)
 - Fix for: semgrep always highlights one extra character
-- SARIF output formatter not handling lists of OWASP or CWE metadata (#4673)
 
 ### Changed
 
