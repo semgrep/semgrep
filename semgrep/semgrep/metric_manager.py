@@ -66,9 +66,14 @@ class _MetricManager:
         :param metrics_state: The value of the --metrics option
         :param legacy_state: Value of the --enable-metrics/--disable-metrics option
         :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
+        and their values are different
         """
 
-        if metrics_state is not None and legacy_state is not None:
+        if (
+            metrics_state is not None
+            and legacy_state is not None
+            and metrics_state != legacy_state
+        ):
             raise click.BadParameter(
                 "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
             )

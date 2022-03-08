@@ -187,3 +187,25 @@ def test_legacy_flags(run_semgrep_in_tmp):
         "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
         in output
     )
+
+    _, output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        options=["--disable-metrics"],
+        env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": "off"},
+        fail_on_nonzero=False,
+    )
+    assert (
+        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
+        not in output
+    )
+
+    _, output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        options=["--enable-metrics"],
+        env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": "on"},
+        fail_on_nonzero=False,
+    )
+    assert (
+        "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
+        not in output
+    )
