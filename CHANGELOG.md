@@ -9,11 +9,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
 - Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
+- PHP: .tpl files are now considered PHP files (#4763)
 
 ### Fixed
 
 - Report parse errors even when invoked with `--strict`
 - Show correct findings count when using `--config auto` (#4674)
+- Kotlin: store trailing lambdas in the AST (#4741)
+- Autofix: Semgrep no longer errors during `--dry-run`s where one fix changes the line numbers in a file that also has a second autofix.
+- Performance regression when running with --debug (#4761)
 
 ## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
 

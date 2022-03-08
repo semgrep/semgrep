@@ -65,7 +65,7 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 # We change container, bringing only the 'semgrep-core' binary with us.
 #
 
-FROM python:3.10.1-alpine3.15
+FROM python:3.10.1-alpine3.15@sha256:dce56d40d885d2c8847aa2a278a29d50450c8e3d10f9d7ffeb2f38dcc1eb0ea4
 LABEL maintainer="support@r2c.dev"
 ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
 
