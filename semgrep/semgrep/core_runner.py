@@ -147,6 +147,8 @@ class StreamingSemgrepCore:
 
         When it sees non-"." output it saves it to self._stdout
         """
+        stdout_lines: List[str] = []
+
         # appease mypy. stream is only None if call to create_subproccess_exec
         # sets stdout/stderr stream to None
         assert stream
@@ -156,6 +158,7 @@ class StreamingSemgrepCore:
 
             # readline returns empty when EOF
             if not line_bytes:
+                self._stdout = "".join(stdout_lines)
                 break
 
             line = line_bytes.decode("utf-8")
@@ -163,7 +166,7 @@ class StreamingSemgrepCore:
                 if self._progress_bar:
                     self._progress_bar.update()
             else:
-                self._stdout += line
+                stdout_lines.append(line)
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
@@ -174,6 +177,8 @@ class StreamingSemgrepCore:
         Basically works synchronously and combines output to
         stderr to self._stderr
         """
+        stderr_lines: List[str] = []
+
         if stream is None:
             raise RuntimeError("subprocess was created without a stream")
 
@@ -183,10 +188,11 @@ class StreamingSemgrepCore:
 
             # readline returns empty when EOF
             if not line_bytes:
+                self._stderr = "".join(stderr_lines)
                 break
 
             line = line_bytes.decode("utf-8")
-            self._stderr += line
+            stderr_lines.append(line)
 
     async def _stream_subprocess(self) -> int:
         process = await asyncio.create_subprocess_exec(
