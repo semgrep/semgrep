@@ -64,14 +64,19 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * directly semgrep-core but instead use the semgrep Python wrapper.
  *)
 let env_debug = "SEMGREP_CORE_DEBUG"
+
 let env_profile = "SEMGREP_CORE_PROFILE"
+
 let env_extra = "SEMGREP_CORE_EXTRA"
+
 let log_config_file = ref "log_config.json"
+
 let log_to_file = ref None
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
 let test = ref false
+
 let debug = ref false
 
 (* related:
@@ -82,6 +87,7 @@ let debug = ref false
 
 (* try to continue processing files, even if one has a parse error with -e/f *)
 let error_recovery = ref false
+
 let profile = ref false
 
 (* report matching times per file *)
@@ -102,13 +108,18 @@ let pattern_file = ref ""
 
 (* -rules *)
 let rules_file = ref ""
+
 let equivalences_file = ref ""
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
+
 let output_format = ref Text
+
 let match_format = ref Matching_report.Normal
+
 let mvars = ref ([] : Metavariable.mvar list)
+
 let lsp = ref false
 
 (* ------------------------------------------------------------------------- *)
@@ -118,6 +129,7 @@ let lsp = ref false
 let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
 
 let timeout_threshold = ref 0
+
 let max_memory_mb = ref 0 (* in MiB *)
 
 (* arbitrary limit *)

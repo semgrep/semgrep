@@ -18,7 +18,9 @@ val ( $<=$ ) : t -> t -> bool
 
 (* disjoint *)
 val ( $<>$ ) : t -> t -> bool
+
 val range_of_line_spec : string -> Common.filename -> t
+
 val range_of_linecol_spec : string -> Common.filename -> t
 
 val range_of_token_locations :

@@ -172,7 +172,6 @@ let wrap_parser tree_sitter_parser ast_mapper =
     (Failure "not implemented") as exn ->
       H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
       raise exn
-
 *)
 
 let parse_number_literal (s, t) =

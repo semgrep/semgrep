@@ -128,7 +128,7 @@ let update_meta_envs sink_pm src_pms =
    @param src_pms Set of source pattern matches.
    @returns PM.Set.t of all the possible tainted sink pattern matches with their metavariable environments updated
    to include the bindings from the source whose environment unified with it.
- *)
+*)
 let make_tainted_sink_matches sink_pms src_pms =
   sink_pms
   |> List.map (fun pm -> update_meta_envs pm src_pms)

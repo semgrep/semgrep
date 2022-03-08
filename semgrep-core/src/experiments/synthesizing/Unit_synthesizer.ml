@@ -154,13 +154,13 @@ let java_tests =
         ("exact metavars", "$X == $X");
         ("typed metavars", "foo(bar((int $X))) == foo(bar((int $X)))");
         ("deep metavars", "foo(bar($X)) == foo(bar($X))");
-      ] );
+      ] )
     (* "exact_match.java", "4:15-4:42",
        ["exact match", "foo(bar(a)) == foo(bar(a))";
        "exact metavars", "$X == $X";
        "typed metavars", "foo(bar((int $X))) == foo(bar((int $X)))";
        "deep metavars", "foo(bar($X)) == foo(bar($X))";
-       ]; *)
+       ]; *);
   ]
 
 (* Cases splits up the test cases by language.
