@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
+- Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
 
 ### Fixed
 
