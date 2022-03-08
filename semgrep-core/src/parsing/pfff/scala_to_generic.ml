@@ -192,7 +192,9 @@ let rec v_literal = function
       Left (G.Null v1)
   | Interpolated (v1, v2, v3) ->
       let v1 = v_ident v1 and v2 = v_list v_encaps v2 and v3 = v_tok v3 in
-      let special = G.IdSpecial (G.ConcatString G.FString, snd v1) |> G.e in
+      let special =
+        G.IdSpecial (G.ConcatString (G.FString (fst v1)), snd v1) |> G.e
+      in
       let args =
         v2
         |> List.map (function
