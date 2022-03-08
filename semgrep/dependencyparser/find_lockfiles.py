@@ -6,15 +6,9 @@ from typing import Generator
 from typing import Optional
 from typing import Set
 
-TARGET_LOCKFILE_FILENAMES = [
-    "pipfile.lock",
-    "yarn.lock",
-    "package-lock.json",
-    "gemfile.lock",
-    "go.sum",
-    "cargo.lock",
-    "pom.xml",
-]
+from dependencyparser.parse_lockfile import LOCKFILE_PARSERS
+
+TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()
 
 
 @functools.lru_cache(maxsize=None)

@@ -24,31 +24,6 @@ from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 
 
-def parse_lockfile_str(
-    lockfile_text: str, filepath_for_reference: Path
-) -> Generator[LockfileDependency, None, None]:
-    # coupling with the github action, which decides to send files with these names back to us
-    filepath = filepath_for_reference.name.lower()
-    if filepath == "pipfile.lock":
-        yield from parse_Pipfile_str(lockfile_text)
-    elif filepath == "yarn.lock":
-        yield from parse_Yarnlock_str(lockfile_text)
-    elif filepath == "package-lock.json":
-        yield from parse_NPM_package_lock_str(lockfile_text)
-    elif filepath == "gemfile.lock":
-        yield from parse_Gemfile_str(lockfile_text)
-    elif filepath == "go.sum":
-        yield from parse_Go_sum_str(lockfile_text)
-    elif filepath == "cargo.lock":
-        yield from parse_Cargo_str(lockfile_text)
-    elif filepath == "pom.xml":
-        yield from parse_Pom_str(lockfile_text)
-    else:
-        raise SemgrepError(
-            f"don't know how to parse this filename: {filepath_for_reference}"
-        )
-
-
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
     """
     Go from:
@@ -301,3 +276,27 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
         dep_opt = parse_dep(properties, dep)
         if dep_opt:
             yield dep_opt
+
+
+LOCKFILE_PARSERS = {
+    "pipfile.lock": parse_Pipfile_str,  # Python
+    "yarn.lock": parse_Yarnlock_str,  # JavaScript
+    "package-lock.json": parse_NPM_package_lock_str,  # JavaScript
+    "gemfile.lock": parse_Gemfile_str,  # Ruby
+    "go.sum": parse_Go_sum_str,  # Go
+    "cargo.lock": parse_Cargo_str,  # Rust
+    "pom.xml": parse_Pom_str,  # Java
+}
+
+
+def parse_lockfile_str(
+    lockfile_text: str, filepath_for_reference: Path
+) -> Generator[LockfileDependency, None, None]:
+    # coupling with the github action, which decides to send files with these names back to us
+    filepath = filepath_for_reference.name.lower()
+    if filepath in LOCKFILE_PARSERS:
+        return LOCKFILE_PARSERS[filepath](lockfile_text)
+    else:
+        raise SemgrepError(
+            f"don't know how to parse this filename: {filepath_for_reference}"
+        )

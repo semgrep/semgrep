@@ -1,17 +1,16 @@
-import hashlib
 from enum import Enum
-from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 
 from attrs import frozen
 
-KNOWN_HASH_ALGORITHMS: Dict[str, Optional[Callable]] = {
-    "sha256": hashlib.sha256,
-    "sha512": hashlib.sha512,
-    "sha1": hashlib.sha1,
-    "gomod": None
+KNOWN_HASH_ALGORITHMS: Set[str] = {
+    "sha256",
+    "sha512",
+    "sha1",
+    "gomod",
     # go.sum files use a non-standard hashing algorithm based on multiple uses of sha256 and conversion to base 64
 }
 
