@@ -1,6 +1,7 @@
 (* Colleen Dai
+ * Yoann Padioleau
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021, 2022 R2C
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License (GPL)
@@ -428,7 +429,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
   let _v4 = semi env v4 (* pattern [\r\n]+ *) in
   v3 |> G.d
 
-let rec _annotated_lambda (env : env) ((v1, v2, v3) : CST.annotated_lambda) =
+let rec annotated_lambda (env : env) ((v1, v2, v3) : CST.annotated_lambda) =
   let _v1TODO = List.map (annotation env) v1 in
   let _v2TODO = v2 in
   lambda_literal env v3
@@ -583,14 +584,15 @@ and call_suffix (env : env) ((v1, v2) : CST.call_suffix) : G.arguments =
   let _v1TODO = Option.map (type_arguments env) v1 in
   let v2 =
     match v2 with
-    | `Opt_value_args_anno_lambda (v1, _v2) ->
-        let v1 =
+    | `Opt_value_args_anno_lambda (v1, v2) ->
+        let l, args, r =
           match v1 with
           | Some x -> value_arguments env x
           | None -> fake_bracket []
         in
-        (*TODO let v2 = annotated_lambda env v2 in*)
-        v1
+        (* https://kotlinlang.org/docs/lambdas.html#passing-trailing-lambdas *)
+        let v2 = annotated_lambda env v2 in
+        (l, args @ [ Arg v2 ], r)
     | `Value_args x -> value_arguments env x
   in
   v2
@@ -1397,7 +1399,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
 
 and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let v1 = token env v1 (* "{" *) in
-  let params, lbracket =
+  let params, lbracket_block_start =
     match v2 with
     | Some (v1, v2) ->
         let v1 =
@@ -1408,6 +1410,9 @@ and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
         (* use this to delimit the Block below. *)
         let v2 = token env v2 (* "->" *) in
         (v1, v2)
+    (* note that even without parameters, 'it' can be used to
+     * represent an anonymous parameter.
+     *)
     | None -> ([], v1)
   in
   let v3 =
@@ -1416,7 +1421,7 @@ and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
     | None -> []
   in
   let v4 = token env v4 (* "}" *) in
-  let fbody = G.FBStmt (Block (lbracket, v3, v4) |> G.s) in
+  let fbody = G.FBStmt (Block (lbracket_block_start, v3, v4) |> G.s) in
   let kind = (LambdaKind, v1) in
   let func_def = { fkind = kind; fparams = params; frettype = None; fbody } in
   Lambda func_def |> G.e
