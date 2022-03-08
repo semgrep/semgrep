@@ -10,8 +10,9 @@ def test_debug_performance(run_semgrep_in_tmp):
     run_semgrep_in_tmp("rules/long_message.yaml", target_name="simple.yaml")
     time_without_debug = time.time() - start_without_debug
 
-    # If this fails the rule was probably optimized out
-    assert time_without_debug > 2
+    assert time_without_debug > 2, (
+        "runtime was suspiciously low, was the rule optimized out?"
+    )
 
     start_with_debug = time.time()
     run_semgrep_in_tmp(
@@ -21,6 +22,7 @@ def test_debug_performance(run_semgrep_in_tmp):
     )
     time_with_debug = time.time() - start_with_debug
 
-    # There was a slowdown of more than 10% in reality the time should be basically the same
-    # but we account for variablity in runtime here
-    assert time_with_debug - time_without_debug < 0.1 * time_without_debug
+    from pytest import approx
+    assert time_with_debug == approx(time_without_debug, rel=0.1), (
+        "adding --debug slowed runtime by more than 10%"
+    )
