@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   metavariable
 - Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
 - PHP: .tpl files are now considered PHP files (#4763)
+- Support for Scala's custom string interpolators (#4655)
 
 ### Fixed
 

@@ -199,7 +199,9 @@ let rec expr env (x : expr) =
       |> G.e
   | InterpolatedString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.FString, unsafe_fake "concat") |> G.e,
+        (* Python interpolated strings are always of the form f"...", we need to support arbitary strings in the generic AST because Scala has custom interpolators *)
+        ( G.IdSpecial (G.ConcatString (G.FString "f"), unsafe_fake "concat")
+          |> G.e,
           fb
             (xs
             |> List.map (fun x ->
