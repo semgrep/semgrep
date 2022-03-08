@@ -4,10 +4,12 @@ from pathlib import Path
 import pytest
 
 
-def test_autofix(run_semgrep_in_tmp, snapshot):
+@pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
+def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/autofix/autofix.yaml", target_name="autofix/autofix.py"
+            "rules/autofix/autofix.yaml",
+            target_name="autofix/autofix.py",
         )[0],
         "results.json",
     )
@@ -25,14 +27,18 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
             0
         )  # Seek to beginning since Semgrep will be reading from it. Just in case.
         run_semgrep_in_tmp(
-            "rules/autofix/autofix.yaml", target_name=tf.name, options=["--autofix"]
+            "rules/autofix/autofix.yaml",
+            target_name=tf.name,
+            options=["--autofix", "--dryrun"] if dryrun else ["--autofix"],
         )
         tf.seek(0)  # Seek to beginning again so we can read and compare to snapshot.
         snapshot.assert_match(
-            tf.read().decode("utf-8", errors="replace"), "autofix-fixed"
+            tf.read().decode("utf-8", errors="replace"),
+            "autofix-dryrun" if dryrun else "autofix-fixed",
         )
 
 
+@pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -53,9 +59,10 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
             "autofix/python-assert-statement.py",
         ),
         ("rules/autofix/java-string-wrap.yaml", "autofix/java-string-wrap.java"),
+        ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
     ],
 )
-def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):
+def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target)[0],
@@ -73,8 +80,13 @@ def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):
         tf.seek(
             0
         )  # Seek to beginning since Semgrep will be reading from it. Just in case.
-        run_semgrep_in_tmp(rule, target_name=tf.name, options=["--autofix"])
+        run_semgrep_in_tmp(
+            rule,
+            target_name=tf.name,
+            options=["--autofix", "--dryrun"] if dryrun else ["--autofix"],
+        )
         tf.seek(0)  # Seek to beginning again so we can read and compare to snapshot.
         snapshot.assert_match(
-            tf.read().decode("utf-8", errors="replace"), f"{target}-fixed"
+            tf.read().decode("utf-8", errors="replace"),
+            (f"{target}-dryrun" if dryrun else f"{target}-fixed"),
         )

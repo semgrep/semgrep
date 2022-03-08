@@ -147,9 +147,7 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                 file_offsets.col_offset = 0
             if fix:
                 try:
-                    fixobj, modified_files_offsets[filepath] = _basic_fix(
-                        rule_match, file_offsets, fix
-                    )
+                    fixobj, new_file_offset = _basic_fix(rule_match, file_offsets, fix)
                 except Exception as e:
                     raise SemgrepError(f"unable to modify file {filepath}: {e}")
             elif fix_regex:
@@ -167,7 +165,7 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                         "optional 'count' value must be an integer when using 'fix-regex'"
                     )
                 try:
-                    fixobj, modified_files_offsets[filepath] = _regex_replace(
+                    fixobj, new_file_offset = _regex_replace(
                         rule_match, file_offsets, regex, replacement, count
                     )
                 except Exception as e:
@@ -180,6 +178,7 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
             if not dryrun:
                 _write_contents(rule_match.path, fixobj.fixed_contents)
                 modified_files.add(filepath)
+                modified_files_offsets[filepath] = new_file_offset
             else:
                 rule_match.extra[
                     "fixed_lines"
