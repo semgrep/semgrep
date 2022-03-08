@@ -224,6 +224,11 @@ def run_semgrep_on_example(
         pattern_text = open(config_arg_str).read()
         config.write(_config_to_string(_single_pattern_to_dict(pattern_text, lang)))
         config.flush()
+
+        with open(".semgrepignore", "w") as ignore_out:
+            ignore_out.writelines("")
+            ignore_out.flush()
+
         cmd = ["semgrep", "--strict", "--json", f"--config={config.name}", code_path]
         print(">>> " + " ".join(cmd))
         output = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
