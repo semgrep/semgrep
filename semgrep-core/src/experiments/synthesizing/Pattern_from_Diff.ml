@@ -5,100 +5,101 @@ module E = Entity_code
 module G = Graph_code
 module Set = Set_
 
-(* TODO call this "Pattern_from_Patch" *)
-
-let logger = Logging.get_logger [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Generate patterns from patches
-  *)
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
+(* TODO I experimented with using Graph_code to generate caller functions
+      of the one found in the diff. Leaving this in if we later want to go
+      in this direction
 
-(* less: could generalize again to other languages at some point *)
-let parse_program lang file =
-  (* for codegraph purpose, we need the toplevel Assign turned into VarDef *)
-  let assign_to_vardef = true in
-  let ast = Parse_python.parse_program file in
-  let ast = Python_to_generic.program ~assign_to_vardef ast in
-  Naming_AST.resolve lang ast;
-  ast
+   (*****************************************************************************)
+   (* Helpers *)
+   (*****************************************************************************)
 
-(***************************************************************************** Build the graphs *)
-(*****************************************************************************)
+   (* less: could generalize again to other languages at some point *)
+   let parse_program lang file =
+     (* for codegraph purpose, we need the toplevel Assign turned into VarDef *)
+     let assign_to_vardef = true in
+     let ast = Parse_python.parse_program file in
+     let ast = Python_to_generic.program ~assign_to_vardef ast in
+     Naming_AST.resolve lang ast;
+     ast
 
-let build_graphs root lang files =
-  logger#info "building the graphs";
-  let xs = files |> List.map (fun file -> (file, parse_program lang file)) in
-  let hooks = Graph_code_AST.default_hooks in
-  let graph, _stats = Graph_code_AST.build ~root ~hooks lang xs in
+   let get_root_dir filename =
+     let subdirs = String.split_on_char '/' filename in
+     let res =
+       match subdirs with
+       | [] -> ""
+       | [ x ] -> x
+       | x :: y :: _ -> x ^ "/" ^ y
+     in
+     res
 
-  graph
+   (*****************************************************************************
+   (* Build the graphs *)
+   (*****************************************************************************)
 
-(*****************************************************************************)
-(* Check the graphs *)
-(*****************************************************************************)
+   let build_graphs root lang files =
+     logger#info "building the graphs";
+     let xs = files |> List.map (fun file -> (file, parse_program lang file)) in
+     let hooks = Graph_code_AST.default_hooks in
+     let graph, _stats = Graph_code_AST.build ~root ~hooks lang xs in
 
-(* Similar to graph_code_checker.ml, but tuned for Python and our codebase *)
-let rec get_call_graph g callers fs =
-  let get_parents f callers =
-    let pred = G.mk_eff_use_pred g in
-    let users = pred f in
-    List.iter (fun (user, _) -> Common.pr2 user) users;
-    let users =
-      List.filter
-        (fun x ->
-          match x with
-          | _, E.Function -> true
-          | _ -> false)
-        users
-    in
-    Set.union callers (Set.of_list users)
-  in
-  let callers' : G.node Set.t = List.fold_right get_parents fs callers in
-  let set_diff = Set.diff callers callers' in
-  if Set.is_empty set_diff then callers
-  else get_call_graph g callers (Set.fold (fun e prev -> e :: prev) set_diff [])
+     graph
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
-let get_caller_functions dir fs =
-  (* less: we could generalize to other languages! like typescript *)
-  let lang = Lang.Python in
-  let files, _skipped =
-    Find_target.files_of_dirs_or_files (Some lang) [ dir ]
-  in
-  let files, _skipped =
-    Skip_code.filter_files_if_skip_list ~root:[ dir ] files
-  in
-  List.iter (fun file -> Common.pr2 file) files;
-  logger#info "processing %d files" (List.length files);
+   (*****************************************************************************)
+   (* Check the graphs *)
+   (*****************************************************************************)
 
-  let g = build_graphs dir lang files in
-  let f_nodes = List.map (fun f -> (f, E.Function)) fs in
-  let caller_functions = get_call_graph g (Set.of_list f_nodes) f_nodes in
-  Set.fold (fun (e, _) prev -> e :: prev) caller_functions []
+   (* Similar to graph_code_checker.ml, but tuned for Python and our codebase *)
+   let rec get_call_graph g callers fs =
+     let get_parents f callers =
+       let pred = G.mk_eff_use_pred g in
+       let users = pred f in
+       List.iter (fun (user, _) -> Common.pr2 user) users;
+       let users =
+         List.filter
+           (fun x ->
+             match x with
+             | _, E.Function -> true
+             | _ -> false)
+           users
+       in
+       Set.union callers (Set.of_list users)
+     in
+     let callers' : G.node Set.t = List.fold_right get_parents fs callers in
+     let set_diff = Set.diff callers callers' in
+     if Set.is_empty set_diff then callers
+     else get_call_graph g callers (Set.fold (fun e prev -> e :: prev) set_diff [])
+
+   (*****************************************************************************)
+   (* Entry point *)
+   (*****************************************************************************)
+   let get_caller_functions dir fs =
+     (* less: we could generalize to other languages! like typescript *)
+     let lang = Lang.Python in
+     let files, _skipped =
+       Find_target.files_of_dirs_or_files (Some lang) [ dir ]
+     in
+     let files, _skipped =
+       Skip_code.filter_files_if_skip_list ~root:[ dir ] files
+     in
+     List.iter (fun file -> Common.pr2 file) files;
+     logger#info "processing %d files" (List.length files);
+
+     let g = build_graphs dir lang files in
+     let f_nodes = List.map (fun f -> (f, E.Function)) fs in
+     let caller_functions = get_call_graph g (Set.of_list f_nodes) f_nodes in
+     Set.fold (fun (e, _) prev -> e :: prev) caller_functions [] *)
+
+   ******************************************************************************)
 
 (*****************************************************************************)
 (* Generate pattern *)
 (*****************************************************************************)
 
 let range_of_ast ast = R.range_of_tokens (Visitor_AST.ii_of_any ast)
-
-let get_root_dir filename =
-  let subdirs = String.split_on_char '/' filename in
-  let res =
-    match subdirs with
-    | [] -> ""
-    | [ x ] -> x
-    | x :: y :: _ -> x ^ "/" ^ y
-  in
-  res
 
 let pattern_from_diff f =
   let file = f.In.filename in
@@ -125,5 +126,4 @@ let pattern_from_diff f =
     with
     | _ -> []
   in
-  let functions = get_caller_functions (get_root_dir file) functions in
   { Out.url = f.In.url; filename = f.In.filename; funcnames = functions }
