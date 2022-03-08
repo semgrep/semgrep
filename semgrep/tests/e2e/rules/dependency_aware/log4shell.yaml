@@ -1,0 +1,17 @@
+rules:
+- id: log4j2_tainted_argument
+  patterns:
+    - pattern-either:
+      - pattern: (Logger $LOGGER).$METHOD($ARG);
+      - pattern: (Logger $LOGGER).$METHOD($ARG,...);
+    - pattern-inside: |
+        import org.apache.logging.log4j.$PKG;
+        ...
+    - pattern-not: (Logger $LOGGER).$METHOD("...");
+    - r2c-internal-project-depends-on:
+      - namespace: maven
+        package: log4j-core
+        version: "<= 2.14.1"
+  message: log4j $LOGGER.$METHOD tainted argument
+  languages: [java]
+  severity: WARNING
