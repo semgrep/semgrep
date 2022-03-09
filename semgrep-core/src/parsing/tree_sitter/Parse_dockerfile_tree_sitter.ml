@@ -865,10 +865,22 @@ let parse file =
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(program Program dockerfile_ast))
 
+let ensure_trailing_newline str =
+  if str <> "" then
+    let len = String.length str in
+    match str.[len - 1] with
+    | '\n' -> str
+    | _ -> str ^ "\n"
+  else str
+
 let parse_dockerfile_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
-    (fun () -> Tree_sitter_dockerfile.Parse.string str)
+    (fun () ->
+      (* tree-sitter-dockerfile parser requires a trailing newline.
+         Not sure if it's intentional but we add one to simplify user
+         experience. *)
+      str |> ensure_trailing_newline |> Tree_sitter_dockerfile.Parse.string)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
