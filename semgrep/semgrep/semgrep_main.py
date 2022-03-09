@@ -174,7 +174,7 @@ def run_rules(
 
         for rule in join_rules:
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
-                rule.raw, [Path(t) for t in target_manager.targets]
+                rule.raw, [target.path for target in target_manager.targets]
             )
             join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
             rule_matches_by_rule.update(join_rule_matches_by_rule)
@@ -190,7 +190,7 @@ def run_rules(
             ) = dep_aware_rule.run_dependency_aware_rule(
                 rule_matches_by_rule.get(rule, []),
                 rule,
-                [Path(t) for t in target_manager.targets],
+                [t.path for t in target_manager.targets],
             )
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -346,9 +346,9 @@ def main(
             includes=include,
             excludes=exclude,
             max_target_bytes=max_target_bytes,
-            targets=target,
+            target_strings=target,
             respect_git_ignore=respect_git_ignore,
-            skip_unknown_extensions=skip_unknown_extensions,
+            allow_unknown_extensions=not skip_unknown_extensions,
             file_ignore=get_file_ignore(),
         )
     except FilesNotFoundError as e:
@@ -395,9 +395,9 @@ def main(
                         includes=include,
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
-                        targets=target,
+                        target_strings=target,
                         respect_git_ignore=respect_git_ignore,
-                        skip_unknown_extensions=skip_unknown_extensions,
+                        allow_unknown_extensions=not skip_unknown_extensions,
                         file_ignore=get_file_ignore(),
                     )
                 except FilesNotFoundError as e:

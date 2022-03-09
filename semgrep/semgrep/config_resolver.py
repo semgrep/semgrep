@@ -176,9 +176,7 @@ class ConfigPath:
         """
         Return config file(s) as dictionary object
         """
-        location = self._config_path
-        base_path = get_base_path()
-        loc = base_path.joinpath(location)
+        loc = Path(self._config_path)
 
         logger.debug(f"Loading local config from {loc}")
         if loc.exists():
@@ -428,14 +426,6 @@ def manual_config(
     }
 
 
-def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
-    base_path = get_base_path()
-    return [
-        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
-        for target in targets
-    ]
-
-
 def adjust_for_docker() -> None:
     # change into this folder so that all paths are relative to it
     if IN_DOCKER and not IN_GH_ACTION:
@@ -449,10 +439,6 @@ def adjust_for_docker() -> None:
             )
         if SRC_DIRECTORY.exists():
             os.chdir(SRC_DIRECTORY)
-
-
-def get_base_path() -> Path:
-    return Path(os.curdir)
 
 
 def indent(msg: str) -> str:
@@ -525,9 +511,8 @@ def load_default_config() -> Dict[str, YamlTree]:
     """
     Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
     """
-    base_path = get_base_path()
-    default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
-    default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
+    default_file = Path(DEFAULT_CONFIG_FILE)
+    default_folder = Path(DEFAULT_CONFIG_FOLDER)
     if default_file.exists():
         return parse_config_at_path(default_file)
     elif default_folder.exists():
