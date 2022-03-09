@@ -3,8 +3,9 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 from collections import defaultdict
+from functools import lru_cache
+from functools import partial
 from pathlib import Path
 from typing import Any
 from typing import Callable
@@ -36,7 +37,6 @@ import click
 from attr import Factory
 from wcmatch import glob as wcglob
 
-from semgrep.config_resolver import resolve_targets
 from semgrep.constants import Colors
 from semgrep.error import FilesNotFoundError
 from semgrep.formatter.text import width
@@ -44,9 +44,8 @@ from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import LanguageDefinition
 from semgrep.semgrep_types import Shebang
-from semgrep.types import FilteredTargets
+from semgrep.types import FilteredFiles
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
@@ -111,6 +110,7 @@ class IgnoreLog:
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
 
+    by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
@@ -279,6 +279,118 @@ class IgnoreLog:
 
 
 @define
+class Target:
+    """
+    Represents one path that was given as a target.
+    Then target.paths returns all paths that target expands to.
+    This does not do any include/exclude filtering.
+
+    Three strategies are available for gathering targets:
+    1. recursively collect from file system (slowest, but always works)
+    2. read the output of `git ls-files` (respects .gitignore)
+    3. [TODO] read the output of `git diff` (respects --baseline-commit)
+    """
+
+    path: Path = field(converter=Path)
+    git_tracked_only: bool
+
+    @path.validator
+    def validate_path(self, _: Any, value: Path) -> None:
+        """
+        Check whether the targeted path exists.
+
+        If not, the path might be a socket.
+        """
+        if not self._is_valid_file_or_dir(value):
+            raise FilesNotFoundError(paths=tuple([value]))
+        return None
+
+    def _is_valid_file_or_dir(self, path: Path) -> bool:
+        """Check this is a valid file or directory for semgrep scanning."""
+        return os.access(str(path), os.R_OK) and not path.is_symlink()
+
+    def _is_valid_file(self, path: Path) -> bool:
+        """Check if file is a readable regular file.
+
+        This eliminates files that should never be semgrep targets. Among
+        others, this takes care of excluding symbolic links (because we don't
+        want to scan the target twice), directories (which may be returned by
+        globbing or by 'git ls-files' e.g. submodules), and files missing
+        the read permission.
+        """
+        return self._is_valid_file_or_dir(path) and path.is_file()
+
+    def _parse_git_output(self, output: str) -> FrozenSet[Path]:
+        """
+        Convert a newline delimited list of files to a set of path objects
+        prepends curr_dir to all paths in said list
+
+        If list is empty then returns an empty set
+        """
+        files: FrozenSet[Path] = frozenset()
+        if output:
+            files = frozenset(
+                p
+                for p in (self.path / elem for elem in output.strip().split("\n"))
+                if self._is_valid_file(p)
+            )
+        return files
+
+    def files_from_git(self) -> FrozenSet[Path]:
+        """
+        git ls-files is significantly faster than os.walk when performed on a git project,
+        so identify the git files first, then filter those
+        """
+        run_git_command = partial(
+            sub_check_output,
+            cwd=self.path.resolve(),
+            encoding="utf-8",
+            stderr=subprocess.DEVNULL,
+        )
+
+        # Tracked files
+        tracked_output = run_git_command(["git", "ls-files"])
+
+        # Untracked but not ignored files
+        untracked_output = run_git_command(
+            [
+                "git",
+                "ls-files",
+                "--other",
+                "--exclude-standard",
+            ]
+        )
+
+        deleted_output = run_git_command(["git", "ls-files", "--deleted"])
+        tracked = self._parse_git_output(tracked_output)
+        untracked_unignored = self._parse_git_output(untracked_output)
+        deleted = self._parse_git_output(deleted_output)
+        return frozenset(tracked | untracked_unignored - deleted)
+
+    def files(self) -> FrozenSet[Path]:
+        """
+        Recursively go through a directory and return list of all files with
+        default file extension of language
+        """
+        if not self.path.is_dir() and self.path.is_file():
+            return frozenset([self.path])
+
+        if self.git_tracked_only:
+            try:
+                return self.files_from_git()
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                logger.verbose(
+                    f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
+                )
+
+        return frozenset(
+            match
+            for match in self.path.glob("**/*")
+            if not match.is_dir() and match.is_file()
+        )
+
+
+@define(eq=False)
 class TargetManager:
     """
     Handles all file include/exclude logic for semgrep
@@ -290,216 +402,31 @@ class TargetManager:
     If respect_git_ignore is true then will only consider files that are
     tracked or (untracked but not ignored) by git
 
-    If skip_unknown_extensions is False then targets with extensions that are
+    If allow_unknown_extensions is set then targets with extensions that are
     not understood by semgrep will always be returned by get_files. Else will discard
     targets with unknown extensions
 
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
-    includes: Sequence[str]
-    excludes: Sequence[str]
-    max_target_bytes: int
-    targets: Sequence[str] = field()
-    respect_git_ignore: bool
-    skip_unknown_extensions: bool
-    file_ignore: Optional[FileIgnore]
+    target_strings: Sequence[str]
+    includes: Sequence[str] = Factory(list)
+    excludes: Sequence[str] = Factory(list)
+    max_target_bytes: int = -1
+    respect_git_ignore: bool = False
+    allow_unknown_extensions: bool = False
+    file_ignore: Optional[FileIgnore] = None
     ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
+    targets: Sequence[Target] = field(init=False)
 
-    _filtered_targets: Dict[Language, FilteredTargets] = field(factory=dict)
+    _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
-    @targets.validator
-    def _check_exists(self, attribute: str, value: Sequence[str]) -> None:
-        """
-        Raise FilesNotFoundError if any element of targets is not a dir/regular file or
-        symlink to a dir/regular file:
-
-        i.e. does not exist, is a mount/socket etc.
-        """
-        targets = self.resolve_targets(self.targets)
-        files, _ = partition_set(lambda p: not p.is_dir(), targets)
-        _, nonexistent_files = partition_set(lambda p: p.is_file(), files)
-        if nonexistent_files:
-            raise FilesNotFoundError(paths=tuple(nonexistent_files))
-
-    @staticmethod
-    def resolve_targets(targets: Sequence[str]) -> FrozenSet[Path]:
-        """
-        Return list of Path objects appropriately resolving relative paths
-        (relative to cwd) if necessary
-        """
-        return frozenset(resolve_targets(targets))
-
-    @staticmethod
-    def _is_valid_file_or_dir(path: Path) -> bool:
-        """Check this is a valid file or directory for semgrep scanning."""
-        return os.access(str(path), os.R_OK) and not path.is_symlink()
-
-    @staticmethod
-    def _is_valid_file(path: Path) -> bool:
-        """Check if file is a readable regular file.
-
-        This eliminates files that should never be semgrep targets. Among
-        others, this takes care of excluding symbolic links (because we don't
-        want to scan the target twice), directories (which may be returned by
-        globbing or by 'git ls-files' e.g. submodules), and files missing
-        the read permission.
-        """
-        return TargetManager._is_valid_file_or_dir(path) and path.is_file()
-
-    @staticmethod
-    def _filter_valid_files(paths: FrozenSet[Path]) -> FrozenSet[Path]:
-        """Keep only readable regular files"""
-        return frozenset(path for path in paths if TargetManager._is_valid_file(path))
-
-    @staticmethod
-    def _expand_dir(
-        curr_dir: Path, language: Language, respect_git_ignore: bool
-    ) -> FrozenSet[Path]:
-        """
-        Recursively go through a directory and return list of all files with
-        default file extension of language
-        """
-
-        def _parse_output(output: str, curr_dir: Path) -> FrozenSet[Path]:
-            """
-            Convert a newline delimited list of files to a set of path objects
-            prepends curr_dir to all paths in said list
-
-            If list is empty then returns an empty set
-            """
-            files: FrozenSet[Path] = frozenset()
-            if output:
-                files = frozenset(
-                    p
-                    for p in (
-                        Path(curr_dir) / elem for elem in output.strip().split("\n")
-                    )
-                    if TargetManager._is_valid_file(p)
-                )
-            return files
-
-        def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
-            """
-            Returns if a path is executable and executes with one of a set of programs
-            """
-            if not os.access(str(f), os.X_OK | os.R_OK):
-                return False
-            try:
-                with f.open("r") as fd:
-                    hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
-                return any(hline.endswith(s) for s in shebangs)
-            except UnicodeDecodeError:
-                logger.debug(
-                    f"Encountered likely binary file {f} while reading shebang; skipping this file"
-                )
-                return False
-
-        def _find_files_with_extension_or_shebang(
-            paths: Iterable[Path],
-            definition: LanguageDefinition,
-        ) -> FrozenSet[Path]:
-            """
-            Finds all files in a collection of paths that either:
-            - end with one of a set of extensions
-            - is a script that executes with one of a set of programs
-
-            Takes ~ 100 ms to execute on a Mac PowerBook on a repo with 3000 files.
-            """
-            res: Set[Path] = set()
-            before = time.time()
-            for path in paths:
-                if path.is_dir():
-                    res.update(
-                        p for ext in definition.exts for p in path.rglob(f"*{ext}")
-                    )
-                    res.update(
-                        Path(root) / f
-                        for root, _, files in os.walk(str(curr_dir))
-                        for f in files
-                        if _executes_with_shebang(Path(root) / f, definition.shebangs)
-                    )
-                else:
-                    if any(str(path).endswith(ext) for ext in definition.exts):
-                        res.add(path)
-                    if _executes_with_shebang(path, definition.shebangs):
-                        res.add(path)
-            logger.debug(
-                f"Scanned file system for matching files in {time.time() - before} s"
-            )
-            return frozenset(res)
-
-        definition = LANGUAGE.definition_by_id[language]
-
-        if respect_git_ignore:
-            try:
-                # git ls-files is significantly faster than os.walk when performed on a git project,
-                # so identify the git files first, then filter those
-
-                # Tracked files
-                tracked_output = sub_check_output(
-                    ["git", "ls-files"],
-                    cwd=curr_dir.resolve(),
-                    encoding="utf-8",
-                    stderr=subprocess.DEVNULL,
-                )
-
-                # Untracked but not ignored files
-                untracked_output = sub_check_output(
-                    [
-                        "git",
-                        "ls-files",
-                        "--other",
-                        "--exclude-standard",
-                    ],
-                    cwd=curr_dir.resolve(),
-                    encoding="utf-8",
-                    stderr=subprocess.DEVNULL,
-                )
-
-                deleted_output = sub_check_output(
-                    ["git", "ls-files", "--deleted"],
-                    cwd=curr_dir.resolve(),
-                    encoding="utf-8",
-                    stderr=subprocess.DEVNULL,
-                )
-                tracked = _parse_output(tracked_output, curr_dir)
-                untracked_unignored = _parse_output(untracked_output, curr_dir)
-                deleted = _parse_output(deleted_output, curr_dir)
-                paths = tracked.union(untracked_unignored).difference(deleted)
-                results = _find_files_with_extension_or_shebang(paths, definition)
-
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                logger.verbose(
-                    f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
-                )
-                # Not a git directory or git not installed. Fallback to using rglob
-                results = _find_files_with_extension_or_shebang([curr_dir], definition)
-        else:
-            results = _find_files_with_extension_or_shebang([curr_dir], definition)
-
-        return TargetManager._filter_valid_files(results)
-
-    @staticmethod
-    def expand_targets(
-        targets: Collection[Path], lang: Language, respect_git_ignore: bool
-    ) -> FrozenSet[Path]:
-        """
-        Explore all directories. Remove duplicates
-        """
-        expanded: Set[Path] = set()
-        for target in targets:
-            if not TargetManager._is_valid_file_or_dir(target):
-                continue
-
-            if target.is_dir():
-                expanded.update(
-                    TargetManager._expand_dir(target, lang, respect_git_ignore)
-                )
-            else:
-                expanded.add(target)
-
-        return frozenset(expanded)
+    def __attrs_post_init__(self) -> None:
+        self.targets = [
+            Target(target, git_tracked_only=self.respect_git_ignore)
+            for target in self.target_strings
+        ]
+        return None
 
     @staticmethod
     def preprocess_path_patterns(patterns: Sequence[str]) -> List[str]:
@@ -519,16 +446,62 @@ class TargetManager:
         return result
 
     @staticmethod
+    def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
+        """
+        Returns if a path is executable and executes with one of a set of programs
+        """
+        if not os.access(str(f), os.X_OK | os.R_OK):
+            return False
+        try:
+            with f.open("r") as fd:
+                hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+            return any(hline.endswith(s) for s in shebangs)
+        except UnicodeDecodeError:
+            logger.debug(
+                f"Encountered likely binary file {f} while reading shebang; skipping this file"
+            )
+            return False
+
+    def filter_by_language(
+        self, language: Language, *, candidates: FrozenSet[Path]
+    ) -> FilteredFiles:
+        """
+        Returns only paths that have the correct extension or shebang.
+
+        Finds all files in a collection of paths that either:
+        - end with one of a set of extension
+        - is a script that executes with one of a set of programs
+        """
+        kept = frozenset(
+            path
+            for path in candidates
+            if any(str(path).endswith(ext) for ext in language.definition.exts)
+            or self._executes_with_shebang(path, language.definition.shebangs)
+        )
+        return FilteredFiles(kept, frozenset(candidates - kept))
+
+    def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
+        """
+        Returns only paths that have an extension we don't recognize.
+        """
+        kept = frozenset(
+            path
+            for path in candidates
+            if not any(path.match(f"*{ext}") for ext in ALL_EXTENSIONS)
+        )
+        return FilteredFiles(kept, frozenset(candidates - kept))
+
+    @staticmethod
     def filter_includes(
         includes: Sequence[str], *, candidates: FrozenSet[Path]
-    ) -> FilteredTargets:
+    ) -> FilteredFiles:
         """
         Returns all elements in candidates that match any includes pattern
 
         If includes is empty, returns candidates unchanged
         """
         if not includes:
-            return FilteredTargets(candidates)
+            return FilteredFiles(candidates)
 
         includes = TargetManager.preprocess_path_patterns(includes)
         # Need cast b/c types-wcmatch doesn't use generics properly :(
@@ -540,19 +513,19 @@ class TargetManager:
                 ),
             )
         )
-        return FilteredTargets(kept, frozenset(candidates - kept))
+        return FilteredFiles(kept, frozenset(candidates - kept))
 
     @staticmethod
     def filter_excludes(
         excludes: Sequence[str], *, candidates: FrozenSet[Path]
-    ) -> FilteredTargets:
+    ) -> FilteredFiles:
         """
         Returns all elements in candidates that do not match any excludes pattern
 
         If excludes is empty, returns candidates unchanged
         """
         if not excludes:
-            return FilteredTargets(candidates)
+            return FilteredFiles(candidates)
 
         excludes = TargetManager.preprocess_path_patterns(excludes)
 
@@ -565,12 +538,12 @@ class TargetManager:
                 ),
             )
         )
-        return FilteredTargets(frozenset(candidates - removed), removed)
+        return FilteredFiles(frozenset(candidates - removed), removed)
 
     @staticmethod
     def filter_by_size(
         max_target_bytes: int, *, candidates: FrozenSet[Path]
-    ) -> FilteredTargets:
+    ) -> FilteredFiles:
         """
         Return all the files whose size doesn't exceed the limit.
 
@@ -579,17 +552,17 @@ class TargetManager:
         result.
         """
         if max_target_bytes <= 0:
-            return FilteredTargets(candidates)
+            return FilteredFiles(candidates)
 
         kept, removed = partition_set(
-            lambda path: TargetManager._is_valid_file(path)
-            and os.path.getsize(path) <= max_target_bytes,
+            lambda path: os.path.getsize(path) <= max_target_bytes,
             candidates,
         )
 
-        return FilteredTargets(kept, removed)
+        return FilteredFiles(kept, removed)
 
-    def filtered_files(self, lang: Language) -> FilteredTargets:
+    @lru_cache()
+    def get_files_for_language(self, lang: Language) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG that match any pattern in INCLUDES and do not
@@ -597,79 +570,51 @@ class TargetManager:
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
 
-        Note also filters out any directory and decendants of `.git`
+        Note also filters out any directory and descendants of `.git`
         """
-        if lang in self._filtered_targets:
-            return self._filtered_targets[lang]
+        all_files = frozenset(f for target in self.targets for f in target.files())
 
-        # Non dir/non file should not exist cause of init time validation
-        # See _check_exists()
-        discovered_paths = self.resolve_targets(self.targets)
-        files, directories = partition_set(lambda p: not p.is_dir(), discovered_paths)
-        explicit_files, _ = partition_set(lambda p: p.is_file(), files)
+        files = self.filter_by_language(lang, candidates=all_files)
+        self.ignore_log.by_language[lang].update(files.removed)
 
-        discovered_paths = self.expand_targets(
-            directories, lang, self.respect_git_ignore
+        files = self.filter_includes(self.includes, candidates=files.kept)
+        self.ignore_log.cli_includes.update(files.removed)
+
+        files = self.filter_excludes(self.excludes, candidates=files.kept)
+        self.ignore_log.cli_excludes.update(files.removed)
+
+        files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
+        self.ignore_log.always_skipped.update(files.removed)
+
+        files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
+        self.ignore_log.size_limit.update(files.removed)
+
+        if self.file_ignore:
+            files = self.file_ignore.filter_paths(candidates=files.kept)
+            self.ignore_log.semgrepignored.update(files.removed)
+
+        kept_files = files.kept
+
+        explicit_files = frozenset(
+            t.path for t in self.targets if not t.path.is_dir() and t.path.is_file()
         )
-
-        filtered_targets = self.filter_includes(
-            self.includes,
-            candidates=discovered_paths,
+        explicit_files_for_lang = self.filter_by_language(
+            lang, candidates=explicit_files
         )
-        self.ignore_log.cli_includes.update(filtered_targets.removed)
-
-        filtered_targets = self.filter_excludes(
-            self.excludes,
-            candidates=filtered_targets.kept,
-        )
-        self.ignore_log.cli_excludes.update(filtered_targets.removed)
-
-        filtered_targets = self.filter_excludes(
-            PATHS_ALWAYS_SKIPPED,
-            candidates=filtered_targets.kept,
-        )
-        self.ignore_log.always_skipped.update(filtered_targets.removed)
-
-        filtered_targets = self.filter_by_size(
-            self.max_target_bytes,
-            candidates=filtered_targets.kept,
-        )
-        self.ignore_log.size_limit.update(filtered_targets.removed)
-
-        # Remove explicit_files with known extensions.
-        explicit_files_with_lang_extension = frozenset(
-            f
-            for f in explicit_files
-            if (any(f.match(f"*{ext}") for ext in LANGUAGE.definition_by_id[lang].exts))
-        )
-        targets = filtered_targets.kept.union(explicit_files_with_lang_extension)
-
-        if not self.skip_unknown_extensions:
-            explicit_files_with_unknown_extensions = frozenset(
-                f
-                for f in explicit_files
-                if not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
+        kept_files |= explicit_files_for_lang.kept
+        if self.allow_unknown_extensions:
+            explicit_files_of_unknown_lang = self.filter_known_extensions(
+                candidates=explicit_files
             )
-            targets = targets.union(explicit_files_with_unknown_extensions)
+            kept_files |= explicit_files_of_unknown_lang.kept
 
-        filtered_targets = (
-            self.file_ignore.filter_paths(candidates=targets)
-            if self.file_ignore
-            else FilteredTargets(targets)
-        )
-        self.ignore_log.semgrepignored.update(filtered_targets.removed)
+        return FilteredFiles(kept_files, all_files - kept_files)
 
-        self._filtered_targets[lang] = FilteredTargets(
-            filtered_targets.kept,
-            discovered_paths - filtered_targets.kept,
-        )
-        return self._filtered_targets[lang]
-
-    def get_files(
+    def get_files_for_rule(
         self,
         lang: Language,
-        includes: Sequence[str],
-        excludes: Sequence[str],
+        rule_includes: Sequence[str],
+        rule_excludes: Sequence[str],
         rule_id: str,
     ) -> FrozenSet[Path]:
         """
@@ -683,21 +628,12 @@ class TargetManager:
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        filtered_targets = self.filtered_files(lang)
+        paths = self.get_files_for_language(lang)
 
-        filtered_targets = self.filter_includes(
-            includes, candidates=filtered_targets.kept
-        )
-        self.ignore_log.rule_includes[rule_id].update(filtered_targets.removed)
+        paths = self.filter_includes(rule_includes, candidates=paths.kept)
+        self.ignore_log.rule_includes[rule_id].update(paths.removed)
 
-        filtered_targets = self.filter_excludes(
-            excludes, candidates=filtered_targets.kept
-        )
-        self.ignore_log.rule_excludes[rule_id].update(filtered_targets.removed)
+        paths = self.filter_excludes(rule_excludes, candidates=paths.kept)
+        self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
-        filtered_targets = self.filter_by_size(
-            self.max_target_bytes, candidates=filtered_targets.kept
-        )
-        self.ignore_log.size_limit.update(filtered_targets.removed)
-
-        return filtered_targets.kept
+        return paths.kept

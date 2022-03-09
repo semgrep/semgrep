@@ -1,7 +1,7 @@
 import subprocess
+from pathlib import Path
 from typing import Sequence
 
-import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error import SemgrepError
 from semgrep.semgrep_core import SemgrepCore
@@ -9,9 +9,9 @@ from semgrep.util import sub_check_output
 
 
 def synthesize(
-    language: str, code_to_synthesize: str, targets_str: Sequence[str]
+    language: str, code_to_synthesize: str, target_strings: Sequence[str]
 ) -> None:
-    targets = semgrep.config_resolver.resolve_targets(targets_str)
+    targets = [Path(target_string) for target_string in target_strings]
 
     if len(targets) != 1:
         raise SemgrepError("--synthesize-patterns requires exactly one target file")

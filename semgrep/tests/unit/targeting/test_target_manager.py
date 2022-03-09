@@ -1,4 +1,5 @@
 import subprocess
+from functools import partial
 from pathlib import Path
 from typing import Collection
 
@@ -8,6 +9,7 @@ from semgrep.error import FilesNotFoundError
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
 
 
@@ -24,10 +26,10 @@ def test_nonexistent(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     # shouldnt raise an error
-    TargetManager([], [], 0, ["foo/a.py"], True, False, None)
+    TargetManager(["foo/a.py"])
 
     with pytest.raises(FilesNotFoundError) as e:
-        TargetManager([], [], 0, ["foo/a.py", "foo/doesntexist.py"], True, False, None)
+        TargetManager(["foo/a.py", "foo/doesntexist.py"])
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
 
@@ -48,10 +50,7 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], LANGUAGE.resolve("python"), True),
-        {bar},
-    )
+    assert_path_sets_equal(Target(".", True).files(), {bar})
 
 
 def test_expand_targets_git(tmp_path, monkeypatch):
@@ -98,53 +97,53 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     in_bar = {bar_a, bar_b}
     in_all = in_foo.union(in_bar)
 
-    python_language = LANGUAGE.resolve("python")
+    GitTargetManager = partial(TargetManager, respect_git_ignore=True)
+    PY = LANGUAGE.resolve("python")
 
     monkeypatch.chdir(tmp_path)
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_all
+        GitTargetManager(["."]).get_files_for_language(PY).kept, in_all
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
+        GitTargetManager(["bar"]).get_files_for_language(PY).kept, in_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
+        GitTargetManager(["foo"]).get_files_for_language(PY).kept, in_foo
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
+        GitTargetManager([str(Path("foo").resolve())]).get_files_for_language(PY).kept,
         in_foo,
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
+        GitTargetManager(["foo/bar"]).get_files_for_language(PY).kept,
         in_foo_bar,
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, True
-        ),
+        GitTargetManager([str(Path("foo/bar").resolve())])
+        .get_files_for_language(PY)
+        .kept,
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
+        GitTargetManager(["."]).get_files_for_language(PY).kept, in_foo
+    )
+    with pytest.raises(FilesNotFoundError):
+        GitTargetManager(["./foo"]).get_files_for_language(PY)
+    assert_path_sets_equal(
+        GitTargetManager(["bar"]).get_files_for_language(PY).kept, in_foo_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
+        GitTargetManager(["bar"]).get_files_for_language(PY).kept, in_foo_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        GitTargetManager([".."]).get_files_for_language(PY).kept, in_all
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        GitTargetManager(["../bar"]).get_files_for_language(PY).kept, in_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("..")], python_language, True), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
+        GitTargetManager(["../foo/bar"]).get_files_for_language(PY).kept,
         in_foo_bar,
     )
 
@@ -164,49 +163,48 @@ def test_expand_targets_git(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_all
+        GitTargetManager([(".")]).get_files_for_language(PY).kept, in_all
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
+        GitTargetManager([("bar")]).get_files_for_language(PY).kept, in_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
+        GitTargetManager([("foo")]).get_files_for_language(PY).kept, in_foo
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
+        GitTargetManager([str(Path("foo").resolve())]).get_files_for_language(PY).kept,
         in_foo,
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
+        GitTargetManager([("foo/bar")]).get_files_for_language(PY).kept,
         in_foo_bar,
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, True
-        ),
+        GitTargetManager([str(Path("foo/bar").resolve())])
+        .get_files_for_language(PY)
+        .kept,
         in_foo_bar,
     )
     monkeypatch.chdir(foo)
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
+        GitTargetManager([(".")]).get_files_for_language(PY).kept, in_foo
+    )
+    with pytest.raises(FilesNotFoundError):
+        GitTargetManager([("./foo")]).get_files_for_language(PY).kept
+    assert_path_sets_equal(
+        GitTargetManager([("bar")]).get_files_for_language(PY).kept, in_foo_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
+        GitTargetManager([("bar")]).get_files_for_language(PY).kept, in_foo_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        GitTargetManager([("..")]).get_files_for_language(PY).kept, in_all
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
+        GitTargetManager([("../bar")]).get_files_for_language(PY).kept, in_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("..")], python_language, True), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
+        GitTargetManager([("../foo/bar")]).get_files_for_language(PY).kept,
         in_foo_bar,
     )
 
@@ -253,55 +251,47 @@ def test_expand_targets_not_git(tmp_path, monkeypatch):
     in_bar = {bar_a, bar_b}
     in_all = in_foo.union(in_bar)
 
-    python_language = Language("python")
+    PY = Language("python")
 
     monkeypatch.chdir(tmp_path)
+    assert_path_sets_equal(TargetManager(["."]).get_files_for_language(PY).kept, in_all)
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, False), in_all
+        TargetManager(["bar"]).get_files_for_language(PY).kept, in_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_bar
+        TargetManager(["foo"]).get_files_for_language(PY).kept, in_foo
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo")], python_language, False), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, False),
+        TargetManager([str(Path("foo").resolve())]).get_files_for_language(PY).kept,
         in_foo,
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, False),
+        TargetManager(["foo/bar"]).get_files_for_language(PY).kept,
         in_foo_bar,
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, False
-        ),
+        TargetManager([str(Path("foo/bar").resolve())]).get_files_for_language(PY).kept,
         in_foo_bar,
     )
 
     monkeypatch.chdir(foo)
+    assert_path_sets_equal(TargetManager(["."]).get_files_for_language(PY).kept, in_foo)
+    with pytest.raises(FilesNotFoundError):
+        TargetManager(["./foo"]).get_files_for_language(PY).kept
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, False), in_foo
+        TargetManager(["bar"]).get_files_for_language(PY).kept, in_foo_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("./foo")], python_language, False), set()
+        TargetManager(["bar"]).get_files_for_language(PY).kept, in_foo_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
+        TargetManager([".."]).get_files_for_language(PY).kept, in_all
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
+        TargetManager(["../bar"]).get_files_for_language(PY).kept, in_bar
     )
     assert_path_sets_equal(
-        TargetManager.expand_targets([Path("..")], python_language, False), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../bar")], python_language, False), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, False),
-        in_foo_bar,
+        TargetManager(["../foo/bar"]).get_files_for_language(PY).kept, in_foo_bar
     )
 
 
@@ -313,16 +303,15 @@ def test_skip_symlink(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
 
-    python_language = Language("python")
+    PY = Language("python")
 
     assert_path_sets_equal(
-        TargetManager.expand_targets([foo], python_language, False),
+        TargetManager([str(foo)]).get_files_for_language(PY).kept,
         {foo / "a.py"},
     )
 
-    assert_path_sets_equal(
-        TargetManager.expand_targets([foo / "link.py"], python_language, False), set()
-    )
+    with pytest.raises(FilesNotFoundError):
+        TargetManager([str(foo / "link.py")]).get_files_for_language(PY)
 
 
 def test_ignore_git_dir(tmp_path, monkeypatch):
@@ -335,7 +324,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
-    assert frozenset() == TargetManager([], [], 0, [foo], True, False, None).get_files(
+    assert frozenset() == TargetManager([foo]).get_files_for_rule(
         language, [], [], "dummy_rule_id"
     )
 
@@ -359,39 +348,39 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], 0, ["foo/a.py"], False, False, None
-    ).get_files(python_language, [], [], "dummy_rule_id")
-    assert foo_a in TargetManager([], [], 0, ["foo/a.py"], False, True, None).get_files(
+        ["foo/a.py"], allow_unknown_extensions=True
+    ).get_files_for_rule(python_language, [], [], "dummy_rule_id")
+    assert foo_a in TargetManager(["foo/a.py"]).get_files_for_rule(
         python_language, [], [], "dummy_rule_id"
     )
 
     # Should include explicitly passed python file even if is in excludes
-    assert foo_a not in TargetManager(
-        [], ["foo/a.py"], 0, ["."], False, False, None
-    ).get_files(python_language, [], [], "dummy_rule_id")
+    assert foo_a not in TargetManager(["."], [], ["foo/a.py"]).get_files_for_rule(
+        python_language, [], [], "dummy_rule_id"
+    )
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, False, None
-    ).get_files(python_language, [], [], "dummy_rule_id")
+        [".", "foo/a.py"], [], ["foo/a.py"]
+    ).get_files_for_rule(python_language, [], [], "dummy_rule_id")
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], 0, ["foo/a.go"], False, False, None).get_files(
+        TargetManager(["foo/a.go"]).get_files_for_rule(
             python_language, [], [], "dummy_rule_id"
         )
         == frozenset()
     )
 
-    # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
+    # Should include explicitly passed file with unknown extension if allow_unknown_extensions=True
     assert_path_sets_equal(
-        TargetManager([], [], 0, ["foo/noext"], False, False, None).get_files(
+        TargetManager(["foo/noext"], allow_unknown_extensions=True).get_files_for_rule(
             python_language, [], [], "dummy_rule_id"
         ),
         {foo_noext},
     )
 
-    # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
+    # Should not include explicitly passed file with unknown extension by default
     assert_path_sets_equal(
-        TargetManager([], [], 0, ["foo/noext"], False, True, None).get_files(
+        TargetManager(["foo/noext"]).get_files_for_rule(
             python_language, [], [], "dummy_rule_id"
         ),
         set(),
@@ -399,17 +388,17 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert_path_sets_equal(
-        TargetManager(
-            [], [], 0, ["foo/noext", "foo/a.py"], False, True, None
-        ).get_files(python_language, [], [], "dummy_rule_id"),
+        TargetManager(["foo/noext", "foo/a.py"]).get_files_for_rule(
+            python_language, [], [], "dummy_rule_id"
+        ),
         {foo_a},
     )
 
     # Should respect includes/excludes passed to get_files even if target explicitly passed
     assert_path_sets_equal(
-        TargetManager(
-            [], [], 0, ["foo/a.py", "foo/b.py"], False, False, None
-        ).get_files(python_language, ["a.py"], [], "dummy_rule_id"),
+        TargetManager(["foo/a.py", "foo/b.py"]).get_files_for_rule(
+            python_language, ["a.py"], [], "dummy_rule_id"
+        ),
         {foo_a},
     )
 
@@ -417,8 +406,8 @@ def test_explicit_path(tmp_path, monkeypatch):
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats):
         return TargetManager(
-            [], [], 0, [tmp_path], False, False, FileIgnore(tmp_path, ignore_pats)
-        ).get_files(Language("python"), [], [], "dummy_rule_id")
+            [tmp_path], file_ignore=FileIgnore(tmp_path, ignore_pats)
+        ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id")
 
     monkeypatch.chdir(tmp_path)
     a = tmp_path / "a.py"

@@ -162,12 +162,11 @@ def terminal_wrap(text: str) -> str:
 
 def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
-    # fmt: off
     if is_quiet():
         kwargs = {**kwargs, "stderr": subprocess.DEVNULL}
-    result = subprocess.check_output(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-    # fmt: on
-    return result
+
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+    return subprocess.check_output(cmd, **kwargs)
 
 
 def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[str]:
