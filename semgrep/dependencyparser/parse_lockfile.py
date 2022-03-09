@@ -82,12 +82,14 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
             integrity = line.split("integrity")[1].replace('"', "").strip()
             continue
 
-        if len(line) == 0 and package_name and version and resolved and integrity:
+        if len(line) == 0 and package_name and version and resolved:
             yield LockfileDependency(
                 package_name,
                 version,
                 PackageManagers.NPM,
-                allowed_hashes=extract_npm_lockfile_hash(integrity),
+                allowed_hashes=extract_npm_lockfile_hash(integrity)
+                if integrity
+                else {},
                 resolved_url=[resolved],
             )
             package_name, version, resolved, integrity = None, None, None, None
