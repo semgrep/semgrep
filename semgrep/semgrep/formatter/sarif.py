@@ -88,10 +88,15 @@ class SarifFormatter(BaseFormatter):
         """
         result = []
         if "cwe" in rule.metadata:
-            result.append(rule.metadata["cwe"])
+            cwe = rule.metadata["cwe"]
+            result.extend(cwe if isinstance(cwe, list) else [cwe])
         if "owasp" in rule.metadata:
             owasp = rule.metadata["owasp"]
-            result.append(f"OWASP-{owasp}")
+            result.extend(
+                [f"OWASP-{o}" for o in owasp]
+                if isinstance(owasp, list)
+                else [f"OWASP-{owasp}"]
+            )
 
         for tags in rule.metadata.get("tags", []):
             result.append(tags)
