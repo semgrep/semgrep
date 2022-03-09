@@ -1,0 +1,56 @@
+rules:
+- id: ansi-html-redos
+  languages:
+  - js
+  - ts
+  message: |
+    This affects all versions of package ansi-html. If an attacker provides a malicious string, it will get stuck processing the input for an extremely long time. There is no upgrade fix at this time (the package is no longer being maintained), but you can change to use the 'ansi-html-community@0.0.8' package instead.
+  metadata:
+    category: security
+    technology:
+    - js
+    - ts
+    references:
+      - https://github.com/advisories/GHSA-whgm-jr23-g3j9
+      - https://nvd.nist.gov/vuln/detail/CVE-2021-23424
+      - https://github.com/Tjatse/ansi-html/issues/19
+      - https://github.com/mahdyar/ansi-html-community
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        function (..., $STR, ...) {
+          ...
+          $ANSI($STR);
+          ...
+        }
+    - pattern-inside: |
+        function $FUNC (..., $STR, ...) {
+          ...
+          $ANSI($STR);
+        }
+    - pattern-inside: |
+        $X = function $FUNC(..., $STR, ...) {
+          ...
+          $ANSI($STR);
+          ...
+        }
+    - pattern-inside: |
+        $APP.$METHOD(..., function $FUNC(..., $STR, ...) {
+          ...
+          $ANSI($STR);
+        }, ...)
+  - pattern-either:
+    - pattern-inside: |
+        const $ANSI = require("ansi-html");
+        ...
+    - pattern-inside: |
+        var $ANSI = require("ansi-html");
+        ...
+    - pattern-inside: |
+        import { $ANSI } from "ansi-html";
+        ...
+  - r2c-internal-project-depends-on:
+    - namespace: npm
+      package: ansi-html
+      version: < 0.0.8
+  severity: ERROR

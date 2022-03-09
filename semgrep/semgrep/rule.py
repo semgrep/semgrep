@@ -219,7 +219,8 @@ class Rule:
 
         def has_runnable_rule(d: Dict[str, Any]) -> bool:
             for k in d:
-                if k in RuleValidation.PATTERN_KEYS:
+                # `pattern-inside` is valid without an accompanying `pattern`
+                if k in RuleValidation.PATTERN_KEYS or k == "pattern-inside":
                     children = d.get(k)
                     if children is not None and isinstance(children, list):
                         return any(has_runnable_rule(_) for _ in children)
