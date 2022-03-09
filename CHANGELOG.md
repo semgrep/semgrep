@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Allow metrics flag and metrics env var at the same time if both are set to the same value (#4703)
 - Scan `yarn.lock` dependencies that do not specify a hash
 - Run `project-depends-on` rules with only `pattern-inside` at their leaves
+- Dockerfile patterns no longer need a trailing newline (#4773)
 
 ## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
 
