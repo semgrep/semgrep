@@ -10,8 +10,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   metavariable
 - Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
 - PHP: .tpl files are now considered PHP files (#4763)
-- Support for Scala's custom string interpolators (#4655)
-- Support parsing Scala scripting files that contain plain definitions outside an Object or Class
+- Scala: Support for custom string interpolators (#4655)
+- Scala: Support parsing Scala scripts that contain plain definitions outside
+  an Object or Class
+- JSX: JSX singleton elements (a.k.a XML elements), e.g., `<foo />` used to
+  match also more complex JSX elements, e.g., `<foo >some child</foo>`.
+  This can now be disabled via rule `options:`
+  with `xml_singleton_loose_matching: false` (#4730)
+- JSX: new matching option `xml_attrs_implicit_ellipsis` that allows
+  disabling the implicit `...` that was added to JSX attributes patterns.
 
 ### Fixed
 

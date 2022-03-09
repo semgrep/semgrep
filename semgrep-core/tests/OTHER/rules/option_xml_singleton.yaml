@@ -1,0 +1,10 @@
+rules:
+  - id: test-xml-matching
+    languages:
+      - js
+    message: Working!
+    options:
+      xml_singleton_loose_matching: false
+    pattern: |
+       <View .../>      
+    severity: WARNING

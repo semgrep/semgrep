@@ -1197,10 +1197,14 @@ and m_xml_kind a b =
   (* iso: allow a Classic to match a Singleton, and vice versa *)
   | G.XmlClassic (a0, a1, a2, _), B.XmlSingleton (b0, b1, b2)
   | G.XmlSingleton (a0, a1, a2), B.XmlClassic (b0, b1, b2, _) ->
-      let* () = m_tok a0 b0 in
-      let* () = m_ident a1 b1 in
-      let* () = m_tok a2 b2 in
-      return ()
+      if_config
+        (fun x -> x.Config.xml_singleton_loose_matching)
+        ~then_:
+          (let* () = m_tok a0 b0 in
+           let* () = m_ident a1 b1 in
+           let* () = m_tok a2 b2 in
+           return ())
+        ~else_:(fail ())
   | G.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
       let* () = m_tok a0 b0 in
       let* () = m_ident a1 b1 in
@@ -1222,9 +1226,11 @@ and m_xml_kind a b =
       fail ()
 
 and m_attrs a b =
-  let _has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
-  (* always implicit ... *)
-  m_list_in_any_order ~less_is_ok:true m_xml_attr a b
+  let has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
+  if_config
+    (fun x -> x.xml_attrs_implicit_ellipsis)
+    ~then_:(m_list_in_any_order ~less_is_ok:true m_xml_attr a b)
+    ~else_:(m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_attr a b)
 
 and m_bodies a b = m_list__m_body a b
 
