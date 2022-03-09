@@ -8,7 +8,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
+- Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
 - PHP: .tpl files are now considered PHP files (#4763)
+- Scala: Support for custom string interpolators (#4655)
+- Scala: Support parsing Scala scripts that contain plain definitions outside
+  an Object or Class
+- JSX: JSX singleton elements (a.k.a XML elements), e.g., `<foo />` used to
+  match also more complex JSX elements, e.g., `<foo >some child</foo>`.
+  This can now be disabled via rule `options:`
+  with `xml_singleton_loose_matching: false` (#4730)
+- JSX: new matching option `xml_attrs_implicit_ellipsis` that allows
+  disabling the implicit `...` that was added to JSX attributes patterns.
 
 ### Fixed
 
@@ -18,6 +28,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Autofix: Semgrep no longer errors during `--dry-run`s where one fix changes the line numbers in a file that also has a second autofix.
 - Performance regression when running with --debug (#4761)
 - SARIF output formatter not handling lists of OWASP or CWE metadata (#4673)
+- Allow metrics flag and metrics env var at the same time if both are set to the same value (#4703)
+- Scan `yarn.lock` dependencies that do not specify a hash
+- Run `project-depends-on` rules with only `pattern-inside` at their leaves
+- Dockerfile patterns no longer need a trailing newline (#4773)
 
 ## [0.83.0](https://github.com/returntocorp/semgrep/releases/tag/v0.83.0) - 2022-02-24
 

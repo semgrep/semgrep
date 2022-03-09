@@ -1,22 +1,27 @@
-import hashlib
 from enum import Enum
-from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 
 from attrs import frozen
 
-KNOWN_HASH_ALGORITHMS: Dict[str, Callable] = {
-    "sha256": hashlib.sha256,
-    "sha512": hashlib.sha512,
-    "sha1": hashlib.sha1,
+KNOWN_HASH_ALGORITHMS: Set[str] = {
+    "sha256",
+    "sha512",
+    "sha1",
+    "gomod",
+    # go.sum files use a non-standard hashing algorithm based on multiple uses of sha256 and conversion to base 64
 }
 
 
 class PackageManagers(Enum):
     NPM = "npm"
-    PYPI = "pypy"
+    PYPI = "pypi"
+    GEM = "gem"
+    GOMOD = "gomod"
+    CARGO = "cargo"
+    MAVEN = "maven"
 
 
 @frozen(eq=True, order=True)
@@ -34,6 +39,3 @@ class LockfileDependency:
             assert (
                 k in KNOWN_HASH_ALGORITHMS
             ), f"unknown hash type {k} not in {KNOWN_HASH_ALGORITHMS}"
-        for hash_list in self.allowed_hashes.values():
-            for h in hash_list:
-                assert h.lower() == h, "uhoh, hashes should always be lowercased..."
