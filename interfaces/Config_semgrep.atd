@@ -5,8 +5,9 @@
  * the user enable/disable certain features on a per-rule (could do even
  * per-pattern basis?). For example, constant propagation may be too powerful
  * sometimes and prevent people to find certain code.
+ * Those features are called 'options' in the rule.
  *
- * Note that each feature in this file will change the matching results;
+ * Note that each option in this file will change the matching results;
  * for non-functional settings such as optimizations (e.g., using a
  * cache) use instead Flag_semgrep.ml
  *
@@ -18,9 +19,9 @@
 (* !!Do not rename the fields because they can be referenced in rules!! *)
 type t = {
   ~constant_propagation <ocaml default="true"> : bool;
-  (* requires constant_propagation to have effect *)
+  (* symbolic_propagation requires constant_propagation to have effect *)
   ~symbolic_propagation <ocaml default="false"> : bool;
-  (* associative-commutative matching *)
+  (* 'ac' stands for associative-commutative matching *)
   ~ac_matching <ocaml default="true"> : bool;
   (* pretend && and || are commutative *)
   (* THINK: Should we merge ac_matching and commutative_boolop into a single setting? *)
@@ -49,6 +50,11 @@ type t = {
   (* implicitly assume ellipsis in record patterns *)
   (* TODO: eventually the default should be 'false'. *)
   ~implicit_ellipsis <ocaml default="true"> : bool;
+
+  ~xml_singleton_loose_matching <ocaml default="true"> : bool;
+  (* implicitly assume ellipsis in xml attributes *)
+  (* TODO: eventually the default should be 'false'. *)
+  ~xml_attrs_implicit_ellipsis <ocaml default="true"> : bool;
 
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
