@@ -22,6 +22,8 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+from semgrep.git import BaselineHandler
+
 # usually this would be a try...except ImportError
 # but mypy understands only this
 # see https://github.com/python/mypy/issues/1393
@@ -34,7 +36,7 @@ else:
 from attrs import define
 from attrs import field
 import click
-from attr import Factory
+from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 
 from semgrep.constants import Colors
@@ -278,7 +280,7 @@ class IgnoreLog:
             }
 
 
-@define
+@frozen(eq=False)  #
 class Target:
     """
     Represents one path that was given as a target.
@@ -292,7 +294,8 @@ class Target:
     """
 
     path: Path = field(converter=Path)
-    git_tracked_only: bool
+    git_tracked_only: bool = False
+    baseline_handler: Optional[BaselineHandler] = None
 
     @path.validator
     def validate_path(self, _: Any, value: Path) -> None:
@@ -336,7 +339,16 @@ class Target:
             )
         return files
 
-    def files_from_git(self) -> FrozenSet[Path]:
+    def files_from_git_diff(self) -> FrozenSet[Path]:
+        """
+        Get only changed files since baseline commit.
+        """
+        if self.baseline_handler is None:
+            raise RuntimeError("Can't get git diff file list without a baseline commit")
+        git_status = self.baseline_handler.status
+        return frozenset(git_status.added + git_status.modified)
+
+    def files_from_git_ls(self) -> FrozenSet[Path]:
         """
         git ls-files is significantly faster than os.walk when performed on a git project,
         so identify the git files first, then filter those
@@ -367,6 +379,14 @@ class Target:
         deleted = self._parse_git_output(deleted_output)
         return frozenset(tracked | untracked_unignored - deleted)
 
+    def files_from_filesystem(self) -> FrozenSet[Path]:
+        return frozenset(
+            match
+            for match in self.path.glob("**/*")
+            if not match.is_dir() and match.is_file()
+        )
+
+    @lru_cache(maxsize=None)
     def files(self) -> FrozenSet[Path]:
         """
         Recursively go through a directory and return list of all files with
@@ -375,19 +395,23 @@ class Target:
         if not self.path.is_dir() and self.path.is_file():
             return frozenset([self.path])
 
+        if self.baseline_handler is not None:
+            try:
+                return self.files_from_git_diff()
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                logger.verbose(
+                    f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
+                )
+
         if self.git_tracked_only:
             try:
-                return self.files_from_git()
+                return self.files_from_git_ls()
             except (subprocess.CalledProcessError, FileNotFoundError):
                 logger.verbose(
                     f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
                 )
 
-        return frozenset(
-            match
-            for match in self.path.glob("**/*")
-            if not match.is_dir() and match.is_file()
-        )
+        return self.files_from_filesystem()
 
 
 @define(eq=False)
@@ -402,6 +426,9 @@ class TargetManager:
     If respect_git_ignore is true then will only consider files that are
     tracked or (untracked but not ignored) by git
 
+    If git_baseline_commit is true then will only consider files that have
+    changed since that commit
+
     If allow_unknown_extensions is set then targets with extensions that are
     not understood by semgrep will always be returned by get_files. Else will discard
     targets with unknown extensions
@@ -414,6 +441,7 @@ class TargetManager:
     excludes: Sequence[str] = Factory(list)
     max_target_bytes: int = -1
     respect_git_ignore: bool = False
+    baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
     ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
@@ -423,7 +451,11 @@ class TargetManager:
 
     def __attrs_post_init__(self) -> None:
         self.targets = [
-            Target(target, git_tracked_only=self.respect_git_ignore)
+            Target(
+                target,
+                git_tracked_only=self.respect_git_ignore,
+                baseline_handler=self.baseline_handler,
+            )
             for target in self.target_strings
         ]
         return None
@@ -561,7 +593,7 @@ class TargetManager:
 
         return FilteredFiles(kept, removed)
 
-    @lru_cache()
+    @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Language) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
