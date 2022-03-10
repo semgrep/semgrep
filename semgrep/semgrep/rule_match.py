@@ -247,6 +247,33 @@ class RuleMatch:
         """
         return UUID(hex=self.syntactic_id)
 
+    def to_app_finding_format(self) -> Dict[str, Any]:
+
+        # Follow semgrep.dev severity conventions
+        if self.severity.value == RuleSeverity.ERROR.value:
+            app_severity = 2
+        elif self.severity.value == RuleSeverity.WARNING.value:
+            app_severity = 1
+        else:
+            app_severity = 0
+
+        return {
+            "check_id": self.id,
+            "path": str(self.path),
+            "line": self.start.line,
+            "column": self.start.col,
+            "end_line": self.end.line,
+            "end_column": self.end.col,
+            "message": self.message,
+            "severity": app_severity,
+            "index": "TODO",
+            "commit_date": "TODO",
+            "syntactic_id": "TODO",
+            "metadata": self.metadata,
+            "is_blocking": "block"
+            in self.metadata.get("dev.semgrep.actions", ["block"]),
+        }
+
     def __hash__(self) -> int:
         """
         We use the "data-correctness" key to prevent keeping around duplicates.
@@ -262,6 +289,8 @@ class RuleMatch:
         if not isinstance(other, type(self)):
             return NotImplemented
         return self.ordering_key < other.ordering_key
+
+
 
 
 class RuleMatchSet(Set[RuleMatch]):
