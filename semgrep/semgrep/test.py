@@ -289,6 +289,8 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
+    if original_config.is_file():
+        return [original_config]
     configs = list(original_config.rglob("*"))
     return [
         config
@@ -467,6 +469,8 @@ def test_main(
             raise Exception("only one config directory allowed for tests")
         config_path = Path(config[0])
     else:
+        if target_path.is_file():
+            raise Exception("--config is required when running a test on single file")
         config_path = target_path
 
     generate_test_results(
