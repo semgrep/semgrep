@@ -385,8 +385,7 @@ let rec m_name a b =
       let rec aux xs =
         match xs with
         | [] -> fail ()
-        | x :: xs ->
-            m_name a x >||> aux xs
+        | x :: xs -> m_name a x >||> aux xs
       in
       aux parents
   | G.Id (a1, a2), B.Id (b1, b2) ->
