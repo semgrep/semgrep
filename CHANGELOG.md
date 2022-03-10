@@ -6,8 +6,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+
+
+
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
+
 - Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
 - PHP: .tpl files are now considered PHP files (#4763)
 - Scala: Support for custom string interpolators (#4655)
@@ -20,7 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JSX: new matching option `xml_attrs_implicit_ellipsis` that allows
   disabling the implicit `...` that was added to JSX attributes patterns.
 
-### Fixed
+###  Fixed
 
 - Report parse errors even when invoked with `--strict`
 - Show correct findings count when using `--config auto` (#4674)
