@@ -1,6 +1,7 @@
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
+from textwrap import dedent
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -60,8 +61,6 @@ class BaselineHandler:
         self._dirty_paths_by_status: Optional[Dict[str, List[Path]]] = None
 
         try:
-            self._repo_root_dir = Path(self._get_repo_root())
-
             # Check commit hash exists
             try:
                 subprocess.run(
@@ -71,39 +70,27 @@ class BaselineHandler:
                     stdout=subprocess.PIPE,
                 )
             except subprocess.CalledProcessError:
-                raise Exception(f"{base_commit} does not resolve to a valid commit")
+                raise Exception(
+                    dedent(
+                        f"""
+                        Cannot find a commit with reference '{base_commit}'. Possible reasons:
 
-            self._status = self._get_git_status()
+                        - the referenced commit does not exist
+                        - the current working directory is not a git repository
+                        - the git binary is not available
+
+                        Try running `git show {base_commit}` to debug the issue.
+                        """
+                    ).strip()
+                )
+
+            self.status = self._get_git_status()
             self._abort_on_pending_changes()
-            self._abort_on_conflicting_untracked_paths(self._status)
+            self._abort_on_conflicting_untracked_paths(self.status)
         except subprocess.CalledProcessError as e:
             raise Exception(
                 f"Error initializing baseline. While running command {e.cmd} recieved non-zero exit status of {e.returncode}.\n(stdout)->{e.stdout}\n(strerr)->{e.stderr}"
             )
-
-    def _relative_to_repo_root_to_absolute(self, fname: str) -> Path:
-        return (Path(self._repo_root_dir) / fname).resolve()
-
-    def _get_repo_root(self) -> Path:
-        """
-        Returns Path object to the root of the git project cwd is in
-
-        Raises Exception if cwd is not in a git project
-        """
-        rev_parse = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        )
-        if rev_parse.returncode != 0:
-            raise Exception(
-                "Current directory is not in a git project. Aborting baseline scan."
-            )
-
-        repo_root_str = rev_parse.stdout.strip()
-        return Path(rev_parse.stdout.strip())
 
     def _get_git_status(self) -> GitStatus:
         """
@@ -131,6 +118,7 @@ class BaselineHandler:
                     "-z",
                     "--diff-filter=ACDMRTUXB",
                     "--ignore-submodules",
+                    "--relative",
                     "--merge-base",
                     f"{self._base_commit}",
                 ],
@@ -157,31 +145,29 @@ class BaselineHandler:
             if code == StatusCode.Untracked or code == StatusCode.Ignored:
                 continue
 
-            resolved_name = self._relative_to_repo_root_to_absolute(fname)
+            path = Path(fname)
 
-            # If file is symlink to directory, skip
-            absolute_name = Path(self._repo_root_dir) / fname
-            if absolute_name.is_symlink() and resolved_name.is_dir():
+            if path.is_symlink() and path.is_dir():
                 logger.verbose(
-                    f"| Skipping {absolute_name} since it is a symlink to a directory: {resolved_name}",
+                    f"| Skipping {path} since it is a symlink to a directory: {path.resolve()}",
                 )
-            else:
-                # The following detection for unmerged codes comes from `man git-status`
-                if code == StatusCode.Unmerged:
-                    unmerged.append(resolved_name)
-                if (
-                    code[0] == StatusCode.Renamed
-                ):  # code is RXXX, where XXX is percent similarity
-                    removed.append(resolved_name)
-                    fname = status_output[2]
-                    trim_size += 1
-                    added.append(self._relative_to_repo_root_to_absolute(fname))
-                if code == StatusCode.Added:
-                    added.append(resolved_name)
-                if code == StatusCode.Modified:
-                    modified.append(resolved_name)
-                if code == StatusCode.Deleted:
-                    removed.append(resolved_name)
+                continue
+            # The following detection for unmerged codes comes from `man git-status`
+            if code == StatusCode.Unmerged:
+                unmerged.append(path)
+            if (
+                code[0] == StatusCode.Renamed
+            ):  # code is RXXX, where XXX is percent similarity
+                removed.append(path)
+                new_fname = status_output[2]
+                trim_size += 1
+                added.append(Path(new_fname))
+            if code == StatusCode.Added:
+                added.append(path)
+            if code == StatusCode.Modified:
+                modified.append(path)
+            if code == StatusCode.Deleted:
+                removed.append(path)
 
             status_output = status_output[trim_size:]
         logger.debug(
@@ -255,7 +241,7 @@ class BaselineHandler:
             status.added + status.modified + status.removed + status.unmerged
         )
         untracked_paths = {
-            self._relative_to_repo_root_to_absolute(str(path))
+            str(path)
             for path in (
                 self._get_dirty_paths_by_status().get(StatusCode.Untracked, [])
             )
@@ -286,12 +272,12 @@ class BaselineHandler:
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
-        status = self._status
+        status = self.status
 
         # Reabort in case for some reason aborting in __init__ did not cause
         # semgrep to exit
         self._abort_on_pending_changes()
-        self._abort_on_conflicting_untracked_paths(self._status)
+        self._abort_on_conflicting_untracked_paths(self.status)
 
         logger.debug("Running git write-tree")
         current_tree = subprocess.run(
