@@ -4,8 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.84.0](https://github.com/returntocorp/semgrep/releases/tag/v0.84.0) - 2022-03-09
+
 ### Added
 
+- new --show-supported-languages CLI flag to display the list of languages
+  supported by semgrep. Thanks to John Wu for his contribution! (#4754)
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
 - Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
@@ -19,6 +23,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   with `xml_singleton_loose_matching: false` (#4730)
 - JSX: new matching option `xml_attrs_implicit_ellipsis` that allows
   disabling the implicit `...` that was added to JSX attributes patterns.
+- new focus-metavariable: experimental operator (#4735) (the syntax may change
+  in the near futur)
 
 ### Fixed
 
