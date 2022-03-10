@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
+
 ### Fixed
 
 - JSX: ellipsis in JSX body (e.g., `<div>...</div>`) now matches any
