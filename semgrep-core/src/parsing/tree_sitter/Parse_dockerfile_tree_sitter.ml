@@ -536,54 +536,54 @@ let comment_line (env : env)
 let argv_or_shell (env : env) (x : CST.argv_or_shell_choice) =
   match x with
   | `Semg_ellips tok -> (* "..." *) Runlike_ellipsis (token env tok)
-  | `Choice_str_array x ->
-    match x with
-    |`Str_array x ->
-      let loc, ar = string_array env x in
-      Argv (loc, ar)
-    | `Shell_cmd (v1, v2, v3) -> (
-      (* Stitch back the fragments together, then parse using the correct
-        shell language. *)
-      let _comment_lines = List.map (comment_line env) v1 in
-      let first_frag = shell_fragment env v2 in
-      let more_frags =
-        v3
-        |> Common.map (fun (v1, comment_lines, v3) ->
-              (* Keep the line continuation so as to preserve the original
-                  locations when parsing the shell command.
+  | `Choice_str_array x -> (
+      match x with
+      | `Str_array x ->
+          let loc, ar = string_array env x in
+          Argv (loc, ar)
+      | `Shell_cmd (v1, v2, v3) -> (
+          (* Stitch back the fragments together, then parse using the correct
+             shell language. *)
+          let _comment_lines = List.map (comment_line env) v1 in
+          let first_frag = shell_fragment env v2 in
+          let more_frags =
+            v3
+            |> Common.map (fun (v1, comment_lines, v3) ->
+                   (* Keep the line continuation so as to preserve the original
+                       locations when parsing the shell command.
 
-                  Warning: dockerfile line continuation character may be different
-                  than '\'. Since we reinject a line continuation into
-                  the shell code to preserve locations, we must ensure that
-                  we inject a backslash, not whatever dockerfile is using.
-              *)
-              let dockerfile_line_cont =
-                (* dockerfile's line continuation character without \n *)
-                token env v1
-              in
-              let shell_line_cont =
-                (* we would omit this if it weren't for preserving
-                    line numbers *)
-                PI.rewrap_str "\\\n" dockerfile_line_cont
-              in
-              let comment_lines =
-                Common.map (comment_line env) comment_lines
-              in
-              let shell_frag = shell_fragment env v3 in
-              (shell_line_cont :: comment_lines) @ [ shell_frag ])
-        |> List.flatten
-      in
-      let raw_shell_code = concat_tokens first_frag more_frags in
-      let _, shell_compat = env.extra in
-      match shell_compat with
-      | Sh -> (
-          match parse_bash env raw_shell_code with
-          | Some bash_program ->
-              let loc = wrap_loc raw_shell_code in
-              Sh_command (loc, bash_program)
-          | None -> Other_shell_command (Sh, raw_shell_code))
-      | (Cmd | Powershell | Other _) as shell ->
-          Other_shell_command (shell, raw_shell_code))
+                       Warning: dockerfile line continuation character may be different
+                       than '\'. Since we reinject a line continuation into
+                       the shell code to preserve locations, we must ensure that
+                       we inject a backslash, not whatever dockerfile is using.
+                   *)
+                   let dockerfile_line_cont =
+                     (* dockerfile's line continuation character without \n *)
+                     token env v1
+                   in
+                   let shell_line_cont =
+                     (* we would omit this if it weren't for preserving
+                         line numbers *)
+                     PI.rewrap_str "\\\n" dockerfile_line_cont
+                   in
+                   let comment_lines =
+                     Common.map (comment_line env) comment_lines
+                   in
+                   let shell_frag = shell_fragment env v3 in
+                   (shell_line_cont :: comment_lines) @ [ shell_frag ])
+            |> List.flatten
+          in
+          let raw_shell_code = concat_tokens first_frag more_frags in
+          let _, shell_compat = env.extra in
+          match shell_compat with
+          | Sh -> (
+              match parse_bash env raw_shell_code with
+              | Some bash_program ->
+                  let loc = wrap_loc raw_shell_code in
+                  Sh_command (loc, bash_program)
+              | None -> Other_shell_command (Sh, raw_shell_code))
+          | (Cmd | Powershell | Other _) as shell ->
+              Other_shell_command (shell, raw_shell_code)))
 
 let runlike_instruction (env : env) name cmd =
   let name = str env name (* RUN, CMD, ... *) in

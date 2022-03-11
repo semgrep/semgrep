@@ -213,7 +213,7 @@ let quoted_string_loc = bracket_loc
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 let argv_or_shell_loc = function
-  | Runlike_ellipsis tok -> (tok,tok)
+  | Runlike_ellipsis tok -> (tok, tok)
   | Argv (loc, _) -> loc
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
