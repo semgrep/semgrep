@@ -6,6 +6,68 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
+- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
+
+### Fixed
+
+- JSX: ellipsis in JSX body (e.g., `<div>...</div>`) now matches any
+  children (#4678 and #4717)
+- > ℹ️ During a `--baseline-commit` scan,
+  > Semgrep temporarily deletes files that were created since the baseline commit,
+  > and restores them at the end of the scan.
+
+  Previously, when scanning a subdirectory of a git repo with `--baseline-commit`,
+  Semgrep would delete all newly created files under the repo root,
+  but restore only the ones in the subdirectory.
+  Now, Semgrep only ever deletes files in the scanned subdirectory.
+
+### Changed
+
+- File targeting logic has been mostly rewritten. (#4776)
+  These inconsistencies were fixed in the process:
+
+  - > ℹ️ "Explicitly targeted file" refers to a file
+    > that's directly passed on the command line.
+
+    Previously, explicitly targeted files would be unaffected by most global filtering:
+    global include/exclude patterns and the file size limit.
+    Now `.semgrepignore` patterns don't affect them either,
+    so they are unaffected by all global filtering,
+
+  - > ℹ️ With `--skip-unknown-extensions`,
+    > Semgrep scans only the explicitly targeted files that are applicable to the language you're scanning.
+
+    Previously, `--skip-unknown-extensions` would skip based only on file extension,
+    even though extensionless shell scripts expose their language via the shebang of the first line.
+    As a result, explicitly targeted shell files were always skipped when `--skip-unknown-extensions` was set.
+    Now, this flag decides if a file is the correct language with the same logic as other parts of Semgrep:
+    taking into account both extensions and shebangs.
+
+- Semgrep scans with `--baseline-commit` are now much faster.
+  These optimizations were added:
+
+  - > ℹ️ When `--baseline-commit` is set,
+    > Semgrep first runs the _current scan_,
+    > then switches to the baseline commit,
+    > and runs the _baseline scan_.
+
+    The _current scan_ now excludes files
+    that are unchanged between the baseline and the current commit
+    according to `git status` output.
+
+  - The _baseline scan_ now excludes rules and files that had no matches in the _current scan_.
+
+  - When `git ls-files` is unavailable or `--disable-git-ignore` is set,
+    Semgrep walks the file system to find all target files.
+    Semgrep now walks the file system 30% faster compared to previous versions.
+
+## [0.84.0](https://github.com/returntocorp/semgrep/releases/tag/v0.84.0) - 2022-03-09
+
+### Added
+
+- new --show-supported-languages CLI flag to display the list of languages
+  supported by semgrep. Thanks to John Wu for his contribution! (#4754)
 - `--validate` will check that metavariable-x doesn't use an invalid
   metavariable
 - Add r2c-internal-project-depends on support for Java, Go, Ruby, and Rust
@@ -19,6 +81,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   with `xml_singleton_loose_matching: false` (#4730)
 - JSX: new matching option `xml_attrs_implicit_ellipsis` that allows
   disabling the implicit `...` that was added to JSX attributes patterns.
+- new focus-metavariable: experimental operator (#4735) (the syntax may change
+  in the near futur)
 
 ### Fixed
 
@@ -27,6 +91,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Kotlin: store trailing lambdas in the AST (#4741)
 - Autofix: Semgrep no longer errors during `--dry-run`s where one fix changes the line numbers in a file that also has a second autofix.
 - Performance regression when running with --debug (#4761)
+- SARIF output formatter not handling lists of OWASP or CWE metadata (#4673)
 - Allow metrics flag and metrics env var at the same time if both are set to the same value (#4703)
 - Scan `yarn.lock` dependencies that do not specify a hash
 - Run `project-depends-on` rules with only `pattern-inside` at their leaves

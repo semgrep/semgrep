@@ -17,9 +17,9 @@ Targets = FrozenSet[Path]
 
 
 @frozen
-class FilteredTargets:
+class FilteredFiles:
     """
-    The return value of functions that filters target paths.
+    The return value of functions that filters target files.
     """
 
     kept: Targets

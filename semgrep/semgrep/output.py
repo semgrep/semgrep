@@ -16,7 +16,6 @@ from typing import Sequence
 from typing import Set
 from typing import Type
 
-from semgrep import config_resolver
 from semgrep.commands.login import Authentication
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
@@ -356,11 +355,7 @@ class OutputHandler:
         if is_url(destination):
             self._post_output(destination, output)
         else:
-            if Path(destination).is_absolute():
-                save_path = Path(destination)
-            else:
-                base_path = config_resolver.get_base_path()
-                save_path = base_path.joinpath(destination)
+            save_path = Path(destination)
             # create the folders if not exists
             save_path.parent.mkdir(parents=True, exist_ok=True)
             with save_path.open(mode="w") as fout:

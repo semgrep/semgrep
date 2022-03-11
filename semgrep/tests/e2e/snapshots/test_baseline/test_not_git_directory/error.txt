@@ -1,1 +1,7 @@
-Current directory is not in a git project. Aborting baseline scan.
+Cannot find a commit with reference '12345'. Possible reasons:
+
+- the referenced commit does not exist
+- the current working directory is not a git repository
+- the git binary is not available
+
+Try running `git show 12345` to debug the issue.

@@ -374,6 +374,20 @@ let rec m_name a b =
       m_name a (B.Id (idb, B.empty_id_info ()))
       >||> (* try this time a match with the resolved entity *)
       m_name a (H.name_of_ids dotted)
+      >||>
+      (* Try the parents *)
+      let parents =
+        match !hook_find_possible_parents with
+        | None -> []
+        | Some f -> f dotted
+      in
+      (* less: use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> m_name a x >||> aux xs
+      in
+      aux parents
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -1232,7 +1246,16 @@ and m_attrs a b =
     ~then_:(m_list_in_any_order ~less_is_ok:true m_xml_attr a b)
     ~else_:(m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_attr a b)
 
-and m_bodies a b = m_list__m_body a b
+and m_bodies a b =
+  match (a, b) with
+  (* dots: *)
+  | [ XmlText ("...", _) ], _ -> return ()
+  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_body a1 b1
+  (* TODO: handle metavar matching a complex Xml elt or even list of elts *)
+  | [ XmlText (s, _) ], [ _b ] when MV.is_metavar_name s -> fail ()
+  (* TODO: should we impose $...X here to match a list of children? *)
+  | [ XmlText (s, _) ], _b when MV.is_metavar_name s -> fail ()
+  | _ -> m_list__m_body a b
 
 and m_list__m_body a b =
   match a with
@@ -1259,6 +1282,7 @@ and m_xml_attr_value a b =
 
 and m_body a b =
   match (a, b) with
+  (* dots: the "..." is actually intercepted now in m_bodies *)
   | G.XmlText a1, B.XmlText b1 ->
       m_string_ellipsis_or_metavar_or_default
         ~m_string_for_default:m_string_xhp_text a1 b1

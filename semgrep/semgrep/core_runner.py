@@ -396,7 +396,7 @@ class CoreRunner:
         self, language: Language, rule: Rule, target_manager: TargetManager
     ) -> List[Path]:
         try:
-            targets = target_manager.get_files(
+            targets = target_manager.get_files_for_rule(
                 language, rule.includes, rule.excludes, rule.id
             )
         except _UnknownLanguageError as ex:
@@ -419,7 +419,9 @@ class CoreRunner:
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
-        target_info: Dict[Tuple[Path, Language], List[RuleId]] = {}
+        target_info: Dict[
+            Tuple[Path, Language], List[RuleId]
+        ] = collections.defaultdict(list)
 
         for rule in rules:
             for language in rule.languages:
@@ -427,24 +429,16 @@ class CoreRunner:
 
                 for target in targets:
                     all_targets.add(target)
-                    t = (target, language)
-                    if t in target_info:
-                        target_info[t].append(RuleId(rule.id))
-                    else:
-                        target_info[t] = [RuleId(rule.id)]
+                    target_info[target, language].append(RuleId(rule.id))
 
-        targets_json = []
-        for target_and_lang in target_info:
-            rule_ids = target_info[target_and_lang]
-            targets_json.append(
-                {
-                    "path": str(target_and_lang[0]),
-                    "language": target_and_lang[1],
-                    "rule_ids": rule_ids,
-                }
-            )
-
-        return targets_json
+        return [
+            {
+                "path": str(target),
+                "language": language,
+                "rule_ids": target_info[target, language],
+            }
+            for target, language in target_info
+        ]
 
     def _run_rules_direct_to_semgrep_core(
         self,
@@ -512,8 +506,8 @@ class CoreRunner:
                 print("!!!This is a proprietary extension of semgrep.!!!")
                 print("!!!You must be logged in to access this extension!!!")
                 targets = target_manager.targets
-                if len(targets) == 1 and Path(targets[0]).is_dir():
-                    root = targets[0]
+                if len(targets) == 1 and targets[0].path.is_dir():
+                    root = str(targets[0].path)
                 else:
                     raise SemgrepError("deep mode needs a single target (root) dir")
 
