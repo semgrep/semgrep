@@ -767,15 +767,8 @@ and lval_of_ent env ent =
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
 
-(* just to ensure the code after does not call expr directly
- * TODO: Remove this if we can't figure out why it was done in the first place... *)
-and expr_orig env ?void e = expr env ?void e
-
-and dummy_expr () = ()
-
 and expr_with_pre_stmts env ?void e =
-  ignore (dummy_expr ());
-  let e = expr_orig env ?void e in
+  let e = expr env ?void e in
   let xs = List.rev !(env.stmts) in
   env.stmts := [];
   (xs, e)
@@ -784,14 +777,14 @@ and expr_with_pre_stmts env ?void e =
 and cond_with_pre_stmts env ?void cond =
   match cond with
   | G.Cond e ->
-      let e = expr_orig env ?void e in
+      let e = expr env ?void e in
       let xs = List.rev !(env.stmts) in
       env.stmts := [];
       (xs, e)
   | G.OtherCond (categ, xs) ->
       let e = G.OtherExpr (categ, xs) |> G.e in
       log_fixme ToDo (G.E e);
-      let e = expr_orig env ?void e in
+      let e = expr env ?void e in
       let xs = List.rev !(env.stmts) in
       env.stmts := [];
       (xs, e)
@@ -836,6 +829,10 @@ and parameters _env params =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+(* NOTE: There should not be direct calls to 'expr' from here on, instead
+ * use 'expr_with_pre_stmts' or other '*_pre_stmts*' functions. Just so that
+ * we don't forget about 'env.stmts'! *)
 
 (* TODO: What other languages have no fallthrough? *)
 and no_switch_fallthrough : Lang.t -> bool = function
