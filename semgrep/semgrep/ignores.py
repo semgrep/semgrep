@@ -11,7 +11,7 @@ from attrs import define
 from attrs import field
 
 from semgrep.error import SemgrepError
-from semgrep.types import FilteredTargets
+from semgrep.types import FilteredFiles
 from semgrep.util import partition_set
 from semgrep.verbose_logging import getLogger
 
@@ -86,7 +86,7 @@ class FileIgnore:
 
         return True
 
-    def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredTargets:
+    def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
         kept, removed = partition_set(
             lambda path: path.exists()
             and (
@@ -95,7 +95,7 @@ class FileIgnore:
             ),
             candidates,
         )
-        return FilteredTargets(kept, removed)
+        return FilteredFiles(kept, removed)
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action

@@ -1,13 +1,15 @@
 import subprocess
+from functools import partial
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Collection
 
 import pytest
 
 from semgrep.error import FilesNotFoundError
 from semgrep.ignores import FileIgnore
-from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
 
 
@@ -24,10 +26,10 @@ def test_nonexistent(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     # shouldnt raise an error
-    TargetManager([], [], 0, ["foo/a.py"], True, False, None)
+    TargetManager(["foo/a.py"])
 
     with pytest.raises(FilesNotFoundError) as e:
-        TargetManager([], [], 0, ["foo/a.py", "foo/doesntexist.py"], True, False, None)
+        TargetManager(["foo/a.py", "foo/doesntexist.py"])
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
 
@@ -48,17 +50,24 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], LANGUAGE.resolve("python"), True),
-        {bar},
-    )
+    assert_path_sets_equal(Target(".", True).files(), {bar})
 
 
-def test_expand_targets_git(tmp_path, monkeypatch):
+def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]):
     """
-    Test TargetManager with visible_to_git_only flag on in a git repository
-    with nested .gitignores
+    Assert that two sets of path contain the same paths
     """
+    a_abs = {elem.resolve() for elem in a}
+    b_abs = {elem.resolve() for elem in b}
+    assert a_abs == b_abs
+
+
+@pytest.fixture(
+    scope="session", params=["no-repo", "git-repo", "git-repo-with-ignores"]
+)
+def paths(request, tmp_path_factory):
+    git_mode = request.param
+    tmp_path = tmp_path_factory.mktemp("repo")
     foo = tmp_path / "foo"
     foo.mkdir()
     foo_a_go = foo / "a.go"
@@ -84,225 +93,82 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     foo_bar_b = foo_bar / "b.py"
     foo_bar_b.touch()
 
-    monkeypatch.chdir(tmp_path)
-    subprocess.run(["git", "init"])
-    subprocess.run(["git", "add", foo_a])
-    subprocess.run(["git", "add", foo_bar_a])
-    subprocess.run(["git", "add", foo_bar_b])
-    subprocess.run(["git", "add", foo_a_go])
-    subprocess.run(["git", "commit", "-m", "first"])
+    if git_mode != "no-repo":
+        subprocess.run(["git", "init"], cwd=tmp_path)
+        subprocess.run(["git", "add", foo_a], cwd=tmp_path)
+        subprocess.run(["git", "add", foo_bar_a], cwd=tmp_path)
+        subprocess.run(["git", "add", foo_bar_b], cwd=tmp_path)
+        subprocess.run(["git", "add", foo_a_go], cwd=tmp_path)
+        subprocess.run(["git", "commit", "-m", "first"], cwd=tmp_path)
 
-    # Check that all files are visible without a .gitignore
-    in_foo_bar = {foo_bar_a, foo_bar_b}
-    in_foo = {foo_a, foo_b}.union(in_foo_bar)
-    in_bar = {bar_a, bar_b}
-    in_all = in_foo.union(in_bar)
+    if git_mode == "git-repo-with-ignores":
+        (tmp_path / ".gitignore").write_text("bar/\nfoo/bar/a.py")
+        (tmp_path / "foo" / ".gitignore").write_text("b.py")
 
-    python_language = LANGUAGE.resolve("python")
+    class Paths(SimpleNamespace):
+        root = tmp_path
+        foo_bar = {foo_bar_a, foo_bar_b}
+        foo = {foo_a, foo_b}.union(foo_bar)
+        bar = {bar_a, bar_b}
 
-    monkeypatch.chdir(tmp_path)
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
-        in_foo,
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
-        in_foo_bar,
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, True
-        ),
-        in_foo_bar,
-    )
-    monkeypatch.chdir(foo)
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("..")], python_language, True), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
-        in_foo_bar,
-    )
+        if git_mode == "git-repo-with-ignores":
+            # Reflect what should now be visible given gitignores
+            # foo_bar is unchanged: foo/bar/a.py is gitignored but is already tracked
+            foo = {foo_a, *foo_bar}  # foo/b.py is gitignored with a nested gitignore
+            bar = set()  # bar/ is gitignored
 
-    # Add bar/, foo/bar/a.py, foo/b.py to gitignores
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / ".gitignore").write_text("bar/\nfoo/bar/a.py")
-    (tmp_path / "foo" / ".gitignore").write_text("b.py")
+        all = foo | bar
 
-    # Reflect what should now be visible given gitignores
-    in_foo_bar = {
-        foo_bar_a,
-        foo_bar_b,
-    }  # foo/bar/a.py is gitignored but is already tracked
-    in_foo = {foo_a}.union(in_foo_bar)  # foo/b.py is gitignored with a nested gitignore
-    in_bar = set()  # bar/ is gitignored
-    in_all = in_foo.union(in_bar)
+        TargetManager = (
+            TargetManager
+            if git_mode is None
+            else partial(partial(TargetManager, respect_git_ignore=True))
+        )
 
-    monkeypatch.chdir(tmp_path)
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo")], python_language, True), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, True),
-        in_foo,
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, True),
-        in_foo_bar,
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, True
-        ),
-        in_foo_bar,
-    )
-    monkeypatch.chdir(foo)
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, True), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("./foo")], python_language, True), set()
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, True), in_foo_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("..")], python_language, True), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../bar")], python_language, True), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, True),
-        in_foo_bar,
-    )
+    yield Paths
 
 
-def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]) -> bool:
-    """
-    Assert that two sets of path contain the same paths
-    """
-    a_abs = {elem.resolve() for elem in a}
-    b_abs = {elem.resolve() for elem in b}
-    assert a_abs == b_abs
+PY = Language("python")
 
 
-def test_expand_targets_not_git(tmp_path, monkeypatch):
-    """
-    Check that directory expansion works with relative paths, absolute paths, paths with ..
-    """
-    foo = tmp_path / "foo"
-    foo.mkdir()
-    (foo / "a.go").touch()
-    (foo / "b.go").touch()
-    (foo / "py").touch()
-    foo_a = foo / "a.py"
-    foo_a.touch()
-    foo_b = foo / "b.py"
-    foo_b.touch()
+@pytest.mark.parametrize(
+    "workdir, targets, expected",
+    [
+        ("/", ["."], "all"),
+        ("/", ["foo", "bar"], "all"),
+        ("/", ["bar"], "bar"),
+        ("/", ["foo"], "foo"),
+        ("/", ["foo/bar"], "foo_bar"),
+        ("/foo", ["."], "foo"),
+        ("/foo", ["./foo"], None),
+        ("/foo", ["bar"], "foo_bar"),
+        ("/foo", [".."], "all"),
+        ("/foo", ["../bar"], "bar"),
+        ("/foo", ["../foo", "../bar"], "all"),
+        ("/foo", ["../foo/bar"], "foo_bar"),
+        ("/foo/bar", ["../.."], "all"),
+    ],
+    ids=str,
+)
+@pytest.mark.parametrize("referencing", ["relative", "absolute"])
+def test_get_files_for_language(
+    paths, monkeypatch, workdir, targets, expected, referencing
+):
+    monkeypatch.chdir(paths.root / workdir.strip("/"))
 
-    bar = tmp_path / "bar"
-    bar.mkdir()
-    bar_a = bar / "a.py"
-    bar_a.touch()
-    bar_b = bar / "b.py"
-    bar_b.touch()
+    if referencing == "absolute":
+        targets = [str(Path(target).resolve()) for target in targets]
 
-    foo_bar = foo / "bar"
-    foo_bar.mkdir()
-    foo_bar_a = foo_bar / "a.py"
-    foo_bar_a.touch()
-    foo_bar_b = foo_bar / "b.py"
-    foo_bar_b.touch()
+    if expected is None:
+        with pytest.raises(FilesNotFoundError):
+            target_manager = paths.TargetManager(targets)
+        return
+    else:
+        target_manager = paths.TargetManager(targets)
 
-    in_foo_bar = {foo_bar_a, foo_bar_b}
-    in_foo = {foo_a, foo_b}.union(in_foo_bar)
-    in_bar = {bar_a, bar_b}
-    in_all = in_foo.union(in_bar)
+    actual = target_manager.get_files_for_language(PY).kept
 
-    python_language = Language("python")
-
-    monkeypatch.chdir(tmp_path)
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, False), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo")], python_language, False), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo").resolve()], python_language, False),
-        in_foo,
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("foo/bar")], python_language, False),
-        in_foo_bar,
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets(
-            [Path("foo/bar").resolve()], python_language, False
-        ),
-        in_foo_bar,
-    )
-
-    monkeypatch.chdir(foo)
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path(".")], python_language, False), in_foo
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("./foo")], python_language, False), set()
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("bar")], python_language, False), in_foo_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("..")], python_language, False), in_all
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../bar")], python_language, False), in_bar
-    )
-    assert_path_sets_equal(
-        TargetManager.expand_targets([Path("../foo/bar")], python_language, False),
-        in_foo_bar,
-    )
+    assert_path_sets_equal(actual, getattr(paths, expected))
 
 
 def test_skip_symlink(tmp_path, monkeypatch):
@@ -313,16 +179,15 @@ def test_skip_symlink(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
 
-    python_language = Language("python")
+    PY = Language("python")
 
     assert_path_sets_equal(
-        TargetManager.expand_targets([foo], python_language, False),
+        TargetManager([str(foo)]).get_files_for_language(PY).kept,
         {foo / "a.py"},
     )
 
-    assert_path_sets_equal(
-        TargetManager.expand_targets([foo / "link.py"], python_language, False), set()
-    )
+    with pytest.raises(FilesNotFoundError):
+        TargetManager([str(foo / "link.py")]).get_files_for_language(PY)
 
 
 def test_ignore_git_dir(tmp_path, monkeypatch):
@@ -335,7 +200,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
-    assert frozenset() == TargetManager([], [], 0, [foo], True, False, None).get_files(
+    assert frozenset() == TargetManager([foo]).get_files_for_rule(
         language, [], [], "dummy_rule_id"
     )
 
@@ -359,39 +224,39 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], 0, ["foo/a.py"], False, False, None
-    ).get_files(python_language, [], [], "dummy_rule_id")
-    assert foo_a in TargetManager([], [], 0, ["foo/a.py"], False, True, None).get_files(
+        ["foo/a.py"], allow_unknown_extensions=True
+    ).get_files_for_rule(python_language, [], [], "dummy_rule_id")
+    assert foo_a in TargetManager(["foo/a.py"]).get_files_for_rule(
         python_language, [], [], "dummy_rule_id"
     )
 
     # Should include explicitly passed python file even if is in excludes
-    assert foo_a not in TargetManager(
-        [], ["foo/a.py"], 0, ["."], False, False, None
-    ).get_files(python_language, [], [], "dummy_rule_id")
+    assert foo_a not in TargetManager(["."], [], ["foo/a.py"]).get_files_for_rule(
+        python_language, [], [], "dummy_rule_id"
+    )
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, False, None
-    ).get_files(python_language, [], [], "dummy_rule_id")
+        [".", "foo/a.py"], [], ["foo/a.py"]
+    ).get_files_for_rule(python_language, [], [], "dummy_rule_id")
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], 0, ["foo/a.go"], False, False, None).get_files(
+        TargetManager(["foo/a.go"]).get_files_for_rule(
             python_language, [], [], "dummy_rule_id"
         )
         == frozenset()
     )
 
-    # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
+    # Should include explicitly passed file with unknown extension if allow_unknown_extensions=True
     assert_path_sets_equal(
-        TargetManager([], [], 0, ["foo/noext"], False, False, None).get_files(
+        TargetManager(["foo/noext"], allow_unknown_extensions=True).get_files_for_rule(
             python_language, [], [], "dummy_rule_id"
         ),
         {foo_noext},
     )
 
-    # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
+    # Should not include explicitly passed file with unknown extension by default
     assert_path_sets_equal(
-        TargetManager([], [], 0, ["foo/noext"], False, True, None).get_files(
+        TargetManager(["foo/noext"]).get_files_for_rule(
             python_language, [], [], "dummy_rule_id"
         ),
         set(),
@@ -399,17 +264,17 @@ def test_explicit_path(tmp_path, monkeypatch):
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert_path_sets_equal(
-        TargetManager(
-            [], [], 0, ["foo/noext", "foo/a.py"], False, True, None
-        ).get_files(python_language, [], [], "dummy_rule_id"),
+        TargetManager(["foo/noext", "foo/a.py"]).get_files_for_rule(
+            python_language, [], [], "dummy_rule_id"
+        ),
         {foo_a},
     )
 
     # Should respect includes/excludes passed to get_files even if target explicitly passed
     assert_path_sets_equal(
-        TargetManager(
-            [], [], 0, ["foo/a.py", "foo/b.py"], False, False, None
-        ).get_files(python_language, ["a.py"], [], "dummy_rule_id"),
+        TargetManager(["foo/a.py", "foo/b.py"]).get_files_for_rule(
+            python_language, ["a.py"], [], "dummy_rule_id"
+        ),
         {foo_a},
     )
 
@@ -417,8 +282,8 @@ def test_explicit_path(tmp_path, monkeypatch):
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats):
         return TargetManager(
-            [], [], 0, [tmp_path], False, False, FileIgnore(tmp_path, ignore_pats)
-        ).get_files(Language("python"), [], [], "dummy_rule_id")
+            [tmp_path], file_ignore=FileIgnore(tmp_path, ignore_pats)
+        ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id")
 
     monkeypatch.chdir(tmp_path)
     a = tmp_path / "a.py"
