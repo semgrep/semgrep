@@ -331,14 +331,17 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (fun x -> not x.go_deeper_expr)
     ~then_:(first_fun a b)
     ~else_:
-      ( first_fun a b >!> fun () ->
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | x :: xs -> deep_fun a x >||> aux xs
-        in
-        b |> sub_fun |> aux )
+      (* bugfix: this used to be a >!>, but this does not work!
+       *)
+      (first_fun a b
+      >||>
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> deep_fun a x >||> aux xs
+      in
+      b |> sub_fun |> aux)
 
 let m_with_symbolic_propagation f b =
   if_config
@@ -678,8 +681,7 @@ and m_expr a b =
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | G.Ellipsis _a1, _ -> return ()
-  | G.DeepEllipsis (_, a1, _), _b ->
-      m_expr_deep a1 b (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
+  | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
