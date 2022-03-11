@@ -15,3 +15,9 @@ CMD ls \
 CMD ls \
   -l; # blah \
   echo yay
+
+# MATCH:
+CMD ["echo", "hello"]
+
+# MATCH:
+CMD ["ls"]

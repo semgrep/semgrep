@@ -15,3 +15,6 @@ RUN ls \
 RUN ls \
   -l; # blah \
   echo yay
+
+# MATCH:
+RUN ["echo", "hello"]

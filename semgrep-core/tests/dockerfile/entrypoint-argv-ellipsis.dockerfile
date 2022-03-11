@@ -1,4 +1,3 @@
-# MATCH:
 ENTRYPOINT echo hello
 
 # MATCH:

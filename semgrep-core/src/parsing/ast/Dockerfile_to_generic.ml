@@ -108,6 +108,7 @@ let string_array ((open_, args, close) : string_array) : G.expr =
 *)
 let argv_or_shell env x : G.expr list =
   match x with
+  | Runlike_ellipsis x -> [ ellipsis_expr x ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
