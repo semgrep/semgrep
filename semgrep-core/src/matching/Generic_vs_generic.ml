@@ -374,6 +374,20 @@ let rec m_name a b =
       m_name a (B.Id (idb, B.empty_id_info ()))
       >||> (* try this time a match with the resolved entity *)
       m_name a (H.name_of_ids dotted)
+      >||>
+      (* Try the parents *)
+      let parents =
+        match !hook_find_possible_parents with
+        | None -> []
+        | Some f -> f dotted
+      in
+      (* less: use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> m_name a x >||> aux xs
+      in
+      aux parents
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
