@@ -57,14 +57,21 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     if base_commit:
         cmd.extend(["--baseline-commit", base_commit])
 
-    return subprocess.run(
-        cmd,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        encoding="utf-8",
-        check=check,
-        env=env,
-    )
+    try:
+        return subprocess.run(
+            cmd,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            encoding="utf-8",
+            check=check,
+            env=env,
+        )
+    except subprocess.CalledProcessError as e:
+        print("STDOUT from sentinel scan subprocess:")
+        print(e.output)
+        print("STDERR from sentinel scan subprocess:")
+        print(e.stderr)
+        raise e
 
 
 def test_one_commit_with_baseline(git_tmp_path, snapshot):

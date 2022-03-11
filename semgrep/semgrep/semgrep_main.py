@@ -174,7 +174,7 @@ def run_rules(
 
         for rule in join_rules:
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
-                rule.raw, [Path(t) for t in target_manager.targets]
+                rule.raw, [target.path for target in target_manager.targets]
             )
             join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
             rule_matches_by_rule.update(join_rule_matches_by_rule)
@@ -190,7 +190,7 @@ def run_rules(
             ) = dep_aware_rule.run_dependency_aware_rule(
                 rule_matches_by_rule.get(rule, []),
                 rule,
-                [Path(t) for t in target_manager.targets],
+                [t.path for t in target_manager.targets],
             )
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -340,21 +340,7 @@ def main(
 
         notify_user_of_work(filtered_rules, include, exclude)
 
-    respect_git_ignore = not no_git_ignore
-    try:
-        target_manager = TargetManager(
-            includes=include,
-            excludes=exclude,
-            max_target_bytes=max_target_bytes,
-            targets=target,
-            respect_git_ignore=respect_git_ignore,
-            skip_unknown_extensions=skip_unknown_extensions,
-            file_ignore=get_file_ignore(),
-        )
-    except FilesNotFoundError as e:
-        raise SemgrepError(e)
-
-    # Initialize baseline before running rules to fail early on bad args
+    # Initialize baseline here to fail early on bad args
     baseline_handler = None
     if baseline_commit:
         try:
@@ -362,6 +348,21 @@ def main(
         # TODO better handling
         except Exception as e:
             raise SemgrepError(e)
+
+    respect_git_ignore = not no_git_ignore
+    try:
+        target_manager = TargetManager(
+            includes=include,
+            excludes=exclude,
+            max_target_bytes=max_target_bytes,
+            target_strings=target,
+            respect_git_ignore=respect_git_ignore,
+            baseline_handler=baseline_handler,
+            allow_unknown_extensions=not skip_unknown_extensions,
+            file_ignore=get_file_ignore(),
+        )
+    except FilesNotFoundError as e:
+        raise SemgrepError(e)
 
     core_start_time = time.time()
     core_runner = CoreRunner(
@@ -372,7 +373,7 @@ def main(
         optimizations=optimizations,
     )
 
-    (rule_matches_by_rule, semgrep_errors, all_targets, profiling_data,) = run_rules(
+    rule_matches_by_rule, semgrep_errors, all_targets, profiling_data = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -383,6 +384,14 @@ def main(
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
 
+    paths_with_matches = list(
+        {
+            str(match.path)
+            for matches in rule_matches_by_rule.values()
+            for match in matches
+        }
+    )
+
     # Run baseline if needed
     if baseline_handler:
         logger.info(f"Running baseline scan with base set to: {baseline_commit}")
@@ -390,20 +399,15 @@ def main(
             with baseline_handler.baseline_context():
                 # Need to reinstantiate target_manager since
                 # filesystem has changed
-                try:
-                    baseline_target_manager = TargetManager(
-                        includes=include,
-                        excludes=exclude,
-                        max_target_bytes=max_target_bytes,
-                        targets=target,
-                        respect_git_ignore=respect_git_ignore,
-                        skip_unknown_extensions=skip_unknown_extensions,
-                        file_ignore=get_file_ignore(),
-                    )
-                except FilesNotFoundError as e:
-                    # This means a file existed in head but not
-                    # in baseline context which is fine
-                    logger.debug(f"File not found in baseline: {e}")
+                baseline_target_manager = TargetManager(
+                    includes=paths_with_matches,  # only the paths that had a match
+                    excludes=exclude,
+                    max_target_bytes=max_target_bytes,
+                    target_strings=target,
+                    respect_git_ignore=respect_git_ignore,
+                    allow_unknown_extensions=not skip_unknown_extensions,
+                    file_ignore=get_file_ignore(),
+                )
 
                 (
                     baseline_rule_matches_by_rule,
@@ -411,7 +415,7 @@ def main(
                     baseline_targets,
                     baseline_profiling_data,
                 ) = run_rules(
-                    filtered_rules,
+                    list(rule_matches_by_rule),  # only the rules that had a match
                     baseline_target_manager,
                     core_runner,
                     output_handler,

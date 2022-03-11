@@ -66,7 +66,7 @@ repos:
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.71.0"
+    rev: "v0.84.0"
     hooks:
       - id: semgrep
         name: Semgrep Python
