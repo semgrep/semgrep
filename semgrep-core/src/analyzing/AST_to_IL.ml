@@ -624,6 +624,13 @@ and expr_aux env ?(void = false) e_gen =
   | G.DeepEllipsis _
   | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E e_gen)
+  | G.StmtExpr { s = G.Block (_, block, _); _ } -> (
+      (* See 'AST_generic.stmt_to_expr' *)
+      match List.rev block with
+      | { s = G.ExprStmt (e, _); _ } :: rev_sts ->
+          rev_sts |> List.rev |> List.concat_map (stmt env) |> add_stmts env;
+          expr env e
+      | __else__ -> todo (G.E e_gen))
   | G.StmtExpr _st -> todo (G.E e_gen)
   | G.OtherExpr ((str, tok), xs) ->
       let es =
@@ -740,8 +747,7 @@ and record env ((_tok, origfields, _) as record_def) =
 (*****************************************************************************)
 (* Exprs and instrs *)
 (*****************************************************************************)
-
-let lval_of_ent env ent =
+and lval_of_ent env ent =
   match ent.G.name with
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
@@ -761,20 +767,21 @@ let lval_of_ent env ent =
       | [] -> raise Impossible
       | x :: _ -> fresh_lval env x)
 
-(* just to ensure the code after does not call expr directly *)
-let expr_orig = expr
+(* just to ensure the code after does not call expr directly
+ * TODO: Remove this if we can't figure out why it was done in the first place... *)
+and expr_orig env ?void e = expr env ?void e
 
-let expr () = ()
+and dummy_expr () = ()
 
-let expr_with_pre_stmts env ?void e =
-  ignore (expr ());
+and expr_with_pre_stmts env ?void e =
+  ignore (dummy_expr ());
   let e = expr_orig env ?void e in
   let xs = List.rev !(env.stmts) in
   env.stmts := [];
   (xs, e)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
-let cond_with_pre_stmts env ?void cond =
+and cond_with_pre_stmts env ?void cond =
   match cond with
   | G.Cond e ->
       let e = expr_orig env ?void e in
@@ -789,18 +796,18 @@ let cond_with_pre_stmts env ?void cond =
       env.stmts := [];
       (xs, e)
 
-let args_with_pre_stmts env args =
+and args_with_pre_stmts env args =
   let args = arguments env args in
   let xs = List.rev !(env.stmts) in
   env.stmts := [];
   (xs, args)
 
-let expr_with_pre_stmts_opt env eopt =
+and expr_with_pre_stmts_opt env eopt =
   match eopt with
   | None -> ([], expr_opt env None)
   | Some e -> expr_with_pre_stmts env e
 
-let for_var_or_expr_list env xs =
+and for_var_or_expr_list env xs =
   xs
   |> List.map (function
        | G.ForInitExpr e ->
@@ -820,8 +827,7 @@ let for_var_or_expr_list env xs =
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
-
-let parameters _env params =
+and parameters _env params =
   params
   |> List.filter_map (function
        | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
@@ -832,11 +838,11 @@ let parameters _env params =
 (*****************************************************************************)
 
 (* TODO: What other languages have no fallthrough? *)
-let no_switch_fallthrough : Lang.t -> bool = function
+and no_switch_fallthrough : Lang.t -> bool = function
   | Go -> true
   | _ -> false
 
-let mk_break_continue_labels env tok =
+and mk_break_continue_labels env tok =
   let cont_label = fresh_label ~label:"__loop_continue" env tok in
   let break_label = fresh_label ~label:"__loop_break" env tok in
   let st_env =
@@ -850,14 +856,14 @@ let mk_break_continue_labels env tok =
   let break_label_s = [ mk_s (Label break_label) ] in
   (cont_label_s, break_label_s, st_env)
 
-let mk_switch_break_label env tok =
+and mk_switch_break_label env tok =
   let break_label = fresh_label ~label:"__switch_break" env tok in
   let switch_env =
     { env with break_labels = break_label :: env.break_labels }
   in
   (break_label, [ mk_s (Label break_label) ], switch_env)
 
-let rec stmt_aux env st =
+and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->
       (* optimize? pass context to expr when no need for return value? *)
