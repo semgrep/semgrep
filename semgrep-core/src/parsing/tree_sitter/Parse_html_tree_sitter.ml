@@ -72,11 +72,14 @@ let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
       let v3 = token env v3 (* "\"" *) in
       (s, PI.combine_infos v1 (ts @ [ v3 ]))
 
-let map_end_tag (env : env) ((v1, v2, v3) : CST.end_tag) : tok =
-  let v1 = token env v1 (* "</" *) in
-  let v2 = token env v2 (* end_tag_name *) in
-  let v3 = token env v3 (* ">" *) in
-  PI.combine_infos v1 [ v2; v3 ]
+let map_end_tag (env : env) (x : CST.end_tag) : tok =
+  match x with
+  | `Semg_end_tag (v1, v2, v3)
+  | `LTSLASH_end_tag_name_GT (v1, v2, v3) ->
+      let v1 = token env v1 (* "</" *) in
+      let v2 = token env v2 (* end_tag_name *) in
+      let v3 = token env v3 (* ">" *) in
+      PI.combine_infos v1 [ v2; v3 ]
 
 let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
   let id = str env v1 (* pattern "[^<>\"'/=\\s]+" *) in
@@ -118,20 +121,18 @@ let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
-let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
-  let v1 = token env v1 (* "<" *) in
-  let v2 = str env v2 (* start_tag_name *) in
-  let v3 = List.map (map_attribute env) v3 in
-  let v4 = token env v4 (* ">" *) in
-  (v1, v2, v3, v4)
+let map_start_tag (env : env) (x : CST.start_tag) =
+  match x with
+  | `Semg_start_tag (v1, v2, v3, v4)
+  | `LT_start_tag_name_rep_attr_GT (v1, v2, v3, v4) ->
+      let v1 = token env v1 (* "<" *) in
+      let v2 = str env v2 (* start_tag_name *) in
+      let v3 = List.map (map_attribute env) v3 in
+      let v4 = token env v4 (* ">" *) in
+      (v1, v2, v3, v4)
 
 let rec map_element (env : env) (x : CST.element) : xml =
   match x with
-  | `Semg_elem (v1, v2, v3) ->
-      let l, id, attrs, r = map_start_tag env v1 in
-      let v2 = map_fragment env v2 in
-      let v3 = map_end_tag env v3 in
-      { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
   | `Start_tag_rep_node_choice_end_tag (v1, v2, v3) ->
       let l, id, attrs, r = map_start_tag env v1 in
       let v2 = map_fragment env v2 in
@@ -247,7 +248,10 @@ let parse_pattern str =
 
       let xs = map_fragment env cst in
       match xs with
-      (* todo: not sure why the parser adds thos enclosing XmlText "" *)
+      (* TODO: not sure why the parser adds thos enclosing XmlText ""
+       * Is this still needed after
+       * https://github.com/tree-sitter/tree-sitter-html/commit/af9339f3deb131ab99acfac906713b81dbcc41c9 ?
+       *)
       | [ XmlText ("", _); XmlXml xml; XmlText ("", _) ] ->
           G.E (G.Xml xml |> G.e)
       | [ XmlXml xml ] -> G.E (G.Xml xml |> G.e)
