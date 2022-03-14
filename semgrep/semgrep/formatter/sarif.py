@@ -27,6 +27,11 @@ class SarifFormatter(BaseFormatter):
                             "uriBaseId": "%SRCROOT%",
                         },
                         "region": {
+                            "snippet": {
+                                "text": (rule_match.lines[0])[
+                                    rule_match.start.col - 1 : rule_match.end.col - 1
+                                ]
+                            },
                             "startLine": rule_match.start.line,
                             "startColumn": rule_match.start.col,
                             "endLine": rule_match.end.line,
