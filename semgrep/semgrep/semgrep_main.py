@@ -13,6 +13,7 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -282,6 +283,7 @@ def main(
     ProfilingData,
     Collection[RuleSeverity],
 ]:
+    logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
         include = []
 
