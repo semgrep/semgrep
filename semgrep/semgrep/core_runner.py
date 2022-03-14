@@ -182,16 +182,21 @@ class StreamingSemgrepCore:
         if stream is None:
             raise RuntimeError("subprocess was created without a stream")
 
+        logger.debug("--- semgrep-core stderr ---")
+
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await stream.readline()
 
             # readline returns empty when EOF
             if not line_bytes:
+                logger.debug("--- end semgrep-core stderr ---")
                 self._stderr = "".join(stderr_lines)
                 break
 
             line = line_bytes.decode("utf-8")
+            # log stderr ASAP
+            logger.debug(line.rstrip("\n"))
             stderr_lines.append(line)
 
     async def _stream_subprocess(self) -> int:
@@ -277,18 +282,6 @@ class CoreRunner:
             core_stderr = (
                 "<semgrep-core stderr not captured, should be printed above>\n"
             )
-
-        # By default, we print semgrep-core's error output, which includes
-        # semgrep-core's logging if it was requested via --debug.
-        #
-        # If semgrep-core prints anything on stderr when running with default
-        # flags, it's a bug that should be fixed in semgrep-core.
-        #
-        logger.debug(
-            f"--- semgrep-core stderr ---\n"
-            f"{core_stderr}"
-            f"--- end semgrep-core stderr ---"
-        )
 
         if returncode != 0:
             output_json = self._parse_core_output(
