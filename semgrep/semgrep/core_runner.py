@@ -273,7 +273,7 @@ class Plan(List[Task]):
         result: Dict[str, Plan] = collections.defaultdict(Plan)
         for task in self:
             label = (
-                "polyglot"
+                "<multilang>"
                 if task.language in {Language("regex"), Language("generic")}
                 else task.language
             )
@@ -294,7 +294,7 @@ class Plan(List[Task]):
 
         plans_by_language = sorted(
             self.split_by_lang_label().items(),
-            key=lambda x: x[1].rule_count,
+            key=lambda x: (x[1].file_count, x[1].rule_count),
             reverse=True,
         )
         if len(plans_by_language) == 1:
