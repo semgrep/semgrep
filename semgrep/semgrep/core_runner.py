@@ -17,6 +17,9 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+from attr import asdict
+from attr import field
+from attr import frozen
 from ruamel.yaml import YAML
 from tqdm import tqdm
 
@@ -43,6 +46,7 @@ from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
 from semgrep.util import is_quiet
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -238,7 +242,7 @@ class StreamingSemgrepCore:
             self._progress_bar = tqdm(  # typing: ignore
                 total=self._total,
                 file=sys.stderr,
-                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt} files",
+                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt} tasks",
             )
 
         rc = asyncio.run(self._stream_subprocess())
@@ -247,6 +251,77 @@ class StreamingSemgrepCore:
             self._progress_bar.close()
 
         return rc
+
+
+@frozen
+class Task:
+    path: str = field(converter=str)
+    language: Language
+    rule_ids: Sequence[str]
+
+
+class Plan(List[Task]):
+    @property
+    def rule_count(self) -> int:
+        return len(set(rule for task in self for rule in task.rule_ids))
+
+    @property
+    def file_count(self) -> int:
+        return len(self)
+
+    def split_by_lang_label(self) -> Dict[str, "Plan"]:
+        result: Dict[str, Plan] = collections.defaultdict(Plan)
+        for task in self:
+            label = (
+                "polyglot"
+                if task.language in {Language("regex"), Language("generic")}
+                else task.language
+            )
+            result[label].append(task)
+        return result
+
+    def to_json(self) -> List[Dict[str, Any]]:
+        return [asdict(task) for task in self]
+
+    def log(self) -> None:
+        if self.rule_count == 0:
+            logger.info("Nothing to scan")
+            return
+
+        if self.rule_count == 1:
+            logger.info(f"Scanning {unit_str(len(self), 'file')}")
+            return
+
+        plans_by_language = sorted(
+            self.split_by_lang_label().items(),
+            key=lambda x: x[1].rule_count,
+            reverse=True,
+        )
+        if len(plans_by_language) == 1:
+            logger.info(
+                f"Scanning {unit_str(self.file_count, 'file')} with {unit_str(self.rule_count, f'{plans_by_language[0][0]} rule')}"
+            )
+            return
+
+        logger.info("\nScanning:\n")
+        for language, plan in plans_by_language:
+            lang_chars = max(len(lang) for lang, _ in plans_by_language)
+            rules_chars = max(
+                len(str(plan.rule_count)) for _, plan in plans_by_language
+            ) + len(" rules")
+            files_chars = max(
+                len(str(plan.file_count)) for _, plan in plans_by_language
+            ) + len(" files")
+
+            lang_field = language.rjust(lang_chars)
+            rules_field = unit_str(plan.rule_count, "rule", pad=True).rjust(rules_chars)
+            files_field = unit_str(plan.file_count, "file", pad=True).rjust(files_chars)
+
+            logger.info(f" {lang_field} | {rules_field} × {files_field}")
+        logger.info("")
+
+    def __str__(self) -> str:
+        return f"<Plan of {len(self)} tasks for {list(self.split_by_lang_label())}>"
 
 
 class CoreRunner:
@@ -414,7 +489,7 @@ class CoreRunner:
 
     def _plan_core_run(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
-    ) -> List[Dict[str, Any]]:
+    ) -> Plan:
         """
         Gets the targets to run for each rule
 
@@ -436,14 +511,16 @@ class CoreRunner:
                     all_targets.add(target)
                     target_info[target, language].append(RuleId(rule.id))
 
-        return [
-            {
-                "path": str(target),
-                "language": language,
-                "rule_ids": target_info[target, language],
-            }
-            for target, language in target_info
-        ]
+        return Plan(
+            [
+                Task(
+                    path=target,
+                    language=language,
+                    rule_ids=target_info[target, language],
+                )
+                for target, language in target_info
+            ]
+        )
 
     def _run_rules_direct_to_semgrep_core(
         self,
@@ -478,7 +555,8 @@ class CoreRunner:
         ) as target_file:
 
             plan = self._plan_core_run(rules, target_manager, all_targets)
-            target_file.write(json.dumps(plan))
+            plan.log()
+            target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
             yaml = YAML()

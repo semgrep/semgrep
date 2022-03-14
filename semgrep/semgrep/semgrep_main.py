@@ -47,31 +47,6 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def notify_user_of_work(
-    filtered_rules: Sequence[Rule],
-    include: Sequence[str],
-    exclude: Sequence[str],
-) -> None:
-    """
-    Notify user of what semgrep is about to do, including:
-    - number of rules
-    - which rules? <- not yet, too cluttered
-    - which dirs are excluded, etc.
-    """
-    if include:
-        logger.info(f"including files:")
-        for inc in include:
-            logger.info(f"- {inc}")
-    if exclude:
-        logger.info(f"excluding files:")
-        for exc in exclude:
-            logger.info(f"- {exc}")
-    logger.info(f"Running {len(filtered_rules)} rules...")
-    logger.verbose("rules:")
-    for ruleid in sorted([rule.id for rule in filtered_rules]):
-        logger.verbose(f"- {ruleid}")
-
-
 def get_file_ignore() -> FileIgnore:
     TEMPLATES_DIR = Path(__file__).parent / "templates"
     workdir = Path.cwd()
@@ -340,8 +315,6 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-        notify_user_of_work(filtered_rules, include, exclude)
-
     # Initialize baseline here to fail early on bad args
     baseline_handler = None
     if baseline_commit:
@@ -374,6 +347,10 @@ def main(
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
     )
+
+    logger.verbose("Rules:")
+    for ruleid in sorted(rule.id for rule in filtered_rules):
+        logger.verbose(f"- {ruleid}")
 
     rule_matches_by_rule, semgrep_errors, all_targets, profiling_data = run_rules(
         filtered_rules,
