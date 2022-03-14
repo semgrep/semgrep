@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
 - HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
+- Scala: The data-flow engine can now handle expression blocks. This used to
+  cause some false negatives during taint analysis, which will now be reported.
 
 ### Fixed
 
