@@ -147,26 +147,31 @@ class StreamingSemgrepCore:
 
         When it sees non-"." output it saves it to self._stdout
         """
-        stdout_lines: List[str] = []
+        stdout_lines: List[bytes] = []
 
         # appease mypy. stream is only None if call to create_subproccess_exec
         # sets stdout/stderr stream to None
         assert stream
+
+        # Start out reading two bytes at a time (".\n")
+        bytes_to_read = 2
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
-            line_bytes = await stream.readline()
+            line_bytes = await stream.read(n=bytes_to_read)
 
-            # readline returns empty when EOF
+            # read returns empty when EOF
             if not line_bytes:
-                self._stdout = "".join(stdout_lines)
+                self._stdout = b"".join(stdout_lines).decode("utf-8")
                 break
 
-            line = line_bytes.decode("utf-8")
-            if line.strip() == ".":
+            if line_bytes == b".\n":
                 if self._progress_bar:
                     self._progress_bar.update()
             else:
-                stdout_lines.append(line)
+                stdout_lines.append(line_bytes)
+                # Once we see a non-"." char it means we are reading a large json blob
+                # so increase the buffer read size (kept below subprocess buffer limit below)
+                bytes_to_read = 1024 * 1024 * 512
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
@@ -199,7 +204,7 @@ class StreamingSemgrepCore:
             *self._cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            limit=1024 * 1024 * 1024,  # buffer limit to read
+            limit=1024 * 1024 * 1024,  # buffer limit to read in bytes
             preexec_fn=setrlimits_preexec_fn,
         )
 
