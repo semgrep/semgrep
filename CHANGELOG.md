@@ -24,6 +24,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   but restore only the ones in the subdirectory.
   Now, Semgrep only ever deletes files in the scanned subdirectory.
 
+- Previous releases allowed incompatible versions (21.1.0 & 21.2.0)
+  of the `attrs` dependency to be installed.
+  `semgrep` now correctly requires attrs 21.3.0 at the minimum.
+
 ### Changed
 
 - File targeting logic has been mostly rewritten. (#4776)
