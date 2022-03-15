@@ -309,20 +309,25 @@ let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
   m_sid a2 b2
 
-(* Supports deep expression matching, either when done explicitly (e.g. with deep ellipsis) or implicitly
+(* Supports deep expression matching, either when done explicitly
+ * (e.g. with deep ellipsis) or implicitly.
  *
  * If "go_deeper_expr" is not enabled, reduces to `first_fun a b`.
- * If "go_deeper_expr" is enabled, will first check `first_fun a b`, then, if that match fails, will
- * match against all sub-expressions of b.
+ * If "go_deeper_expr" is enabled, will first run `first_fun a b`, and then
+ * will match against all sub-expressions of b.
  *
  * See m_expr_deep for an example of usage.
  *
  * deep_fun: Matching function to use when matching sub-expressions
- * first_fun: Matching function to use when matching the whole (top-level) expression
+ * first_fun: Matching function to use when matching the whole (top-level)
+ * expression
  * sub_fun: Function to use to extract sub-expressions from b
  * a: Pattern expression
  * b: Target node
  * 't: Type of the target node
+ *
+ * todo? now that we don't use >!> and always explore the subexprs,
+ * we could probably refactor this code to not need so many arguments.
  *)
 let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
@@ -331,7 +336,12 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (fun x -> not x.go_deeper_expr)
     ~then_:(first_fun a b)
     ~else_:
-      (* bugfix: this used to be a >!>, but this does not work!
+      (* bugfix: this used to be a >!> below, but this does not work! We need
+       * to also explore subexprs, whatever the result of 'first_fun a b'.
+       * Indeed, if the deep pattern was <... $X ...>, $X will always
+       * match (unless it was binded before), but we actually need to
+       * enumerate all possible subexprs and make $X bind to all
+       * possibles subexprs.
        *)
       (first_fun a b
       >||>
