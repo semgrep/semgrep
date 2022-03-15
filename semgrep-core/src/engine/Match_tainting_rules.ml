@@ -108,8 +108,14 @@ let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
     formula None
   |> snd
 
+let lazy_force x = Lazy.force x [@@profiling]
+
+(*****************************************************************************)
+(* Main entry points *)
+(*****************************************************************************)
+
 let taint_config_of_rule default_config equivs file ast_and_errors
-    (rule : R.rule) (spec : R.taint_spec) found_tainted_sink =
+    (rule : R.rule) (spec : R.taint_spec) handle_findings =
   let config = Common.( ||| ) rule.options default_config in
   let lazy_ast_and_errors = lazy ast_and_errors in
   let file_and_more =
@@ -162,22 +168,17 @@ let taint_config_of_rule default_config equivs file ast_and_errors
            else Some rng)
   in
   {
-    Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);
+    Dataflow_tainting.filepath = file;
+    rule_id = fst rule.R.id;
+    is_source = (fun x -> any_in_ranges x sources_ranges);
     is_sanitizer = (fun x -> any_in_ranges x sanitizers_ranges);
     is_sink = (fun x -> any_in_ranges x sinks_ranges);
-    found_tainted_sink;
+    handle_findings;
   }
 
-let lazy_force x = Lazy.force x [@@profiling]
-
-(*****************************************************************************)
-(* Main entry point *)
-(*****************************************************************************)
-
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
-  (* @Iago I went and modified this to work one rule at a time *)
-  (* Let me know if this interferes with anything; it shouldn't because
-     semgrep has always passed one rule at a time *)
+  (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
+   * recomputing the CFG for each taint rule. *)
   let matches = ref [] in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
@@ -192,11 +193,24 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
   let taint_config =
-    let found_tainted_sink pms _env =
-      PM.Set.iter (fun pm -> Common.push pm matches) pms
+    let handle_findings _ findings _env =
+      findings
+      |> List.iter
+           Dataflow_tainting.(
+             function
+             | SrcToSink (_, sink, src_sink_bindings) ->
+                 let sink_pm = Dataflow_tainting.pm_of_dm sink in
+                 let pm = { sink_pm with env = src_sink_bindings } in
+                 Common.push pm matches
+             | SrcToReturn _
+             (* TODO: We might want to report functions that let input taint
+              * go into a sink (?) *)
+             | ArgToSink _
+             | ArgToReturn _ ->
+                 ())
     in
     taint_config_of_rule default_config equivs file (ast, []) rule taint_spec
-      found_tainted_sink
+      handle_findings
   in
 
   let fun_env = Hashtbl.create 8 in
@@ -206,7 +220,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
     let flow = CFG_build.cfg_of_stmts xs in
 
     let mapping =
-      Dataflow_tainting.fixpoint taint_config fun_env opt_name flow
+      Dataflow_tainting.fixpoint ?name:opt_name ~fun_env taint_config flow
     in
     ignore mapping
     (* TODO
@@ -223,7 +237,11 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
           (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
-                let opt_name = AST_to_IL.name_of_entity ent in
+                let opt_name =
+                  AST_to_IL.name_of_entity ent
+                  |> Option.map (fun name ->
+                         Common.spf "%s:%d" (fst name.IL.ident) name.IL.sid)
+                in
                 check_stmt opt_name (H.funcbody_to_stmt fdef.G.fbody);
                 (* go into nested functions *)
                 k def
