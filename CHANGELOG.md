@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
 - Scala: The data-flow engine can now handle expression blocks. This used to
   cause some false negatives during taint analysis, which will now be reported.
+- change in sarif output to include matching code as well
 
 ### Fixed
 
