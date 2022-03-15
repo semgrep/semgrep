@@ -28,9 +28,7 @@ class SarifFormatter(BaseFormatter):
                         },
                         "region": {
                             "snippet": {
-                                "text": (rule_match.lines[0])[
-                                    rule_match.start.col - 1 : rule_match.end.col - 1
-                                ]
+                                "text": "".join(rule_match.lines).rstrip()
                             },
                             "startLine": rule_match.start.line,
                             "startColumn": rule_match.start.col,
