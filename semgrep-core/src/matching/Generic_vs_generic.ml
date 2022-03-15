@@ -302,27 +302,33 @@ let m_resolved_name_kind a b =
   | G.EnumConstant, _
   | G.TypeName, _
   | G.ImportedEntity _, _
-  | G.ImportedModule _, _ ->
+  | G.ImportedModule _, _
+  | G.ResolvedName _, _ ->
       fail ()
 
 let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
   m_sid a2 b2
 
-(* Supports deep expression matching, either when done explicitly (e.g. with deep ellipsis) or implicitly
+(* Supports deep expression matching, either when done explicitly
+ * (e.g. with deep ellipsis) or implicitly.
  *
  * If "go_deeper_expr" is not enabled, reduces to `first_fun a b`.
- * If "go_deeper_expr" is enabled, will first check `first_fun a b`, then, if that match fails, will
- * match against all sub-expressions of b.
+ * If "go_deeper_expr" is enabled, will first run `first_fun a b`, and then
+ * will match against all sub-expressions of b.
  *
  * See m_expr_deep for an example of usage.
  *
  * deep_fun: Matching function to use when matching sub-expressions
- * first_fun: Matching function to use when matching the whole (top-level) expression
+ * first_fun: Matching function to use when matching the whole (top-level)
+ * expression
  * sub_fun: Function to use to extract sub-expressions from b
  * a: Pattern expression
  * b: Target node
  * 't: Type of the target node
+ *
+ * todo? now that we don't use >!> and always explore the subexprs,
+ * we could probably refactor this code to not need so many arguments.
  *)
 let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
@@ -331,14 +337,22 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (fun x -> not x.go_deeper_expr)
     ~then_:(first_fun a b)
     ~else_:
-      ( first_fun a b >!> fun () ->
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | x :: xs -> deep_fun a x >||> aux xs
-        in
-        b |> sub_fun |> aux )
+      (* bugfix: this used to be a >!> below, but this does not work! We need
+       * to also explore subexprs, whatever the result of 'first_fun a b'.
+       * Indeed, if the deep pattern was <... $X ...>, $X will always
+       * match (unless it was binded before), but we actually need to
+       * enumerate all possible subexprs and make $X bind to all
+       * possibles subexprs.
+       *)
+      (first_fun a b
+      >||>
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> deep_fun a x >||> aux xs
+      in
+      b |> sub_fun |> aux)
 
 let m_with_symbolic_propagation f b =
   if_config
@@ -366,7 +380,8 @@ let rec m_name a b =
                 contents =
                   Some
                     ( ( B.ImportedEntity dotted
-                      | B.ImportedModule (B.DottedName dotted) ),
+                      | B.ImportedModule (B.DottedName dotted)
+                      | B.ResolvedName dotted ),
                       _sid );
               };
             _;
@@ -678,8 +693,7 @@ and m_expr a b =
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | G.Ellipsis _a1, _ -> return ()
-  | G.DeepEllipsis (_, a1, _), _b ->
-      m_expr_deep a1 b (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
+  | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
@@ -2701,20 +2715,12 @@ and m_class_parent a b =
                            fun () ->
   match (a, b) with
   (* less: this could be generalized, but let's go simple first *)
-  | ( (a1, None),
-      ( {
-          t =
-            B.TyN
-              (B.Id
-                ( _id,
-                  {
-                    id_resolved =
-                      { contents = Some (B.ImportedEntity xs, _sid) };
-                    _;
-                  } ));
-          _;
-        },
-        None ) ) ->
+  | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
+      let xs =
+        match !id_resolved with
+        | Some (B.ImportedEntity xs, _sid) -> xs
+        | _ -> [ id ]
+      in
       (* deep: *)
       let candidates =
         match !hook_find_possible_parents with

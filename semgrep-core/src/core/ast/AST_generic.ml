@@ -280,6 +280,7 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
+  | ResolvedName of dotted_ident (* for deep semgrep *)
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'

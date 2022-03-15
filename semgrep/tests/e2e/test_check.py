@@ -478,6 +478,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
         stdout=subprocess.PIPE,
         encoding="utf-8",
     )
+    # with a soft limit, semgrep should terminate without errors
     assert "semgrep-core exit code: -11" not in output.stderr
     assert "Stack overflow" not in output.stderr
 

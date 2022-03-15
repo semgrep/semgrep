@@ -10,10 +10,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
 - Scala: The data-flow engine can now handle expression blocks. This used to
   cause some false negatives during taint analysis, which will now be reported.
+- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
 - change in sarif output to include matching code as well
 
 ### Fixed
 
+- Fixed Deep expression matching and metavariables interaction. Semgrep will
+  not stop anymore at the first match and will enumarate all possible matchings
+  if a metavariable is used in a deep expression pattern
+  (e.g., `<... $X ...>`). This can introduce some performance regressions.
 - JSX: ellipsis in JSX body (e.g., `<div>...</div>`) now matches any
   children (#4678 and #4717)
 - > ℹ️ During a `--baseline-commit` scan,
@@ -24,6 +29,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Semgrep would delete all newly created files under the repo root,
   but restore only the ones in the subdirectory.
   Now, Semgrep only ever deletes files in the scanned subdirectory.
+
+- Previous releases allowed incompatible versions (21.1.0 & 21.2.0)
+  of the `attrs` dependency to be installed.
+  `semgrep` now correctly requires attrs 21.3.0 at the minimum.
+- `package-lock.json` parsing defaults to `packages` instead of `dependencies` as the source of dependencies
+- `package-lock.json` parsing will ignore dependencies with non-standard versions, and will succesfully parse
+  dependencies with no `integrity` field
 
 ### Changed
 

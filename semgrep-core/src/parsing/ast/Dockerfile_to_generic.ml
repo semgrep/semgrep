@@ -106,8 +106,9 @@ let string_array ((open_, args, close) : string_array) : G.expr =
    Return the arguments to pass to the dockerfile command e.g. the arguments
    to CMD.
 *)
-let argv_or_shell env x : G.expr list =
+let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
   match x with
+  | Ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in

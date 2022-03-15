@@ -432,6 +432,9 @@ and assignment (env : env) ass =
   in
   Expr (ass.loc, G.e e)
 
+(* This returns a Block on purpose e.g. for the body of a 'for' loop, which
+   is needed for matching. We can't simplify it into a single expression
+   if there's only one statement. *)
 and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   let stmts = List.map as_stmt l in
   let start, end_ = loc in
@@ -516,7 +519,8 @@ let program (env : env) x = blist (env : env) x |> List.map as_stmt
    ('If' condition). Unwrapping into an expr allows the expr to match those
    cases.
 *)
-let pattern (env : env) (x : blist) : G.any =
+let pattern (x : blist) =
+  let env = Pattern in
   match blist_as_expression x with
   | Some e -> G.E (expression env e)
   | None -> (
@@ -528,4 +532,4 @@ let pattern (env : env) (x : blist) : G.any =
 let any (env : env) x : G.any =
   match env with
   | Program -> G.Ss (program env x)
-  | Pattern -> pattern env x
+  | Pattern -> pattern x
