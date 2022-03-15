@@ -112,6 +112,7 @@ and map_resolved_name_kind = function
   | Macro -> `Macro
   | EnumConstant -> `EnumConstant
   | TypeName -> `TypeName
+  | ResolvedName _v1 -> failwith "TODO"
 
 and map_id_info x =
   match x with
