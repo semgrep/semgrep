@@ -1,9 +1,11 @@
 # Handle communication of findings / errors to semgrep.app
-import json
 import os
+from pathlib import Path
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Sequence
+from typing import Set
 
 import click
 import requests
@@ -11,6 +13,9 @@ from urllib3.util.retry import Retry
 
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.error import SemgrepError
+from semgrep.rule import Rule
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.util import partition
 
 
@@ -37,7 +42,7 @@ class ScanHandler:
 
     def fail_open_exit_code(self, repo_name: str, exit_code: int) -> int:
         response = self.session.get(
-            f"{SEMGREP_URL}/api/agent/deployment/{self.deployment_id}/repos/{repo_name}",
+            f"{SEMGREP_URL}api/agent/deployment/{self.deployment_id}/repos/{repo_name}",
             json={},
             timeout=30,
         )
@@ -61,14 +66,14 @@ class ScanHandler:
         else:
             return None
 
-    def start_scan(self, meta) -> None:
+    def start_scan(self, meta: Dict[str, Any]) -> None:
         """
         Get scan id and file ignores
 
         returns ignored list
         """
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/deployment/{self.deployment_id}/scan",
+            f"{SEMGREP_URL}api/agent/deployment/{self.deployment_id}/scan",
             json={"meta": meta},
             timeout=30,
         )
@@ -92,13 +97,17 @@ class ScanHandler:
         self.autofix = body.get("autofix", False)
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
 
+    @property
+    def scan_rules_url(self) -> str:
+        return f"{SEMGREP_URL}api/agent/scan/{self.scan_id}/rules.yaml"
+
     def report_failure(self, exit_code: int) -> int:
         """
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
         """
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/error",
+            f"{SEMGREP_URL}api/agent/scan/{self.scan_id}/error",
             json={
                 "exit_code": exit_code,
                 "stderr": "",
@@ -114,7 +123,14 @@ class ScanHandler:
         exit_code = int(response.json()["exit_code"])
         return exit_code
 
-    def report_findings(self, matches_by_rule, rules, targets, total_time) -> None:
+    def report_findings(
+        self,
+        matches_by_rule: RuleMatchMap,
+        errors: List[SemgrepError],
+        rules: List[Rule],
+        targets: Set[Path],
+        total_time: float,
+    ) -> None:
         """ """
         all_ids = [r.id for r in rules]
         cai_ids, rule_ids = partition(
@@ -147,27 +163,30 @@ class ScanHandler:
         ignores = {
             "findings": [match.to_app_finding_format() for match in new_ignored],
         }
-        # stats = {
-        #     "findings": len(new_matches),
-        #     "errors": len(errors),
-        #     "longest_targets":,
-        #     "rules":,
-        #     "total_time": total_time,
-        # }
-
-        print(json.dumps(findings, indent=4))
-        return
+        complete = {
+            "exit_code": 1
+            if any(
+                "block" in match.metadata.get("dev.semgrep.actions", ["block"])
+                for match in all_matches
+            )
+            else 0,
+            "stats": {
+                "findings": len(new_matches),
+                "errors": errors,
+                "total_time": total_time,
+            },
+        }
 
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scan/{self.scan.id}/findings",
+            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/findings",
             json=findings,
             timeout=30,
         )
         try:
             response.raise_for_status()
 
-            errors = response.json()["errors"]
-            for error in errors:
+            resp_errors = response.json()["errors"]
+            for error in resp_errors:
                 message = error["message"]
                 click.echo(f"Server returned following warning: {message}", err=True)
 
@@ -175,7 +194,7 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scan/{self.scan.id}/ignores",
+            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/ignores",
             json=ignores,
             timeout=30,
         )
@@ -184,21 +203,18 @@ class ScanHandler:
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
-        # # mark as complete
-        # # In order to not overload our app database, we truncate target stats to the 20 heaviest hitters. This adds
-        # # approximately 80 kB of database load per scan when using p/ci.
-        # response = self.session.post(
-        #     f"{SEMGREP_URL}/api/agent/scan/{self.scan.id}/complete",
-        #     json={
-        #         "exit_code": results.findings.max_exit_code,
-        #         "stats": results.stats(n_heavy_targets=20),
-        #     },
-        #     timeout=30,
-        # )
+        # mark as complete
+        # In order to not overload our app database, we truncate target stats to the 20 heaviest hitters. This adds
+        # approximately 80 kB of database load per scan when using p/ci.
+        response = self.session.post(
+            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/complete",
+            json=complete,
+            timeout=30,
+        )
 
-        # try:
-        #     response.raise_for_status()
-        # except requests.RequestException:
-        #     raise Exception(
-        #         f"API server at {SEMGREP_URL} returned this error: {response.text}"
-        #     )
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            raise Exception(
+                f"API server at {SEMGREP_URL} returned this error: {response.text}"
+            )
