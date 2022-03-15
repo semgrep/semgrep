@@ -24,6 +24,8 @@ def test_debug_performance(run_semgrep_in_tmp):
 
     from pytest import approx
 
+    # this used to be 0.1 for 10% but logging stderr ASAP in
+    # core_runner.py can slow down things up to 30%
     assert time_with_debug == approx(
-        time_without_debug, rel=0.1
-    ), "adding --debug slowed runtime by more than 10%"
+        time_without_debug, rel=0.3
+    ), "adding --debug slowed runtime by more than 30%"

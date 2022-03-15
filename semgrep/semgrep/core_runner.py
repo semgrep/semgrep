@@ -195,7 +195,9 @@ class StreamingSemgrepCore:
                 break
 
             line = line_bytes.decode("utf-8")
-            # log stderr ASAP
+            # log stderr ASAP. This seems to introduce some perf
+            # regressions when using --debug which went from 10% slowdown
+            # to 30%, but it's more important to log ASAP!
             logger.debug(line.rstrip("\n"))
             stderr_lines.append(line)
 
