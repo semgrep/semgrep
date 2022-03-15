@@ -100,6 +100,7 @@ def parse_NPM_package_lock_str(
 ) -> Generator[LockfileDependency, None, None]:
     as_json = json.loads(lockfile_text)
     # Newer versions of NPM (>= v7) use 'packages', older versions use 'dependencies', if both are present, 'packages' is the default
+    # https://docs.npmjs.com/cli/v8/configuring-npm/package-lock-json
     deps = as_json["packages"] if "packages" in as_json else as_json["dependencies"]
     for dep, dep_blob in deps.items():
         version = dep_blob.get("version", None)
