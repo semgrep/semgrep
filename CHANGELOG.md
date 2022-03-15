@@ -32,6 +32,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Previous releases allowed incompatible versions (21.1.0 & 21.2.0)
   of the `attrs` dependency to be installed.
   `semgrep` now correctly requires attrs 21.3.0 at the minimum.
+- `package-lock.json` parsing defaults to `packages` instead of `dependencies` as the source of dependencies
+- `package-lock.json` parsing will ignore dependencies with non-standard versions, and will succesfully parse
+  dependencies with no `integrity` field
 
 ### Changed
 
