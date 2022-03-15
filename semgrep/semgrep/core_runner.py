@@ -303,8 +303,7 @@ class Plan(List[Task]):
             )
             return
 
-        logger.info("\nScanning with multiple kinds of rules.")
-        logger.info("  Summary:")
+        logger.info("\nScanning across multiple languages:")
         for language, plan in plans_by_language:
             lang_chars = max(len(lang) for lang, _ in plans_by_language)
             rules_chars = max(

@@ -1,6 +1,5 @@
 
-Scanning with multiple kinds of rules.
-  Summary:
+Scanning across multiple languages:
     python | 3 rules × 11 files
         js | 1 rule  ×  3 files
 

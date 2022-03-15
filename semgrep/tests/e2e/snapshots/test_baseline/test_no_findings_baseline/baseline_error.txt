@@ -3,7 +3,7 @@ Scanning 2 files.
 
 Switching repository to baseline commit 'baseline-commit'.
   Will report findings introduced by these commits:
-    * dd4dc31 second
+    * 1c2b35c second
 
 Scanning 1 file.
 
