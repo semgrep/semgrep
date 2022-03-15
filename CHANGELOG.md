@@ -14,6 +14,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- Fixed Deep expression matching and metavariables interaction. Semgrep will
+  not stop anymore at the first match and will enumarate all possible matchings
+  if a metavariable is used in a deep expression pattern
+  (e.g., `<... $X ...>`). This can introduce some performance regressions.
 - JSX: ellipsis in JSX body (e.g., `<div>...</div>`) now matches any
   children (#4678 and #4717)
 - > ℹ️ During a `--baseline-commit` scan,
