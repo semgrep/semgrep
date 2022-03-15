@@ -1,3 +1,4 @@
+from os import getenv
 from pathlib import Path
 from typing import Dict
 from typing import Generator
@@ -18,6 +19,10 @@ from semgrep.rule_match import RuleMatch
 PACKAGE_MANAGER_MAP = {
     "pypi": PackageManagers.PYPI,
     "npm": PackageManagers.NPM,
+    "gem": PackageManagers.GEM,
+    "gomod": PackageManagers.GOMOD,
+    "cargo": PackageManagers.CARGO,
+    "maven": PackageManagers.MAVEN,
 }
 
 
@@ -61,12 +66,14 @@ def run_dependency_aware_rule(
     in the `targets` argument.
     """
 
-    # print(list(targets[0].parents))
+    # TODO fix this; associate targets to the lockfiles that they actually use, and remove the env var logic below
     top_level_target_rooted = list(targets[0].parents)
     top_level_target: Path = (
         targets[0] if len(top_level_target_rooted) == 0 else top_level_target_rooted[-1]
     )
-    # TODO fix this; run on the top-level of all the targets
+
+    lockfile_target = Path(getenv("SEMGREP_LOCKFILE_PATH", top_level_target))
+
     dependencies: List[List[Dict[str, str]]] = rule.project_depends_on or []
     dep_rule_errors: List[SemgrepError] = []
 
@@ -88,7 +95,7 @@ def run_dependency_aware_rule(
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
-                    path=top_level_target,
+                    path=top_level_target,  # TODO: this should probably be the offending lockfile
                     fix=None,
                     fix_regex=None,
                     start=CoreLocation(0, 0, 0),
@@ -101,7 +108,7 @@ def run_dependency_aware_rule(
         depends_on_entries = list(parse_depends_on_yaml(dependencies))
         output = list(
             dependencies_range_match_any(
-                depends_on_entries, find_and_parse_lockfiles(top_level_target)
+                depends_on_entries, find_and_parse_lockfiles(lockfile_target)
             )
         )
         final_matches = [] if len(output) == 0 else matches

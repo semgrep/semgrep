@@ -280,6 +280,7 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
+  | ResolvedName of dotted_ident (* for deep semgrep *)
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -756,9 +757,9 @@ and concat_string_kind =
    * and some semgrep users may want to explicitely match only f-strings,
    * which is why we record this information here.
    * update: also use for interpolated Scala strings
-   * TODO: add of string ('f' or something else)
+   * update: add string argument to support arbitary string interpolaters in scala
    *)
-  | FString
+  | FString of string
   (* Javascript uses a special syntax called tagged template literals, e.g.,
    * foo`template string = ${id}`. We must use a different representation
    * for foo(`template string = ${id}`) because some semgrep users want

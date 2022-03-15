@@ -501,22 +501,41 @@ let shift_locations (str, tok) =
   let column (* 0-based *) = max 0 (PI.col_of_info tok) in
   String.make line '\n' ^ String.make column ' ' ^ str
 
-let parse_bash (env : env) shell_cmd : AST_bash.blist option =
+(* A plain ellipsis such as '...' (not e.g. '...;') is identified so
+   that we can treat it as special dockerfile syntax rather than bash
+   syntax.
+
+   Alternatively, this can be done be extending the tree-sitter-dockerfile
+   grammar.
+*)
+let is_plain_ellipsis =
+  let rex = SPcre.regexp "\\A[ \t\r\n]*[.]{3}[ \t\r\n]*\\z" in
+  fun s ->
+    match SPcre.pmatch ~rex s with
+    | Ok res -> res
+    | Error _err -> false
+
+type ellipsis_or_bash = Ellipsis of tok | Bash of AST_bash.blist option
+
+let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
   let input_kind, _ = env.extra in
-  let ts_res =
-    H.wrap_parser
-      (fun () ->
-        let str = shift_locations shell_cmd in
-        Tree_sitter_bash.Parse.string str)
-      (fun cst ->
-        let bash_env : Parse_bash_tree_sitter.env =
-          { env with extra = input_kind }
-        in
-        Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
-  in
-  (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
-     module of ocaml-tree-sitter-core. *)
-  ts_res.program
+  match input_kind with
+  | Pattern when is_plain_ellipsis (fst shell_cmd) -> Ellipsis (snd shell_cmd)
+  | _ ->
+      let ts_res =
+        H.wrap_parser
+          (fun () ->
+            let str = shift_locations shell_cmd in
+            Tree_sitter_bash.Parse.string str)
+          (fun cst ->
+            let bash_env : Parse_bash_tree_sitter.env =
+              { env with extra = input_kind }
+            in
+            Parse_bash_tree_sitter.program bash_env ~tok:(snd shell_cmd) cst)
+      in
+      (* TODO: don't ignore tree-sitter parsing errors. See Parsing_result
+         module of ocaml-tree-sitter-core. *)
+      Bash ts_res.program
 
 (* This is for reconstructing a shell snippet and preserve line/column
    location.
@@ -575,10 +594,11 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       match shell_compat with
       | Sh -> (
           match parse_bash env raw_shell_code with
-          | Some bash_program ->
+          | Ellipsis tok -> Ellipsis tok
+          | Bash (Some bash_program) ->
               let loc = wrap_loc raw_shell_code in
               Sh_command (loc, bash_program)
-          | None -> Other_shell_command (Sh, raw_shell_code))
+          | Bash None -> Other_shell_command (Sh, raw_shell_code))
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
 
@@ -865,10 +885,22 @@ let parse file =
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(program Program dockerfile_ast))
 
+let ensure_trailing_newline str =
+  if str <> "" then
+    let len = String.length str in
+    match str.[len - 1] with
+    | '\n' -> str
+    | _ -> str ^ "\n"
+  else str
+
 let parse_dockerfile_pattern str =
   let input_kind = AST_bash.Pattern in
   H.wrap_parser
-    (fun () -> Tree_sitter_dockerfile.Parse.string str)
+    (fun () ->
+      (* tree-sitter-dockerfile parser requires a trailing newline.
+         Not sure if it's intentional but we add one to simplify user
+         experience. *)
+      str |> ensure_trailing_newline |> Tree_sitter_dockerfile.Parse.string)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in

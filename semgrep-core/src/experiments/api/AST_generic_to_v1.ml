@@ -112,6 +112,7 @@ and map_resolved_name_kind = function
   | Macro -> `Macro
   | EnumConstant -> `EnumConstant
   | TypeName -> `TypeName
+  | ResolvedName _v1 -> failwith "TODO"
 
 and map_id_info x =
   match x with
@@ -411,7 +412,7 @@ and map_special x =
 and map_of_interpolated_kind = function
   | InterpolatedConcat -> `InterpolatedConcat
   | SequenceConcat -> `SequenceConcat
-  | FString -> `FString
+  | FString v1 -> `FString v1
   (* new: *)
   | TaggedTemplateLiteral -> `InterpolatedConcat
 

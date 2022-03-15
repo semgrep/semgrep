@@ -41,10 +41,11 @@ repos:
           # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 
           # some packages ship with type definitions
-          - attrs~=21.0
+          - attrs~=21.3
           - click~=8.0
           - packaging~=21.0
           - requests~=2.22
+          - defusedxml~=0.7.1
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-jsonschema~=3.2
@@ -65,7 +66,7 @@ repos:
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.71.0"
+    rev: "v0.84.0"
     hooks:
       - id: semgrep
         name: Semgrep Python

@@ -1,0 +1,102 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/dependency_aware/log4shell.java"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.log4j2_tainted_argument",
+      "end": {
+        "col": 36,
+        "line": 33,
+        "offset": 1037
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "            logger.error(userName);",
+        "message": "log4j logger.error tainted argument",
+        "metadata": {},
+        "metavars": {
+          "$ARG": {
+            "abstract_content": "userName",
+            "end": {
+              "col": 34,
+              "line": 33,
+              "offset": 1035
+            },
+            "start": {
+              "col": 26,
+              "line": 33,
+              "offset": 1027
+            },
+            "unique_id": {
+              "sid": 7,
+              "type": "id"
+            }
+          },
+          "$LOGGER": {
+            "abstract_content": "logger",
+            "end": {
+              "col": 19,
+              "line": 33,
+              "offset": 1020
+            },
+            "start": {
+              "col": 13,
+              "line": 33,
+              "offset": 1014
+            },
+            "unique_id": {
+              "sid": 10,
+              "type": "id"
+            }
+          },
+          "$METHOD": {
+            "abstract_content": "error",
+            "end": {
+              "col": 25,
+              "line": 33,
+              "offset": 1026
+            },
+            "start": {
+              "col": 20,
+              "line": 33,
+              "offset": 1021
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$PKG": {
+            "abstract_content": "LogManager",
+            "end": {
+              "col": 43,
+              "line": 9,
+              "offset": 235
+            },
+            "start": {
+              "col": 33,
+              "line": 9,
+              "offset": 225
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/log4shell.java",
+      "start": {
+        "col": 13,
+        "line": 33,
+        "offset": 1014
+      }
+    }
+  ]
+}

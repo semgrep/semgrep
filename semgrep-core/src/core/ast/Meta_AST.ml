@@ -56,6 +56,9 @@ and vof_resolved_name_kind = function
   | Macro -> OCaml.VSum ("Macro", [])
   | EnumConstant -> OCaml.VSum ("EnumConstant", [])
   | TypeName -> OCaml.VSum ("TypeName", [])
+  | ResolvedName v1 ->
+      let v1 = vof_dotted_ident v1 in
+      OCaml.VSum ("ResolvedName", [ v1 ])
 
 let rec vof_qualifier = function
   | QDots v1 ->
@@ -427,7 +430,9 @@ and vof_special = function
   | NextArrayIndex -> OCaml.VSum ("NextArrayIndex", [])
 
 and vof_interpolated_kind = function
-  | FString -> OCaml.VSum ("FString", [])
+  | FString v1 ->
+      let v1 = OCaml.vof_string v1 in
+      OCaml.VSum ("FString", [ v1 ])
   | InterpolatedConcat -> OCaml.VSum ("InterpolatedConcat", [])
   | SequenceConcat -> OCaml.VSum ("SequenceConcat", [])
   | TaggedTemplateLiteral -> OCaml.VSum ("TaggedTemplateLiteral", [])

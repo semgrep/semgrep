@@ -115,7 +115,7 @@ install_requires = [
     # Flexibility is achieved by, in order of preference:
     # 1. x.0~= operator pinning to x major version
     # 2. >=x,<y operator pinning to multiple major versions
-    "attrs~=21.0",
+    "attrs~=21.3",
     "colorama~=0.4.0",
     "click~=8.0",
     "click-option-group~=0.5",
@@ -126,6 +126,7 @@ install_requires = [
     "jsonschema~=3.2",
     "wcmatch~=8.3",
     "peewee~=3.14",
+    "defusedxml~=0.7.1",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because
     # it may interfere with other 'setuptools' installs on the system,
