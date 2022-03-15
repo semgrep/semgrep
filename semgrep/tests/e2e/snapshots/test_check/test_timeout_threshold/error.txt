@@ -1,10 +1,10 @@
 running 3 rules from 1 config rules/multiple-long.yaml_0
-Running 3 rules...
-rules:
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+Rules:
 - rules.forcetimeout
 - rules.forcetimeout2
 - rules.forcetimeout3
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+Scanning 1 file with 3 python rules.
 [31m[22m[24mWarning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
 [rules.forcetimeout]
 Semgrep stopped running rules on targets/equivalence/open_redirect.py after 1 timeout error(s). See `--timeout-
@@ -43,10 +43,10 @@ Files skipped:
    • <none>
 
 
-skipped: all .gitignored files
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Some files were skipped.
+  Scan was limited to files tracked by git.
 
-ran 3 rules on 1 files: 0 findings
+Ran 3 rules on 1 file: 0 findings.
 found problems analyzing 1 file; run with --verbose for details or run with --strict to exit non-zero if any file cannot
 be analyzed cleanly
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False

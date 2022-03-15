@@ -2,12 +2,14 @@ import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
+from textwrap import indent
 from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
 from typing import Optional
 
+from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 
@@ -342,7 +344,50 @@ class BaselineHandler:
                 if to_remove:
                     logger.debug("Running git rm")
                     subprocess.run(
-                        ["git", "rm", "-f", *(str(r) for r in to_remove)],
+                        ["git", "rm", "-f", *to_remove],
                         timeout=GIT_SH_TIMEOUT,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
                     )
                     logger.debug("finished git rm")
+
+    def print_git_log(self) -> None:
+        base_commit_sha = (
+            sub_check_output(["git", "rev-parse", self._base_commit]).rstrip().decode()
+        )
+        merge_base_sha = (
+            sub_check_output(["git", "merge-base", self._base_commit, "HEAD"])
+            .rstrip()
+            .decode()
+        )
+        logger.info("  Will report findings introduced by these commits:")
+        log = sub_check_output(
+            ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"],
+            timeout=GIT_SH_TIMEOUT,
+            encoding="utf-8",
+        ).rstrip()
+        logger.info(indent(log, "    "))
+        if merge_base_sha != base_commit_sha:
+            logger.warning(
+                "  The current branch is missing these commits from the baseline branch:"
+            )
+            log = sub_check_output(
+                [
+                    "git",
+                    "log",
+                    "--oneline",
+                    "--graph",
+                    f"{merge_base_sha}..{base_commit_sha}",
+                ],
+                timeout=GIT_SH_TIMEOUT,
+                encoding="utf-8",
+            )
+            logger.info(indent(log, "    ").rstrip())
+
+            logger.info(
+                "  Any finding these commits fixed will look like a new finding in the current branch."
+            )
+            logger.info(
+                "  To avoid reporting such findings, compare to the branch-off point with:\n"
+                f"    --baseline-commit=$(git merge-base {self._base_commit} HEAD)"
+            )

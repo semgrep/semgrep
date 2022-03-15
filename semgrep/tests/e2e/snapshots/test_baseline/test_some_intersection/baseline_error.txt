@@ -1,6 +1,9 @@
-Running baseline scan with base set to: baseline-commit
+Scanning 1 file.
+  Current version has 1 finding.
 
-skipped: all .gitignored files
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
 
-ran 1 rules on 1 files: 1 findings
+Some files were skipped.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 1 file: 1 finding.
