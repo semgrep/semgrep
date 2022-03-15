@@ -371,26 +371,25 @@ def main(
 
     # Run baseline if needed
     if baseline_handler:
-        logger.info(f"\ncurrent version has {unit_str(findings_count, 'finding')}")
+        logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
+        logger.info("")
         if not paths_with_matches:
-            logger.info("skipping baseline scan, because there are no current findings")
+            logger.info(
+                "Skipping baseline scan, because there are no current findings."
+            )
         elif not (set(paths_with_matches) - set(baseline_handler.status.added)):
             logger.info(
-                "all current findings are in files that didn't exist in the baseline commit; no need to run baseline scan"
+                "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
             )
         else:
-            logger.info(f"switching repository to baseline commit '{baseline_commit}'")
-            logger.info(
-                "findings that are present in this commit will not be reported\n"
-            )
+            logger.info(f"Switching repository to baseline commit '{baseline_commit}'.")
+            baseline_handler.print_git_log()
+            logger.info("")
             try:
                 with baseline_handler.baseline_context():
-                    # Need to reinstantiate target_manager since
-                    # filesystem has changed
                     baseline_target_manager = TargetManager(
-                        includes=[
-                            str(path) for path in paths_with_matches
-                        ],  # only the paths that had a match
+                        # only include the paths that had a match
+                        includes=[str(path) for path in paths_with_matches],
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
                         target_strings=target,
@@ -405,11 +404,12 @@ def main(
                         baseline_targets,
                         baseline_profiling_data,
                     ) = run_rules(
+                        # only the rules that had a match
                         [
                             rule
                             for rule, matches in rule_matches_by_rule.items()
                             if matches
-                        ],  # only the rules that had a match
+                        ],
                         baseline_target_manager,
                         core_runner,
                         output_handler,

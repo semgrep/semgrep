@@ -84,7 +84,7 @@ class _MetricManager:
 
     def set_using_server_true(self) -> None:
         if not self._using_server:
-            logger.info("Fetching rules from https://semgrep.dev/registry ...")
+            logger.info("Fetching rules from https://semgrep.dev/registry.")
 
         self._using_server = True
 

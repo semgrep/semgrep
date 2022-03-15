@@ -1,8 +1,8 @@
-excluding files:
-- excluded.*
-Running 4 rules...
+Scanning 2 files.
 
-skipped: all .gitignored files, 2 files matching --exclude patterns
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Some files were skipped.
+  Scan was limited to files tracked by git.
+  Scan skipped: 2 files matching --exclude patterns
+  For a full list of skipped files, run semgrep with the --verbose flag.
 
-ran 4 rules on 2 files: 2 findings
+Ran 4 rules on 2 files: 2 findings.

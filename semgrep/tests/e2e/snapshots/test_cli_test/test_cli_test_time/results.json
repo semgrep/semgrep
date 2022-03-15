@@ -1,5 +1,7 @@
 
-[36m[22m[24m targets/cli_test/basic/basic.py [0m
+Findings:
+
+[36m[22m[24m  targets/cli_test/basic/basic.py [0m
      [1m[24mrules.cli_test.basic.basic-test[0m
         Basic test
 

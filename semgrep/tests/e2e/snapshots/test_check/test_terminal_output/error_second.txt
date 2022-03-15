@@ -1,6 +1,11 @@
-Running 4 rules...
 
-skipped: all .gitignored files
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Scanning with multiple kinds of rules.
+  Summary:
+    python | 3 rules × 11 files
+        js | 1 rule  ×  3 files
 
-ran 4 rules on 14 files: 2 findings
+
+Some files were skipped.
+  Scan was limited to files tracked by git.
+
+Ran 4 rules on 14 files: 2 findings.

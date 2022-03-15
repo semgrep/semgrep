@@ -1,9 +1,9 @@
 running 2 rules from 2 configs
-Running 2 rules...
-rules:
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+Rules:
 - rules.cli_test.parse_errors.eqeq-is-bad
 - rules.cli_test.parse_errors.func
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+Scanning 1 file with 2 js rules.
 [31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Semgrep Core — Syntax error
 An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
 
@@ -43,10 +43,10 @@ Files skipped:
    • <none>
 
 
-skipped: all .gitignored files
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Some files were skipped.
+  Scan was limited to files tracked by git.
 
-ran 2 rules on 1 files: 3 findings
+Ran 2 rules on 1 file: 3 findings.
 found problems analyzing 1 file; run with --verbose for details or run with --strict to exit non-zero if any file cannot
 be analyzed cleanly
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False

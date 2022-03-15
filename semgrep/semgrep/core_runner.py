@@ -242,7 +242,7 @@ class StreamingSemgrepCore:
             self._progress_bar = tqdm(  # typing: ignore
                 total=self._total,
                 file=sys.stderr,
-                bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt} tasks",
+                bar_format="  {l_bar}{bar}|{n_fmt}/{total_fmt} tasks",
             )
 
         rc = asyncio.run(self._stream_subprocess())
@@ -285,11 +285,11 @@ class Plan(List[Task]):
 
     def log(self) -> None:
         if self.rule_count == 0:
-            logger.info("nothing to scan")
+            logger.info("Nothing to scan.")
             return
 
         if self.rule_count == 1:
-            logger.info(f"scanning {unit_str(len(self), 'file')}")
+            logger.info(f"Scanning {unit_str(len(self), 'file')}.")
             return
 
         plans_by_language = sorted(
@@ -299,11 +299,12 @@ class Plan(List[Task]):
         )
         if len(plans_by_language) == 1:
             logger.info(
-                f"scanning {unit_str(self.file_count, 'file')} with {unit_str(self.rule_count, f'{plans_by_language[0][0]} rule')}"
+                f"Scanning {unit_str(self.file_count, 'file')} with {unit_str(self.rule_count, f'{plans_by_language[0][0]} rule')}."
             )
             return
 
-        logger.info("\nscanning:")
+        logger.info("\nScanning with multiple kinds of rules.")
+        logger.info("  Summary:")
         for language, plan in plans_by_language:
             lang_chars = max(len(lang) for lang, _ in plans_by_language)
             rules_chars = max(
@@ -317,7 +318,7 @@ class Plan(List[Task]):
             rules_field = unit_str(plan.rule_count, "rule", pad=True).rjust(rules_chars)
             files_field = unit_str(plan.file_count, "file", pad=True).rjust(files_chars)
 
-            logger.info(f" {lang_field} | {rules_field} × {files_field}")
+            logger.info(f"    {lang_field} | {rules_field} × {files_field}")
         logger.info("")
 
     def __str__(self) -> str:

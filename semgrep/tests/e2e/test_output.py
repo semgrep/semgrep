@@ -177,9 +177,9 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
     )
 
 
-IGNORE_LOG_REPORT_FIRST_LINE = "Files skipped:"
+IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped."
 IGNORE_LOG_REPORT_LAST_LINE = (
-    "for a detailed list of skipped files, run semgrep with the --verbose flag"
+    "  For a full list of skipped files, run semgrep with the --verbose flag."
 )
 
 
