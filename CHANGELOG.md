@@ -11,6 +11,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: The data-flow engine can now handle expression blocks. This used to
   cause some false negatives during taint analysis, which will now be reported.
 - Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
+- When scanning multiple languages,
+  Semgrep will now print a table of how many rules and files are used for each language.
 
 ### Fixed
 
@@ -75,6 +77,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - When `git ls-files` is unavailable or `--disable-git-ignore` is set,
     Semgrep walks the file system to find all target files.
     Semgrep now walks the file system 30% faster compared to previous versions.
+
+- The output format has been updated to visually separate lines
+  with headings and indentation.
 
 ## [0.84.0](https://github.com/returntocorp/semgrep/releases/tag/v0.84.0) - 2022-03-09
 

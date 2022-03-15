@@ -41,35 +41,11 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import IgnoreLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
-
-
-def notify_user_of_work(
-    filtered_rules: Sequence[Rule],
-    include: Sequence[str],
-    exclude: Sequence[str],
-) -> None:
-    """
-    Notify user of what semgrep is about to do, including:
-    - number of rules
-    - which rules? <- not yet, too cluttered
-    - which dirs are excluded, etc.
-    """
-    if include:
-        logger.info(f"including files:")
-        for inc in include:
-            logger.info(f"- {inc}")
-    if exclude:
-        logger.info(f"excluding files:")
-        for exc in exclude:
-            logger.info(f"- {exc}")
-    logger.info(f"Running {len(filtered_rules)} rules...")
-    logger.verbose("rules:")
-    for ruleid in sorted([rule.id for rule in filtered_rules]):
-        logger.verbose(f"- {ruleid}")
 
 
 def get_file_ignore() -> FileIgnore:
@@ -340,8 +316,6 @@ def main(
                 code=MISSING_CONFIG_EXIT_CODE,
             )
 
-        notify_user_of_work(filtered_rules, include, exclude)
-
     # Initialize baseline here to fail early on bad args
     baseline_handler = None
     if baseline_commit:
@@ -375,6 +349,10 @@ def main(
         optimizations=optimizations,
     )
 
+    logger.verbose("Rules:")
+    for ruleid in sorted(rule.id for rule in filtered_rules):
+        logger.verbose(f"- {ruleid}")
+
     rule_matches_by_rule, semgrep_errors, all_targets, profiling_data = run_rules(
         filtered_rules,
         target_manager,
@@ -387,49 +365,63 @@ def main(
     output_handler.handle_semgrep_errors(semgrep_errors)
 
     paths_with_matches = list(
-        {
-            str(match.path)
-            for matches in rule_matches_by_rule.values()
-            for match in matches
-        }
+        {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
+    findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
 
     # Run baseline if needed
     if baseline_handler:
-        logger.info(f"Running baseline scan with base set to: {baseline_commit}")
-        try:
-            with baseline_handler.baseline_context():
-                # Need to reinstantiate target_manager since
-                # filesystem has changed
-                baseline_target_manager = TargetManager(
-                    includes=paths_with_matches,  # only the paths that had a match
-                    excludes=exclude,
-                    max_target_bytes=max_target_bytes,
-                    target_strings=target,
-                    respect_git_ignore=respect_git_ignore,
-                    allow_unknown_extensions=not skip_unknown_extensions,
-                    file_ignore=get_file_ignore(),
-                )
+        logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
+        logger.info("")
+        if not paths_with_matches:
+            logger.info(
+                "Skipping baseline scan, because there are no current findings."
+            )
+        elif not (set(paths_with_matches) - set(baseline_handler.status.added)):
+            logger.info(
+                "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
+            )
+        else:
+            logger.info(f"Switching repository to baseline commit '{baseline_commit}'.")
+            baseline_handler.print_git_log()
+            logger.info("")
+            try:
+                with baseline_handler.baseline_context():
+                    baseline_target_manager = TargetManager(
+                        # only include the paths that had a match
+                        includes=[str(path) for path in paths_with_matches],
+                        excludes=exclude,
+                        max_target_bytes=max_target_bytes,
+                        target_strings=target,
+                        respect_git_ignore=respect_git_ignore,
+                        allow_unknown_extensions=not skip_unknown_extensions,
+                        file_ignore=get_file_ignore(),
+                    )
 
-                (
-                    baseline_rule_matches_by_rule,
-                    baseline_semgrep_errors,
-                    baseline_targets,
-                    baseline_profiling_data,
-                ) = run_rules(
-                    list(rule_matches_by_rule),  # only the rules that had a match
-                    baseline_target_manager,
-                    core_runner,
-                    output_handler,
-                    dump_command_for_core,
-                    deep,
-                )
-                rule_matches_by_rule = remove_matches_in_baseline(
-                    rule_matches_by_rule, baseline_rule_matches_by_rule
-                )
-                output_handler.handle_semgrep_errors(baseline_semgrep_errors)
-        except Exception as e:
-            raise SemgrepError(e)
+                    (
+                        baseline_rule_matches_by_rule,
+                        baseline_semgrep_errors,
+                        baseline_targets,
+                        baseline_profiling_data,
+                    ) = run_rules(
+                        # only the rules that had a match
+                        [
+                            rule
+                            for rule, matches in rule_matches_by_rule.items()
+                            if matches
+                        ],
+                        baseline_target_manager,
+                        core_runner,
+                        output_handler,
+                        dump_command_for_core,
+                        deep,
+                    )
+                    rule_matches_by_rule = remove_matches_in_baseline(
+                        rule_matches_by_rule, baseline_rule_matches_by_rule
+                    )
+                    output_handler.handle_semgrep_errors(baseline_semgrep_errors)
+            except Exception as e:
+                raise SemgrepError(e)
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()

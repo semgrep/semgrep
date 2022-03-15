@@ -1,4 +1,3 @@
-import itertools
 import textwrap
 from itertools import groupby
 from pathlib import Path
@@ -341,7 +340,7 @@ class TextFormatter(BaseFormatter):
             if last_file is None or last_file != current_file:
                 if last_file is not None:
                     yield ""
-                yield f"\n{with_color(Colors.cyan, f' {current_file} ', bold=False)}"
+                yield f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}"
                 last_message = None
             # don't display the rule line if the check is empty
             if (
@@ -412,4 +411,8 @@ class TextFormatter(BaseFormatter):
             else iter([])
         )
 
-        return "\n".join(itertools.chain(output, timing_output))
+        matches_output = "\n".join((*output, *timing_output))
+        if not matches_output:
+            return ""
+
+        return "\nFindings:\n" + matches_output

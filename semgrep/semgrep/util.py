@@ -228,3 +228,12 @@ def flatten(some_list: List[List[T]]) -> List[T]:
 
 
 PathFilterCallable = Callable[..., FrozenSet[Path]]
+
+
+def unit_str(count: int, unit: str, pad: bool = False) -> str:
+    if count != 1:
+        unit += "s"
+    elif pad:
+        unit += " "
+
+    return f"{count} {unit}"

@@ -1,8 +1,8 @@
 running 1 rules from 1 config rules/long.yaml_0
-Running 1 rules...
-rules:
-- rules.forcetimeout
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+Rules:
+- rules.forcetimeout
+Scanning 1 file.
 
 ========================================
 Files skipped:
@@ -36,10 +36,10 @@ Files skipped:
    • <none>
 
 
-skipped: all .gitignored files
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Some files were skipped.
+  Scan was limited to files tracked by git.
 
-ran 1 rules on 1 files: 0 findings
+Ran 1 rule on 1 file: 0 findings.
 found problems analyzing 1 file; run with --verbose for details or run with --strict to exit non-zero if any file cannot
 be analyzed cleanly
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False

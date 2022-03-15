@@ -132,10 +132,15 @@ class IgnoreLog:
         )
 
     def __str__(self) -> str:
+        limited_fragments = []
         skip_fragments = []
 
-        if self.target_manager.respect_git_ignore:
-            skip_fragments.append("all .gitignored files")
+        if self.target_manager.baseline_handler:
+            limited_fragments.append(
+                "Scan was limited to files changed since baseline commit."
+            )
+        elif self.target_manager.respect_git_ignore:
+            limited_fragments.append("Scan was limited to files tracked by git.")
 
         if self.cli_includes:
             skip_fragments.append(
@@ -154,12 +159,17 @@ class IgnoreLog:
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
             )
 
-        if not skip_fragments:
-            return "no files were skipped"
+        if not limited_fragments and not skip_fragments:
+            return ""
 
-        message = "skipped: " + ", ".join(skip_fragments)
-
-        message += "\nfor a detailed list of skipped files, run semgrep with the --verbose flag\n"
+        message = "Some files were skipped."
+        if limited_fragments:
+            for fragment in limited_fragments:
+                message += f"\n  {fragment}"
+        if skip_fragments:
+            message += "\n  Scan skipped: " + ", ".join(skip_fragments)
+            message += "\n  For a full list of skipped files, run semgrep with the --verbose flag."
+        message += "\n"
         return message
 
     def yield_verbose_lines(self) -> Iterator[Tuple[Literal[0, 1, 2], str]]:

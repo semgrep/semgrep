@@ -1,7 +1,7 @@
-Running 1 rules...
+Scanning 1 file.
 
-skipped: all .gitignored files
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Some files were skipped.
+  Scan was limited to files tracked by git.
 
-ran 1 rules on 1 files: 1 findings
+Ran 1 rule on 1 file: 1 finding.
 found problems analyzing 0 file; run with --verbose for details
