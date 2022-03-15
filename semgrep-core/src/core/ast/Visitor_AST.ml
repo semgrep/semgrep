@@ -174,6 +174,9 @@ let (mk_visitor :
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
+    | ResolvedName v1 ->
+        let v1 = v_dotted_ident v1 in
+        ()
   and v_name_info
       { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =
     let v1 = v_ident_and_targs v1 in

@@ -302,7 +302,8 @@ let m_resolved_name_kind a b =
   | G.EnumConstant, _
   | G.TypeName, _
   | G.ImportedEntity _, _
-  | G.ImportedModule _, _ ->
+  | G.ImportedModule _, _
+  | G.ResolvedName _, _ ->
       fail ()
 
 let _m_resolved_name (a1, a2) (b1, b2) =
@@ -366,7 +367,8 @@ let rec m_name a b =
                 contents =
                   Some
                     ( ( B.ImportedEntity dotted
-                      | B.ImportedModule (B.DottedName dotted) ),
+                      | B.ImportedModule (B.DottedName dotted)
+                      | B.ResolvedName dotted ),
                       _sid );
               };
             _;
@@ -2701,20 +2703,12 @@ and m_class_parent a b =
                            fun () ->
   match (a, b) with
   (* less: this could be generalized, but let's go simple first *)
-  | ( (a1, None),
-      ( {
-          t =
-            B.TyN
-              (B.Id
-                ( _id,
-                  {
-                    id_resolved =
-                      { contents = Some (B.ImportedEntity xs, _sid) };
-                    _;
-                  } ));
-          _;
-        },
-        None ) ) ->
+  | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
+      let xs =
+        match !id_resolved with
+        | Some (B.ImportedEntity xs, _sid) -> xs
+        | _ -> [ id ]
+      in
       (* deep: *)
       let candidates =
         match !hook_find_possible_parents with
