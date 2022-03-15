@@ -17,4 +17,6 @@ CMD ls \
   echo yay
 
 # MATCH:
+CMD f() { echo hello; }; f &
+
 CMD ["ls"]

@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
 - Scala: The data-flow engine can now handle expression blocks. This used to
   cause some false negatives during taint analysis, which will now be reported.
+- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
 
 ### Fixed
 
