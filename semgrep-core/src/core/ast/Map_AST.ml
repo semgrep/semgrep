@@ -113,6 +113,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
+    | ResolvedName v1 ->
+        let v1 = map_dotted_ident v1 in
+        ResolvedName v1
   and map_name_info
       {
         name_last = v1;
