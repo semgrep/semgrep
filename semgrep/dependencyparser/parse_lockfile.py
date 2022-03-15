@@ -120,7 +120,6 @@ def parse_NPM_package_lock_str(
         # Either we had no version at all, or the version was a github commit
         except InvalidVersion:
             logger.info(f"no version for dependency: {dep}")
-            continue
 
 
 def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
