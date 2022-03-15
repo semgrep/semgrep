@@ -72,11 +72,7 @@ def run_dependency_aware_rule(
         targets[0] if len(top_level_target_rooted) == 0 else top_level_target_rooted[-1]
     )
 
-    lockfile_target_opt = getenv("SEMGREP_LOCKFILE_PATH")
-    if not lockfile_target_opt:
-        lockfile_target = top_level_target
-    else:
-        lockfile_target = Path(lockfile_target_opt)
+    lockfile_target = Path(getenv("SEMGREP_LOCKFILE_PATH", top_level_target))
 
     dependencies: List[List[Dict[str, str]]] = rule.project_depends_on or []
     dep_rule_errors: List[SemgrepError] = []
