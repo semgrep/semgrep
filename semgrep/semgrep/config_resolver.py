@@ -205,7 +205,7 @@ class ConfigPath:
 
         token = Authentication.get_token()
         # For now c/p endpoint fails with auth so only add it for policy
-        if token and "api/agent/deployment" in config_url:
+        if token and "api/agent/" in config_url:
             logger.verbose("Using token")
             headers["Authorization"] = f"Bearer {token}"
 

@@ -1,12 +1,14 @@
 import multiprocessing
 import os
 from itertools import chain
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from typing import Tuple
 
 import click
@@ -26,7 +28,10 @@ from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.error import SemgrepError
 from semgrep.notifications import possibly_notify_user
+from semgrep.rule import Rule
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.types import MetricsState
 from semgrep.util import abort
@@ -644,7 +649,7 @@ def scan(
     verbose: bool,
     version: bool,
     vim: bool,
-) -> None:
+) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     """
     Semgrep CLI. Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
 
@@ -668,17 +673,17 @@ def scan(
             from semgrep.version import version_check
 
             version_check()
-        return
+        return None
 
     if apply:
         from semgrep.job_postings import print_job_postings
 
         print_job_postings()
-        return
+        return None
 
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
-        return
+        return None
 
     # To keep version runtime fast, we defer non-version imports until here
     import semgrep.semgrep_main
@@ -834,6 +839,7 @@ def scan(
             try:
                 (
                     filtered_matches_by_rule,
+                    semgrep_errors,
                     all_targets,
                     ignore_log,
                     filtered_rules,
@@ -882,9 +888,10 @@ def scan(
                 severities=shown_severities,
             )
 
-            return filtered_matches_by_rule, filtered_rules, all_targets
+            return filtered_matches_by_rule, semgrep_errors, filtered_rules, all_targets
 
     if enable_version_check:
         from semgrep.version import version_check
 
         version_check()
+    return None
