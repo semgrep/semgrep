@@ -24,7 +24,7 @@ RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
     max_retries=Retry(
         total=3,
         backoff_factor=4,
-        method_whitelist=["GET", "POST"],
+        allowed_methods=["GET", "POST"],
         status_forcelist=(413, 429, 500, 502, 503),
     ),
 )
