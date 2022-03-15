@@ -367,7 +367,8 @@ let rec m_name a b =
                 contents =
                   Some
                     ( ( B.ImportedEntity dotted
-                      | B.ImportedModule (B.DottedName dotted) ),
+                      | B.ImportedModule (B.DottedName dotted)
+                      | B.ResolvedName dotted ),
                       _sid );
               };
             _;
@@ -2706,7 +2707,6 @@ and m_class_parent a b =
       let xs =
         match !id_resolved with
         | Some (B.ImportedEntity xs, _sid) -> xs
-        | Some (B.ResolvedName xs, _sid) -> xs
         | _ -> [ id ]
       in
       (* deep: *)
