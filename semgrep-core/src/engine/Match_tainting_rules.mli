@@ -6,15 +6,7 @@ val check_rule :
   Xtarget.t ->
   Report.rule_profiling Report.match_result
 
-(* Deep Semgrep *)
-val check_def_with_rules :
-  Lang.t ->
-  Dataflow_tainting.config list ->
-  string ->
-  AST_generic.function_definition ->
-  unit
-
-(* Deep Semgrep *)
+(* It could be a private function, but it is also used by Deep Semgrep *)
 val taint_config_of_rule :
   Config_semgrep_t.t ->
   Equivalence.equivalences ->

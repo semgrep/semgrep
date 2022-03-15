@@ -281,34 +281,3 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
     skipped = [];
     profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
   }
-
-(* Used by DeepSemgrep. *)
-let check_def_with_rules lang taint_configs ent_name fdef =
-  let str_of_name name = Common.spf "%s:%d" (fst name.IL.ident) name.IL.sid in
-
-  (* Input environment where formal parameters are given taint variables. *)
-  let in_env =
-    List.fold_left
-      (fun (i, env) par ->
-        match par with
-        | G.Param { pname = Some id; pinfo; _ } ->
-            let var = str_of_name (AST_to_IL.var_of_id_info id pinfo) in
-            let env =
-              Dataflow_core.VarMap.add var
-                (Dataflow_tainting.Arg i |> Dataflow_tainting.Taint.singleton)
-                env
-            in
-            (i + 1, env)
-        | _ -> (i + 1, env))
-      (0, Dataflow_core.VarMap.empty)
-      fdef.G.fparams
-    |> snd
-  in
-
-  (* We run all taint rules at once to avoid re-building the CFG. *)
-  let def_body = H.funcbody_to_stmt fdef.G.fbody in
-  let flow = def_body |> AST_to_IL.stmt lang |> CFG_build.cfg_of_stmts in
-  taint_configs
-  |> List.iter (fun taint_config ->
-         Dataflow_tainting.fixpoint ~in_env ~name:ent_name taint_config flow
-         |> ignore)
