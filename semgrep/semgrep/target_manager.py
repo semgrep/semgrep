@@ -134,8 +134,11 @@ class IgnoreLog:
     def __str__(self) -> str:
         skip_fragments = []
 
+        if self.target_manager.baseline_handler:
+            skip_fragments.append("files unchanged since baseline commit")
+
         if self.target_manager.respect_git_ignore:
-            skip_fragments.append("all .gitignored files")
+            skip_fragments.append(".gitignored files")
 
         if self.cli_includes:
             skip_fragments.append(

@@ -285,11 +285,11 @@ class Plan(List[Task]):
 
     def log(self) -> None:
         if self.rule_count == 0:
-            logger.info("Nothing to scan")
+            logger.info("nothing to scan")
             return
 
         if self.rule_count == 1:
-            logger.info(f"Scanning {unit_str(len(self), 'file')}")
+            logger.info(f"scanning {unit_str(len(self), 'file')}")
             return
 
         plans_by_language = sorted(
@@ -299,11 +299,11 @@ class Plan(List[Task]):
         )
         if len(plans_by_language) == 1:
             logger.info(
-                f"Scanning {unit_str(self.file_count, 'file')} with {unit_str(self.rule_count, f'{plans_by_language[0][0]} rule')}"
+                f"scanning {unit_str(self.file_count, 'file')} with {unit_str(self.rule_count, f'{plans_by_language[0][0]} rule')}"
             )
             return
 
-        logger.info("\nScanning:\n")
+        logger.info("\nscanning:")
         for language, plan in plans_by_language:
             lang_chars = max(len(lang) for lang, _ in plans_by_language)
             rules_chars = max(

@@ -41,6 +41,7 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import IgnoreLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 
@@ -364,49 +365,63 @@ def main(
     output_handler.handle_semgrep_errors(semgrep_errors)
 
     paths_with_matches = list(
-        {
-            str(match.path)
-            for matches in rule_matches_by_rule.values()
-            for match in matches
-        }
+        {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
+    findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
 
     # Run baseline if needed
     if baseline_handler:
-        logger.info(f"Running baseline scan with base set to: {baseline_commit}")
-        try:
-            with baseline_handler.baseline_context():
-                # Need to reinstantiate target_manager since
-                # filesystem has changed
-                baseline_target_manager = TargetManager(
-                    includes=paths_with_matches,  # only the paths that had a match
-                    excludes=exclude,
-                    max_target_bytes=max_target_bytes,
-                    target_strings=target,
-                    respect_git_ignore=respect_git_ignore,
-                    allow_unknown_extensions=not skip_unknown_extensions,
-                    file_ignore=get_file_ignore(),
-                )
+        logger.info(f"\ncurrent version has {unit_str(findings_count, 'finding')}")
+        if not paths_with_matches:
+            logger.info("skipping baseline scan, because there are no current findings")
+        elif not (set(paths_with_matches) - set(baseline_handler.status.added)):
+            logger.info(
+                "all current findings are in files that didn't exist in the baseline commit; no need to run baseline scan"
+            )
+        else:
+            logger.info(f"switching repository to baseline commit '{baseline_commit}'")
+            logger.info(
+                "findings that are present in this commit will not be reported\n"
+            )
+            try:
+                with baseline_handler.baseline_context():
+                    # Need to reinstantiate target_manager since
+                    # filesystem has changed
+                    baseline_target_manager = TargetManager(
+                        includes=[
+                            str(path) for path in paths_with_matches
+                        ],  # only the paths that had a match
+                        excludes=exclude,
+                        max_target_bytes=max_target_bytes,
+                        target_strings=target,
+                        respect_git_ignore=respect_git_ignore,
+                        allow_unknown_extensions=not skip_unknown_extensions,
+                        file_ignore=get_file_ignore(),
+                    )
 
-                (
-                    baseline_rule_matches_by_rule,
-                    baseline_semgrep_errors,
-                    baseline_targets,
-                    baseline_profiling_data,
-                ) = run_rules(
-                    list(rule_matches_by_rule),  # only the rules that had a match
-                    baseline_target_manager,
-                    core_runner,
-                    output_handler,
-                    dump_command_for_core,
-                    deep,
-                )
-                rule_matches_by_rule = remove_matches_in_baseline(
-                    rule_matches_by_rule, baseline_rule_matches_by_rule
-                )
-                output_handler.handle_semgrep_errors(baseline_semgrep_errors)
-        except Exception as e:
-            raise SemgrepError(e)
+                    (
+                        baseline_rule_matches_by_rule,
+                        baseline_semgrep_errors,
+                        baseline_targets,
+                        baseline_profiling_data,
+                    ) = run_rules(
+                        [
+                            rule
+                            for rule, matches in rule_matches_by_rule.items()
+                            if matches
+                        ],  # only the rules that had a match
+                        baseline_target_manager,
+                        core_runner,
+                        output_handler,
+                        dump_command_for_core,
+                        deep,
+                    )
+                    rule_matches_by_rule = remove_matches_in_baseline(
+                        rule_matches_by_rule, baseline_rule_matches_by_rule
+                    )
+                    output_handler.handle_semgrep_errors(baseline_semgrep_errors)
+            except Exception as e:
+                raise SemgrepError(e)
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
