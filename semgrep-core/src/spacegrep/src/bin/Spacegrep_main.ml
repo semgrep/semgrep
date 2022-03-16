@@ -39,6 +39,7 @@ type config = {
  * semgrep-core.
  *)
 type skip_reason = Minified | Binary
+
 type skipped_target = { path : string; reason : skip_reason; details : string }
 
 type matches = {
