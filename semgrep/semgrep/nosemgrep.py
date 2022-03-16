@@ -25,7 +25,7 @@ from semgrep.constants import NOSEM_PREVIOUS_LINE_RE
 from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)

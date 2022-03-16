@@ -36,7 +36,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import IgnoreLog

@@ -7,7 +7,7 @@ from typing import Tuple
 
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 

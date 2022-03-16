@@ -1,19 +1,32 @@
+import binascii
 import hashlib
 import itertools
+import textwrap
+from functools import total_ordering
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Set
+from typing import Tuple
+from typing import TYPE_CHECKING
 
+import pymmh3
+from attrs import evolve
 from attrs import field
 from attrs import frozen
 
+from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.types import JsonObject
 
+if TYPE_CHECKING:
+    from semgrep.rule import Rule
 
-@frozen
+
+@frozen(order=True)
 class CoreLocation:
     """
     parses:
@@ -54,7 +67,8 @@ def rstrip(value: Optional[str]) -> Optional[str]:
     return value.rstrip() if value else None
 
 
-@frozen
+@total_ordering
+@frozen(eq=False)
 class RuleMatch:
     """
     A section of code that matches a single rule (which is potentially many patterns)
@@ -75,6 +89,8 @@ class RuleMatch:
     fix: Optional[str] = field(converter=rstrip)
     fix_regex: Optional[Dict[str, Any]]
 
+    index: int = 0
+
     # None means we didn't check; ignore status is unknown
     is_ignored: Optional[bool] = field(default=None)
 
@@ -82,6 +98,10 @@ class RuleMatch:
     lines: List[str] = field(init=False, repr=False)
     lines_hash: str = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
+    syntactic_context: str = field(init=False, repr=False)
+    unique_key: Tuple = field(init=False, repr=False, eq=True)
+    ordering_key: Tuple = field(init=False, repr=False)
+    syntactic_id: str = field(init=False, repr=False)
 
     @lines.default
     def get_lines(self) -> List[str]:
@@ -90,7 +110,7 @@ class RuleMatch:
 
         Assumes file exists.
 
-        Need to do on initializtion instead of on read since file might not be the same
+        Need to do on initialization instead of on read since file might not be the same
         at read time
         """
         # Start and end line are one-indexed, but the subsequent slice call is
@@ -138,11 +158,68 @@ class RuleMatch:
         else:
             return ""
 
-    def is_baseline_equivalent(self, other: "RuleMatch") -> bool:
-        # Note should not override __eq__ of this object since technically not equal
-        return (
-            self.rule_id == other.rule_id
-            and self.path == other.path
-            and self.lines_hash == other.lines_hash
-            and self.lines == other.lines
-        )
+    @syntactic_context.default
+    def get_syntactic_context(self) -> str:
+        code = "\n".join(self.lines)
+        code = textwrap.dedent(code)
+        code = NOSEM_INLINE_COMMENT_RE.sub("", code)
+        code = code.strip()
+        return code
+
+    @unique_key.default
+    def get_unique_key(self) -> Tuple:
+        return (self.rule_id, self.path, self.syntactic_context, self.index)
+
+    @ordering_key.default
+    def get_ordering_key(self) -> Tuple:
+        return (self.path, self.start, self.end, self.rule_id)
+
+    @syntactic_id.default
+    def get_syntactic_id(self) -> str:
+        # Upon reviewing an old decision,
+        # there's no good reason for us to use MurmurHash3 here,
+        # but we need to keep consistent hashes so we cannot change this easily
+        hash_int = pymmh3.hash128(str(self.unique_key))
+        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
+        return str(binascii.hexlify(hash_bytes), "ascii")
+
+    def __lt__(self, other: "RuleMatch") -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.ordering_key < other.ordering_key
+
+
+class RuleMatchSet(Set[RuleMatch]):
+    """
+    A set type which is aware
+    that two rule matches are not to be considered the same
+    even if they have the same line of code.
+    It amends rule matches that have identical code during insertion
+    to set a unique zero-indexed "index" value on them.
+    """
+
+    def add(self, rule_match: RuleMatch) -> None:
+        """
+        Add finding, even if the same (rule, path, code) existed.
+        This is used over regular `.add` to increment the finding's index
+        if it already exists in the set, thereby retaining multiple copies
+        of the same (rule_id, path, line_of_code) tuple.
+        """
+        while rule_match in self:
+            finding = evolve(rule_match, index=rule_match.index + 1)
+        super().add(rule_match)
+
+    def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
+        """
+        Add findings, even if the same (rule, path, code) exist.
+        This is used over regular `.update` to increment the findings' indexes
+        if they already exists in the set, thereby retaining multiple copies
+        of the same (path, rule_id, line_of_code) tuples.
+        """
+        for rule_matches in rule_match_iterables:
+            for rule_match in rule_matches:
+                self.add(rule_match)
+
+
+OrderedRuleMatchList = List[RuleMatch]
+RuleMatchMap = Dict["Rule", OrderedRuleMatchList]

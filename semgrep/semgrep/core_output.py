@@ -26,6 +26,7 @@ from semgrep.error import SemgrepCoreError
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
+from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
 from semgrep.types import RuleId
 from semgrep.verbose_logging import getLogger
@@ -298,30 +299,6 @@ class CoreOutput:
 
         For now assumes that all matches encapsulated by this object are from the same rulee
         """
-        # This will remove matches that have the same range but different
-        # metavariable bindings, choosing the last one in the list. We want the
-        # last because if there multiple possible bindings, they will be returned
-        # by semgrep-core from largest range to smallest. For an example, see
-        # tests/e2e/test_message_interpolation.py::test_message_interpolation;
-        # specifically, the multi-pattern-inside test
-        #
-        # Another option is to not dedup, since Semgrep.ml now does its own deduping
-        # otherwise, and surface both matches
-        def dedup(outputs: List[RuleMatch]) -> List[RuleMatch]:
-            return list({uniq_id(r): r for r in reversed(outputs)}.values())[::-1]
-
-        def uniq_id(
-            r: RuleMatch,
-        ) -> Tuple[str, Path, int, int, str]:
-            start = r.start
-            end = r.end
-            return (
-                r.rule_id,
-                r.path,
-                start.offset,
-                end.offset,
-                r.message,
-            )
 
         def interpolate(text: str, metavariables: Dict[str, str]) -> str:
             """Interpolates a string with the metavariables contained in it, returning a new string"""
@@ -368,22 +345,15 @@ class CoreOutput:
                 extra=match.extra,
             )
 
-        def order_rule_matches(matches: List[RuleMatch]) -> List[RuleMatch]:
-            sorted_matches = sorted(
-                matches,
-                key=lambda rule_match: [rule_match.path, rule_match.start.offset],
-            )
-            return dedup(sorted_matches)
-
-        findings: Dict[Rule, List[RuleMatch]] = {rule: [] for rule in rules}
+        findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
         for match in self.matches:
             rule_match = convert_to_rule_match(match)
-            findings[match.rule].append(rule_match)
+            findings[match.rule].add(rule_match)
 
         # Sort results so as to guarantee the same results across different
         # runs. Results may arrive in a different order due to parallelism
         # (-j option).
-        findings = {
-            rule: order_rule_matches(matches) for rule, matches in findings.items()
+        ordered_findings = {
+            rule: sorted(set(matches)) for rule, matches in findings.items()
         }
-        return findings
+        return ordered_findings
