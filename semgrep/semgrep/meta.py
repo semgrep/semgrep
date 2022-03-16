@@ -103,7 +103,8 @@ class GitMeta:
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             ).strip()
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Could not get branch name using git: {e}")
             return None
 
     def initialize_repo(self) -> None:
@@ -176,7 +177,11 @@ class GithubMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return os.getenv("GITHUB_REPOSITORY", "[unknown]")
+        repo_name = os.getenv("GITHUB_REPOSITORY")
+        if repo_name:
+            return repo_name
+        else:
+            raise Exception("Could not get repo_name when running in GithubAction")
 
     @property
     def repo_url(self) -> Optional[str]:
