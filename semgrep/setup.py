@@ -119,6 +119,7 @@ install_requires = [
     "colorama~=0.4.0",
     "click~=8.0",
     "click-option-group~=0.5",
+    "glom~=22.1",
     "requests~=2.22",
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm~=4.46",
