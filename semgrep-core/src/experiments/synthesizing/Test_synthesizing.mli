@@ -4,4 +4,5 @@ val synthesize_patterns : string -> Common.filename -> unit
 
 val generate_pattern_choices : string list -> unit
 
-val locate_function_from_diff : string -> unit
+(* See function of same name in Synthesizer.mli *)
+val locate_patched_functions : string -> unit

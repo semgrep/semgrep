@@ -25,14 +25,13 @@ let synthesize_patterns config s file =
     (fun (k, v) -> (k, Pretty_print_pattern.pattern_to_string lang v))
     patterns
 
-let synthesize_from_diff_list f =
+let locate_patched_functions f =
   let f = Common.read_file f in
 
   let d = In.diff_files_of_string f in
   let diff_files = d.In.cve_diffs in
-  let diffs = List.map Pattern_from_Diff.pattern_from_diff diff_files in
-  let res = Out.string_of_cve_results diffs in
-  pr res
+  let diffs = List.map Pattern_from_diff.pattern_from_diff diff_files in
+  Out.string_of_cve_results diffs
 
 let target_to_string lang target =
   "target:\n" ^ Pretty_print_pattern.pattern_to_string lang target ^ "\n"

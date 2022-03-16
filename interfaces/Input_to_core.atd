@@ -45,13 +45,13 @@ type targets = target list
 
 
 (*****************************************************************************)
-(* Synthesizing from diffs *)
+(* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
 (*****************************************************************************)
 
 type diff_file = {
   filename : string;
   diffs : string (* start_line-end_line *) list;
-  url : string
+  url : string (* metadata to help SCA rule generation *)
 }
 
 type diff_files = {
