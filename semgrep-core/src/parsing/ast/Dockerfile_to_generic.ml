@@ -108,7 +108,7 @@ let string_array ((open_, args, close) : string_array) : G.expr =
 *)
 let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
   match x with
-  | Ellipsis tok -> [ G.Ellipsis tok |> G.e ]
+  | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
