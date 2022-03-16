@@ -44,5 +44,5 @@ let generate_pattern_choices s =
 
 let locate_patched_functions f =
   let res = Synthesizer.locate_patched_functions f in
-  res
+  pr res
   [@@action]
