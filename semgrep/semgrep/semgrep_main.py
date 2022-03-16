@@ -287,22 +287,21 @@ def main(
 
     if config_errors and strict:
         raise SemgrepError(
-            f"run with --strict and there were {len(config_errors)} errors loading configs",
+            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
     if not pattern:
-        plural = "s" if len(configs_obj.valid) > 1 else ""
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
         )
         invalid_msg = (
-            f"({len(config_errors)} config files were invalid)"
+            f"({unit_str(len(config_errors), 'invalid config file')})"
             if len(config_errors)
             else ""
         )
         logger.verbose(
-            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
+            f"running {len(filtered_rules)} rules from {unit_str(len(configs_obj.valid), 'config')} {config_id_if_single} {invalid_msg}".strip()
         )
         if len(config_errors) > 0:
             raise SemgrepError(

@@ -91,7 +91,7 @@ def run_dependency_aware_rule(
             # so it should fire at the root of the target if the dependencies match
             matches = [
                 RuleMatch(
-                    id=rule.id,
+                    rule_id=rule.id,
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
