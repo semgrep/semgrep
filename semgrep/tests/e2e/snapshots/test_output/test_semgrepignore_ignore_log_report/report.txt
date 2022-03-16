@@ -1,34 +1,4 @@
-Files skipped:
-========================================
-
-  [1m[24mAlways skipped by Semgrep:[0m
-
-   • <none>
-
-  [1m[24mSkipped by .gitignore:[0m
-  [1m[24m(Disable by passing --no-git-ignore)[0m
-
-   • <all files not listed by `git ls-files` were skipped>
-
-  [1m[24mSkipped by .semgrepignore:[0m
-  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
-  defaults)[0m
-
-   • [36m[22m[24mtargets/ignores/tests/ignore.js[0m
-
-  [1m[24mSkipped by --include patterns:[0m
-
-   • [36m[22m[24mtargets/ignores/ignore_test.js[0m
-
-  [1m[24mSkipped by --exclude patterns:[0m
-
-   • [36m[22m[24mtargets/ignores/ignore.min.js[0m
-
-  [1m[24mSkipped by limiting to files smaller than 100 bytes:[0m
-  [1m[24m(Adjust with the --max-target-bytes flag)[0m
-
-   • <none>
-
-
-skipped: all .gitignored files, 1 files not matching --include patterns, 1 files matching --exclude patterns, 1 files matching .semgrepignore patterns
-for a detailed list of skipped files, run semgrep with the --verbose flag
+Some files were skipped.
+  Scan was limited to files tracked by git.
+  Scan skipped: 1 files not matching --include patterns, 1 files matching --exclude patterns, 1 files matching .semgrepignore patterns
+  For a full list of skipped files, run semgrep with the --verbose flag.

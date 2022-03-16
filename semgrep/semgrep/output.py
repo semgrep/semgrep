@@ -43,6 +43,7 @@ from semgrep.target_manager import IgnoreLog
 from semgrep.util import is_url
 from semgrep.util import partition
 from semgrep.util import terminal_wrap
+from semgrep.util import unit_str
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -320,7 +321,7 @@ class OutputHandler:
                     suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
                 else:
                     suggestion_line = ""
-                stats_line = f"ran {num_rules} rules on {num_targets} files: {num_findings} findings"
+                stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
                 auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
                 if ignore_log is not None:
                     logger.verbose(ignore_log.verbose_output())

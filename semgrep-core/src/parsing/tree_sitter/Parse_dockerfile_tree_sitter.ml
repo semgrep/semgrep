@@ -515,12 +515,15 @@ let is_plain_ellipsis =
     | Ok res -> res
     | Error _err -> false
 
-type ellipsis_or_bash = Ellipsis of tok | Bash of AST_bash.blist option
+type ellipsis_or_bash =
+  | Semgrep_ellipsis of tok
+  | Bash of AST_bash.blist option
 
 let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
   let input_kind, _ = env.extra in
   match input_kind with
-  | Pattern when is_plain_ellipsis (fst shell_cmd) -> Ellipsis (snd shell_cmd)
+  | Pattern when is_plain_ellipsis (fst shell_cmd) ->
+      Semgrep_ellipsis (snd shell_cmd)
   | _ ->
       let ts_res =
         H.wrap_parser
@@ -594,7 +597,7 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
       match shell_compat with
       | Sh -> (
           match parse_bash env raw_shell_code with
-          | Ellipsis tok -> Ellipsis tok
+          | Semgrep_ellipsis tok -> Command_semgrep_ellipsis tok
           | Bash (Some bash_program) ->
               let loc = wrap_loc raw_shell_code in
               Sh_command (loc, bash_program)

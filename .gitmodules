@@ -79,3 +79,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-elixir"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-elixir
 	url = https://github.com/returntocorp/semgrep-elixir
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-swift"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-swift
+	url = https://github.com/returntocorp/semgrep-swift.git
