@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+message Position {
+  uint32 line = 1;
+  uint32 col = 2;
+  uint32 offset = 3;
+}
+
+message Location {
+  string path = 1;
+  Position start = 2;
+  Position end = 3;
+  repeated string lines = 4;
+}
