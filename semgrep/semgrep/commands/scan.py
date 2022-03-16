@@ -166,26 +166,26 @@ _scan_options = [
         "-a",
         "--autofix/--no-autofix",
         is_flag=True,
-        help=(
-            "Apply autofix patches. WARNING: data loss can occur with this "
-            "flag. Make sure your files are stored in a version control system. "
-            "Note that this mode is experimental and not guaranteed to function properly."
-        ),
+        help="""
+            Apply autofix patches. WARNING: data loss can occur with this
+            flag. Make sure your files are stored in a version control system.
+            Note that this mode is experimental and not guaranteed to function properly.
+        """,
     ),
     click.option(
         "--baseline-commit",
-        help=(
-            "[Experimental] Only show results that are not found in this commit hash. Aborts run if not currently"
-            "in a git directory, there are unstaged changes, or given baseline hash doesn't exist"
-        ),
+        help="""
+            [Experimental] Only show results that are not found in this commit hash. Aborts run if not currently
+            in a git directory, there are unstaged changes, or given baseline hash doesn't exist
+        """,
         hidden=True,
     ),
     click.option(
         "--replacement",
-        help=(
-            "An autofix expression that will be applied to any matches found with --pattern. "
-            "Only valid with a command-line specified pattern."
-        ),
+        help="""
+            An autofix expression that will be applied to any matches found with --pattern.
+            Only valid with a command-line specified pattern.
+        """,
     ),
     click.option(
         "--error/--no-error",
@@ -196,20 +196,21 @@ _scan_options = [
     click.option(
         "--lang",
         "-l",
-        help="Parse pattern and all files in specified language. Must be used "
-        "with -e/--pattern.",
+        help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
         shell_complete=__get_language_options,
     ),
     click.option(
         "--metrics",
         "metrics",
         type=METRICS_STATE_TYPE,
-        help="Configures how usage metrics are sent to the Semgrep server."
-        " If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server."
-        " If 'on', metrics are always sent."
-        " If 'off', metrics are disabled altogether and not sent."
-        " If absent, the SEMGREP_SEND_METRICS environment variable value will be used."
-        " If no environment variable, defaults to 'auto'.",
+        help="""
+            Configures how usage metrics are sent to the Semgrep server.
+            If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
+            If 'on', metrics are always sent.
+            If 'off', metrics are disabled altogether and not sent.
+            If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
+            If no environment variable, defaults to 'auto'.
+        """,
         envvar="SEMGREP_SEND_METRICS",
     ),
     click.option(
@@ -232,10 +233,11 @@ _scan_options = [
         "--severity",
         multiple=True,
         type=click.Choice(["INFO", "WARNING", "ERROR"]),
-        help=(
-            "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
-            "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
-        ),
+        help="""
+            Report findings only from rules matching the supplied severity level. By
+            default all applicable rules are run. Can add multiple times. Each should
+            be one of INFO, WARNING, or ERROR.
+        """,
         shell_complete=__get_severity_options,
     ),
     click.option(
@@ -255,16 +257,18 @@ _scan_options = [
         "-c",
         "-f",
         multiple=True,
-        help="YAML configuration file, directory of YAML files ending in "
-        ".yml|.yaml, URL of a configuration file, or Semgrep registry entry name."
-        "\n\n"
-        "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
-        " to the Semgrep registry."
-        "\n\n"
-        "To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name."
-        " For example `semgrep --config p/python --config myrules/myrule.yaml`"
-        "\n\n"
-        "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
+        help="""
+            YAML configuration file, directory of YAML files ending in
+            .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
+            \n\n
+            Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
+             to the Semgrep registry.
+            \n\n
+            To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
+             For example `semgrep --config p/python --config myrules/myrule.yaml`
+            \n\n
+            See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
+        """,
         shell_complete=__get_config_options,
     ),
     optgroup.option(
@@ -284,95 +288,104 @@ _scan_options = [
     ),
     optgroup.group(
         "Path options",
-        help="By default, Semgrep scans all git-tracked files with extensions matching rules' languages."
-        " These options alter which files Semgrep scans.",
+        help="""
+            By default, Semgrep scans all git-tracked files with extensions matching rules' languages.
+            These options alter which files Semgrep scans.
+        """,
     ),
     optgroup.option(
         "--exclude",
         multiple=True,
         default=[],
-        help="Skip any file or directory that matches this pattern; --exclude='*.py' will ignore"
-        " the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py"
-        " as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives"
-        " are ignored.",
+        help="""
+            Skip any file or directory that matches this pattern; --exclude='*.py' will ignore
+            the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py
+            as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives
+            are ignored.
+        """,
         shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--include",
         multiple=True,
         default=[],
-        help="Filter files or directories by path. The argument is a"
-        " glob-style pattern such as 'foo.*' that must match the path."
-        " This is an extra filter in addition to other applicable filters."
-        " For example, specifying the language with '-l javascript' might"
-        " preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of"
-        " '--include=src', '--include=*.jsx', or '--include=src/foo.*'"
-        " will restrict the selection to the single file 'src/foo.jsx'."
-        " A choice of multiple '--include' patterns can be specified."
-        " For example, '--include=foo.* --include=bar.*' will select"
-        " both 'src/foo.jsx' and 'lib/bar.js'."
-        " Glob-style patterns follow the syntax supported by python,"
-        " which is documented at https://docs.python.org/3/library/glob.html",
+        help="""
+            Filter files or directories by path. The argument is a
+            glob-style pattern such as 'foo.*' that must match the path.
+            This is an extra filter in addition to other applicable filters.
+            For example, specifying the language with '-l javascript' migh
+            preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of
+            '--include=src', '--include=*.jsx', or '--include=src/foo.*'
+            will restrict the selection to the single file 'src/foo.jsx'.
+            A choice of multiple '--include' patterns can be specified.
+            For example, '--include=foo.* --include=bar.*' will select
+            both 'src/foo.jsx' and 'lib/bar.js'.
+            Glob-style patterns follow the syntax supported by python,
+            which is documented at https://docs.python.org/3/library/glob.html
+        """,
         shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--max-target-bytes",
         type=bytesize.ByteSizeType(),
         default=DEFAULT_MAX_TARGET_SIZE,
-        help=(
-            "Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. "
-            "Any input program larger than this will be ignored. "
-            "A zero or negative value disables this filter. "
-            f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
-        ),
+        help=f"""
+            Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. Any input
+            program larger than this will be ignored. A zero or negative value disables
+            this filter. Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes.
+        """,
         shell_complete=__get_size_options,
     ),
     optgroup.option(
         "--use-git-ignore/--no-git-ignore",
         is_flag=True,
         default=True,
-        help="Skip files ignored by git."
-        " Scanning starts from the root folder specified on the Semgrep"
-        " command line."
-        " Normally, if the scanning root is within a git repository, "
-        " only the tracked files and the new files"
-        " would be scanned. Git submodules and git-ignored files would"
-        " normally be skipped."
-        " --no-git-ignore will disable git-aware filtering."
-        " Setting this flag does nothing if the scanning root is not"
-        " in a git repository.",
+        help="""
+            Skip files ignored by git. Scanning starts from the root folder specified on
+            the Semgrep command line. Normally, if the scanning root is within a git
+            repository, only the tracked files and the new files would be scanned. Git
+            submodules and git-ignored files would normally be skipped. --no-git-ignore
+            will disable git-aware filtering. Setting this flag does nothing if the
+            scanning root is not in a git repository.
+        """,
     ),
     optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
         is_flag=True,
         default=True,
-        help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
-        "these files will not be scanned",
+        help="""
+            If true, explicit files will be scanned using the language specified in
+            --lang. If --skip-unknown-extensions, these files will not be scanned
+        """,
     ),
     optgroup.group("Performance and memory options"),
     optgroup.option(
         "--enable-version-check/--disable-version-check",
         is_flag=True,
         default=True,
-        help="Checks Semgrep servers to see if the latest version is run; disabling this may reduce exit time after returning results.",
+        help="""
+            Checks Semgrep servers to see if the latest version is run; disabling this
+            may reduce exit time after returning results.
+        """,
     ),
     optgroup.option(
         "-j",
         "--jobs",
         type=int,
         default=__get_cpu_count(),
-        help=(
-            "Number of subprocesses to use to run checks in parallel. Defaults "
-            "to the number of cores on the system."
-        ),
+        help="""
+            Number of subprocesses to use to run checks in parallel. Defaults to the
+            number of cores on the system.
+        """,
     ),
     optgroup.option(
         "--max-memory",
         type=int,
         default=0,
-        help=(
-            "Maximum system memory to use running a rule on a single file in MB. If set to 0 will not have memory limit. Defaults to 0."
-        ),
+        help="""
+            Maximum system memory to use running a rule on a single file in MB. If set to
+            0 will not have memory limit. Defaults to 0.
+        """,
     ),
     optgroup.option(
         "--optimizations",
@@ -385,74 +398,76 @@ _scan_options = [
         "--timeout",
         type=int,
         default=DEFAULT_TIMEOUT,
-        help=(
-            f"Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to {DEFAULT_TIMEOUT} s."
-        ),
+        help=f"""
+            Maximum time to spend running a rule on a single file in seconds. If set to 0
+            will not have time limit. Defaults to {DEFAULT_TIMEOUT} s.
+        """,
     ),
     optgroup.option(
         "--timeout-threshold",
         type=int,
         default=0,
-        help=(
-            "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 0."
-        ),
+        help="""
+            Maximum number of rules that can timeout on a file before the file is
+            skipped. If set to 0 will not have limit. Defaults to 0.
+        """,
     ),
     optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
         is_flag=True,
         default=True,
-        help=(
-            "--enable-nosem enables 'nosem'. Findings will not be reported on lines "
-            "containing a 'nosem' comment at the end. Enabled by default."
-        ),
+        help="""
+            --enable-nosem enables 'nosem'. Findings will not be reported on lines
+            containing a 'nosem' comment at the end. Enabled by default.
+        """,
     ),
     optgroup.option(
         "--force-color/--no-force-color",
         is_flag=True,
-        help="Always include ANSI color in the output, even if not writing to a TTY; defaults to using the TTY status",
+        help="""
+            Always include ANSI color in the output, even if not writing to a TTY;
+            defaults to using the TTY status
+        """,
     ),
     optgroup.option(
         MAX_CHARS_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_CHARS_PER_LINE,
-        help=("Maximum number of characters to show per line."),
+        help="Maximum number of characters to show per line.",
     ),
     optgroup.option(
         MAX_LINES_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_LINES_PER_FINDING,
-        help=(
-            "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
-        ),
+        help="""
+            Maximum number of lines of code that will be shown for each match before
+            trimming (set to 0 for unlimited).
+        """,
     ),
     optgroup.option(
         "-o",
         "--output",
-        help=(
-            "Save search results to a file or post to URL. "
-            "Default is to print to stdout."
-        ),
+        help="Save search results to a file or post to URL. Default is to print to stdout.",
         shell_complete=__get_file_options,
     ),
     optgroup.option(
         "--rewrite-rule-ids/--no-rewrite-rule-ids",
         is_flag=True,
         default=True,
-        help=(
-            "Rewrite rule ids when they appear in nested sub-directories "
-            "(Rule 'foo' in test/rules.yaml will be renamed "
-            "'test.foo')."
-        ),
+        help="""
+            Rewrite rule ids when they appear in nested sub-directories (Rule 'foo' in
+            test/rules.yaml will be renamed 'test.foo').
+        """,
     ),
     optgroup.option(
         "--time/--no-time",
         is_flag=True,
         default=False,
-        help=(
-            "Include a timing summary with the results"
-            "If output format is json, provides times for each pair (rule, target)."
-        ),
+        help="""
+            Include a timing summary with the results. If output format is json, provides
+            times for each pair (rule, target).
+        """,
     ),
     optgroup.group(
         "Output formats",
@@ -516,21 +531,20 @@ _scan_options = [
         "--dump-ast/--no-dump-ast",
         is_flag=True,
         default=False,
-        help=(
-            "If --dump-ast, shows AST of the input file or passed expression and then exit "
-            "(can use --json)."
-        ),
+        help="""
+            If --dump-ast, shows AST of the input file or passed expression and then exit
+            (can use --json).
+        """,
     ),
     optgroup.option(
         "--dryrun/--no-dryrun",
         is_flag=True,
         default=False,
-        help=(
-            "If --dryrun, does not write autofixes to a file. "
-            "This will print the changes to the console. "
-            "This lets you see the changes before you commit to them. "
-            "Only works with the --autofix flag. Otherwise does nothing."
-        ),
+        help="""
+            If --dryrun, does not write autofixes to a file. This will print the changes
+            to the console. This lets you see the changes before you commit to them. Only
+            works with the --autofix flag. Otherwise does nothing.
+        """,
     ),
     # These flags are deprecated or experimental - users should not
     # rely on their existence, or their output being stable
