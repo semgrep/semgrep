@@ -78,7 +78,7 @@ type string_array = array_elt list bracket
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 type argv_or_shell =
-  | Ellipsis of tok
+  | Command_semgrep_ellipsis of tok
   | Argv of loc * (* [ "cmd", "arg1", "arg2$X" ] *) string_array
   | Sh_command of loc * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
@@ -213,7 +213,7 @@ let quoted_string_loc = bracket_loc
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 let argv_or_shell_loc = function
-  | Ellipsis tok -> (tok, tok)
+  | Command_semgrep_ellipsis tok -> (tok, tok)
   | Argv (loc, _) -> loc
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
