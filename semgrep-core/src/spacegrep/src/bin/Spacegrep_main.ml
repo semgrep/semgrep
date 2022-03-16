@@ -2,6 +2,9 @@
    Entrypoint for the 'spacegrep' command.
 *)
 
+(* for cmdliner >= 1.1.0 *)
+[@@@alert "-deprecated"]
+
 open Printf
 open Cmdliner
 open Spacegrep
@@ -36,7 +39,6 @@ type config = {
  * semgrep-core.
  *)
 type skip_reason = Minified | Binary
-
 type skipped_target = { path : string; reason : skip_reason; details : string }
 
 type matches = {
