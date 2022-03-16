@@ -5,6 +5,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from uuid import UUID
 
 from attrs import field
 from attrs import frozen
@@ -198,4 +199,12 @@ class RuleMatch:
             and self.path == other.path
             and self.lines_hash == other.lines_hash
             and self.lines == other.lines
+        )
+
+    @property
+    def uuid(self) -> UUID:
+        return UUID(
+            bytes=hashlib.sha256(
+                str((self.id, self.path, self.lines_hash)).encode()
+            ).digest()[:16]
         )

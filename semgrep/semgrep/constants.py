@@ -45,6 +45,8 @@ RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=jso
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
+    GITLAB_SAST = auto()
+    GITLAB_SECRETS = auto()
     JUNIT_XML = auto()
     SARIF = auto()
     EMACS = auto()
