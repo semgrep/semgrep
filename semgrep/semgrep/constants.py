@@ -19,7 +19,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
-if "XDG_CONFIG_HOME" in os.environ and Path(ox.environ["XDG_CONFIG_HOME"]).is_dir():
+if "XDG_CONFIG_HOME" in os.environ and Path(os.environ["XDG_CONFIG_HOME"]).is_dir():
     USER_DATA_FOLDER = Path(os.environ["XDG_CONFIG_HOME"]) / "semgrep"
 else:
     USER_DATA_FOLDER = Path.home() / ".semgrep"
