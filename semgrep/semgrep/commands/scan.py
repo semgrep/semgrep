@@ -463,6 +463,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 @optgroup.option(
     "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
 )
+@optgroup.option("--reviewdog", is_flag=True, help="Output results in Reviewdog JSON format.")
 @optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format.")
 @optgroup.option(
     "--vim",
@@ -602,6 +603,7 @@ def scan(
     pattern: Optional[str],
     quiet: bool,
     replacement: Optional[str],
+    reviewdog: bool,
     rewrite_rule_ids: bool,
     sarif: bool,
     save_test_output_tar: bool,
@@ -719,6 +721,8 @@ def scan(
         output_format = OutputFormat.JSON
     elif junit_xml:
         output_format = OutputFormat.JUNIT_XML
+    elif reviewdog:
+        output_format = OutputFormat.REVIEWDOG
     elif sarif:
         output_format = OutputFormat.SARIF
     elif emacs:

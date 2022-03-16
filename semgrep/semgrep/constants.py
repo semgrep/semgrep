@@ -46,6 +46,7 @@ class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
     JUNIT_XML = auto()
+    REVIEWDOG = auto()
     SARIF = auto()
     EMACS = auto()
     VIM = auto()

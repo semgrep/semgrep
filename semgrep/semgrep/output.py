@@ -28,6 +28,7 @@ from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
+from semgrep.formatter.reviewdog import ReviewdogFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
@@ -54,6 +55,7 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,
     OutputFormat.JSON: JsonFormatter,
     OutputFormat.JUNIT_XML: JunitXmlFormatter,
+    OutputFormat.REVIEWDOG: ReviewdogFormatter,
     OutputFormat.SARIF: SarifFormatter,
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
