@@ -47,7 +47,7 @@ def yield_exclude_args(requested_patterns: Sequence[str]) -> Iterable[str]:
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @scan_options
-def app_scan(ctx: click.Context, *args: Any, **kwargs: Any) -> None:
+def ci(ctx: click.Context, *args: Any, **kwargs: Any) -> None:
     token = Authentication.get_token()
     if not token:
         click.echo("run `semgrep login` before using `semgrep ci`", err=True)
