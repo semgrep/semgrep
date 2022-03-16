@@ -22,6 +22,7 @@
    tree-sitter-lang.php
    tree-sitter-lang.python
    tree-sitter-lang.solidity
+   tree-sitter-lang.swift
    tree-sitter-lang.r
    tree-sitter-lang.ruby
    tree-sitter-lang.rust
