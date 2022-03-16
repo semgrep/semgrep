@@ -171,6 +171,10 @@ def _run_semgrep(
 
     if output_format == OutputFormat.JSON:
         options.append("--json")
+    elif output_format == OutputFormat.GITLAB_SAST:
+        options.append("--gitlab-sast")
+    elif output_format == OutputFormat.GITLAB_SECRETS:
+        options.append("--gitlab-secrets")
     elif output_format == OutputFormat.JUNIT_XML:
         options.append("--junit-xml")
     elif output_format == OutputFormat.SARIF:
