@@ -50,33 +50,41 @@ class CoreLocation:
         return cls(line, col, offset)
 
 
+def rstrip(value: Optional[str]) -> Optional[str]:
+    return value.rstrip() if value else None
+
+
 @frozen
 class RuleMatch:
     """
     A section of code that matches a single rule (which is potentially many patterns)
     """
 
-    _id: str = field()
-    _message: str = field(repr=False)
-    _metadata: Dict[str, Any] = field(repr=False)
-    _severity: RuleSeverity = field(repr=False)
-    _fix: Optional[str] = field(repr=False)
-    _fix_regex: Optional[Dict[str, Any]] = field(repr=False)
-    _path: Path = field(repr=str)
-    _start: CoreLocation = field()
-    _end: CoreLocation = field()
-    _extra: Dict[str, Any] = field(repr=False)
+    rule_id: str
+    message: str = field(repr=False)
+    severity: RuleSeverity
+    metadata: Dict[str, Any] = field(repr=False)
+    extra: Dict[str, Any] = field(repr=False)
 
-    # optional attributes
-    _is_ignored: Optional[bool] = field(default=None)
+    path: Path = field(repr=str)
+    start: CoreLocation
+    end: CoreLocation
+
+    # We call rstrip() for consistency with semgrep-core, which ignores whitespace
+    # including newline chars at the end of multiline patterns
+    fix: Optional[str] = field(converter=rstrip)
+    fix_regex: Optional[Dict[str, Any]]
+
+    # None means we didn't check; ignore status is unknown
+    is_ignored: Optional[bool] = field(default=None)
 
     # derived attributes
-    _lines: List[str] = field()
-    _lines_hash: str = field()
-    _previous_line: str = field()
+    lines: List[str] = field(init=False, repr=False)
+    lines_hash: str = field(init=False, repr=False)
+    previous_line: str = field(init=False, repr=False)
 
-    @_lines.default
-    def _get_lines(self) -> List[str]:
+    @lines.default
+    def get_lines(self) -> List[str]:
         """
         Return lines in file that this RuleMatch is referring to.
 
@@ -100,73 +108,12 @@ class RuleMatch:
 
         return result
 
-    @_lines_hash.default
-    def _initialize_lines_hash(self) -> str:
+    @lines_hash.default
+    def get_lines_hash(self) -> str:
         return hashlib.sha256("\n".join(self.lines).encode()).hexdigest()
 
-    @property
-    def id(self) -> str:
-        return self._id
-
-    @property
-    def path(self) -> Path:
-        return self._path
-
-    @property
-    def extra(self) -> Dict[str, Any]:
-        return self._extra
-
-    @property
-    def fix(self) -> Optional[str]:
-        # We do this for consistency with semgrep-core, which ignores whitespace
-        # including newline chars at the end of multiline patterns
-        return self._fix.rstrip() if self._fix else self._fix
-
-    @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
-        return self._fix_regex
-
-    @property
-    def message(self) -> str:
-        return self._message
-
-    @property
-    def metadata(self) -> Dict[str, Any]:
-        return self._metadata
-
-    @property
-    def severity(self) -> RuleSeverity:
-        return self._severity
-
-    @property
-    def start(self) -> CoreLocation:
-        return self._start
-
-    @property
-    def end(self) -> CoreLocation:
-        return self._end
-
-    @property
-    def is_ignored(self) -> Optional[bool]:
-        return self._is_ignored
-
-    @property
-    def lines(self) -> List[str]:
-        return self._lines
-
-    @property
-    def lines_hash(self) -> str:
-        """
-        sha256 digest of lines of this rule_match
-        """
-        return self._lines_hash
-
-    @property
-    def previous_line(self) -> str:
-        return self._previous_line
-
-    @_previous_line.default
-    def _get_previous_line(self) -> str:
+    @previous_line.default
+    def get_previous_line(self) -> str:
         """Return the line preceding the match, if any.
 
         This is meant for checking for the presence of a nosemgrep comment.
@@ -194,7 +141,7 @@ class RuleMatch:
     def is_baseline_equivalent(self, other: "RuleMatch") -> bool:
         # Note should not override __eq__ of this object since technically not equal
         return (
-            self.id == other.id
+            self.rule_id == other.rule_id
             and self.path == other.path
             and self.lines_hash == other.lines_hash
             and self.lines == other.lines

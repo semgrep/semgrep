@@ -316,7 +316,7 @@ class CoreOutput:
             start = r.start
             end = r.end
             return (
-                r.id,
+                r.rule_id,
                 r.path,
                 start.offset,
                 end.offset,
@@ -355,7 +355,7 @@ class CoreOutput:
             message = interpolate(rule.message, metavariables)
             fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
-            rule_match = RuleMatch(
+            return RuleMatch(
                 rule._id,
                 message=message,
                 metadata=rule.metadata,
@@ -367,7 +367,6 @@ class CoreOutput:
                 end=match.end,
                 extra=match.extra,
             )
-            return rule_match
 
         def order_rule_matches(matches: List[RuleMatch]) -> List[RuleMatch]:
             sorted_matches = sorted(

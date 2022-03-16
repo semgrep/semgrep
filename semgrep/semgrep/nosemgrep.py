@@ -65,12 +65,12 @@ def process_ignores(
 
     if not keep_ignored:
         filtered = {
-            rule: [m for m in matches if not m._is_ignored]
+            rule: [m for m in matches if not m.is_ignored]
             for rule, matches in filtered.items()
         }
 
     num_findings_nosem = sum(
-        1 for rule, matches in filtered.items() for m in matches if m._is_ignored
+        1 for rule, matches in filtered.items() for m in matches if m.is_ignored
     )
 
     return filtered, nosem_errors, num_findings_nosem
@@ -107,7 +107,7 @@ def _rule_match_nosem(
 
     if not ids:
         logger.verbose(
-            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start.line}"
+            f"found 'nosem' comment, skipping rule '{rule_match.rule_id}' on line {rule_match.start.line}"
         )
         return True, []
 
@@ -125,13 +125,13 @@ def _rule_match_nosem(
     errors = []
     result = False
     for pattern_id in pattern_ids:
-        if rule_match.id == pattern_id:
+        if rule_match.rule_id == pattern_id:
             logger.verbose(
-                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start.line}"
+                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.rule_id}' on line {rule_match.start.line}"
             )
             result = result or True
         else:
-            message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.id}'"
+            message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.rule_id}'"
             if strict:
                 errors.append(SemgrepError(message, level=Level.WARN))
             else:
