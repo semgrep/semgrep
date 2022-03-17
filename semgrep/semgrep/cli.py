@@ -15,7 +15,6 @@ def cli() -> None:
 
 
 cli.add_command(ci)
-cli.add_command(app_scan)
 cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(publish)
