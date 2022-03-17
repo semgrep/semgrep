@@ -247,6 +247,13 @@ class RuleMatch:
         """
         return UUID(hex=self.syntactic_id)
 
+    @property
+    def is_blocking(self) -> bool:
+        """
+        Returns if this finding indicates it should block CI
+        """
+        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
     def to_app_finding_format(self) -> Dict[str, Any]:
 
         # Follow semgrep.dev severity conventions
@@ -270,8 +277,7 @@ class RuleMatch:
             "commit_date": "TODO",
             "syntactic_id": "TODO",
             "metadata": self.metadata,
-            "is_blocking": "block"
-            in self.metadata.get("dev.semgrep.actions", ["block"]),
+            "is_blocking": self.is_blocking,
         }
 
     def __hash__(self) -> int:

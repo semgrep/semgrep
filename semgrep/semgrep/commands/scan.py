@@ -157,12 +157,6 @@ _scan_options = [
     click.argument("target", nargs=-1, type=click.Path(allow_dash=True)),
     click.help_option("--help", "-h", help=("Show this message and exit.")),
     click.option(
-        "--apply",
-        is_flag=True,
-        help=("Print a list of job postings at r2c."),
-        hidden=True,
-    ),
-    click.option(
         "-a",
         "--autofix/--no-autofix",
         is_flag=True,
@@ -181,23 +175,10 @@ _scan_options = [
         hidden=True,
     ),
     click.option(
-        "--replacement",
-        help="""
-            An autofix expression that will be applied to any matches found with --pattern.
-            Only valid with a command-line specified pattern.
-        """,
-    ),
-    click.option(
         "--error/--no-error",
         "error_on_findings",
         is_flag=True,
         help="Exit 1 if there are findings. Useful for CI and scripts.",
-    ),
-    click.option(
-        "--lang",
-        "-l",
-        help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
-        shell_complete=__get_language_options,
     ),
     click.option(
         "--metrics",
@@ -230,22 +211,6 @@ _scan_options = [
         hidden=True,
     ),
     click.option(
-        "--severity",
-        multiple=True,
-        type=click.Choice(["INFO", "WARNING", "ERROR"]),
-        help="""
-            Report findings only from rules matching the supplied severity level. By
-            default all applicable rules are run. Can add multiple times. Each should
-            be one of INFO, WARNING, or ERROR.
-        """,
-        shell_complete=__get_severity_options,
-    ),
-    click.option(
-        "--show-supported-languages",
-        is_flag=True,
-        help=("Print a list of languages that are currently supported by Semgrep."),
-    ),
-    click.option(
         "--strict/--no-strict",
         is_flag=True,
         default=False,
@@ -275,16 +240,6 @@ _scan_options = [
         "--pattern",
         "-e",
         help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
-    ),
-    optgroup.group("Alternate modes", help="No search is performed in these modes"),
-    optgroup.option(
-        "--validate",
-        is_flag=True,
-        default=False,
-        help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
-    ),
-    optgroup.option(
-        "--version", is_flag=True, default=False, help="Show the version and exit."
     ),
     optgroup.group(
         "Path options",
@@ -519,33 +474,6 @@ _scan_options = [
         is_flag=True,
         help="All of --verbose, but with additional debugging information.",
     ),
-    optgroup.group("Test and debug options"),
-    optgroup.option("--test", is_flag=True, default=False, help="Run test suite."),
-    optgroup.option(
-        "--test-ignore-todo/--no-test-ignore-todo",
-        is_flag=True,
-        default=False,
-        help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
-    ),
-    optgroup.option(
-        "--dump-ast/--no-dump-ast",
-        is_flag=True,
-        default=False,
-        help="""
-            If --dump-ast, shows AST of the input file or passed expression and then exit
-            (can use --json).
-        """,
-    ),
-    optgroup.option(
-        "--dryrun/--no-dryrun",
-        is_flag=True,
-        default=False,
-        help="""
-            If --dryrun, does not write autofixes to a file. This will print the changes
-            to the console. This lets you see the changes before you commit to them. Only
-            works with the --autofix flag. Otherwise does nothing.
-        """,
-    ),
     # These flags are deprecated or experimental - users should not
     # rely on their existence, or their output being stable
     click.option(
@@ -603,6 +531,78 @@ def scan_options(func: Callable) -> Callable:
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "--apply",
+    is_flag=True,
+    help=("Print a list of job postings at r2c."),
+    hidden=True,
+)
+@click.option(
+    "--replacement",
+    help="""
+        An autofix expression that will be applied to any matches found with --pattern.
+        Only valid with a command-line specified pattern.
+    """,
+)
+@click.option(
+    "--lang",
+    "-l",
+    help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
+    shell_complete=__get_language_options,
+)
+@click.option(
+    "--severity",
+    multiple=True,
+    type=click.Choice(["INFO", "WARNING", "ERROR"]),
+    help="""
+        Report findings only from rules matching the supplied severity level. By
+        default all applicable rules are run. Can add multiple times. Each should
+        be one of INFO, WARNING, or ERROR.
+    """,
+    shell_complete=__get_severity_options,
+)
+@click.option(
+    "--show-supported-languages",
+    is_flag=True,
+    help=("Print a list of languages that are currently supported by Semgrep."),
+)
+@optgroup.group("Alternate modes", help="No search is performed in these modes")
+@optgroup.option(
+    "--validate",
+    is_flag=True,
+    default=False,
+    help="Validate configuration file(s). This will check YAML files for errors and run 'p/semgrep-rule-lints' on the YAML files. No search is performed.",
+)
+@optgroup.option(
+    "--version", is_flag=True, default=False, help="Show the version and exit."
+)
+@optgroup.group("Test and debug options")
+@optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
+@optgroup.option(
+    "--test-ignore-todo/--no-test-ignore-todo",
+    is_flag=True,
+    default=False,
+    help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
+)
+@optgroup.option(
+    "--dump-ast/--no-dump-ast",
+    is_flag=True,
+    default=False,
+    help="""
+        If --dump-ast, shows AST of the input file or passed expression and then exit
+        (can use --json).
+    """,
+)
+@optgroup.option(
+    "--dryrun/--no-dryrun",
+    is_flag=True,
+    default=False,
+    help="""
+        If --dryrun, does not write autofixes to a file. This will print the changes
+        to the console. This lets you see the changes before you commit to them. Only
+        works with the --autofix flag. Otherwise does nothing.
+    """,
+)
 @scan_options
 def scan(
     *,
