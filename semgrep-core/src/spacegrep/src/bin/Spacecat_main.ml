@@ -2,6 +2,9 @@
    Entrypoint for the 'spacecat' command.
 *)
 
+(* for cmdliner >= 1.1.0 *)
+[@@@alert "-deprecated"]
+
 open Cmdliner
 open Spacegrep
 

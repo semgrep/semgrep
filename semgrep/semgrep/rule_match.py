@@ -12,6 +12,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 import pymmh3
 from attrs import evolve
@@ -193,6 +194,10 @@ class RuleMatch:
         hash_int = pymmh3.hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
+
+    @property
+    def uuid(self) -> UUID:
+        return UUID(hex=self.syntactic_id)
 
     def __hash__(self) -> int:
         return hash(self.cli_unique_key)

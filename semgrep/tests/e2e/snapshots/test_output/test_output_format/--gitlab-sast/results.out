@@ -1,0 +1,34 @@
+{
+  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+  "version": "2.0",
+  "vulnerabilities": [
+    {
+      "category": "sast",
+      "confidence": "High",
+      "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",
+      "id": "39bb28b2-c30a-7673-d4de-9be1f0093192",
+      "identifiers": [
+        {
+          "name": "Semgrep - rules.eqeq-is-bad",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/rules.eqeq-is-bad",
+          "value": "rules.eqeq-is-bad"
+        }
+      ],
+      "location": {
+        "dependency": {
+          "package": {}
+        },
+        "end_line": 3,
+        "file": "targets/basic/stupid.py",
+        "start_line": 3
+      },
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep"
+      },
+      "severity": "High"
+    }
+  ]
+}
