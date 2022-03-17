@@ -19,7 +19,11 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
-USER_DATA_FOLDER = Path.home() / ".semgrep"
+if "XDG_CONFIG_HOME" in os.environ and Path(os.environ["XDG_CONFIG_HOME"]).is_dir():
+    USER_DATA_FOLDER = Path(os.environ["XDG_CONFIG_HOME"]) / "semgrep"
+else:
+    USER_DATA_FOLDER = Path.home() / ".semgrep"
+
 USER_LOG_FILE = Path(os.environ.get("SEMGREP_LOG_FILE", USER_DATA_FOLDER / "last.log"))
 SETTINGS_FILE = "settings.yml"
 SEMGREP_SETTING_ENVVAR_NAME = "SEMGREP_SETTINGS_FILE"
