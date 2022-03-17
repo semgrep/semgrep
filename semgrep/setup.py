@@ -148,7 +148,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=("*tests*",)),
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
     include_package_data=True,
     classifiers=[

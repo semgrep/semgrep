@@ -60,6 +60,8 @@ def _clean_sarif_output(output):
 
 CLEANERS: Mapping[str, Callable[[str], str]] = {
     "--sarif": lambda s: json.dumps(_clean_sarif_output(json.loads(s))),
+    "--gitlab-sast": _clean_output_json,
+    "--gitlab-secrets": _clean_output_json,
     "--json": _clean_output_json,
 }
 
@@ -79,7 +81,10 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
-@pytest.mark.parametrize("format", ["--json", "--sarif", "--emacs", "--vim"])
+@pytest.mark.parametrize(
+    "format",
+    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+)
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
