@@ -198,6 +198,7 @@ def remove_matches_in_baseline(
         kept_matches_by_rule[rule] = [
             match for match in matches if match.ci_unique_key not in baseline_matches
         ]
+        num_removed += len(matches) - len(kept_matches_by_rule[rule])
 
     logger.verbose(f"Removed {num_removed} matches that were in baseline scan")
     return kept_matches_by_rule
