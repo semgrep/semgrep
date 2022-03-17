@@ -200,7 +200,9 @@ def remove_matches_in_baseline(
         ]
         num_removed += len(matches) - len(kept_matches_by_rule[rule])
 
-    logger.verbose(f"Removed {num_removed} matches that were in baseline scan")
+    logger.verbose(
+        f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
+    )
     return kept_matches_by_rule
 
 
