@@ -99,7 +99,8 @@ class RuleMatch:
     lines_hash: str = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
-    unique_key: Tuple = field(init=False, repr=False, eq=True)
+    cli_unique_key: Tuple = field(init=False, repr=False)
+    ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
 
@@ -166,22 +167,40 @@ class RuleMatch:
         code = code.strip()
         return code
 
-    @unique_key.default
-    def get_unique_key(self) -> Tuple:
+    @cli_unique_key.default
+    def get_cli_unique_key(self) -> Tuple:
+        return (
+            self.rule_id,
+            self.path,
+            self.start.offset,
+            self.end.offset,
+            self.message,
+        )
+
+    @ci_unique_key.default
+    def get_ci_unique_key(self) -> Tuple:
         return (self.rule_id, self.path, self.syntactic_context, self.index)
 
     @ordering_key.default
     def get_ordering_key(self) -> Tuple:
-        return (self.path, self.start, self.end, self.rule_id)
+        return (self.path, self.start, self.end, self.rule_id, self.message)
 
     @syntactic_id.default
     def get_syntactic_id(self) -> str:
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
         # but we need to keep consistent hashes so we cannot change this easily
-        hash_int = pymmh3.hash128(str(self.unique_key))
+        hash_int = pymmh3.hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
+
+    def __hash__(self) -> int:
+        return hash(self.cli_unique_key)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+        return self.cli_unique_key == other.cli_unique_key
 
     def __lt__(self, other: "RuleMatch") -> bool:
         if not isinstance(other, type(self)):
@@ -198,6 +217,14 @@ class RuleMatchSet(Set[RuleMatch]):
     to set a unique zero-indexed "index" value on them.
     """
 
+    def __init__(self, __iterable: Optional[Iterable[RuleMatch]] = None) -> None:
+
+        self._seen_ci_keys: Set[str] = set()
+        if __iterable is None:
+            super().__init__()
+        else:
+            super().__init__(__iterable)
+
     def add(self, rule_match: RuleMatch) -> None:
         """
         Add finding, even if the same (rule, path, code) existed.
@@ -205,8 +232,8 @@ class RuleMatchSet(Set[RuleMatch]):
         if it already exists in the set, thereby retaining multiple copies
         of the same (rule_id, path, line_of_code) tuple.
         """
-        while rule_match in self:
-            finding = evolve(rule_match, index=rule_match.index + 1)
+        while rule_match.ci_unique_key in self._seen_ci_keys:
+            rule_match = evolve(rule_match, index=rule_match.index + 1)
         super().add(rule_match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:

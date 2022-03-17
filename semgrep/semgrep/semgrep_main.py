@@ -191,10 +191,13 @@ def remove_matches_in_baseline(
 
     num_removed = 0
 
-    for rule in head_matches_by_rule:
-        head_matches = set(head_matches_by_rule[rule])
-        baseline_matches = set(baseline_matches_by_rule.get(rule, []))
-        kept_matches_by_rule[rule] = list(head_matches - baseline_matches)
+    for rule, matches in head_matches_by_rule.items():
+        baseline_matches = {
+            match.ci_unique_key for match in baseline_matches_by_rule[rule]
+        }
+        kept_matches_by_rule[rule] = [
+            match for match in matches if match.ci_unique_key not in baseline_matches
+        ]
 
     logger.verbose(f"Removed {num_removed} matches that were in baseline scan")
     return kept_matches_by_rule
