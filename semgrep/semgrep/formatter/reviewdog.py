@@ -77,7 +77,6 @@ class ReviewdogFormatter(BaseFormatter):
             "diagnostics": [
                 self._rule_match_to_json(rule_match) for rule_match in rule_matches
             ],
-            "errors": [error.to_dict() for error in semgrep_structured_errors],
             **extra,
         }
         # set overall severity to the highest value found in matches
