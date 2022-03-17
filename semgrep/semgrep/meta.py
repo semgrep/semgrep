@@ -1,0 +1,416 @@
+import json
+import os
+import subprocess
+import urllib.parse
+from dataclasses import dataclass
+from dataclasses import field
+from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import Optional
+
+from glom import glom
+from glom import T
+from glom.core import TType
+
+from semgrep.git import GIT_SH_TIMEOUT
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
+
+
+@dataclass
+class GitMeta:
+    """Gather metadata only from local filesystem."""
+
+    cli_baseline_ref: Optional[str] = None
+    environment: str = field(default="git", init=False)
+
+    @property
+    def event_name(self) -> str:
+        if self.pr_id:
+            return "pull_request"
+        return "unknown"
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("SEMGREP_REPO_NAME")
+        if repo_name:
+            return repo_name
+
+        rev_parse = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        )
+        if rev_parse.returncode != 0:
+            raise Exception(
+                "Unable to infer repo_name. Set SEMGREP_REPO_NAME environment variable or run in a valid git project"
+            )
+
+        repo_root_str = rev_parse.stdout.strip()
+        return str(os.path.basename(repo_root_str))
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("SEMGREP_REPO_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        """
+        Read commit hash of head from env var or run `git rev-parse HEAD`
+        """
+        commit = os.getenv("SEMGREP_COMMIT")
+        if commit:
+            return commit
+
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], encoding="utf-8", timeout=GIT_SH_TIMEOUT
+        ).strip()
+
+    @property
+    def head_ref(self) -> Optional[str]:
+        return None
+
+    @property
+    def base_commit_ref(self) -> Optional[str]:
+        return self.cli_baseline_ref
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("SEMGREP_JOB_URL")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("SEMGREP_PR_ID")
+
+    @property
+    def pr_title(self) -> Optional[str]:
+        return os.getenv("SEMGREP_PR_TITLE")
+
+    @property
+    def branch(self) -> Optional[str]:
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
+        try:
+            return subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                stderr=subprocess.PIPE,
+                encoding="utf-8",
+                timeout=GIT_SH_TIMEOUT,
+            ).strip()
+        except Exception as e:
+            logger.debug(f"Could not get branch name using git: {e}")
+            return None
+
+    def initialize_repo(self) -> None:
+        return
+
+    def to_dict(self) -> Dict[str, Any]:
+        commit_title = subprocess.check_output(
+            ["git", "show", "-s", "--format=%B"],
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+        commit_author_email = subprocess.check_output(
+            ["git", "show", "-s", "--format=%ae"],
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+        commit_author_name = subprocess.check_output(
+            ["git", "show", "-s", "--format=%an"],
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+
+        return {
+            # REQUIRED for semgrep-app backend
+            "repository": self.repo_name,
+            #  OPTIONAL for semgrep-app backend
+            "repo_url": self.repo_url,
+            "branch": self.branch,
+            "ci_job_url": self.ci_job_url,
+            "commit": self.commit_sha,
+            "commit_author_email": commit_author_email,
+            "commit_author_name": commit_author_name,
+            "commit_author_username": None,
+            "commit_author_image_url": None,
+            "commit_title": commit_title,
+            "on": self.event_name,
+            "pull_request_author_username": None,
+            "pull_request_author_image_url": None,
+            "pull_request_id": self.pr_id,
+            "pull_request_title": self.pr_title,
+            "scan_environment": self.environment,
+            "is_full_scan": self.base_commit_ref == None,
+        }
+
+
+@dataclass
+class GithubMeta(GitMeta):
+    """Gather metadata from GitHub Actions."""
+
+    environment: str = field(default="github-actions", init=False)
+    MAX_FETCH_ATTEMPT_COUNT: int = field(default=6, init=False)
+
+    def glom_event(self, spec: TType) -> Any:
+        return glom(self.event, spec, default=None)
+
+    @property
+    def event(self) -> Dict[str, Any]:
+        value = os.getenv("GITHUB_EVENT_PATH")
+        if value:
+            return json.loads(Path(value).read_text())  # type: ignore
+        return {}
+
+    @property
+    def is_pull_request_event(self) -> bool:
+        """Return if running on a PR, even for variant types such as `pull_request_target`."""
+        return self.event_name in {"pull_request", "pull_request_target"}
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("GITHUB_REPOSITORY")
+        if repo_name:
+            return repo_name
+        else:
+            raise Exception("Could not get repo_name when running in GithubAction")
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        if self.repo_name:
+            return f"https://github.com/{self.repo_name}"
+        return None
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        if self.is_pull_request_event:
+            # https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
+            return self.glom_event(T["pull_request"]["head"]["sha"])  # type: ignore
+        if self.event_name == "push":
+            return os.getenv("GITHUB_SHA")
+        return super().commit_sha
+
+    @property
+    def head_ref(self) -> Optional[str]:
+        if self.is_pull_request_event:
+            return self.commit_sha
+        else:
+            return None
+
+    @property
+    def base_branch_tip(self) -> Optional[str]:
+        return self.glom_event(T["pull_request"]["base"]["sha"])  # type: ignore
+
+    def _find_branchoff_point(self, attempt_count: int = 0) -> str:
+        # Should only be called if head_ref is defined
+        assert self.head_ref is not None
+        assert self.base_branch_tip is not None
+
+        fetch_depth = 4**attempt_count  # fetch 4, 16, 64, 256, 1024, ...
+        if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
+            fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
+
+        if attempt_count:
+            subprocess.check_output(
+                [
+                    "git",
+                    "fetch",
+                    "origin",
+                    "--depth",
+                    fetch_depth,
+                    self.base_branch_tip,
+                ],
+                encoding="utf-8",
+                timeout=GIT_SH_TIMEOUT,
+            )
+            subprocess.check_output(
+                ["git", "fetch", "origin", "--depth", fetch_depth, self.head_ref],
+                encoding="utf-8",
+                timeout=GIT_SH_TIMEOUT,
+            )
+
+        try:  # check if both branches connect to the yet-unknown branch-off point now
+            process = subprocess.check_output(
+                ["git", "merge-base", self.base_branch_tip, self.head_ref],
+                encoding="utf-8",
+                timeout=GIT_SH_TIMEOUT,
+            )
+        except subprocess.CalledProcessError as e:
+            output = e.stderr.strip()
+            if (
+                output  # output is empty when unable to find branch-off point
+                and "Not a valid " not in output  # the error when a ref is missing
+            ):
+                raise Exception("")
+
+            if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:
+                raise Exception(
+                    f"Could not find branch-off point between the baseline tip {self.base_branch_tip} and current head '{self.head_ref}' "
+                )
+
+            return self._find_branchoff_point(attempt_count + 1)
+        else:
+            return process.strip()
+
+    @property
+    def base_commit_ref(self) -> Optional[str]:
+        if self.cli_baseline_ref:
+            return self.cli_baseline_ref
+        if self.is_pull_request_event and self.head_ref is not None:
+            # The pull request "base" that GitHub sends us is not necessarily the merge base,
+            # so we need to get the merge-base from Git
+            return self._find_branchoff_point()
+        return None
+
+    @property
+    def commit_ref(self) -> Optional[str]:
+        return os.getenv("GITHUB_REF")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        value = os.getenv("GITHUB_RUN_ID")
+        if self.repo_url and value:
+            return f"{self.repo_url}/actions/runs/{value}"
+        return None
+
+    @property
+    def event_name(self) -> str:
+        return os.getenv("GITHUB_EVENT_NAME", "unknown")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        pr_id = self.glom_event(T["pull_request"]["number"])
+        return str(pr_id) if pr_id else None
+
+    @property
+    def pr_title(self) -> Optional[str]:
+        pr_title = self.glom_event(T["pull_request"]["title"])
+        return str(pr_title) if pr_title else None
+
+    def initialize_repo(self) -> None:
+        if self.is_pull_request_event and self.head_ref is not None:
+            self._find_branchoff_point()
+        return
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            **super().to_dict(),
+            "branch": os.getenv("GITHUB_REF"),
+            "commit_author_username": self.glom_event(T["sender"]["login"]),
+            "commit_author_image_url": self.glom_event(T["sender"]["avatar_url"]),
+            "pull_request_author_username": self.glom_event(
+                T["pull_request"]["user"]["login"]
+            ),
+            "pull_request_author_image_url": self.glom_event(
+                T["pull_request"]["user"]["avatar_url"]
+            ),
+        }
+
+
+@dataclass
+class GitlabMeta(GitMeta):
+    """Gather metadata from GitLab 10.0+"""
+
+    environment: str = field(default="gitlab-ci", init=False)
+
+    @staticmethod
+    def _get_remote_url() -> str:
+        parts = urllib.parse.urlsplit(os.environ["CI_MERGE_REQUEST_PROJECT_URL"])
+        parts = parts._replace(
+            netloc=f"gitlab-ci-token:{os.environ['CI_JOB_TOKEN']}@{parts.netloc}"
+        )
+        return urllib.parse.urlunsplit(parts)
+
+    @property
+    def repo_name(self) -> str:
+        return os.getenv("CI_PROJECT_PATH", "[unknown]")
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("CI_PROJECT_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("CI_COMMIT_SHA")
+
+    @property
+    def commit_ref(self) -> Optional[str]:
+        return os.getenv("CI_COMMIT_REF_NAME")
+
+    @property
+    def base_commit_ref(self) -> Optional[str]:
+        if self.cli_baseline_ref:
+            return self.cli_baseline_ref
+        target_branch = os.getenv("CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
+        if not target_branch:
+            return None
+
+        head_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+
+        subprocess.run(
+            ["git", "fetch", self._get_remote_url()], check=True, timeout=GIT_SH_TIMEOUT
+        )
+
+        base_sha = subprocess.check_output(
+            ["git", "merge-base", "--all", head_sha, "FETCH_HEAD"],
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+
+        return base_sha
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("CI_JOB_URL")
+
+    @property
+    def event_name(self) -> str:
+        gitlab_event_name = os.getenv("CI_PIPELINE_SOURCE", "unknown")
+        if gitlab_event_name in ["merge_request_event", "external_pull_request_event"]:
+            return "pull_request"
+        return gitlab_event_name
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("CI_MERGE_REQUEST_IID")
+
+    @property
+    def start_sha(self) -> Optional[str]:
+        return os.getenv("CI_MERGE_REQUEST_DIFF_BASE_SHA")
+
+    @property
+    def pr_title(self) -> Optional[str]:
+        return os.getenv("CI_MERGE_REQUEST_TITLE")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            **super().to_dict(),
+            "branch": self.commit_ref,
+            "base_sha": self.base_commit_ref,
+            "start_sha": self.start_sha,
+        }
+
+
+def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
+    # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        return GithubMeta(baseline_ref)
+
+    # https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
+    elif os.getenv("GITLAB_CI") == "true":
+        return GitlabMeta(baseline_ref)
+
+    else:
+        return GitMeta(baseline_ref)
