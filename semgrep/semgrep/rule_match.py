@@ -2,9 +2,11 @@ import binascii
 import hashlib
 import itertools
 import textwrap
+from collections import Counter
 from functools import total_ordering
 from pathlib import Path
 from typing import Any
+from typing import Counter as CounterType
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -72,7 +74,10 @@ def rstrip(value: Optional[str]) -> Optional[str]:
 @frozen(eq=False)
 class RuleMatch:
     """
-    A section of code that matches a single rule (which is potentially many patterns)
+    A section of code that matches a single rule (which is potentially many patterns).
+
+    This is also often referred to as a finding.
+    TODO: Rename this class to Finding?
     """
 
     rule_id: str
@@ -162,6 +167,13 @@ class RuleMatch:
 
     @syntactic_context.default
     def get_syntactic_context(self) -> str:
+        """
+        The code that matched, with whitespace and nosem comments removed.
+
+        This is useful to so that findings can be considered the same
+        when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
+        and thus CI systems don't retrigger notifications.
+        """
         code = "\n".join(self.lines)
         code = textwrap.dedent(code)
         code = NOSEM_INLINE_COMMENT_RE.sub("", code)
@@ -170,6 +182,13 @@ class RuleMatch:
 
     @cli_unique_key.default
     def get_cli_unique_key(self) -> Tuple:
+        """
+        A unique key designed with data-completeness & correctness in mind.
+
+        Results in more unique findings than ci_unique_key.
+
+        Used for deduplication in the CLI before writing output.
+        """
         return (
             self.rule_id,
             self.path,
@@ -180,14 +199,45 @@ class RuleMatch:
 
     @ci_unique_key.default
     def get_ci_unique_key(self) -> Tuple:
+        """
+        A unique key designed with notification user experience in mind.
+
+        Results in fewer unique findings than cli_unique_key.
+
+        We use this to check if a finding matches its baseline equivalent,
+        and to de-duplicate findings when pushing to semgrep.dev from CI,
+        so that you don't get multiple notifications for the same finding
+        when just moving it around commit-after-commit in a pull request.
+
+        Some things that this key deduplicates to reduce useless notifications:
+        - findings that match different metavariables within the same code snippet
+        - findings that differ only in indentation
+        - findings that differ only because one is ignored with `# nosemgrep`
+
+        This key was originally implemented in and ported from semgrep-agent.
+        """
         return (self.rule_id, self.path, self.syntactic_context, self.index)
 
     @ordering_key.default
     def get_ordering_key(self) -> Tuple:
+        """
+        Used to sort findings in output.
+
+        Note that we often batch by rule ID when gathering matches,
+        so the included self.rule_id will not do anything in those cases.
+
+        The message field is included to ensure a consistent ordering
+        when two findings match with different metavariables on the same code.
+        """
         return (self.path, self.start, self.end, self.rule_id, self.message)
 
     @syntactic_id.default
     def get_syntactic_id(self) -> str:
+        """
+        A 32-character hash representation of ci_unique_key.
+
+        This value is sent to semgrep.dev and used as a unique key in the database.
+        """
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
         # but we need to keep consistent hashes so we cannot change this easily
@@ -197,9 +247,15 @@ class RuleMatch:
 
     @property
     def uuid(self) -> UUID:
+        """
+        A UUID representation of ci_unique_key.
+        """
         return UUID(hex=self.syntactic_id)
 
     def __hash__(self) -> int:
+        """
+        We use the "data-correctness" key to prevent keeping around duplicates.
+        """
         return hash(self.cli_unique_key)
 
     def __eq__(self, other: object) -> bool:
@@ -215,43 +271,44 @@ class RuleMatch:
 
 class RuleMatchSet(Set[RuleMatch]):
     """
-    A set type which is aware
-    that two rule matches are not to be considered the same
-    even if they have the same line of code.
-    It amends rule matches that have identical code during insertion
-    to set a unique zero-indexed "index" value on them.
+    A custom set type which is aware when findings are the same.
+
+    It also automagically adds the correct finding index when adding elements.
     """
 
     def __init__(self, __iterable: Optional[Iterable[RuleMatch]] = None) -> None:
-
-        self._seen_ci_keys: Set[str] = set()
+        self._ci_key_counts: CounterType[Tuple] = Counter()
         if __iterable is None:
             super().__init__()
         else:
             super().__init__(__iterable)
 
-    def add(self, rule_match: RuleMatch) -> None:
+    def add(self, match: RuleMatch) -> None:
         """
-        Add finding, even if the same (rule, path, code) existed.
-        This is used over regular `.add` to increment the finding's index
-        if it already exists in the set, thereby retaining multiple copies
-        of the same (rule_id, path, line_of_code) tuple.
+        Add finding, but if the same (rule, path, code) exists,
+        note this by incrementing the finding's index.
+
+        The index lets us still notify when some code with findings is duplicated,
+        even though we'd otherwise deduplicate the findings.
         """
-        while rule_match.ci_unique_key in self._seen_ci_keys:
-            rule_match = evolve(rule_match, index=rule_match.index + 1)
-        super().add(rule_match)
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key])
+        self._ci_key_counts[match.ci_unique_key] += 1
+        super().add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
         """
-        Add findings, even if the same (rule, path, code) exist.
-        This is used over regular `.update` to increment the findings' indexes
-        if they already exists in the set, thereby retaining multiple copies
-        of the same (path, rule_id, line_of_code) tuples.
+        Add findings, but if the same (rule, path, code) exists,
+        note this by incrementing the finding's index.
+
+        The index lets us still notify when some code with findings is duplicated,
+        even though we'd otherwise deduplicate the findings.
         """
         for rule_matches in rule_match_iterables:
             for rule_match in rule_matches:
                 self.add(rule_match)
 
 
+# Our code orders findings at one point and then just assumes they're in order.
+# This type marks variables that went through ordering already.
 OrderedRuleMatchList = List[RuleMatch]
 RuleMatchMap = Dict["Rule", OrderedRuleMatchList]
