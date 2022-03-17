@@ -484,12 +484,12 @@ _scan_options = [
         "--gitlab-sast",
         is_flag=True,
         help="Output results in GitLab SAST format.",
-    )
+    ),
     optgroup.option(
         "--gitlab-secrets",
         is_flag=True,
         help="Output results in GitLab Secrets format.",
-    )
+    ),
     optgroup.option(
         "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
     ),
