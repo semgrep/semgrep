@@ -29,6 +29,10 @@ DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
 
 def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
+    """
+    Parses patterns from semgrep.dev and returns the lines that
+    are non-empty and do not start with #
+    """
     for pattern in patterns:
         pattern = pattern.strip()
 
@@ -40,13 +44,12 @@ def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
         yield pattern
 
 
-def yield_exclude_args(requested_patterns: Sequence[str]) -> Iterable[str]:
+def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
     patterns = [*yield_valid_patterns(requested_patterns), *ALWAYS_EXCLUDE_PATTERNS]
-    if Path(IGNORE_FILE_NAME).is_file():
+    if Path(IGNORE_FILE_NAME).is_file() and not requested_patterns:
         patterns.extend(DEFAULT_EXCLUDE_PATTERNS)
 
-    for pattern in patterns:
-        yield from ["--exclude", pattern]
+    yield from patterns
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -97,7 +100,10 @@ def ci(
         sys.exit(2)
 
     # Append ignores configured on semgrep.dev
-    kwargs["exclude"] = (*kwargs["exclude"], *scan_handler.ignore_patterns)
+    kwargs["exclude"] = (
+        *kwargs["exclude"],
+        *yield_exclude_paths(scan_handler.ignore_patterns),
+    )
 
     try:
         start = time.time()

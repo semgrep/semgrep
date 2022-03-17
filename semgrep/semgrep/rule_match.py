@@ -137,6 +137,8 @@ class RuleMatch:
 
     @property
     def severity(self) -> RuleSeverity:
+        if "r2c-internal-cai" in self.id:
+            return RuleSeverity.HIDDEN
         return self._severity
 
     @property
