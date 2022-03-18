@@ -12,12 +12,12 @@ on:
       - "**.md"
 
 jobs:
-  build-core:
+  build-semgrep-core:
     name: Build semgrep-core
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - id: binary-cache
@@ -35,11 +35,12 @@ jobs:
       - name: Install pipenv
         if: steps.binary-cache.outputs.cache-hit != 'true'
         run: pipx install pipenv
-      - name: Set up Python to get pipenv
+      - name: Set up Python
         if: steps.binary-cache.outputs.cache-hit != 'true'
         uses: actions/setup-python@v3
         with:
           python-version: "3.9"
+          cache: pipenv
       - name: Compile semgrep-core binary
         if: steps.binary-cache.outputs.cache-hit != 'true'
         run: |
@@ -58,34 +59,30 @@ jobs:
   test-core:
     name: semgrep-core tests
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine
-    needs: [build-core]
+    needs: [build-semgrep-core]
     steps:
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Install pipenv
-        run: sudo pip install pipenv
-      - name: Post-checkout fixes
-        run: ./.github/post-checkout
-      - name: Change to workspace directory
-        run: cd "$GITHUB_WORKSPACE"
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+        run: pipx install pipenv
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v2
+        if: steps.binary-cache.outputs.cache-hit != 'true'
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          sudo chmod -R 777 /github
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* ./bin/
+          ocaml-compiler: 4.12.0
+          dune-cache: true
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+          cache: pipenv
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
+        with:
+          name: semgrep-core
+          path: /usr/local/bin
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -104,34 +101,30 @@ jobs:
   benchmark-core:
     name: semgrep-core benchmarks
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine
-    needs: [build-core]
+    needs: [build-semgrep-core]
     steps:
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Install pipenv
-        run: sudo pip install pipenv
-      - name: Post-checkout fixes
-        run: ./.github/post-checkout
-      - name: Change to workspace directory
-        run: cd "$GITHUB_WORKSPACE"
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+        run: pipx install pipenv
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v2
+        if: steps.binary-cache.outputs.cache-hit != 'true'
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          sudo chmod -R 777 /github
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* ./bin/
+          ocaml-compiler: 4.12.0
+          dune-cache: true
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+          cache: pipenv
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
+        with:
+          name: semgrep-core
+          path: /usr/local/bin
       # TODO: move this to a stable host for more reliable results.
       #
       # It's not clear how to push the stats only when "on the main
@@ -149,27 +142,24 @@ jobs:
   tox-tests:
     name: semgrep tests with different python envs
     runs-on: ubuntu-latest
-    needs: [build-core]
+    needs: [build-semgrep-core]
     strategy:
       matrix:
         python: ["3.7", "3.8", "3.9"]
     steps:
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          name: semgrep-core
+          path: /usr/local/bin
       - name: Test semgrep-core
         run: semgrep-core -version
       - name: Install Tox and any other packages
