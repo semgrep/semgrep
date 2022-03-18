@@ -209,3 +209,15 @@ type rule_times = {
 (*****************************************************************************)
 (* TODO incremental findings *)
 (*****************************************************************************)
+
+(*****************************************************************************)
+(* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
+(*****************************************************************************)
+
+type cve_result = {
+   url: string;
+   filename: string;
+   funcnames: string list
+}
+
+type cve_results = cve_result list

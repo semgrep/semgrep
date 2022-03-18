@@ -377,10 +377,10 @@ let union_whitespace e_sp w_sp =
   String.mapi check_esp w_sp
 
 (* Ellipses will not be immediately replaced in the case of  *
-  * ...                                                      *
-  * - foo                                                    *
-  * so when '- foo' has been read we check for whether there *
-  * is an ellipsis that can now be resolved                  *)
+   * ...                                                      *
+   * - foo                                                    *
+   * so when '- foo' has been read we check for whether there *
+   * is an ellipsis that can now be resolved *)
 let convert_leftover_ellipses (prev_space_len, prev_space) ~is_line ellipses =
   let rec convert_ellipses ellipses =
     match ellipses with
