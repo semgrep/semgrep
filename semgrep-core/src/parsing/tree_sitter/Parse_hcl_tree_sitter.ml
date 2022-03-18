@@ -557,7 +557,9 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
   let def = { vinit = Some v3; vtype = None } in
   (ent, VarDef def)
 
-(* TODO? convert to a definition? a class_def? *)
+(* TODO? convert to a definition? a class_def?
+ * coupling: Constant_propagation.terraform_stmt_to_vardefs
+ *)
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
   let v1 = (* identifier *) map_identifier env v1 in
@@ -610,7 +612,11 @@ and map_body (env : env) (xs : CST.body) : field list =
           G.fieldEllipsis t)
     xs
 
-(* almost copy-paste of map_body above, but returing statements *)
+(* almost copy-paste of map_body above, but returning statements
+ * TODO? we could transform the 'locals' and 'variable' blocks
+ * in regular VarDefs instead of doing it later in
+ * Constant_propagation.terraform_stmt_to_vardefs?
+ *)
 and map_body_top (env : env) (xs : CST.body) : stmt list =
   List.map
     (fun x ->
