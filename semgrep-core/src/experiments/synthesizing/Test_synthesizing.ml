@@ -13,6 +13,7 @@
  *)
 open Common
 module J = JSON
+module In = Input_to_core_j
 
 let expr_at_range s file =
   let r = Range.range_of_linecol_spec s file in
@@ -39,4 +40,9 @@ let generate_pattern_choices s =
   let config = Config_semgrep.default_config in
   let options = Synthesizer.print_pattern_from_targets config s in
   List.iter (fun s -> pr s) options
+  [@@action]
+
+let locate_patched_functions f =
+  let res = Synthesizer.locate_patched_functions f in
+  pr res
   [@@action]

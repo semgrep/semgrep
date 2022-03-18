@@ -430,10 +430,8 @@ and expr_kind =
   | Call of expr * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
-  | Xml of xml
-  (* IntepolatedString of expr list is simulated with a
-   * Call(IdSpecial (Concat ...)) *)
-
+  | Xml of xml (* IntepolatedString of expr list is simulated with a
+                * Call(IdSpecial (Concat ...)) *)
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
    * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.

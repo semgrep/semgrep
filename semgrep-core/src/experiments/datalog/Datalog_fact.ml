@@ -89,7 +89,6 @@ type callsite = string
    # the data we really care to export
    PointingData (v:V, h:V) outputtuples
    CallingData (i:I, f:N) outputtuples
-
 *)
 type fact =
   | PointTo of var * heap
