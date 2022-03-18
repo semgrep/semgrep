@@ -48,10 +48,9 @@ class ReviewdogFormatter(BaseFormatter):
         if rule_match.fix_regex:
             suggestions = {}
             fix = re.compile(rule_match.fix_regex["regex"])
-            replacement = fix.sub(
-                rule_match.fix_regex["replacement"], 
-                "".join(rule_match.lines).rstrip()
-            )
+            lines = "".join(rule_match.lines).rstrip()
+            initial_value = fix.search(lines).group(0)
+            replacement = fix.sub(rule_match.fix_regex["replacement"], initial_value)
             suggestions["text"] = replacement
             suggestions["range"] = range
         
