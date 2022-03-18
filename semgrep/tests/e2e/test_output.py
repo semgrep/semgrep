@@ -63,6 +63,7 @@ CLEANERS: Mapping[str, Callable[[str], str]] = {
     "--gitlab-sast": _clean_output_json,
     "--gitlab-secrets": _clean_output_json,
     "--json": _clean_output_json,
+    "--reviewdog": _clean_output_json
 }
 
 
@@ -83,7 +84,7 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim", "--reviewdog"],
 )
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, stderr = run_semgrep_in_tmp(

@@ -1,0 +1,30 @@
+{
+  "diagnostics": [
+    {
+      "code": {
+        "url": "",
+        "value": "rules.eqeq-is-bad"
+      },
+      "location": {
+        "path": "targets/basic/stupid.py",
+        "range": {
+          "end": {
+            "column": 26,
+            "line": 3
+          },
+          "start": {
+            "column": 12,
+            "line": 3
+          }
+        }
+      },
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+      "severity": "ERROR"
+    }
+  ],
+  "severity": "ERROR",
+  "source": {
+    "name": "semgrep",
+    "url": "https://semgrep.dev/"
+  }
+}
