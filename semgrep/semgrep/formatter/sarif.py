@@ -17,7 +17,7 @@ class SarifFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
         rule_match_sarif = {
-            "ruleId": rule_match.id,
+            "ruleId": rule_match.rule_id,
             "message": {"text": rule_match.message},
             "locations": [
                 {
@@ -36,7 +36,7 @@ class SarifFormatter(BaseFormatter):
                 }
             ],
         }
-        if rule_match._is_ignored:
+        if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
         return rule_match_sarif
 

@@ -68,6 +68,44 @@ let expr_at_range r1 ast =
     None
   with FoundExpr e -> Some e
 
+let function_at_range r1 ast =
+  let find_function_name_in_entity { G.name; _ } =
+    match name with
+    | EN name -> raise (Found (G.E (G.N name |> G.e)))
+    | _ -> ()
+  in
+
+  (* This could probably be implemented more efficiently ... but should be
+   * good enough in practice.
+   * todo? ideally every expression nodes in the AST would have range field
+   * associated with it, or at least a special id so we could memoize
+   * range for subexpressions.
+   *)
+  let visitor =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kstmt =
+          (fun (k, _) s ->
+            match s.G.s with
+            | G.DefStmt (entity, FuncDef _def) -> (
+                let r2_opt = range_of_ast (G.S s) in
+                match r2_opt with
+                (* NoTokenLocation issue for the expression, should fix! *)
+                | None -> ()
+                | Some r2 ->
+                    if r1 $<=$ r2 then find_function_name_in_entity entity
+                      (* recurse *)
+                    else k s)
+            | _ -> k s);
+      }
+  in
+
+  try
+    visitor (G.Pr ast);
+    None
+  with Found a -> Some a
+
 let any_at_range_first r1 ast =
   (* This could probably be implemented more efficiently ... but should be
    * good enough in practice.

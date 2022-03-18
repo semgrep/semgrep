@@ -104,8 +104,8 @@ let tests ~any_gen_of_string =
             ("foo(kwd1=$X, kwd2=$Y)", "foo(kwd2=1, kwd1=3)", true);
             (* regexp matching in strings *)
             ("foo(\"=~/a+/\")", "foo(\"aaaa\")", true);
-            ("foo(\"=~/a+/\")", "foo(\"bbbb\")", false);
-            (*      "new Foo(...);","new Foo;", true; *)
+            ("foo(\"=~/a+/\")", "foo(\"bbbb\")", false)
+            (*      "new Foo(...);","new Foo;", true; *);
           ]
         in
         triples

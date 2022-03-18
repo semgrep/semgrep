@@ -39,7 +39,8 @@ from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import OrderedRuleMatchList
+from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -531,7 +532,7 @@ class CoreRunner:
     ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
-        outputs: RuleMatchMap = collections.defaultdict(list)
+        outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)

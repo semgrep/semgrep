@@ -127,6 +127,7 @@ install_requires = [
     "wcmatch~=8.3",
     "peewee~=3.14",
     "defusedxml~=0.7.1",
+    "pymmh3~=0.0.5",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because
     # it may interfere with other 'setuptools' installs on the system,
@@ -148,7 +149,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=("*tests*",)),
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
     include_package_data=True,
     classifiers=[

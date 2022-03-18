@@ -26,6 +26,8 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
+from semgrep.formatter.gitlab_sast import GitlabSastFormatter
+from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.reviewdog import ReviewdogFormatter
@@ -37,7 +39,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import IgnoreLog
@@ -53,6 +55,8 @@ logger = getLogger(__name__)
 
 FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,
+    OutputFormat.GITLAB_SAST: GitlabSastFormatter,
+    OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
     OutputFormat.JSON: JsonFormatter,
     OutputFormat.JUNIT_XML: JunitXmlFormatter,
     OutputFormat.REVIEWDOG: ReviewdogFormatter,
@@ -348,9 +352,7 @@ class OutputHandler:
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
             paths = set(err.path for err in semgrep_core_errors)
-            num_errors = len(paths)
-            plural = "s" if num_errors > 1 else ""
-            error_stats = f"found problems analyzing {num_errors} file{plural}"
+            error_stats = f"found problems analyzing {unit_str(len(paths), 'file')}"
             final_error = self.semgrep_structured_errors[-1]
         self._final_raise(final_error, error_stats)
 

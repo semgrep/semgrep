@@ -6,6 +6,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
+  with `--gitlab-sast` and `--gitlab-secrets`.
+
+### Changed
+
+- Semgrep should now be more tolerant to rules using futur extensions by
+  skipping those rules instead of just crashing (#4835)
+- Removed `tests` from published python wheel
+- Findings are now considered identical between baseline and current scans
+  based on the same logic as Semgrep CI uses, which means:
+  - Two findings are now identical after whitespace changes such as re-indentation
+  - Two findings are now identical after a nosemgrep comment is added
+  - Findings are now different if the same code triggered them on different lines
+
+## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
+
+### Added
+
 - C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
 - HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
 - Scala: The data-flow engine can now handle expression blocks. This used to

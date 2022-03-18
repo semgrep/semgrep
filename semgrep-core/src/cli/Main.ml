@@ -383,6 +383,9 @@ let all_actions () =
     ( "-generate_patterns",
       " <l:c-l:c>+ <file>",
       Common.mk_action_n_arg Test_synthesizing.generate_pattern_choices );
+    ( "-locate_patched_functions",
+      " <file>",
+      Common.mk_action_1_arg Test_synthesizing.locate_patched_functions );
     ( "-stat_matches",
       " <marshalled file>",
       Common.mk_action_1_arg Experiments.stat_matches );

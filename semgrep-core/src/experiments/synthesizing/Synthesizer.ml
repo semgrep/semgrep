@@ -1,5 +1,7 @@
 open Common
 module J = JSON
+module In = Input_to_core_j
+module Out = Output_from_core_j
 
 let range_to_ast file lang s =
   let r = Range.range_of_linecol_spec s file in
@@ -22,6 +24,14 @@ let synthesize_patterns config s file =
   List.map
     (fun (k, v) -> (k, Pretty_print_pattern.pattern_to_string lang v))
     patterns
+
+let locate_patched_functions f =
+  let f = Common.read_file f in
+
+  let d = In.diff_files_of_string f in
+  let diff_files = d.In.cve_diffs in
+  let diffs = List.map Pattern_from_diff.pattern_from_diff diff_files in
+  Out.string_of_cve_results diffs
 
 let target_to_string lang target =
   "target:\n" ^ Pretty_print_pattern.pattern_to_string lang target ^ "\n"

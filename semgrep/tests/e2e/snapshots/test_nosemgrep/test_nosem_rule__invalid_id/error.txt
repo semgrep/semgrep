@@ -4,4 +4,4 @@ Some files were skipped.
   Scan was limited to files tracked by git.
 
 Ran 1 rule on 1 file: 1 finding.
-found problems analyzing 0 file; run with --verbose for details
+found problems analyzing 0 files; run with --verbose for details

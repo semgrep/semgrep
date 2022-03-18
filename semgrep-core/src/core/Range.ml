@@ -56,6 +56,27 @@ let rec ( $<>$ ) r1 r2 =
 (* Converters *)
 (*****************************************************************************)
 
+(* ex: "line1-line2" *)
+(* This is useful for generating from git diffs,
+   because git diffs only include the lines *)
+let range_of_line_spec str file =
+  if str =~ "\\([0-9]+\\)-\\([0-9]+\\)" then (
+    let a, b = Common.matched2 str in
+    let line1 = s_to_i a in
+    let line2 = s_to_i b in
+    (* quite inefficient, but should be ok *)
+    let trans = Parse_info.full_charpos_to_pos_large file in
+    let start = ref (-1) in
+    let end_ = ref (-1) in
+    for i = 0 to Common2.filesize file do
+      let l, _ = trans i in
+      if l = line1 then start := i;
+      if l = line2 then end_ := i
+    done;
+    if !start <> -1 && !end_ <> -1 then { start = !start; end_ = !end_ }
+    else failwith (spf "could not find range %s in %s" str file))
+  else failwith (spf "wrong format for linecol range spec: %s" str)
+
 (* ex: "line1:col1-line2:col2" *)
 let range_of_linecol_spec str file =
   if str =~ "\\([0-9]+\\):\\([0-9]+\\)-\\([0-9]+\\):\\([0-9]+\\)" then (

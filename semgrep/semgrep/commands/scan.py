@@ -461,6 +461,16 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 )
 @optgroup.option("--json", is_flag=True, help="Output results in JSON format.")
 @optgroup.option(
+    "--gitlab-sast",
+    is_flag=True,
+    help="Output results in GitLab SAST format.",
+)
+@optgroup.option(
+    "--gitlab-secrets",
+    is_flag=True,
+    help="Output results in GitLab Secrets format.",
+)
+@optgroup.option(
     "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
 )
 @optgroup.option("--reviewdog", is_flag=True, help="Output results in Reviewdog JSON format.")
@@ -585,6 +595,8 @@ def scan(
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
     generate_config: bool,
+    gitlab_sast: bool,
+    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
     json: bool,
@@ -719,6 +731,10 @@ def scan(
     output_format = OutputFormat.TEXT
     if json or json_time or debugging_json:
         output_format = OutputFormat.JSON
+    elif gitlab_sast:
+        output_format = OutputFormat.GITLAB_SAST
+    elif gitlab_secrets:
+        output_format = OutputFormat.GITLAB_SECRETS
     elif junit_xml:
         output_format = OutputFormat.JUNIT_XML
     elif reviewdog:
