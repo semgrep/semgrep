@@ -6,6 +6,6 @@
 [94m[22m[24m5 | [0m    languages: [python]
 [94m[22m[24m6 | [0m    severity: WARNING
 
-[31m[22m[24mOne of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'[0m
+[31m[22m[24mOne of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'project-depends-on'[0m
 [0m
 [31m[22m[24mRan with --strict and got 1 error while loading configs[0m
