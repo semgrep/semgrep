@@ -71,17 +71,9 @@ let exn_to_error ?(rule_id = None) file exn =
       mk_error_tok tok msg ParseError
   | Parse_info.Other_error (s, tok) ->
       mk_error_tok ~rule_id tok s SpecifiedParseError
-  | Rule.InvalidRule (rule_id, s, pos) ->
-      mk_error_tok ~rule_id:(Some rule_id) pos s RuleParseError
-  | Rule.InvalidLanguage (rule_id, language, pos) ->
-      mk_error_tok ~rule_id:(Some rule_id) pos
-        (spf "invalid language %s" language)
-        RuleParseError
-  | Rule.InvalidRegexp (rule_id, message, pos) ->
-      mk_error_tok ~rule_id:(Some rule_id) pos
-        (spf "invalid regex %s" message)
-        RuleParseError
-  | Rule.InvalidPattern (rule_id, _pattern, xlang, _message, pos, yaml_path) ->
+  | Rule.InvalidRule
+      (Rule.InvalidPattern (_pattern, xlang, _message, yaml_path), rule_id, pos)
+    ->
       {
         rule_id = Some rule_id;
         typ = PatternParseError;
@@ -92,6 +84,9 @@ let exn_to_error ?(rule_id = None) file exn =
         details = None;
         yaml_path = Some yaml_path;
       }
+  | Rule.InvalidRule (kind, rule_id, pos) ->
+      let str = Rule.string_of_invalid_rule_error_kind kind in
+      mk_error_tok ~rule_id:(Some rule_id) pos str RuleParseError
   | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg InvalidYaml
   | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok ~rule_id pos s InvalidYaml
   | Common.Timeout timeout_info ->

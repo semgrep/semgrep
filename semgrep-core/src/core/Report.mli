@@ -26,7 +26,7 @@ type file_profiling = {
 type 'a match_result = {
   matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
-  skipped : Output_from_core_t.skipped_target list;
+  skipped_targets : Output_from_core_t.skipped_target list;
   profiling : 'a;
 }
 
@@ -41,7 +41,8 @@ type final_profiling = {
 type final_result = {
   matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
-  skipped : Output_from_core_t.skipped_target list;
+  skipped_targets : Output_from_core_t.skipped_target list;
+  skipped_rules : Rule.invalid_rule_error list;
   final_profiling : final_profiling option;
 }
 
@@ -50,6 +51,8 @@ val empty_partial_profiling : Common.filename -> partial_profiling
 val empty_rule_profiling : Rule.t -> rule_profiling
 
 val empty_semgrep_result : times match_result
+
+val empty_final_result : final_result
 
 val add_run_time :
   float -> partial_profiling match_result -> file_profiling match_result
