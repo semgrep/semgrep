@@ -83,17 +83,18 @@ class RuleMatch:
     rule_id: str
     message: str = field(repr=False)
     severity: RuleSeverity
-    metadata: Dict[str, Any] = field(repr=False)
-    extra: Dict[str, Any] = field(repr=False)
 
     path: Path = field(repr=str)
     start: CoreLocation
     end: CoreLocation
 
+    metadata: Dict[str, Any] = field(repr=False, factory=dict)
+    extra: Dict[str, Any] = field(repr=False, factory=dict)
+
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
-    fix: Optional[str] = field(converter=rstrip)
-    fix_regex: Optional[Dict[str, Any]]
+    fix: Optional[str] = field(converter=rstrip, default=None)
+    fix_regex: Optional[Dict[str, Any]] = None
 
     index: int = 0
 
