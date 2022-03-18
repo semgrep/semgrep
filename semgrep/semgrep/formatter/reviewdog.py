@@ -77,7 +77,6 @@ class ReviewdogFormatter(BaseFormatter):
             "diagnostics": [
                 self._rule_match_to_json(rule_match) for rule_match in rule_matches
             ],
-            **extra,
         }
         # set overall severity to the highest value found in matches
         output_dict["severity"] = SEVERITIES[max(SEVERITIES.index(d["severity"]) for d in output_dict["diagnostics"])]
