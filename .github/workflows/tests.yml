@@ -16,7 +16,7 @@ jobs:
     name: Build semgrep-core
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v2
         with:
           submodules: true
@@ -26,15 +26,21 @@ jobs:
         with:
           path: ./semgrep-core/_build/install/default/bin/semgrep-core
           key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}-${{ hashFiles('**/.github/workflows/**') }}"
-      - uses: ocaml/setup-ocaml@v2
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v2
         if: steps.binary-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: 4.12.0
           dune-cache: true
       - name: Install pipenv
         if: steps.binary-cache.outputs.cache-hit != 'true'
+        run: pipx install pipenv
+      - name: Set up Python to get pipenv
+        if: steps.binary-cache.outputs.cache-hit != 'true'
         uses: actions/setup-python@v3
-      - name: Install tree-sitter
+        with:
+          python-version: "3.9"
+      - name: Compile semgrep-core binary
         if: steps.binary-cache.outputs.cache-hit != 'true'
         run: |
           eval $(opam env)
@@ -43,7 +49,7 @@ jobs:
           opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
           opam install --deps-only -y semgrep-core/
           make -C semgrep-core/ all
-      - name: Upload artifacts
+      - name: Upload semgrep-core binary
         uses: actions/upload-artifact@v3
         with:
           name: semgrep-core
