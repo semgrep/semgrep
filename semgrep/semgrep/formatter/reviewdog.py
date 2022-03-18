@@ -34,7 +34,7 @@ class ReviewdogFormatter(BaseFormatter):
         range["end"]["line"] = rule_match.end.line
         location["range"] = range
         code = {}
-        code["value"] = rule_match.id
+        code["value"] = rule_match.rule_id
         code["url"] = ""
         suggestions = None
 
