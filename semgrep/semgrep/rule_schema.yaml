@@ -21,7 +21,6 @@ definitions:
         - $ref: "#/definitions/metavariable-regex"
         - $ref: "#/definitions/metavariable-pattern"
         - $ref: "#/definitions/metavariable-comparison"
-        - $ref: "#/definitions/r2c-internal-project-depends-on"
   pattern-either-content:
     type: array
     title: "Return finding where any of the nested conditions are true"
@@ -89,25 +88,21 @@ definitions:
                       - patterns
                   - required:
                       - pattern-either
-  r2c-internal-project-depends-on:
-    type: object
+  project-depends-on-content:
+    type: array
     title: "A dependency that the project contains in a lock file"
     properties:
-      r2c-internal-project-depends-on:
-        properties:
-          namespace:
-            type: string
-          package:
-            type: string
-          version:
-            type: string
-        additionalProperties: false
-        required:
-          - namespace
-          - package
-          - version
+      namespace:
+        type: string
+      package:
+        type: string
+      version:
+        type: string
+    additionalProperties: false
     required:
-      - r2c-internal-project-depends-on
+      - namespace
+      - package
+      - version
   join-content:
     type: object
     title: "Join one or more rules together based on metavariable contents"
@@ -443,6 +438,8 @@ properties:
           $ref: "#/definitions/patterns-content"
         pattern-either:
           $ref: "#/definitions/pattern-either-content"
+        project-depends-on:
+          $ref: "#/definitions/project-depends-on-content"
       additionalProperties: false
 
       oneOf:
@@ -538,6 +535,18 @@ properties:
                       - patterns
                   - required:
                       - pattern-either
+            - required:
+                - project-depends-on
+              not:
+                anyOf:
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+                  - required:
+                      - pattern
           not:
             anyOf:
               - required:

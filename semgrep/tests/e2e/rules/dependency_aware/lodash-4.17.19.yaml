@@ -1,11 +1,10 @@
 rules:
   - id: GHSA-p6mc-m468-83gw
-    patterns:
-      - r2c-internal-project-depends-on:
-          - namespace: npm
-            package: lodash
-            version: "<= 4.17.19"
-      - pattern: $LODASH.zipObjectDeep(...)
+    pattern: $LODASH.zipObjectDeep(...)
+    project-depends-on:
+      - namespace: npm
+        package: lodash
+        version: "<= 4.17.19"
     message: |
       Versions of lodash prior to 4.17.19 are vulnerable to Prototype Pollution. The function zipObjectDeep allows a malicious user to modify the prototype of Object if the property identifiers are user-supplied. Being affected by this issue requires zipping objects based on user-provided property arrays.
 
