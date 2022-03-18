@@ -36,7 +36,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import IgnoreLog
 from semgrep.target_manager import TargetManager
@@ -191,35 +191,18 @@ def remove_matches_in_baseline(
 
     num_removed = 0
 
-    for rule in head_matches_by_rule:
-        kept_matches = []
+    for rule, matches in head_matches_by_rule.items():
+        baseline_matches = {
+            match.ci_unique_key for match in baseline_matches_by_rule[rule]
+        }
+        kept_matches_by_rule[rule] = [
+            match for match in matches if match.ci_unique_key not in baseline_matches
+        ]
+        num_removed += len(matches) - len(kept_matches_by_rule[rule])
 
-        head_matches = head_matches_by_rule[rule]
-
-        # Copy so we can destructively modify
-        baseline_matches = list(baseline_matches_by_rule.get(rule, []))
-
-        # Note we cannot convert to sets and do set subtraction because
-        # the way we consider equality in head vs baseline cannot be used to
-        # assert that two matches in head are equal (finding can appear in head
-        # more than once with the same syntatic id). We also cannot simply
-        # remove elements in head_matches that appear in baseline_matches
-        # because the above non-uniqueness of id means we need to remove
-        # a match 1:1 (i.e. if match with id X appears 3 times in head but
-        # 2 times in baseline) this function needs to return an object with one
-        # match with id X.
-        for head_match in head_matches:
-            for idx in range(len(baseline_matches)):
-                if head_match.is_baseline_equivalent(baseline_matches[idx]):
-                    baseline_matches.pop(idx)
-                    num_removed += 1
-                    break
-            else:
-                kept_matches.append(head_match)
-
-        kept_matches_by_rule[rule] = kept_matches
-
-    logger.verbose(f"Removed {num_removed} matches that were in baseline scan")
+    logger.verbose(
+        f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
+    )
     return kept_matches_by_rule
 
 
@@ -287,22 +270,21 @@ def main(
 
     if config_errors and strict:
         raise SemgrepError(
-            f"run with --strict and there were {len(config_errors)} errors loading configs",
+            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
     if not pattern:
-        plural = "s" if len(configs_obj.valid) > 1 else ""
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
         )
         invalid_msg = (
-            f"({len(config_errors)} config files were invalid)"
+            f"({unit_str(len(config_errors), 'invalid config file')})"
             if len(config_errors)
             else ""
         )
         logger.verbose(
-            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
+            f"running {len(filtered_rules)} rules from {unit_str(len(configs_obj.valid), 'config')} {config_id_if_single} {invalid_msg}".strip()
         )
         if len(config_errors) > 0:
             raise SemgrepError(

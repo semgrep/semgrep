@@ -6,7 +6,7 @@
       "category": "sast",
       "confidence": "High",
       "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",
-      "id": "d96aa79c-6c81-fd1c-7ba1-490c1941ab40",
+      "id": "39bb28b2-c30a-7673-d4de-9be1f0093192",
       "identifiers": [
         {
           "name": "Semgrep - rules.eqeq-is-bad",

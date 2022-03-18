@@ -7,7 +7,8 @@ from typing import Tuple
 
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -184,10 +185,7 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                     "fixed_lines"
                 ] = fixobj.fixed_lines  # Monkey patch in fixed lines
 
-    num_modified = len(modified_files)
     if len(modified_files):
-        logger.info(
-            f"successfully modified {num_modified} file{'s' if num_modified > 1 else ''}."
-        )
+        logger.info(f"successfully modified {unit_str(len(modified_files), 'file')}.")
     else:
         logger.info(f"no files modified.")
