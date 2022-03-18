@@ -74,7 +74,7 @@ val unify_meta_envs :
   * otherwise [None]. *)
 
 val hook_function_taint_signature :
-  (config -> AST_generic.expr -> finding list) option ref
+  (config -> AST_generic.expr -> finding list option) option ref
 (** Deep Semgrep *)
 
 val fixpoint :
