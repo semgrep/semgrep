@@ -30,6 +30,7 @@ jobs:
         if: steps.binary-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: 4.12.x
+          dune-cache: true
       - name: Install pipenv
         if: steps.binary-cache.outputs.cache-hit != 'true'
         run: pipx install pipenv
