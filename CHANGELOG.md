@@ -20,6 +20,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Two findings are now identical after whitespace changes such as re-indentation
   - Two findings are now identical after a nosemgrep comment is added
   - Findings are now different if the same code triggered them on different lines
+- `r2c-internal-project-depends-on` is now `project-depends-on`, and it is no longer a
+  pattern. Now it's an optional field of a rule.
 
 ### Fixed
 
