@@ -130,10 +130,10 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                            [
                              E.mk_error ~rule_id:(Some rule_id) loc "" E.Timeout;
                            ];
-                         skipped = [];
+                         skipped_targets = [];
                          profiling = RP.empty_rule_profiling r;
                        }))
   in
   let skipped = Common.map (skipped_target_of_rule xtarget) skipped_rules in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_rules in
-  { res with skipped = skipped @ res.skipped }
+  { res with skipped_targets = skipped @ res.skipped_targets }

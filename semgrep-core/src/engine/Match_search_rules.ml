@@ -284,7 +284,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
       {
         RP.matches;
         errors;
-        skipped = [];
+        skipped_targets = [];
         profiling = { RP.parse_time; match_time };
       }
   | _ -> RP.empty_semgrep_result
@@ -356,7 +356,7 @@ let (matches_of_matcher :
         {
           RP.matches = res;
           errors = [];
-          skipped = [];
+          skipped_targets = [];
           profiling = { RP.parse_time; match_time };
         }
 
@@ -1066,6 +1066,6 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
                     let str = spf "with rule %s" rule_id in
                     hook str m.env m.tokens));
     errors = res.errors |> List.map (error_with_rule_id rule_id);
-    skipped = res.skipped;
+    skipped_targets = res.skipped_targets;
     profiling = res.profiling;
   }

@@ -75,7 +75,6 @@ let make_tests ?(unit_testing = false) xs =
            let test () =
              logger#info "processing rule file %s" file;
              let rules = Parse_rule.parse file in
-
              (* just a sanity check *)
              (* rules |> List.iter Check_rule.check; *)
              let xlangs = xlangs_of_rules rules in

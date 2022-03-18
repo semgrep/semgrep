@@ -1,6 +1,6 @@
 (* Full result information *)
 (* TODO: We could use atdgen to specify those to factorize type definitions
- * that have to be present anyway in Semgrep.atd.
+ * that have to be present anyway in Output_from_core.atd.
  *)
 
 (* Different formats for profiling information as we have access to more data *)
@@ -39,7 +39,8 @@ type final_profiling = {
 type final_result = {
   matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
-  skipped : Output_from_core_t.skipped_target list;
+  skipped_targets : Output_from_core_t.skipped_target list;
+  skipped_rules : Rule.invalid_rule_error list;
   final_profiling : final_profiling option;
 }
 
@@ -48,7 +49,7 @@ type final_result = {
 type 'a match_result = {
   matches : Pattern_match.t list;
   errors : Semgrep_error_code.error list;
-  skipped : Output_from_core_t.skipped_target list;
+  skipped_targets : Output_from_core_t.skipped_target list;
   profiling : 'a;
 }
 
@@ -63,23 +64,44 @@ let empty_semgrep_result =
   {
     matches = [];
     errors = [];
-    skipped = [];
+    skipped_targets = [];
     profiling = { parse_time = 0.0; match_time = 0.0 };
+  }
+
+let empty_final_result =
+  {
+    matches = [];
+    errors = [];
+    skipped_targets = [];
+    skipped_rules = [];
+    final_profiling = None;
   }
 
 (* Augment reported information with additional info *)
 
 let add_run_time :
     float -> partial_profiling match_result -> file_profiling match_result =
- fun run_time { matches; errors; skipped; profiling = { file; rule_times } } ->
-  { matches; errors; skipped; profiling = { file; rule_times; run_time } }
-
-let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
- fun rule { matches; errors; skipped; profiling = { parse_time; match_time } } ->
+ fun run_time
+     { matches; errors; skipped_targets; profiling = { file; rule_times } } ->
   {
     matches;
     errors;
-    skipped;
+    skipped_targets;
+    profiling = { file; rule_times; run_time };
+  }
+
+let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
+ fun rule
+     {
+       matches;
+       errors;
+       skipped_targets;
+       profiling = { parse_time; match_time };
+     } ->
+  {
+    matches;
+    errors;
+    skipped_targets;
     profiling = { rule_id = fst rule.Rule.id; parse_time; match_time };
   }
 
@@ -89,10 +111,15 @@ let collate_pattern_results results =
   let unzip_results l =
     let rec unzip all_matches all_errors all_skipped all_parse_time
         all_match_time = function
-      | { matches; errors; skipped; profiling = { parse_time; match_time } }
+      | {
+          matches;
+          errors;
+          skipped_targets;
+          profiling = { parse_time; match_time };
+        }
         :: l ->
           unzip (matches :: all_matches) (errors :: all_errors)
-            (skipped :: all_skipped)
+            (skipped_targets :: all_skipped)
             (parse_time +. all_parse_time)
             (match_time +. all_match_time)
             l
@@ -111,7 +138,7 @@ let collate_pattern_results results =
   {
     matches = List.flatten matches;
     errors = List.flatten errors;
-    skipped = List.flatten skipped;
+    skipped_targets = List.flatten skipped;
     profiling = { parse_time; match_time };
   }
 
@@ -121,9 +148,9 @@ let collate_rule_results :
  fun file results ->
   let unzip_results l =
     let rec unzip all_matches all_errors all_skipped all_profiling = function
-      | { matches; errors; skipped; profiling } :: l ->
+      | { matches; errors; skipped_targets; profiling } :: l ->
           unzip (matches :: all_matches) (errors :: all_errors)
-            (skipped :: all_skipped)
+            (skipped_targets :: all_skipped)
             (profiling :: all_profiling)
             l
       | [] ->
@@ -138,16 +165,18 @@ let collate_rule_results :
   {
     matches = List.flatten matches;
     errors = List.flatten errors;
-    skipped = List.flatten skipped;
+    skipped_targets = List.flatten skipped;
     profiling = { file; rule_times = profiling };
   }
 
 let make_final_result results rules ~report_time ~rules_parse_time =
   let matches = results |> List.map (fun x -> x.matches) |> List.flatten in
   let errors = results |> List.map (fun x -> x.errors) |> List.flatten in
-  let skipped = results |> List.map (fun x -> x.skipped) |> List.flatten in
+  let skipped_targets =
+    results |> List.map (fun x -> x.skipped_targets) |> List.flatten
+  in
   let file_times = results |> List.map (fun x -> x.profiling) in
   let final_profiling =
     if report_time then Some { rules; rules_parse_time; file_times } else None
   in
-  { matches; errors; skipped; final_profiling }
+  { matches; errors; skipped_targets; final_profiling; skipped_rules = [] }
