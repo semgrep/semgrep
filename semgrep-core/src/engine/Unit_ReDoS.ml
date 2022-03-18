@@ -32,8 +32,10 @@ let quoted_strings =
 let test_unquote () =
   quoted_strings
   |> List.iter (fun (input, expected_output) ->
-         let output = ReDoS.unquote input in
-         Alcotest.(check string) ("unquote " ^ input) expected_output output)
+         let output = String_literal.evaluate input in
+         Alcotest.(check string)
+           ("String_literal.evaluate " ^ input)
+           expected_output output)
 
 type result = Succeeds | Blows_up
 

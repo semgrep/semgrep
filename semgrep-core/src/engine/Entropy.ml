@@ -167,6 +167,7 @@ let score_entropy x = if x > entropy_threshold then 1 else 0
 let score_density x = if x > density_threshold then 1 else 0
 
 let score s =
+  Printf.printf "ENTROPY: %S\n%!" s;
   match s with
   | "" -> 0
   | _ ->
