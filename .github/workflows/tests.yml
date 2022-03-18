@@ -15,28 +15,19 @@ jobs:
   build-core:
     name: Build semgrep-core
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine
     steps:
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: true
       - name: Install pipenv
-        run: sudo pip install pipenv
-      - name: Post-checkout fixes
-        run: ./.github/post-checkout
+        run: pipx install pipenv
       - id: cache-check
         name: Check if this semgrep-core binary is cached
         uses: actions/cache@v2
         with:
           path: ocaml-build-artifacts.tgz
-          key: ${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**', '**/.github/**') }}
+          key: ${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**', '**/.github/workflows/**') }}
       - name: Cache OPAM/OCaml packages
         if: steps.cache-primes.outputs.cache-hit != 'true'
         uses: actions/cache@v2
@@ -47,12 +38,18 @@ jobs:
             ${{ runner.os }}-opam-
       - name: Build semgrep-core
         if: steps.cache-primes.outputs.cache-hit != 'true'
-        run: ./scripts/install-alpine-semgrep-core
+        run: |
+          eval $(opam env)
+          ./scripts/install-tree-sitter-runtime
+          opam install --deps-only -y semgrep-core/src/pfff/
+          opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
+          opam install --deps-only -y semgrep-core/
+          make -C semgrep-core/ all
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: ocaml-build-artifacts
-          path: ocaml-build-artifacts.tgz
+          name: semgrep-core
+          path: ./semgrep-core/_build/install/default/bin/semgrep-core
 
   test-core:
     name: semgrep-core tests
