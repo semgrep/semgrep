@@ -350,6 +350,7 @@ let check_function_signature env fun_exp args_taint =
                  Some (Taint.singleton (Src dm))
              | ArgToReturn i -> taint_of_arg i
              | ArgToSink (i, sink) ->
+                 let sink = Call (eorig, sink) in
                  let* arg_taint = taint_of_arg i in
                  arg_taint
                  |> Taint.iter (fun t ->
