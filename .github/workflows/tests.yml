@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**')}-${{ hashFiles('**/.github/workflows/**') }}"
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}-${{ hashFiles('**/.github/workflows/**') }}"
       - name: Cache OPAM/OCaml packages
         if: steps.cache-primes.outputs.cache-hit != 'true'
         uses: actions/cache@v2
