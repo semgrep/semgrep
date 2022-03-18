@@ -4,9 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
+  with `--gitlab-sast` and `--gitlab-secrets`.
+
 ### Changed
 
 - Removed `tests` from published python wheel
+- Findings are now considered identical between baseline and current scans
+  based on the same logic as Semgrep CI uses, which means:
+  - Two findings are now identical after whitespace changes such as re-indentation
+  - Two findings are now identical after a nosemgrep comment is added
+  - Findings are now different if the same code triggered them on different lines
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
@@ -19,8 +29,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
 - When scanning multiple languages,
   Semgrep will now print a table of how many rules and files are used for each language.
-- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
-  with `--gitlab-sast` and `--gitlab-secrets`.
 
 ### Fixed
 

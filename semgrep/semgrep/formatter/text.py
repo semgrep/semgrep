@@ -162,7 +162,7 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
-        source_url = rule_match._metadata.get("shortlink")
+        source_url = rule_match.metadata.get("shortlink")
         if not source_url:
             return ""
         return f"Details: {source_url}"
@@ -330,11 +330,11 @@ class TextFormatter(BaseFormatter):
 
         last_file = None
         last_message = None
-        sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+        sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
         for rule_index, rule_match in enumerate(sorted_rule_matches):
 
             current_file = rule_match.path
-            check_id = rule_match.id
+            rule_id = rule_match.rule_id
             message = rule_match.message
             fix = rule_match.fix
             if last_file is None or last_file != current_file:
@@ -344,14 +344,14 @@ class TextFormatter(BaseFormatter):
                 last_message = None
             # don't display the rule line if the check is empty
             if (
-                check_id
-                and check_id != CLI_RULE_ID
+                rule_id
+                and rule_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
                 shortlink_text = (8 * " " + shortlink) if shortlink else ""
                 rule_id_text = click.wrap_text(
-                    f"{with_color(Colors.foreground, check_id, bold=True)}",
+                    f"{with_color(Colors.foreground, rule_id, bold=True)}",
                     width + 10,
                     5 * " ",
                     5 * " ",

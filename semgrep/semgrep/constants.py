@@ -94,10 +94,12 @@ RULE_ID_RE_STR = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"
 #   Python comments that begin with '# '
 # * nosem and nosemgrep should be interchangeable
 #
-NOSEM_INLINE_RE = re.compile(
-    r" nosem(?:grep)?" + RULE_ID_RE_STR,
-    re.IGNORECASE,
-)
+NOSEM_INLINE_RE_STR = r" nosem(?:grep)?" + RULE_ID_RE_STR
+NOSEM_INLINE_RE = re.compile(NOSEM_INLINE_RE_STR, re.IGNORECASE)
+
+# As a hack adapted from semgrep-agent,
+# we assume comment markers are one of these special characters
+NOSEM_INLINE_COMMENT_RE = re.compile(rf"[:#/]+{NOSEM_INLINE_RE_STR}$", re.IGNORECASE)
 
 # A nosemgrep comment alone on its line.
 # Since we don't know the comment syntax for the particular language, we
