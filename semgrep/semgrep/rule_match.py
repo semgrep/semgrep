@@ -1,5 +1,4 @@
 import binascii
-import hashlib
 import itertools
 import textwrap
 from collections import Counter
@@ -103,7 +102,6 @@ class RuleMatch:
 
     # derived attributes
     lines: List[str] = field(init=False, repr=False)
-    lines_hash: str = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
     cli_unique_key: Tuple = field(init=False, repr=False)
@@ -135,10 +133,6 @@ class RuleMatch:
             result = list(itertools.islice(fd, start_line, end_line))
 
         return result
-
-    @lines_hash.default
-    def get_lines_hash(self) -> str:
-        return hashlib.sha256("\n".join(self.lines).encode()).hexdigest()
 
     @previous_line.default
     def get_previous_line(self) -> str:
