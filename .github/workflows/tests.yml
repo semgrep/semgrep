@@ -20,26 +20,22 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Install pipenv
-        run: pipx install pipenv
-      - id: cache-check
+      - id: binary-cache
         name: Check if this semgrep-core binary is cached
         uses: actions/cache@v2
         with:
-          path: ocaml-build-artifacts.tgz
+          path: ./semgrep-core/_build/install/default/bin/semgrep-core
           key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}-${{ hashFiles('**/.github/workflows/**') }}"
-      - name: Cache OPAM/OCaml packages
-        if: steps.cache-primes.outputs.cache-hit != 'true'
-        uses: actions/cache@v2
+      - uses: ocaml/setup-ocaml@v2
+        if: steps.binary-cache.outputs.cache-hit != 'true'
         with:
-          path: /home/user/.opam/
-          key: ${{ runner.os }}-opam-${{ hashFiles('**.opam') }}
-          restore-keys: |
-            ${{ runner.os }}-opam-
+          ocaml-compiler: 4.12.x
+      - name: Install pipenv
+        if: steps.binary-cache.outputs.cache-hit != 'true'
+        run: pipx install pipenv
       - name: Build semgrep-core
-        if: steps.cache-primes.outputs.cache-hit != 'true'
+        if: steps.binary-cache.outputs.cache-hit != 'true'
         run: |
-          eval $(opam env)
           ./scripts/install-tree-sitter-runtime
           opam install --deps-only -y semgrep-core/src/pfff/
           opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
