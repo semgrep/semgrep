@@ -1,20 +1,28 @@
+import os
 import sys
 import time
 from pathlib import Path
-from typing import Any
 from typing import Iterable
+from typing import Optional
 from typing import Sequence
+from typing import Tuple
 
 import click
 
+import semgrep.semgrep_main
 from semgrep.commands.login import Authentication
 from semgrep.commands.scan import CONTEXT_SETTINGS
-from semgrep.commands.scan import scan
 from semgrep.commands.scan import scan_options
+from semgrep.constants import OutputFormat
 from semgrep.error import FATAL_EXIT_CODE
+from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.metric_manager import metric_manager
+from semgrep.output import OutputHandler
+from semgrep.output import OutputSettings
 from semgrep.semgrep_app import ScanHandler
+from semgrep.types import MetricsState
 from semgrep.util import set_flags
 from semgrep.verbose_logging import getLogger
 
@@ -57,24 +65,46 @@ def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
 @scan_options
 def ci(
     ctx: click.Context,
-    verbose: bool,
+    *,
+    autofix: bool,
+    baseline_commit: Optional[str],
     debug: bool,
-    quiet: bool,
+    dryrun: bool,
+    enable_nosem: bool,
+    enable_version_check: bool,
+    exclude: Optional[Tuple[str, ...]],
     force_color: bool,
-    *args: Any,
-    **kwargs: Any,
+    include: Optional[Tuple[str, ...]],
+    jobs: int,
+    max_chars_per_line: int,
+    max_lines_per_finding: int,
+    max_memory: int,
+    max_target_bytes: int,
+    optimizations: str,
+    output: Optional[str],
+    quiet: bool,
+    rewrite_rule_ids: bool,
+    scan_unknown_extensions: bool,
+    time_flag: bool,
+    timeout: int,
+    timeout_threshold: int,
+    use_git_ignore: bool,
+    verbose: bool,
 ) -> None:
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
+    # Metrics always on for `semgrep ci`
+    metric_manager.configure(MetricsState.ON, MetricsState.ON)
 
+    # Check that we have valid api token
     token = Authentication.get_token()
     if not token:
         logger.info("run `semgrep login` before using `semgrep ci`")
-        sys.exit(1)
+        sys.exit(INVALID_API_KEY_EXIT_CODE)
     if not Authentication.is_valid_token(token):
         logger.info(
             "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
         )
-        sys.exit(1)
+        sys.exit(INVALID_API_KEY_EXIT_CODE)
 
     scan_handler = ScanHandler(token)
     metadata = {"repository": "returntocorp/semgrep"}
@@ -83,39 +113,85 @@ def ci(
         scan_handler.start_scan(metadata)
     except Exception as e:
         logger.info(f"Failed to start scan so exiting...")
-        exit_code = scan_handler.fail_open_exit_code(metadata["repository"], 1)
+        exit_code = scan_handler.fail_open_exit_code(
+            metadata["repository"], FATAL_EXIT_CODE
+        )
         if exit_code == 0:
             logger.info(
                 "Fail Open is configured for this repository on semgrep.dev so exiting with code 0",
             )
         sys.exit(exit_code)
 
-    # Set config to rules if default of (,) or is --config policy
-    if not kwargs.get("config") or kwargs.get("config") == ("policy",):
-        kwargs["config"] = (scan_handler.scan_rules_url,)
-    else:
-        logger.info(
-            "`semgrep ci` can only run with policies configured in semgrep.dev you may be looking for `semgrep scan`"
-        )
-        sys.exit(2)
-
     # Append ignores configured on semgrep.dev
-    kwargs["exclude"] = (
-        *kwargs["exclude"],
+    assert exclude is not None  # exclude is default empty tuple
+    exclude = (
+        *exclude,
         *yield_exclude_paths(scan_handler.ignore_patterns),
     )
 
+    output_settings = OutputSettings(
+        output_format=OutputFormat.TEXT,
+        output_destination=output,
+        verbose_errors=verbose,
+        timeout_threshold=timeout_threshold,
+        output_time=time_flag,
+        output_per_finding_max_lines_limit=max_lines_per_finding,
+        output_per_line_max_chars_limit=max_chars_per_line,
+    )
+    output_handler = OutputHandler(output_settings)
+
     try:
         start = time.time()
-        ret = ctx.invoke(
-            scan,
-            debug=debug,
-            verbose=verbose,
-            quiet=quiet,
-            force_color=force_color,
-            **kwargs,
-        )
+
+        try:
+            (
+                filtered_matches_by_rule,
+                semgrep_errors,
+                all_targets,
+                ignore_log,
+                filtered_rules,
+                profiler,
+                profiling_data,
+                shown_severities,
+            ) = semgrep.semgrep_main.main(
+                output_handler=output_handler,
+                target=[os.curdir],  # semgrep ci only scans cwd
+                pattern=None,
+                lang=None,
+                configs=(scan_handler.scan_rules_url,),
+                no_rewrite_rule_ids=(not rewrite_rule_ids),
+                jobs=jobs,
+                include=include,
+                exclude=exclude,
+                max_target_bytes=max_target_bytes,
+                autofix=autofix,
+                dryrun=dryrun,
+                disable_nosem=(not enable_nosem),
+                no_git_ignore=(not use_git_ignore),
+                timeout=timeout,
+                max_memory=max_memory,
+                timeout_threshold=timeout_threshold,
+                skip_unknown_extensions=(not scan_unknown_extensions),
+                optimizations=optimizations,
+                baseline_commit=baseline_commit,
+            )
+        except SemgrepError as e:
+            output_handler.handle_semgrep_errors([e])
+            output_handler.output({}, all_targets=set(), filtered_rules=[])
+            raise e
+
         total_time = time.time() - start
+
+        output_handler.output(
+            filtered_matches_by_rule,
+            all_targets=all_targets,
+            ignore_log=ignore_log,
+            profiler=profiler,
+            filtered_rules=filtered_rules,
+            profiling_data=profiling_data,
+            severities=shown_severities,
+        )
+
     except Exception as e:
         logger.info(f"Encountered error when running rules: {e}")
         if isinstance(e, SemgrepError):
@@ -129,24 +205,43 @@ def ci(
             )
         sys.exit(exit_code)
 
-    if ret is not None:
-        logger.info("Reporting findings to semgrep.dev ...")
-        matches_by_rule, errors, rules, targets = ret
-        # if report, finish scan, check fail_open
-        scan_handler.report_findings(
-            matches_by_rule, errors, rules, targets, total_time
-        )
-        logger.info(f"Success.")
+    logger.info("Reporting findings to semgrep.dev ...")
+    scan_handler.report_findings(
+        filtered_matches_by_rule,
+        semgrep_errors,
+        filtered_rules,
+        all_targets,
+        total_time,
+    )
+    logger.info(f"Success.")
 
-        # if metadata.event_name in audit_on:
-        #     logger.info(
-        #         f"Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
-        #         err=True,
-        #     )
-        #     sys.exit(0)
-        # else:
-        #     logger.info(f"Blocking matches found so exiting with code 1")
-        #     sys.exit(1)
-    else:
-        logger.info(f"Semgrep encountered unexpected issue while running ci scan")
-        sys.exit(1)
+    # blocking_findings = {finding for finding in new_findings if finding.is_blocking()}
+
+    # blocking_matches =
+    #     audit_mode = meta.event_name in audit_on
+    #     if blocking_findings and audit_mode:
+    #         click.echo(
+    #             f"| audit mode is on for {meta.event_name}, so the findings won't cause failure",
+    #             err=True,
+    #         )
+
+    #     exit_code = (
+    #         NO_RESULT_EXIT_CODE
+    #         if audit_mode
+    #         else (FINDING_EXIT_CODE if blocking_findings else NO_RESULT_EXIT_CODE)
+    #     )
+    #     click.echo(
+    #         f"=== exiting with {'failing' if exit_code == 1 else 'success'} status",
+    #         err=True,
+    #     )
+    #     sys.exit(exit_code)
+
+    # if metadata.event_name in audit_on:
+    #     logger.info(
+    #         f"Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
+    #         err=True,
+    #     )
+    #     sys.exit(0)
+    # else:
+    #     logger.info(f"Blocking matches found so exiting with code 1")
+    #     sys.exit(1)

@@ -154,7 +154,6 @@ METRICS_STATE_TYPE = MetricsStateType()
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
 _scan_options = [
-    click.argument("target", nargs=-1, type=click.Path(allow_dash=True)),
     click.help_option("--help", "-h", help=("Show this message and exit.")),
     click.option(
         "-a",
@@ -173,73 +172,6 @@ _scan_options = [
             in a git directory, there are unstaged changes, or given baseline hash doesn't exist
         """,
         hidden=True,
-    ),
-    click.option(
-        "--error/--no-error",
-        "error_on_findings",
-        is_flag=True,
-        help="Exit 1 if there are findings. Useful for CI and scripts.",
-    ),
-    click.option(
-        "--metrics",
-        "metrics",
-        type=METRICS_STATE_TYPE,
-        help="""
-            Configures how usage metrics are sent to the Semgrep server.
-            If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
-            If 'on', metrics are always sent.
-            If 'off', metrics are disabled altogether and not sent.
-            If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
-            If no environment variable, defaults to 'auto'.
-        """,
-        envvar="SEMGREP_SEND_METRICS",
-    ),
-    click.option(
-        "--disable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="off",
-        hidden=True,
-    ),
-    click.option(
-        "--enable-metrics",
-        "metrics_legacy",
-        is_flag=True,
-        type=METRICS_STATE_TYPE,
-        flag_value="on",
-        hidden=True,
-    ),
-    click.option(
-        "--strict/--no-strict",
-        is_flag=True,
-        default=False,
-        help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present. Defaults to --no-strict.",
-    ),
-    optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup),
-    optgroup.option(
-        "--config",
-        "-c",
-        "-f",
-        multiple=True,
-        help="""
-            YAML configuration file, directory of YAML files ending in
-            .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
-            \n\n
-            Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
-             to the Semgrep registry.
-            \n\n
-            To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
-             For example `semgrep --config p/python --config myrules/myrule.yaml`
-            \n\n
-            See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
-        """,
-        shell_complete=__get_config_options,
-    ),
-    optgroup.option(
-        "--pattern",
-        "-e",
-        help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
     ),
     optgroup.group(
         "Path options",
@@ -417,42 +349,13 @@ _scan_options = [
     ),
     optgroup.option(
         "--time/--no-time",
+        "time_flag",
         is_flag=True,
         default=False,
         help="""
             Include a timing summary with the results. If output format is json, provides
             times for each pair (rule, target).
         """,
-    ),
-    optgroup.group(
-        "Output formats",
-        cls=MutuallyExclusiveOptionGroup,
-        help="Uses ASCII output if no format specified.",
-    ),
-    optgroup.option(
-        "--emacs",
-        is_flag=True,
-        help="Output results in Emacs single-line format.",
-    ),
-    optgroup.option("--json", is_flag=True, help="Output results in JSON format."),
-    optgroup.option(
-        "--gitlab-sast",
-        is_flag=True,
-        help="Output results in GitLab SAST format.",
-    ),
-    optgroup.option(
-        "--gitlab-secrets",
-        is_flag=True,
-        help="Output results in GitLab Secrets format.",
-    ),
-    optgroup.option(
-        "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
-    ),
-    optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format."),
-    optgroup.option(
-        "--vim",
-        is_flag=True,
-        help="Output results in vim single-line format.",
     ),
     optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup),
     optgroup.option(
@@ -474,52 +377,15 @@ _scan_options = [
         is_flag=True,
         help="All of --verbose, but with additional debugging information.",
     ),
-    # These flags are deprecated or experimental - users should not
-    # rely on their existence, or their output being stable
     click.option(
-        "--json-stats",
+        "--dryrun/--no-dryrun",
         is_flag=True,
-        hidden=True
-        # help="Include statistical information about performance in JSON output (experimental).",
-    ),
-    click.option(
-        "--json-time",
-        is_flag=True,
-        hidden=True
-        # help="Deprecated alias for --json + --time",
-    ),
-    click.option(
-        "--debugging-json",
-        is_flag=True,
-        hidden=True
-        # help="Deprecated alias for --json + --debug",
-    ),
-    click.option(
-        "--save-test-output-tar",
-        is_flag=True,
-        hidden=True
-        # help="Save --test output for use in semgrep-app registry",
-    ),
-    click.option(
-        "--synthesize-patterns",
-        type=str,
-        hidden=True
-        # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
-    ),
-    click.option("--generate-config", "-g", is_flag=True, hidden=True),
-    click.option(
-        "--dangerously-allow-arbitrary-code-execution-from-rules",
-        is_flag=True,
-        hidden=True
-        # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
-    ),
-    click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
-    click.option(
-        "--deep",
-        "-x",
-        is_flag=True,
-        hidden=True
-        # help="contact support@r2c.dev for more information on this"
+        default=False,
+        help="""
+            If --dryrun, does not write autofixes to a file. This will print the changes
+            to the console. This lets you see the changes before you commit to them. Only
+            works with the --autofix flag. Otherwise does nothing.
+        """,
     ),
 ]
 
@@ -531,6 +397,7 @@ def scan_options(func: Callable) -> Callable:
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--apply",
     is_flag=True,
@@ -543,6 +410,31 @@ def scan_options(func: Callable) -> Callable:
         An autofix expression that will be applied to any matches found with --pattern.
         Only valid with a command-line specified pattern.
     """,
+)
+@optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
+@optgroup.option(
+    "--config",
+    "-c",
+    "-f",
+    multiple=True,
+    help="""
+        YAML configuration file, directory of YAML files ending in
+        .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
+        \n\n
+        Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
+         to the Semgrep registry.
+        \n\n
+        To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
+         For example `semgrep --config p/python --config myrules/myrule.yaml`
+        \n\n
+        See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
+    """,
+    shell_complete=__get_config_options,
+)
+@optgroup.option(
+    "--pattern",
+    "-e",
+    help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
 )
 @click.option(
     "--lang",
@@ -593,15 +485,124 @@ def scan_options(func: Callable) -> Callable:
         (can use --json).
     """,
 )
+@click.option(
+    "--metrics",
+    "metrics",
+    type=METRICS_STATE_TYPE,
+    help="""
+        Configures how usage metrics are sent to the Semgrep server.
+        If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
+        If 'on', metrics are always sent.
+        If 'off', metrics are disabled altogether and not sent.
+        If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
+        If no environment variable, defaults to 'auto'.
+    """,
+    envvar="SEMGREP_SEND_METRICS",
+)
+@click.option(
+    "--disable-metrics",
+    "metrics_legacy",
+    is_flag=True,
+    type=METRICS_STATE_TYPE,
+    flag_value="off",
+    hidden=True,
+)
+@click.option(
+    "--enable-metrics",
+    "metrics_legacy",
+    is_flag=True,
+    type=METRICS_STATE_TYPE,
+    flag_value="on",
+    hidden=True,
+)
+@optgroup.group(
+    "Output formats",
+    cls=MutuallyExclusiveOptionGroup,
+    help="Uses ASCII output if no format specified.",
+)
 @optgroup.option(
-    "--dryrun/--no-dryrun",
+    "--emacs",
+    is_flag=True,
+    help="Output results in Emacs single-line format.",
+)
+@optgroup.option("--json", is_flag=True, help="Output results in JSON format.")
+@optgroup.option(
+    "--gitlab-sast",
+    is_flag=True,
+    help="Output results in GitLab SAST format.",
+)
+@optgroup.option(
+    "--gitlab-secrets",
+    is_flag=True,
+    help="Output results in GitLab Secrets format.",
+)
+@optgroup.option(
+    "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
+)
+@optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format.")
+@optgroup.option(
+    "--vim",
+    is_flag=True,
+    help="Output results in vim single-line format.",
+)
+@click.option(
+    "--error/--no-error",
+    "error_on_findings",
+    is_flag=True,
+    help="Exit 1 if there are findings. Useful for CI and scripts.",
+)
+@click.option(
+    "--strict/--no-strict",
     is_flag=True,
     default=False,
-    help="""
-        If --dryrun, does not write autofixes to a file. This will print the changes
-        to the console. This lets you see the changes before you commit to them. Only
-        works with the --autofix flag. Otherwise does nothing.
-    """,
+    help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present. Defaults to --no-strict.",
+)
+# These flags are deprecated or experimental - users should not
+# rely on their existence, or their output being stable
+@click.option(
+    "--json-stats",
+    is_flag=True,
+    hidden=True
+    # help="Include statistical information about performance in JSON output (experimental).",
+)
+@click.option(
+    "--json-time",
+    is_flag=True,
+    hidden=True
+    # help="Deprecated alias for --json + --time",
+)
+@click.option(
+    "--debugging-json",
+    is_flag=True,
+    hidden=True
+    # help="Deprecated alias for --json + --debug",
+)
+@click.option(
+    "--save-test-output-tar",
+    is_flag=True,
+    hidden=True
+    # help="Save --test output for use in semgrep-app registry",
+)
+@click.option(
+    "--synthesize-patterns",
+    type=str,
+    hidden=True
+    # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
+)
+@click.option("--generate-config", "-g", is_flag=True, hidden=True)
+@click.option(
+    "--dangerously-allow-arbitrary-code-execution-from-rules",
+    is_flag=True,
+    hidden=True
+    # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
+)
+@click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
+@click.option(
+    "--deep",
+    "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
 )
 @scan_options
 def scan(
@@ -655,7 +656,7 @@ def scan(
     target: Tuple[str, ...],
     test: bool,
     test_ignore_todo: bool,
-    time: bool,
+    time_flag: bool,
     timeout: int,
     timeout_threshold: int,
     use_git_ignore: bool,
@@ -739,7 +740,7 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    output_time = time or json_time
+    output_time = time_flag or json_time
 
     # set the flags
     semgrep.util.set_flags(
