@@ -1,0 +1,24 @@
+- id: Common.do_option
+  require: "> 0.84.0"
+  futur_stuff: "> 0.84.0"
+  pattern: Common.do_option
+  fix: Option.iter
+  languages: [ ocaml ]
+  message: found one
+  severity: ERROR
+- id: rule-with-some-error
+  # this actually does not generate an error (just a warning in the logs)
+  #ERROR: bad pattern, but we should warn and just skip this rule
+  pattern: Common.do_option ||
+  fix: Option.iter
+  languages: [ ocaml ]
+  message: found one
+  severity: ERROR
+- id: rule-with-error-in-formula
+  patterns:
+    - pattern: Common.do_option
+    - metavariable-unknown: bar
+  fix: Option.iter
+  languages: [ ocaml ]
+  message: found one
+  severity: ERROR

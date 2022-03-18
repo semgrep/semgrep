@@ -278,6 +278,6 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   {
     RP.matches;
     errors;
-    skipped = [];
+    skipped_targets = [];
     profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
   }

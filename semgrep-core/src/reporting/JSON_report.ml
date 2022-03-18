@@ -61,11 +61,19 @@ let unique_id any =
 (* JSON *)
 (*****************************************************************************)
 
-let position_range min_loc max_loc =
-  (* pfff (and Emacs) have the first column at index 0, but not r2c *)
-  let adjust_column x = x + 1 in
+(* pfff (and Emacs) have the first column at index 0, but not r2c *)
+let adjust_column x = x + 1
 
+let position_of_token_location loc =
+  {
+    ST.line = loc.PI.line;
+    col = adjust_column loc.PI.column;
+    offset = loc.PI.charpos;
+  }
+
+let position_range min_loc max_loc =
   let len_max = String.length max_loc.PI.str in
+  (* alt: could call position_of_token_location but more symetric like that*)
   ( {
       ST.line = min_loc.PI.line;
       col = adjust_column min_loc.PI.column;
@@ -220,7 +228,20 @@ let match_results_of_matches_and_errors files res =
   {
     ST.matches;
     errors = errs |> List.map error_to_error;
-    skipped = res.RP.skipped;
+    skipped_targets = res.RP.skipped_targets;
+    skipped_rules =
+      (match res.RP.skipped_rules with
+      | [] -> None
+      | xs ->
+          Some
+            (xs
+            |> List.map (fun (kind, rule_id, tk) ->
+                   let loc = PI.unsafe_token_location_of_info tk in
+                   {
+                     ST.rule_id;
+                     details = Rule.string_of_invalid_rule_error_kind kind;
+                     position = position_of_token_location loc;
+                   })));
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.final_profiling |> Option.map json_time_of_profiling_data;
   }
