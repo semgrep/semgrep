@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./semgrep-core/_build/install/default/bin/semgrep-core
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}-${{ hashFiles('**/.github/workflows/**') }}"
+          key: ${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         if: steps.binary-cache.outputs.cache-hit != 'true'
@@ -267,7 +267,7 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: [3.7]
+        python: ["3.9"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -351,7 +351,7 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: [3.7]
+        python: ["3.9"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
