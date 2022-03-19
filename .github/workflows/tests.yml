@@ -48,7 +48,9 @@ jobs:
           opam install --deps-only -y semgrep-core/
       - name: Compile semgrep-core binary
         if: steps.binary-cache.outputs.cache-hit != 'true'
-        run: make -C semgrep-core/ all
+        run: |
+          eval $(opam env)
+          make -C semgrep-core/ all
       - name: Upload semgrep-core binary
         uses: actions/upload-artifact@v3
         with:
