@@ -615,7 +615,7 @@ let matches_of_xpatterns config file_and_more xpatterns =
    Find the metavariable value, convert it back to a string, and
    run it through an analyzer that returns true if there's a "match".
 *)
-let analyze_metavar env bindings mvar analyzer =
+let analyze_metavar env (bindings : MV.bindings) mvar analyzer =
   match List.assoc_opt mvar bindings with
   | None ->
       error env
@@ -624,10 +624,21 @@ let analyze_metavar env bindings mvar analyzer =
             check your rule"
            mvar);
       false
-  | Some mval -> (
-      match Eval_generic.text_of_binding mvar mval with
-      | None -> false
-      | Some data -> analyzer data)
+  | Some mvalue -> analyzer mvalue
+
+(*
+   Analyze the contents of a string literal bound to a metavariable.
+   The analyzer operates of the strings contents after best-effort
+   unescaping.
+   Return false if the bound value isn't a string literal.
+*)
+let analyze_string_metavar env bindings mvar (analyzer : string -> bool) =
+  analyze_metavar env bindings mvar (function
+    | Text (escaped, _tok) (* why do we have two representations? *)
+    | E { G.e = G.L (G.String (escaped, _tok)); _ } ->
+        Printf.printf "analyze_string_metavar: %s\n%!" escaped;
+        escaped |> String_literal.approximate_unescape |> analyzer
+    | _ -> false)
 
 let rec filter_ranges env xs cond =
   xs
@@ -676,9 +687,7 @@ let rec filter_ranges env xs cond =
              Eval_generic.eval_bool env e
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
-             analyze_metavar env bindings mvar (fun string_literal ->
-                 let s = String_literal.evaluate string_literal in
-                 Entropy.has_high_score s)
+             analyze_string_metavar env bindings mvar Entropy.has_high_score
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
@@ -701,7 +710,7 @@ let rec filter_ranges env xs cond =
                      mvar re_str;
                    false
              in
-             analyze_metavar env bindings mvar analyze)
+             analyze_string_metavar env bindings mvar analyze)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in

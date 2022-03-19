@@ -194,10 +194,6 @@ let recover_source re_str node =
   safe_sub re_str first_tok_pos len
 
 let find_vulnerable_subpatterns ?(dialect = Dialect.PCRE) re_str =
-  let re_str =
-    (* TODO: take an already unquoted string *)
-    String_literal.evaluate re_str
-  in
   let conf = Dialect.conf dialect in
   match parse_regexp conf re_str with
   | None -> Error ()

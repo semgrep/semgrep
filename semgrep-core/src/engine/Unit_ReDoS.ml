@@ -4,37 +4,32 @@
 
 open Printf
 
-let quoted_strings =
+let escaped_strings =
   [
     (* input, expected output *)
     ({||}, {||});
     ({|a|}, {|a|});
     ({|'|}, {|'|});
     ({|"|}, {|"|});
+    ({|\'|}, {|'|});
+    ({|\"|}, {|"|});
+    ({|\\|}, {|\|});
     ({|ab|}, {|ab|});
-    ({|\\\|}, {|\\\|});
-    ({|"\\\'|}, {|"\\\'|});
-    ({|''|}, {||});
-    ({|""|}, {||});
-    ({|'ab'|}, {|ab|});
-    ({|'a"b'|}, {|a"b|});
-    ({|"a'b"|}, {|a'b|});
-    ({|'a'b'|}, {|a'b|});
-    ({|"a"b"|}, {|a"b|});
-    ({|'a\b'|}, {|a\b|});
-    ({|"a\b"|}, {|a\b|});
-    ({|'a\\b'|}, {|a\b|});
-    ({|"a\\b"|}, {|a\b|});
-    ({|'a\\\b'|}, {|a\\b|});
-    ({|"a\\\b"|}, {|a\\b|});
+    ({|\\\|}, {|\\|});
+    ({|"\\\'|}, {|"\'|});
+    ({|''|}, {|''|});
+    ({|""|}, {|""|});
+    ({|'ab'|}, {|'ab'|});
+    ({|'a"b'|}, {|'a"b'|});
+    ({|"a'b"|}, {|"a'b"|});
   ]
 
-let test_unquote () =
-  quoted_strings
+let test_unescape () =
+  escaped_strings
   |> List.iter (fun (input, expected_output) ->
-         let output = String_literal.evaluate input in
+         let output = String_literal.approximate_unescape input in
          Alcotest.(check string)
-           ("String_literal.evaluate " ^ input)
+           ("String_literal.approximate_unescape " ^ input)
            expected_output output)
 
 type result = Succeeds | Blows_up
@@ -188,7 +183,7 @@ let test_vulnerability_prediction () =
 
 let tests =
   [
-    ("unquote", test_unquote);
+    ("unescape", test_unescape);
     ("pcre pattern explosion", test_pcre_pattern_explosions);
     ("vulnerability prediction", test_vulnerability_prediction);
   ]

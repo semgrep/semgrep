@@ -3,13 +3,22 @@
 *)
 
 (*
+   Evaluate unquoted, escaped string literal contents.
+
+   abc\\\'\"def  ->  abc\'"def
+
+   Assumes:
+
+   \\ -> \
+   \' -> '
+   \" -> "
+
+   Other escape sequences are left untouched.
+
    HACK!
 
-   Remove enclosing single quotes or double quotes from a string, and
-   assume all string literals of all languages are like this, which is wrong.
-
-   TODO: apply the language's quoting and escaping rules rather than
-   assuming they all use the same rules.
-   TODO: evaluate escape sequences such as \n or \\
+   Different languages use different escaping rules for their string
+   literals. This is incorrect but can be useful until each language
+   parser exposes unescaped strings.
 *)
-val evaluate : string -> string
+val approximate_unescape : string -> string
