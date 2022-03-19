@@ -41,7 +41,9 @@ type position = {
 type match_results = {
   matches: match_ list;
   errors: error list;
-  skipped: skipped_target list;
+  skipped_targets <json name="skipped">: skipped_target list;
+  (* skipped_rules was introduced  in semgrep 0.86 *)
+  ?skipped_rules: skipped_rule list option;
   stats: stats;
   ?time: time option;
 }
@@ -174,6 +176,13 @@ type skip_reason = [
   | Irrelevant_rule <json name="irrelevant_rule">
   | Too_many_matches <json name="too_many_matches">
 ] <ocaml repr="classic">
+
+type skipped_rule = {
+  rule_id: rule_id;
+  details: string;
+  (* position of the error in the rule file *)
+  position: position;
+}
 
 (*****************************************************************************)
 (* Profiling information *)

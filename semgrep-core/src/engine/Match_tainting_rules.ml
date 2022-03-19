@@ -176,6 +176,36 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     handle_findings;
   }
 
+let pm_of_finding file finding =
+  let open Dataflow_tainting in
+  match finding with
+  | SrcToSink (_src, sink, src_sink_bindings) -> (
+      match sink with
+      | PM sink_pm -> Some { sink_pm with env = src_sink_bindings }
+      | Call (fun_call, _) -> (
+          let code = G.E fun_call in
+          match V.range_of_any_opt code with
+          | None ->
+              logger#error
+                "Cannot report taint finding because we lack range info";
+              None
+          | Some range_loc ->
+              let tokens = lazy (V.ii_of_any code) in
+              Some
+                {
+                  PM.rule_id = (pm_of_dm sink).rule_id;
+                  file;
+                  range_loc;
+                  tokens;
+                  env = src_sink_bindings;
+                }))
+  | SrcToReturn _
+  (* TODO: We might want to report functions that let input taint
+   * go into a sink (?) *)
+  | ArgToSink _
+  | ArgToReturn _ ->
+      None
+
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
    * recomputing the CFG for each taint rule. *)
@@ -195,19 +225,9 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   let taint_config =
     let handle_findings _ findings _env =
       findings
-      |> List.iter
-           Dataflow_tainting.(
-             function
-             | SrcToSink (_, sink, src_sink_bindings) ->
-                 let sink_pm = Dataflow_tainting.pm_of_dm sink in
-                 let pm = { sink_pm with env = src_sink_bindings } in
-                 Common.push pm matches
-             | SrcToReturn _
-             (* TODO: We might want to report functions that let input taint
-              * go into a sink (?) *)
-             | ArgToSink _
-             | ArgToReturn _ ->
-                 ())
+      |> List.iter (fun finding ->
+             pm_of_finding file finding
+             |> Option.iter (fun pm -> Common.push pm matches))
     in
     taint_config_of_rule default_config equivs file (ast, []) rule taint_spec
       handle_findings
@@ -278,6 +298,6 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   {
     RP.matches;
     errors;
-    skipped = [];
+    skipped_targets = [];
     profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
   }

@@ -8,9 +8,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
   with `--gitlab-sast` and `--gitlab-secrets`.
+- Terraform: basic support for constant propagation of locals (#1147)
 
 ### Changed
 
+- Semgrep should now be more tolerant to rules using futur extensions by
+  skipping those rules instead of just crashing (#4835)
 - Removed `tests` from published python wheel
 - Findings are now considered identical between baseline and current scans
   based on the same logic as Semgrep CI uses, which means:
@@ -22,6 +25,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Entropy analysis: strings made of repeated characters such as
   `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
+- Symlinks found in directories are skipped from being scanned again.
+  This is a fix for a regression introduced in 0.85.0.
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 

@@ -327,36 +327,42 @@ let check_function_signature env fun_exp args_taint =
                     id_info =
                       {
                         G.id_resolved =
-                          { contents = Some (G.ImportedEntity _, _) };
+                          {
+                            contents =
+                              Some ((G.ImportedEntity _ | G.ResolvedName _), _);
+                          };
                         _;
                       };
                     _;
                   };
-              offset = Dot _;
+              offset = _;
               _;
             };
         eorig = SameAs eorig;
         _;
       } ) ->
-      let fun_sig = hook env.config eorig in
-      fun_sig
-      |> List.filter_map (function
-           | SrcToReturn dm ->
-               let dm = Call (eorig, dm) in
-               Some (Taint.singleton (Src dm))
-           | ArgToReturn i -> taint_of_arg i
-           | ArgToSink (i, sink) ->
-               let* arg_taint = taint_of_arg i in
-               arg_taint
-               |> Taint.iter (fun t ->
-                      findings_of_tainted_sink (Taint.singleton t) sink
-                      |> report_findings env);
-               None
-           | _ -> None)
-      |> List.fold_left Taint.union Taint.empty
+      let* fun_sig = hook env.config eorig in
+      Some
+        (fun_sig
+        |> List.filter_map (function
+             | SrcToReturn dm ->
+                 let dm = Call (eorig, dm) in
+                 Some (Taint.singleton (Src dm))
+             | ArgToReturn i -> taint_of_arg i
+             | ArgToSink (i, sink) ->
+                 let sink = Call (eorig, sink) in
+                 let* arg_taint = taint_of_arg i in
+                 arg_taint
+                 |> Taint.iter (fun t ->
+                        findings_of_tainted_sink (Taint.singleton t) sink
+                        |> report_findings env);
+                 None
+             (* THINK: Should we report something here? *)
+             | SrcToSink _ -> None)
+        |> List.fold_left Taint.union Taint.empty)
   | None, _
   | Some _, _ ->
-      Taint.empty
+      None
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -368,12 +374,16 @@ let check_tainted_instr env instr : Taint.t =
   let check_instr = function
     | Assign (_, e) -> check_expr e
     | AssignAnon _ -> Taint.empty (* TODO *)
-    | Call (_, e, args) ->
+    | Call (_, e, args) -> (
         let e_taint = check_expr e in
         let args_taint = List.map check_expr args in
-        List.fold_left Taint.union Taint.empty args_taint
-        |> Taint.union e_taint
-        |> Taint.union (check_function_signature env e args_taint)
+        match check_function_signature env e args_taint with
+        | Some call_taint -> call_taint
+        | None ->
+            (* Default is to assume that the function will propagate
+             * the taint of its arguments. *)
+            List.fold_left Taint.union Taint.empty args_taint
+            |> Taint.union e_taint)
     | CallSpecial (_, _, args) -> union_map check_expr args
     | FixmeInstr _ -> Taint.empty
   in
