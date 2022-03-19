@@ -109,7 +109,7 @@ jobs:
     strategy:
       matrix:
         ocaml: ["4.12.0"]
-        python: ["3.9"]
+        python: ["3.7"]
     needs: [build-core]
     steps:
       - name: Checkout
@@ -178,7 +178,7 @@ jobs:
         with:
           name: semgrep-core
           path: /usr/local/bin
-      - name: Test semgrep-core
+      - name: Ensure semgrep-core runs
         run: semgrep-core -version
       - name: Install Tox and any other packages
         run: pip install pipenv==2018.11.26 tox==3.15.0
@@ -199,24 +199,24 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python: [3.7]
+        python: ["3.7"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+          cache: pipenv
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          name: semgrep-core
+          path: /usr/local/bin
+      - name: Ensure semgrep-core runs
+        run: semgrep-core -version
       - name: Install semgrep
         run: |
           cd semgrep
@@ -272,24 +272,24 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: ["3.9"]
+        python: ["3.7"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+          cache: pipenv
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          name: semgrep-core
+          path: /usr/local/bin
+      - name: Ensure semgrep-core runs
+        run: semgrep-core -version
       - name: Install semgrep
         run: |
           cd semgrep
@@ -318,7 +318,7 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: ["3.9"]
+        python: ["3.7"]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -328,14 +328,14 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+          cache: pipenv
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          name: semgrep-core
+          path: /usr/local/bin
+      - name: Ensure semgrep-core runs
+        run: semgrep-core -version
       - name: Install semgrep
         run: |
           cd semgrep
@@ -356,16 +356,17 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: ["3.9"]
+        python: ["3.7"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
+          cache: pipenv
       - name: Run 0.82.0 Timing Benchmark
         run: |
           pip3 install semgrep==0.82.0
@@ -378,14 +379,13 @@ jobs:
           python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.json --no-time
           jq . semgrep/baseline_timing2.json
           pip3 uninstall -y semgrep
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
+      - name: Download semgrep-core binary
+        uses: actions/download-artifact@v3
         with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          name: semgrep-core
+          path: /usr/local/bin
+      - name: Ensure semgrep-core runs
+        run: semgrep-core -version
       - name: Install semgrep
         run: |
           cd semgrep
