@@ -18,6 +18,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Two findings are now identical after a nosemgrep comment is added
   - Findings are now different if the same code triggered them on different lines
 
+### Fixed
+
+- Entropy analysis: strings made of repeated characters such as
+  `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
+
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
 ### Added
