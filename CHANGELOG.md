@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
   with `--gitlab-sast` and `--gitlab-secrets`.
+- Terraform: basic support for constant propagation of locals (#1147)
 
 ### Changed
 
@@ -19,6 +20,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Two findings are now identical after whitespace changes such as re-indentation
   - Two findings are now identical after a nosemgrep comment is added
   - Findings are now different if the same code triggered them on different lines
+
+### Fixed
+
+- Symlinks found in directories are skipped from being scanned again.
+  This is a fix for a regression introduced in 0.85.0.
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 

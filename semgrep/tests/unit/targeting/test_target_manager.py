@@ -57,6 +57,10 @@ def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]):
     """
     Assert that two sets of path contain the same paths
     """
+    for elem in (*a, *b):
+        assert (
+            not elem.is_symlink()
+        ), f"{elem} is a symlink so we cannot determine if it's the same as its counterpart in the other set"
     a_abs = {elem.resolve() for elem in a}
     b_abs = {elem.resolve() for elem in b}
     assert a_abs == b_abs
