@@ -38,7 +38,7 @@ jobs:
       - name: Install pipenv
         if: steps.binary-cache.outputs.cache-hit != 'true'
         run: pipx install pipenv
-      - name: Compile semgrep-core binary
+      - name: Install OCaml dependencies
         if: steps.binary-cache.outputs.cache-hit != 'true'
         run: |
           eval $(opam env)
@@ -46,7 +46,9 @@ jobs:
           opam install --deps-only -y semgrep-core/src/pfff/
           opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
           opam install --deps-only -y semgrep-core/
-          make -C semgrep-core/ all
+      - name: Compile semgrep-core binary
+        if: steps.binary-cache.outputs.cache-hit != 'true'
+        run: make -C semgrep-core/ all
       - name: Upload semgrep-core binary
         uses: actions/upload-artifact@v3
         with:
@@ -73,6 +75,14 @@ jobs:
         with:
           ocaml-compiler: ${{ matrix.ocaml }}
           dune-cache: true
+      - name: Install OCaml dependencies
+        if: steps.binary-cache.outputs.cache-hit != 'true'
+        run: |
+          eval $(opam env)
+          ./scripts/install-tree-sitter-runtime
+          opam install --deps-only -y semgrep-core/src/pfff/
+          opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
+          opam install --deps-only -y semgrep-core/
       - name: Download semgrep-core binary
         uses: actions/download-artifact@v3
         with:
@@ -119,6 +129,14 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
+      - name: Install OCaml dependencies
+        if: steps.binary-cache.outputs.cache-hit != 'true'
+        run: |
+          eval $(opam env)
+          ./scripts/install-tree-sitter-runtime
+          opam install --deps-only -y semgrep-core/src/pfff/
+          opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
+          opam install --deps-only -y semgrep-core/
       - name: Download semgrep-core binary
         uses: actions/download-artifact@v3
         with:
@@ -146,15 +164,15 @@ jobs:
       matrix:
         python: ["3.7", "3.8", "3.9"]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: true
       - name: Download semgrep-core binary
         uses: actions/download-artifact@v3
         with:
