@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
   with `--gitlab-sast` and `--gitlab-secrets`.
 - Terraform: basic support for constant propagation of locals (#1147)
+  and variables (#4816)
 
 ### Changed
 
