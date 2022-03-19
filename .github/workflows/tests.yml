@@ -27,8 +27,8 @@ jobs:
         name: Check if this semgrep-core binary is cached
         uses: actions/cache@v2
         with:
-          path: ./semgrep-core/_build/install/default/bin/semgrep-core
-          key: ${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**') }}"
+          path: semgrep-core/_build/install/default/bin/semgrep-core
+          key: ${{ runner.os }}-semgrep-core-${{ hashFiles('semgrep-core/**') }}"
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         if: steps.binary-cache.outputs.cache-hit != 'true'
@@ -55,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: semgrep-core
-          path: ./semgrep-core/_build/install/default/bin/semgrep-core
+          path: semgrep-core/_build/install/default/bin/semgrep-core
 
   test-core:
     name: semgrep-core tests
