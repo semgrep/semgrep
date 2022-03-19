@@ -636,7 +636,6 @@ let analyze_string_metavar env bindings mvar (analyzer : string -> bool) =
   analyze_metavar env bindings mvar (function
     | Text (escaped, _tok) (* why do we have two representations? *)
     | E { G.e = G.L (G.String (escaped, _tok)); _ } ->
-        Printf.printf "analyze_string_metavar: %s\n%!" escaped;
         escaped |> String_literal.approximate_unescape |> analyzer
     | _ -> false)
 
