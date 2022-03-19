@@ -311,7 +311,7 @@ let text_of_binding mvar mval =
       (* Note that `text` may be produced by constant folding, in which
        * case we will not have range info. *)
       Some text
-  | ___else___ -> (
+  | _ -> (
       let any = MV.mvalue_to_any mval in
       match Visitor_AST.range_of_any_opt any with
       | None ->
