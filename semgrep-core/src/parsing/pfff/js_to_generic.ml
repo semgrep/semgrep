@@ -29,17 +29,11 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let bool = id
-
 let string = id
-
 let error = AST_generic.error
-
 let fb = G.fake_bracket
 
 (* for the require -> import translation *)
@@ -59,13 +53,9 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let name v = wrap id v
-
 let ident x = name x
-
 let filename v = wrap string v
-
 let label v = wrap string v
 
 type special_result =
@@ -765,7 +755,8 @@ and require_to_import_in_stmt_opt st =
             let orig = stmt st in
             Some (ys @ [ orig ])
         | _ -> raise ComplicatedCase
-      with ComplicatedCase -> None)
+      with
+      | ComplicatedCase -> None)
   | _ -> None
 
 and list_stmt xs =

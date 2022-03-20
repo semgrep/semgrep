@@ -39,15 +39,12 @@ open Doc_AST
 open Pattern_AST
 
 let debug = ref false
-
 let phys_eq = ( == )
 
 (*** Public types ***)
 
 type pattern_id = int
-
 type region = Loc.t * Loc.t
-
 type capture = { value : string; loc : Loc.t }
 
 type match_ = {
@@ -79,7 +76,6 @@ type dots = {
 module Env = Map.Make (String)
 
 type env = (Loc.t * string) Env.t
-
 type match_result = Complete of env * Loc.t | Fail
 
 (* Continuation that matches the pattern against the empty document.
@@ -106,7 +102,8 @@ let case_insensitive_equal a b =
         raise Exit
     done;
     true
-  with Exit -> false
+  with
+  | Exit -> false
 
 (*
    Create or update the 'dots' object which indicates:

@@ -29,21 +29,13 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let string = id
-
 let list = List.map
-
 let option = Option.map
-
 let either = OCaml.map_of_either
-
 let arithmetic_operator = id
-
 let incr_decr = id
-
 let prefix_postfix x = H.conv_prepost x
-
 let error = AST_generic.error
 
 let name_of_qualified_ident x =
@@ -55,17 +47,11 @@ let name_of_qualified_ident x =
   H.name_of_ids xs
 
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let _fake_id tok s = (s, fake tok s)
-
 let unsafe_fake_id s = (s, unsafe_fake s)
-
 let fb = G.fake_bracket
-
 let mk_name s tok = G.Id ((s, tok), G.empty_id_info ())
-
 let ii_of_any = Lib_parsing_go.ii_of_any
 
 (* TODO? do results "parameters" can have names? *)
@@ -113,7 +99,6 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (tok t1, of_a x, tok t2)
-
 let ident v = wrap string v
 
 let qualified_ident v =

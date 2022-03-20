@@ -35,21 +35,13 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 
 let fake = G.fake
-
 let fb = G.fake_bracket
-
 let id x = x
-
 let v_string = id
-
 let v_int = id
-
 let v_float = id
-
 let v_bool = id
-
 let v_list = List.map
-
 let v_option = Option.map
 
 let cases_to_lambda lb cases : G.function_definition =
@@ -82,21 +74,13 @@ let v_bracket _of_a (v1, v2, v3) =
   (v1, v2, v3)
 
 let v_ident v = v_wrap v_string v
-
 let v_op v = v_wrap v_string v
-
 let v_varid v = v_wrap v_string v
-
 let v_ident_or_wildcard v = v_ident v
-
 let v_varid_or_wildcard v = v_ident v
-
 let v_ident_or_this v = v_ident v
-
 let v_dotted_ident v = v_list v_ident v
-
 let v_qualified_ident v = v_dotted_ident v
-
 let v_selectors v = v_dotted_ident v
 
 let v_simple_ref = function
@@ -221,7 +205,6 @@ and v_encaps = function
       Right v1
 
 and todo_type msg anys = G.OtherType ((msg, fake msg), anys)
-
 and v_type_ x = v_type_kind x |> G.t
 
 and v_type_kind = function
@@ -315,7 +298,6 @@ and v_type_bounds { supertype = v_supertype; subtype = v_subtype } =
   (arg1, arg2)
 
 and v_ascription v = v_type_ v
-
 and todo_pattern msg any = G.OtherPat ((msg, fake msg), any)
 
 and v_pattern = function
@@ -953,5 +935,4 @@ let v_any = function
 (*****************************************************************************)
 
 let program xs = v_program xs
-
 let any x = v_any x

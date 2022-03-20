@@ -37,7 +37,10 @@ let stat = memoize Unix.stat
 *)
 let create_visit_tracker () =
   let tbl = Hashtbl.create 100 in
-  let get_id path = try Some (stat path).st_ino with _ -> None in
+  let get_id path =
+    try Some (stat path).st_ino with
+    | _ -> None
+  in
   let was_visited path =
     match get_id path with
     | None -> true
@@ -50,7 +53,9 @@ let create_visit_tracker () =
   in
   { was_visited; mark_visited }
 
-let get_file_kind path = try Some (stat path).st_kind with _ -> None
+let get_file_kind path =
+  try Some (stat path).st_kind with
+  | _ -> None
 
 let compare_filenames = String.compare
 

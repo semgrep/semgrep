@@ -34,7 +34,10 @@ jobs:
           sudo chmod -R 777 "$github_cache_dir"
       - uses: actions/checkout@v2
       - name: Check OCaml code
-        run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
+        run: |
+          # install correct version of ocamlformat
+          sudo -u user opam install -y ocamlformat.0.21.0
+          sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   changelog-reminder:
     name: Changelog Reminder

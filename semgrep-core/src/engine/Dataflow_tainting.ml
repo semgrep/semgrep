@@ -40,9 +40,7 @@ let ( let* ) = Option.bind
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
-
   type edge = F.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
@@ -53,13 +51,9 @@ end)
 (*****************************************************************************)
 
 type var = Dataflow_core.var
-
 type deep_match = PM of Pattern_match.t | Call of G.expr * deep_match
-
 type source = deep_match
-
 type sink = deep_match
-
 type arg_pos = int
 
 type finding =
@@ -142,9 +136,7 @@ let rec pm_of_dm = function
   | Call (_, dm) -> pm_of_dm dm
 
 let dm_of_pm pm = PM pm
-
 let src_of_pm pm = Src (PM pm)
-
 let taint_of_pms pms = pms |> List.map src_of_pm |> Taint.of_list
 
 (* Debug *)
@@ -165,11 +157,8 @@ let _show_env =
   env_to_str show_tainted
 
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
-
 let orig_is_source config orig = config.is_source (any_of_orig orig)
-
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
-
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
 
 let report_findings env findings =
@@ -511,7 +500,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq:Taint.equal ~init:init_mapping
-    ~trans:
-      (transfer config fun_env enter_env opt_name ~flow)
+    ~trans:(transfer config fun_env enter_env opt_name ~flow)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

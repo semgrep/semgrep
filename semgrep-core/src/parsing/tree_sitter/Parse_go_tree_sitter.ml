@@ -35,7 +35,6 @@ module H = Parse_tree_sitter_helpers
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
 
 (* for Ast_go.mk_vars_or_consts *)

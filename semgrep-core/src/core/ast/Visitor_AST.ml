@@ -1368,8 +1368,7 @@ let extract_info_visitor recursor =
 (*e: function [[Lib_AST.extract_info_visitor]] *)
 
 (*s: function [[Lib_AST.ii_of_any]] *)
-let ii_of_any any =
-  extract_info_visitor (fun visitor -> visitor any)
+let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
   [@@profiling]
 
 (*e: function [[Lib_AST.ii_of_any]] *)

@@ -29,13 +29,9 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let string = id
-
 let bool = id
 
 (*
@@ -46,9 +42,7 @@ let _error = G.error
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
-
 let fb = G.fake_bracket
-
 let add_attrs ent attrs = { ent with G.attrs }
 
 let mk_var_or_func tlet params tret body =
@@ -89,7 +83,6 @@ let defs_of_bindings tlet attrs xs =
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -99,7 +92,6 @@ let wrap _of_a (v1, v2) =
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 
 let rec ident v = wrap string v
-
 and name (v1, v2) = H.name_of_ids (v1 @ [ v2 ])
 
 and name_ (v1, v2) =
@@ -115,7 +107,6 @@ and module_name (v1, v2) =
   v1 @ [ v2 ]
 
 and qualifier v = list ident v
-
 and todo_category v = ident v
 
 and type_ x =

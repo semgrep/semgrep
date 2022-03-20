@@ -34,9 +34,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
-
 let fb = G.fake_bracket
 
 (*****************************************************************************)

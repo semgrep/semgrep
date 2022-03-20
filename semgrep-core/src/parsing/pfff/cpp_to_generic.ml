@@ -16,7 +16,6 @@ open Common
 module H = AST_generic_helpers
 open Ast_cpp
 open OCaml (* for the map_of_xxx *)
-
 module PI = Parse_info
 module G = AST_generic
 
@@ -43,7 +42,6 @@ let recover_when_partial_error = ref true
 type env = { mutable defs_toadd : G.definition list }
 
 let empty_env () = { defs_toadd = [] }
-
 let error t s = raise (Parse_info.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
@@ -53,7 +51,6 @@ let error_unless_partial_error _env t s =
     logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
 
 let empty_stmt tk = Compound (tk, [], tk)
-
 let _id x = x
 
 let map_either _env f g x =
@@ -148,9 +145,7 @@ let map_angle_keep env _of_a (v1, v2, v3) =
   (v1, v2, v3)
 
 let map_sc env v = map_tok env v
-
 let map_todo_category env v : G.todo_kind = map_wrap env map_of_string v
-
 let map_ident env v = map_wrap env map_of_string v
 
 let rec map_name env (v1, v2, v3) : G.name =
@@ -216,7 +211,6 @@ and map_qualifier env = function
       (v1, Some v2)
 
 and map_a_class_name env v = map_name env v
-
 and map_a_ident_name env v = map_name env v
 
 and map_type_ env (v1, v2) : G.type_ =
@@ -691,7 +685,6 @@ and map_cast_operator _env = function
   | Reinterpret_cast -> "Reinterpret_cast"
 
 and map_a_const_expr env v = map_expr env v
-
 and map_a_lhs env v = map_expr env v
 
 and map_stmt env x : G.stmt =
@@ -1771,7 +1764,10 @@ and map_sequencable :
  * with the field local helper
  *)
 and map_sequencable_for_field :
-      'a. env -> ('a -> (G.field, G.attribute) either list) -> 'a sequencable ->
+      'a.
+      env ->
+      ('a -> (G.field, G.attribute) either list) ->
+      'a sequencable ->
       (G.field, G.attribute) either list =
   let field x = Left (G.F x) in
   fun env _of_a -> function

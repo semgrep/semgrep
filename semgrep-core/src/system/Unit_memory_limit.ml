@@ -71,14 +71,16 @@ let test_memory_limit_with_heap () =
         (* Ensure the heap grows to over the limit. *)
         grow_heap 11_000_000);
     assert false
-  with Common.ExceededMemoryLimit _ -> (* success *) ()
+  with
+  | Common.ExceededMemoryLimit _ -> (* success *) ()
 
 let test_memory_limit_with_stack () =
   try
     Memory_limit.run_with_memory_limit ~mem_limit_mb:1 (fun () ->
         grow_stack 1_500_000);
     assert false
-  with Common.ExceededMemoryLimit _ -> (* success *) ()
+  with
+  | Common.ExceededMemoryLimit _ -> (* success *) ()
 
 let tests =
   Testutil.pack_tests "memory limits"

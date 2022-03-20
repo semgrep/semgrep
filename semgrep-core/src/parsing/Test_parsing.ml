@@ -182,9 +182,10 @@ let test_parse_tree_sitter lang root_paths =
                        (spf "lang %s not supported with tree-sitter"
                           (Lang.to_string lang)));
                  PI.correct_stat file
-               with exn ->
-                 print_exn file exn;
-                 PI.bad_stat file
+               with
+               | exn ->
+                   print_exn file exn;
+                   PI.bad_stat file
              in
              Common.push stat stat_list));
   Parse_info.print_parsing_stat_list !stat_list;

@@ -30,9 +30,7 @@ open Common
 
 (* for locals, but also right now for fields, globals, constants, enum, ... *)
 type var = string
-
 type func = string
-
 type fld = string
 
 (* _cst_xxx, _str_line_xxx, _malloc_in_xxx_line, ... *)
@@ -111,7 +109,6 @@ type fact =
 
 (* alias *)
 type t = fact
-
 type facts = fact list
 
 (*****************************************************************************)
@@ -130,7 +127,6 @@ let string_of_value = function
   | Z _ -> raise Impossible
 
 type _rule = string
-
 type _meta_fact = string * value list
 
 let meta_fact = function

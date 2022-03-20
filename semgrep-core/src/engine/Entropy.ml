@@ -141,11 +141,8 @@ let information_density s = entropy_data s |> snd
 (* Minimum number of bits of information in the string to consider it
    high-entropy *)
 let entropy_threshold = 64. (* bits *)
-
 let density_threshold = 0.6
-
 let score_entropy x = if x > entropy_threshold then 1 else 0
-
 let score_density x = if x > density_threshold then 1 else 0
 
 let score s =
