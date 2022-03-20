@@ -36,7 +36,7 @@ jobs:
       - name: Check OCaml code
         run: |
           # install correct version of ocamlformat
-          opam install --deps-only semgrep-core/dev/dev.opam
+          sudo -u user opam install --deps-only semgrep-core/dev/dev.opam
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   changelog-reminder:
