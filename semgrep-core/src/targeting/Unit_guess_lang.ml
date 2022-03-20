@@ -3,7 +3,6 @@
 *)
 
 type exec = Exec | Nonexec
-
 type success = OK | XFAIL
 
 (*
@@ -59,7 +58,6 @@ let contents_tests : (string * Lang.t * string * string * exec * success) list =
   ]
 
 let ( // ) = Filename.concat
-
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 (*

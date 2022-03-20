@@ -249,9 +249,10 @@ let type_at_tok tk uri io =
               match Ml_to_generic.any (Ast_ml.T ty) with
               | G.T ty -> ty
               | _ -> raise Impossible
-            with exn ->
-              logger#error "Exn Parse_ml.type_of_string TODO: %s" s;
-              raise exn
+            with
+            | exn ->
+                logger#error "Exn Parse_ml.type_of_string TODO: %s" s;
+                raise exn
           in
           (* logger#info "type = %s" (G.show_type_ ty); *)
           Some ty
@@ -286,10 +287,10 @@ let rec get_type_or_def f id =
   let uri = Uri.of_path fullpath in
   match !global with
   | { io = Some io; last_uri } when Uri.equal last_uri uri -> (
-      try f tok uri io
-      with exn ->
-        logger#info "exn: %s" (Common.exn_to_s exn);
-        None)
+      try f tok uri io with
+      | exn ->
+          logger#info "exn: %s" (Common.exn_to_s exn);
+          None)
   | { io = Some io; last_uri } when not (Uri.equal last_uri uri) ->
       (if not (Uri.equal last_uri (Uri.of_path "")) then
        let notif =

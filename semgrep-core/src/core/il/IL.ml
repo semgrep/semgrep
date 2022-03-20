@@ -82,7 +82,6 @@ module G = AST_generic
 
 (* the classic *)
 type tok = G.tok [@@deriving show]
-
 type 'a wrap = 'a G.wrap [@@deriving show]
 
 (* useful mainly for empty containers *)
@@ -139,7 +138,6 @@ type orig = SameAs of G.expr | Related of G.any | NoOrig
 [@@deriving show { with_path = false }]
 
 let related_tok tok = Related (G.Tk tok)
-
 let related_exp exp_gen = Related (G.E exp_gen)
 
 let any_of_orig = function
@@ -298,7 +296,10 @@ and stmt_kind =
   (* alt: do as in CIL and resolve that directly in 'Goto of stmt' *)
   | Goto of tok * label
   | Label of label
-  | Try of stmt list * (name * stmt list) list (* catches *) * stmt list (* finally *)
+  | Try of
+      stmt list
+      * (name * stmt list) list (* catches *)
+      * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
@@ -347,7 +348,6 @@ and node_kind =
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
  *)
 type edge = Direct
-
 type cfg = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)
@@ -446,5 +446,4 @@ let rlvals_of_node = function
 (* Helpers *)
 (*****************************************************************************)
 let str_of_name name = fst name.ident
-
 let str_of_label ((n, _), _) = n

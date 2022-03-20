@@ -14,11 +14,8 @@ module B = AST_bash
 (*****************************************************************************)
 
 type tok = Parse_info.t
-
 type loc = Loc.t
-
 type 'a wrap = 'a * tok
-
 type 'a bracket = tok * 'a * tok
 
 (*****************************************************************************)
@@ -56,7 +53,6 @@ type string_fragment =
 
 (* Used for quoted and unquoted strings for now *)
 type str = loc * string_fragment list
-
 type str_or_ellipsis = Str_str of str | Str_semgrep_ellipsis of tok
 
 type array_elt =
@@ -104,9 +100,7 @@ type label_pair =
 (* value *)
 
 type protocol = TCP | UDP
-
 type path = str
-
 type path_or_ellipsis = str_or_ellipsis
 
 type array_or_paths =
@@ -153,8 +147,8 @@ type instruction =
   | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
   | Maintainer (* deprecated *) of loc * string wrap * string_or_metavar
   | Cross_build_xxx
-      (* e.g. CROSS_BUILD_COPY;
-         TODO: who uses this exactly? and where is it documented? *) of
+    (* e.g. CROSS_BUILD_COPY;
+       TODO: who uses this exactly? and where is it documented? *) of
       loc * string wrap * string wrap
   | Instr_semgrep_ellipsis of tok
   | Instr_semgrep_metavar of string wrap
@@ -166,9 +160,7 @@ type program = instruction list
 (***************************************************************************)
 
 let wrap_tok ((_, tok) : _ wrap) = tok
-
 let wrap_loc ((_, tok) : _ wrap) = (tok, tok)
-
 let bracket_loc ((open_, _, close) : _ bracket) = (open_, close)
 
 let var_or_metavar_tok = function
@@ -219,9 +211,7 @@ let argv_or_shell_loc = function
   | Other_shell_command (_, x) -> wrap_loc x
 
 let param_loc ((loc, _) : param) : loc = loc
-
 let image_spec_loc (x : image_spec) = x.loc
-
 let image_alias_loc = str_loc
 
 let label_pair_loc = function

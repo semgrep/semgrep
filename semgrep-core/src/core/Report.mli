@@ -47,18 +47,14 @@ type final_result = {
 }
 
 val empty_partial_profiling : Common.filename -> partial_profiling
-
 val empty_rule_profiling : Rule.t -> rule_profiling
-
 val empty_semgrep_result : times match_result
-
 val empty_final_result : final_result
 
 val add_run_time :
   float -> partial_profiling match_result -> file_profiling match_result
 
 val add_rule : Rule.rule -> times match_result -> rule_profiling match_result
-
 val collate_pattern_results : times match_result list -> times match_result
 
 val make_final_result :

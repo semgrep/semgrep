@@ -37,7 +37,6 @@ open Ast_ml
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
 
 (* like in parser_ml.mly *)
@@ -522,9 +521,10 @@ let number env tok =
   try
     let i = int_of_string s in
     Int (Some i, t)
-  with _ ->
-    let fopt = float_of_string_opt s in
-    Float (fopt, t)
+  with
+  | _ ->
+      let fopt = float_of_string_opt s in
+      Float (fopt, t)
 
 let map_constant (env : env) (x : CST.constant) : literal =
   match x with

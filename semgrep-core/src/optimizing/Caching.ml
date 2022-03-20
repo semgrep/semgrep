@@ -264,7 +264,6 @@ let prepare_pattern any =
 
 module Cache_key = struct
   type env = Metavariable.bindings [@@deriving show]
-
   type function_id = Match_deep | Match_list
 
   (*
@@ -344,7 +343,6 @@ module Cache_key = struct
   (* debugging.
      More calls to 'equal' than to 'hash' indicate frequent collisions. *)
   let hash_calls = ref 0
-
   let equal_calls = ref 0
 
   let equal : t -> t -> bool =
@@ -373,9 +371,7 @@ module Cache = struct
   module Tbl = Hashtbl.Make (Cache_key)
 
   type 'a t = 'a Tbl.t
-
   type pattern = AST_generic.stmt list
-
   type target = AST_generic.stmt list
 
   type 'a access = {
@@ -389,7 +385,6 @@ module Cache = struct
 
   (* debugging *)
   let cache_hits = ref 0
-
   let cache_misses = ref 0
 
   (*

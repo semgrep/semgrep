@@ -34,14 +34,11 @@ open AST_python
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
 
 (* this is not used anyway by Python_to_generic.ml, so I took whatever *)
 let no_ctx = Param
-
 let _fake = PI.fake_info
-
 let fb = AST_generic.fake_bracket
 
 (* AST builders helpers
@@ -70,7 +67,6 @@ let single_or_tuple e xs =
 [@@@warning "-26-27"]
 
 let todo (env : env) _ = failwith "not implemented"
-
 let _complicated (env : env) _ = failwith "not implemented"
 
 let map_keyword_identifier (env : env) (x : CST.keyword_identifier) : name =
@@ -1463,7 +1459,7 @@ let parse file =
     (fun () -> Tree_sitter_python.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_module_ env cst
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_module_ cst);
-        raise exn)
+      try map_module_ env cst with
+      | Failure "not implemented" as exn ->
+          H.debug_sexp_cst_after_error (CST.sexp_of_module_ cst);
+          raise exn)

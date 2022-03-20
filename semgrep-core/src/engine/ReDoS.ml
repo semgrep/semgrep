@@ -6,7 +6,8 @@
 open Pfff_lang_regexp
 
 let parse_regexp conf re_str =
-  try Some (Parse.string ~conf re_str) with Parse_info.Parsing_error _ -> None
+  try Some (Parse.string ~conf re_str) with
+  | Parse_info.Parsing_error _ -> None
 
 (* Iterate over all the nodes of a regexp *)
 let rec iter f (x : AST.t) =

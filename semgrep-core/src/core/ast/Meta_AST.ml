@@ -22,9 +22,7 @@ let vof_bracket of_a (t1, x, t2) =
   | _ -> OCaml.VTuple [ v1; v; v2 ]
 
 let vof_ident v = vof_wrap OCaml.vof_string v
-
 let vof_todo_kind v = vof_wrap OCaml.vof_string v
-
 let vof_dotted_name v = OCaml.vof_list vof_ident v
 
 let vof_module_name = function
@@ -1317,7 +1315,6 @@ and vof_alias (v1, v2) =
   (v1, v2)
 
 and vof_item x = vof_stmt x
-
 and vof_program v = OCaml.vof_list vof_item v
 
 and vof_partial = function

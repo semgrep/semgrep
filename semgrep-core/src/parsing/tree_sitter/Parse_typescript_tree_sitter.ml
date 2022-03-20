@@ -33,11 +33,8 @@ open Ast_js
 type env = unit H.env
 
 let token = H.token
-
 let fake = PI.unsafe_fake_info ""
-
 let mk_functype (params, rett) = TyFun (params, rett)
-
 let todo _env _x = failwith "internal error: not implemented"
 
 let todo_any str t any =
@@ -89,7 +86,6 @@ let map_sep_list (env : env) (head : 'a) (tail : (_ * 'a) list)
 module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
 
 let str = H.str
-
 let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
 let identifier_ (env : env) (x : CST.identifier_) : expr =
@@ -107,7 +103,6 @@ let semicolon (env : env) (x : CST.semicolon) =
   | `SEMI tok -> (* ";" *) token env tok
 
 let this env tok = IdSpecial (This, token env tok)
-
 let super env tok = IdSpecial (Super, token env tok)
 
 let number (env : env) (tok : CST.number) =

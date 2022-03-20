@@ -13,8 +13,9 @@ type node =
   | Atom of Loc.t * atom
   | List of node list
   | Dots of Loc.t * string option (* both ... and $...MVAR *)
-  | End (* used to mark the end of the root pattern, so as to distinguish
-           it from the end of a sub-pattern. *)
+  | End
+    (* used to mark the end of the root pattern, so as to distinguish
+       it from the end of a sub-pattern. *)
 [@@deriving show { with_path = false }, eq]
 
 type t = node list [@@deriving show, eq]

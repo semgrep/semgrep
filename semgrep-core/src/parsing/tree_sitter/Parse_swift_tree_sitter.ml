@@ -26,7 +26,6 @@ let token (env : env) (_tok : Tree_sitter_run.Token.t) =
   failwith "not implemented"
 
 let blank (env : env) () = failwith "not implemented"
-
 let todo (env : env) _ = failwith "not implemented"
 
 (*****************************************************************************)

@@ -90,7 +90,6 @@ type var_stats = (var, lr_stats) Hashtbl.t
 (*****************************************************************************)
 
 let ( let* ) o f = Option.bind o f
-
 let ( let/ ) o f = Option.iter f o
 
 (*****************************************************************************)
@@ -294,11 +293,11 @@ let constant_propagation_and_evaluate_literal ?lang =
 let var_stats prog : var_stats =
   let h = Hashtbl.create 101 in
   let get_stat_or_create var h =
-    try Hashtbl.find h var
-    with Not_found ->
-      let stat = default_lr_stats () in
-      Hashtbl.add h var stat;
-      stat
+    try Hashtbl.find h var with
+    | Not_found ->
+        let stat = default_lr_stats () in
+        Hashtbl.add h var stat;
+        stat
   in
 
   let hooks =

@@ -34,11 +34,8 @@ module H2 = AST_generic_helpers
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
-
 let fb = G.fake_bracket
-
 let sc tok = PI.sc tok
 
 let var_to_pattern (id, ptype) =
