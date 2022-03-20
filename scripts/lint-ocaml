@@ -20,10 +20,19 @@ set -eu
 
 eval $(opam env)
 
-if $(ocamlformat --version > /dev/null 2>&1); then
-  #to debug: ocamlformat --version
-  #TODO: we should require a specific version, like the one in dev.opam
-  ocamlformat --inplace --enable-outside-detected-project "$@"
+required_version=0.21
+
+if version=$(ocamlformat --version > /dev/null 2>&1); then
+  if [[ "$version" =~ ^"$required_version."[0-9]+$ ]]; then
+    ocamlformat --inplace --enable-outside-detected-project "$@"
+  else
+    cat <<EOF
+*** ocamlformat is in the wrong version:
+  - expecting ocamlformat $required_version
+  - found ocamlformat $version
+EOF
+    exit 1
+  fi
 else
   cat <<EOF
 *** ocamlformat was not found. ***
