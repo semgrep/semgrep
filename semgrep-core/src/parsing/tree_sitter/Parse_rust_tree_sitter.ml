@@ -241,8 +241,7 @@ let map_primitive_type_token (_env : env) (x : CST.anon_choice_u8_6dad923) =
   | `F64 tok (* "f64" *)
   | `Bool tok (* "bool" *)
   | `Str tok (* "str" *)
-  | `Char tok (* "char" *) ->
-      tok
+  | `Char tok (* "char" *) -> tok
 
 let map_primitive_type_ident (env : env) (x : CST.anon_choice_u8_6dad923) :
     string * PI.token_mutable =

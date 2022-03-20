@@ -74,8 +74,8 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
       stack_already_warned := true)
   in
   let alarm = Gc.create_alarm limit_memory in
-  try Fun.protect f ~finally:(fun () -> Gc.delete_alarm alarm) with
-  | Out_of_memory as e ->
-      (* Try to free up some space. Expensive operation. *)
-      Gc.compact ();
-      raise e
+  try Fun.protect f ~finally:(fun () -> Gc.delete_alarm alarm)
+  with Out_of_memory as e ->
+    (* Try to free up some space. Expensive operation. *)
+    Gc.compact ();
+    raise e

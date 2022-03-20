@@ -2933,10 +2933,10 @@ let parse file =
     (fun cst ->
       let extra = Target in
       let env = { H.file; conv = H.line_col_to_pos file; extra } in
-      try script env cst with
-      | Failure "not implemented" as exn ->
-          H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
-          raise exn)
+      try script env cst
+      with Failure "not implemented" as exn ->
+        H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
+        raise exn)
 
 let parse_expression_or_source_file str =
   let res = Tree_sitter_hack.Parse.string str in

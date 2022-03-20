@@ -108,13 +108,10 @@ let is_js env =
 
 let add_constant_env ident (sid, svalue) env =
   match svalue with
-  | Lit _
-  | Cst _ ->
+  | Lit _ | Cst _ ->
       logger#trace "adding constant in env %s" (H.str_of_ident ident);
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
-  | Sym _
-  | NotCst ->
-      ()
+  | Sym _ | NotCst -> ()
 
 let find_id env id id_info =
   match id_info with
@@ -178,8 +175,7 @@ let binop_int_cst op i1 i2 =
   | Some (Lit (Int (Some n, t1))), Some (Lit (Int (Some m, _))) ->
       let* r = op n m in
       Some (Lit (Int (Some r, t1)))
-  | Some (Lit (Int _)), Some (Cst Cint)
-  | Some (Cst Cint), Some (Lit (Int _)) ->
+  | Some (Lit (Int _)), Some (Cst Cint) | Some (Cst Cint), Some (Lit (Int _)) ->
       Some (Cst Cint)
   | _i1, _i2 -> None
 
@@ -188,8 +184,7 @@ let binop_bool_cst op b1 b2 =
   | Some (Lit (Bool (b1, t1))), Some (Lit (Bool (b2, _))) ->
       Some (Lit (Bool (op b1 b2, t1)))
   | Some (Lit (Bool _)), Some (Cst Cbool)
-  | Some (Cst Cbool), Some (Lit (Bool _)) ->
-      Some (Cst Cbool)
+  | Some (Cst Cbool), Some (Lit (Bool _)) -> Some (Cst Cbool)
   | _b1, _b2 -> None
 
 let concat_string_cst s1 s2 =
@@ -198,8 +193,7 @@ let concat_string_cst s1 s2 =
       Some (Lit (String (s1 ^ s2, t1)))
   | Some (Lit (String _)), Some (Cst Cstr)
   | Some (Cst Cstr), Some (Lit (String _))
-  | Some (Cst Cstr), Some (Cst Cstr) ->
-      Some (Cst Cstr)
+  | Some (Cst Cstr), Some (Cst Cstr) -> Some (Cst Cstr)
   | _b1, _b2 -> None
 
 let rec eval env x : svalue option =
@@ -209,14 +203,12 @@ let rec eval env x : svalue option =
   | DotAccess
       ( { e = IdSpecial (This, _); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
-      Some x
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) -> Some x
   (* ugly: terraform specific. less: should require lang = Hcl *)
   | DotAccess
       ( { e = N (Id ((("local" | "var"), _), _)); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
-      Some x
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) -> Some x
   | Call
       ( { e = IdSpecial (EncodedString str_kind, _); _ },
         (_, [ Arg { e = L (String (str, str_tok) as str_lit); _ } ], _) ) -> (
@@ -258,8 +250,7 @@ and eval_special env (special, _) args =
       fold_args1 (binop_int_cst int_mult) args
   (* strings *)
   | (Op (Plus | Concat) | ConcatString _), args
-    when find_type_args args = Some Cstr ->
-      fold_args1 concat_string_cst args
+    when find_type_args args = Some Cstr -> fold_args1 concat_string_cst args
   | __else__ -> None
 
 and eval_call env name args =
@@ -269,8 +260,7 @@ and eval_call env name args =
   match (env.lang, name, args) with
   | ( Some Lang.Php,
       Id ((("escapeshellarg" | "htmlspecialchars_decode"), _), _),
-      [ Some (Lit (String _) | Cst Cstr) ] ) ->
-      Some (Cst Cstr)
+      [ Some (Lit (String _) | Cst Cstr) ] ) -> Some (Cst Cstr)
   | _lang, _name, _args -> None
 
 let constant_propagation_and_evaluate_literal ?lang =
@@ -293,11 +283,11 @@ let constant_propagation_and_evaluate_literal ?lang =
 let var_stats prog : var_stats =
   let h = Hashtbl.create 101 in
   let get_stat_or_create var h =
-    try Hashtbl.find h var with
-    | Not_found ->
-        let stat = default_lr_stats () in
-        Hashtbl.add h var stat;
-        stat
+    try Hashtbl.find h var
+    with Not_found ->
+      let stat = default_lr_stats () in
+      Hashtbl.add h var stat;
+      stat
   in
 
   let hooks =
@@ -439,8 +429,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
                        },
                        VarDef { vinit = Some v; vtype = None } );
                  _;
-               } ->
-               Some (("local." ^ str, tk), v)
+               } -> Some (("local." ^ str, tk), v)
            | _ -> None)
   (* ex: variable "foo" { ... default = 1 } *)
   | ExprStmt
@@ -595,8 +584,7 @@ let propagate_basic lang prog =
                            sid;
                          ());
               v (E rexp)
-          | Assign (e1, _, e2)
-          | AssignOp (e1, _, e2) ->
+          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
               Common.save_excursion env.in_lvalue true (fun () -> v (E e1));
               v (E e2)
           | _ -> k x);

@@ -69,11 +69,7 @@ let eq c1 c2 =
   | G.Cst t1, G.Cst t2 -> eq_ctype t1 t2
   | G.Sym e1, G.Sym e2 -> AST_utils.with_structural_equal G.equal_expr e1 e2
   | G.NotCst, G.NotCst -> true
-  | G.Lit _, _
-  | G.Cst _, _
-  | G.Sym _, _
-  | G.NotCst, _ ->
-      false
+  | G.Lit _, _ | G.Cst _, _ | G.Sym _, _ | G.NotCst, _ -> false
 
 let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 
@@ -101,17 +97,12 @@ let union c1 c2 =
    *       x = f(x)
    *     }
    *)
-  | _any, G.Sym _
-  | G.Sym _, _any
-  | _any, G.NotCst
-  | G.NotCst, _any ->
-      G.NotCst
+  | _any, G.Sym _ | G.Sym _, _any | _any, G.NotCst | G.NotCst, _any -> G.NotCst
   | c1, c2 when eq c1 c2 -> c1
   | G.Lit l1, G.Lit l2 ->
       let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
-  | G.Lit l1, G.Cst t2
-  | G.Cst t2, G.Lit l1 ->
+  | G.Lit l1, G.Cst t2 | G.Cst t2, G.Lit l1 ->
       let t1 = ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | G.Cst t1, G.Cst t2 -> G.Cst (union_ctype t1 t2)
@@ -121,18 +112,11 @@ let union c1 c2 =
 let refine c1 c2 =
   match (c1, c2) with
   | _ when eq c1 c2 -> c1
-  | c, G.NotCst
-  | G.NotCst, c ->
-      c
-  | G.Lit _, _
-  | G.Cst _, G.Cst _
-  | G.Sym _, G.Sym _ ->
-      c1
+  | c, G.NotCst | G.NotCst, c -> c
+  | G.Lit _, _ | G.Cst _, G.Cst _ | G.Sym _, G.Sym _ -> c1
   | G.Cst _, G.Sym _ -> c1
   | G.Cst _, G.Lit _ -> c2
-  | G.Sym _, G.Lit _
-  | G.Sym _, G.Cst _ ->
-      c2
+  | G.Sym _, G.Lit _ | G.Sym _, G.Cst _ -> c2
 
 let refine_svalue_ref c_ref c' =
   match !c_ref with
@@ -221,17 +205,15 @@ let eval_binop_int tok op opt_i1 opt_i2 =
   | G.Div, Some i1, Some i2 -> (
       if i1 = min_int && i2 = -1 then G.Cst G.Cint (* = max_int+1, overflow *)
       else
-        try G.Lit (literal_of_int (i1 / i2)) with
-        | Division_by_zero ->
-            warning tok "Found division by zero";
-            G.Cst G.Cint)
+        try G.Lit (literal_of_int (i1 / i2))
+        with Division_by_zero ->
+          warning tok "Found division by zero";
+          G.Cst G.Cint)
   | ___else____ -> G.Cst G.Cint
 
 let eval_binop_string ?tok op s1 s2 =
   match op with
-  | G.Plus
-  | G.Concat ->
-      G.Lit (literal_of_string ?tok (s1 ^ s2))
+  | G.Plus | G.Concat -> G.Lit (literal_of_string ?tok (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
 let rec eval (env : G.svalue D.env) exp : G.svalue =
@@ -239,11 +221,7 @@ let rec eval (env : G.svalue D.env) exp : G.svalue =
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
   | Operator (op, args) -> eval_op env op args
-  | Composite _
-  | Record _
-  | Cast _
-  | FixmeExp _ ->
-      G.NotCst
+  | Composite _ | Record _ | Cast _ | FixmeExp _ -> G.NotCst
 
 and eval_lval env lval =
   match lval with
@@ -251,9 +229,7 @@ and eval_lval env lval =
       let opt_c = D.VarMap.find_opt (str_of_name x) env in
       match (!(x.id_info.id_svalue), opt_c) with
       | None, None -> G.NotCst
-      | Some c, None
-      | None, Some c ->
-          c
+      | Some c, None | None, Some c -> c
       | Some c1, Some c2 -> refine c1 c2)
   | ___else___ -> G.NotCst
 
@@ -272,8 +248,7 @@ and eval_op env wop args =
       eval_binop_string ~tok op s1 s2
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
-  | _op, [ G.Lit l1; G.Cst t2 ]
-  | _op, [ G.Cst t2; G.Lit l1 ] ->
+  | _op, [ G.Lit l1; G.Cst t2 ] | _op, [ G.Cst t2; G.Lit l1 ] ->
       let t1 = ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | ___else___ -> G.NotCst
@@ -312,9 +287,7 @@ let rec is_symbolic_expr expr =
 and is_symbolic_arg arg =
   match arg with
   | G.Arg e -> is_symbolic_expr e
-  | G.ArgKwd (_, e)
-  | G.ArgKwdOptional (_, e) ->
-      is_symbolic_expr e
+  | G.ArgKwd (_, e) | G.ArgKwdOptional (_, e) -> is_symbolic_expr e
   | G.ArgType _ -> true
   | G.OtherArg _ -> false
 
@@ -407,8 +380,7 @@ let transfer :
     | NReturn _
     | NThrow _
     | NOther _
-    | NTodo _ ->
-        inp'
+    | NTodo _ -> inp'
     | NInstr instr -> (
         (* TODO: For now we only handle the simplest cases. *)
         match instr.i with
@@ -508,8 +480,7 @@ let update_svalue (flow : F.cfg) mapping =
       try
         vout ast;
         !ok
-      with
-      | Exit -> false
+      with Exit -> false
   in
   let no_cycles var c =
     (* Check that `c' contains no reference to `var'. It can contain references
@@ -525,10 +496,7 @@ let update_svalue (flow : F.cfg) mapping =
              * id_svalue ref, that tells us it's the same variable occurrence. *)
             var.id_info.id_svalue != ii.id_svalue)
           (G.E e)
-    | G.NotCst
-    | G.Cst _
-    | G.Lit _ ->
-        true
+    | G.NotCst | G.Cst _ | G.Lit _ -> true
   in
   flow.graph#nodes#keys
   |> List.iter (fun ni ->

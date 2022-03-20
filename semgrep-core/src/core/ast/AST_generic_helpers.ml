@@ -265,14 +265,11 @@ let entity_name_to_expr name idinfo_opt =
 let argument_to_expr arg =
   match arg with
   | Arg e -> e
-  | ArgKwd (id, e)
-  | ArgKwdOptional (id, e) ->
+  | ArgKwd (id, e) | ArgKwdOptional (id, e) ->
       let n = name_of_id id in
       let k = N n |> G.e in
       G.keyval k (fake "") e
-  | ArgType _
-  | OtherArg _ ->
-      raise NotAnExpr
+  | ArgType _ | OtherArg _ -> raise NotAnExpr
 
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
@@ -310,9 +307,7 @@ let parameter_to_catch_exn_opt p =
   | ParamEllipsis t -> Some (CatchPattern (PatEllipsis t))
   | ParamPattern p -> Some (G.CatchPattern p)
   (* TODO: valid in exn spec? *)
-  | ParamRest (_, _p)
-  | ParamHashSplat (_, _p) ->
-      None
+  | ParamRest (_, _p) | ParamHashSplat (_, _p) -> None
   | OtherParam _ -> None
 
 (*****************************************************************************)
@@ -344,13 +339,7 @@ let abstract_for_comparison_any x =
 
 let is_associative_operator op =
   match op with
-  | Or
-  | And
-  | BitOr
-  | BitAnd
-  | BitXor
-  | Concat ->
-      true
+  | Or | And | BitOr | BitAnd | BitXor | Concat -> true
   (* TODO: Plus, Mult, ... *)
   | __else__ -> false
 
@@ -360,27 +349,23 @@ let ac_matching_nf op args =
     args1
     |> List.map (function
          | Arg e -> e
-         | ArgKwd _
-         | ArgKwdOptional _
-         | ArgType _
-         | OtherArg _ ->
+         | ArgKwd _ | ArgKwdOptional _ | ArgType _ | OtherArg _ ->
              raise_notrace Exit)
     |> List.map nf_one |> List.flatten
   and nf_one e =
     match e.e with
     | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op = op1
-      ->
-        nf args1
+      -> nf args1
     | _ -> [ e ]
   in
   if is_associative_operator op then (
-    try Some (nf args) with
-    | Exit ->
-        logger#error
-          "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
-          (show_operator op)
-          (show_arguments (fake_bracket args));
-        None)
+    try Some (nf args)
+    with Exit ->
+      logger#error
+        "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+        (show_operator op)
+        (show_arguments (fake_bracket args));
+      None)
   else None
 
 let undo_ac_matching_nf tok op : expr list -> expr option = function

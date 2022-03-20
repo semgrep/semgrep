@@ -455,9 +455,7 @@ let info name = Term.info ~doc ~man name
 let parse_command_line name =
   match Term.eval (cmdline_term, info name) with
   | `Error _ -> exit 1
-  | `Version
-  | `Help ->
-      exit 0
+  | `Version | `Help -> exit 0
   | `Ok config -> config
 
 (*

@@ -274,8 +274,9 @@ let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
   | G.L (String (s, _)) -> (
-      try int_of_string s with
-      | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
+      try int_of_string s
+      with Failure _ ->
+        error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
       if float_of_int i = f then i else error_at_key env key "not an int"
@@ -319,10 +320,10 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try (s, SPcre.regexp s) with
-  | Pcre.Error exn ->
-      raise
-        (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
+  try (s, SPcre.regexp s)
+  with Pcre.Error exn ->
+    raise
+      (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
@@ -353,8 +354,7 @@ let parse_equivalences env key value =
                 _;
               };
             ],
-            _ ) ) ->
-        parse_string env ("equivalence", t) value
+            _ ) ) -> parse_string env ("equivalence", t) value
     | _ ->
         error_at_expr env equiv
           "Expected `equivalence: $X` for each equivalences list item"
@@ -463,8 +463,7 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
   | None, Some (key, value), None, None, None
   | None, None, Some (key, value), None, None
   | None, None, None, Some (key, value), None
-  | None, None, None, None, Some (key, value) ->
-      (key, value)
+  | None, None, None, None, Some (key, value) -> (key, value)
   | _ ->
       error env rule_dict.first_tok
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
@@ -491,8 +490,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
                 _;
               };
             ],
-            _ ) ) ->
-        parse_formula_old env (key, value)
+            _ ) ) -> parse_formula_old env (key, value)
     | _ -> error_at_expr env x "Wrong parse_formula fields"
   in
   let s, t = key in
@@ -521,8 +519,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "metavariable-regex"
   | "metavariable-pattern"
   | "metavariable-comparison"
-  | "pattern-where-python" ->
-      R.PatExtra (t, parse_extra env key value)
+  | "pattern-where-python" -> R.PatExtra (t, parse_extra env key value)
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key env key
@@ -622,9 +619,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarAnalysis (metavar, kind)
   | "metavariable-regex" ->
       let mv_regex_dict =
-        try yaml_to_dict env key value with
-        | R.DuplicateYamlKey (msg, t) ->
-            error env t (msg ^ ". You should use multiple metavariable-regex")
+        try yaml_to_dict env key value
+        with R.DuplicateYamlKey (msg, t) ->
+          error env t (msg ^ ". You should use multiple metavariable-regex")
       in
       let metavar, regexp =
         ( take mv_regex_dict env parse_string "metavariable",
@@ -716,8 +713,7 @@ let parse_sanitizer env (key : key) (value : G.expr) =
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   match mode_opt with
-  | None
-  | Some ("search", _) ->
+  | None | Some ("search", _) ->
       let formula = parse_formula env rule_dict in
       R.Search formula
   | Some ("taint", _) ->
@@ -841,11 +837,11 @@ let parse_generic ?(error_recovery = false) file ast =
     rules
     |> List.mapi (fun i rule ->
            if error_recovery then (
-             try Left (parse_one_rule t i rule) with
-             | R.InvalidRule ((kind, ruleid, _) as err) ->
-                 let s = Rule.string_of_invalid_rule_error_kind kind in
-                 logger#warning "skipping rule %s, error = %s" ruleid s;
-                 Right err)
+             try Left (parse_one_rule t i rule)
+             with R.InvalidRule ((kind, ruleid, _) as err) ->
+               let s = Rule.string_of_invalid_rule_error_kind kind in
+               logger#warning "skipping rule %s, error = %s" ruleid s;
+               Right err)
            else Left (parse_one_rule t i rule))
   in
   Common.partition_either (fun x -> x) xs

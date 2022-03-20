@@ -43,8 +43,7 @@ let ebnf_to_menhir file =
         x :: T.Kwd " " :: insert_space_when_needed (y :: xs)
     | ((T.Ident _ | T.String _) as x)
       :: ((T.Ident _ | T.String _ | T.Kwd "(") as y)
-      :: xs ->
-        x :: T.Kwd " " :: insert_space_when_needed (y :: xs)
+      :: xs -> x :: T.Kwd " " :: insert_space_when_needed (y :: xs)
     | x :: xs -> x :: insert_space_when_needed xs
   in
   let process s =
@@ -59,10 +58,7 @@ let ebnf_to_menhir file =
              else (
                Hashtbl.replace htokens (upper s) true;
                upper s)
-         | T.Int _
-         | T.Float _
-         | T.Char _ ->
-             raise Impossible
+         | T.Int _ | T.Float _ | T.Char _ -> raise Impossible
          | T.String s ->
              Hashtbl.replace hkwd s true;
              spf "\"%s\"" s)

@@ -262,8 +262,7 @@ let rec expr env (x : expr) =
           |> List.for_all (function
                | KeyVal _
                (* semgrep-ext: ... should not count *)
-               | Key (Ellipsis _) ->
-                   true
+               | Key (Ellipsis _) -> true
                | _ -> false)
           || v = []
         then G.Dict
@@ -534,8 +533,7 @@ and list_stmt1 env xs =
    * hacky ...
    *)
   | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
-    when AST_generic_.is_metavar_name s ->
-      x
+    when AST_generic_.is_metavar_name s -> x
   | xs -> G.Block (fb xs) |> G.s
 
 (* This will avoid intermediate Block. You should prefer this function
@@ -793,8 +791,7 @@ and stmt_aux env x =
         (fun (a, b) ->
           G.DirectiveStmt (G.ImportFrom (t, v1, a, b) |> G.d) |> G.s)
         v2
-  | Global (t, v1)
-  | NonLocal (t, v1) ->
+  | Global (t, v1) | NonLocal (t, v1) ->
       let v1 = list (name env) v1 in
       v1
       |> List.map (fun x ->

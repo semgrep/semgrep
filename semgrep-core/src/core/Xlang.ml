@@ -45,9 +45,7 @@ let unsupported_xlang_message (xlang_s : string) =
 (* coupling: Parse_mini_rule.parse_languages *)
 let of_string ?id:(id_opt = None) s =
   match s with
-  | "none"
-  | "regex" ->
-      LRegex
+  | "none" | "regex" -> LRegex
   | "generic" -> LGeneric
   | _ -> (
       match Lang.lang_of_string_opt s with

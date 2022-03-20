@@ -459,8 +459,7 @@ let contextual_keywords env x =
   | `Notn x (* "notnull" *)
   | `Unma x (* "unmanaged" *)
   | `When x (* "when" *)
-  | `Yield x (* "yield" *) ->
-      str env x
+  | `Yield x (* "yield" *) -> str env x
 
 let identifier (env : env) (tok : CST.identifier) : ident =
   match tok with

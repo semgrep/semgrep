@@ -25,8 +25,7 @@ let test_register_exception_printer () =
     try
       ignore (SPcre.regexp "???");
       Alcotest.fail "should have failed to compile the regexp"
-    with
-    | e -> Printexc.to_string e
+    with e -> Printexc.to_string e
   in
   Alcotest.(check string)
     "equal" "Pcre.Error(Pcre.BadPattern(\"nothing to repeat\", pos=0))" msg

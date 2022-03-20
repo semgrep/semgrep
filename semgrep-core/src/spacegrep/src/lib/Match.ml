@@ -102,8 +102,7 @@ let case_insensitive_equal a b =
         raise Exit
     done;
     true
-  with
-  | Exit -> false
+  with Exit -> false
 
 (*
    Create or update the 'dots' object which indicates:
@@ -139,9 +138,7 @@ let extend_dots_matched ~dots:opt_dots (end_ : Loc.Pos.t) =
 
 let close_dots conf ~dots:opt_dots env =
   match opt_dots with
-  | None
-  | Some { opt_mvar = None; _ } ->
-      Some env
+  | None | Some { opt_mvar = None; _ } -> Some env
   | Some { matched; opt_mvar = Some name; _ } -> (
       let name = "..." ^ name in
       let start_pos, end_pos = matched in
@@ -191,9 +188,7 @@ let doc_matches_dots ~dots:opt_dots last_loc doc =
 
 let rec pat_matches_empty_doc pat =
   match pat with
-  | []
-  | End :: _ ->
-      true
+  | [] | End :: _ -> true
   | Atom _ :: _ -> false
   | Dots _ :: pat -> pat_matches_empty_doc pat
   | List pat1 :: pat2 ->
@@ -509,10 +504,7 @@ let print ?(highlight = false)
   let line_prefix =
     match Src_file.source src with
     | File path -> sprintf "%s:" path
-    | Stdin
-    | String
-    | Channel ->
-        ""
+    | Stdin | String | Channel -> ""
   in
   List.iter
     (fun match_ ->
@@ -535,10 +527,7 @@ let print_errors ?(highlight = false) errors =
       let src_prefix =
         match Src_file.source src with
         | File path -> sprintf "%s: " path
-        | Stdin
-        | String
-        | Channel ->
-            ""
+        | Stdin | String | Channel -> ""
       in
       eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
     errors

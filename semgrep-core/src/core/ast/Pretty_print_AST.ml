@@ -47,11 +47,7 @@ let ident (s, _) = s
 
 let ident_or_dynamic = function
   | EN (Id (x, _idinfo)) -> ident x
-  | EN _
-  | EDynamic _
-  | EPattern _
-  | OtherEntity _ ->
-      raise Todo
+  | EN _ | EDynamic _ | EPattern _ | OtherEntity _ -> raise Todo
 
 let opt f = function
   | None -> ""
@@ -61,8 +57,7 @@ let opt f = function
  * on fake tokens. It instead returns the fake token string
  *)
 let token default tok =
-  try Parse_info.str_of_info tok with
-  | Parse_info.NoTokenLocation _ -> default
+  try Parse_info.str_of_info tok with Parse_info.NoTokenLocation _ -> default
 
 let print_type t =
   match t.t with
@@ -72,10 +67,7 @@ let print_type t =
 let print_bool env = function
   | true -> (
       match env.lang with
-      | Lang.Python
-      | Lang.Python2
-      | Lang.Python3 ->
-          "True"
+      | Lang.Python | Lang.Python2 | Lang.Python3 -> "True"
       | Lang.Elixir
       | Lang.Java
       | Lang.Go
@@ -99,15 +91,11 @@ let print_bool env = function
       | Lang.Scala
       | Lang.Solidity
       | Lang.Html
-      | Lang.Hcl ->
-          "true"
+      | Lang.Hcl -> "true"
       | Lang.R -> "TRUE")
   | false -> (
       match env.lang with
-      | Lang.Python
-      | Lang.Python2
-      | Lang.Python3 ->
-          "False"
+      | Lang.Python | Lang.Python2 | Lang.Python3 -> "False"
       | Lang.Elixir
       | Lang.Java
       | Lang.Go
@@ -131,8 +119,7 @@ let print_bool env = function
       | Lang.Scala
       | Lang.Solidity
       | Lang.Html
-      | Lang.Hcl ->
-          "false"
+      | Lang.Hcl -> "false"
       | Lang.R -> "FALSE")
 
 let arithop env (op, tok) =
@@ -238,11 +225,8 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Hack
     | Lang.Yaml
     | Lang.Html
-    | Lang.Hcl ->
-        raise Todo
-    | Lang.Python
-    | Lang.Python2
-    | Lang.Python3 ->
+    | Lang.Hcl -> raise Todo
+    | Lang.Python | Lang.Python2 | Lang.Python3 ->
         (no_paren_cond, "elif", colon_body)
     | Lang.Java
     | Lang.Go
@@ -255,8 +239,7 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Vue
     | Lang.Kotlin
     | Lang.Rust
-    | Lang.R ->
-        (paren_cond, "else if", bracket_body)
+    | Lang.R -> (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
   let e_str = format_cond tok (condition env e) in
@@ -297,12 +280,8 @@ and while_stmt env level (tok, e, s) =
     | Lang.Scala
     | Lang.Solidity
     | Lang.Html
-    | Lang.Hcl ->
-        raise Todo
-    | Lang.Python
-    | Lang.Python2
-    | Lang.Python3 ->
-        python_while
+    | Lang.Hcl -> raise Todo
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
     | Lang.Java
     | Lang.C
     | Lang.Cpp
@@ -313,8 +292,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Ts
     | Lang.Vue
     | Lang.Rust
-    | Lang.R ->
-        c_while
+    | Lang.R -> c_while
     | Lang.Go -> go_while
     | Lang.Ruby -> ruby_while
     | Lang.Ocaml -> ocaml_while
@@ -335,8 +313,7 @@ and do_while stmt env level (s, e) =
     | Lang.Scala
     | Lang.Solidity
     | Lang.Html
-    | Lang.Hcl ->
-        raise Todo
+    | Lang.Hcl -> raise Todo
     | Lang.Java
     | Lang.C
     | Lang.Cpp
@@ -344,8 +321,7 @@ and do_while stmt env level (s, e) =
     | Lang.Kotlin
     | Lang.Js
     | Lang.Ts
-    | Lang.Vue ->
-        c_do_while
+    | Lang.Vue -> c_do_while
     | Lang.Python
     | Lang.Python2
     | Lang.Python3
@@ -353,8 +329,7 @@ and do_while stmt env level (s, e) =
     | Lang.Json
     | Lang.Ocaml
     | Lang.Rust
-    | Lang.R ->
-        failwith "impossible; no do while"
+    | Lang.R -> failwith "impossible; no do while"
     | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
   in
   do_while_format (stmt env (level + 1) s) (expr env e)
@@ -372,8 +347,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
-    | Lang.Hcl ->
-        raise Todo
+    | Lang.Hcl -> raise Todo
     | Lang.Java
     | Lang.C
     | Lang.Cpp
@@ -383,17 +357,11 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Ts
     | Lang.Vue
     | Lang.Rust
-    | Lang.R ->
-        F.sprintf "%s (%s) %s"
+    | Lang.R -> F.sprintf "%s (%s) %s"
     | Lang.Go -> F.sprintf "%s %s %s"
-    | Lang.Python
-    | Lang.Python2
-    | Lang.Python3 ->
-        F.sprintf "%s %s:\n%s"
+    | Lang.Python | Lang.Python2 | Lang.Python3 -> F.sprintf "%s %s:\n%s"
     | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
-    | Lang.Json
-    | Lang.Ocaml ->
-        failwith "JSON/OCaml has for loops????"
+    | Lang.Json | Lang.Ocaml -> failwith "JSON/OCaml has for loops????"
   in
   let show_init = function
     | ForInitVar (ent, var_def) ->
@@ -438,28 +406,18 @@ and def_stmt env (entity, def_kind) =
       | Lang.Scala
       | Lang.Solidity
       | Lang.Html
-      | Lang.Hcl ->
-          raise Todo
-      | Lang.Java
-      | Lang.C
-      | Lang.Cpp
-      | Lang.Csharp
-      | Lang.Kotlin ->
+      | Lang.Hcl -> raise Todo
+      | Lang.Java | Lang.C | Lang.Cpp | Lang.Csharp | Lang.Kotlin ->
           ( (fun typ id _e -> F.sprintf "%s %s;" typ id),
             fun typ id e -> F.sprintf "%s %s = %s;" typ id e )
-      | Lang.Js
-      | Lang.Ts
-      | Lang.Vue ->
+      | Lang.Js | Lang.Ts | Lang.Vue ->
           ( (fun _typ id _e -> F.sprintf "var %s;" id),
             fun _typ id e -> F.sprintf "var %s = %s;" id e )
       | Lang.Go ->
           ( (fun typ id _e -> F.sprintf "var %s %s" id typ),
             fun typ id e -> F.sprintf "var %s %s = %s" id typ e )
           (* will have extra space if no type *)
-      | Lang.Python
-      | Lang.Python2
-      | Lang.Python3
-      | Lang.Ruby ->
+      | Lang.Python | Lang.Python2 | Lang.Python3 | Lang.Ruby ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
       | Lang.Rust ->
@@ -469,8 +427,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.R ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s <- %s" id e )
-      | Lang.Json
-      | Lang.Ocaml ->
+      | Lang.Json | Lang.Ocaml ->
           failwith "I think JSON/OCaml have no variable definitions"
     in
     let typ, id =
@@ -503,14 +460,8 @@ and return env (tok, eopt) _sc =
   | Lang.Scala
   | Lang.Solidity
   | Lang.Html
-  | Lang.Hcl ->
-      raise Todo
-  | Lang.Java
-  | Lang.C
-  | Lang.Cpp
-  | Lang.Csharp
-  | Lang.Kotlin
-  | Lang.Rust ->
+  | Lang.Hcl -> raise Todo
+  | Lang.Java | Lang.C | Lang.Cpp | Lang.Csharp | Lang.Kotlin | Lang.Rust ->
       F.sprintf "%s %s;" (token "return" tok) to_return
   | Lang.Python
   | Lang.Python2
@@ -522,8 +473,7 @@ and return env (tok, eopt) _sc =
   | Lang.Js
   | Lang.Ts
   | Lang.Vue
-  | Lang.Lua ->
-      F.sprintf "%s %s" (token "return" tok) to_return
+  | Lang.Lua -> F.sprintf "%s %s" (token "return" tok) to_return
   | Lang.R -> F.sprintf "%s(%s)" (token "return" tok) to_return
 
 and break env (tok, lbl) _sc =
@@ -544,14 +494,8 @@ and break env (tok, lbl) _sc =
   | Lang.Scala
   | Lang.Solidity
   | Lang.Html
-  | Lang.Hcl ->
-      raise Todo
-  | Lang.Java
-  | Lang.C
-  | Lang.Cpp
-  | Lang.Csharp
-  | Lang.Kotlin
-  | Lang.Rust ->
+  | Lang.Hcl -> raise Todo
+  | Lang.Java | Lang.C | Lang.Cpp | Lang.Csharp | Lang.Kotlin | Lang.Rust ->
       F.sprintf "%s%s;" (token "break" tok) lbl_str
   | Lang.Python
   | Lang.Python2
@@ -564,8 +508,7 @@ and break env (tok, lbl) _sc =
   | Lang.Ts
   | Lang.Vue
   | Lang.Lua
-  | Lang.R ->
-      F.sprintf "%s%s" (token "break" tok) lbl_str
+  | Lang.R -> F.sprintf "%s%s" (token "break" tok) lbl_str
 
 and continue env (tok, lbl) _sc =
   let lbl_str =
@@ -585,16 +528,14 @@ and continue env (tok, lbl) _sc =
   | Lang.Scala
   | Lang.Solidity
   | Lang.Html
-  | Lang.Hcl ->
-      raise Todo
+  | Lang.Hcl -> raise Todo
   | Lang.Java
   | Lang.C
   | Lang.Cpp
   | Lang.Csharp
   | Lang.Kotlin
   | Lang.Lua
-  | Lang.Rust ->
-      F.sprintf "%s%s;" (token "continue" tok) lbl_str
+  | Lang.Rust -> F.sprintf "%s%s;" (token "continue" tok) lbl_str
   | Lang.Python
   | Lang.Python2
   | Lang.Python3
@@ -604,8 +545,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Json
   | Lang.Js
   | Lang.Ts
-  | Lang.Vue ->
-      F.sprintf "%s%s" (token "continue" tok) lbl_str
+  | Lang.Vue -> F.sprintf "%s%s" (token "continue" tok) lbl_str
   | Lang.R -> F.sprintf "%s%s" (token "next" tok) lbl_str
 
 (* expressions *)
@@ -696,12 +636,8 @@ and literal env l =
       | Lang.Scala
       | Lang.Solidity
       | Lang.Html
-      | Lang.Hcl ->
-          raise Todo
-      | Lang.Python
-      | Lang.Python2
-      | Lang.Python3 ->
-          "'" ^ s ^ "'"
+      | Lang.Hcl -> raise Todo
+      | Lang.Python | Lang.Python2 | Lang.Python3 -> "'" ^ s ^ "'"
       | Lang.Java
       | Lang.Go
       | Lang.C
@@ -716,8 +652,7 @@ and literal env l =
       | Lang.Ts
       | Lang.Lua
       | Lang.Rust
-      | Lang.R ->
-          "\"" ^ s ^ "\"")
+      | Lang.R -> "\"" ^ s ^ "\"")
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/"
       ^

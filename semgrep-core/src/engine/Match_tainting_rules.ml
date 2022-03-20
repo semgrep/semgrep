@@ -201,8 +201,7 @@ let pm_of_finding file finding =
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
   | ArgToSink _
-  | ArgToReturn _ ->
-      None
+  | ArgToReturn _ -> None
 
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
@@ -213,8 +212,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   let lang =
     match xlang with
     | L (lang, _) -> lang
-    | LGeneric
-    | LRegex ->
+    | LGeneric | LRegex ->
         failwith "taint-mode and generic/regex matching are incompatible"
   in
   let (ast, errors), parse_time =

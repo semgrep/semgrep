@@ -34,8 +34,8 @@ let regexp ?study ?iflags ?(flags = []) ?chtables pat =
     ?iflags ~flags ?chtables pat
 
 let pmatch ?iflags ?flags ?rex ?pos ?callout subj =
-  try Ok (Pcre.pmatch ?iflags ?flags ?rex ?pos ?callout subj) with
-  | Pcre.Error err -> Error err
+  try Ok (Pcre.pmatch ?iflags ?flags ?rex ?pos ?callout subj)
+  with Pcre.Error err -> Error err
 
 let exec ?iflags ?flags ?rex ?pos ?callout subj =
   try Ok (Some (Pcre.exec ?iflags ?flags ?rex ?pos ?callout subj)) with
@@ -48,8 +48,8 @@ let exec_all ?iflags ?flags ?rex ?pos ?callout subj =
   | Pcre.Error err -> Error err
 
 let split ?iflags ?flags ?rex ?pos ?max ?callout subj =
-  try Ok (Pcre.split ?iflags ?flags ?rex ?pos ?max ?callout subj) with
-  | Pcre.Error err -> Error err
+  try Ok (Pcre.split ?iflags ?flags ?rex ?pos ?max ?callout subj)
+  with Pcre.Error err -> Error err
 
 let string_of_error (error : Pcre.error) =
   match error with

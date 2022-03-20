@@ -72,8 +72,7 @@ let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
 
 let map_end_tag (env : env) (x : CST.end_tag) : tok =
   match x with
-  | `Semg_end_tag (v1, v2, v3)
-  | `LTSLASH_end_tag_name_GT (v1, v2, v3) ->
+  | `Semg_end_tag (v1, v2, v3) | `LTSLASH_end_tag_name_GT (v1, v2, v3) ->
       let v1 = token env v1 (* "</" *) in
       let v2 = token env v2 (* end_tag_name *) in
       let v3 = token env v3 (* ">" *) in

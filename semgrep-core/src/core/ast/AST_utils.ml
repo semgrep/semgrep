@@ -87,8 +87,7 @@ let with_structural_equal equal a b =
       Fun.protect
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
-  | Structural_equal
-  | Referential_equal ->
+  | Structural_equal | Referential_equal ->
       failwith "an equal is already in progress"
 
 (*
@@ -102,6 +101,5 @@ let with_referential_equal equal a b =
       Fun.protect
         ~finally:(fun () -> busy_with_equal := Not_busy)
         (fun () -> equal a b)
-  | Structural_equal
-  | Referential_equal ->
+  | Structural_equal | Referential_equal ->
       failwith "an equal is already in progress"

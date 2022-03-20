@@ -195,11 +195,7 @@ let scalar (_tag, pos, value) env : G.expr * E.pos =
       (* TODO: emma: I will put "" back to Null and have either a warning or
        * an error when we try to parse a string and get Null in another PR.
        *)
-      | "null"
-      | "NULL"
-      | "Null"
-      | "~" ->
-          G.L (G.Null token)
+      | "null" | "NULL" | "Null" | "~" -> G.L (G.Null token)
       | "y"
       | "Y"
       | "yes"
@@ -210,8 +206,7 @@ let scalar (_tag, pos, value) env : G.expr * E.pos =
       | "TRUE"
       | "on"
       | "On"
-      | "ON" ->
-          G.L (G.Bool (true, token))
+      | "ON" -> G.L (G.Bool (true, token))
       | "n"
       | "N"
       | "no"
@@ -222,17 +217,13 @@ let scalar (_tag, pos, value) env : G.expr * E.pos =
       | "FALSE"
       | "off"
       | "Off"
-      | "OFF" ->
-          G.L (G.Bool (false, token))
+      | "OFF" -> G.L (G.Bool (false, token))
       | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
       | ".inf" -> G.L (G.Float (Some neg_infinity, token))
-      | ".nan"
-      | ".NaN"
-      | ".NAN" ->
-          G.L (G.Float (Some nan, token))
+      | ".nan" | ".NaN" | ".NAN" -> G.L (G.Float (Some nan, token))
       | _ -> (
-          try G.L (G.Float (Some (float_of_string value), token)) with
-          | _ -> G.L (G.String (value, token))))
+          try G.L (G.Float (Some (float_of_string value), token))
+          with _ -> G.L (G.String (value, token))))
       |> G.e
     in
     (expr, pos)
@@ -294,9 +285,9 @@ let parse (env : env) : G.expr list =
     in
     match res with
     | E.Alias { anchor }, pos -> (
-        try make_alias anchor pos env with
-        | UnrecognizedAlias _ ->
-            (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
+        try make_alias anchor pos env
+        with UnrecognizedAlias _ ->
+          (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
     | E.Scalar { anchor; tag; value; _ }, pos ->
         make_node scalar anchor (tag, pos, value) env
     | E.Sequence_start { anchor; tag; _ }, pos ->
@@ -414,10 +405,7 @@ let split_whitespace line =
     if i = line_len then (line, "")
     else
       match line.[i] with
-      | ' '
-      | '\t'
-      | '-' ->
-          read_string (i + 1)
+      | ' ' | '\t' | '-' -> read_string (i + 1)
       | _ -> (substring line 0 i, substring line i line_len)
   in
   let whitespace, line = read_string 0 in

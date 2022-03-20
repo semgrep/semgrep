@@ -40,8 +40,7 @@ let expr x =
                                  ( { G.name = G.EN (G.Id (id, _)); _ },
                                    FieldDefColon { vinit = Some e; _ } );
                              _;
-                           } ->
-                           Left (id, e)
+                           } -> Left (id, e)
                        | G.F { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
                            Right t
                        | x ->

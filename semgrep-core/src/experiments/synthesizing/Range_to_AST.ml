@@ -64,8 +64,7 @@ let expr_at_range r1 ast =
   try
     visitor (G.Pr ast);
     None
-  with
-  | FoundExpr e -> Some e
+  with FoundExpr e -> Some e
 
 let function_at_range r1 ast =
   let find_function_name_in_entity { G.name; _ } =
@@ -103,8 +102,7 @@ let function_at_range r1 ast =
   try
     visitor (G.Pr ast);
     None
-  with
-  | Found a -> Some a
+  with Found a -> Some a
 
 let any_at_range_first r1 ast =
   (* This could probably be implemented more efficiently ... but should be
@@ -135,8 +133,7 @@ let any_at_range_first r1 ast =
     match expr_at_range r1 ast with
     | None -> None
     | Some e -> Some (G.E e)
-  with
-  | Found a -> Some a
+  with Found a -> Some a
 
 let any_to_stmt (any : G.any) : G.stmt =
   match any with

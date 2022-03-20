@@ -210,9 +210,7 @@ and stmt e : G.stmt =
        * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
        *)
       match e.G.e with
-      | G.Ellipsis _
-      | G.DeepEllipsis _ ->
-          G.exprstmt e
+      | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
       | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s)
 
 and option_expr_to_ctor_arguments v =
@@ -373,12 +371,7 @@ and expr e =
       let t = todo_category t in
       let xs = list expr xs in
       G.OtherExpr (t, List.map (fun x -> G.E x) xs)
-  | If _
-  | Try _
-  | For _
-  | While _
-  | Sequence _
-  | Match _ ->
+  | If _ | Try _ | For _ | While _ | Sequence _ | Match _ ->
       let s = stmt e in
       let x = G.stmt_to_expr s in
       x.G.e)

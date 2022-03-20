@@ -755,8 +755,7 @@ and require_to_import_in_stmt_opt st =
             let orig = stmt st in
             Some (ys @ [ orig ])
         | _ -> raise ComplicatedCase
-      with
-      | ComplicatedCase -> None)
+      with ComplicatedCase -> None)
   | _ -> None
 
 and list_stmt xs =

@@ -115,9 +115,7 @@ let as_expr : stmt_or_expr -> G.expr = function
   | Expr (loc, e) -> e
 
 let stmt_or_expr_loc = function
-  | Stmt (loc, _)
-  | Expr (loc, _) ->
-      loc
+  | Stmt (loc, _) | Expr (loc, _) -> loc
 
 let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
@@ -134,8 +132,7 @@ let get_var_name (var : variable_name) : string wrap =
   match var with
   | Simple_variable_name name
   | Special_variable_name name
-  | Var_semgrep_metavar name ->
-      name
+  | Var_semgrep_metavar name -> name
 
 let mk_var_expr (var : variable_name) : G.expr =
   let name = get_var_name var in

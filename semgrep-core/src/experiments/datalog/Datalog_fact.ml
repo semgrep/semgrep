@@ -119,11 +119,7 @@ type facts = fact list
 type value = V of var | F of fld | N of func | I of callsite | Z of int
 
 let string_of_value = function
-  | V x
-  | F x
-  | N x
-  | I x ->
-      x
+  | V x | F x | N x | I x -> x
   | Z _ -> raise Impossible
 
 type _rule = string
@@ -158,10 +154,6 @@ let string_of_fact fact =
   spf "%s(%s)" str
     (xs
     |> List.map (function
-         | V x
-         | F x
-         | N x
-         | I x ->
-             spf "'%s'" x
+         | V x | F x | N x | I x -> spf "'%s'" x
          | Z i -> spf "%d" i)
     |> Common.join ", ")

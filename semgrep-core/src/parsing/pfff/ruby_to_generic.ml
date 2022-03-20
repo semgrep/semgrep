@@ -221,8 +221,13 @@ and formal_param_pattern = function
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       G.PatTuple (G.fake_bracket xs)
-  | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
-    | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
+  | ( Formal_amp _
+    | Formal_star _
+    | Formal_rest _
+    | Formal_default _
+    | Formal_hash_splat _
+    | Formal_kwd _
+    | ParamEllipsis _ ) as x ->
       let x = formal_param x in
       G.OtherPat (("ParamPattern", PI.unsafe_fake_info ""), [ G.Pa x ])
 
@@ -268,9 +273,7 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   | MethodIdAssign (id, teq, id_kind) ->
       let s, t = variable (id, id_kind) in
       Left (s ^ "=", PI.combine_infos t [ teq ])
-  | MethodUOperator (_, t)
-  | MethodOperator (_, t) ->
-      Left (PI.str_of_info t, t)
+  | MethodUOperator (_, t) | MethodOperator (_, t) -> Left (PI.str_of_info t, t)
   | MethodSpecialCall (l, (), _r) ->
       let special = ident ("call", l) in
       Left special
@@ -330,20 +333,16 @@ and binary_msg = function
   | Op_NMATCH -> G.NotMatch
   | Op_DOT2 -> G.Range
   (* never in Binop, only in DotAccess or MethodDef *)
-  | Op_AREF
-  | Op_ASET ->
-      raise Impossible
+  | Op_AREF | Op_ASET -> raise Impossible
 
 and binary (op, t) e1 e2 =
   match op with
   | B msg ->
       let op = binary_msg msg in
       G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
-  | Op_kAND
-  | Op_AND ->
+  | Op_kAND | Op_AND ->
       G.Call (G.IdSpecial (G.Op G.And, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
-  | Op_kOR
-  | Op_OR ->
+  | Op_kOR | Op_OR ->
       G.Call (G.IdSpecial (G.Op G.Or, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_ASSIGN -> G.Assign (e1, t, e2)
   | Op_OP_ASGN op ->
@@ -655,8 +654,7 @@ and definition def =
 and body_exn x =
   match x with
   | { body_exprs = xs; rescue_exprs = []; ensure_expr = None; else_expr = None }
-    ->
-      list_stmt1 xs
+    -> list_stmt1 xs
   | {
    body_exprs = xs;
    rescue_exprs = catches;
@@ -738,8 +736,7 @@ and list_stmt1 xs =
    * hacky ...
    *)
   | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
-    when AST_generic_.is_metavar_name s ->
-      x
+    when AST_generic_.is_metavar_name s -> x
   | xs -> G.Block (fb xs) |> G.s
 
 (* was called stmts, but you should either use list_stmt1 or list_stmts *)

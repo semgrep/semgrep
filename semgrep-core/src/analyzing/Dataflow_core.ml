@@ -139,8 +139,8 @@ let (add_var_and_nodei_to_env :
       var -> nodei -> NodeiSet.t env -> NodeiSet.t env) =
  fun var ni env ->
   let set =
-    try NodeiSet.add ni (VarMap.find var env) with
-    | Not_found -> NodeiSet.singleton ni
+    try NodeiSet.add ni (VarMap.find var env)
+    with Not_found -> NodeiSet.singleton ni
   in
   VarMap.add var set env
 

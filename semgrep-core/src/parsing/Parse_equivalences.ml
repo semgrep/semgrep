@@ -72,22 +72,22 @@ let parse file =
                                  (spf "could not parse the equivalence: %s" str)
                          in
                          let left =
-                           try Parse_pattern.parse_pattern lang left with
-                           | exn ->
-                               error
-                                 (spf
-                                    "could not parse the left pattern: %s (exn \
-                                     = %s)"
-                                    left (Common.exn_to_s exn))
+                           try Parse_pattern.parse_pattern lang left
+                           with exn ->
+                             error
+                               (spf
+                                  "could not parse the left pattern: %s (exn = \
+                                   %s)"
+                                  left (Common.exn_to_s exn))
                          in
                          let right =
-                           try Parse_pattern.parse_pattern lang right with
-                           | exn ->
-                               error
-                                 (spf
-                                    "could not parse the right pattern: %s \
-                                     (exn = %s)"
-                                    right (Common.exn_to_s exn))
+                           try Parse_pattern.parse_pattern lang right
+                           with exn ->
+                             error
+                               (spf
+                                  "could not parse the right pattern: %s (exn \
+                                   = %s)"
+                                  right (Common.exn_to_s exn))
                          in
                          { Eq.id; left; op; right; languages }
                      | x ->

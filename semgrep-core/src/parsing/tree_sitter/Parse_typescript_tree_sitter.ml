@@ -971,10 +971,7 @@ and add_decorators xs property =
   | Field fld -> Field { fld with fld_attrs = xs @ fld.fld_attrs }
   | FieldColon fld -> FieldColon { fld with fld_attrs = xs @ fld.fld_attrs }
   (* less: modify ast_js to allow decorator on those constructs? *)
-  | FieldSpread _
-  | FieldPatDefault _
-  | FieldEllipsis _
-  | FieldTodo _ ->
+  | FieldSpread _ | FieldPatDefault _ | FieldEllipsis _ | FieldTodo _ ->
       property
 
 (* TODO: types - class body can be just a signature. *)
@@ -1048,9 +1045,7 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
   (* TODO: distinguish optional chaining "?." from a simple access "." *)
   let dot_tok =
     match v2 with
-    | `DOT tok (* "." *)
-    | `QMARKDOT (* "?." *) tok ->
-        token env tok
+    | `DOT tok (* "." *) | `QMARKDOT (* "?." *) tok -> token env tok
   in
   let id_tok =
     match v3 with
@@ -2410,8 +2405,7 @@ and public_field_definition (env : env)
           | None -> []
         in
         v1 @ v2
-    | `Opt_abst_opt_read (v1, v2)
-    | `Opt_read_opt_abst (v2, v1) ->
+    | `Opt_abst_opt_read (v1, v2) | `Opt_read_opt_abst (v2, v1) ->
         let v1 =
           match v1 with
           | Some tok -> [ (Abstract, token env tok) ] (* "abstract" *)

@@ -77,9 +77,7 @@ let info name = Term.info ~doc ~man name
 let parse_command_line name =
   match Term.eval (cmdline_term, info name) with
   | `Error _ -> exit 1
-  | `Version
-  | `Help ->
-      exit 0
+  | `Version | `Help -> exit 0
   | `Ok config -> config
 
 let run_one config input =
@@ -97,10 +95,7 @@ let run_one config input =
         let src_prefix =
           match Src_file.source src with
           | File path -> Printf.sprintf "%s: " path
-          | Stdin
-          | String
-          | Channel ->
-              ""
+          | Stdin | String | Channel -> ""
         in
         Printf.printf "%s%s\n" src_prefix err.msg
   else src |> Parse_doc.of_src |> Doc_AST.to_pattern |> print

@@ -237,9 +237,8 @@ let tests =
                           | None ->
                               failwith
                                 (spf "Couldn't find range %s in %s" range file)
-                        with
-                        | Parsing.Parse_error ->
-                            failwith (spf "problem parsing %s" pat)
+                        with Parsing.Parse_error ->
+                          failwith (spf "problem parsing %s" pat)
                       in
                       pats |> List.iter check_pats;
                       let pats_str =

@@ -145,8 +145,7 @@ let test_pcre_pattern_explosion ~pat ~input expected =
       (* nosemgrep: not-using-our-pcre-wrappers *)
       Pcre.pmatch ~pat input |> ignore;
       Succeeds
-    with
-    | Pcre.Error Pcre.MatchLimit -> Blows_up
+    with Pcre.Error Pcre.MatchLimit -> Blows_up
   in
   printf "pattern: '%s' %s\n%!" pat (string_of_result res);
   Alcotest.(check string)

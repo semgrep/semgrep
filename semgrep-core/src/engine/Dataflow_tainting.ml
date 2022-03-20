@@ -261,9 +261,7 @@ let rec check_tainted_expr env exp =
   in
   let check_offset = function
     | Index e -> check e
-    | NoOffset
-    | Dot _ ->
-        Taint.empty
+    | NoOffset | Dot _ -> Taint.empty
   in
   let check_subexpr exp =
     match exp.e with
@@ -275,12 +273,8 @@ let rec check_tainted_expr env exp =
     | Fetch { base; offset; _ } ->
         Taint.union (check_base base) (check_offset offset)
     | FixmeExp (_, _, Some e) -> check e
-    | Literal _
-    | FixmeExp (_, _, None) ->
-        Taint.empty
-    | Composite (_, (_, es, _))
-    | Operator (_, es) ->
-        union_map check es
+    | Literal _ | FixmeExp (_, _, None) -> Taint.empty
+    | Composite (_, (_, es, _)) | Operator (_, es) -> union_map check es
     | Record fields -> union_map (fun (_, e) -> check e) fields
     | Cast (_, e) -> check e
   in
@@ -349,9 +343,7 @@ let check_function_signature env fun_exp args_taint =
              (* THINK: Should we report something here? *)
              | SrcToSink _ -> None)
         |> List.fold_left Taint.union Taint.empty)
-  | None, _
-  | Some _, _ ->
-      None
+  | None, _ | Some _, _ -> None
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)

@@ -271,14 +271,14 @@ let parse_equivalences equivalences_file =
   [@@profiling]
 
 let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
-  | exn ->
-      raise
-        (Rule.InvalidRule
-           ( Rule.InvalidPattern
-               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-             "no-id",
-             Parse_info.unsafe_fake_info "no loc" ))
+  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
+  with exn ->
+    raise
+      (Rule.InvalidRule
+         ( Rule.InvalidPattern
+             (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
+           "no-id",
+           Parse_info.unsafe_fake_info "no loc" ))
   [@@profiling]
 
 (*****************************************************************************)
@@ -363,9 +363,7 @@ let rules_for_xlang xlang rules =
   rules
   |> List.filter (fun r ->
          match (xlang, r.R.languages) with
-         | Xlang.LRegex, Xlang.LRegex
-         | Xlang.LGeneric, Xlang.LGeneric ->
-             true
+         | Xlang.LRegex, Xlang.LRegex | Xlang.LGeneric, Xlang.LGeneric -> true
          | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
          | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
 
@@ -410,9 +408,7 @@ let targets_of_config (config : Runner_config.t)
       let roots = roots |> Common.map replace_named_pipe_by_regular_file in
       let lang_opt =
         match xlang with
-        | Xlang.LRegex
-        | Xlang.LGeneric ->
-            None (* we will get all the files *)
+        | Xlang.LRegex | Xlang.LGeneric -> None (* we will get all the files *)
         | Xlang.L (lang, []) -> Some lang
         (* config.lang comes from Xlang.of_string which returns just a lang *)
         | Xlang.L (_, _) -> assert false
@@ -535,14 +531,13 @@ let semgrep_with_raw_results_and_exn_handler config =
     in
     let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
-  with
-  | exn when not !Flag_semgrep.fail_fast ->
-      let trace = Printexc.get_backtrace () in
-      logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
-      let res =
-        { RP.empty_final_result with errors = [ E.exn_to_error "" exn ] }
-      in
-      (Some exn, res, [])
+  with exn when not !Flag_semgrep.fail_fast ->
+    let trace = Printexc.get_backtrace () in
+    logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
+    let res =
+      { RP.empty_final_result with errors = [ E.exn_to_error "" exn ] }
+    in
+    (Some exn, res, [])
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in

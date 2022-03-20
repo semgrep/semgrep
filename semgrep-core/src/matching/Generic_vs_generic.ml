@@ -268,17 +268,13 @@ let m_module_name_prefix a b =
       (* TODO figure out what prefix support means here *)
         ~m_string_for_default:m_filepath_prefix a b
   | G.DottedName a1, B.DottedName b1 -> m_dotted_name_prefix_ok a1 b1
-  | G.FileName _, _
-  | G.DottedName _, _ ->
-      fail ()
+  | G.FileName _, _ | G.DottedName _, _ -> fail ()
 
 let m_module_name a b =
   match (a, b) with
   | G.FileName a1, B.FileName b1 -> (m_wrap m_string) a1 b1
   | G.DottedName a1, B.DottedName b1 -> m_dotted_name a1 b1
-  | G.FileName _, _
-  | G.DottedName _, _ ->
-      fail ()
+  | G.FileName _, _ | G.DottedName _, _ -> fail ()
 
 let m_sid a b = if a =|= b then return () else fail ()
 
@@ -302,8 +298,7 @@ let m_resolved_name_kind a b =
   | G.TypeName, _
   | G.ImportedEntity _, _
   | G.ImportedModule _, _
-  | G.ResolvedName _, _ ->
-      fail ()
+  | G.ResolvedName _, _ -> fail ()
 
 let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
@@ -452,9 +447,7 @@ let rec m_name a b =
           return ())
   (* boilerplate *)
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
-  | G.Id _, _
-  | G.IdQualified _, _ ->
-      fail ()
+  | G.Id _, _ | G.IdQualified _, _ -> fail ()
 
 and m_name_info a b =
   match (a, b) with
@@ -477,9 +470,7 @@ and m_qualifier a b =
       (* TODO? like for m_dotted_name, [$X] should match anything? *)
       m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
-  | G.QDots _, _
-  | G.QExpr _, _ ->
-      fail ()
+  | G.QDots _, _ | G.QExpr _, _ -> fail ()
 
 (* semantic! try to handle typed metavariables by querying LSP
  * to get inferred type info (only for OCaml for now) *)
@@ -666,8 +657,7 @@ and m_expr a b =
    *)
   | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
       B.Call ({ e = B.IdSpecial _; _ }, _argsb) )
-    when MV.is_metavar_name str ->
-      fail ()
+    when MV.is_metavar_name str -> fail ()
   (* metavar: *)
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
    * info; instead the Id should match Call(IdSpecial _, _)
@@ -675,8 +665,7 @@ and m_expr a b =
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.New, _)
-    when MV.is_metavar_name str ->
-      fail ()
+    when MV.is_metavar_name str -> fail ()
   (* Important to bind to MV.Id when we can, so this must be before
    * the next case where we bind to the more general MV.E.
    * TODO: should be B.N (B.Id _ | B.IdQualified _)?
@@ -722,8 +711,7 @@ and m_expr a b =
       m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2)
   (* dots: equivalence: Container and Comprehension *)
   | ( G.Container (akind, (_, [ { e = G.Ellipsis _; _ } ], _)),
-      B.Comprehension (bkind, _) ) ->
-      m_container_operator akind bkind
+      B.Comprehension (bkind, _) ) -> m_container_operator akind bkind
   (* dots '...' for string literal:
    * Interpolated strings are transformed into Call(Special(Concat, ...),
    * hence we want Python patterns like f"...{$X}...", which are expanded to
@@ -894,37 +882,29 @@ and m_expr a b =
   | G.StmtExpr _, _
   | G.OtherExpr _, _
   | G.TypedMetavar _, _
-  | G.DotAccessEllipsis _, _ ->
-      fail ()
+  | G.DotAccessEllipsis _, _ -> fail ()
 
 and m_entity_name a b =
   match (a, b) with
   | G.EN a1, B.EN b1 -> m_name a1 b1
   | G.EN (G.Id ((str, tok), _idinfoa)), B.EDynamic b1
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.E b1)
+    when MV.is_metavar_name str -> envf (str, tok) (MV.E b1)
   (* boilerplate *)
   | G.EDynamic a, B.EDynamic b -> m_expr a b
   | G.EPattern a, B.EPattern b -> m_pattern a b
   | G.OtherEntity (a1, a2), B.OtherEntity (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.EN _, _
-  | G.EPattern _, _
-  | G.OtherEntity _, _
-  | G.EDynamic _, _ ->
+  | G.EN _, _ | G.EPattern _, _ | G.OtherEntity _, _ | G.EDynamic _, _ ->
       fail ()
 
 and m_field_name a b =
   match (a, b) with
   | G.FN a1, B.FN b1 -> m_name a1 b1
   | G.FN (G.Id ((str, tok), _idinfoa)), B.FDynamic b1
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.E b1)
+    when MV.is_metavar_name str -> envf (str, tok) (MV.E b1)
   (* boilerplate *)
   | G.FDynamic a, B.FDynamic b -> m_expr a b
-  | G.FN _, _
-  | G.FDynamic _, _ ->
-      fail ()
+  | G.FN _, _ | G.FDynamic _, _ -> fail ()
 
 and m_label_ident a b =
   match (a, b) with
@@ -932,11 +912,7 @@ and m_label_ident a b =
   | G.LId a, B.LId b -> m_label a b
   | G.LInt a, B.LInt b -> m_wrap m_int a b
   | G.LDynamic a, B.LDynamic b -> m_expr a b
-  | G.LNone, _
-  | G.LId _, _
-  | G.LInt _, _
-  | G.LDynamic _, _ ->
-      fail ()
+  | G.LNone, _ | G.LId _, _ | G.LInt _, _ | G.LDynamic _, _ -> fail ()
 
 and m_comprehension (a1, a2) (b1, b2) =
   let* () = m_expr a1 b1 in
@@ -954,9 +930,7 @@ and m_for_or_if_comp a b =
       let* () = m_tok a1 b1 in
       let* () = m_expr a2 b2 in
       return ()
-  | G.CompFor _, _
-  | G.CompIf _, _ ->
-      fail ()
+  | G.CompFor _, _ | G.CompIf _, _ -> fail ()
 
 and m_literal a b =
   Trace_matching.(if on then print_literal_pair a b);
@@ -992,8 +966,7 @@ and m_literal a b =
   | G.Undefined _, _
   | G.Imag _, _
   | G.Ratio _, _
-  | G.Atom _, _ ->
-      fail ()
+  | G.Atom _, _ -> fail ()
 
 and m_wrap_m_int_opt (a1, a2) (b1, b2) =
   match (a1, b1) with
@@ -1027,10 +1000,7 @@ and m_literal_svalue a b =
       match a with
       | G.String ("...", _) -> return ()
       | ___else___ -> fail ())
-  | B.Cst _
-  | B.Sym _
-  | B.NotCst ->
-      fail ()
+  | B.Cst _ | B.Sym _ | B.NotCst -> fail ()
 
 and m_arithmetic_operator a b =
   Trace_matching.(if on then print_arithmetic_operator_pair a b);
@@ -1078,8 +1048,7 @@ and m_special a b =
   | G.Defined, _
   | G.ForOf, _
   | G.NextArrayIndex, _
-  | InterpolatedElement, _ ->
-      fail ()
+  | InterpolatedElement, _ -> fail ()
 
 and m_concat_string_kind a b =
   match (a, b) with
@@ -1088,9 +1057,7 @@ and m_concat_string_kind a b =
   | G.FString _, _ -> fail ()
   (* same for tagged template literals *)
   | G.TaggedTemplateLiteral, B.TaggedTemplateLiteral -> return ()
-  | G.TaggedTemplateLiteral, _
-  | _, B.TaggedTemplateLiteral ->
-      fail ()
+  | G.TaggedTemplateLiteral, _ | _, B.TaggedTemplateLiteral -> fail ()
   (* less-is-more: *)
   | _ -> return ()
 
@@ -1122,12 +1089,7 @@ and m_container_operator a b =
   | G.Set, B.Set -> return ()
   | G.Dict, B.Dict -> return ()
   | G.Tuple, B.Tuple -> return ()
-  | G.Array, _
-  | G.List, _
-  | G.Set, _
-  | G.Dict, _
-  | G.Tuple, _ ->
-      fail ()
+  | G.Array, _ | G.List, _ | G.Set, _ | G.Dict, _ | G.Tuple, _ -> fail ()
 
 and m_container_ordered_elements a b =
   m_list_with_dots m_expr
@@ -1152,8 +1114,7 @@ and m_compatible_type typed_mvar t e =
   | G.TyExpr { e = G.N (G.Id (("int", _tok), _idinfo)); _ }, B.L (B.Int _) ->
       envf typed_mvar (MV.E e)
   | G.TyExpr { e = G.N (G.Id (("float", _tok), _idinfo)); _ }, B.L (B.Float _)
-    ->
-      envf typed_mvar (MV.E e)
+    -> envf typed_mvar (MV.E e)
   | G.TyExpr { e = G.N (G.Id (("str", _tok), _idinfo)); _ }, B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   (* for C specific literals *)
@@ -1192,8 +1153,7 @@ and type_of_expr e =
         { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
   | B.DotAccess
       ({ e = IdSpecial (This, _); _ }, _, FN (Id (idb, { B.id_type = tb; _ })))
-    ->
-      Some (idb, !tb)
+    -> Some (idb, !tb)
   (* deep: those are usually resolved only in deep mode *)
   | B.DotAccess (_, _, FN (Id (idb, { B.id_type = tb; _ }))) -> Some (idb, !tb)
   (* deep: same *)
@@ -1247,10 +1207,7 @@ and m_xml_kind a b =
       let* () = m_tok a1 b1 in
       let* () = m_tok a2 b2 in
       return ()
-  | G.XmlClassic _, _
-  | G.XmlSingleton _, _
-  | G.XmlFragment _, _ ->
-      fail ()
+  | G.XmlClassic _, _ | G.XmlSingleton _, _ | G.XmlFragment _, _ -> fail ()
 
 and m_attrs a b =
   let has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
@@ -1284,10 +1241,7 @@ and m_xml_attr a b =
       m_xml_attr_value a2 b2
   | G.XmlAttrExpr a1, B.XmlAttrExpr b1 -> m_bracket m_expr a1 b1
   | G.XmlEllipsis a1, B.XmlEllipsis b1 -> m_tok a1 b1
-  | G.XmlAttr _, _
-  | G.XmlAttrExpr _, _
-  | G.XmlEllipsis _, _ ->
-      fail ()
+  | G.XmlAttr _, _ | G.XmlAttrExpr _, _ | G.XmlEllipsis _, _ -> fail ()
 
 and m_xml_attr_value a b =
   (* less: deep? *)
@@ -1304,10 +1258,7 @@ and m_body a b =
       (* less: could allow ... to match also a None *)
       m_bracket (m_option m_expr) a1 b1
   | G.XmlXml a1, B.XmlXml b1 -> m_xml a1 b1
-  | G.XmlText _, _
-  | G.XmlExpr _, _
-  | G.XmlXml _, _ ->
-      fail ()
+  | G.XmlText _, _ | G.XmlExpr _, _ | G.XmlXml _, _ -> fail ()
 
 (*---------------------------------------------------------------------------*)
 (* Arguments list iso *)
@@ -1361,20 +1312,16 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
           let before, there, after =
             xsb
             |> Common2.split_when (function
-                 | G.ArgKwd ((s2, _), _)
-                 | G.ArgKwdOptional ((s2, _), _)
-                   when s =$= s2 ->
-                     true
+                 | (G.ArgKwd ((s2, _), _) | G.ArgKwdOptional ((s2, _), _))
+                   when s =$= s2 -> true
                  | _ -> false)
           in
           match there with
-          | G.ArgKwd (idb, eb)
-          | G.ArgKwdOptional (idb, eb) ->
+          | G.ArgKwd (idb, eb) | G.ArgKwdOptional (idb, eb) ->
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with
-        | Not_found -> fail ())
+        with Not_found -> fail ())
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_argument xa xb >>= fun () -> m_list__m_argument aas bbs
@@ -1415,9 +1362,7 @@ and m_arguments_concat a b =
       | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
           fail ()
       | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
-  | [], _
-  | _ :: _, _ ->
-      fail ()
+  | [], _ | _ :: _, _ -> fail ()
 
 and m_argument a b =
   match (a, b) with
@@ -1439,22 +1384,16 @@ and m_argument a b =
   | G.ArgKwd _, _
   | G.ArgKwdOptional _, _
   | G.ArgType _, _
-  | G.OtherArg _, _ ->
-      fail ()
+  | G.OtherArg _, _ -> fail ()
 
 (*---------------------------------------------------------------------------*)
 (* Associative-commutative iso *)
 (*---------------------------------------------------------------------------*)
 and m_call_op aop toka aargs bop tokb bargs tin =
   let is_commutative_operator = function
-    | G.BitOr
-    | G.BitAnd
-    | G.BitXor ->
-        true
+    | G.BitOr | G.BitAnd | G.BitXor -> true
     (* TODO: Plus, Mult, ... ? *)
-    | G.And
-    | G.Or ->
-        tin.config.commutative_boolop
+    | G.And | G.Or -> tin.config.commutative_boolop
     | __else__ -> false
   in
   let m_op_default =
@@ -1519,9 +1458,7 @@ and m_assoc_op tok op aargs_ac bargs_ac =
   | xa :: xsa, xb :: xsb ->
       let* () = m_expr xa xb in
       m_assoc_op tok op xsa xsb
-  | _ :: _, []
-  | [], _ :: _ ->
-      fail ()
+  | _ :: _, [] | [], _ :: _ -> fail ()
 
 (* Associative-Commutative (AC) matching of operators.
  *
@@ -1700,8 +1637,7 @@ and m_type_ a b =
   | G.TyRecordAnon _, _
   | G.TyRef _, _
   | G.TyExpr _, _
-  | G.OtherType _, _ ->
-      fail ()
+  | G.OtherType _, _ -> fail ()
 
 and m_type_arguments a b =
   match (a, b) with
@@ -1716,10 +1652,7 @@ and m_type_argument a b =
   | G.TAExpr a1, B.TAExpr b1 -> m_expr a1 b1
   | G.OtherTypeArg (a1, a2), B.OtherTypeArg (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.TA _, _
-  | G.TAWildcard _, _
-  | G.TAExpr _, _
-  | G.OtherTypeArg _, _ ->
+  | G.TA _, _ | G.TAWildcard _, _ | G.TAExpr _, _ | G.OtherTypeArg _, _ ->
       fail ()
 
 and m_todo_kind a b = m_ident a b
@@ -1749,10 +1682,7 @@ and m_attribute a b =
       m_name a1 b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.OtherAttribute (a1, a2), B.OtherAttribute (b1, b2) ->
       m_other_attribute_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.KeywordAttr _, _
-  | G.NamedAttr _, _
-  | G.OtherAttribute _, _ ->
-      fail ()
+  | G.KeywordAttr _, _ | G.NamedAttr _, _ | G.OtherAttribute _, _ -> fail ()
 
 and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 and m_other_attribute_operator = m_other_xxx
@@ -1985,8 +1915,7 @@ and m_stmt a b =
    * has been fixed now.
    *)
   | ( G.Block (_, [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], _),
-      B.Block _b1 ) ->
-      return ()
+      B.Block _b1 ) -> return ()
   (* opti: another specialization; again we should not need it *)
   | ( G.Block
         ( _,
@@ -2111,8 +2040,7 @@ and m_stmt a b =
   | G.Assert _, _
   | G.OtherStmt _, _
   | G.OtherStmtWithStmt _, _
-  | G.WithUsingResource _, _ ->
-      fail ()
+  | G.WithUsingResource _, _ -> fail ()
 
 and m_condition a b =
   match (a, b) with
@@ -2121,9 +2049,7 @@ and m_condition a b =
       let* () = m_todo_kind a1 b1 in
       let* () = m_list m_any a2 b2 in
       return ()
-  | G.Cond _, _
-  | G.OtherCond _, _ ->
-      fail ()
+  | G.Cond _, _ | G.OtherCond _, _ -> fail ()
 
 and m_case_clauses a b =
   let _has_ellipsis, a = has_case_ellipsis_and_filter_ellipsis a in
@@ -2151,10 +2077,7 @@ and m_for_header a b =
           | { e = G.Ellipsis _; _ } -> true
           | _ -> false)
         ~less_is_ok:false a2 b2
-  | G.ForClassic _, _
-  | G.ForEach _, _
-  | G.ForIn _, _ ->
-      fail ()
+  | G.ForClassic _, _ | G.ForEach _, _ | G.ForIn _, _ -> fail ()
 
 and m_block a b =
   match (a.s, b.s) with
@@ -2168,9 +2091,7 @@ and m_for_var_or_expr a b =
   | G.ForInitVar (a1, a2), B.ForInitVar (b1, b2) ->
       m_entity a1 b1 >>= fun () -> m_variable_definition a2 b2
   | G.ForInitExpr a1, B.ForInitExpr b1 -> m_expr a1 b1
-  | G.ForInitVar _, _
-  | G.ForInitExpr _, _ ->
-      fail ()
+  | G.ForInitVar _, _ | G.ForInitExpr _, _ -> fail ()
 
 and m_label a b =
   match (a, b) with
@@ -2192,10 +2113,7 @@ and m_catch_exn a b =
   | G.OtherCatch (a0, a1), B.OtherCatch (b0, b1) ->
       let* () = m_todo_kind a0 b0 in
       m_list m_any a1 b1
-  | G.CatchPattern _, _
-  | G.OtherCatch _, _
-  | G.CatchParam _, _ ->
-      fail ()
+  | G.CatchPattern _, _ | G.OtherCatch _, _ | G.CatchParam _, _ -> fail ()
 
 and m_finally a b =
   match (a, b) with
@@ -2206,9 +2124,7 @@ and m_case_and_body a b =
   | CasesAndBody (a1, a2), CasesAndBody (b1, b2) ->
       (m_list m_case) a1 b1 >>= fun () -> m_stmt a2 b2
   | CaseEllipsis _, CasesAndBody _ -> return ()
-  | CasesAndBody _, _
-  | CaseEllipsis _, _ ->
-      fail ()
+  | CasesAndBody _, _ | CaseEllipsis _, _ -> fail ()
 
 and m_case a b =
   match (a, b) with
@@ -2220,10 +2136,7 @@ and m_case a b =
   | G.OtherCase (a0, a1), B.OtherCase (b0, b1) ->
       let* () = m_todo_kind a0 b0 in
       m_list m_any a1 b1
-  | G.Case _, _
-  | G.Default _, _
-  | G.CaseEqualExpr _, _
-  | G.OtherCase _, _ ->
+  | G.Case _, _ | G.Default _, _ | G.CaseEqualExpr _, _ | G.OtherCase _, _ ->
       fail ()
 
 and m_other_stmt_operator = m_other_xxx
@@ -2243,8 +2156,7 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with
-      | H.NotAnExpr -> envf (str, tok) (MV.P b2))
+      with H.NotAnExpr -> envf (str, tok) (MV.P b2))
   (* dots: *)
   | G.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2287,8 +2199,7 @@ and m_pattern a b =
   | G.PatAs _, _
   | G.PatTyped _, _
   | G.OtherPat _, _
-  | G.PatType _, _ ->
-      fail ()
+  | G.PatType _, _ -> fail ()
 
 and m_field_pattern a b =
   match (a, b) with
@@ -2366,8 +2277,7 @@ and m_definition_kind a b =
   | G.UseOuterDecl _, _
   | G.FieldDefColon _, _
   | G.EnumEntryDef _, _
-  | G.OtherDef _, _ ->
-      fail ()
+  | G.OtherDef _, _ -> fail ()
 
 and m_enum_entry_definition a b =
   match (a, b) with
@@ -2383,10 +2293,7 @@ and m_type_parameter a b =
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   (* those constructs should be handled in the caller *)
   | G.TParamEllipsis a1, B.TParamEllipsis b1 -> m_tok a1 b1
-  | G.TP _, _
-  | G.TParamEllipsis _, _
-  | G.OtherTypeParam _, _ ->
-      fail ()
+  | G.TP _, _ | G.TParamEllipsis _, _ | G.OtherTypeParam _, _ -> fail ()
 
 and m_type_parameter_classic a b =
   match (a, b) with
@@ -2416,9 +2323,7 @@ and m_variance a b =
   match (a, b) with
   | Covariant, Covariant -> return ()
   | Contravariant, Contravariant -> return ()
-  | Covariant, _
-  | Contravariant, _ ->
-      fail ()
+  | Covariant, _ | Contravariant, _ -> fail ()
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -2451,11 +2356,7 @@ and m_function_body a b =
    * in Visitor_AST.v_def_as_partial of the target.
    *)
   | G.FBStmt { s = G.Block (_, [], _); _ }, B.FBNothing -> return ()
-  | G.FBStmt _, _
-  | G.FBExpr _, _
-  | G.FBDecl _, _
-  | G.FBNothing, _ ->
-      fail ()
+  | G.FBStmt _, _ | G.FBExpr _, _ | G.FBDecl _, _ | G.FBNothing, _ -> fail ()
 
 and m_parameters a b =
   m_list_with_dots_and_metavar_ellipsis ~f:m_parameter
@@ -2488,8 +2389,7 @@ and m_parameter a b =
   | G.ParamRest _, _
   | G.ParamHashSplat _, _
   | G.ParamEllipsis _, _
-  | G.OtherParam _, _ ->
-      fail ()
+  | G.OtherParam _, _ -> fail ()
 
 and m_parameter_classic a b =
   match (a, b) with
@@ -2596,8 +2496,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
                        G.DefStmt ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
                      _;
                    }
-                 when s2 = s1 ->
-                   true
+                 when s2 = s1 -> true
                | _ -> false)
         in
         match there with
@@ -2605,8 +2504,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
-      with
-      | Not_found -> fail ())
+      with Not_found -> fail ())
   (* the general case *)
   (* This applies to definitions where the field name is a metavariable,
    * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
@@ -2656,8 +2554,7 @@ and m_type_definition_kind a b =
   | G.Exception _, _
   | G.NewType _, _
   | G.AbstractType _, _
-  | G.OtherTypeKind _, _ ->
-      fail ()
+  | G.OtherTypeKind _, _ -> fail ()
 
 and m_or_type a b =
   match (a, b) with
@@ -2669,10 +2566,7 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.OrConstructor _, _
-  | G.OrEnum _, _
-  | G.OrUnion _, _ ->
-      fail ()
+  | G.OrConstructor _, _ | G.OrEnum _, _ | G.OrUnion _, _ -> fail ()
 
 and m_other_type_kind_operator = m_other_xxx
 
@@ -2777,13 +2671,8 @@ and m_class_kind_bis a b =
   | G.Class, B.Class
   | G.Interface, B.Interface
   | G.Trait, B.Trait
-  | G.Object, B.Object ->
-      return ()
-  | G.Class, _
-  | G.Interface, _
-  | G.Trait, _
-  | G.Object, _ ->
-      fail ()
+  | G.Object, B.Object -> return ()
+  | G.Class, _ | G.Interface, _ | G.Trait, _ | G.Object, _ -> fail ()
 
 (* ------------------------------------------------------------------------- *)
 (* Module definition *)
@@ -2799,10 +2688,7 @@ and m_module_definition_kind a b =
       (m_option m_dotted_name) a1 b1 >>= fun () -> (m_list m_item) a2 b2
   | G.OtherModule (a1, a2), B.OtherModule (b1, b2) ->
       m_other_module_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.ModuleAlias _, _
-  | G.ModuleStruct _, _
-  | G.OtherModule _, _ ->
-      fail ()
+  | G.ModuleAlias _, _ | G.ModuleStruct _, _ | G.OtherModule _, _ -> fail ()
 
 and m_other_module_operator = m_other_xxx
 
@@ -2827,8 +2713,7 @@ and m_directive a b =
   m_directive_basic a.d b.d >!> fun () ->
   match a.d with
   (* normalize only if very simple import pattern (no alias) *)
-  | G.ImportFrom (_, _, _, None)
-  | G.ImportAs (_, _, None) -> (
+  | G.ImportFrom (_, _, _, None) | G.ImportAs (_, _, None) -> (
       (* equivalence: *)
       let normal_a = Normalize_generic.normalize_import_opt true a.d in
       let normal_b = Normalize_generic.normalize_import_opt false b.d in
@@ -2844,8 +2729,7 @@ and m_directive a b =
   | G.Package _
   | G.PackageEnd _
   | G.Pragma _
-  | G.OtherDirective _ ->
-      fail ()
+  | G.OtherDirective _ -> fail ()
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
  * m_option_none_can_match_some.
@@ -2887,8 +2771,7 @@ and m_directive_basic a b =
   | G.Pragma _, _
   | G.ImportAll _, _
   | G.Package _, _
-  | G.PackageEnd _, _ ->
-      fail ()
+  | G.PackageEnd _, _ -> fail ()
 
 (*****************************************************************************)
 (* Toplevel *)
@@ -2931,8 +2814,7 @@ and m_partial a b =
   | G.PartialCatch _, _
   | G.PartialFinally _, _
   | G.PartialSingleField _, _
-  | G.PartialLambdaOrFuncDef _, _ ->
-      fail ()
+  | G.PartialLambdaOrFuncDef _, _ -> fail ()
 
 and m_any a b =
   match (a, b) with
@@ -3000,5 +2882,4 @@ and m_any a b =
   | G.Params _, _
   | G.ForOrIfComp _, _
   | G.Anys _, _
-  | G.Str _, _ ->
-      fail ()
+  | G.Str _, _ -> fail ()

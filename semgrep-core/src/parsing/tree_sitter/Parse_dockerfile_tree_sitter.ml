@@ -80,8 +80,7 @@ let classify_shell ((_open, ar, _close) : string_array) :
     match ar with
     | Arr_string (_, [ String_content ("/usr/bin/env", _) ])
       :: Arr_string (_loc, [ String_content (name, _) ])
-      :: _ ->
-        Some name
+      :: _ -> Some name
     | Arr_string (_loc, [ String_content (path, _) ]) :: _ -> Some path
     | _ -> None
   in
@@ -107,16 +106,11 @@ let find_nonblank (s : string) =
     for i = 0 to String.length s - 1 do
       pos := i;
       match s.[i] with
-      | ' '
-      | '\t'
-      | '\r'
-      | '\n' ->
-          ()
+      | ' ' | '\t' | '\r' | '\n' -> ()
       | _ -> raise Exit
     done;
     None
-  with
-  | Exit -> Some !pos
+  with Exit -> Some !pos
 
 let remove_blank_prefix (x : string wrap) : string wrap =
   let s, tok = x in

@@ -105,8 +105,8 @@ let test_rules ?(unit_testing = false) xs =
                           && ext2 <> "jsonnet"
                         then Some path2
                         else None)
-           with
-           | Not_found -> failwith (spf "could not find a target for %s" file)
+           with Not_found ->
+             failwith (spf "could not find a target for %s" file)
          in
          logger#info "processing target %s" target;
          (* expected *)
@@ -119,11 +119,9 @@ let test_rules ?(unit_testing = false) xs =
          (* actual *)
          Flag_semgrep.with_opt_cache := false;
          let actual_errors =
-           try
-             Check_rule.run_checks config Parse_rule.parse file [ target ]
-           with
-           | exn ->
-               failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
+           try Check_rule.run_checks config Parse_rule.parse file [ target ]
+           with exn ->
+             failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
          in
          actual_errors
          |> List.iter (fun e ->

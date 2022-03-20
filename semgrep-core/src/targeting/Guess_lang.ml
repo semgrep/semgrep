@@ -93,9 +93,7 @@ let get_first_line path =
   let ic = open_in_bin path in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
-    (fun () ->
-      try input_line ic with
-      | End_of_file -> (* empty file *) "")
+    (fun () -> try input_line ic with End_of_file -> (* empty file *) "")
 
 (*
    Get the first N bytes of the file, which is ideally obtained from
@@ -267,8 +265,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Hcl
     | Ts
     | Vue
-    | Yaml ->
-        matches_lang lang
+    | Yaml -> matches_lang lang
   in
 
   eval test path

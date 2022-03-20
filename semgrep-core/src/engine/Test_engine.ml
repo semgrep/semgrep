@@ -113,9 +113,8 @@ let make_tests ?(unit_testing = false) xs =
                               && ext2 <> "jsonnet"
                             then Some path2
                             else None)
-               with
-               | Not_found ->
-                   failwith (spf "could not find a target for %s" file)
+               with Not_found ->
+                 failwith (spf "could not find a target for %s" file)
              in
              logger#info "processing target %s" target;
              (* ugly: this is just for tests/OTHER/rules/inception2.yaml, to use JSON
@@ -146,9 +145,7 @@ let make_tests ?(unit_testing = false) xs =
                          target
                      in
                      (ast, errors)
-                 | LRegex
-                 | LGeneric ->
-                     assert false)
+                 | LRegex | LGeneric -> assert false)
              in
              let xtarget =
                {
@@ -166,10 +163,9 @@ let make_tests ?(unit_testing = false) xs =
                  Match_rules.check
                    ~match_hook:(fun _ _ _ -> ())
                    ~timeout:0. ~timeout_threshold:0 (config, []) rules xtarget
-               with
-               | exn ->
-                   failwith
-                     (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
+               with exn ->
+                 failwith
+                   (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
              in
              res.profiling.rule_times
              |> List.iter (fun rule_time ->

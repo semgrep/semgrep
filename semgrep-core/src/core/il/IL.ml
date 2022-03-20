@@ -368,11 +368,8 @@ let lval_of_instr_opt x =
   | Assign (lval, _)
   | AssignAnon (lval, _)
   | Call (Some lval, _, _)
-  | CallSpecial (Some lval, _, _) ->
-      Some lval
-  | Call _
-  | CallSpecial _ ->
-      None
+  | CallSpecial (Some lval, _, _) -> Some lval
+  | Call _ | CallSpecial _ -> None
   | FixmeInstr _ -> None
 
 let lvar_of_instr_opt x =
@@ -380,9 +377,7 @@ let lvar_of_instr_opt x =
   lval_of_instr_opt x >>= fun lval ->
   match lval.base with
   | Var n -> Some n
-  | VarSpecial _
-  | Mem _ ->
-      None
+  | VarSpecial _ | Mem _ -> None
 
 let rexps_of_instr x =
   match x.i with
@@ -398,9 +393,7 @@ let rec lvals_of_exp e =
   | Fetch lval -> lval :: lvals_in_lval lval
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
-  | Composite (_, (_, xs, _))
-  | Operator (_, xs) ->
-      lvals_of_exps xs
+  | Composite (_, (_, xs, _)) | Operator (_, xs) -> lvals_of_exps xs
   | Record ys -> lvals_of_exps (ys |> List.map snd)
   | FixmeExp (_, _, Some e) -> lvals_of_exp e
   | FixmeExp (_, _, None) -> []
@@ -426,21 +419,10 @@ let rlvals_of_instr x =
   lvals_of_exps exps
 
 let rlvals_of_node = function
-  | Enter
-  | Exit
-  | TrueNode
-  | FalseNode
-  | NGoto _
-  | Join ->
-      []
+  | Enter | Exit | TrueNode | FalseNode | NGoto _ | Join -> []
   | NInstr x -> rlvals_of_instr x
-  | NCond (_, e)
-  | NReturn (_, e)
-  | NThrow (_, e) ->
-      lvals_of_exp e
-  | NOther _
-  | NTodo _ ->
-      []
+  | NCond (_, e) | NReturn (_, e) | NThrow (_, e) -> lvals_of_exp e
+  | NOther _ | NTodo _ -> []
 
 (*****************************************************************************)
 (* Helpers *)

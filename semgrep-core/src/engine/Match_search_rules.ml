@@ -212,9 +212,7 @@ let (mini_rule_of_pattern :
     languages =
       (match xlang with
       | L (x, xs) -> x :: xs
-      | LRegex
-      | LGeneric ->
-          raise Impossible);
+      | LRegex | LGeneric -> raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
   }
@@ -430,8 +428,7 @@ let matches_of_spacegrep spacegreps file =
           in
           let doc_type = Spacegrep.File_type.classify partial_doc_src in
           match doc_type with
-          | Minified
-          | Binary ->
+          | Minified | Binary ->
               logger#info "ignoring gibberish file: %s\n%!" file;
               None
           | _ ->
@@ -483,11 +480,10 @@ let regexp_matcher big_str file (re_str, re) =
                         let loc = { PI.str; charpos; file; line; column } in
                         let t = PI.mk_info_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t))
-                      with
-                      | Not_found ->
-                          logger#debug "not found %d substring of %s in %s" n
-                            re_str matched_str;
-                          None)
+                      with Not_found ->
+                        logger#debug "not found %d substring of %s in %s" n
+                          re_str matched_str;
+                        None)
          in
          ((loc1, loc2), env))
 
@@ -804,8 +800,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                                   fully parse the content of %s"
                                  (fst env.rule.Rule.id) mvar);
                           (ast, errors)
-                      | LRegex
-                      | LGeneric ->
+                      | LRegex | LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
                   let file_and_more =
@@ -845,8 +840,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
   | S.Leaf (xpat, inside) ->
       let id = xpat.R.pid in
       let match_results =
-        try Hashtbl.find_all env.pattern_matches id with
-        | Not_found -> []
+        try Hashtbl.find_all env.pattern_matches id with Not_found -> []
       in
       let kind =
         match inside with

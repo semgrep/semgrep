@@ -82,16 +82,12 @@ let parse_pattern lang ?(print_errors = false) str =
         let res = Parse_hcl_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
-    | Lang.Python
-    | Lang.Python2
-    | Lang.Python3 ->
+    | Lang.Python | Lang.Python2 | Lang.Python3 ->
         let parsing_mode = Parse_target.lang_to_python_parsing_mode lang in
         let any = Parse_python.any_of_string ~parsing_mode str in
         Python_to_generic.any any
     (* abusing JS parser so no need extend tree-sitter grammar*)
-    | Lang.Ts
-    | Lang.Js
-    | Lang.Vue ->
+    | Lang.Ts | Lang.Js | Lang.Vue ->
         let any = Parse_js.any_of_string str in
         Js_to_generic.any any
     | Lang.Json ->

@@ -221,9 +221,7 @@ let label_pair_loc = function
 let string_array_loc = bracket_loc
 
 let array_or_paths_loc = function
-  | Array (loc, _)
-  | Paths (loc, _) ->
-      loc
+  | Array (loc, _) | Paths (loc, _) -> loc
 
 let cmd_loc ((loc, _, _) : cmd) = loc
 

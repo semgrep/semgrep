@@ -113,17 +113,13 @@ let unary_test_operator (env : env) (tok : ts_tok) : unary_test_operator wrap =
     | "-R" -> Is_shell_variable_a_name_ref
     | "-z" -> Is_empty_string
     | "-n" -> Is_nonempty_string
-    | "-a"
-    | "-e " ->
-        File_exists
+    | "-a" | "-e " -> File_exists
     | "-b" -> Is_block_special_file
     | "-c" -> Is_character_special_file
     | "-d" -> Is_directory
     | "-f" -> Is_regular_file
     | "-g" -> Has_SGID_bit
-    | "-h"
-    | "-L" ->
-        Is_symlink
+    | "-h" | "-L" -> Is_symlink
     | "-k" -> Has_sticky_bit
     | "-p" -> Is_named_pipe
     | "-r" -> Is_readable

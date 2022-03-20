@@ -31,11 +31,7 @@ open Datalog_fact
 (*****************************************************************************)
 
 let string_of_value = function
-  | V x
-  | F x
-  | N x
-  | I x ->
-      spf "'%s'" x
+  | V x | F x | N x | I x -> spf "'%s'" x
   | Z i -> spf "%d" i
 
 let csv_of_tuple xs = (xs |> List.map string_of_value |> Common.join ",") ^ "\n"

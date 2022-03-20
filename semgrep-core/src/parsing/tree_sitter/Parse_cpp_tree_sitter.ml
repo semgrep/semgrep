@@ -171,10 +171,7 @@ let name_scoped nameopt tcolcol id_or_op : name =
         match id_or_op1 with
         | IdIdent id -> QClassname id
         | IdTemplated (IdIdent id, args) -> QTemplateId (id, args)
-        | IdTemplated _
-        | IdOperator _
-        | IdDestructor _
-        | IdConverter _ ->
+        | IdTemplated _ | IdOperator _ | IdDestructor _ | IdConverter _ ->
             error (ii_of_name name)
               "invalid operator/destructor/converter qualifier"
       in

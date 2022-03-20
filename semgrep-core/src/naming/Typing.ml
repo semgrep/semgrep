@@ -15,9 +15,7 @@ let get_resolved_type lang (vinit, vtype) =
       let string_str =
         match lang with
         | Go -> "str"
-        | Js
-        | Ts ->
-            "string"
+        | Js | Ts -> "string"
         | _ -> "string"
       in
       (* Currently these vary between languages *)
@@ -39,6 +37,5 @@ let get_resolved_type lang (vinit, vtype) =
           {
             e = Call ({ e = IdSpecial (New, _); _ }, (_, ArgType tp :: _, _));
             _;
-          } ->
-          Some tp
+          } -> Some tp
       | _ -> None)

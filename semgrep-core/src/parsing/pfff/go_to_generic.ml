@@ -57,9 +57,7 @@ let ii_of_any = Lib_parsing_go.ii_of_any
 (* TODO? do results "parameters" can have names? *)
 let return_type_of_results results =
   match results with
-  | []
-  | [ G.Param { G.ptype = None; _ } ] ->
-      None
+  | [] | [ G.Param { G.ptype = None; _ } ] -> None
   | [ G.Param { G.ptype = Some t; _ } ] -> Some t
   | xs ->
       Some

@@ -88,8 +88,7 @@ module Str_engine = struct
     try
       Str.search_forward re str 0 |> ignore;
       true
-    with
-    | Not_found -> false
+    with Not_found -> false
     [@@profiling]
 end
 

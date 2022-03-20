@@ -511,7 +511,7 @@ let parse file =
     (fun () -> Tree_sitter_r.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_program env cst with
-      | Failure "not implemented" as exn ->
-          H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
-          raise exn)
+      try map_program env cst
+      with Failure "not implemented" as exn ->
+        H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
+        raise exn)

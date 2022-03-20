@@ -749,9 +749,7 @@ and map_stmt env x : G.stmt =
       and v3 = map_stmt env v3 in
       G.Label (v1, v3) |> G.s
   (* should be handled in map_cases *)
-  | Case _
-  | CaseRange _
-  | Default _ ->
+  | Case _ | CaseRange _ | Default _ ->
       let cases, xs = convert_case env x in
       let anys = cases |> List.map (fun cs -> G.Cs cs) in
       let sts = map_of_list (map_stmt_or_decl env) xs |> List.flatten in

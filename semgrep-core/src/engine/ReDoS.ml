@@ -6,8 +6,7 @@
 open Pfff_lang_regexp
 
 let parse_regexp conf re_str =
-  try Some (Parse.string ~conf re_str) with
-  | Parse_info.Parsing_error _ -> None
+  try Some (Parse.string ~conf re_str) with Parse_info.Parsing_error _ -> None
 
 (* Iterate over all the nodes of a regexp *)
 let rec iter f (x : AST.t) =
@@ -146,8 +145,7 @@ let matches_not_everywhere (x : AST.t) =
              | Named_back_reference _
              | Word_boundary
              (* \b *)
-             | Not_word_boundary (* \B *) ->
-                 (* possibly *) true
+             | Not_word_boundary (* \B *) -> (* possibly *) true
              | Match_point_reset (* \K *) -> false
              | Set_option _ -> false
              | Clear_option _ -> false
@@ -155,8 +153,7 @@ let matches_not_everywhere (x : AST.t) =
              | Recurse_pattern _ -> (* hopefully *) true
              | Call_subpattern_by_abs_number _
              | Call_subpattern_by_rel_number _
-             | Call_subpattern_by_name _ ->
-                 (* presumably *) true)
+             | Call_subpattern_by_name _ -> (* presumably *) true)
          | Seq _ -> false
          | Alt _ -> false
          | Repeat _ -> false
@@ -204,9 +201,7 @@ let unquote s =
     let first = s.[0] in
     let last = s.[len - 1] in
     match (first, last) with
-    | '\'', '\''
-    | '"', '"' ->
-        String.sub s 1 (len - 2) |> unescape
+    | '\'', '\'' | '"', '"' -> String.sub s 1 (len - 2) |> unescape
     | _ -> s
 
 (* Take the requested substring if possible, otherwise return the original

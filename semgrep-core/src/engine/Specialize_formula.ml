@@ -48,10 +48,7 @@ let split_and : R.formula list -> R.formula list * R.formula list =
   |> Common.partition_either (fun e ->
          match e with
          (* positives *)
-         | R.P _
-         | R.And _
-         | R.Or _ ->
-             Left e
+         | R.P _ | R.And _ | R.Or _ -> Left e
          (* negatives *)
          | R.Not (_, f) -> Right f)
 

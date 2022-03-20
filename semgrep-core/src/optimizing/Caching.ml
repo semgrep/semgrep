@@ -454,9 +454,7 @@ module Cache = struct
   let match_stmt_list ~access ~(cache : _ list t) ~function_id ~list_kind
       ~less_is_ok ~compute ~(pattern : pattern) ~(target : target) acc =
     match (pattern, target) with
-    | [], _
-    | _, [] ->
-        compute pattern target acc
+    | [], _ | _, [] -> compute pattern target acc
     | a :: _, b :: _ -> (
         let mv : Env.t = access.get_mv_field acc in
         let key : Cache_key.t =

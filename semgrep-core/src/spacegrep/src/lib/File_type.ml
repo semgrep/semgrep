@@ -28,17 +28,11 @@ let classify src =
             incr newlines;
             incr ascii_printable
         (* ascii and printable, other than LF *)
-        | '\t'
-        | '\r'
-        | ' ' .. '~' ->
-            incr ascii_printable
+        | '\t' | '\r' | ' ' .. '~' -> incr ascii_printable
         (* non-ascii *)
         | '\x80' .. '\xff' -> ()
         (* ascii and not printable *)
-        | '\x00' .. '\x08'
-        | '\x0b' .. '\x0c'
-        | '\x0e' .. '\x1f'
-        | '\x7f' ->
+        | '\x00' .. '\x08' | '\x0b' .. '\x0c' | '\x0e' .. '\x1f' | '\x7f' ->
             incr ascii_not_printable)
       contents;
     let num_lines = !newlines + 1 in

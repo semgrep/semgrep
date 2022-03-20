@@ -111,8 +111,7 @@ let range_of_tokens xs =
       PI.pos_of_info maxi + (String.length (PI.str_of_info maxi) - 1)
     in
     Some { start; end_ }
-  with
-  | PI.NoTokenLocation _ -> None
+  with PI.NoTokenLocation _ -> None
 
 let hmemo = Hashtbl.create 101
 

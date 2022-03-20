@@ -376,8 +376,7 @@ let or_step2 (Or xs) =
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,
      empty cases will be disregarded *)
-  try Some (Or (step1_to_step2 xs)) with
-  | GeneralPattern -> None
+  try Some (Or (step1_to_step2 xs)) with GeneralPattern -> None
 
 let and_step2 (And xs) =
   let ys = xs |> List.filter_map or_step2 in
@@ -502,11 +501,9 @@ let regexp_prefilter_of_formula f =
             (* run_cnf_step2 (And [Or [Idents ["jsonwebtoken"]]]) big_str *)
           with
           (* can happen in spacegrep rules as we don't extract anything from t *)
-          | EmptyAnd
-          | EmptyOr ->
-              true )
-  with
-  | GeneralPattern -> None
+          | EmptyAnd | EmptyOr ->
+            true )
+  with GeneralPattern -> None
 
 let regexp_prefilter_of_taint_rule rule_tok taint_spec =
   (* We must be able to match some source _and_ some sink. *)

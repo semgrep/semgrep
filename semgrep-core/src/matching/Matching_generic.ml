@@ -249,8 +249,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
         MV.Id (_, Some { B.id_svalue = { contents = Some (B.Lit b_lit) }; _ }) )
     | ( MV.Id (_, Some { G.id_svalue = { contents = Some (G.Lit a_lit) }; _ }),
         MV.E { e = B.L b_lit; _ } )
-      when config.constant_propagation ->
-        G.equal_literal a_lit b_lit
+      when config.constant_propagation -> G.equal_literal a_lit b_lit
     (* general case, equality modulo-position-and-svalue.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
@@ -450,9 +449,7 @@ let (m_option : 'a matcher -> 'a option matcher) =
   match (a, b) with
   | None, None -> return ()
   | Some xa, Some xb -> f xa xb
-  | None, _
-  | Some _, _ ->
-      fail ()
+  | None, _ | Some _, _ -> fail ()
 
 (* dots: *)
 let m_option_ellipsis_ok f a b =
@@ -461,9 +458,7 @@ let m_option_ellipsis_ok f a b =
   (* dots: ... can match 0 or 1 expression *)
   | Some { G.e = G.Ellipsis _; _ }, None -> return ()
   | Some xa, Some xb -> f xa xb
-  | None, _
-  | Some _, _ ->
-      fail ()
+  | None, _ | Some _, _ -> fail ()
 
 (* less-is-ok: *)
 let m_option_none_can_match_some f a b =
@@ -481,9 +476,7 @@ let rec m_list f a b =
   match (a, b) with
   | [], [] -> return ()
   | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> m_list f aas bbs
-  | [], _
-  | _ :: _, _ ->
-      fail ()
+  | [], _ | _ :: _, _ -> fail ()
 
 let rec m_list_prefix f a b =
   match (a, b) with
@@ -508,9 +501,7 @@ let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       f xa xb >>= fun () -> m_list_with_dots f is_dots ~less_is_ok aas bbs
-  | [], _
-  | _ :: _, _ ->
-      fail ()
+  | [], _ | _ :: _, _ -> fail ()
 
 let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     ~is_metavar_ellipsis xsa xsb =
@@ -544,9 +535,7 @@ let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
         aux (a :: xsa) xsb
     (* the general case *)
     | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> aux aas bbs
-    | [], _
-    | _ :: _, _ ->
-        fail ()
+    | [], _ | _ :: _, _ -> fail ()
   in
   aux xsa xsb
 
@@ -696,11 +685,10 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         in
         let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
         (s, info)
-      with
-      | Not_found ->
-          logger#error "could not find %s in %s" s raw_str;
-          (* return original token ... better than failwith? *)
-          (s, info))
+      with Not_found ->
+        logger#error "could not find %s in %s" s raw_str;
+        (* return original token ... better than failwith? *)
+        (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket

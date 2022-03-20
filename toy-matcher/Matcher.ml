@@ -96,10 +96,7 @@ let construct_backref_set pat_val =
   | Cons (atom, pat) -> (
       match atom with
       | Backref name -> Names.add name pat.backrefs
-      | Any_symbol
-      | Symbol _
-      | Ellipsis ->
-          pat.backrefs)
+      | Any_symbol | Symbol _ | Ellipsis -> pat.backrefs)
 
 let create_pattern pat_val capture_name =
   let backrefs = construct_backref_set pat_val in
@@ -447,9 +444,7 @@ let match_input ?(trace = true) ?cache root_pat root_input :
                     let env = extend env ellipsis orig_pat [] in
                     match_ Not_in_ellipsis env pat input
                 | _ -> None)
-            | Any_symbol
-            | Symbol _ ->
-                None)
+            | Any_symbol | Symbol _ -> None)
         | symbol :: input -> (
             let head_match =
               match pat_atom with

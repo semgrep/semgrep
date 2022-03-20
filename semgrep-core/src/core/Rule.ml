@@ -320,24 +320,17 @@ let rec visit_new_formula f formula =
   match formula with
   | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
-  | Or (_, xs)
-  | And { conjuncts = xs; _ } ->
+  | Or (_, xs) | And { conjuncts = xs; _ } ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And { tok = t; _ }
-  | Or (t, _)
-  | Not (t, _) ->
-      t
+  | And { tok = t; _ } | Or (t, _) | Not (t, _) -> t
   | P (p, _) -> snd p.pstr
 
 let kind_of_formula = function
   | P _ -> "pattern"
-  | Or _
-  | And _
-  | Not _ ->
-      "formula"
+  | Or _ | And _ | Not _ -> "formula"
 
 (*****************************************************************************)
 (* Converters *)
@@ -380,9 +373,7 @@ let convert_extra x =
             (* if strip=true we rewrite the condition and insert Python's `int`
              * function to parse the integer value of mvar. *)
             match strip with
-            | None
-            | Some false ->
-                comparison
+            | None | Some false -> comparison
             | Some true -> rewrite_metavar_comparison_strip mvar comparison
           in
           CondEval cond)

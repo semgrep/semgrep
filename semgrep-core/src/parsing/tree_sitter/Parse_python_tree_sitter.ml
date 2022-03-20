@@ -1459,7 +1459,7 @@ let parse file =
     (fun () -> Tree_sitter_python.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_module_ env cst with
-      | Failure "not implemented" as exn ->
-          H.debug_sexp_cst_after_error (CST.sexp_of_module_ cst);
-          raise exn)
+      try map_module_ env cst
+      with Failure "not implemented" as exn ->
+        H.debug_sexp_cst_after_error (CST.sexp_of_module_ cst);
+        raise exn)

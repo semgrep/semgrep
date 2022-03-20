@@ -307,17 +307,14 @@ let error tok s =
 (*****************************************************************************)
 let is_resolvable_name_ctx env lang =
   match top_context env with
-  | AtToplevel
-  | InFunction ->
-      true
+  | AtToplevel | InFunction -> true
   | InClass -> (
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
-      | Lang.Ts ->
-          true
+      | Lang.Ts -> true
       | _ -> false)
 
 let resolved_name_kind env lang =
@@ -332,8 +329,7 @@ let resolved_name_kind env lang =
       | Lang.Java
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
-      | Lang.Ts ->
-          EnclosedVar
+      | Lang.Ts -> EnclosedVar
       | _ -> raise Impossible)
 
 (* !also set the id_info of the parameter as a side effect! *)
@@ -436,8 +432,7 @@ let resolve lang prog =
                *
                *     https://github.com/returntocorp/semgrep/issues/2787.
                *)
-              | Lang.Js
-              | Lang.Ts ->
+              | Lang.Js | Lang.Ts ->
                   let sid = H.gensym () in
                   let resolved =
                     untyped_ent (resolved_name_kind env lang, sid)
@@ -661,8 +656,7 @@ let resolve lang prog =
           (* todo: see lrvalue.ml
            * alternative? extra id_info tag?
            *)
-          | Assign (e1, _, e2)
-          | AssignOp (e1, _, e2) ->
+          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
               Common.save_excursion env.in_lvalue true (fun () -> vout (E e1));
               vout (E e2);
               recurse := false

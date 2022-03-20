@@ -504,10 +504,7 @@ let arithmetic_expression_loc (x : arithmetic_expression) =
 let case_clause_loc ((loc, _, _, _, _) : case_clause) = loc
 
 let case_clause_terminator_tok = function
-  | Break tok
-  | Fallthrough tok
-  | Try_next tok ->
-      tok
+  | Break tok | Fallthrough tok | Try_next tok -> tok
 
 let case_clause_terminator_loc x =
   let tok = case_clause_terminator_tok x in
@@ -552,9 +549,7 @@ let expansion_loc = function
   | Complex_expansion x -> bracket_loc x
 
 let variable_name_wrap = function
-  | Simple_variable_name x
-  | Special_variable_name x
-  | Var_semgrep_metavar x ->
+  | Simple_variable_name x | Special_variable_name x | Var_semgrep_metavar x ->
       x
 
 let variable_name_tok x = variable_name_wrap x |> snd
@@ -581,15 +576,11 @@ let test_expression_loc = function
   | T_not (loc, _, _)
   | T_and (loc, _, _, _)
   | T_or (loc, _, _, _)
-  | T_todo loc ->
-      loc
+  | T_todo loc -> loc
 
 let write_redir_src_loc (x : write_redir_src) =
   match x with
-  | Stdout tok
-  | Stdout_and_stderr tok
-  | File_descriptor (_, tok) ->
-      (tok, tok)
+  | Stdout tok | Stdout_and_stderr tok | File_descriptor (_, tok) -> (tok, tok)
 
 let file_redir_target_loc (x : file_redir_target) =
   match x with
@@ -695,9 +686,7 @@ let rec pipeline_as_expression pip : expression option =
   | Control_operator (_loc, pip, (op, _tok)) -> (
       match op with
       | Foreground Fg_newline -> pipeline_as_expression pip
-      | Foreground (Fg_semi | Fg_semisemi)
-      | Background ->
-          None)
+      | Foreground (Fg_semi | Fg_semisemi) | Background -> None)
 
 (*
    This is necessary to that a pattern 'foo' is not translated into to a

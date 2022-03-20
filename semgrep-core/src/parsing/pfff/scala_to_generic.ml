@@ -735,8 +735,7 @@ and v_variable_definitions
   v_vpatterns
   |> Common.map_filter (fun pat ->
          match pat with
-         | PatVarid id
-         | PatName (Id id, []) ->
+         | PatVarid id | PatName (Id id, []) ->
              let ent = G.basic_entity id ~attrs in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef)

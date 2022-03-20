@@ -306,9 +306,7 @@ and map_entity_name = function
   | EDynamic v1 ->
       let v1 = map_expr v1 in
       `EDynamic v1
-  | EPattern _
-  | OtherEntity _ ->
-      failwith "TODO"
+  | EPattern _ | OtherEntity _ -> failwith "TODO"
 
 and map_literal = function
   | Unit v1 ->
@@ -1156,10 +1154,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
-  | ForOrIfComp _
-  | Tp _
-  | Ta _ ->
-      failwith "TODO"
+  | ForOrIfComp _ | Tp _ | Ta _ -> failwith "TODO"
   | Cs _ -> failwith "TODO"
   | Ce _ -> failwith "TODO"
   | Anys _ -> error x

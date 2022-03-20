@@ -82,17 +82,13 @@ let with_file name contents exec f =
 
 let test_name_only lang path expectation =
   match (expectation, Guess_lang.inspect_file lang path) with
-  | OK, Ok _
-  | XFAIL, Error _ ->
-      ()
+  | OK, Ok _ | XFAIL, Error _ -> ()
   | _ -> assert false
 
 let test_with_contents lang name contents exec expectation =
   with_file name contents exec (fun path ->
       match (expectation, Guess_lang.inspect_file lang path) with
-      | OK, Ok _
-      | XFAIL, Error _ ->
-          ()
+      | OK, Ok _ | XFAIL, Error _ -> ()
       | _ -> assert false)
 
 (* This is necessary when running the tests on Windows. *)

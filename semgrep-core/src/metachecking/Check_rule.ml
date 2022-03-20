@@ -237,8 +237,7 @@ let check_files mk_config fparser input =
   let config = mk_config () in
   let errors =
     match input with
-    | []
-    | [ _ ] ->
+    | [] | [ _ ] ->
         raise
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \

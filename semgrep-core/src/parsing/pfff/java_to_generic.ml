@@ -43,11 +43,7 @@ let fb = G.fake_bracket
 
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
-  | G.EN _
-  | G.EDynamic _
-  | EPattern _
-  | OtherEntity _ ->
-      raise Impossible
+  | G.EN _ | G.EDynamic _ | EPattern _ | OtherEntity _ -> raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused } t =
   let id, info = id_of_entname name in
@@ -571,8 +567,7 @@ and init = function
 and parameters v = List.map parameter_binding v
 
 and parameter_binding = function
-  | ParamClassic v
-  | ParamReceiver v ->
+  | ParamClassic v | ParamReceiver v ->
       let ent, t = var v in
       G.Param (entity_to_param ent t)
   | ParamSpread (tk, v) ->

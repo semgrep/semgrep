@@ -87,8 +87,8 @@ let parse_json file =
        ("metavars", J.Object xs);
       ] ->
           let lang =
-            try Hashtbl.find Lang.lang_map lang with
-            | Not_found -> failwith (spf "unsupported language %s" lang)
+            try Hashtbl.find Lang.lang_map lang
+            with Not_found -> failwith (spf "unsupported language %s" lang)
           in
           (* less: could also use Parse_pattern *)
           let code =
@@ -143,14 +143,13 @@ let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
   | G.N (G.Id ((_s, _t), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
-    when env.constant_propagation ->
-      value_of_lit ~code lit
+    when env.constant_propagation -> value_of_lit ~code lit
   | G.N (G.Id ((s, _t), _idinfo))
     when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
-      try Hashtbl.find env.mvars s with
-      | Not_found ->
-          logger#trace "could not find a value for %s in env" s;
-          raise (NotInEnv s))
+      try Hashtbl.find env.mvars s
+      with Not_found ->
+        logger#trace "could not find a value for %s in env" s;
+        raise (NotInEnv s))
   (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
@@ -281,13 +280,11 @@ let bindings_to_env (config : Config_semgrep.t) xs =
                 * e.g., os.getenv("foo") which can't be evaluated. It's ok to
                 * filter those metavars then.
                 *)
-             with
-             | NotHandled _
-             | NotInEnv _ ->
-                 logger#debug "filtering mvar %s, can't eval %s" mvar
-                   (MV.show_mvalue mval);
-                 (* todo: if not a value, could default to AST of range *)
-                 None
+             with NotHandled _ | NotInEnv _ ->
+               logger#debug "filtering mvar %s, can't eval %s" mvar
+                 (MV.show_mvalue mval);
+               (* todo: if not a value, could default to AST of range *)
+               None
            in
            match mval with
            (* this way we can leverage the constant propagation analysis
@@ -345,10 +342,9 @@ let test_eval file =
     let env, code = parse_json file in
     let res = eval env code in
     print_result (Some res)
-  with
-  | NotHandled e ->
-      pr2 (G.show_expr e);
-      raise (NotHandled e)
+  with NotHandled e ->
+    pr2 (G.show_expr e);
+    raise (NotHandled e)
 
 (* We need to swallow most exns in eval_bool(). This is because the
  * metavariable-comparison code in [e] may be valid

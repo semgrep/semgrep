@@ -18,8 +18,7 @@ let lang_has_no_dollar_ids =
     | Lua
     | Elixir
     | R
-    | Html ->
-        true
+    | Html -> true
     | Js
     | Ts
     | Vue
@@ -30,8 +29,7 @@ let lang_has_no_dollar_ids =
     | Dockerfile
     | Rust
     | Scala
-    | Solidity ->
-        false)
+    | Solidity -> false)
 
 let check_pattern_metavars error lang ast =
   let kident_metavar (k, _out) ((str, _tok) as ident) =

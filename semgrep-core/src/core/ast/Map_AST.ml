@@ -435,8 +435,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Spread
     | HashSplat
     | NextArrayIndex
-    | InterpolatedElement ->
-        x
+    | InterpolatedElement -> x
     | Op v1 ->
         let v1 = map_arithmetic_operator v1 in
         Op v1

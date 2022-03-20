@@ -49,11 +49,8 @@ let subexprs_of_stmt_kind = function
   | For (_, ForEach (_, _, e), _)
   | Continue (_, LDynamic e, _)
   | Break (_, LDynamic e, _)
-  | Throw (_, e, _) ->
-      [ e ]
-  | While (_, cond, _)
-  | If (_, cond, _, _) ->
-      [ H.cond_to_expr cond ]
+  | Throw (_, e, _) -> [ e ]
+  | While (_, cond, _) | If (_, cond, _, _) -> [ H.cond_to_expr cond ]
   (* opt *)
   | Switch (_, condopt, _) -> (
       match condopt with
@@ -76,8 +73,7 @@ let subexprs_of_stmt_kind = function
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
   | OtherStmtWithStmt (_, xs, _) -> subexprs_of_any_list xs
   (* 0 *)
-  | DirectiveStmt _
-  | Block _
+  | DirectiveStmt _ | Block _
   | For (_, ForEllipsis _, _)
   | Continue _
   | Break _
@@ -86,8 +82,7 @@ let subexprs_of_stmt_kind = function
   | Try _
   | DisjStmt _
   | DefStmt _
-  | WithUsingResource _ ->
-      []
+  | WithUsingResource _ -> []
 
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
@@ -95,27 +90,19 @@ let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 let subexprs_of_expr with_symbolic_propagation e =
   match e.e with
   | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
-    when with_symbolic_propagation ->
-      [ e1 ]
-  | L _
-  | N _
-  | IdSpecial _
-  | Ellipsis _
-  | TypedMetavar _ ->
-      []
+    when with_symbolic_propagation -> [ e1 ]
+  | L _ | N _ | IdSpecial _ | Ellipsis _ | TypedMetavar _ -> []
   | DotAccess (e, _, _)
   | Await (_, e)
   | Cast (_, _, e)
   | Ref (_, e)
   | DeRef (_, e)
   | DeepEllipsis (_, e, _)
-  | DotAccessEllipsis (e, _) ->
-      [ e ]
+  | DotAccessEllipsis (e, _) -> [ e ]
   | Assign (e1, _, e2)
   | AssignOp (e1, _, e2)
   | ArrayAccess (e1, (_, e2, _))
-  (* not sure we always want to return 'e1' here *) ->
-      [ e1; e2 ]
+  (* not sure we always want to return 'e1' here *) -> [ e1; e2 ]
   | Conditional (e1, e2, e3) -> [ e1; e2; e3 ]
   | Seq xs -> xs
   | Record (_, flds, _) ->
@@ -132,13 +119,8 @@ let subexprs_of_expr with_symbolic_propagation e =
       e
       :: (args |> unbracket
          |> Common.map_filter (function
-              | Arg e
-              | ArgKwd (_, e)
-              | ArgKwdOptional (_, e) ->
-                  Some e
-              | ArgType _
-              | OtherArg _ ->
-                  None))
+              | Arg e | ArgKwd (_, e) | ArgKwdOptional (_, e) -> Some e
+              | ArgType _ | OtherArg _ -> None))
   | SliceAccess (e1, e2) ->
       e1
       :: (e2 |> unbracket
@@ -154,11 +136,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   (* TODO? or call recursively on e? *)
   | ParenExpr (_, e, _) -> [ e ]
   (* currently skipped over but could recurse *)
-  | Constructor _
-  | AnonClass _
-  | Xml _
-  | LetPattern _ ->
-      []
+  | Constructor _ | AnonClass _ | Xml _ | LetPattern _ -> []
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
 
@@ -178,15 +156,13 @@ let substmts_of_stmt st =
   | Goto _
   | Throw _
   | Assert _
-  | OtherStmt _ ->
-      []
+  | OtherStmt _ -> []
   (* 1 *)
   | While (_, _, st)
   | DoWhile (_, st, _)
   | For (_, _, st)
   | Label (_, st)
-  | OtherStmtWithStmt (_, _, st) ->
-      [ st ]
+  | OtherStmtWithStmt (_, _, st) -> [ st ]
   (* 2 *)
   | If (_, _, st1, st2) -> st1 :: Option.to_list st2
   | WithUsingResource (_, st1, st2) -> [ st1; st2 ]
@@ -220,8 +196,7 @@ let substmts_of_stmt st =
         | UseOuterDecl _
         (* recurse? *)
         | ModuleDef _
-        | OtherDef _ ->
-            []
+        | OtherDef _ -> []
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->

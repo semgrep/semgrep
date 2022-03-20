@@ -59,8 +59,4 @@ let normalize_import_opt is_pattern i =
       full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
   | ImportAll (t, module_name, _t2) ->
       full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
-  | Package _
-  | PackageEnd _
-  | Pragma _
-  | OtherDirective _ ->
-      None
+  | Package _ | PackageEnd _ | Pragma _ | OtherDirective _ -> None
