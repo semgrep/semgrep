@@ -54,7 +54,6 @@ val ii_of_any : AST_generic.any -> Parse_info.t list
 
 (* may raise NoTokenLocation *)
 val first_info_of_any : AST_generic.any -> Parse_info.t
-
 val range_of_tokens : Parse_info.t list -> Parse_info.t * Parse_info.t
 
 val range_of_any_opt :

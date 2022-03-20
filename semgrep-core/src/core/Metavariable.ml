@@ -125,7 +125,6 @@ let range_of_mvalue mval =
   Some (tok_start.file, Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
-
 let str_of_mval x = show_mvalue x
 
 (* note that the mvalue acts as the value of the metavar and also
@@ -174,7 +173,7 @@ let is_metavar_name s =
   | "$_SESSION"
   | "$_REQUEST"
   | "$_ENV"
-  (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
+    (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false
   | _ -> s =~ metavar_regexp_string
@@ -183,19 +182,15 @@ let is_metavar_name s =
  * $X... but this leads to parsing conflicts in Javascript.
  *)
 let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
-
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
   let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
-
   let equal_bindings = AST_utils.with_structural_equal equal_bindings
 end
 
 module Referential = struct
   let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
-
   let equal_bindings = AST_utils.with_referential_equal equal_bindings
-
   let hash_bindings = hash_bindings
 end

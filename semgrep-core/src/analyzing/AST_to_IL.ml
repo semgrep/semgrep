@@ -57,22 +57,19 @@ let empty_env (lang : Lang.t) : env =
 exception Fixme of fixme_kind * G.any
 
 let sgrep_construct any_generic = raise (Fixme (Sgrep_construct, any_generic))
-
 let todo any_generic = raise (Fixme (ToDo, any_generic))
-
 let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
 let locate opt_tok s =
   let opt_loc =
-    try Option.map Parse_info.string_of_info opt_tok
-    with Parse_info.NoTokenLocation _ -> None
+    try Option.map Parse_info.string_of_info opt_tok with
+    | Parse_info.NoTokenLocation _ -> None
   in
   match opt_loc with
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
 let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
-
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
@@ -147,13 +144,9 @@ let lval_of_base base = { base; offset = NoOffset }
  * a gensym to each.
  *)
 let label_of_label _env lbl = (lbl, -1)
-
 let lookup_label _env lbl = (lbl, -1)
-
 let mk_e e eorig = { e; eorig }
-
 let mk_i i iorig = { i; iorig }
-
 let mk_s s = { s }
 
 let mk_unit tok eorig =
@@ -183,9 +176,7 @@ let add_call env tok eorig ~void mk_call =
     mk_e (Fetch lval) NoOrig
 
 let add_stmt env st = Common.push st env.stmts
-
 let add_stmts env xs = xs |> List.iter (add_stmt env)
-
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
 let ident_of_entity_opt ent =
@@ -313,7 +304,8 @@ and pattern_assign_statements env ?(eorig = NoOrig) exp pat =
   try
     let lval, ss = pattern env pat in
     [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ] @ ss
-  with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+  with
+  | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 (*****************************************************************************)
 (* Assign *)
@@ -329,11 +321,12 @@ and assign env lhs tok rhs_exp e_gen =
         let lval = lval env lhs in
         add_instr env (mk_i (Assign (lval, rhs_exp)) eorig);
         mk_e (Fetch lval) (SameAs lhs)
-      with Fixme (kind, any_generic) ->
-        (* lval translation failed, we use a fresh lval instead *)
-        let fixme_lval = fresh_lval ~str:"_FIXME" env tok in
-        add_instr env (mk_i (Assign (fixme_lval, rhs_exp)) eorig);
-        fixme_exp kind any_generic (related_exp e_gen))
+      with
+      | Fixme (kind, any_generic) ->
+          (* lval translation failed, we use a fresh lval instead *)
+          let fixme_lval = fresh_lval ~str:"_FIXME" env tok in
+          add_instr env (mk_i (Assign (fixme_lval, rhs_exp)) eorig);
+          fixme_exp kind any_generic (related_exp e_gen))
   | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
       (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
@@ -646,9 +639,8 @@ and expr_aux env ?(void = false) e_gen =
       fixme_exp ToDo (G.E e_gen) (related_tok tok) ~partial
 
 and expr env ?void e_gen =
-  try expr_aux env ?void e_gen
-  with Fixme (kind, any_generic) ->
-    fixme_exp kind any_generic (related_exp e_gen)
+  try expr_aux env ?void e_gen with
+  | Fixme (kind, any_generic) -> fixme_exp kind any_generic (related_exp e_gen)
 
 and expr_opt env = function
   | None ->
@@ -1187,8 +1179,8 @@ and cases_and_bodies_to_stmts env tok break_label translate_cases = function
       (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
 
 and stmt env st =
-  try stmt_aux env st
-  with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+  try stmt_aux env st with
+  | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 and function_body env fbody = stmt env (H.funcbody_to_stmt fbody)
 

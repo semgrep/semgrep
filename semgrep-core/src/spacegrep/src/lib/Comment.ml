@@ -5,13 +5,10 @@
 open Printf
 
 type comment_syntax = End_of_line of string | Multiline of string * string
-
 type style = comment_syntax list
 
 let shell_style = [ End_of_line "#" ]
-
 let c_style = [ Multiline ("/*", "*/") ]
-
 let cpp_style = End_of_line "//" :: c_style
 
 let predefined_styles =

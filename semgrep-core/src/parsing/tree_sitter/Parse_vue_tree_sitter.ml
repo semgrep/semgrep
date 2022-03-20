@@ -39,9 +39,7 @@ type extra = {
 type env = extra H.env
 
 let fake = AST_generic.fake
-
 let token = H.token
-
 let str = H.str
 
 (*****************************************************************************)

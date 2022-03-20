@@ -37,7 +37,6 @@ module H2 = AST_generic_helpers
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
 
 (* for list/dict comprehensions *)

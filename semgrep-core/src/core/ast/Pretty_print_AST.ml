@@ -61,7 +61,8 @@ let opt f = function
  * on fake tokens. It instead returns the fake token string
  *)
 let token default tok =
-  try Parse_info.str_of_info tok with Parse_info.NoTokenLocation _ -> default
+  try Parse_info.str_of_info tok with
+  | Parse_info.NoTokenLocation _ -> default
 
 let print_type t =
   match t.t with

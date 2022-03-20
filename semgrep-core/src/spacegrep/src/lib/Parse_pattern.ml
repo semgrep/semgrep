@@ -14,15 +14,10 @@ let close_acc acc = List.rev acc
 type pending_brace = Paren | Bracket | Curly
 
 let open_paren = Punct '('
-
 let close_paren = Punct ')'
-
 let open_bracket = Punct '['
-
 let close_bracket = Punct ']'
-
 let open_curly = Punct '{'
-
 let close_curly = Punct '}'
 
 let append_block_to_accumulator open_punct close_punct open_loc close_loc

@@ -6,13 +6,9 @@ open Printf
 open Spacegrep
 
 let word s = Pattern_AST.(Atom (Loc.dummy, Word s))
-
 let punct c = Pattern_AST.(Atom (Loc.dummy, Punct c))
-
 let byte c = Pattern_AST.(Atom (Loc.dummy, Byte c))
-
 let dots = Pattern_AST.(Dots (Loc.dummy, None))
-
 let metavar s = Pattern_AST.(Atom (Loc.dummy, Metavar s))
 
 let test_pattern_parser () =

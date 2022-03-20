@@ -36,7 +36,6 @@ module H = Parse_tree_sitter_helpers
 type env = unit H.env
 
 let _todo (_env : env) _ = failwith "not implemented, yikes."
-
 let fb = PI.unsafe_fake_bracket
 
 let list_to_maybe_tuple = function
@@ -59,13 +58,9 @@ let mk_Literal_String (t1, xs, t2) =
 (* This was started by copying tree-sitter-lang/semgrep-ruby/Boilerplate.ml *)
 
 let token2 env x = H.token env x
-
 let str env x = H.str env x
-
 let false_ (env : env) (tok : CST.false_) : bool wrap = (false, token2 env tok)
-
 let true_ (env : env) (tok : CST.true_) : bool wrap = (true, token2 env tok)
-
 let nil (env : env) (tok : CST.nil) : tok = token2 env tok
 
 let operator (env : env) (x : CST.operator) =

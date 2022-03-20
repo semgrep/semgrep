@@ -13,7 +13,6 @@
  * license.txt for more details.
  *)
 open Common (* >>= *)
-
 open AST_generic
 
 (*****************************************************************************)

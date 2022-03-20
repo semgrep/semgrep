@@ -8,7 +8,6 @@ module G = AST_generic
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
-
 let tests_path_typing = Filename.concat tests_path "OTHER/typing"
 
 let tests parse_program parse_pattern =
@@ -41,8 +40,9 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
       ( "test multiple variable definitions java",
         fun () ->
           let file = Filename.concat tests_path_typing "EqVarCmp.java" in
@@ -95,8 +95,9 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
       ( "test basic params java",
         fun () ->
           let file = Filename.concat tests_path_typing "BasicParam.java" in
@@ -140,8 +141,9 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
       ( "test class field types",
         fun () ->
           let file = Filename.concat tests_path_typing "ClassFields.java" in
@@ -175,8 +177,9 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
       ( "java_pattern_files",
         fun () ->
           let dir = Filename.concat tests_path "java/semgrep" in
@@ -186,8 +189,9 @@ let tests parse_program parse_pattern =
                  try
                    let _ = parse_pattern Lang.Java (Common.read_file file) in
                    ()
-                 with Parse_info.Parsing_error _ ->
-                   Alcotest.failf "it should correctly parse %s" file) );
+                 with
+                 | Parse_info.Parsing_error _ ->
+                     Alcotest.failf "it should correctly parse %s" file) );
       ( "go_pattern_files",
         fun () ->
           let dir = Filename.concat tests_path "go/semgrep" in
@@ -197,8 +201,9 @@ let tests parse_program parse_pattern =
                  try
                    let _ = parse_pattern Lang.Go (Common.read_file file) in
                    ()
-                 with Parse_info.Parsing_error _ ->
-                   Alcotest.failf "it should correctly parse %s" file) );
+                 with
+                 | Parse_info.Parsing_error _ ->
+                     Alcotest.failf "it should correctly parse %s" file) );
       ( "test basic variable definitions go",
         fun () ->
           let file = Filename.concat tests_path_typing "StaticVarDef.go" in
@@ -225,8 +230,9 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
       ( "test basic function call go",
         fun () ->
           let file = Filename.concat tests_path_typing "FuncParam.go" in
@@ -277,8 +283,9 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
       ( "test inferred variable definitions go",
         fun () ->
           let file = Filename.concat tests_path_typing "PropVarDef.go" in
@@ -319,6 +326,7 @@ let tests parse_program parse_pattern =
                 }
             in
             v (G.Pr ast)
-          with Parse_info.Parsing_error _ ->
-            Alcotest.failf "it should correctly parse %s" file );
+          with
+          | Parse_info.Parsing_error _ ->
+              Alcotest.failf "it should correctly parse %s" file );
     ]

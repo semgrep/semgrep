@@ -10,9 +10,7 @@ type deep_match =
       (** An indirect match through a function call. *)
 
 type source = deep_match
-
 type sink = deep_match
-
 type arg_pos = int
 
 type taint =

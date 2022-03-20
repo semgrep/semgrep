@@ -169,9 +169,7 @@ type tok = Parse_info.t [@@deriving show]
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
  *)
 let equal_tok _t1 _t2 = true
-
 let hash_tok _t = 0
-
 let hash_fold_tok acc _t = acc
 
 (* a shortcut to annotate some information with position information *)
@@ -242,7 +240,6 @@ type module_name =
  *)
 (* a single unique gensym'ed number. See gensym() below *)
 type sid = int
-
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -425,13 +422,15 @@ and expr_kind =
   | Constructor of name * expr list bracket
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
   | N of name
-  | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
+  | IdSpecial of
+      special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
   | Call of expr * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
-  | Xml of xml (* IntepolatedString of expr list is simulated with a
-                * Call(IdSpecial (Concat ...)) *)
+  | Xml of xml
+  (* IntepolatedString of expr list is simulated with a
+   * Call(IdSpecial (Concat ...)) *)
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
    * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.
@@ -655,8 +654,9 @@ and special =
   (* Similar to Spread, but for a var containing a hashtbl.
    * The corresponding constructor in a parameter context is ParamHashSplat.
    *)
-  | HashSplat (* **x in Python/Ruby
-               * (not to confused with Pow below which is a Binary op *)
+  | HashSplat
+    (* **x in Python/Ruby
+     * (not to confused with Pow below which is a Binary op *)
   | ForOf (* Javascript, for generators, used in ForEach *)
   (* used for unary and binary operations
    * TODO: move out of special too, in separate OpCall? (where can also
@@ -740,7 +740,6 @@ and operator =
 
 (* '++', '--' *)
 and incr_decr = Incr | Decr
-
 and prefix_postfix = Prefix | Postfix
 
 and concat_string_kind =
@@ -984,7 +983,6 @@ and catch_exn =
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt
-
 and label = ident
 
 and label_ident =
@@ -998,10 +996,14 @@ and label_ident =
 and for_header =
   (* todo? copy Go and have 'of simple option * expr * simple option'? *)
   | ForClassic of
-      for_var_or_expr list (* init *) * expr option (* cond *) * expr option (* next *)
+      for_var_or_expr list (* init *)
+      * expr option (* cond *)
+      * expr option (* next *)
   (* newvar: *)
   | ForEach of
-      pattern * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *) * expr (* pattern 'in' expr *)
+      pattern
+      * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *)
+      * expr (* pattern 'in' expr *)
   (* Lua. todo: merge with ForEach? *)
   (* pattern 'in' expr *)
   | ForIn of for_var_or_expr list (* init *) * expr list
@@ -1047,7 +1049,8 @@ and other_stmt_operator =
   | OS_TryOrElse
   | OS_ThrowFrom
   | OS_ThrowNothing
-  | OS_ThrowArgsLocation (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
+  | OS_ThrowArgsLocation
+    (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
   | OS_Pass
   | OS_Async
   (* C/C++ *)
@@ -1646,7 +1649,10 @@ and directive = {
 and directive_kind =
   (* newvar: *)
   | ImportFrom of
-      tok (* 'import'/'from' for Python *) * module_name * ident * alias option (* as name alias *)
+      tok (* 'import'/'from' for Python *)
+      * module_name
+      * ident
+      * alias option (* as name alias *)
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ #include and C++ 'using namespace'.
@@ -1684,7 +1690,6 @@ and alias = ident * id_info
  * TODO? make it an alias to stmt_or_def_or_dir instead?
  *)
 and item = stmt
-
 and program = item list
 
 (*****************************************************************************)
@@ -1789,7 +1794,6 @@ let error tok msg = raise (Error (msg, tok))
  * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
  *)
 let fake s = Parse_info.unsafe_fake_info s
-
 let fake_bracket x = (fake "(", x, fake ")")
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
@@ -1837,7 +1841,6 @@ let p x = x
 
 (* before Naming_AST.resolve can do its job *)
 let sid_TODO = -1
-
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =
@@ -1963,7 +1966,6 @@ let emptystmt t = s (Block (t, [], t))
  * pattern_to_expr, etc.
  *)
 let stmt_to_expr st = e (StmtExpr st)
-
 let empty_body = fake_bracket []
 
 let stmt1 xs =

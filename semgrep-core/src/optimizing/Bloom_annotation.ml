@@ -66,7 +66,6 @@ open AST_generic
  *)
 
 let push_list s' s = s := Set.union s' !s
-
 let push v s = s := Set.add v !s
 
 (*****************************************************************************)

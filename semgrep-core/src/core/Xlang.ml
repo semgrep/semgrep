@@ -33,9 +33,7 @@ let assoc : (string * t) list =
   @ [ ("regex", LRegex); ("generic", LGeneric) ]
 
 let map = Common.hash_of_list assoc
-
 let keys = Common2.hkeys map
-
 let supported_xlangs : string = String.concat ", " keys
 
 let unsupported_xlang_message (xlang_s : string) =

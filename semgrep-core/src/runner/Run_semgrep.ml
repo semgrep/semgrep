@@ -271,14 +271,14 @@ let parse_equivalences equivalences_file =
   [@@profiling]
 
 let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
-  with exn ->
-    raise
-      (Rule.InvalidRule
-         ( Rule.InvalidPattern
-             (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-           "no-id",
-           Parse_info.unsafe_fake_info "no loc" ))
+  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
+  | exn ->
+      raise
+        (Rule.InvalidRule
+           ( Rule.InvalidPattern
+               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
+             "no-id",
+             Parse_info.unsafe_fake_info "no loc" ))
   [@@profiling]
 
 (*****************************************************************************)
@@ -535,13 +535,14 @@ let semgrep_with_raw_results_and_exn_handler config =
     in
     let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
-  with exn when not !Flag_semgrep.fail_fast ->
-    let trace = Printexc.get_backtrace () in
-    logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
-    let res =
-      { RP.empty_final_result with errors = [ E.exn_to_error "" exn ] }
-    in
-    (Some exn, res, [])
+  with
+  | exn when not !Flag_semgrep.fail_fast ->
+      let trace = Printexc.get_backtrace () in
+      logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
+      let res =
+        { RP.empty_final_result with errors = [ E.exn_to_error "" exn ] }
+      in
+      (Some exn, res, [])
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
