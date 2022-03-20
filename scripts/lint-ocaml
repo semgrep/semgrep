@@ -22,7 +22,7 @@ eval $(opam env)
 
 required_version=0.21
 
-if version=$(ocamlformat --version > /dev/null 2>&1); then
+if version=$(ocamlformat --version); then
   if [[ "$version" =~ ^"$required_version."[0-9]+$ ]]; then
     ocamlformat --inplace --enable-outside-detected-project "$@"
   else
