@@ -104,7 +104,6 @@ type env = AST_bash.input_kind
 type stmt_or_expr = Stmt of loc * G.stmt | Expr of loc * G.expr
 
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
-
 let expr_of_stmt (st : G.stmt) : G.expr = G.stmt_to_expr st
 
 let as_stmt : stmt_or_expr -> G.stmt = function

@@ -50,7 +50,7 @@ class GitlabSastFormatter(BaseFormatter):
             "cve": "{}:{}:{}".format(
                 rule_match.path,
                 hashlib.sha256(bytes(rule_match.path)).hexdigest(),
-                rule_match.id,
+                rule_match.rule_id,
             ),
             "message": rule_match.message,
             "severity": _to_gitlab_severity(rule_match.severity),
@@ -68,9 +68,9 @@ class GitlabSastFormatter(BaseFormatter):
             "identifiers": [
                 {
                     "type": "semgrep_type",
-                    "name": f"Semgrep - {rule_match.id}",
-                    "value": rule_match.id,
-                    "url": _construct_semgrep_rule_url(rule_match.id),
+                    "name": f"Semgrep - {rule_match.rule_id}",
+                    "value": rule_match.rule_id,
+                    "url": _construct_semgrep_rule_url(rule_match.rule_id),
                 }
             ],
         }

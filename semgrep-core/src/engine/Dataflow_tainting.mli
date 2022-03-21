@@ -10,9 +10,7 @@ type deep_match =
       (** An indirect match through a function call. *)
 
 type source = deep_match
-
 type sink = deep_match
-
 type arg_pos = int
 
 type taint =
@@ -74,7 +72,7 @@ val unify_meta_envs :
   * otherwise [None]. *)
 
 val hook_function_taint_signature :
-  (config -> AST_generic.expr -> finding list) option ref
+  (config -> AST_generic.expr -> finding list option) option ref
 (** Deep Semgrep *)
 
 val fixpoint :

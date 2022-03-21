@@ -29,7 +29,7 @@ class JsonFormatter(BaseFormatter):
             extra["is_ignored"] = rule_match.is_ignored
 
         return {
-            "check_id": rule_match.id,
+            "check_id": rule_match.rule_id,
             "path": str(rule_match.path),
             "start": rule_match.start.to_dict(),
             "end": rule_match.end.to_dict(),

@@ -41,5 +41,4 @@ val supported_xlangs : string
    TODO: explain the 'id' option
 *)
 val of_string : ?id:string option -> string -> t
-
 val to_string : t -> string

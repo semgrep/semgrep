@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
 module G = AST_generic
 module MV = Metavariable
 
@@ -34,7 +35,6 @@ module MV = Metavariable
  * error location when a rule is malformed.
  *)
 type tok = AST_generic.tok [@@deriving show, eq, hash]
-
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
 
 (* To help report pattern errors in simple mode in the playground *)
@@ -264,7 +264,6 @@ and paths = {
 
 (* alias *)
 type t = rule [@@deriving show]
-
 type rules = rule list [@@deriving show]
 
 (*****************************************************************************)
@@ -276,26 +275,41 @@ type rules = rule list [@@deriving show]
  *)
 let (last_matched_rule : rule_id option ref) = ref None
 
-exception InvalidLanguage of rule_id * string * Parse_info.t
+(* Those are recoverable errors; We can just skip the rules containing
+ * those errors.
+ * less: use a record
+ * alt: put in Output_from_core.atd?
+ *)
+type invalid_rule_error = invalid_rule_error_kind * rule_id * Parse_info.t
 
-(* TODO: the Parse_info.t is not precise for now, it corresponds to the
- * start of the pattern *)
-exception
-  InvalidPattern of
-    rule_id * string * Xlang.t * string (* exn *) * Parse_info.t * string list
+and invalid_rule_error_kind =
+  | InvalidLanguage of string (* the language string *)
+  (* TODO: the Parse_info.t for InvalidPattern is not precise for now;
+   * it corresponds to the start of the pattern *)
+  | InvalidPattern of
+      string (* pattern *)
+      * Xlang.t
+      * string (* exn *)
+      * string list (* yaml path *)
+  | InvalidRegexp of string (* PCRE error message *)
+  | InvalidOther of string
 
-exception InvalidRegexp of rule_id * string * Parse_info.t
+let string_of_invalid_rule_error_kind = function
+  | InvalidLanguage language -> spf "invalid language %s" language
+  | InvalidRegexp message -> spf "invalid regex %s" message
+  (* coupling: this is actually intercepted in
+   * Semgrep_error_code.exn_to_error to generate a PatternParseError instead
+   * of a RuleParseError *)
+  | InvalidPattern (_pattern, xlang, _message, _yaml_path) ->
+      spf "Invalid pattern for %s" (Xlang.to_string xlang)
+  | InvalidOther s -> s
+
+exception InvalidRule of invalid_rule_error
 
 (* general errors *)
 exception InvalidYaml of string * Parse_info.t
-
 exception DuplicateYamlKey of string * Parse_info.t
-
-(* less: could be merged with InvalidYaml *)
-exception InvalidRule of rule_id * string * Parse_info.t
-
 exception UnparsableYamlException of string
-
 exception ExceededMemoryLimit of string
 
 (*****************************************************************************)

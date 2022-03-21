@@ -374,13 +374,13 @@ let ac_matching_nf op args =
     | _ -> [ e ]
   in
   if is_associative_operator op then (
-    try Some (nf args)
-    with Exit ->
-      logger#error
-        "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
-        (show_operator op)
-        (show_arguments (fake_bracket args));
-      None)
+    try Some (nf args) with
+    | Exit ->
+        logger#error
+          "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+          (show_operator op)
+          (show_arguments (fake_bracket args));
+        None)
   else None
 
 let undo_ac_matching_nf tok op : expr list -> expr option = function

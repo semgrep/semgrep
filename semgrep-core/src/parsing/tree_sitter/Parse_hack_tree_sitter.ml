@@ -31,15 +31,11 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 
 type mode = Pattern | Target
-
 type env = mode H.env
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
 let token = H.token
-
 let str = H.str
-
 let fk tok = Parse_info.fake_info tok ""
 
 (* Remove this function when everything is done *)
@@ -49,7 +45,7 @@ let todo (_env : env) _ = failwith "not implemented"
 
 (* Below are manual additions.
    There are more helpers in AST_generic.ml and AST_generic_helpers.ml.
- *)
+*)
 
 let empty_stmt env t =
   let t = token env t (* ";" *) in
@@ -2937,10 +2933,10 @@ let parse file =
     (fun cst ->
       let extra = Target in
       let env = { H.file; conv = H.line_col_to_pos file; extra } in
-      try script env cst
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
-        raise exn)
+      try script env cst with
+      | Failure "not implemented" as exn ->
+          H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
+          raise exn)
 
 let parse_expression_or_source_file str =
   let res = Tree_sitter_hack.Parse.string str in

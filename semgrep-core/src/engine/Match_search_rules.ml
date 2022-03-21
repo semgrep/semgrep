@@ -26,9 +26,7 @@ module E = Semgrep_error_code
 module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
 let debug_timeout = ref false
-
 let debug_matches = ref false
 
 (*****************************************************************************)
@@ -284,7 +282,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
       {
         RP.matches;
         errors;
-        skipped = [];
+        skipped_targets = [];
         profiling = { RP.parse_time; match_time };
       }
   | _ -> RP.empty_semgrep_result
@@ -356,7 +354,7 @@ let (matches_of_matcher :
         {
           RP.matches = res;
           errors = [];
-          skipped = [];
+          skipped_targets = [];
           profiling = { RP.parse_time; match_time };
         }
 
@@ -485,10 +483,11 @@ let regexp_matcher big_str file (re_str, re) =
                         let loc = { PI.str; charpos; file; line; column } in
                         let t = PI.mk_info_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t))
-                      with Not_found ->
-                        logger#debug "not found %d substring of %s in %s" n
-                          re_str matched_str;
-                        None)
+                      with
+                      | Not_found ->
+                          logger#debug "not found %d substring of %s in %s" n
+                            re_str matched_str;
+                          None)
          in
          ((loc1, loc2), env))
 
@@ -846,7 +845,8 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
   | S.Leaf (xpat, inside) ->
       let id = xpat.R.pid in
       let match_results =
-        try Hashtbl.find_all env.pattern_matches id with Not_found -> []
+        try Hashtbl.find_all env.pattern_matches id with
+        | Not_found -> []
       in
       let kind =
         match inside with
@@ -1066,6 +1066,6 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
                     let str = spf "with rule %s" rule_id in
                     hook str m.env m.tokens));
     errors = res.errors |> List.map (error_with_rule_id rule_id);
-    skipped = res.skipped;
+    skipped_targets = res.skipped_targets;
     profiling = res.profiling;
   }

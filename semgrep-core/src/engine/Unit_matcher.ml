@@ -104,8 +104,8 @@ let tests ~any_gen_of_string =
             ("foo(kwd1=$X, kwd2=$Y)", "foo(kwd2=1, kwd1=3)", true);
             (* regexp matching in strings *)
             ("foo(\"=~/a+/\")", "foo(\"aaaa\")", true);
-            ("foo(\"=~/a+/\")", "foo(\"bbbb\")", false);
-            (*      "new Foo(...);","new Foo;", true; *)
+            ("foo(\"=~/a+/\")", "foo(\"bbbb\")", false)
+            (*      "new Foo(...);","new Foo;", true; *);
           ]
         in
         triples
@@ -130,6 +130,7 @@ let tests ~any_gen_of_string =
                    Alcotest.(check bool)
                      (spf "pattern:|%s| should not match |%s" spattern scode)
                      true (matches_with_env = [])
-               with Parsing.Parse_error ->
-                 failwith (spf "problem parsing %s or %s" spattern scode)) );
+               with
+               | Parsing.Parse_error ->
+                   failwith (spf "problem parsing %s or %s" spattern scode)) );
   ]

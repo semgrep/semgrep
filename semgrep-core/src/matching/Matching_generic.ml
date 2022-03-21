@@ -96,9 +96,7 @@ and tout = tin list
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
-
 type 'a comb_result = tin -> ('a * tout) list
-
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
 (*****************************************************************************)
@@ -187,11 +185,11 @@ let or_list m a bs =
 let ( let* ) o f = o >>= f
 
 (* TODO: could maybe also define
-let (let/) o f =
-  match o with
-  | None -> fail ()
-  | Some x -> f x
-useful in Generic_vs_generic when see code like 'None -> fail()'
+   let (let/) o f =
+     match o with
+     | None -> fail ()
+     | Some x -> f x
+   useful in Generic_vs_generic when see code like 'None -> fail()'
 *)
 
 (*****************************************************************************)
@@ -416,7 +414,6 @@ let lazy_rest_of_list v =
       Lazy.force v)
 
 let return () = return
-
 let fail () = fail
 
 (* TODO: deprecate *)
@@ -626,11 +623,8 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 (* ---------------------------------------------------------------------- *)
 
 let m_eq a b = if a = b then return () else fail ()
-
 let m_bool a b = if a = b then return () else fail ()
-
 let m_int a b = if a =|= b then return () else fail ()
-
 let m_string a b = if a =$= b then return () else fail ()
 
 (* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.
@@ -659,7 +653,6 @@ let m_filepath_prefix a b =
  * so we can just  'return ()'
  *)
 let m_info _a _b = return ()
-
 let m_tok a b = m_info a b
 
 let m_wrap f a b =
@@ -703,10 +696,11 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         in
         let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
         (s, info)
-      with Not_found ->
-        logger#error "could not find %s in %s" s raw_str;
-        (* return original token ... better than failwith? *)
-        (s, info))
+      with
+      | Not_found ->
+          logger#error "could not find %s in %s" s raw_str;
+          (* return original token ... better than failwith? *)
+          (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket

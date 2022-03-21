@@ -23,7 +23,6 @@ module MV = Metavariable
 module RP = Report
 open Pattern_match
 module ST = Output_from_core_t (* atdgen definitions *)
-
 module SJ = Output_from_core_j (* JSON conversions *)
 
 (*****************************************************************************)
@@ -61,11 +60,19 @@ let unique_id any =
 (* JSON *)
 (*****************************************************************************)
 
-let position_range min_loc max_loc =
-  (* pfff (and Emacs) have the first column at index 0, but not r2c *)
-  let adjust_column x = x + 1 in
+(* pfff (and Emacs) have the first column at index 0, but not r2c *)
+let adjust_column x = x + 1
 
+let position_of_token_location loc =
+  {
+    ST.line = loc.PI.line;
+    col = adjust_column loc.PI.column;
+    offset = loc.PI.charpos;
+  }
+
+let position_range min_loc max_loc =
   let len_max = String.length max_loc.PI.str in
+  (* alt: could call position_of_token_location but more symetric like that*)
   ( {
       ST.line = min_loc.PI.line;
       col = adjust_column min_loc.PI.column;
@@ -139,13 +146,14 @@ let match_to_match x =
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
-  with Parse_info.NoTokenLocation s ->
-    let loc = Parse_info.first_loc_of_file x.file in
-    let s =
-      spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
-    in
-    let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
-    Right err
+  with
+  | Parse_info.NoTokenLocation s ->
+      let loc = Parse_info.first_loc_of_file x.file in
+      let s =
+        spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
+      in
+      let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
+      Right err
   [@@profiling]
 
 (* was in pfff/h_program-lang/R2c.ml becore *)
@@ -153,7 +161,8 @@ let hcache = Hashtbl.create 101
 
 let lines_of_file (file : Common.filename) : string array =
   Common.memoized hcache file (fun () ->
-      try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
+      try Common.cat file |> Array.of_list with
+      | _ -> [| "EMPTY FILE" |])
 
 let error_to_error err =
   let severity_of_severity = function
@@ -179,7 +188,9 @@ let error_to_error err =
         path = file;
         start = startp;
         end_ = endp;
-        lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
+        lines =
+          (try [ lines.(line - 1) ] with
+          | _ -> [ "NO LINE" ]);
       };
     message;
     details;
@@ -220,7 +231,20 @@ let match_results_of_matches_and_errors files res =
   {
     ST.matches;
     errors = errs |> List.map error_to_error;
-    skipped = res.RP.skipped;
+    skipped_targets = res.RP.skipped_targets;
+    skipped_rules =
+      (match res.RP.skipped_rules with
+      | [] -> None
+      | xs ->
+          Some
+            (xs
+            |> List.map (fun (kind, rule_id, tk) ->
+                   let loc = PI.unsafe_token_location_of_info tk in
+                   {
+                     ST.rule_id;
+                     details = Rule.string_of_invalid_rule_error_kind kind;
+                     position = position_of_token_location loc;
+                   })));
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.final_profiling |> Option.map json_time_of_profiling_data;
   }

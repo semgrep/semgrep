@@ -11,11 +11,8 @@
      Trace_matching.(if on then print_expr_pair a b);
 *)
 val on : bool
-
 val print_pair : string -> ('a -> OCaml.v) -> 'a -> 'a -> unit
-
 val print_literal_pair : AST_generic.literal -> AST_generic.literal -> unit
-
 val print_type_pair : AST_generic.type_ -> AST_generic.type_ -> unit
 
 val print_arithmetic_operator_pair :
@@ -34,5 +31,4 @@ val print_directive_pair :
   AST_generic.directive -> AST_generic.directive -> unit
 
 val print_expr_pair : AST_generic.expr -> AST_generic.expr -> unit
-
 val print_stmt_pair : AST_generic.stmt -> AST_generic.stmt -> unit

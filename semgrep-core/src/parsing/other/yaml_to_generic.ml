@@ -67,7 +67,6 @@ type env = {
 exception UnrecognizedAlias of Parse_info.t
 
 let sgrep_ellipses_inline = "__sgrep_ellipses__"
-
 let sgrep_ellipses = "__sgrep_ellipses__: __sgrep_ellipses__"
 
 let p_token = function
@@ -135,7 +134,6 @@ let mk_id str pos env = G.Id ((str, mk_tok pos "" env), G.empty_id_info ())
 (*****************************************************************************)
 
 exception ImpossibleDots
-
 exception UnreachableList
 
 let error str v pos env =
@@ -233,8 +231,8 @@ let scalar (_tag, pos, value) env : G.expr * E.pos =
       | ".NAN" ->
           G.L (G.Float (Some nan, token))
       | _ -> (
-          try G.L (G.Float (Some (float_of_string value), token))
-          with _ -> G.L (G.String (value, token))))
+          try G.L (G.Float (Some (float_of_string value), token)) with
+          | _ -> G.L (G.String (value, token))))
       |> G.e
     in
     (expr, pos)
@@ -296,9 +294,9 @@ let parse (env : env) : G.expr list =
     in
     match res with
     | E.Alias { anchor }, pos -> (
-        try make_alias anchor pos env
-        with UnrecognizedAlias _ ->
-          (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
+        try make_alias anchor pos env with
+        | UnrecognizedAlias _ ->
+            (error "Unrecognized alias" (E.Alias { anchor }) pos env, pos))
     | E.Scalar { anchor; tag; value; _ }, pos ->
         make_node scalar anchor (tag, pos, value) env
     | E.Sequence_start { anchor; tag; _ }, pos ->
@@ -377,10 +375,10 @@ let union_whitespace e_sp w_sp =
   String.mapi check_esp w_sp
 
 (* Ellipses will not be immediately replaced in the case of  *
-  * ...                                                      *
-  * - foo                                                    *
-  * so when '- foo' has been read we check for whether there *
-  * is an ellipsis that can now be resolved                  *)
+   * ...                                                      *
+   * - foo                                                    *
+   * so when '- foo' has been read we check for whether there *
+   * is an ellipsis that can now be resolved *)
 let convert_leftover_ellipses (prev_space_len, prev_space) ~is_line ellipses =
   let rec convert_ellipses ellipses =
     match ellipses with

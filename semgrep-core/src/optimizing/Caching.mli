@@ -13,15 +13,12 @@ val prepare_pattern : AST_generic.any -> unit
 (* Exposes just the special-purpose types required to create the cache key. *)
 module Cache_key : sig
   type function_id = Match_deep | Match_list
-
   type list_kind = Original | Flattened_until of AST_utils.Node_ID.t
 end
 
 module Cache : sig
   type 'a t
-
   type pattern = AST_generic.stmt list
-
   type target = AST_generic.stmt list
 
   type 'a access = {

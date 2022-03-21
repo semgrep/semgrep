@@ -393,7 +393,7 @@ class Target:
         return frozenset(
             match
             for match in self.path.glob("**/*")
-            if not match.is_dir() and match.is_file()
+            if match.is_file() and not match.is_symlink()
         )
 
     @lru_cache(maxsize=None)

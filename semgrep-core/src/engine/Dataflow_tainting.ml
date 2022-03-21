@@ -40,9 +40,7 @@ let ( let* ) = Option.bind
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
-
   type edge = F.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
@@ -53,13 +51,9 @@ end)
 (*****************************************************************************)
 
 type var = Dataflow_core.var
-
 type deep_match = PM of Pattern_match.t | Call of G.expr * deep_match
-
 type source = deep_match
-
 type sink = deep_match
-
 type arg_pos = int
 
 type finding =
@@ -142,9 +136,7 @@ let rec pm_of_dm = function
   | Call (_, dm) -> pm_of_dm dm
 
 let dm_of_pm pm = PM pm
-
 let src_of_pm pm = Src (PM pm)
-
 let taint_of_pms pms = pms |> List.map src_of_pm |> Taint.of_list
 
 (* Debug *)
@@ -165,11 +157,8 @@ let _show_env =
   env_to_str show_tainted
 
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
-
 let orig_is_source config orig = config.is_source (any_of_orig orig)
-
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
-
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
 
 let report_findings env findings =
@@ -327,36 +316,42 @@ let check_function_signature env fun_exp args_taint =
                     id_info =
                       {
                         G.id_resolved =
-                          { contents = Some (G.ImportedEntity _, _) };
+                          {
+                            contents =
+                              Some ((G.ImportedEntity _ | G.ResolvedName _), _);
+                          };
                         _;
                       };
                     _;
                   };
-              offset = Dot _;
+              offset = _;
               _;
             };
         eorig = SameAs eorig;
         _;
       } ) ->
-      let fun_sig = hook env.config eorig in
-      fun_sig
-      |> List.filter_map (function
-           | SrcToReturn dm ->
-               let dm = Call (eorig, dm) in
-               Some (Taint.singleton (Src dm))
-           | ArgToReturn i -> taint_of_arg i
-           | ArgToSink (i, sink) ->
-               let* arg_taint = taint_of_arg i in
-               arg_taint
-               |> Taint.iter (fun t ->
-                      findings_of_tainted_sink (Taint.singleton t) sink
-                      |> report_findings env);
-               None
-           | _ -> None)
-      |> List.fold_left Taint.union Taint.empty
+      let* fun_sig = hook env.config eorig in
+      Some
+        (fun_sig
+        |> List.filter_map (function
+             | SrcToReturn dm ->
+                 let dm = Call (eorig, dm) in
+                 Some (Taint.singleton (Src dm))
+             | ArgToReturn i -> taint_of_arg i
+             | ArgToSink (i, sink) ->
+                 let sink = Call (eorig, sink) in
+                 let* arg_taint = taint_of_arg i in
+                 arg_taint
+                 |> Taint.iter (fun t ->
+                        findings_of_tainted_sink (Taint.singleton t) sink
+                        |> report_findings env);
+                 None
+             (* THINK: Should we report something here? *)
+             | SrcToSink _ -> None)
+        |> List.fold_left Taint.union Taint.empty)
   | None, _
   | Some _, _ ->
-      Taint.empty
+      None
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -368,12 +363,16 @@ let check_tainted_instr env instr : Taint.t =
   let check_instr = function
     | Assign (_, e) -> check_expr e
     | AssignAnon _ -> Taint.empty (* TODO *)
-    | Call (_, e, args) ->
+    | Call (_, e, args) -> (
         let e_taint = check_expr e in
         let args_taint = List.map check_expr args in
-        List.fold_left Taint.union Taint.empty args_taint
-        |> Taint.union e_taint
-        |> Taint.union (check_function_signature env e args_taint)
+        match check_function_signature env e args_taint with
+        | Some call_taint -> call_taint
+        | None ->
+            (* Default is to assume that the function will propagate
+             * the taint of its arguments. *)
+            List.fold_left Taint.union Taint.empty args_taint
+            |> Taint.union e_taint)
     | CallSpecial (_, _, args) -> union_map check_expr args
     | FixmeInstr _ -> Taint.empty
   in
@@ -501,7 +500,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq:Taint.equal ~init:init_mapping
-    ~trans:
-      (transfer config fun_env enter_env opt_name ~flow)
+    ~trans:(transfer config fun_env enter_env opt_name ~flow)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

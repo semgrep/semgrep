@@ -36,21 +36,13 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let bool = id
-
 let string = id
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let fb = G.fake_bracket
-
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
 (*****************************************************************************)
@@ -58,7 +50,6 @@ let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -66,7 +57,6 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let ident x = wrap string x
 
 let rec expr e =

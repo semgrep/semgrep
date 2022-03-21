@@ -1444,9 +1444,10 @@ let parse file =
         match map_source env cst with
         | G.Pr xs -> xs
         | _ -> failwith "not a program"
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_source cst);
-        raise exn)
+      with
+      | Failure "not implemented" as exn ->
+          H.debug_sexp_cst_after_error (CST.sexp_of_source cst);
+          raise exn)
 
 let parse_pattern str =
   H.wrap_parser

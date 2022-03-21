@@ -22,7 +22,6 @@ type ts_tok = Tree_sitter_run.Token.t
 type env = AST_bash.input_kind H.env
 
 let token = H.token
-
 let str = H.str
 
 (* This is used where we incorrectly support an ellipsis instead of
@@ -184,7 +183,6 @@ let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
   | `AMP tok -> (Background, token env tok (* "&" *))
 
 let empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
-
 let file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
 
 (* file_descriptor *)
@@ -236,7 +234,6 @@ let raw_string (env : env) (tok : CST.raw_string) : string wrap =
   str env tok
 
 let regex (env : env) (tok : CST.regex) = token env tok
-
 let heredoc_body_end (env : env) (tok : CST.heredoc_body_end) = token env tok
 
 let heredoc_body_middle (env : env) (tok : CST.heredoc_body_middle) =

@@ -14,7 +14,9 @@ class EmacsFormatter(BaseFormatter):
     @staticmethod
     def _get_parts(rule_match: RuleMatch) -> Sequence[str]:
         check_id = (
-            rule_match.id.split(".")[-1] if rule_match.id != CLI_RULE_ID else None
+            rule_match.rule_id.split(".")[-1]
+            if rule_match.rule_id != CLI_RULE_ID
+            else None
         )
         match_severity = rule_match.severity.value.lower()
         severity = match_severity + f"({check_id})" if check_id else match_severity
@@ -34,5 +36,5 @@ class EmacsFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         extra: Mapping[str, Any],
     ) -> str:
-        sorted_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+        sorted_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
         return "\n".join(":".join(self._get_parts(rm)) for rm in sorted_matches)

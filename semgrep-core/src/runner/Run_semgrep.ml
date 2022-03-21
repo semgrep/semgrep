@@ -271,16 +271,14 @@ let parse_equivalences equivalences_file =
   [@@profiling]
 
 let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
-  with exn ->
-    raise
-      (Rule.InvalidPattern
-         ( "no-id",
-           str,
-           Xlang.of_lang lang_pattern,
-           Common.exn_to_s exn,
-           Parse_info.unsafe_fake_info "no loc",
-           [] ))
+  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
+  | exn ->
+      raise
+        (Rule.InvalidRule
+           ( Rule.InvalidPattern
+               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
+             "no-id",
+             Parse_info.unsafe_fake_info "no loc" ))
   [@@profiling]
 
 (*****************************************************************************)
@@ -342,7 +340,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                                E.OutOfMemory
                            | _ -> raise Impossible);
                        ];
-                     skipped = [];
+                     skipped_targets = [];
                      profiling = RP.empty_partial_profiling file;
                    }
                (* those were converted in Main_timeout in timeout_function()*)
@@ -351,7 +349,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                    {
                      RP.matches = [];
                      errors = [ exn_to_error file exn ];
-                     skipped = [];
+                     skipped_targets = [];
                      profiling = RP.empty_partial_profiling file;
                    })
          in
@@ -454,7 +452,13 @@ let targets_of_config (config : Runner_config.t)
  * It takes a set of rules and a set of targets and
  * recursively process those targets.
  *)
-let semgrep_with_rules config (rules, rules_parse_time) =
+let semgrep_with_rules config ((rules, skipped_rules), rules_parse_time) =
+  (* if there are no rules but just skipped rules, better to return an exn *)
+  (match (rules, skipped_rules) with
+  | [], [] -> ()
+  | [], err :: _ -> raise (Rule.InvalidRule err)
+  | _ -> ());
+
   let rule_table = mk_rule_table rules in
   let targets, skipped =
     targets_of_config config (List.map (fun r -> fst r.R.id) rules)
@@ -493,9 +497,10 @@ let semgrep_with_rules config (rules, rules_parse_time) =
   let res =
     RP.make_final_result file_results rules config.report_time rules_parse_time
   in
-  let res = { res with skipped = skipped @ res.skipped } in
+  let res = { res with skipped_targets = skipped @ res.skipped_targets } in
   logger#info "found %d matches, %d errors, %d skipped targets"
-    (List.length res.matches) (List.length res.errors) (List.length res.skipped);
+    (List.length res.matches) (List.length res.errors)
+    (List.length res.skipped_targets);
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
       config.max_match_per_file res.matches
@@ -504,9 +509,15 @@ let semgrep_with_rules config (rules, rules_parse_time) =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
-  let skipped = new_skipped @ res.skipped in
+  let skipped_targets = new_skipped @ res.skipped_targets in
   let errors = new_errors @ res.errors in
-  ( { RP.matches; errors; skipped; final_profiling = res.RP.final_profiling },
+  ( {
+      RP.matches;
+      errors;
+      skipped_targets;
+      skipped_rules;
+      final_profiling = res.RP.final_profiling;
+    },
     targets |> List.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
@@ -519,22 +530,19 @@ let semgrep_with_raw_results_and_exn_handler config =
     logger#linfo
       (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
     let timed_rules =
-      Common.with_time (fun () -> Parse_rule.parse rules_file)
+      Common.with_time (fun () ->
+          Parse_rule.parse_and_filter_invalid_rules rules_file)
     in
     let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
-  with exn when not !Flag_semgrep.fail_fast ->
-    let trace = Printexc.get_backtrace () in
-    logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
-    let res =
-      {
-        RP.matches = [];
-        errors = [ E.exn_to_error "" exn ];
-        skipped = [];
-        final_profiling = None;
-      }
-    in
-    (Some exn, res, [])
+  with
+  | exn when not !Flag_semgrep.fail_fast ->
+      let trace = Printexc.get_backtrace () in
+      logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
+      let res =
+        { RP.empty_final_result with errors = [ E.exn_to_error "" exn ] }
+      in
+      (Some exn, res, [])
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
@@ -630,10 +638,11 @@ let semgrep_with_one_pattern config =
   match config.output_format with
   | Json ->
       let rule, rules_parse_time =
-        Common.with_time (fun () ->
-            [ rule_of_pattern lang pattern_string pattern ])
+        Common.with_time (fun () -> rule_of_pattern lang pattern_string pattern)
       in
-      let res, files = semgrep_with_rules config (rule, rules_parse_time) in
+      let res, files =
+        semgrep_with_rules config (([ rule ], []), rules_parse_time)
+      in
       let json = JSON_report.match_results_of_matches_and_errors files res in
       let s = Out.string_of_match_results json in
       pr s

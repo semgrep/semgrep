@@ -17,7 +17,6 @@ open AST_generic
 module G = AST_generic
 
 exception InvalidSubstitution
-
 exception UnsupportedTargetType
 
 (*****************************************************************************)
@@ -60,9 +59,7 @@ type env = {
  * as well as instructions for where to put it back                           *
  *)
 type replacement_info = stage * ((any -> any) -> any -> any)
-
 type pattern_instr = env * any * replacement_info list
-
 type pattern_instrs = pattern_instr list
 
 let global_lang = ref Lang.Ocaml
@@ -121,11 +118,8 @@ let lookup env e =
   look mapping
 
 let fk = Parse_info.unsafe_fake_info "fake"
-
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
-
 let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
-
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
 let default_id str =
@@ -171,14 +165,12 @@ let get_id env e =
 (*****************************************************************************)
 
 let replace_sk stmt s_kind = { stmt with s = s_kind }
-
 let add_pattern s pattern = Set.add (p_any pattern) s
 
 let add_patterns s patterns =
   List.fold_left (fun s' (_, pattern, _) -> add_pattern s' pattern) s patterns
 
 let lookup_pattern pattern s = Set.mem (p_any pattern) s
-
 let set_prev env prev' = { env with prev = prev' }
 
 (* Tranposes a list of lists, must be rectangular. *)

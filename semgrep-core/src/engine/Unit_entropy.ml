@@ -5,9 +5,7 @@
 open Printf
 
 let entropy_threshold = 64.
-
 let density_threshold = 0.6
-
 let low_entropy_strings = [ ""; "a"; "ab"; "!@"; "change"; "1234" ]
 
 let high_entropy_strings =
@@ -18,8 +16,7 @@ let high_entropy_strings =
     (* same, Base64 *)
     "4d616e792068616e6473206d616b65206c6967687420776f726b2e0a";
     (* same, hex *)
-    "4d616e792068616e";
-    (* 64 bits, hex-encoded *)
+    "4d616e792068616e" (* 64 bits, hex-encoded *);
   ]
 
 let low_density_strings =
@@ -34,8 +31,7 @@ let high_density_strings =
     "TWFueSBoYW5kcyBtYWtlIGxpZ2h0IHdvcmsuCg==";
     "4d616e792068616e6473206d616b65206c6967687420776f726b2e0a";
     (* same, hex *)
-    "4d616e792068616e";
-    (* 64 bits *)
+    "4d616e792068616e" (* 64 bits *);
   ]
 
 let low_score_strings =

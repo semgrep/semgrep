@@ -1,6 +1,7 @@
 (* Yoann Padioleau
+ * Iago Abal
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,6 +14,7 @@
  * license.txt for more details.
  *)
 open AST_generic
+module G = AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
 
@@ -84,6 +86,13 @@ let default_lr_stats () = { lvalue = ref 0; rvalue = ref 0 }
 type var_stats = (var, lr_stats) Hashtbl.t
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let ( let* ) o f = Option.bind o f
+let ( let/ ) o f = Option.iter f o
+
+(*****************************************************************************)
 (* Environment Helpers *)
 (*****************************************************************************)
 
@@ -101,6 +110,7 @@ let add_constant_env ident (sid, svalue) env =
   match svalue with
   | Lit _
   | Cst _ ->
+      logger#trace "adding constant in env %s" (H.str_of_ident ident);
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
   | Sym _
   | NotCst ->
@@ -131,8 +141,6 @@ let deep_constant_propagation_and_evaluate_literal x =
  * For that we may need to add `e_svalue` to AST_generic.expr and fill it in
  * during constant-propagation.
  *)
-
-let ( let* ) = Option.bind
 
 let fold_args1 f args =
   match args with
@@ -200,6 +208,12 @@ let rec eval env x : svalue option =
   | N (Id (_, { id_svalue = { contents = Some x }; _ }))
   | DotAccess
       ( { e = IdSpecial (This, _); _ },
+        _,
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
+      Some x
+  (* ugly: terraform specific. less: should require lang = Hcl *)
+  | DotAccess
+      ( { e = N (Id ((("local" | "var"), _), _)); _ },
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
@@ -279,11 +293,11 @@ let constant_propagation_and_evaluate_literal ?lang =
 let var_stats prog : var_stats =
   let h = Hashtbl.create 101 in
   let get_stat_or_create var h =
-    try Hashtbl.find h var
-    with Not_found ->
-      let stat = default_lr_stats () in
-      Hashtbl.add h var stat;
-      stat
+    try Hashtbl.find h var with
+    | Not_found ->
+        let stat = default_lr_stats () in
+        Hashtbl.add h var stat;
+        stat
   in
 
   let hooks =
@@ -375,12 +389,122 @@ let var_stats prog : var_stats =
   h
 
 (*****************************************************************************)
+(* Terraform hardcoded semantic *)
+(*****************************************************************************)
+(* ugly: In Terraform/HCL, locals and variables are introduced in a weird way
+ * as in 'locals { foo = 1 }' or 'variable "foo" { default = 1 }'. They
+ * are also used in weird way, as in 'local.foo' or 'var.foo'.
+ *
+ * We could modify Parse_hcl_tree_sitter.ml to transform those blocks
+ * in VarDef, and the dotted access to 'local' and 'var' in direct
+ * access, but some people may want to write patterns to match explicitely
+ * those blocks or dotted access. Thus, it is maybe better to keep the code
+ * as is but perform extra work just for Terraform in the constant
+ * propagation analysis.
+ * alt: modify Parse_hcl_tree_sitter.ml
+ *
+ * For more information on terraform locals and variables semantic
+ * see https://www.terraform.io/language/values
+ *)
+
+let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
+ fun st ->
+  match st.s with
+  (* coupling: reverse of Parse_hcl_tree_sitter.map_block *)
+  (* ex: locals { foo = 1, bar = 2 } *)
+  | ExprStmt
+      ( {
+          e =
+            Call
+              ( { e = IdSpecial (New, _); _ },
+                ( _,
+                  [
+                    Arg { e = N (Id (("locals", _), _)); _ };
+                    Arg { e = Record (_, xs, _); _ };
+                  ],
+                  _ ) );
+          _;
+        },
+        _ ) ->
+      xs
+      |> Common.map_filter (function
+           | F
+               {
+                 s =
+                   DefStmt
+                     ( {
+                         name = EN (Id ((str, tk), _idinfo));
+                         attrs = [];
+                         tparams = [];
+                       },
+                       VarDef { vinit = Some v; vtype = None } );
+                 _;
+               } ->
+               Some (("local." ^ str, tk), v)
+           | _ -> None)
+  (* ex: variable "foo" { ... default = 1 } *)
+  | ExprStmt
+      ( {
+          e =
+            Call
+              ( { e = IdSpecial (New, _); _ },
+                ( _,
+                  [
+                    Arg { e = N (Id (("variable", _), _)); _ };
+                    Arg { e = L (String id); _ };
+                    Arg { e = Record (_, xs, _); _ };
+                  ],
+                  _ ) );
+          _;
+        },
+        _ ) ->
+      xs
+      |> Common.map_filter (function
+           | F
+               {
+                 s =
+                   DefStmt
+                     ( {
+                         name = EN (Id (("default", _tk), _idinfo));
+                         attrs = [];
+                         tparams = [];
+                       },
+                       VarDef { vinit = Some v; vtype = None } );
+                 _;
+               } ->
+               let str, tk = id in
+               Some (("var." ^ str, tk), v)
+           | _ -> None)
+  | _ -> []
+
+(* the sid does not matter here, there is no nested scope in terraform,
+ * no shadowing, and we prefix with var. and local. so there is no
+ * ambiguity and name clash.
+ *)
+let terraform_sid = 0
+
+let add_special_constants env lang prog =
+  if lang = Lang.Hcl then
+    let vars = prog |> List.map terraform_stmt_to_vardefs |> List.flatten in
+    vars
+    |> List.iter (fun (id, v) ->
+           match v.e with
+           | L literal ->
+               logger#trace "adding special terraform constant for %s" (fst id);
+               add_constant_env id (terraform_sid, Lit literal) env
+           | _ -> ())
+  else ()
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
   let env = default_env (Some lang) in
+
+  (* right now this is used only for Terraform *)
+  add_special_constants env lang prog;
 
   (* step1: first pass const analysis for languages without 'const/final' *)
   let stats = var_stats prog in
@@ -421,15 +545,24 @@ let propagate_basic lang prog =
       V.kexpr =
         (fun (k, v) x ->
           match x.e with
-          | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
-              match find_id env id id_info with
-              | Some svalue -> id_info.id_svalue := Some svalue
-              | _ -> ())
+          | N (Id (id, id_info)) when not !(env.in_lvalue) ->
+              let/ svalue = find_id env id id_info in
+              id_info.id_svalue := Some svalue
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
-            when not !(env.in_lvalue) -> (
-              match find_id env id id_info with
-              | Some svalue -> id_info.id_svalue := Some svalue
-              | _ -> ())
+            when not !(env.in_lvalue) ->
+              let/ svalue = find_id env id id_info in
+              id_info.id_svalue := Some svalue
+          (* ugly: terraform specific.
+           * coupling: with eval() above
+           *)
+          | DotAccess
+              ( { e = N (Id (((("local" | "var") as prefix), _), _)); _ },
+                _,
+                FN (Id ((str, _tk), id_info)) )
+            when lang = Lang.Hcl && not !(env.in_lvalue) ->
+              let var = (prefix ^ "." ^ str, terraform_sid) in
+              let/ svalue = Hashtbl.find_opt env.constants var in
+              id_info.id_svalue := Some svalue
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
               Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
