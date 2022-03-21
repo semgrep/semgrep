@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
+- SARIF output will include matching code snippet (#4812)
 - Semgrep should now be more tolerant to rules using futur extensions by
   skipping those rules instead of just crashing (#4835)
 - Removed `tests` from published python wheel
@@ -38,9 +39,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
 - When scanning multiple languages,
   Semgrep will now print a table of how many rules and files are used for each language.
-- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
-  with `--gitlab-sast` and `--gitlab-secrets`.
-- change in sarif output to include matching code as well
 
 ### Fixed
 
