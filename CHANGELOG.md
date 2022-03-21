@@ -25,6 +25,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- Entropy analysis: strings made of repeated characters such as
+  `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
 - Symlinks found in directories are skipped from being scanned again.
   This is a fix for a regression introduced in 0.85.0.
 
