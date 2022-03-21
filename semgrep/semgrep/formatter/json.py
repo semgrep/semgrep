@@ -17,6 +17,7 @@ class JsonFormatter(BaseFormatter):
         extra["message"] = rule_match.message
         extra["metadata"] = rule_match.metadata
         extra["severity"] = rule_match.severity.value
+        extra["fingerprint"] = rule_match.syntactic_id
 
         # 'lines' already contains '\n' at the end of each line
         extra["lines"] = "".join(rule_match.lines).rstrip()

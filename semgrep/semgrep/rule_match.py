@@ -169,7 +169,7 @@ class RuleMatch:
         when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
         and thus CI systems don't retrigger notifications.
         """
-        code = "\n".join(self.lines)
+        code = "".join(self.lines)
         code = textwrap.dedent(code)
         code = NOSEM_INLINE_COMMENT_RE.sub("", code)
         code = code.strip()
@@ -186,7 +186,7 @@ class RuleMatch:
         """
         return (
             self.rule_id,
-            self.path,
+            str(self.path),
             self.start.offset,
             self.end.offset,
             self.message,
@@ -211,7 +211,11 @@ class RuleMatch:
 
         This key was originally implemented in and ported from semgrep-agent.
         """
-        return (self.rule_id, self.path, self.syntactic_context, self.index)
+        try:
+            path = self.path.relative_to(Path.cwd())
+        except ValueError:
+            path = self.path
+        return (self.rule_id, str(path), self.syntactic_context, self.index)
 
     @ordering_key.default
     def get_ordering_key(self) -> Tuple:

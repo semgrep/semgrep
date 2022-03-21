@@ -16,6 +16,7 @@
         "offset": 5
       },
       "extra": {
+        "fingerprint": "bab0d8ec2f9b054bf7b47d874b9974aa",
         "is_ignored": false,
         "lines": "b + a",
         "message": "a",
@@ -37,6 +38,7 @@
         "offset": 1
       },
       "extra": {
+        "fingerprint": "f57b97f7747399c94b4dd2a6f875f81b",
         "is_ignored": false,
         "lines": "a",
         "message": "a",
