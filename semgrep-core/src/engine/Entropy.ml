@@ -128,7 +128,25 @@ let entropy_from_trigrams s =
       e := !e +. get_substring_entropy sub);
   !e
 
-let entropy s = entropy_from_trigrams s
+(*
+   This test is useful for long chains of the same character such
+   as "xxxxxxxxxxxxxxxxxxxxxxx".
+   Shorter strings have low entropy anyway.
+
+   This works only with ascii characters but that's probably good enough.
+*)
+let is_repeated_char s =
+  if s = "" then false
+  else
+    let c0 = s.[0] in
+    try
+      String.iter (fun c -> if c <> c0 then raise Exit) s;
+      true
+    with Exit -> false
+
+let entropy s =
+  if is_repeated_char s then (* somewhat arbitrary low entropy *) 1.
+  else entropy_from_trigrams s
 
 let entropy_data s =
   let ent = entropy s in

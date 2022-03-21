@@ -50,6 +50,8 @@ let low_score_strings =
     "password123";
     "someReallyLongComplicatedObjectiveCMethodName";
     "{$variable.someProperty}";
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
     (* grey zone *)
     "ringerringerringerringerringerringerringerringerringerringerringer";
     "Many hands make light work.";
