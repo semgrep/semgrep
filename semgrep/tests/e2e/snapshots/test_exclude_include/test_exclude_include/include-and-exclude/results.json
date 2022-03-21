@@ -15,6 +15,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "395a34206b746ba9e3a07b4dbf01a7dc",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",
