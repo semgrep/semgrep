@@ -20,6 +20,9 @@
                 "region": {
                   "endColumn": 26,
                   "endLine": 2,
+                  "snippet": {
+                    "text": "    return a + b == a + b  # nosemgrep: rules.eqeq-is-bad"
+                  },
                   "startColumn": 12,
                   "startLine": 2
                 }
