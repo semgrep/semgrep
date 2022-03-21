@@ -3,6 +3,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Iterable
+from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -21,6 +22,8 @@ from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.rule import Rule
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.semgrep_app import ScanHandler
 from semgrep.types import MetricsState
 from semgrep.util import set_flags
@@ -110,6 +113,7 @@ def ci(
     metadata = {"repository": "returntocorp/semgrep"}
 
     try:
+        logger.info("Fetching configuration from semgrep.dev")
         scan_handler.start_scan(metadata)
     except Exception as e:
         logger.info(f"Failed to start scan so exiting...")
@@ -128,6 +132,9 @@ def ci(
         *exclude,
         *yield_exclude_paths(scan_handler.ignore_patterns),
     )
+    logger.info(
+        f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
+    )
 
     output_settings = OutputSettings(
         output_format=OutputFormat.TEXT,
@@ -139,60 +146,43 @@ def ci(
         output_per_line_max_chars_limit=max_chars_per_line,
     )
     output_handler = OutputHandler(output_settings)
+    start = time.time()
 
     try:
-        start = time.time()
-
-        try:
-            (
-                filtered_matches_by_rule,
-                semgrep_errors,
-                all_targets,
-                ignore_log,
-                filtered_rules,
-                profiler,
-                profiling_data,
-                shown_severities,
-            ) = semgrep.semgrep_main.main(
-                output_handler=output_handler,
-                target=[os.curdir],  # semgrep ci only scans cwd
-                pattern=None,
-                lang=None,
-                configs=(scan_handler.scan_rules_url,),
-                no_rewrite_rule_ids=(not rewrite_rule_ids),
-                jobs=jobs,
-                include=include,
-                exclude=exclude,
-                max_target_bytes=max_target_bytes,
-                autofix=autofix,
-                dryrun=dryrun,
-                disable_nosem=(not enable_nosem),
-                no_git_ignore=(not use_git_ignore),
-                timeout=timeout,
-                max_memory=max_memory,
-                timeout_threshold=timeout_threshold,
-                skip_unknown_extensions=(not scan_unknown_extensions),
-                optimizations=optimizations,
-                baseline_commit=baseline_commit,
-            )
-        except SemgrepError as e:
-            output_handler.handle_semgrep_errors([e])
-            output_handler.output({}, all_targets=set(), filtered_rules=[])
-            raise e
-
-        total_time = time.time() - start
-
-        output_handler.output(
+        (
             filtered_matches_by_rule,
-            all_targets=all_targets,
-            ignore_log=ignore_log,
-            profiler=profiler,
-            filtered_rules=filtered_rules,
-            profiling_data=profiling_data,
-            severities=shown_severities,
+            semgrep_errors,
+            all_targets,
+            ignore_log,
+            filtered_rules,
+            profiler,
+            profiling_data,
+            shown_severities,
+        ) = semgrep.semgrep_main.main(
+            output_handler=output_handler,
+            target=[os.curdir],  # semgrep ci only scans cwd
+            pattern=None,
+            lang=None,
+            configs=(scan_handler.scan_rules_url,),
+            no_rewrite_rule_ids=(not rewrite_rule_ids),
+            jobs=jobs,
+            include=include,
+            exclude=exclude,
+            max_target_bytes=max_target_bytes,
+            autofix=autofix,
+            dryrun=dryrun,
+            disable_nosem=(not enable_nosem),
+            no_git_ignore=(not use_git_ignore),
+            timeout=timeout,
+            max_memory=max_memory,
+            timeout_threshold=timeout_threshold,
+            skip_unknown_extensions=(not scan_unknown_extensions),
+            optimizations=optimizations,
+            baseline_commit=baseline_commit,
         )
-
-    except Exception as e:
+    except SemgrepError as e:
+        output_handler.handle_semgrep_errors([e])
+        output_handler.output({}, all_targets=set(), filtered_rules=[])
         logger.info(f"Encountered error when running rules: {e}")
         if isinstance(e, SemgrepError):
             exit_code = e.code
@@ -205,6 +195,53 @@ def ci(
             )
         sys.exit(exit_code)
 
+    total_time = time.time() - start
+
+    # Split up rules into respective categories:
+    blocking_rules: List[Rule] = []
+    nonblocking_rules: List[Rule] = []
+    cai_rules: List[Rule] = []
+    for rule in filtered_rules:
+        if rule.is_blocking:
+            blocking_rules.append(rule)
+        else:
+            if "r2c-internal-cai" in rule.id:
+                cai_rules.append(rule)
+            else:
+                nonblocking_rules.append(rule)
+
+    # Split up matches into respective categories
+    blocking_matches_by_rule: RuleMatchMap = {}
+    nonblocking_matches_by_rule: RuleMatchMap = {}
+    cai_matches_by_rule: RuleMatchMap = {}
+    for k, v in filtered_matches_by_rule.items():
+        if k.is_blocking:
+            blocking_matches_by_rule[k] = v
+        else:
+            if "r2c-internal-cai" in k.id:
+                cai_matches_by_rule[k] = v
+            else:
+                nonblocking_matches_by_rule[k] = v
+
+    num_cai_findings = sum(len(v) for v in cai_matches_by_rule.values())
+    num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
+
+    output_handler.output(
+        blocking_matches_by_rule,
+        all_targets=all_targets,
+        ignore_log=ignore_log,
+        profiler=profiler,
+        filtered_rules=filtered_rules,
+        profiling_data=profiling_data,
+        severities=shown_severities,
+    )
+    logger.info(
+        f"Ran {len(blocking_rules)} blocking rules, {len(nonblocking_rules)} audit rules, and {len(cai_rules)} internal rules used for rule recommendations."
+    )
+    logger.info(
+        f"{num_nonblocking_findings} findings were from rules in audit rule board. These non-blocking findings are not displayed."
+    )
+
     logger.info("Reporting findings to semgrep.dev ...")
     scan_handler.report_findings(
         filtered_matches_by_rule,
@@ -215,9 +252,6 @@ def ci(
     )
     logger.info(f"Success.")
 
-    # blocking_findings = {finding for finding in new_findings if finding.is_blocking()}
-
-    # blocking_matches =
     #     audit_mode = meta.event_name in audit_on
     #     if blocking_findings and audit_mode:
     #         click.echo(

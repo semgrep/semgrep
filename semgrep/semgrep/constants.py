@@ -66,7 +66,6 @@ class RuleSeverity(Enum):
     WARNING = "WARNING"
     ERROR = "ERROR"
     INVENTORY = "INVENTORY"
-    HIDDEN = "HIDDEN"
 
     @classmethod
     def _missing_(cls: Type[Enum], value: object) -> Enum:
