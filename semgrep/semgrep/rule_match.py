@@ -169,7 +169,7 @@ class RuleMatch:
         when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
         and thus CI systems don't retrigger notifications.
         """
-        code = "".join(self.lines)
+        code = "".join(self.lines)  # the lines end with newlines already
         code = textwrap.dedent(code)
         code = NOSEM_INLINE_COMMENT_RE.sub("", code)
         code = code.strip()
