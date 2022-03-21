@@ -24,7 +24,7 @@ from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_app import ScanHandler
 from semgrep.types import MetricsState
 from semgrep.util import set_flags

@@ -15,7 +15,7 @@ from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.util import partition
 
 

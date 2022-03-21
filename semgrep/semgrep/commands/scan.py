@@ -31,7 +31,7 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import SemgrepError
 from semgrep.notifications import possibly_notify_user
 from semgrep.rule import Rule
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.types import MetricsState
 from semgrep.util import abort
