@@ -8,6 +8,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 66, "line": 141, "offset": 4355 },
           "extra": {
+            "fingerprint": "ff85bd02a223137adf0e80e0a0b5742f",
             "is_ignored": false,
             "lines": "",
             "message": "Prefer f-strings or .format for string formatting",
@@ -22,6 +23,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 59, "line": 134, "offset": 4130 },
           "extra": {
+            "fingerprint": "2a9712b763bc554ac16cfaad7a1f9c14",
             "is_ignored": false,
             "lines": "",
             "message": "Prefer f-strings or .format for string formatting",
@@ -36,6 +38,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 57, "line": 136, "offset": 4201 },
           "extra": {
+            "fingerprint": "ddb2bd22c17f2fd7ff850853476b7061",
             "is_ignored": false,
             "lines": "",
             "message": "Prefer f-strings or .format for string formatting",
@@ -50,6 +53,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 55, "line": 63, "offset": 2404 },
           "extra": {
+            "fingerprint": "eafe85fa85344e293a4c8250887f0363",
             "is_ignored": false,
             "lines": "",
             "message": "Prefer f-strings or .format for string formatting",
@@ -64,6 +68,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 43, "line": 36, "offset": 1416 },
           "extra": {
+            "fingerprint": "cc28739f2bc8843d94e4575500f2c1be",
             "is_ignored": false,
             "lines": "",
             "message": "Prefer f-strings or .format for string formatting",
@@ -78,6 +83,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.zulip.percent-formatting",
           "end": { "col": 14, "line": 39, "offset": 1545 },
           "extra": {
+            "fingerprint": "1053dd75b71e3e1cee8fd11b58c91a42",
             "is_ignored": false,
             "lines": "",
             "message": "Prefer f-strings or .format for string formatting",
@@ -106,153 +112,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_timing_attack on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "node_timing_attack",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1: `% load l10n %` was unexpected\n",
+          "path": "/Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running regex_dos on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "regex_dos",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running regex_injection_dos on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "regex_injection_dos",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running express_xss on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "express_xss",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running generic_header_injection on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "generic_header_injection",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running header_xss_generic on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "header_xss_generic",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_password on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-          "rule_id": "node_password",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_password on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "node_password",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_username on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-          "rule_id": "node_username",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_username on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "node_username",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_api_key on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-          "rule_id": "node_api_key",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_api_key on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "node_api_key",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_secret on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "node_secret",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_secret on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-          "rule_id": "node_secret",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_logic_bypass on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "node_logic_bypass",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running node_logic_bypass on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-          "rule_id": "node_logic_bypass",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running eval_require on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
-          "rule_id": "eval_require",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running eval_require on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "eval_require",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running eval_nodejs on /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js: `% load l10n %` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
-          "rule_id": "eval_nodejs",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected\n",
+          "path": "/Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
           "type": "Syntax error"
         }
       ],
@@ -272,6 +140,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 44, "line": 100, "offset": 2284 },
           "extra": {
+            "fingerprint": "9f0b7ff920116a1a4afa46d1cbf0e0e8",
             "is_ignored": false,
             "lines": "",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
@@ -290,24 +159,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 4, "line": 65, "offset": 1465 },
           "extra": {
-            "is_ignored": false,
-            "lines": "",
-            "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
-            "metadata": {
-              "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
-              "owasp": "A1: Injection",
-              "references": ["https://golang.org/pkg/html/template/#HTML"]
-            },
-            "metavars": "",
-            "severity": "WARNING"
-          },
-          "path": "semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
-          "start": { "col": 3, "line": 53, "offset": 1095 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
-          "end": { "col": 4, "line": 65, "offset": 1465 },
-          "extra": {
+            "fingerprint": "deb1243faf378017c03984d0bc07e594",
             "is_ignored": false,
             "lines": "",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
@@ -324,8 +176,28 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
+          "end": { "col": 4, "line": 65, "offset": 1465 },
+          "extra": {
+            "fingerprint": "a610168cc1f6e05b30135a2beb820b90",
+            "is_ignored": false,
+            "lines": "",
+            "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
+            "metadata": {
+              "cwe": "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+              "owasp": "A1: Injection",
+              "references": ["https://golang.org/pkg/html/template/#HTML"]
+            },
+            "metavars": "",
+            "severity": "WARNING"
+          },
+          "path": "semgrep/perf/bench/0c34/input/govwa/vulnerability/xss/xss.go",
+          "start": { "col": 3, "line": 53, "offset": 1095 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.net.formatted-template-string.formatted-template-string",
           "end": { "col": 38, "line": 63, "offset": 1428 },
           "extra": {
+            "fingerprint": "3842b5ac89219aac1383abdc72fe1d34",
             "is_ignored": false,
             "lines": "",
             "message": "Found a formatted template string passed to 'template.HTML()'.\n'template.HTML()' does not escape contents. Be absolutely sure\nthere is no user-controlled data in this template. If user data\ncan reach this template, you may have a XSS vulnerability.\n",
@@ -344,6 +216,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.database.string-formatted-query.string-formatted-query",
           "end": { "col": 68, "line": 24, "offset": 471 },
           "extra": {
+            "fingerprint": "4758ea5a0b5e4204d7262386101dc135",
             "is_ignored": false,
             "lines": "",
             "message": "String-formatted SQL query detected. This could lead to SQL injection if\nthe string is not sanitized properly. Audit this call to ensure the\nSQL is not manipulatable by external data.\n",
@@ -362,6 +235,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
           "end": { "col": 21, "line": 62, "offset": 1271 },
           "extra": {
+            "fingerprint": "d3262e1264cb4bf9af3cccf31f29f737",
             "is_ignored": false,
             "lines": "",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
@@ -380,6 +254,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
           "end": { "col": 21, "line": 164, "offset": 3919 },
           "extra": {
+            "fingerprint": "970a2191873b6f8e8e79bc8786ca57b1",
             "is_ignored": false,
             "lines": "",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
@@ -398,6 +273,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.0c34.go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5",
           "end": { "col": 21, "line": 160, "offset": 3760 },
           "extra": {
+            "fingerprint": "4dcd8285699101c452b3abf3c859c913",
             "is_ignored": false,
             "lines": "",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
@@ -424,6 +300,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.lodash.javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
           "end": { "col": 43, "line": 26, "offset": 714 },
           "extra": {
+            "fingerprint": "7b6d16bdc8df5aabe1ef5a1ced404c28",
             "is_ignored": false,
             "lines": "",
             "message": "Detected a useless comparison operation `position == position` or `position != position`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
@@ -445,9 +322,8 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running javascript.lang.correctness.useless-eqeq.eqeq-is-bad on /Users/emma/workspace/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts: `new?:` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
-          "rule_id": "javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14: `new?:` was unexpected\n",
+          "path": "/Users/underyx/r2c/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
           "type": "Syntax error"
         }
       ],
@@ -456,6 +332,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.juice-shop.javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "end": { "col": 112, "line": 34, "offset": 2044 },
           "extra": {
+            "fingerprint": "7f9d2ed120b9b6f06a16060bf96d3e2a",
             "is_ignored": false,
             "lines": "",
             "message": "Hardcoded JWT secret or private key is used.\nThis is a Insufficiently Protected Credentials weakness: https://cwe.mitre.org/data/definitions/522.html\nConsider using an appropriate security mechanism to protect the credentials (e.g. keeping secrets in environment variables: process.env.SECRET)\n",
@@ -474,6 +351,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.juice-shop.contrib.nodejsscan.eval_yaml_deserialize.yaml_deserialize",
           "end": { "col": 76, "line": 26, "offset": 977 },
           "extra": {
+            "fingerprint": "ccfb57061fe92cf537b75c0c50f4aa74",
             "is_ignored": false,
             "lines": "",
             "message": "User controlled data in 'yaml.load()' function can result in Remote Code Injection.",
@@ -499,6 +377,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-md5",
           "end": { "col": 46, "line": 141, "offset": 4329 },
           "extra": {
+            "fingerprint": "aa55013b37c6a10983efcd4e937dad8f",
             "is_ignored": false,
             "lines": "",
             "message": "Detected MD5 hash algorithm which is considered insecure. MD5 is not\ncollision resistant and is therefore not suitable as a cryptographic\nsignature. Use SHA256 or SHA3 instead.\n",
@@ -523,6 +402,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.insecure-deserialization.insecure-deserialization",
           "end": { "col": 29, "line": 329, "offset": 11793 },
           "extra": {
+            "fingerprint": "def2f55a5d89d1c8b7a70493844d7bb4",
             "is_ignored": false,
             "lines": "",
             "message": "Detected the use of an insecure deserizliation library in a Flask route. These libraries\nare prone to code execution vulnerabilities. Ensure user data does not enter this function.\nTo fix this, try to avoid serializing whole objects. Consider instead using a serializer\nsuch as JSON.\n",
@@ -541,6 +421,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.dangerous-template-string.dangerous-template-string",
           "end": { "col": 89, "line": 114, "offset": 3391 },
           "extra": {
+            "fingerprint": "34256665d9d7ca7db02ae86ed5f046cc",
             "is_ignored": false,
             "lines": "",
             "message": "Found a template created with string formatting.\nThis is susceptible to server-side template injection\nand cross-site scripting attacks.\n",
@@ -562,6 +443,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.python.flask.security.dangerous-template-string.dangerous-template-string",
           "end": { "col": 100, "line": 281, "offset": 10412 },
           "extra": {
+            "fingerprint": "ec1b791ad0810f02d16df794297906e9",
             "is_ignored": false,
             "lines": "",
             "message": "Found a template created with string formatting.\nThis is susceptible to server-side template injection\nand cross-site scripting attacks.\n",
@@ -583,6 +465,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
           "end": { "col": 204, "line": 91, "offset": 40011 },
           "extra": {
+            "fingerprint": "80bbf87aa52ff85c2fa48ea45ac16655",
             "is_ignored": false,
             "lines": "",
             "message": "Detected a useless comparison operation `0 == 0` or `0 != 0`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
@@ -605,6 +488,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
           "end": { "col": 59, "line": 28, "offset": 1032 },
           "extra": {
+            "fingerprint": "037d01388f86a3c033ce022829f4c987",
             "is_ignored": false,
             "lines": "",
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
@@ -619,6 +503,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list",
           "end": { "col": 35, "line": 53, "offset": 1895 },
           "extra": {
+            "fingerprint": "d46fc31fa73c13d4225b33992d918ce2",
             "is_ignored": false,
             "lines": "",
             "message": "Detected strings that are implicitly concatenated inside a list.\nPython will implicitly concatenate strings when not explicitly delimited.\nWas this supposed to be individual elements of the list?\n",
@@ -633,6 +518,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",
           "end": { "col": 23, "line": 703, "offset": 22926 },
           "extra": {
+            "fingerprint": "41503d24f6abad88b470d253c1e1cbad",
             "is_ignored": false,
             "lines": "",
             "message": "Found identical comparison using is. Ensure this is what you intended.",
@@ -647,6 +533,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.pallets.python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison",
           "end": { "col": 22, "line": 627, "offset": 20760 },
           "extra": {
+            "fingerprint": "b4aa7830451a84b842eb24d7011be630",
             "is_ignored": false,
             "lines": "",
             "message": "Found identical comparison using is. Ensure this is what you intended.",
@@ -671,49 +558,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running c.lang.security.insecure-use-gets-fn.insecure-use-gets-fn on /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c: `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-          "rule_id": "c.lang.security.insecure-use-gets-fn.insecure-use-gets-fn",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62: `#ifndef __WINDOWS__` was unexpected\n",
+          "path": "/Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running c.lang.security.insecure-use-printf-fn.insecure-use-printf-fn on /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c: `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-          "rule_id": "c.lang.security.insecure-use-printf-fn.insecure-use-printf-fn",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running c.lang.security.double-free.double-free on /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c: `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-          "rule_id": "c.lang.security.double-free.double-free",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running c.lang.security.double-free.double-free on /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c: `__MALLOC_HOOK_VOLATILE` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-          "rule_id": "c.lang.security.double-free.double-free",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running c.lang.security.use-after-free.use-after-free on /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c: `#ifndef __WINDOWS__` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
-          "rule_id": "c.lang.security.use-after-free.use-after-free",
-          "type": "Syntax error"
-        },
-        {
-          "code": 3,
-          "level": "warn",
-          "message": "Semgrep Core WARN - Syntax error: When running c.lang.security.use-after-free.use-after-free on /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c: `__MALLOC_HOOK_VOLATILE` was unexpected",
-          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
-          "rule_id": "c.lang.security.use-after-free.use-after-free",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49: `__MALLOC_HOOK_VOLATILE` was unexpected\n",
+          "path": "/Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
           "type": "Syntax error"
         }
       ],
@@ -722,6 +575,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 52, "line": 214, "offset": 6300 },
           "extra": {
+            "fingerprint": "85f61cadd57c13e34d154d2fb79f0aee",
             "is_ignored": false,
             "lines": "",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
@@ -741,6 +595,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 50, "line": 216, "offset": 6376 },
           "extra": {
+            "fingerprint": "69d7a57d930062b53ddf18a2f52dbfee",
             "is_ignored": false,
             "lines": "",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
@@ -760,6 +615,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 25, "line": 217, "offset": 6402 },
           "extra": {
+            "fingerprint": "6143f6498c45c36a74be4d9a2175aac3",
             "is_ignored": false,
             "lines": "",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
@@ -779,6 +635,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.t00sh.c.lang.security.insecure-use-strcat-fn.insecure-use-strcat-fn",
           "end": { "col": 24, "line": 215, "offset": 6325 },
           "extra": {
+            "fingerprint": "f2097a80236e168afe2a4748be85f92e",
             "is_ignored": false,
             "lines": "",
             "message": "Finding triggers whenever there is a strcat or strncat used.\nThis is an issue because strcat or strncat can lead to buffer overflow vulns.\nFix this by using strcat_s instead.\n",
@@ -806,6 +663,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 59, "offset": 2594 },
           "extra": {
+            "fingerprint": "4944367d6d5ab0784229fab40703f3a7",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -825,6 +683,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 59, "offset": 2179 },
           "extra": {
+            "fingerprint": "a1042ff17f6d1f89662cebe6aeb9dfee",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -844,6 +703,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 59, "offset": 2179 },
           "extra": {
+            "fingerprint": "14b336f0351b2f2e85e1f793846a64df",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -863,25 +723,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 54, "offset": 2016 },
           "extra": {
-            "is_ignored": false,
-            "lines": "",
-            "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
-            "metadata": {
-              "references": [
-                "https://github.com/hadolint/hadolint/wiki/DL3003"
-              ],
-              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
-            },
-            "metavars": "",
-            "severity": "WARNING"
-          },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 54, "offset": 2010 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 54, "offset": 2016 },
-          "extra": {
+            "fingerprint": "a5576099b9f7e019d06d64fde1203496",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -899,8 +741,29 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
+          "end": { "col": 7, "line": 54, "offset": 2016 },
+          "extra": {
+            "fingerprint": "309aae79202a2b53c165bfd3f1847462",
+            "is_ignored": false,
+            "lines": "",
+            "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
+            "metadata": {
+              "references": [
+                "https://github.com/hadolint/hadolint/wiki/DL3003"
+              ],
+              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
+            },
+            "metavars": "",
+            "severity": "WARNING"
+          },
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
+          "start": { "col": 1, "line": 54, "offset": 2010 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 53, "offset": 2862 },
           "extra": {
+            "fingerprint": "bc7168eabf4903aef5a9b8e52f49a33a",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -920,6 +783,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 51, "offset": 2264 },
           "extra": {
+            "fingerprint": "2e05a28a13306986418c79b12e712dd2",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -939,25 +803,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 50, "offset": 1896 },
           "extra": {
-            "is_ignored": false,
-            "lines": "",
-            "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
-            "metadata": {
-              "references": [
-                "https://github.com/hadolint/hadolint/wiki/DL3003"
-              ],
-              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
-            },
-            "metavars": "",
-            "severity": "WARNING"
-          },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
-          "start": { "col": 1, "line": 50, "offset": 1890 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
-          "end": { "col": 7, "line": 50, "offset": 1896 },
-          "extra": {
+            "fingerprint": "cff7b4f59acc64d8c5722f3799a94062",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -975,8 +821,29 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
+          "end": { "col": 7, "line": 50, "offset": 1896 },
+          "extra": {
+            "fingerprint": "96543596484a066b57f7b1e59a530057",
+            "is_ignored": false,
+            "lines": "",
+            "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
+            "metadata": {
+              "references": [
+                "https://github.com/hadolint/hadolint/wiki/DL3003"
+              ],
+              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3003"
+            },
+            "metavars": "",
+            "severity": "WARNING"
+          },
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/cxx/Dockerfile",
+          "start": { "col": 1, "line": 50, "offset": 1890 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 49, "offset": 1940 },
           "extra": {
+            "fingerprint": "d5153b39a9287ff7571a170da36816a3",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -996,6 +863,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 43, "offset": 1809 },
           "extra": {
+            "fingerprint": "c1e9c95e266266c538268516b7d79647",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1015,6 +883,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 42, "offset": 1991 },
           "extra": {
+            "fingerprint": "f52f4450b2831c89252c1374a1c332b9",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1034,6 +903,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 40, "offset": 1870 },
           "extra": {
+            "fingerprint": "cbe5d5f040b5e50dfebdd4516206fe5d",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1053,6 +923,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 37, "offset": 1756 },
           "extra": {
+            "fingerprint": "76f77b95a66fde901063a0ca4d52c122",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1072,6 +943,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 36, "offset": 1639 },
           "extra": {
+            "fingerprint": "f749fef545aa883def6760fed9e277cd",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1091,6 +963,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 35, "offset": 1738 },
           "extra": {
+            "fingerprint": "6f0c302f71d750afa509b63f7a61b3bd",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1110,6 +983,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 35, "offset": 1720 },
           "extra": {
+            "fingerprint": "2cb1ebdb8af64caceaf5e2c3476a060d",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1129,6 +1003,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 34, "offset": 1664 },
           "extra": {
+            "fingerprint": "5e434c1110a97ea6b6b8d317d4ac2e07",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1148,6 +1023,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 34, "offset": 1646 },
           "extra": {
+            "fingerprint": "9885fca0565137e67c546beea0a8c421",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1167,6 +1043,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 7, "line": 25, "offset": 925 },
           "extra": {
+            "fingerprint": "4bffad6ec0d8d22bb8a3f9484563295e",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1186,6 +1063,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 5, "line": 25, "offset": 920 },
           "extra": {
+            "fingerprint": "299c86ff618904658ecd4db23bf29938",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1205,6 +1083,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 5, "line": 25, "offset": 907 },
           "extra": {
+            "fingerprint": "8d4aa981a1b8a59685a899ac423f4ed6",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1224,6 +1103,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.use-workdir.use-workdir",
           "end": { "col": 5, "line": 25, "offset": 906 },
           "extra": {
+            "fingerprint": "b859489e475be20ac9c426e9ebdf7bbf",
             "is_ignored": false,
             "lines": "",
             "message": "Use 'WORKDIR' instead of 'RUN cd ...'. Using 'RUN cd ...' may not work as expected in a conatiner.",
@@ -1243,6 +1123,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 95, "line": 39, "offset": 2231 },
           "extra": {
+            "fingerprint": "4d7eaacd9329ad05f1e3298849b8cddb",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1262,6 +1143,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 94, "line": 38, "offset": 2091 },
           "extra": {
+            "fingerprint": "4e24a7acd39607abeb45a32181ebffb1",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1281,6 +1163,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 93, "line": 40, "offset": 2369 },
           "extra": {
+            "fingerprint": "093a3c39f099bdbc871d8dcce3ceef84",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1300,6 +1183,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 78, "line": 37, "offset": 1955 },
           "extra": {
+            "fingerprint": "0e3e4c8e1169d2ed4a18d2e4657e1020",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1319,6 +1203,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1623 },
           "extra": {
+            "fingerprint": "b6fd2500f2a10b698ca65627518d31d5",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1331,13 +1216,14 @@
             "metavars": "",
             "severity": "WARNING"
           },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
           "start": { "col": 1, "line": 32, "offset": 1549 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1623 },
           "extra": {
+            "fingerprint": "9812bb2b625d36ba601980b9f8609a1d",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1357,6 +1243,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1623 },
           "extra": {
+            "fingerprint": "0697c825a53d11134a170d9fc6ae70ba",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1369,13 +1256,14 @@
             "metavars": "",
             "severity": "WARNING"
           },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.10/python/Dockerfile",
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/python/Dockerfile",
           "start": { "col": 1, "line": 32, "offset": 1549 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1621 },
           "extra": {
+            "fingerprint": "d3393e161ff4d2fea341fc0bb47fb4f7",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1395,6 +1283,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1621 },
           "extra": {
+            "fingerprint": "70f85d031520224d1bc7ebd4adeea305",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1414,25 +1303,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1618 },
           "extra": {
-            "is_ignored": false,
-            "lines": "",
-            "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
-            "metadata": {
-              "references": [
-                "https://github.com/hadolint/hadolint/wiki/DL4006"
-              ],
-              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
-            },
-            "metavars": "",
-            "severity": "WARNING"
-          },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
-          "start": { "col": 1, "line": 32, "offset": 1544 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
-          "end": { "col": 75, "line": 32, "offset": 1618 },
-          "extra": {
+            "fingerprint": "872455f27c2855feaca40121e011ee2b",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1450,8 +1321,29 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
+          "end": { "col": 75, "line": 32, "offset": 1618 },
+          "extra": {
+            "fingerprint": "05da70d9e8330a61f935f8efbc8d3ac1",
+            "is_ignored": false,
+            "lines": "",
+            "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
+            "metadata": {
+              "references": [
+                "https://github.com/hadolint/hadolint/wiki/DL4006"
+              ],
+              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL4006"
+            },
+            "metavars": "",
+            "severity": "WARNING"
+          },
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/0.11/ruby/Dockerfile",
+          "start": { "col": 1, "line": 32, "offset": 1544 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 75, "line": 32, "offset": 1617 },
           "extra": {
+            "fingerprint": "756594fc622162e422d8e403f415914d",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1471,6 +1363,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 74, "line": 34, "offset": 1731 },
           "extra": {
+            "fingerprint": "7a0caf99ba64009134ca1ec2a99cb504",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1490,6 +1383,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.set-pipefail.set-pipefail",
           "end": { "col": 74, "line": 34, "offset": 1713 },
           "extra": {
+            "fingerprint": "9acfa39fe7ae0f1a2a3040c2fd74bd2a",
             "is_ignored": false,
             "lines": "",
             "message": "Only the exit code from the final command in this RUN instruction will be evaluated unless 'pipefail' is set.\nIf you want to fail the command at any stage in the pipe, set 'pipefail' by including 'SHELL [\"/bin/bash\", \"-o\", \"pipefail\", \"-c\"] before the command.\nIf you're using alpine and don't have bash installed, communicate this explicitly with `SHELL [\"/bin/ash\"]`.\n",
@@ -1509,6 +1403,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 50, "offset": 2729 },
           "extra": {
+            "fingerprint": "8ce22e57c1fe5c2d69806add885af950",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1528,6 +1423,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 41, "offset": 2433 },
           "extra": {
+            "fingerprint": "1d96d443a338a83ead87f5a8412ef14b",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1547,6 +1443,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 40, "offset": 1921 },
           "extra": {
+            "fingerprint": "63ccd12ef29a889fe9fa5e1ee0713f5a",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1566,6 +1463,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1737 },
           "extra": {
+            "fingerprint": "1c5534555040a41a3ef153db4765bca1",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1585,6 +1483,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1735 },
           "extra": {
+            "fingerprint": "88533d62a9fde6d86a9323f6a53f0e2f",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1604,6 +1503,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1731 },
           "extra": {
+            "fingerprint": "18e689eddb91d7a45639d4670d5b3ed6",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1623,6 +1523,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1729 },
           "extra": {
+            "fingerprint": "b53cd30f44106196ce967ba564d1743c",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1642,6 +1543,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1728 },
           "extra": {
+            "fingerprint": "a66ab5d55e32c71cf9b52e1d52bb4adc",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1661,6 +1563,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 37, "offset": 1726 },
           "extra": {
+            "fingerprint": "7b3893e372c5db5fbad11e0744e9229f",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1680,6 +1583,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 36, "offset": 1696 },
           "extra": {
+            "fingerprint": "c86896f9ed88371a06743131b66fd7c0",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1699,6 +1603,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 34, "offset": 1620 },
           "extra": {
+            "fingerprint": "2ff217cdcc0fbe7334159dbff3dd066d",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1718,6 +1623,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 33, "offset": 1590 },
           "extra": {
+            "fingerprint": "2cff1ec9354cfe5f67979c2a490bf20d",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1737,6 +1643,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "fingerprint": "68e05ecdec62ab23054a52795bf0b4ba",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1756,6 +1663,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "fingerprint": "3c8cf8767857da8ce15a886b633dd1e9",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1775,6 +1683,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 32, "offset": 1567 },
           "extra": {
+            "fingerprint": "7c0016506c1cffd455bc105c78c4ec8e",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1794,6 +1703,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 31, "offset": 1566 },
           "extra": {
+            "fingerprint": "90b2c8b9d3f324928125a58437adb5a5",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1813,6 +1723,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 31, "offset": 1565 },
           "extra": {
+            "fingerprint": "ee7bec90b12d389c3843ebfead426178",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1832,6 +1743,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 620 },
           "extra": {
+            "fingerprint": "f6609a5c0a8b52371f70f0e38c3ca120",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1851,6 +1763,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 617 },
           "extra": {
+            "fingerprint": "fa075f82c239e9e1a1adc164f34e0378",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1863,13 +1776,14 @@
             "metavars": "",
             "severity": "WARNING"
           },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
           "start": { "col": 1, "line": 17, "offset": 599 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 617 },
           "extra": {
+            "fingerprint": "079ddf46764559ec1a4b8d25a5c568d7",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1889,6 +1803,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-lists.remove-package-lists",
           "end": { "col": 19, "line": 17, "offset": 617 },
           "extra": {
+            "fingerprint": "063d8326163514edb2d8bdbcdca8386d",
             "is_ignored": false,
             "lines": "",
             "message": "The package lists were not deleted after running 'apt-get update', which increases the size of the image. Remove the package lists by appending '&& rm -rf /var/lib/apt/lists/*' at the end of apt-get command chain.",
@@ -1901,13 +1816,14 @@
             "metavars": "",
             "severity": "WARNING"
           },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
           "start": { "col": 1, "line": 17, "offset": 599 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 40, "offset": 1921 },
           "extra": {
+            "fingerprint": "6b663ebd3427cc4238bd577330af0ed6",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -1927,6 +1843,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1737 },
           "extra": {
+            "fingerprint": "3a73a8606b563a2642df80a7bbf1241f",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -1946,6 +1863,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1735 },
           "extra": {
+            "fingerprint": "d81e192a5850dff2efd232cee980a236",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -1965,6 +1883,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1731 },
           "extra": {
+            "fingerprint": "7eb68a047347472716aa9b42b6760c55",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -1984,6 +1903,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1729 },
           "extra": {
+            "fingerprint": "b7e311323ea61b7325fb2463388f1c51",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2003,6 +1923,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1728 },
           "extra": {
+            "fingerprint": "f9f4006e1a338089f5f864c08e52c7db",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2022,6 +1943,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 37, "offset": 1726 },
           "extra": {
+            "fingerprint": "67c1530254b24438a873717a275bed6d",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2041,6 +1963,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 36, "offset": 1696 },
           "extra": {
+            "fingerprint": "f237e2fad2f0eda140a1172fe8e10ac8",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2060,6 +1983,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 34, "offset": 1620 },
           "extra": {
+            "fingerprint": "c30fe2d51347cec512cc5bcad01a7dc0",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2079,6 +2003,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "fingerprint": "468ead17438b1c893d7cfda8b7877fe4",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2098,6 +2023,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 32, "offset": 1575 },
           "extra": {
+            "fingerprint": "0b800433ce664a074e2c051d0f135323",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2117,6 +2043,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.remove-package-cache.remove-package-cache",
           "end": { "col": 19, "line": 31, "offset": 1566 },
           "extra": {
+            "fingerprint": "20d020cc4fec1208b37c82ba2f35e531",
             "is_ignored": false,
             "lines": "",
             "message": "The package cache was not deleted after running 'apt-get update', which increases the size of the image. Remove the package cache by appending '&& apt-get clean' at the end of apt-get command chain.",
@@ -2136,6 +2063,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.prefer-apt-get.prefer-apt-get",
           "end": { "col": 8, "line": 36, "offset": 1783 },
           "extra": {
+            "fingerprint": "224927192b2617212235d6c82e8e18f7",
             "is_ignored": false,
             "lines": "",
             "message": "'apt-get' is preferred as an unattended tool for stability. 'apt' is discouraged.",
@@ -2155,6 +2083,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 33, "offset": 1620 },
           "extra": {
+            "fingerprint": "ea21f1879ff7ac59924ec72253f586d7",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2174,6 +2103,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 33, "offset": 1611 },
           "extra": {
+            "fingerprint": "deee3bf34390c187fbb78f8fd17ccc29",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2193,6 +2123,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 25, "offset": 814 },
           "extra": {
+            "fingerprint": "3721c754e77eba16e700df544fddf8e1",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2212,6 +2143,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 669 },
           "extra": {
+            "fingerprint": "e5af9d23d3a665262f23e8754177d6b1",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2231,6 +2163,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 669 },
           "extra": {
+            "fingerprint": "6c981a55abfc41859ae1cf50e1c2161b",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2250,6 +2183,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 668 },
           "extra": {
+            "fingerprint": "551f94e22c4f5134d63504a987850054",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2269,25 +2203,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 664 },
           "extra": {
-            "is_ignored": false,
-            "lines": "",
-            "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
-            "metadata": {
-              "references": [
-                "https://github.com/hadolint/hadolint/wiki/DL3042"
-              ],
-              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
-            },
-            "metavars": "",
-            "severity": "INFO"
-          },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/Dockerfile",
-          "start": { "col": 1, "line": 18, "offset": 629 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 36, "line": 18, "offset": 664 },
-          "extra": {
+            "fingerprint": "55bb480813e065f64282d6f432723df5",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2305,8 +2221,29 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
+          "end": { "col": 36, "line": 18, "offset": 664 },
+          "extra": {
+            "fingerprint": "048d5f32edc5a7456aa5256db2cdba81",
+            "is_ignored": false,
+            "lines": "",
+            "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
+            "metadata": {
+              "references": [
+                "https://github.com/hadolint/hadolint/wiki/DL3042"
+              ],
+              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
+            },
+            "metavars": "",
+            "severity": "INFO"
+          },
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/Dockerfile",
+          "start": { "col": 1, "line": 18, "offset": 629 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 36, "line": 18, "offset": 663 },
           "extra": {
+            "fingerprint": "d3bbb1ba7afe5699d53f823fecc767b7",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2326,6 +2263,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 26, "line": 26, "offset": 844 },
           "extra": {
+            "fingerprint": "21af629a869a19c462469ad00bd45348",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2345,6 +2283,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 39, "offset": 1814 },
           "extra": {
+            "fingerprint": "f71ce4048ec278846f8cdea0fbb5bcb6",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2364,6 +2303,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 39, "offset": 1812 },
           "extra": {
+            "fingerprint": "76d1a2fe491540ed1ff9bcab4d71e837",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2383,6 +2323,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 34, "offset": 1647 },
           "extra": {
+            "fingerprint": "09d353dc4e551dd517f5ecd78839a401",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2402,6 +2343,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 34, "offset": 1638 },
           "extra": {
+            "fingerprint": "6a8d17c290355ece3db7aeb6630601a8",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2421,25 +2363,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 696 },
           "extra": {
-            "is_ignored": false,
-            "lines": "",
-            "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
-            "metadata": {
-              "references": [
-                "https://github.com/hadolint/hadolint/wiki/DL3042"
-              ],
-              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
-            },
-            "metavars": "",
-            "severity": "INFO"
-          },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/slim/Dockerfile",
-          "start": { "col": 1, "line": 19, "offset": 674 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
-          "end": { "col": 23, "line": 19, "offset": 696 },
-          "extra": {
+            "fingerprint": "d3d87677cbd9c999ea80e2dc0aadebbb",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2457,8 +2381,29 @@
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
+          "end": { "col": 23, "line": 19, "offset": 696 },
+          "extra": {
+            "fingerprint": "b99505b05490f462ee5abd517b2859ec",
+            "is_ignored": false,
+            "lines": "",
+            "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
+            "metadata": {
+              "references": [
+                "https://github.com/hadolint/hadolint/wiki/DL3042"
+              ],
+              "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3042"
+            },
+            "metavars": "",
+            "severity": "INFO"
+          },
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.15.0/python/slim/Dockerfile",
+          "start": { "col": 1, "line": 19, "offset": 674 }
+        },
+        {
+          "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 695 },
           "extra": {
+            "fingerprint": "7329cd5e54788f4df0325604dd57f467",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2478,6 +2423,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 691 },
           "extra": {
+            "fingerprint": "9fc8e0ca99132bfa06b8b0dea334305b",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2497,6 +2443,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 691 },
           "extra": {
+            "fingerprint": "9bcac0f61d4c21821f4932f255f3e264",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2516,6 +2463,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-pip-no-cache-dir.missing-pip-no-cache-dir",
           "end": { "col": 23, "line": 19, "offset": 690 },
           "extra": {
+            "fingerprint": "047293d970c751a24fc6cbc1ad7cc532",
             "is_ignored": false,
             "lines": "",
             "message": "This 'pip install' is missing '--no-cache-dir'. This flag prevents\npackage archives from being kept around, thereby reducing image size.\nAdd '--no-cache-dir'.\n",
@@ -2535,6 +2483,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 50, "offset": 2751 },
           "extra": {
+            "fingerprint": "64decdedfb10c789c717550f2a3b3d7c",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2554,6 +2503,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 41, "offset": 2455 },
           "extra": {
+            "fingerprint": "d52b4fd7ae5008cf8606ac5a19c04a2b",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2573,6 +2523,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 40, "offset": 1943 },
           "extra": {
+            "fingerprint": "2bafcd57b2f95b618e7242a341392a75",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2592,6 +2543,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1759 },
           "extra": {
+            "fingerprint": "9127812ae9d6eba40d08db6dc814dfbb",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2611,6 +2563,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1757 },
           "extra": {
+            "fingerprint": "9571ecabc799096524cfbedc4a7b9015",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2630,6 +2583,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1753 },
           "extra": {
+            "fingerprint": "f861fadb8765bd39f6ceac7597f9b8d1",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2649,6 +2603,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1751 },
           "extra": {
+            "fingerprint": "257f6ac86b835a55a74ff8c9a14836d9",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2668,6 +2623,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1750 },
           "extra": {
+            "fingerprint": "5441b905b26904990c85abffa671226d",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2687,6 +2643,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 37, "offset": 1748 },
           "extra": {
+            "fingerprint": "edbfd34a4726eaece008587a685f3ed6",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2706,6 +2663,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 36, "offset": 1718 },
           "extra": {
+            "fingerprint": "c2fbd491181d0bc9b6380864c74fd51b",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2725,6 +2683,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 32, "offset": 1597 },
           "extra": {
+            "fingerprint": "fbf58cd4831af87f869ff6a95bd3a660",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2744,6 +2703,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 32, "offset": 1597 },
           "extra": {
+            "fingerprint": "1e365eafa7a0fb73696313b8fc7ef5dc",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2763,6 +2723,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 32, "offset": 1589 },
           "extra": {
+            "fingerprint": "6a8a193763c601bdd8696a46827f4cc7",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2782,6 +2743,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 31, "offset": 1588 },
           "extra": {
+            "fingerprint": "91f48267a5b1400a403e28a47028a760",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2801,6 +2763,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 31, "offset": 1587 },
           "extra": {
+            "fingerprint": "bb463a5e0244e21e4d4f9471a7402cbe",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2820,6 +2783,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 642 },
           "extra": {
+            "fingerprint": "e775239105f1fccbd1f2c8902883cc2a",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2839,6 +2803,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 639 },
           "extra": {
+            "fingerprint": "db3cae2fda917aba3b76955fae5f0dbc",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2851,13 +2816,14 @@
             "metavars": "",
             "severity": "INFO"
           },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
           "start": { "col": 1, "line": 17, "offset": 599 }
         },
         {
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 639 },
           "extra": {
+            "fingerprint": "4e8d592d304fbd4ca5b881644360f42c",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2877,6 +2843,7 @@
           "check_id": "semgrep.perf.bench.rules_cache.grpc.generic.dockerfile.best-practice.missing-no-install-recommends.missing-no-install-recommends",
           "end": { "col": 41, "line": 17, "offset": 639 },
           "extra": {
+            "fingerprint": "3034dc670b7a6fb25e033e759ba53956",
             "is_ignored": false,
             "lines": "",
             "message": "This 'apt-get install' is missing '--no-install-recommends'. This prevents\nunnecessary packages from being installed, thereby reducing image size. Add\n'--no-install-recommends'.\n",
@@ -2889,7 +2856,7 @@
             "metavars": "",
             "severity": "INFO"
           },
-          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.10/cxx/Dockerfile",
+          "path": "semgrep/perf/bench/grpc/input/grpc-docker-library/1.8/cxx/Dockerfile",
           "start": { "col": 1, "line": 17, "offset": 599 }
         }
       ]
