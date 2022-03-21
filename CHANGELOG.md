@@ -10,6 +10,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   with `--gitlab-sast` and `--gitlab-secrets`.
 - Terraform: basic support for constant propagation of locals (#1147)
   and variables (#4816)
+- JSON output now includes a fingerprint of each finding.
+  This fingerprint remains consistent when matching code is just moved around or reindented.
 
 ### Changed
 

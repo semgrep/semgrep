@@ -15,6 +15,7 @@
         "offset": 3
       },
       "extra": {
+        "fingerprint": "f5f12b6c42a67f382679afb704e26ebe",
         "is_ignored": false,
         "lines": "Foo==1.1.1",
         "message": "Found $TAG",

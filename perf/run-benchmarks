@@ -67,21 +67,25 @@ class SemgrepResult:
         if "extra" in dict2:
             # TODO: spacegrep.py calls dedent() on lines (not sure why)
             if "lines" in dict2["extra"]:
-                dict2["extra"]["lines"] = ""
+                dict2["extra"]["lines"] = "<masked in benchmarks>"
             if "metavars" in dict2["extra"]:
                 # TODO: spacegrep/../Semgrep.ml uses a different unique_id
                 for _, v in dict2["extra"]["metavars"].items():
                     if "unique_id" in v:
-                        v["unique_id"] = ""
+                        v["unique_id"] = "<masked in benchmarks>"
                 # TODO: core_runner.py dedup_output() depends on the order
                 # of the elements in the list to remove similar findings
                 # but with different metavars
-                dict2["extra"]["metavars"] = ""
+                dict2["extra"]["metavars"] = "<masked in benchmarks>"
+                # the paths being different will change the fingerprint
+                dict2["extra"]["fingerprint"] = "<masked in benchmarks>"
 
         # Abbreviate paths to avoid file-system differences
         if "path" in dict2:
             relative_path_start = dict2["path"].find(PERF_PATH)
-            dict2["path"] = dict2["path"][relative_path_start:]
+            dict2["path"] = (
+                "<masked in benchmarks>/" + dict2["path"][relative_path_start:]
+            )
         if "check_id" in dict2:
             relative_path_start = dict2["check_id"].find(PERF_RULE_PATH)
             dict2["check_id"] = dict2["check_id"][relative_path_start:]
