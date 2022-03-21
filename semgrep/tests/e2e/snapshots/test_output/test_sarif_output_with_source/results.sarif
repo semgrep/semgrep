@@ -20,6 +20,9 @@
                 "region": {
                   "endColumn": 26,
                   "endLine": 3,
+                  "snippet": {
+                    "text": "    return a + b == a + b"
+                  },
                   "startColumn": 12,
                   "startLine": 3
                 }
@@ -42,6 +45,9 @@
                 "region": {
                   "endColumn": 19,
                   "endLine": 3,
+                  "snippet": {
+                    "text": "console.log(x == x)"
+                  },
                   "startColumn": 13,
                   "startLine": 3
                 }

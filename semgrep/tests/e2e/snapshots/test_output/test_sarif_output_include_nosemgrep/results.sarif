@@ -20,6 +20,9 @@
                 "region": {
                   "endColumn": 30,
                   "endLine": 1,
+                  "snippet": {
+                    "text": "aws_account_id = 123456789012  # nosemgrep"
+                  },
                   "startColumn": 1,
                   "startLine": 1
                 }
@@ -47,6 +50,9 @@
                 "region": {
                   "endColumn": 28,
                   "endLine": 3,
+                  "snippet": {
+                    "text": "aws_account_id:123456789012"
+                  },
                   "startColumn": 1,
                   "startLine": 3
                 }
