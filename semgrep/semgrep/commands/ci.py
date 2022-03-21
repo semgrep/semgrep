@@ -19,6 +19,7 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.meta import generate_meta_from_environment
 from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -66,9 +67,17 @@ def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @scan_options
+@click.option(
+    "--audit-on",
+    envvar=["SEMGREP_AUDIT_ON"],
+    multiple=True,
+    type=str,
+    hidden=True,
+)
 def ci(
     ctx: click.Context,
     *,
+    audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
     debug: bool,
@@ -110,15 +119,16 @@ def ci(
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
     scan_handler = ScanHandler(token)
-    metadata = {"repository": "returntocorp/semgrep"}
+
+    metadata = generate_meta_from_environment(baseline_commit)
 
     try:
         logger.info("Fetching configuration from semgrep.dev")
-        scan_handler.start_scan(metadata)
+        scan_handler.start_scan(metadata.to_dict())
     except Exception as e:
         logger.info(f"Failed to start scan so exiting...")
         exit_code = scan_handler.fail_open_exit_code(
-            metadata["repository"], FATAL_EXIT_CODE
+            metadata.repo_name, FATAL_EXIT_CODE
         )
         if exit_code == 0:
             logger.info(
@@ -178,7 +188,7 @@ def ci(
             timeout_threshold=timeout_threshold,
             skip_unknown_extensions=(not scan_unknown_extensions),
             optimizations=optimizations,
-            baseline_commit=baseline_commit,
+            baseline_commit=metadata.base_commit_ref,
         )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
@@ -238,9 +248,10 @@ def ci(
     logger.info(
         f"Ran {len(blocking_rules)} blocking rules, {len(nonblocking_rules)} audit rules, and {len(cai_rules)} internal rules used for rule recommendations."
     )
-    logger.info(
-        f"{num_nonblocking_findings} findings were from rules in audit rule board. These non-blocking findings are not displayed."
-    )
+    if num_nonblocking_findings:
+        logger.info(
+            f"{num_nonblocking_findings} findings were from rules in audit rule board. These non-blocking findings are not displayed."
+        )
 
     logger.info("Reporting findings to semgrep.dev ...")
     scan_handler.report_findings(
@@ -252,30 +263,18 @@ def ci(
     )
     logger.info(f"Success.")
 
-    #     audit_mode = meta.event_name in audit_on
-    #     if blocking_findings and audit_mode:
-    #         click.echo(
-    #             f"| audit mode is on for {meta.event_name}, so the findings won't cause failure",
-    #             err=True,
-    #         )
+    audit_mode = metadata.event_name in audit_on
+    if num_nonblocking_findings > 0:
+        if audit_mode:
+            logger.info(
+                f"Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
+            )
+            exit_code = 0
+        else:
+            logger.info("Has findings for blocking rules so exiting with code 1")
+            exit_code = 1
+    else:
+        logger.info("No findings so exiting with code 0")
+        exit_code = 0
 
-    #     exit_code = (
-    #         NO_RESULT_EXIT_CODE
-    #         if audit_mode
-    #         else (FINDING_EXIT_CODE if blocking_findings else NO_RESULT_EXIT_CODE)
-    #     )
-    #     click.echo(
-    #         f"=== exiting with {'failing' if exit_code == 1 else 'success'} status",
-    #         err=True,
-    #     )
-    #     sys.exit(exit_code)
-
-    # if metadata.event_name in audit_on:
-    #     logger.info(
-    #         f"Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
-    #         err=True,
-    #     )
-    #     sys.exit(0)
-    # else:
-    #     logger.info(f"Blocking matches found so exiting with code 1")
-    #     sys.exit(1)
+    sys.exit(exit_code)
