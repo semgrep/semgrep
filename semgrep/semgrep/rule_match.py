@@ -265,7 +265,7 @@ class RuleMatch:
             app_severity = 0
 
         return {
-            "check_id": self.id,
+            "check_id": self.rule_id,
             "path": str(self.path),
             "line": self.start.line,
             "column": self.start.col,
@@ -273,9 +273,9 @@ class RuleMatch:
             "end_column": self.end.col,
             "message": self.message,
             "severity": app_severity,
-            "index": "TODO",
+            "index": self.severity,
             "commit_date": "TODO",
-            "syntactic_id": "TODO",
+            "syntactic_id": self.syntactic_id,
             "metadata": self.metadata,
             "is_blocking": self.is_blocking,
         }
@@ -295,8 +295,6 @@ class RuleMatch:
         if not isinstance(other, type(self)):
             return NotImplemented
         return self.ordering_key < other.ordering_key
-
-
 
 
 class RuleMatchSet(Set[RuleMatch]):
