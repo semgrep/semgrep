@@ -209,6 +209,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
                 env={
                     **env,
                     SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                    Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
                 }
             )
             result = runner.invoke(cli, ["ci"], env={})
