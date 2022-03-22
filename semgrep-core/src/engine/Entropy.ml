@@ -142,7 +142,8 @@ let is_repeated_char s =
     try
       String.iter (fun c -> if c <> c0 then raise Exit) s;
       true
-    with Exit -> false
+    with
+    | Exit -> false
 
 let entropy s =
   if is_repeated_char s then (* somewhat arbitrary low entropy *) 1.
