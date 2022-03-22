@@ -40,16 +40,6 @@ class ScanHandler:
         self.scan_id = None
         self.deployment_id = self._get_deployment_id()
 
-    def fail_open_exit_code(self, repo_name: str, exit_code: int) -> int:
-        response = self.session.get(
-            f"{SEMGREP_URL}api/agent/deployment/{self.deployment_id}/repos/{repo_name}",
-            json={},
-            timeout=30,
-        )
-        repo_data = response.json()
-        fail_open = repo_data.get("repo").get("fail_open")
-        return 0 if fail_open else exit_code
-
     def _get_deployment_id(self) -> Optional[int]:
         """
         Returns the deployment_id attached to an api_token as int
@@ -101,7 +91,7 @@ class ScanHandler:
     def scan_rules_url(self) -> str:
         return f"{SEMGREP_URL}api/agent/scan/{self.scan_id}/rules.yaml"
 
-    def report_failure(self, exit_code: int) -> int:
+    def report_failure(self, exit_code: int) -> None:
         """
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
@@ -119,9 +109,6 @@ class ScanHandler:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
-
-        exit_code = int(response.json()["exit_code"])
-        return exit_code
 
     def report_findings(
         self,

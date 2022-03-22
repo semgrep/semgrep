@@ -126,15 +126,8 @@ def ci(
         logger.info("Fetching configuration from semgrep.dev")
         scan_handler.start_scan(metadata.to_dict())
     except Exception as e:
-        logger.info(f"Failed to start scan so exiting...")
-        exit_code = scan_handler.fail_open_exit_code(
-            metadata.repo_name, FATAL_EXIT_CODE
-        )
-        if exit_code == 0:
-            logger.info(
-                "Fail Open is configured for this repository on semgrep.dev so exiting with code 0",
-            )
-        sys.exit(exit_code)
+        logger.info(f"Could not start scan {e}")
+        sys.exit(FATAL_EXIT_CODE)
 
     # Append ignores configured on semgrep.dev
     assert exclude is not None  # exclude is default empty tuple
@@ -198,11 +191,7 @@ def ci(
             exit_code = e.code
         else:
             exit_code = FATAL_EXIT_CODE
-        exit_code = scan_handler.report_failure(exit_code)
-        if exit_code == 0:
-            logger.info(
-                "Fail Open is configured for this repository on semgrep.dev so exiting with code 0",
-            )
+        scan_handler.report_failure(exit_code)
         sys.exit(exit_code)
 
     total_time = time.time() - start
