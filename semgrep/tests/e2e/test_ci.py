@@ -163,16 +163,27 @@ def ci_mocks(base_commit):
     "env",
     [
         {},  # Local run with no env vars
-        # {   # Github full scan
-        #     "CI": "true",
-        #     "GITHUB_ACTIONS": "true",
-        #     "GITHUB_ACTOR": "some_test_username",
-        #     "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-        #     "GITHUB_SHA":
-        # },
-        # {},  # Github push to branch
-        # {},  # Github pull request
-        {  # Gitlab
+        {  # Github full scan
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "push",
+            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "GITHUB_RUN_ID": "35",
+            "GITHUB_ACTOR": "some_test_username",
+            "GITHUB_REF": BRANCH_NAME,
+        },
+        {  # Github PR
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "pull_request",
+            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "GITHUB_RUN_ID": "35",
+            "GITHUB_ACTOR": "some_test_username",
+            "GITHUB_REF": BRANCH_NAME,
+        },
+        {  # Gitlab PR
             "CI": "true",
             "GITLAB_CI": "true",
             "CI_PROJECT_PATH": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
@@ -202,7 +213,7 @@ def ci_mocks(base_commit):
             "CI_JOB_URL": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
         },
     ],
-    ids=["local", "gitlab", "gitlab-push"],
+    ids=["local", "github-push", "github-pr", "gitlab", "gitlab-push"],
 )
 def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
@@ -210,6 +221,33 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
     # Set envvars that depend on commit hashes:
     if env.get("GITLAB_CI"):
         env["CI_COMMIT_SHA"] = head_commit
+    elif env.get("GITHUB_ACTIONS"):
+        env["GITHUB_SHA"] = head_commit
+
+        if env["GITHUB_EVENT_NAME"] == "pull_request":
+            event = {
+                "pull_request": {
+                    "user": {
+                        "login": "user-login",
+                        "avatar_url": "some.user.avatar.com",
+                    },
+                    "head": {
+                        "sha": head_commit,
+                        "number": "7",
+                        "title": "placeholder-pr-title",
+                    },
+                    "base": {
+                        "sha": base_commit,
+                    },
+                },
+                "sender": {
+                    "login": "test-username",
+                    "avatar_url": "some.test.avatar.url.com",
+                },
+            }
+            event_path = tmp_path / "event_path.json"
+            event_path.write_text(json.dumps(event))
+            env["GITHUB_EVENT_PATH"] = str(event_path)
 
     # Return a different mock so post_mock only contains direct calls to session.post
     post_mock = mock.MagicMock(return_value=mock.MagicMock())

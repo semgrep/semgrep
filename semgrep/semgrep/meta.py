@@ -210,6 +210,10 @@ class GithubMeta(GitMeta):
         return self.glom_event(T["pull_request"]["base"]["sha"])  # type: ignore
 
     def _find_branchoff_point(self, attempt_count: int = 0) -> str:
+        """
+        GithubActions is a shallow clone and the "base" that github sends
+        is not the merge base. We must fetch and get the merge-base ourselves
+        """
         # Should only be called if head_ref is defined
         assert self.head_ref is not None
         assert self.base_branch_tip is not None
@@ -265,14 +269,8 @@ class GithubMeta(GitMeta):
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
         if self.is_pull_request_event and self.head_ref is not None:
-            # The pull request "base" that GitHub sends us is not necessarily the merge base,
-            # so we need to get the merge-base from Git
             return self._find_branchoff_point()
         return None
-
-    @property
-    def commit_ref(self) -> Optional[str]:
-        return os.getenv("GITHUB_REF")
 
     @property
     def ci_job_url(self) -> Optional[str]:
