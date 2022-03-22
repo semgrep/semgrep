@@ -181,7 +181,7 @@ def ci(
             max_target_bytes=max_target_bytes,
             autofix=autofix,
             dryrun=dryrun,
-            disable_nosem=(not enable_nosem),
+            disable_nosem=True,  # TODO weird behavior where this needs to be true to get annotated data
             no_git_ignore=(not use_git_ignore),
             timeout=timeout,
             max_memory=max_memory,

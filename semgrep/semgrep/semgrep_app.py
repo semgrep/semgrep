@@ -38,7 +38,7 @@ class ScanHandler:
         session.headers["Authorization"] = f"Bearer {token}"
         self.session = session
         self.scan_id = None
-        self.deployment_id = self.get_deployment_id()
+        self.deployment_id = self._get_deployment_id()
 
     def fail_open_exit_code(self, repo_name: str, exit_code: int) -> int:
         response = self.session.get(
@@ -50,7 +50,7 @@ class ScanHandler:
         fail_open = repo_data.get("repo").get("fail_open")
         return 0 if fail_open else exit_code
 
-    def get_deployment_id(self) -> Optional[int]:
+    def _get_deployment_id(self) -> Optional[int]:
         """
         Returns the deployment_id attached to an api_token as int
 
@@ -144,13 +144,12 @@ class ScanHandler:
             for match in matches_of_rule
         ]
         new_ignored, new_matches = partition(
-            lambda match: match.extra.get("is_ignored"),
+            lambda match: match.is_ignored,
             all_matches,
         )
 
         # if self.scan.autofix:
         #     fields_to_omit.remove("fixed_lines")
-
         findings = {
             # send a backup token in case the app is not available
             "token": os.getenv("GITHUB_TOKEN"),
@@ -164,12 +163,7 @@ class ScanHandler:
             "findings": [match.to_app_finding_format() for match in new_ignored],
         }
         complete = {
-            "exit_code": 1
-            if any(
-                "block" in match.metadata.get("dev.semgrep.actions", ["block"])
-                for match in all_matches
-            )
-            else 0,
+            "exit_code": 1 if any(match.is_blocking for match in all_matches) else 0,
             "stats": {
                 "findings": len(new_matches),
                 "errors": errors,
@@ -204,8 +198,6 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         # mark as complete
-        # In order to not overload our app database, we truncate target stats to the 20 heaviest hitters. This adds
-        # approximately 80 kB of database load per scan when using p/ci.
         response = self.session.post(
             f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/complete",
             json=complete,
