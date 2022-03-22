@@ -109,8 +109,11 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                            Match_search_rules.check_rule r match_hook
                              default_config pformula xtarget
                        | Taint taint_spec ->
-                           Match_tainting_rules.check_rule r match_hook
-                             default_config taint_spec xtarget)
+                           let res, _TODO_debug_taint =
+                             Match_tainting_rules.check_rule r match_hook
+                               default_config taint_spec xtarget
+                           in
+                           res)
                  in
                  match match_result with
                  | Some res -> Left res
