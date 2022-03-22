@@ -264,7 +264,8 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     | MV.T _, MV.T _
     | MV.Text _, MV.Text _
     | MV.Params _, MV.Params _
-    | MV.Args _, MV.Args _ ->
+    | MV.Args _, MV.Args _
+    | MV.Xmls _, MV.Xmls _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
          * sgrep command line argument), we can not just use the
@@ -521,6 +522,11 @@ let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     | [], _ :: _ when less_is_ok -> return ()
     (* dots: '...', can also match no argument *)
     | [ a ], [] when is_dots a -> return ()
+    (* opti: if is_metavar_ellipsis and less_is_ok is false, then
+     * it's useless to enumerate all the candidates below; only the
+     * one that match everything will work
+    | [ a ], xs when is_metavar_ellipsis a <> None && not less_is_ok ->
+     *)
     (* dots: metavars: $...ARGS *)
     | a :: xsa, xsb when is_metavar_ellipsis a <> None -> (
         match is_metavar_ellipsis a with
