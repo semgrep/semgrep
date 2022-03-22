@@ -744,6 +744,86 @@ class SkippedTarget:
 
 
 @dataclass
+class Position:
+    """Original type: position = { ... }"""
+
+    line: int
+    col: int
+    offset: int
+
+    @classmethod
+    def from_json(cls, x: Any) -> "Position":
+        if isinstance(x, dict):
+            return cls(
+                line=_atd_read_int(x["line"])
+                if "line" in x
+                else _atd_missing_json_field("Position", "line"),
+                col=_atd_read_int(x["col"])
+                if "col" in x
+                else _atd_missing_json_field("Position", "col"),
+                offset=_atd_read_int(x["offset"])
+                if "offset" in x
+                else _atd_missing_json_field("Position", "offset"),
+            )
+        else:
+            _atd_bad_json("Position", x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res["line"] = _atd_write_int(self.line)
+        res["col"] = _atd_write_int(self.col)
+        res["offset"] = _atd_write_int(self.offset)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "Position":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
+class SkippedRule:
+    """Original type: skipped_rule = { ... }"""
+
+    rule_id: RuleId
+    details: str
+    position: Position
+
+    @classmethod
+    def from_json(cls, x: Any) -> "SkippedRule":
+        if isinstance(x, dict):
+            return cls(
+                rule_id=RuleId.from_json(x["rule_id"])
+                if "rule_id" in x
+                else _atd_missing_json_field("SkippedRule", "rule_id"),
+                details=_atd_read_string(x["details"])
+                if "details" in x
+                else _atd_missing_json_field("SkippedRule", "details"),
+                position=Position.from_json(x["position"])
+                if "position" in x
+                else _atd_missing_json_field("SkippedRule", "position"),
+            )
+        else:
+            _atd_bad_json("SkippedRule", x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res["rule_id"] = (lambda x: x.to_json())(self.rule_id)
+        res["details"] = _atd_write_string(self.details)
+        res["position"] = (lambda x: x.to_json())(self.position)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "SkippedRule":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
 class Error_:
     """Original type: severity = [ ... | Error | ... ]"""
 
@@ -803,46 +883,6 @@ class Severity:
 
     @classmethod
     def from_json_string(cls, x: str) -> "Severity":
-        return cls.from_json(json.loads(x))
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass
-class Position:
-    """Original type: position = { ... }"""
-
-    line: int
-    col: int
-    offset: int
-
-    @classmethod
-    def from_json(cls, x: Any) -> "Position":
-        if isinstance(x, dict):
-            return cls(
-                line=_atd_read_int(x["line"])
-                if "line" in x
-                else _atd_missing_json_field("Position", "line"),
-                col=_atd_read_int(x["col"])
-                if "col" in x
-                else _atd_missing_json_field("Position", "col"),
-                offset=_atd_read_int(x["offset"])
-                if "offset" in x
-                else _atd_missing_json_field("Position", "offset"),
-            )
-        else:
-            _atd_bad_json("Position", x)
-
-    def to_json(self) -> Any:
-        res: Dict[str, Any] = {}
-        res["line"] = _atd_write_int(self.line)
-        res["col"] = _atd_write_int(self.col)
-        res["offset"] = _atd_write_int(self.offset)
-        return res
-
-    @classmethod
-    def from_json_string(cls, x: str) -> "Position":
         return cls.from_json(json.loads(x))
 
     def to_json_string(self, **kw: Any) -> str:
@@ -1081,8 +1121,9 @@ class MatchResults:
 
     matches: List[Match]
     errors: List[Error]
-    skipped: List[SkippedTarget]
+    skipped_targets: List[SkippedTarget]
     stats: Stats
+    skipped_rules: Optional[List[SkippedRule]] = None
     time: Optional[Time] = None
 
     @classmethod
@@ -1095,12 +1136,15 @@ class MatchResults:
                 errors=_atd_read_list(Error.from_json)(x["errors"])
                 if "errors" in x
                 else _atd_missing_json_field("MatchResults", "errors"),
-                skipped=_atd_read_list(SkippedTarget.from_json)(x["skipped"])
+                skipped_targets=_atd_read_list(SkippedTarget.from_json)(x["skipped"])
                 if "skipped" in x
                 else _atd_missing_json_field("MatchResults", "skipped"),
                 stats=Stats.from_json(x["stats"])
                 if "stats" in x
                 else _atd_missing_json_field("MatchResults", "stats"),
+                skipped_rules=_atd_read_list(SkippedRule.from_json)(x["skipped_rules"])
+                if "skipped_rules" in x
+                else None,
                 time=Time.from_json(x["time"]) if "time" in x else None,
             )
         else:
@@ -1110,14 +1154,79 @@ class MatchResults:
         res: Dict[str, Any] = {}
         res["matches"] = _atd_write_list((lambda x: x.to_json()))(self.matches)
         res["errors"] = _atd_write_list((lambda x: x.to_json()))(self.errors)
-        res["skipped"] = _atd_write_list((lambda x: x.to_json()))(self.skipped)
+        res["skipped"] = _atd_write_list((lambda x: x.to_json()))(self.skipped_targets)
         res["stats"] = (lambda x: x.to_json())(self.stats)
+        if self.skipped_rules is not None:
+            res["skipped_rules"] = _atd_write_list((lambda x: x.to_json()))(
+                self.skipped_rules
+            )
         if self.time is not None:
             res["time"] = (lambda x: x.to_json())(self.time)
         return res
 
     @classmethod
     def from_json_string(cls, x: str) -> "MatchResults":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
+class CveResult:
+    """Original type: cve_result = { ... }"""
+
+    url: str
+    filename: str
+    funcnames: List[str]
+
+    @classmethod
+    def from_json(cls, x: Any) -> "CveResult":
+        if isinstance(x, dict):
+            return cls(
+                url=_atd_read_string(x["url"])
+                if "url" in x
+                else _atd_missing_json_field("CveResult", "url"),
+                filename=_atd_read_string(x["filename"])
+                if "filename" in x
+                else _atd_missing_json_field("CveResult", "filename"),
+                funcnames=_atd_read_list(_atd_read_string)(x["funcnames"])
+                if "funcnames" in x
+                else _atd_missing_json_field("CveResult", "funcnames"),
+            )
+        else:
+            _atd_bad_json("CveResult", x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res["url"] = _atd_write_string(self.url)
+        res["filename"] = _atd_write_string(self.filename)
+        res["funcnames"] = _atd_write_list(_atd_write_string)(self.funcnames)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "CveResult":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
+class CveResults:
+    """Original type: cve_results"""
+
+    value: List[CveResult]
+
+    @classmethod
+    def from_json(cls, x: Any) -> "CveResults":
+        return cls(_atd_read_list(CveResult.from_json)(x))
+
+    def to_json(self) -> Any:
+        return _atd_write_list((lambda x: x.to_json()))(self.value)
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "CveResults":
         return cls.from_json(json.loads(x))
 
     def to_json_string(self, **kw: Any) -> str:

@@ -1,8 +1,22 @@
+.PHONY: default
+default:
+	$(MAKE) build
+	$(MAKE) test
+
+# Generate code. Needed at least when the interface changes.
+.PHONY: build
+build:
+	$(MAKE) -C semgrep build
+
+.PHONY: test
 test:
 	pipenv run pytest -v --tb=short tests/
+
+.PHONY: regenerate-tests
 regenerate-tests:
 	pipenv run pytest tests/ --snapshot-update --ignore=tests/qa/test_public_repos.py
 
+.PHONY: setup
 setup:
 	pipenv install --dev
 
