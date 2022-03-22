@@ -1217,7 +1217,7 @@ and m_xml a b =
   | ( { G.xml_kind = a1; xml_attrs = a2; xml_body = a3 },
       { B.xml_kind = b1; xml_attrs = b2; xml_body = b3 } ) ->
       m_xml_kind a1 b1 >>= fun () ->
-      m_attrs a2 b2 >>= fun () -> m_bodies a3 b3
+      m_attrs a2 b2 >>= fun () -> m_xml_bodies a3 b3
 
 and m_xml_kind a b =
   match (a, b) with
@@ -1259,11 +1259,17 @@ and m_attrs a b =
     ~then_:(m_list_in_any_order ~less_is_ok:true m_xml_attr a b)
     ~else_:(m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_attr a b)
 
-and m_bodies a b =
+and m_xml_bodies a b =
   match (a, b) with
   (* dots: *)
   | [ XmlText ("...", _) ], _ -> return ()
-  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_body a1 b1
+  (* dots: metavars:
+   * less: we should be more general and use
+   * m_list_with_dots_and_metavar_ellipsis() at some point
+   *)
+  | [ XmlText (s, tok) ], _ when MV.is_metavar_ellipsis s ->
+      envf (s, tok) (MV.Xmls b)
+  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_xml_body a1 b1
   (* TODO: handle metavar matching a complex Xml elt or even list of elts *)
   | [ XmlText (s, _) ], [ _b ] when MV.is_metavar_name s -> fail ()
   (* TODO: should we impose $...X here to match a list of children? *)
@@ -1274,7 +1280,7 @@ and m_list__m_body a b =
   match a with
   (* less-is-ok: it's ok to have an empty body in the pattern *)
   | [] -> return ()
-  | _ -> m_list m_body a b
+  | _ -> m_list m_xml_body a b
 
 and m_xml_attr a b =
   match (a, b) with
@@ -1293,7 +1299,7 @@ and m_xml_attr_value a b =
   (* less: deep? *)
   m_expr a b
 
-and m_body a b =
+and m_xml_body a b =
   match (a, b) with
   (* dots: the "..." is actually intercepted now in m_bodies *)
   | G.XmlText a1, B.XmlText b1 ->
@@ -2944,6 +2950,7 @@ and m_any a b =
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
   | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
   | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
+  | G.Xmls a1, B.Xmls b1 -> m_list m_xml_body a1 b1
   | G.Anys a1, B.Anys b1 -> m_list m_any a1 b1
   (* boilerplate *)
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
@@ -2998,6 +3005,7 @@ and m_any a b =
   | G.Partial _, _
   | G.Args _, _
   | G.Params _, _
+  | G.Xmls _, _
   | G.ForOrIfComp _, _
   | G.Anys _, _
   | G.Str _, _ ->
