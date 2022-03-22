@@ -189,8 +189,20 @@ def ci_mocks(base_commit):
             "CI_MERGE_REQUEST_DIFF_BASE_SHA": "unused-commit-test-placeholder",
             "CI_MERGE_REQUEST_TITLE": "unused-merge-request-title-test-placeholder",
         },
+        {  # Gitlab
+            "CI": "true",
+            "GITLAB_CI": "true",
+            "CI_PROJECT_PATH": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "CI_PIPELINE_SOURCE": "push",
+            # Sent in metadata but no actual functionality change
+            "CI_JOB_TOKEN": "some-token-test-placeholder",
+            "CI_COMMIT_REF_NAME": BRANCH_NAME,
+            "CI_COMMIT_SHA": "unused-commit-test-placeholder",
+            "CI_PROJECT_URL": "https://example.com/gitlab-org/gitlab-foss",
+            "CI_JOB_URL": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
+        },
     ],
-    ids=["local", "gitlab"],
+    ids=["local", "gitlab", "gitlab-push"],
 )
 def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
@@ -226,7 +238,14 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
             meta_json["meta"]["commit"] = "sanitized"
 
             if env.get("GITLAB_CI"):
-                assert meta_json["meta"]["base_sha"] == base_commit
+                # If in a merge pipeline, base_sha is defined, otherwise is None
+                gitlab_base_sha = (
+                    base_commit
+                    if env.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
+                    else None
+                )
+
+                assert meta_json["meta"]["base_sha"] == gitlab_base_sha
                 meta_json["meta"]["base_sha"] = "sanitized"
 
             snapshot.assert_match(json.dumps(meta_json, indent=4), "meta.json")
