@@ -1263,6 +1263,7 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Xmls v1 -> v_list v_xml_body v1
     | ForOrIfComp v1 -> v_for_or_if_comp v1
     | Tp v1 -> v_type_parameter v1
     | Ta v1 -> v_type_argument v1

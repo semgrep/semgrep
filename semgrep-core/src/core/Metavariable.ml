@@ -66,6 +66,7 @@ type mvalue =
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
   | Params of AST_generic.parameter list
+  | Xmls of AST_generic.xml_body list
   (* Text below is used to match the content of a string or atom, without the
    * enclosing quotes. For a string this can actually be empty.
    * TODO? use a separate 'Atom of string wrap' for atoms? This could be useful
@@ -93,6 +94,7 @@ let mvalue_to_any = function
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | Params x -> G.Params x
+  | Xmls x -> G.Xmls x
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
@@ -111,6 +113,7 @@ let program_of_mvalue : mvalue -> G.program option =
   | Ss stmts -> Some stmts
   | Params _
   | Args _
+  | Xmls _
   | T _
   | P _
   | Text _ ->

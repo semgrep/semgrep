@@ -1744,6 +1744,7 @@ and any =
   | Flds of field list
   | Args of argument list
   | Params of parameter list
+  | Xmls of xml_body list
   | Partial of partial
   (* misc *)
   | I of ident

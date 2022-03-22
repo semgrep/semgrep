@@ -796,6 +796,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       nested_formula_has_matches { env with file_and_more }
                         formula (Some r')))
           | Some xlang, MV.Text (content, _tok)
+          | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
               (* We re-parse the matched text as `xlang`. *)
               Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
