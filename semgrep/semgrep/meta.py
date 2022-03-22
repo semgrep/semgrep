@@ -322,12 +322,32 @@ class GitlabMeta(GitMeta):
     environment: str = field(default="gitlab-ci", init=False)
 
     @staticmethod
-    def _get_remote_url() -> str:
+    def _fetch_branch_get_merge_base(branch_name: str, head_sha: str) -> str:
+        """
+        Return merge base of current head and head commit in branch_name
+
+        Use Gitlab env vars to fetch target branch
+        By default gitlab pipelines do a shallow clone
+
+        Moved out to method so tests can mock this
+
+        Because this is mocked it is not well tested. Use caution when modifying
+        """
         parts = urllib.parse.urlsplit(os.environ["CI_MERGE_REQUEST_PROJECT_URL"])
         parts = parts._replace(
             netloc=f"gitlab-ci-token:{os.environ['CI_JOB_TOKEN']}@{parts.netloc}"
         )
-        return urllib.parse.urlunsplit(parts)
+        url = urllib.parse.urlunsplit(parts)
+        subprocess.run(
+            ["git", "fetch", url, branch_name], check=True, timeout=GIT_SH_TIMEOUT
+        )
+
+        base_sha = subprocess.check_output(
+            ["git", "merge-base", "--all", head_sha, "FETCH_HEAD"],
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+        return base_sha
 
     @property
     def repo_name(self) -> str:
@@ -358,18 +378,7 @@ class GitlabMeta(GitMeta):
             encoding="utf-8",
             timeout=GIT_SH_TIMEOUT,
         ).strip()
-
-        subprocess.run(
-            ["git", "fetch", self._get_remote_url()], check=True, timeout=GIT_SH_TIMEOUT
-        )
-
-        base_sha = subprocess.check_output(
-            ["git", "merge-base", "--all", head_sha, "FETCH_HEAD"],
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
-
-        return base_sha
+        return self._fetch_branch_get_merge_base(target_branch, head_sha)
 
     @property
     def ci_job_url(self) -> Optional[str]:
