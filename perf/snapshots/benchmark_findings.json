@@ -112,15 +112,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1: `% load l10n %` was unexpected\n",
-          "path": "/Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js:1: `% load l10n %` was unexpected\n",
+          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/openlayers.js",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1: `{% extends \"gis/admin/openlayers.js\" %}{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected\n",
-          "path": "/Users/underyx/r2c/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js:1: `{% extends \"gis/admin/openlayers.js\" %}\n{% block base_layer %}new OpenLayers.Layer.OSM(\"OpenStreetMap (Mapnik)\");{% endblock %}` was unexpected\n",
+          "path": "/Users/emma/workspace/semgrep/perf/bench/njs-django/input/django/django/contrib/gis/templates/gis/admin/osm.js",
           "type": "Syntax error"
         }
       ],
@@ -322,8 +322,8 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14: `new?:` was unexpected\n",
-          "path": "/Users/underyx/r2c/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/emma/workspace/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts:14: `new?:` was unexpected\n",
+          "path": "/Users/emma/workspace/semgrep/perf/bench/juice-shop/input/juice-shop/frontend/src/app/Services/user.service.ts",
           "type": "Syntax error"
         }
       ],
@@ -460,21 +460,6 @@
           },
           "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/app.py",
           "start": { "col": 21, "line": 271, "offset": 9963 }
-        },
-        {
-          "check_id": "semgrep.perf.bench.rules_cache.Vulnerable-Flask-App.javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
-          "end": { "col": 204, "line": 91, "offset": 40011 },
-          "extra": {
-            "fingerprint": "<masked in benchmarks>",
-            "is_ignored": false,
-            "lines": "<masked in benchmarks>",
-            "message": "Detected a useless comparison operation `0 == 0` or `0 != 0`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
-            "metadata": {},
-            "metavars": "<masked in benchmarks>",
-            "severity": "ERROR"
-          },
-          "path": "<masked in benchmarks>/semgrep/perf/bench/Vulnerable-Flask-App/input/Vulnerable-Flask-App/app/static/loader.js",
-          "start": { "col": 200, "line": 91, "offset": 40007 }
         }
       ]
     }
@@ -558,15 +543,15 @@
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49: `__MALLOC_HOOK_VOLATILE` was unexpected\n",
-          "path": "/Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c:49: `__MALLOC_HOOK_VOLATILE` was unexpected\n",
+          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/libheap/src/heap.c",
           "type": "Syntax error"
         },
         {
           "code": 3,
           "level": "warn",
-          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62: `#ifndef __WINDOWS__` was unexpected\n",
-          "path": "/Users/underyx/r2c/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
+          "message": "[WARN] Semgrep Core \u2014 Syntax error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line /Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c:62: `#ifndef __WINDOWS__` was unexpected\n",
+          "path": "/Users/emma/workspace/semgrep/perf/bench/t00sh/input/rop-tool/tools/src/cmd.c",
           "type": "Syntax error"
         }
       ],
