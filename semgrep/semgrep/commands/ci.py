@@ -183,28 +183,6 @@ def ci(
 
     scan_handler = ScanHandler(token)
 
-    metadata = generate_meta_from_environment(baseline_commit)
-
-    try:
-        logger.info("Fetching configuration from semgrep.dev")
-        scan_handler.start_scan(metadata.to_dict())
-    except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        logger.info(f"Could not start scan {e}")
-        sys.exit(FATAL_EXIT_CODE)
-
-    # Append ignores configured on semgrep.dev
-    assert exclude is not None  # exclude is default empty tuple
-    exclude = (
-        *exclude,
-        *yield_exclude_paths(scan_handler.ignore_patterns),
-    )
-    logger.info(
-        f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-    )
-
     output_settings = OutputSettings(
         output_format=OutputFormat.TEXT,
         output_destination=output,
@@ -215,10 +193,32 @@ def ci(
         output_per_line_max_chars_limit=max_chars_per_line,
     )
     output_handler = OutputHandler(output_settings)
-    start = time.time()
-
+    metadata = generate_meta_from_environment(baseline_commit)
     try:
         with fix_head_if_github_action(metadata):
+            try:
+                logger.info("Fetching configuration from semgrep.dev")
+                # Note this needs to happen within fix_head_if_github_action
+                # so that metadata of current commit is correct
+                scan_handler.start_scan(metadata.to_dict())
+            except Exception as e:
+                import traceback
+
+                traceback.print_exc()
+                logger.info(f"Could not start scan {e}")
+                sys.exit(FATAL_EXIT_CODE)
+
+            # Append ignores configured on semgrep.dev
+            assert exclude is not None  # exclude is default empty tuple
+            exclude = (
+                *exclude,
+                *yield_exclude_paths(scan_handler.ignore_patterns),
+            )
+            logger.info(
+                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
+            )
+
+            start = time.time()
             (
                 filtered_matches_by_rule,
                 semgrep_errors,
