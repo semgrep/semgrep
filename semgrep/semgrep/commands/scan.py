@@ -168,10 +168,10 @@ _scan_options = [
     click.option(
         "--baseline-commit",
         help="""
-            [Experimental] Only show results that are not found in this commit hash. Aborts run if not currently
+            Only show results that are not found in this commit hash. Aborts run if not currently
             in a git directory, there are unstaged changes, or given baseline hash doesn't exist
         """,
-        hidden=True,
+        envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
     ),
     optgroup.group(
         "Path options",
@@ -289,6 +289,7 @@ _scan_options = [
             Maximum time to spend running a rule on a single file in seconds. If set to 0
             will not have time limit. Defaults to {DEFAULT_TIMEOUT} s.
         """,
+        envvar="SEMGREP_TIMEOUT",
     ),
     optgroup.option(
         "--timeout-threshold",
@@ -430,6 +431,7 @@ def scan_options(func: Callable) -> Callable:
         See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
     """,
     shell_complete=__get_config_options,
+    envvar="SEMGREP_RULES",
 )
 @optgroup.option(
     "--pattern",
