@@ -28,8 +28,6 @@ module H = Parse_tree_sitter_helpers
  * The resulting AST can then be converted to the generic AST by using
  * go_to_generic.ml
  *
- * TODO: add in the AST the go 1.18 generics (right now we parse them
- * but skip them)
  *)
 
 (*****************************************************************************)
@@ -331,8 +329,8 @@ and interface_body (env : env) (x : CST.interface_body) : interface_field =
             v2)
           v2
       in
-      let _xs = v1 :: v2 in
-      failwith "constraint_term not handled yet"
+      let xs = v1 :: v2 in
+      Constraints xs
 
 and constraint_term (env : env) ((v1, v2) : CST.constraint_term) =
   let tilde_opt =
@@ -534,8 +532,8 @@ and simple_type (env : env) (x : CST.simple_type) : type_ =
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : type_ =
   let id = (* identifier *) identifier env v1 in
-  let _targsTODO = type_arguments env v2 in
-  TName [ id ]
+  let targs = type_arguments env v2 in
+  TGeneric (id, targs)
 
 and type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
   let lbra = (* "[" *) token env v1 in
@@ -557,16 +555,16 @@ and call_expression (env : env) (x : CST.call_expression) =
   | `Choice_new_spec_arg_list (v1, v2) ->
       let v1 = anon_choice_new_0342769 env v1 in
       let v2 = special_argument_list env v2 in
-      Call (mk_Id v1, v2)
+      Call (mk_Id v1, None, v2)
   | `Exp_opt_type_args_arg_list (v1, v2, v3) ->
       let e = expression env v1 in
-      let _targsTODO =
+      let targs_opt =
         match v2 with
         | Some x -> Some (type_arguments env x)
         | None -> None
       in
       let args = argument_list env v3 in
-      Call (e, args)
+      Call (e, targs_opt, args)
 
 and default_case (env : env) ((v1, v2, v3) : CST.default_case) =
   let v1 = token env v1 (* "default" *) in
@@ -1038,19 +1036,19 @@ and anon_choice_elem_c42cd9b (env : env) (x : CST.anon_choice_elem_c42cd9b) =
 
 and type_spec (env : env) ((v1, v2, v3) : CST.type_spec) =
   let v1 = identifier env v1 (* identifier *) in
-  let _tparamsTODO =
+  let tparams_opt =
     match v2 with
     | Some x -> Some (type_parameter_list env x)
     | None -> None
   in
   let v3 = type_ env v3 in
-  DTypeDef (v1, v3)
+  DTypeDef (v1, tparams_opt, v3)
 
 and type_parameter_list (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_parameter_list) =
   let lbra = (* "[" *) token env v1 in
-  let param = parameter_declaration env v2 in
-  let params =
+  let params = parameter_declaration env v2 in
+  let paramss =
     List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
@@ -1060,7 +1058,7 @@ and type_parameter_list (env : env)
   in
   let _v4 = trailing_comma env v4 in
   let rbra = (* "]" *) token env v5 in
-  (lbra, param :: params, rbra)
+  (lbra, params @ List.flatten paramss, rbra)
 
 and channel_type (env : env) (x : CST.channel_type) =
   match x with
@@ -1299,13 +1297,13 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
   | `Func_decl (v1, v2, v3, v4, v5, v6) ->
       let tfunc = token env v1 (* "func" *) in
       let id = identifier env v2 (* identifier *) in
-      let _tparamsTODO =
+      let tparams =
         match v3 with
         | Some x -> Some (type_parameter_list env x)
         | None -> None
       in
-      let params = parameter_list env v4 in
-      let fret =
+      let fparams = parameter_list env v4 in
+      let fresults =
         match v5 with
         | Some x -> anon_choice_param_list_29faba4 env x
         | None -> []
@@ -1315,7 +1313,7 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | Some x -> block env x
         | None -> Empty
       in
-      [ DFunc (tfunc, id, ({ fparams = params; fresults = fret }, body)) ]
+      [ DFunc (tfunc, id, tparams, ({ fparams; fresults }, body)) ]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "func" *) in
       let v2 = parameter_list env v2 in
