@@ -8,12 +8,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Semgrep can now output findings in GitLab's SAST report and secret scanning
   report formats with `--gitlab-sast` and `--gitlab-secrets`.
-- Terraform: basic support for constant propagation of locals (#1147)
-  and variables (#4816)
 - JSON output now includes a fingerprint of each finding.
   This fingerprint remains consistent when matching code is just moved around
   or reindented.
-- HTML: you can now use metavariable ellipsis (#4841)
+- Go: use latest tree-sitter-go with support for Go 1.18 generics (#4823)
+- Terraform: basic support for constant propagation of locals (#1147)
+  and variables (#4816)
+- HTML: you can now use metavariable ellipsis inside <script> (#4841)
   (e.g., `<script>$...JS</script>`)
 
 ### Changed
