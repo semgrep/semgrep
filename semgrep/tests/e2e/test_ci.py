@@ -270,9 +270,11 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             result = runner.invoke(cli, ["ci"], env={})
 
             # Remove commit hashes from output
-            sanitized_output = result.output.replace(
-                head_commit[:7], "<sanitized head_commit>"
-            ).replace(base_commit, "<sanitized base_commit>")
+            sanitized_output = (
+                result.output.replace(head_commit, "<sanitized head_commit>")
+                .replace(head_commit[:7], "<sanitized head_commit>")
+                .replace(base_commit, "<sanitized base_commit>")
+            )
             snapshot.assert_match(sanitized_output, "output.txt")
 
             # Check correct metadata

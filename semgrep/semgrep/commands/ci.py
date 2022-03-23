@@ -1,8 +1,11 @@
 import os
+import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -18,8 +21,11 @@ from semgrep.constants import OutputFormat
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
+from semgrep.meta import GithubMeta
+from semgrep.meta import GitMeta
 from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -29,7 +35,6 @@ from semgrep.semgrep_app import ScanHandler
 from semgrep.types import MetricsState
 from semgrep.util import set_flags
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -62,6 +67,64 @@ def yield_exclude_paths(requested_patterns: Sequence[str]) -> Iterable[str]:
         patterns.extend(DEFAULT_EXCLUDE_PATTERNS)
 
     yield from patterns
+
+
+@contextmanager
+def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
+    """
+    GHA can checkout the incorrect commit for a PR (it will create a fake merge commit),
+    so we need to reset the head to the actual PR branch head before continuing.
+
+    Assumes cwd is a valid git project and that if we are in github-actions pull_request,
+    that metadata.base_commit_ref and metadata.head_ref point are the head commits of
+    the target merge branch and current branch respectively
+    """
+    if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
+        assert metadata.head_ref is not None  # Not none when github action PR
+
+        logger.info("Fixing git state for github action pull request")
+        logger.debug(
+            f"base_commit_ref: {metadata.base_commit_ref}, head_ref: {metadata.head_ref}"
+        )
+        logger.debug("Calling git rev-parse HEAD")
+        rev_parse = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            encoding="utf-8",
+            check=True,
+            timeout=GIT_SH_TIMEOUT,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
+        logger.debug(f"git rev-parse stdout: {rev_parse.stdout}")
+        logger.debug(f"git rev-parse stderr: {rev_parse.stderr}")
+        stashed_rev = rev_parse.stdout.rstrip()
+        logger.debug(f"stashed_rev: {stashed_rev}")
+
+        logger.debug(f"Not on head ref {metadata.head_ref}; checking that out now.")
+        checkout = subprocess.run(
+            ["git", "checkout", metadata.head_ref],
+            encoding="utf-8",
+            check=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            timeout=GIT_SH_TIMEOUT,
+        )
+        logger.debug(f"git checkout stdout: {checkout.stdout}")
+        logger.debug(f"git checkout stderr: {checkout.stderr}")
+
+        try:
+            yield
+        finally:
+            logger.info(f"Returning to original head revision {stashed_rev}")
+            subprocess.run(
+                ["git", "checkout", stashed_rev],
+                encoding="utf-8",
+                check=True,
+                timeout=GIT_SH_TIMEOUT,
+            )
+    else:
+        # Do nothing
+        yield
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
@@ -155,37 +218,38 @@ def ci(
     start = time.time()
 
     try:
-        (
-            filtered_matches_by_rule,
-            semgrep_errors,
-            all_targets,
-            ignore_log,
-            filtered_rules,
-            profiler,
-            profiling_data,
-            shown_severities,
-        ) = semgrep.semgrep_main.main(
-            output_handler=output_handler,
-            target=[os.curdir],  # semgrep ci only scans cwd
-            pattern=None,
-            lang=None,
-            configs=(scan_handler.scan_rules_url,),
-            no_rewrite_rule_ids=(not rewrite_rule_ids),
-            jobs=jobs,
-            include=include,
-            exclude=exclude,
-            max_target_bytes=max_target_bytes,
-            autofix=scan_handler.autofix,
-            dryrun=True,
-            disable_nosem=True,
-            no_git_ignore=(not use_git_ignore),
-            timeout=timeout,
-            max_memory=max_memory,
-            timeout_threshold=timeout_threshold,
-            skip_unknown_extensions=(not scan_unknown_extensions),
-            optimizations=optimizations,
-            baseline_commit=metadata.base_commit_ref,
-        )
+        with fix_head_if_github_action(metadata):
+            (
+                filtered_matches_by_rule,
+                semgrep_errors,
+                all_targets,
+                ignore_log,
+                filtered_rules,
+                profiler,
+                profiling_data,
+                shown_severities,
+            ) = semgrep.semgrep_main.main(
+                output_handler=output_handler,
+                target=[os.curdir],  # semgrep ci only scans cwd
+                pattern=None,
+                lang=None,
+                configs=(scan_handler.scan_rules_url,),
+                no_rewrite_rule_ids=(not rewrite_rule_ids),
+                jobs=jobs,
+                include=include,
+                exclude=exclude,
+                max_target_bytes=max_target_bytes,
+                autofix=scan_handler.autofix,
+                dryrun=True,
+                disable_nosem=True,
+                no_git_ignore=(not use_git_ignore),
+                timeout=timeout,
+                max_memory=max_memory,
+                timeout_threshold=timeout_threshold,
+                skip_unknown_extensions=(not scan_unknown_extensions),
+                optimizations=optimizations,
+                baseline_commit=metadata.base_commit_ref,
+            )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
         output_handler.output({}, all_targets=set(), filtered_rules=[])

@@ -1,5 +1,6 @@
 Fetching configuration from semgrep.dev
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ('.semgrep/', '.semgrep_logs/')
+Fixing git state for github action pull request
 Scanning 1 file with 4 python rules.
   Current version has 12 findings.
 
@@ -8,6 +9,7 @@ Switching repository to baseline commit '<sanitized base_commit>'.
     * <sanitized head_commit> Some other commit/ message
 
 Scanning 1 file with 4 python rules.
+Returning to original head revision <sanitized head_commit>
 
 Some files were skipped.
   Scan was limited to files changed since baseline commit.
