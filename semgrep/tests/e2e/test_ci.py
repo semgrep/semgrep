@@ -107,7 +107,7 @@ import contextlib
 
 
 @contextlib.contextmanager
-def ci_mocks(base_commit):
+def ci_mocks(base_commit, autofix):
     """
     Necessary patches to run `semgrep ci` tests
     """
@@ -127,6 +127,7 @@ def ci_mocks(base_commit):
           severity: ERROR
           metadata:
             dev.semgrep.actions: []
+          fix: $X == 2
         - id: eqeq-four
           pattern: $X == 4
           message: "useless comparison to 4"
@@ -156,9 +157,13 @@ def ci_mocks(base_commit):
                 with mock.patch.object(
                     Authentication, "is_valid_token", return_value=True
                 ):
-                    yield
+                    with mock.patch.object(
+                        ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
+                    ):
+                        yield
 
 
+@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 @pytest.mark.parametrize(
     "env",
     [
@@ -215,7 +220,7 @@ def ci_mocks(base_commit):
     ],
     ids=["local", "github-push", "github-pr", "gitlab", "gitlab-push"],
 )
-def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
+def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
 
     # Set envvars that depend on commit hashes:
@@ -252,7 +257,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env):
     # Return a different mock so post_mock only contains direct calls to session.post
     post_mock = mock.MagicMock(return_value=mock.MagicMock())
 
-    with ci_mocks(base_commit):
+    with ci_mocks(base_commit, autofix):
         # Mock session.post
         with mock.patch.object(Session, "post", post_mock):
             runner = CliRunner(

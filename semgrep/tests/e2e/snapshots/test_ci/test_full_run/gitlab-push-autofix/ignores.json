@@ -10,7 +10,7 @@
             "message": "useless comparison",
             "severity": 2,
             "index": 1,
-            "commit_date": "1647994481",
+            "commit_date": "1647994709",
             "syntactic_id": "e3186eb2f0a0b767cf0619f1c474d66b",
             "metadata": {},
             "is_blocking": true
@@ -25,7 +25,7 @@
             "message": "useless comparison",
             "severity": 2,
             "index": 0,
-            "commit_date": "1647994481",
+            "commit_date": "1647994709",
             "syntactic_id": "3babf5a1a63b6ee7d22c48163168b81c",
             "metadata": {},
             "is_blocking": true
@@ -40,7 +40,7 @@
             "message": "useless comparison",
             "severity": 2,
             "index": 0,
-            "commit_date": "1647994481",
+            "commit_date": "1647994709",
             "syntactic_id": "21036413a3840b42ce9a729bd2e3b0f5",
             "metadata": {},
             "is_blocking": true
@@ -55,7 +55,7 @@
             "message": "useless comparison to 5",
             "severity": 2,
             "index": 0,
-            "commit_date": "1647994481",
+            "commit_date": "1647994709",
             "syntactic_id": "8956603279e2a9cf1b99827231367f21",
             "metadata": {
                 "dev.semgrep.actions": []
@@ -75,7 +75,7 @@
             "message": "useless comparison to 4",
             "severity": 2,
             "index": 0,
-            "commit_date": "1647994481",
+            "commit_date": "1647994709",
             "syntactic_id": "b290f52d5b20537c48e1b757a7303ff7",
             "metadata": {
                 "dev.semgrep.actions": [

@@ -110,6 +110,18 @@ class GitMeta:
     def initialize_repo(self) -> None:
         return
 
+    @property
+    def commit_datetime(self) -> str:
+        """
+        Returns epoch time as str of head commit
+        """
+        return subprocess.check_output(
+            ["git", "show", "-s", "--format=%ct"],
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        ).strip()
+
     def to_dict(self) -> Dict[str, Any]:
         commit_title = subprocess.check_output(
             ["git", "show", "-s", "--format=%B"],

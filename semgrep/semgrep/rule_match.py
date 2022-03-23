@@ -254,7 +254,11 @@ class RuleMatch:
         """
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
-    def to_app_finding_format(self) -> Dict[str, Any]:
+    def to_app_finding_format(self, commit_date: str) -> Dict[str, Any]:
+        """
+        commit_date here for legacy reasons. It is the commit date
+        of the head commit in epoch time
+        """
 
         # Follow semgrep.dev severity conventions
         if self.severity.value == RuleSeverity.ERROR.value:
@@ -264,7 +268,7 @@ class RuleMatch:
         else:
             app_severity = 0
 
-        return {
+        ret = {
             "check_id": self.rule_id,
             "path": str(self.path),
             "line": self.start.line,
@@ -274,11 +278,15 @@ class RuleMatch:
             "message": self.message,
             "severity": app_severity,
             "index": self.index,
-            # "commit_date": "TODO",
+            "commit_date": commit_date,
             "syntactic_id": self.syntactic_id,
             "metadata": self.metadata,
             "is_blocking": self.is_blocking,
         }
+
+        if self.extra.get("fixed_lines"):
+            ret["fixed_lines"] = self.extra.get("fixed_lines")
+        return ret
 
     def __hash__(self) -> int:
         """

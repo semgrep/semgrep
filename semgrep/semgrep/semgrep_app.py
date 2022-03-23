@@ -37,8 +37,18 @@ class ScanHandler:
         session.headers["User-Agent"] = SEMGREP_USER_AGENT
         session.headers["Authorization"] = f"Bearer {token}"
         self.session = session
-        self.scan_id = None
         self.deployment_id = self._get_deployment_id()
+
+        self.scan_id = None
+        self.ignore_patterns: List[str] = []
+        self._autofix = False
+
+    @property
+    def autofix(self) -> bool:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._autofix
 
     def _get_deployment_id(self) -> Optional[int]:
         """
@@ -84,7 +94,7 @@ class ScanHandler:
 
         body = response.json()
         self.scan_id = body["scan"]["id"]
-        self.autofix = body.get("autofix", False)
+        self._autofix = body.get("autofix", False)
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
 
     @property
@@ -117,8 +127,11 @@ class ScanHandler:
         rules: List[Rule],
         targets: Set[Path],
         total_time: float,
+        commit_date: str,
     ) -> None:
-        """ """
+        """
+        commit_date here for legacy reasons. epoch time of latest commit
+        """
         all_ids = [r.id for r in rules]
         cai_ids, rule_ids = partition(
             lambda r_id: "r2c-internal-cai" in r_id,
@@ -135,19 +148,21 @@ class ScanHandler:
             all_matches,
         )
 
-        # if self.scan.autofix:
-        #     fields_to_omit.remove("fixed_lines")
         findings = {
             # send a backup token in case the app is not available
             "token": os.getenv("GITHUB_TOKEN"),
             "gitlab_token": os.getenv("GITLAB_TOKEN"),
-            "findings": [match.to_app_finding_format() for match in new_matches],
+            "findings": [
+                match.to_app_finding_format(commit_date) for match in new_matches
+            ],
             "searched_paths": [str(t) for t in targets],
             "rule_ids": rule_ids,
             "cai_ids": cai_ids,
         }
         ignores = {
-            "findings": [match.to_app_finding_format() for match in new_ignored],
+            "findings": [
+                match.to_app_finding_format(commit_date) for match in new_ignored
+            ],
         }
         complete = {
             "exit_code": 1 if any(match.is_blocking for match in all_matches) else 0,

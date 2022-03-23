@@ -172,9 +172,9 @@ def ci(
             include=include,
             exclude=exclude,
             max_target_bytes=max_target_bytes,
-            autofix=autofix,
-            dryrun=dryrun,
-            disable_nosem=True,  # TODO weird behavior where this needs to be true to get annotated data
+            autofix=scan_handler.autofix,
+            dryrun=True,
+            disable_nosem=True,
             no_git_ignore=(not use_git_ignore),
             timeout=timeout,
             max_memory=max_memory,
@@ -249,6 +249,7 @@ def ci(
         filtered_rules,
         all_targets,
         total_time,
+        metadata.commit_datetime,
     )
     logger.info(f"Success.")
 
