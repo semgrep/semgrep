@@ -71,15 +71,16 @@ WORKDIR /src
 LABEL maintainer="support@r2c.dev"
 ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
 
-RUN apk add --no-cache --virtual=.run-deps git openssh
-
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 COPY semgrep /semgrep
 
 # hadolint ignore=DL3013
-RUN SEMGREP_SKIP_BIN=true pip install /semgrep && \
+RUN apk add --no-cache --virtual=.build-deps build-base && \
+     apk add --no-cache --virtual=.run-deps git openssh && \
+     SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
+     apk del .build-deps && \
      mkdir -p /tmp/.cache && \
      chmod 0777 /src /tmp/.cache \
      adduser -D -u 1000 semgrep
