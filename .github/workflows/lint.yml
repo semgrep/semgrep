@@ -1,7 +1,7 @@
 name: lint
 on:
   workflow_dispatch:
-  pull_request:
+  push:
 
 jobs:
   pre-commit:

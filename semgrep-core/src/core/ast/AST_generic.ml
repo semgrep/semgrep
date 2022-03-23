@@ -535,7 +535,21 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap (* TODO? bracket, ', ", or even """ *)
+  (* String literals:
+     The token includes the quotes (if any) but the string value excludes them.
+     The value is the escaped string content. For example,
+     The escaped content of the Python string literal '\\(\\)' is \\(\\).
+     The unescaped content would be \(\).
+     TODO: use bracket instead of wrap, ', ", or even """
+     TODO: expose the unescaped contents if known, so that we could analyze
+     string contents correctly.
+     An incremental change could be:
+
+     | String of (string * string option) bracket
+                  ^^^^^^   ^^^^^^
+                  escaped  unescaped
+  *)
+  | String of string wrap
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
@@ -1730,6 +1744,7 @@ and any =
   | Flds of field list
   | Args of argument list
   | Params of parameter list
+  | Xmls of xml_body list
   | Partial of partial
   (* misc *)
   | I of ident

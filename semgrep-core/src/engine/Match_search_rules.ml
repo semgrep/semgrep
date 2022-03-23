@@ -614,7 +614,7 @@ let matches_of_xpatterns config file_and_more xpatterns =
    Find the metavariable value, convert it back to a string, and
    run it through an analyzer that returns true if there's a "match".
 *)
-let analyze_metavar env bindings mvar analyzer =
+let analyze_metavar env (bindings : MV.bindings) mvar analyzer =
   match List.assoc_opt mvar bindings with
   | None ->
       error env
@@ -623,10 +623,24 @@ let analyze_metavar env bindings mvar analyzer =
             check your rule"
            mvar);
       false
-  | Some mval -> (
-      match Eval_generic.text_of_binding mvar mval with
-      | None -> false
-      | Some data -> analyzer data)
+  | Some mvalue -> analyzer mvalue
+
+(*
+   Analyze the contents of a string literal bound to a metavariable.
+   The analyzer operates of the strings contents after best-effort
+   unescaping.
+   Return false if the bound value isn't a string literal.
+*)
+let analyze_string_metavar env bindings mvar (analyzer : string -> bool) =
+  analyze_metavar env bindings mvar (function
+    (* We don't use Eval_generic.text_of_binding on string literals because
+       it returns the quoted string but we want it unquoted. *)
+    | E { G.e = G.L (G.String (escaped, _tok)); _ } ->
+        escaped |> String_literal.approximate_unescape |> analyzer
+    | other_mval -> (
+        match Eval_generic.text_of_binding mvar other_mval with
+        | Some s -> analyzer s
+        | None -> false))
 
 let rec filter_ranges env xs cond =
   xs
@@ -675,7 +689,7 @@ let rec filter_ranges env xs cond =
              Eval_generic.eval_bool env e
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
-             analyze_metavar env bindings mvar Entropy.has_high_score
+             analyze_string_metavar env bindings mvar Entropy.has_high_score
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
@@ -698,7 +712,7 @@ let rec filter_ranges env xs cond =
                      mvar re_str;
                    false
              in
-             analyze_metavar env bindings mvar analyze)
+             analyze_string_metavar env bindings mvar analyze)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in
@@ -782,6 +796,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       nested_formula_has_matches { env with file_and_more }
                         formula (Some r')))
           | Some xlang, MV.Text (content, _tok)
+          | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
               (* We re-parse the matched text as `xlang`. *)
               Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"

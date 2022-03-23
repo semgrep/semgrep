@@ -6,15 +6,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
-  with `--gitlab-sast` and `--gitlab-secrets`.
+- Semgrep can now output findings in GitLab's SAST report and secret scanning
+  report formats with `--gitlab-sast` and `--gitlab-secrets`.
 - Terraform: basic support for constant propagation of locals (#1147)
   and variables (#4816)
+- JSON output now includes a fingerprint of each finding.
+  This fingerprint remains consistent when matching code is just moved around
+  or reindented.
+- HTML: you can now use metavariable ellipsis (#4841)
+  (e.g., `<script>$...JS</script>`)
 
 ### Changed
 
 - SARIF output will include matching code snippet (#4812)
-- Semgrep should now be more tolerant to rules using futur extensions by
+- semgrep-core should now be more tolerant to rules using futur extensions by
   skipping those rules instead of just crashing (#4835)
 - Removed `tests` from published python wheel
 - Findings are now considered identical between baseline and current scans
@@ -25,6 +30,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- Entropy analysis: strings made of repeated characters such as
+  `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
 - Symlinks found in directories are skipped from being scanned again.
   This is a fix for a regression introduced in 0.85.0.
 
@@ -33,12 +40,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
-- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
-- Scala: The data-flow engine can now handle expression blocks. This used to
-  cause some false negatives during taint analysis, which will now be reported.
-- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
-- When scanning multiple languages,
-  Semgrep will now print a table of how many rules and files are used for each language.
+- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>`) (#4078)
+- Scala: The data-flow engine can now handle expression blocks.
+  This used to cause some false negatives during taint analysis,
+  which will now be reported.
+- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]`
+  (#4770).
+- When scanning multiple languages, Semgrep will now print a table of how
+  many rules and files are used for each language.
 
 ### Fixed
 
