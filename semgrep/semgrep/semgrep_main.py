@@ -193,7 +193,7 @@ def remove_matches_in_baseline(
 
     for rule, matches in head_matches_by_rule.items():
         baseline_matches = {
-            match.ci_unique_key for match in baseline_matches_by_rule[rule]
+            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
         kept_matches_by_rule[rule] = [
             match for match in matches if match.ci_unique_key not in baseline_matches
