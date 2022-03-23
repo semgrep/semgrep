@@ -254,9 +254,12 @@ class GithubMeta(GitMeta):
             )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
-            process = subprocess.check_output(
+            process = subprocess.run(
                 ["git", "merge-base", self.base_branch_tip, self.head_ref],
                 encoding="utf-8",
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                check=True,
                 timeout=GIT_SH_TIMEOUT,
             )
         except subprocess.CalledProcessError as e:
@@ -274,7 +277,7 @@ class GithubMeta(GitMeta):
 
             return self._find_branchoff_point(attempt_count + 1)
         else:
-            return process.strip()
+            return process.stdout.strip()
 
     @property
     def base_commit_ref(self) -> Optional[str]:
