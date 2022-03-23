@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   with `--gitlab-sast` and `--gitlab-secrets`.
 - Terraform: basic support for constant propagation of locals (#1147)
   and variables (#4816)
+- Semgrep can now output findings in Reviewdog diagnostic format (rdformat) with `--reviewdog`.
 
 ### Changed
 
