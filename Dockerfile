@@ -69,7 +69,13 @@ FROM python:3.10-alpine@sha256:bddea3d56e850b245bb09e7197f25a60bedf71b4bf0ee50b0
 
 WORKDIR /src
 LABEL maintainer="support@r2c.dev"
-ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
+ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
+     PIP_NO_CACHE_DIR=true \
+     SEMGREP_IN_DOCKER=1 \
+     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
+     SEMGREP_USER_AGENT_APPEND="(Docker)" \
+     PYTHONIOENCODING=utf8 \
+     PYTHONUNBUFFERED=1
 
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
@@ -81,19 +87,10 @@ RUN apk add --no-cache --virtual=.build-deps build-base && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
      apk del .build-deps && \
-     mkdir -p /tmp/.cache && \
-     chmod 0777 /src /tmp/.cache && \
-     adduser -D -u 1000 semgrep
+     mkdir -p /tmp/.cache
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
-ENV SEMGREP_IN_DOCKER=1 \
-     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-     SEMGREP_USER_AGENT_APPEND="(Docker)" \
-     PYTHONIOENCODING=utf8 \
-     PYTHONUNBUFFERED=1
-
-USER 1000
 ENTRYPOINT ["semgrep"]
 CMD ["--help"]
