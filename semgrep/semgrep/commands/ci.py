@@ -145,26 +145,33 @@ def ci(
     baseline_commit: Optional[str],
     debug: bool,
     dryrun: bool,
+    emacs: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
+    gitlab_sast: bool,
+    gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
+    json: bool,
+    junit_xml: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_memory: int,
     max_target_bytes: int,
     optimizations: str,
     output: Optional[str],
+    sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
-    timeout: int,
     timeout_threshold: int,
+    timeout: int,
     use_git_ignore: bool,
     verbose: bool,
+    vim: bool,
 ) -> None:
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
     # Metrics always on for `semgrep ci`
@@ -183,8 +190,24 @@ def ci(
 
     scan_handler = ScanHandler(token)
 
+    output_format = OutputFormat.TEXT
+    if json:
+        output_format = OutputFormat.JSON
+    elif gitlab_sast:
+        output_format = OutputFormat.GITLAB_SAST
+    elif gitlab_secrets:
+        output_format = OutputFormat.GITLAB_SECRETS
+    elif junit_xml:
+        output_format = OutputFormat.JUNIT_XML
+    elif sarif:
+        output_format = OutputFormat.SARIF
+    elif emacs:
+        output_format = OutputFormat.EMACS
+    elif vim:
+        output_format = OutputFormat.VIM
+
     output_settings = OutputSettings(
-        output_format=OutputFormat.TEXT,
+        output_format=output_format,
         output_destination=output,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,

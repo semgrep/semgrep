@@ -388,6 +388,36 @@ _scan_options = [
             works with the --autofix flag. Otherwise does nothing.
         """,
     ),
+    optgroup.group(
+        "Output formats",
+        cls=MutuallyExclusiveOptionGroup,
+        help="Uses ASCII output if no format specified.",
+    ),
+    optgroup.option(
+        "--emacs",
+        is_flag=True,
+        help="Output results in Emacs single-line format.",
+    ),
+    optgroup.option("--json", is_flag=True, help="Output results in JSON format."),
+    optgroup.option(
+        "--gitlab-sast",
+        is_flag=True,
+        help="Output results in GitLab SAST format.",
+    ),
+    optgroup.option(
+        "--gitlab-secrets",
+        is_flag=True,
+        help="Output results in GitLab Secrets format.",
+    ),
+    optgroup.option(
+        "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
+    ),
+    optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format."),
+    optgroup.option(
+        "--vim",
+        is_flag=True,
+        help="Output results in vim single-line format.",
+    ),
 ]
 
 
@@ -516,36 +546,6 @@ def scan_options(func: Callable) -> Callable:
     type=METRICS_STATE_TYPE,
     flag_value="on",
     hidden=True,
-)
-@optgroup.group(
-    "Output formats",
-    cls=MutuallyExclusiveOptionGroup,
-    help="Uses ASCII output if no format specified.",
-)
-@optgroup.option(
-    "--emacs",
-    is_flag=True,
-    help="Output results in Emacs single-line format.",
-)
-@optgroup.option("--json", is_flag=True, help="Output results in JSON format.")
-@optgroup.option(
-    "--gitlab-sast",
-    is_flag=True,
-    help="Output results in GitLab SAST format.",
-)
-@optgroup.option(
-    "--gitlab-secrets",
-    is_flag=True,
-    help="Output results in GitLab Secrets format.",
-)
-@optgroup.option(
-    "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
-)
-@optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format.")
-@optgroup.option(
-    "--vim",
-    is_flag=True,
-    help="Output results in vim single-line format.",
 )
 @click.option(
     "--error/--no-error",
