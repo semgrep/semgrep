@@ -230,7 +230,7 @@ class GithubMeta(GitMeta):
         assert self.head_ref is not None
         assert self.base_branch_tip is not None
 
-        fetch_depth = 4**attempt_count  # fetch 4, 16, 64, 256, 1024, ...
+        fetch_depth: int = 4**attempt_count  # fetch 4, 16, 64, 256, 1024, ...
         if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
             fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
 
