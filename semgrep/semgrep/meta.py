@@ -9,6 +9,7 @@ from typing import Any
 from typing import Dict
 from typing import Optional
 
+from boltons.cacheutils import cachedproperty
 from glom import glom
 from glom import T
 from glom.core import TType
@@ -74,7 +75,7 @@ class GitMeta:
     def head_ref(self) -> Optional[str]:
         return None
 
-    @property
+    @cachedproperty
     def base_commit_ref(self) -> Optional[str]:
         return self.cli_baseline_ref
 
@@ -294,7 +295,7 @@ class GithubMeta(GitMeta):
             )
             return process.stdout.strip()
 
-    @property
+    @cachedproperty
     def base_commit_ref(self) -> Optional[str]:
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
@@ -393,7 +394,7 @@ class GitlabMeta(GitMeta):
     def commit_ref(self) -> Optional[str]:
         return os.getenv("CI_COMMIT_REF_NAME")
 
-    @property
+    @cachedproperty
     def base_commit_ref(self) -> Optional[str]:
         if self.cli_baseline_ref:
             return self.cli_baseline_ref

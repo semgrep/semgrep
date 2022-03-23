@@ -116,6 +116,7 @@ install_requires = [
     # 1. x.0~= operator pinning to x major version
     # 2. >=x,<y operator pinning to multiple major versions
     "attrs~=21.3",
+    "boltons~=21.0",
     "colorama~=0.4.0",
     "click~=8.0",
     "click-option-group~=0.5",
