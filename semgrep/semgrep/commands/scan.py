@@ -173,6 +173,36 @@ _scan_options = [
         """,
         envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
     ),
+    click.option(
+        "--metrics",
+        "metrics",
+        type=METRICS_STATE_TYPE,
+        help="""
+            Configures how usage metrics are sent to the Semgrep server.
+            If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
+            If 'on', metrics are always sent.
+            If 'off', metrics are disabled altogether and not sent.
+            If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
+            If no environment variable, defaults to 'auto'.
+        """,
+        envvar="SEMGREP_SEND_METRICS",
+    ),
+    click.option(
+        "--disable-metrics",
+        "metrics_legacy",
+        is_flag=True,
+        type=METRICS_STATE_TYPE,
+        flag_value="off",
+        hidden=True,
+    ),
+    click.option(
+        "--enable-metrics",
+        "metrics_legacy",
+        is_flag=True,
+        type=METRICS_STATE_TYPE,
+        flag_value="on",
+        hidden=True,
+    ),
     optgroup.group(
         "Path options",
         help="""
@@ -516,36 +546,6 @@ def scan_options(func: Callable) -> Callable:
         If --dump-ast, shows AST of the input file or passed expression and then exit
         (can use --json).
     """,
-)
-@click.option(
-    "--metrics",
-    "metrics",
-    type=METRICS_STATE_TYPE,
-    help="""
-        Configures how usage metrics are sent to the Semgrep server.
-        If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server.
-        If 'on', metrics are always sent.
-        If 'off', metrics are disabled altogether and not sent.
-        If absent, the SEMGREP_SEND_METRICS environment variable value will be used.
-        If no environment variable, defaults to 'auto'.
-    """,
-    envvar="SEMGREP_SEND_METRICS",
-)
-@click.option(
-    "--disable-metrics",
-    "metrics_legacy",
-    is_flag=True,
-    type=METRICS_STATE_TYPE,
-    flag_value="off",
-    hidden=True,
-)
-@click.option(
-    "--enable-metrics",
-    "metrics_legacy",
-    is_flag=True,
-    type=METRICS_STATE_TYPE,
-    flag_value="on",
-    hidden=True,
 )
 @click.option(
     "--error/--no-error",

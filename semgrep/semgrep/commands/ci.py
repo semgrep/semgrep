@@ -145,6 +145,25 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     type=str,
     hidden=True,
 )
+@click.option(
+    "--config",
+    "-c",
+    "-f",
+    multiple=True,
+    help="""
+        YAML configuration file, directory of YAML files ending in
+        .yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
+        \n\n
+        Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in
+         to the Semgrep registry.
+        \n\n
+        To run multiple rule files simultaneously, use --config before every YAML, URL, or Semgrep registry entry name.
+         For example `semgrep --config p/python --config myrules/myrule.yaml`
+        \n\n
+        See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.
+    """,
+    envvar="SEMGREP_RULES",
+)
 def ci(
     ctx: click.Context,
     *,
@@ -152,6 +171,7 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
+    config: Optional[Tuple[str, ...]],
     debug: bool,
     dryrun: bool,
     emacs: bool,
@@ -169,6 +189,8 @@ def ci(
     max_lines_per_finding: int,
     max_memory: int,
     max_target_bytes: int,
+    metrics: Optional[MetricsState],
+    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     output: Optional[str],
     sarif: bool,
@@ -183,21 +205,31 @@ def ci(
     vim: bool,
 ) -> None:
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
-    # Metrics always on for `semgrep ci`
-    metric_manager.configure(MetricsState.ON, MetricsState.ON)
+    metric_manager.configure(metrics, metrics_legacy)
+    scan_handler = None
 
-    # Check that we have valid api token
     token = Authentication.get_token()
-    if not token:
+    if not token and not config:
+        # Not logged in and no explicit config
         logger.info("run `semgrep login` before using `semgrep ci`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
-    if not Authentication.is_valid_token(token):
+    elif not token and config:
+        # Not logged in but has explicit config
+        logger.info(f"Running `semgrep ci` without API token but with configs {config}")
+    elif token and config:
+        # Logged in but has explicit config
         logger.info(
-            "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+            "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure policy."
         )
-        sys.exit(INVALID_API_KEY_EXIT_CODE)
-
-    scan_handler = ScanHandler(app_url, token)
+        sys.exit(FATAL_EXIT_CODE)
+    else:
+        assert token  # Must be defined here
+        if not Authentication.is_valid_token(token):
+            logger.info(
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
+            )
+            sys.exit(INVALID_API_KEY_EXIT_CODE)
+        scan_handler = ScanHandler(app_url, token)
 
     output_format = OutputFormat.TEXT
     if json:
@@ -246,7 +278,9 @@ def ci(
                 logger.info("Fetching configuration from semgrep.dev")
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
-                scan_handler.start_scan(metadata.to_dict())
+                if scan_handler:
+                    scan_handler.start_scan(metadata.to_dict())
+                    config = (scan_handler.scan_rules_url,)
             except Exception as e:
                 import traceback
 
@@ -255,15 +289,16 @@ def ci(
                 sys.exit(FATAL_EXIT_CODE)
 
             # Append ignores configured on semgrep.dev
-            assert exclude is not None  # exclude is default empty tuple
-            exclude = (
-                *exclude,
-                *yield_exclude_paths(scan_handler.ignore_patterns),
-            )
-            logger.info(
-                f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
-            )
-
+            if scan_handler:
+                assert exclude is not None  # exclude is default empty tuple
+                exclude = (
+                    *exclude,
+                    *yield_exclude_paths(scan_handler.ignore_patterns),
+                )
+                logger.info(
+                    f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
+                )
+            assert config  # Config has to be defined here. Helping mypy out
             start = time.time()
             (
                 filtered_matches_by_rule,
@@ -279,13 +314,13 @@ def ci(
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
                 lang=None,
-                configs=(scan_handler.scan_rules_url,),
+                configs=config,
                 no_rewrite_rule_ids=(not rewrite_rule_ids),
                 jobs=jobs,
                 include=include,
                 exclude=exclude,
                 max_target_bytes=max_target_bytes,
-                autofix=scan_handler.autofix,
+                autofix=scan_handler.autofix if scan_handler else False,
                 dryrun=True,
                 disable_nosem=True,
                 no_git_ignore=(not use_git_ignore),
@@ -304,7 +339,8 @@ def ci(
             exit_code = e.code
         else:
             exit_code = FATAL_EXIT_CODE
-        scan_handler.report_failure(exit_code)
+        if scan_handler:
+            scan_handler.report_failure(exit_code)
         sys.exit(exit_code)
 
     total_time = time.time() - start
@@ -314,11 +350,11 @@ def ci(
     nonblocking_rules: List[Rule] = []
     cai_rules: List[Rule] = []
     for rule in filtered_rules:
-        if rule.is_blocking:
-            blocking_rules.append(rule)
+        if "r2c-internal-cai" in rule.id:
+            cai_rules.append(rule)
         else:
-            if "r2c-internal-cai" in rule.id:
-                cai_rules.append(rule)
+            if rule.is_blocking:
+                blocking_rules.append(rule)
             else:
                 nonblocking_rules.append(rule)
 
@@ -327,11 +363,11 @@ def ci(
     nonblocking_matches_by_rule: RuleMatchMap = {}
     cai_matches_by_rule: RuleMatchMap = {}
     for k, v in filtered_matches_by_rule.items():
-        if k.is_blocking:
-            blocking_matches_by_rule[k] = v
+        if "r2c-internal-cai" in k.id:
+            cai_matches_by_rule[k] = v
         else:
-            if "r2c-internal-cai" in k.id:
-                cai_matches_by_rule[k] = v
+            if k.is_blocking:
+                blocking_matches_by_rule[k] = v
             else:
                 nonblocking_matches_by_rule[k] = v
 
@@ -356,16 +392,17 @@ def ci(
             f"{num_nonblocking_findings} findings were from rules in audit rule board. These non-blocking findings are not displayed."
         )
 
-    logger.info("Reporting findings to semgrep.dev ...")
-    scan_handler.report_findings(
-        filtered_matches_by_rule,
-        semgrep_errors,
-        filtered_rules,
-        all_targets,
-        total_time,
-        metadata.commit_datetime,
-    )
-    logger.info(f"Success.")
+    if scan_handler:
+        logger.info("Reporting findings to semgrep.dev ...")
+        scan_handler.report_findings(
+            filtered_matches_by_rule,
+            semgrep_errors,
+            filtered_rules,
+            all_targets,
+            total_time,
+            metadata.commit_datetime,
+        )
+        logger.info(f"Success.")
 
     audit_mode = metadata.event_name in audit_on
     if num_blocking_findings > 0:

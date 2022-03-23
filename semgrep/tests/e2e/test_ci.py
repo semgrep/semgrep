@@ -310,3 +310,19 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             complete_json = post_mock.mock_calls[3].kwargs["json"]
             complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
             snapshot.assert_match(json.dumps(complete_json, indent=4), "complete.json")
+
+
+@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
+def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
+    repo_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    with ci_mocks(base_commit, autofix):
+        runner = CliRunner(
+            env={
+                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+            }
+        )
+        result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
+
+        snapshot.assert_match(result.output, "output.txt")

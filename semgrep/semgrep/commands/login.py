@@ -167,8 +167,10 @@ class Authentication:
         - settings file
         - None
         """
-        login_token = os.environ.get(Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
-        if login_token:
+        login_token = os.environ.get(
+            Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME, None
+        )
+        if login_token is not None:
             logger.debug(
                 f"Using environment variable {Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME} as api token"
             )
