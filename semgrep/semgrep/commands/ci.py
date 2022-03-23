@@ -291,6 +291,7 @@ def ci(
 
     num_cai_findings = sum(len(v) for v in cai_matches_by_rule.values())
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
+    num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 
     output_handler.output(
         blocking_matches_by_rule,
@@ -321,7 +322,7 @@ def ci(
     logger.info(f"Success.")
 
     audit_mode = metadata.event_name in audit_on
-    if num_nonblocking_findings > 0:
+    if num_blocking_findings > 0:
         if audit_mode:
             logger.info(
                 f"Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
