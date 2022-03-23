@@ -126,6 +126,9 @@ def ci(
         logger.info("Fetching configuration from semgrep.dev")
         scan_handler.start_scan(metadata.to_dict())
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()
         logger.info(f"Could not start scan {e}")
         sys.exit(FATAL_EXIT_CODE)
 
