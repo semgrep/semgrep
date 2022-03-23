@@ -804,12 +804,7 @@ let svalue env = function
   | G.NotCst -> "TOP"
   | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
   | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
-  | G.Lit l -> (
-      match l with
-      | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
-      | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
-      | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
-      | ___else___ -> "lit(???)")
+  | G.Lit l -> Printf.sprintf "lit(%s)" (literal env l)
 
 (*****************************************************************************)
 (* Entry points *)
