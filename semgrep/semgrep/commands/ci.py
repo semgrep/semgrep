@@ -211,7 +211,7 @@ def ci(
     token = Authentication.get_token()
     if not token and not config:
         # Not logged in and no explicit config
-        logger.info("run `semgrep login` before using `semgrep ci`")
+        logger.info("run `semgrep login` before using `semgrep ci` or set `--config`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
     elif not token and config:
         # Not logged in but has explicit config
@@ -219,7 +219,7 @@ def ci(
     elif token and config:
         # Logged in but has explicit config
         logger.info(
-            "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure policy."
+            "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure rules to run."
         )
         sys.exit(FATAL_EXIT_CODE)
     else:
@@ -267,9 +267,10 @@ def ci(
         f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
     )
     to_server = "" if app_url == "https://semgrep.dev" else f" to {app_url}"
-    logger.info(
-        f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
-    )
+    if scan_handler:
+        logger.info(
+            f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
+        )
     logger.info("")
 
     try:
