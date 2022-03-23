@@ -11,7 +11,7 @@
             "severity": 2,
             "index": 1,
             "commit_date": "sanitized",
-            "syntactic_id": "e3186eb2f0a0b767cf0619f1c474d66b",
+            "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
             "metadata": {},
             "is_blocking": true
         },
@@ -26,7 +26,7 @@
             "severity": 2,
             "index": 0,
             "commit_date": "sanitized",
-            "syntactic_id": "3babf5a1a63b6ee7d22c48163168b81c",
+            "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
             "metadata": {},
             "is_blocking": true
         },
@@ -41,7 +41,7 @@
             "severity": 2,
             "index": 0,
             "commit_date": "sanitized",
-            "syntactic_id": "21036413a3840b42ce9a729bd2e3b0f5",
+            "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
             "metadata": {},
             "is_blocking": true
         },
@@ -56,7 +56,7 @@
             "severity": 2,
             "index": 0,
             "commit_date": "sanitized",
-            "syntactic_id": "8956603279e2a9cf1b99827231367f21",
+            "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
             "metadata": {
                 "dev.semgrep.actions": []
             },
@@ -73,7 +73,7 @@
             "severity": 2,
             "index": 0,
             "commit_date": "sanitized",
-            "syntactic_id": "b290f52d5b20537c48e1b757a7303ff7",
+            "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
             "metadata": {
                 "dev.semgrep.actions": [
                     "block"
