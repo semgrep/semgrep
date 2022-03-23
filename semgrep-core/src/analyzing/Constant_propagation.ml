@@ -217,6 +217,10 @@ let rec eval env x : svalue option =
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
+  | Conditional (_e1, e2, e3) ->
+      let* v2 = eval env e2 in
+      let* v3 = eval env e3 in
+      Some (Dataflow_svalue.union v2 v3)
   | Call
       ( { e = IdSpecial (EncodedString str_kind, _); _ },
         (_, [ Arg { e = L (String (str, str_tok) as str_lit); _ } ], _) ) -> (
