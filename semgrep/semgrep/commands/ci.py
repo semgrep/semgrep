@@ -140,6 +140,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
 @click.option(
     "--app-url",
     default="https://semgrep.dev",
+    # This env var is separate from SEMGREP_URL so you can override registry & scan API endpoints separately
     envvar="SEMGREP_APP_URL",
     type=str,
     hidden=True,
