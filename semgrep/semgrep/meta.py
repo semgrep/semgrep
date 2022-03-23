@@ -241,14 +241,14 @@ class GithubMeta(GitMeta):
                     "fetch",
                     "origin",
                     "--depth",
-                    fetch_depth,
+                    str(fetch_depth),
                     self.base_branch_tip,
                 ],
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             )
             subprocess.check_output(
-                ["git", "fetch", "origin", "--depth", fetch_depth, self.head_ref],
+                ["git", "fetch", "origin", "--depth", str(fetch_depth), self.head_ref],
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             )
