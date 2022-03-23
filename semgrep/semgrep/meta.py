@@ -98,12 +98,14 @@ class GitMeta:
             return branch
 
         try:
-            return subprocess.check_output(
+            rev_parse = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
-            ).strip()
+            )
+            return rev_parse.stdout.strip()
         except Exception as e:
             logger.debug(f"Could not get branch name using git: {e}")
             return None
@@ -250,6 +252,8 @@ class GithubMeta(GitMeta):
                     self.base_branch_tip,
                 ],
                 check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             )
@@ -260,6 +264,8 @@ class GithubMeta(GitMeta):
                 ["git", "fetch", "origin", "--depth", str(fetch_depth), self.head_ref],
                 check=True,
                 encoding="utf-8",
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
                 timeout=GIT_SH_TIMEOUT,
             )
             logger.debug(
@@ -368,7 +374,11 @@ class GitlabMeta(GitMeta):
         )
         url = urllib.parse.urlunsplit(parts)
         subprocess.run(
-            ["git", "fetch", url, branch_name], check=True, timeout=GIT_SH_TIMEOUT
+            ["git", "fetch", url, branch_name],
+            check=True,
+            timeout=GIT_SH_TIMEOUT,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )
 
         base_sha = subprocess.check_output(
