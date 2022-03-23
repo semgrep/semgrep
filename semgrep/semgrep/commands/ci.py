@@ -132,14 +132,22 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
 @scan_options
 @click.option(
     "--audit-on",
-    envvar=["SEMGREP_AUDIT_ON"],
+    envvar="SEMGREP_AUDIT_ON",
     multiple=True,
+    type=str,
+    hidden=True,
+)
+@click.option(
+    "--app-url",
+    default="https://semgrep.dev",
+    envvar="SEMGREP_APP_URL",
     type=str,
     hidden=True,
 )
 def ci(
     ctx: click.Context,
     *,
+    app_url: str,
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
@@ -188,7 +196,7 @@ def ci(
         )
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
-    scan_handler = ScanHandler(token)
+    scan_handler = ScanHandler(app_url, token)
 
     output_format = OutputFormat.TEXT
     if json:
@@ -217,6 +225,20 @@ def ci(
     )
     output_handler = OutputHandler(output_settings)
     metadata = generate_meta_from_environment(baseline_commit)
+
+    logger.info("Scan environment:")
+    logger.info(
+        f"  versions    - semgrep {semgrep.__VERSION__} on python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    logger.info(
+        f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
+    )
+    to_server = "" if app_url == "https://semgrep.dev" else f" to {app_url}"
+    logger.info(
+        f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
+    )
+    logger.info("")
+
     try:
         with fix_head_if_github_action(metadata):
             try:

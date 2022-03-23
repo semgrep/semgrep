@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 import click
 import requests
@@ -31,13 +32,14 @@ RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
 
 
 class ScanHandler:
-    def __init__(self, token: str) -> None:
+    def __init__(self, app_url: str, token: str) -> None:
+        self.app_url = app_url
         session = requests.Session()
         session.mount("https://", RETRYING_ADAPTER)
         session.headers["User-Agent"] = SEMGREP_USER_AGENT
         session.headers["Authorization"] = f"Bearer {token}"
         self.session = session
-        self.deployment_id = self._get_deployment_id()
+        self.deployment_id, self.deployment_name = self._get_deployment_details()
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
@@ -50,21 +52,23 @@ class ScanHandler:
         """
         return self._autofix
 
-    def _get_deployment_id(self) -> Optional[int]:
+    def _get_deployment_details(self) -> Tuple[Optional[int], Optional[str]]:
         """
         Returns the deployment_id attached to an api_token as int
 
         Returns None if api_token is invalid/doesn't have associated deployment
         """
         r = self.session.get(
-            f"{SEMGREP_URL}api/agent/deployment",
+            f"{self.app_url}/api/agent/deployment",
             timeout=10,
         )
         if r.ok:
             data = r.json()
-            return data.get("deployment", {}).get("id")  # type: ignore
+            return data.get("deployment", {}).get("id"), data.get("deployment", {}).get(
+                "name"
+            )
         else:
-            return None
+            return None, None
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
@@ -73,7 +77,7 @@ class ScanHandler:
         returns ignored list
         """
         response = self.session.post(
-            f"{SEMGREP_URL}api/agent/deployment/{self.deployment_id}/scan",
+            f"{self.app_url}/api/agent/deployment/{self.deployment_id}/scan",
             json={"meta": meta},
             timeout=30,
         )
@@ -82,14 +86,14 @@ class ScanHandler:
             raise Exception(
                 "Failed to create a scan with given token and deployment_id."
                 "Please make sure they have been set correctly."
-                f"API server at {SEMGREP_URL} returned this response: {response.text}"
+                f"API server at {self.app_url} returned this response: {response.text}"
             )
 
         try:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
-                f"API server at {SEMGREP_URL} returned this error: {response.text}"
+                f"API server at {self.app_url} returned this error: {response.text}"
             )
 
         body = response.json()
@@ -99,7 +103,7 @@ class ScanHandler:
 
     @property
     def scan_rules_url(self) -> str:
-        return f"{SEMGREP_URL}api/agent/scan/{self.scan_id}/rules.yaml"
+        return f"{self.app_url}/api/agent/scan/{self.scan_id}/rules.yaml"
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -107,7 +111,7 @@ class ScanHandler:
         and return what exit code semgrep should exit with.
         """
         response = self.session.post(
-            f"{SEMGREP_URL}api/agent/scan/{self.scan_id}/error",
+            f"{self.app_url}/api/agent/scan/{self.scan_id}/error",
             json={
                 "exit_code": exit_code,
                 "stderr": "",
@@ -168,7 +172,7 @@ class ScanHandler:
             "exit_code": 1 if any(match.is_blocking for match in all_matches) else 0,
             "stats": {
                 "findings": len(new_matches),
-                "errors": errors,
+                "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
             },
         }
