@@ -234,8 +234,12 @@ class GithubMeta(GitMeta):
         if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
             fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
 
+        logger.debug(
+            f"Attempting to find merge base, attempt_count={attempt_count}, fetch_depth={fetch_depth}"
+        )
+
         if attempt_count:
-            subprocess.check_output(
+            process = subprocess.run(
                 [
                     "git",
                     "fetch",
@@ -244,13 +248,21 @@ class GithubMeta(GitMeta):
                     str(fetch_depth),
                     self.base_branch_tip,
                 ],
+                check=True,
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             )
-            subprocess.check_output(
+            logger.debug(
+                f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
+            )
+            process = subprocess.run(
                 ["git", "fetch", "origin", "--depth", str(fetch_depth), self.head_ref],
+                check=True,
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
+            )
+            logger.debug(
+                f"Head branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
@@ -277,6 +289,9 @@ class GithubMeta(GitMeta):
 
             return self._find_branchoff_point(attempt_count + 1)
         else:
+            logger.debug(
+                f"Found merge base: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
+            )
             return process.stdout.strip()
 
     @property
