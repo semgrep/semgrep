@@ -35,7 +35,6 @@ module MV = Metavariable
  * error location when a rule is malformed.
  *)
 type tok = AST_generic.tok [@@deriving show, eq, hash]
-
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
 
 (* To help report pattern errors in simple mode in the playground *)
@@ -265,7 +264,6 @@ and paths = {
 
 (* alias *)
 type t = rule [@@deriving show]
-
 type rules = rule list [@@deriving show]
 
 (*****************************************************************************)
@@ -289,7 +287,10 @@ and invalid_rule_error_kind =
   (* TODO: the Parse_info.t for InvalidPattern is not precise for now;
    * it corresponds to the start of the pattern *)
   | InvalidPattern of
-      string (* pattern *) * Xlang.t * string (* exn *) * string list (* yaml path *)
+      string (* pattern *)
+      * Xlang.t
+      * string (* exn *)
+      * string list (* yaml path *)
   | InvalidRegexp of string (* PCRE error message *)
   | InvalidOther of string
 
@@ -307,11 +308,8 @@ exception InvalidRule of invalid_rule_error
 
 (* general errors *)
 exception InvalidYaml of string * Parse_info.t
-
 exception DuplicateYamlKey of string * Parse_info.t
-
 exception UnparsableYamlException of string
-
 exception ExceededMemoryLimit of string
 
 (*****************************************************************************)

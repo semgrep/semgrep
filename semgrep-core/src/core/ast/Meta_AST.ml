@@ -22,9 +22,7 @@ let vof_bracket of_a (t1, x, t2) =
   | _ -> OCaml.VTuple [ v1; v; v2 ]
 
 let vof_ident v = vof_wrap OCaml.vof_string v
-
 let vof_todo_kind v = vof_wrap OCaml.vof_string v
-
 let vof_dotted_name v = OCaml.vof_list vof_ident v
 
 let vof_module_name = function
@@ -1317,7 +1315,6 @@ and vof_alias (v1, v2) =
   (v1, v2)
 
 and vof_item x = vof_stmt x
-
 and vof_program v = OCaml.vof_list vof_item v
 
 and vof_partial = function
@@ -1353,6 +1350,9 @@ and vof_partial = function
       OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
 
 and vof_any = function
+  | Xmls v1 ->
+      let v1 = OCaml.vof_list vof_xml_body v1 in
+      OCaml.VSum ("Xmls", [ v1 ])
   | ForOrIfComp v1 ->
       let v1 = vof_for_or_if_comp v1 in
       OCaml.VSum ("ForOrIfComp", [ v1 ])

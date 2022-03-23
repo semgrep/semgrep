@@ -33,17 +33,12 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 type mode = Pattern | Target
-
 type env = mode H.env
 
 let token = H.token
-
 let str = H.str
-
 let sc = G.sc
-
 let fb = G.fake_bracket
-
 let fake_id s = (s, G.fake s)
 
 let deoptionalize l =
@@ -80,7 +75,6 @@ type where_predicate_type =
   | WherePredHigherRanked of G.type_parameter list * G.type_
 
 type where_predicate = where_predicate_type * trait_bound list
-
 type where_clause = where_predicate list
 
 type rust_macro_item =
@@ -421,8 +415,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
       let lit = map_literal env x in
       G.E (G.L lit |> G.e)
   | `Id tok ->
-      G.I (str env tok)
-      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      G.I (str env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Choice_u8 x ->
       let id = map_primitive_type_ident env x in
       G.I id

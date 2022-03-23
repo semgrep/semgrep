@@ -15,6 +15,7 @@
         "offset": 9
       },
       "extra": {
+        "fingerprint": "c61fb1ce8248b3d7e7d5200726fadbcf",
         "is_ignored": false,
         "lines": "x = bad()",
         "message": "oh no",

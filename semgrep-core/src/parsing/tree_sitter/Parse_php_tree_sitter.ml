@@ -38,7 +38,6 @@ module H = Parse_tree_sitter_helpers
 type env = unit H.env
 
 let token = H.token
-
 let _str = H.str
 
 (*****************************************************************************)

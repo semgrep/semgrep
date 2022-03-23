@@ -23,7 +23,6 @@ module MV = Metavariable
 module RP = Report
 open Pattern_match
 module ST = Output_from_core_t (* atdgen definitions *)
-
 module SJ = Output_from_core_j (* JSON conversions *)
 
 (*****************************************************************************)
@@ -93,7 +92,8 @@ let range_of_any_opt startp_of_match_range any =
    *)
   | Ss []
   | Params []
-  | Args [] ->
+  | Args []
+  | Xmls [] ->
       Some empty_range
   | _ ->
       let ( let* ) = Common.( >>= ) in
@@ -147,13 +147,14 @@ let match_to_match x =
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
-  with Parse_info.NoTokenLocation s ->
-    let loc = Parse_info.first_loc_of_file x.file in
-    let s =
-      spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
-    in
-    let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
-    Right err
+  with
+  | Parse_info.NoTokenLocation s ->
+      let loc = Parse_info.first_loc_of_file x.file in
+      let s =
+        spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
+      in
+      let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
+      Right err
   [@@profiling]
 
 (* was in pfff/h_program-lang/R2c.ml becore *)
@@ -161,7 +162,8 @@ let hcache = Hashtbl.create 101
 
 let lines_of_file (file : Common.filename) : string array =
   Common.memoized hcache file (fun () ->
-      try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
+      try Common.cat file |> Array.of_list with
+      | _ -> [| "EMPTY FILE" |])
 
 let error_to_error err =
   let severity_of_severity = function
@@ -187,7 +189,9 @@ let error_to_error err =
         path = file;
         start = startp;
         end_ = endp;
-        lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
+        lines =
+          (try [ lines.(line - 1) ] with
+          | _ -> [ "NO LINE" ]);
       };
     message;
     details;

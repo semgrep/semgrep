@@ -40,9 +40,7 @@ let ( let* ) = Option.bind
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
-
   type edge = F.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
@@ -54,22 +52,35 @@ end)
 
 type var = Dataflow_core.var
 
-type deep_match = PM of Pattern_match.t | Call of G.expr * deep_match
+(* TODO: Given that the analysis is path-insensitive, the trace should capture
+ * all potential paths. So a set of tokens seems more appropriate than a list.
+ *)
+type trace = G.tok list [@@deriving show]
 
-type source = deep_match
+type deep_match = PM of Pattern_match.t | Call of G.expr * trace * deep_match
+[@@deriving show]
 
-type sink = deep_match
+type source = deep_match [@@deriving show]
+type sink = deep_match [@@deriving show]
+type arg_pos = int [@@deriving show]
 
-type arg_pos = int
+type source_to_sink = {
+  source : source;
+  trace : trace;
+  sink : sink;
+  merged_env : Metavariable.bindings;
+}
+[@@deriving show]
 
 type finding =
-  | SrcToSink of source * sink * Metavariable.bindings
-  | SrcToReturn of source
-  | ArgToSink of arg_pos * sink
-  | ArgToReturn of arg_pos
+  | SrcToSink of source_to_sink
+  | SrcToReturn of source * trace * tok
+  | ArgToSink of arg_pos * trace * sink
+  | ArgToReturn of arg_pos * trace * tok
+[@@deriving show]
 
-(* TODO: Add tracing info, e.g. what intermediate variables have been tainted. *)
-type taint = Src of source | Arg of arg_pos
+type taint_orig = Src of source | Arg of arg_pos [@@deriving show]
+type taint = { orig : taint_orig; rev_trace : trace } [@@deriving show]
 
 (* We use a set simply to avoid duplicate findings.
  * THINK: Should we just let them pass here and be filtered out later on? *)
@@ -92,17 +103,22 @@ module Taint = Set.Make (struct
     | PM p, PM q -> compare_pm p q
     | PM _, Call _ -> -1
     | Call _, PM _ -> 1
-    | Call (c1, d1), Call (c2, d2) ->
+    | Call (c1, _t1, d1), Call (c2, _t2, d2) ->
         let c_cmp = Int.compare c1.e_id c2.e_id in
         if c_cmp <> 0 then c_cmp else compare_dm d1 d2
 
   (* TODO: Rely on ppx_deriving.ord ? *)
-  let compare t1 t2 =
+  let compare_orig t1 t2 =
     match (t1, t2) with
     | Arg i, Arg j -> Int.compare i j
     | Src p, Src q -> compare_dm p q
     | Arg _, Src _ -> -1
     | Src _, Arg _ -> 1
+
+  (* TODO: Right now we disregard the trace so we only keep one potential path.
+   *       This may have to become a map (orig -> trace) rather than a set, so
+   *       that we can merge the traces when merging taint at join points. *)
+  let compare t1 t2 = compare_orig t1.orig t2.orig
 end)
 
 type config = {
@@ -139,21 +155,16 @@ let hook_function_taint_signature = ref None
 
 let rec pm_of_dm = function
   | PM pm -> pm
-  | Call (_, dm) -> pm_of_dm dm
+  | Call (_, _, dm) -> pm_of_dm dm
 
 let dm_of_pm pm = PM pm
-
 let src_of_pm pm = Src (PM pm)
-
-let taint_of_pms pms = pms |> List.map src_of_pm |> Taint.of_list
+let taint_of_pm pm = { orig = src_of_pm pm; rev_trace = [] }
+let taint_of_pms pms = pms |> List.map taint_of_pm |> Taint.of_list
 
 (* Debug *)
-let show_tainted tainted =
-  tainted |> Taint.elements
-  |> List.map (function
-       | Src _ -> "PM"
-       | Arg i -> "Arg " ^ string_of_int i)
-  |> String.concat ", "
+let show_taint_set taint =
+  taint |> Taint.elements |> List.map show_taint |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"
 
 (* Debug *)
@@ -162,14 +173,11 @@ let _show_env =
    fun val2str env ->
     VarMap.fold (fun dn v s -> s ^ dn ^ ":" ^ val2str v ^ " ") env ""
   in
-  env_to_str show_tainted
+  env_to_str show_taint_set
 
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
-
 let orig_is_source config orig = config.is_source (any_of_orig orig)
-
 let orig_is_sanitized config orig = config.is_sanitizer (any_of_orig orig)
-
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
 
 let report_findings env findings =
@@ -201,27 +209,29 @@ let findings_of_tainted_sink (taint : Taint.t) (sink : sink) : finding list =
   let ( let* ) = Option.bind in
   taint |> Taint.elements
   |> List.filter_map (fun taint ->
-         match taint with
+         let trace = List.rev taint.rev_trace in
+         match taint.orig with
          | Arg i ->
              (* We need to check unifiability at the call site. *)
-             Some (ArgToSink (i, sink))
-         | Src src ->
-             let src_pm = pm_of_dm src in
+             Some (ArgToSink (i, trace, sink))
+         | Src source ->
+             let src_pm = pm_of_dm source in
              let sink_pm = pm_of_dm sink in
-             let* env = unify_meta_envs sink_pm.PM.env src_pm.PM.env in
-             Some (SrcToSink (src, sink, env)))
+             let* merged_env = unify_meta_envs sink_pm.PM.env src_pm.PM.env in
+             Some (SrcToSink { source; trace; sink; merged_env }))
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks (taint : Taint.t) (sinks : sink list) :
     finding list =
   sinks |> List.concat_map (findings_of_tainted_sink taint)
 
-let findings_of_tainted_return (taint : Taint.t) : finding list =
+let findings_of_tainted_return (taint : Taint.t) return_tok : finding list =
   taint |> Taint.elements
   |> List.map (fun taint ->
-         match taint with
-         | Arg i -> ArgToReturn i
-         | Src src -> SrcToReturn src)
+         let trace = List.rev taint.rev_trace in
+         match taint.orig with
+         | Arg i -> ArgToReturn (i, trace, return_tok)
+         | Src src -> SrcToReturn (src, trace, return_tok))
 
 (*****************************************************************************)
 (* Tainted *)
@@ -324,6 +334,7 @@ let check_function_signature env fun_exp args_taint =
               base =
                 Var
                   {
+                    ident;
                     id_info =
                       {
                         G.id_resolved =
@@ -345,12 +356,20 @@ let check_function_signature env fun_exp args_taint =
       Some
         (fun_sig
         |> List.filter_map (function
-             | SrcToReturn dm ->
-                 let dm = Call (eorig, dm) in
-                 Some (Taint.singleton (Src dm))
-             | ArgToReturn i -> taint_of_arg i
-             | ArgToSink (i, sink) ->
-                 let sink = Call (eorig, sink) in
+             | SrcToReturn (dm, trace, _return_tok) ->
+                 let dm = Call (eorig, trace, dm) in
+                 Some (Taint.singleton { orig = Src dm; rev_trace = [] })
+             | ArgToReturn (i, trace, _return_tok) ->
+                 let* arg_taint = taint_of_arg i in
+                 Some
+                   (arg_taint
+                   |> Taint.map (fun taint ->
+                          let rev_trace =
+                            List.rev_append trace (snd ident :: taint.rev_trace)
+                          in
+                          { taint with rev_trace }))
+             | ArgToSink (i, trace, sink) ->
+                 let sink = Call (eorig, trace, sink) in
                  let* arg_taint = taint_of_arg i in
                  arg_taint
                  |> Taint.iter (fun t ->
@@ -451,26 +470,36 @@ let (transfer :
     let env = { config; fun_name = opt_name; fun_env; var_env = in' } in
     match node.F.n with
     | NInstr x -> (
-        let tainted = check_tainted_instr env x in
-        match (Taint.is_empty tainted, IL.lvar_of_instr_opt x) with
+        let taint = check_tainted_instr env x in
+        match (Taint.is_empty taint, IL.lvar_of_instr_opt x) with
         | true, Some var -> VarMap.remove (str_of_name var) in'
         | false, Some var ->
+            let taint =
+              let var_tok = snd var.ident in
+              if Parse_info.is_fake var_tok then taint
+              else
+                taint
+                |> Taint.map (fun t ->
+                       { t with rev_trace = var_tok :: t.rev_trace })
+            in
             VarMap.update (str_of_name var)
               (function
-                | None -> Some tainted
-                | Some tainted' -> Some (Taint.union tainted tainted'))
+                | None -> Some taint
+                (* THINK: Why can't we just replace the existing taint? *)
+                | Some taint' -> Some (Taint.union taint taint'))
               in'
         | _, None -> in')
     | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
         let taint = check_tainted_return env tok e in
-        let findings = findings_of_tainted_return taint in
+        let findings = findings_of_tainted_return taint tok in
         report_findings env findings;
         let pmatches =
           taint |> Taint.elements
-          |> List.filter_map (function
-               | Src src -> Some (pm_of_dm src)
-               | Arg _ -> None)
+          |> List.filter_map (fun taint ->
+                 match taint.orig with
+                 | Src src -> Some (pm_of_dm src)
+                 | Arg _ -> None)
           |> PM.Set.of_list
         in
         match opt_name with
@@ -511,7 +540,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq:Taint.equal ~init:init_mapping
-    ~trans:
-      (transfer config fun_env enter_env opt_name ~flow)
+    ~trans:(transfer config fun_env enter_env opt_name ~flow)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow

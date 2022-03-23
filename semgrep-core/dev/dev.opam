@@ -12,5 +12,6 @@ depends: [
   #coupling: if you modify this, you probably need to update
   # https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
   # and also scripts/lint-ocaml
-  "ocamlformat" {= "0.16.0" }  # used by the pre-commit hook
+  "ocamlformat" {= "0.21.0" }  # used by the pre-commit hook
+  "atdpy"
 ]

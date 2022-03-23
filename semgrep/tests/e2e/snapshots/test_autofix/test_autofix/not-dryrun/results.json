@@ -15,6 +15,7 @@
         "offset": 54
       },
       "extra": {
+        "fingerprint": "52e9b86a1b3404140fcaedeed3274639",
         "fix": "inputs.get(x)",
         "is_ignored": false,
         "lines": "  inputs[x] = 1",
@@ -73,6 +74,7 @@
         "offset": 77
       },
       "extra": {
+        "fingerprint": "2c58f67c769a8e675e9a74ca1ed3c096",
         "fix": "inputs.get(x + 1)",
         "is_ignored": false,
         "lines": "  if inputs[x + 1] == True:",

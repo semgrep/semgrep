@@ -190,7 +190,6 @@ let add_ident_global_scope (s, _) resolved scopes =
 
 (* for JS 'var' *)
 let _add_ident_function_scope _id _resolved _scopes = raise Todo
-
 let untyped_ent name = { entname = name; enttype = None }
 
 (* see also lookup_scope_opt below taking as a parameter the environment *)

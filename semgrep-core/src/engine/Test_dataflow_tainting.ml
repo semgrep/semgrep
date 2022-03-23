@@ -4,9 +4,7 @@ module H = AST_generic_helpers
 
 module DataflowX = Dataflow_core.Make (struct
   type node = IL.node
-
   type edge = IL.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n

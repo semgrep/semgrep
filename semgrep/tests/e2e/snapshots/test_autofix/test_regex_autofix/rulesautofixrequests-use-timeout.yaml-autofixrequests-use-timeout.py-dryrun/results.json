@@ -15,6 +15,7 @@
         "offset": 84
       },
       "extra": {
+        "fingerprint": "e32236298bc4b801234d19d42996b968",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -41,6 +42,7 @@
         "offset": 130
       },
       "extra": {
+        "fingerprint": "e512c71f73dfe27258ef095bfa064f57",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -67,6 +69,7 @@
         "offset": 186
       },
       "extra": {
+        "fingerprint": "9eb3eec657536bc0b2c9544fa537b42a",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -93,6 +96,7 @@
         "offset": 285
       },
       "extra": {
+        "fingerprint": "c0888e9de0d14b3402d098dcb1af71c8",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"
@@ -119,6 +123,7 @@
         "offset": 471
       },
       "extra": {
+        "fingerprint": "1fea470855f7b6e0f91cba3d55611d5d",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, timeout=30)"

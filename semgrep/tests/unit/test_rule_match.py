@@ -18,10 +18,10 @@ def test_rule_match_attributes():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         match = RuleMatch(
-            rule_id="rule_id",
+            rule_id="long.rule.id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
+            path=Path("relative/path/to/foo.py"),
             start=CoreLocation(3, 1, 24),
             end=CoreLocation(3, 15, 38),
         )
@@ -33,9 +33,7 @@ def test_rule_match_attributes():
         match.syntactic_context == "5 == 5"
     ), "indent and comment must be removed from code"
     assert (
-        match.syntactic_id
-        == "0612b5a7624c4115aff147f3dead9f51"
-        # welp, probably a bad omen ^^^^
+        match.syntactic_id == "e9f75ffe95edb9e7b898d5f8c475501a"
     ), "syntactic IDs must remain consistent to not trigger new notifications"
 
 

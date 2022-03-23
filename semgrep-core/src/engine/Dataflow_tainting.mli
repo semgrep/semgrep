@@ -1,33 +1,47 @@
 type var = Dataflow_core.var
 (** A string of the form "<source name>:<sid>". *)
 
+type trace = AST_generic.tok list [@@deriving show]
+(** A trace of tokens showing where the taint passed through. *)
+
 (** A match that spans multiple functions (aka "deep").
   * E.g. Call('foo(a)', PM('sink(x)')) is an indirect match for 'sink(x)'
   * through the function call 'foo(a)'. *)
 type deep_match =
   | PM of Pattern_match.t  (** A direct match.  *)
-  | Call of AST_generic.expr * deep_match
+  | Call of AST_generic.expr * trace * deep_match
       (** An indirect match through a function call. *)
+[@@deriving show]
 
-type source = deep_match
+type source = deep_match [@@deriving show]
+type sink = deep_match [@@deriving show]
+type arg_pos = int [@@deriving show]
 
-type sink = deep_match
-
-type arg_pos = int
-
-type taint =
-  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_pos
-      (** A taint variable (potential taint coming through an argument). *)
+type source_to_sink = {
+  source : source;
+  trace : trace;
+  sink : sink;
+  merged_env : Metavariable.bindings;
+}
+[@@deriving show]
 
 (** Function-level finding (not necessarily a Semgrep finding). These may
   * depend on taint variables so they must be interpreted on a specific
   * context. *)
 type finding =
-  | SrcToSink of source * sink * Metavariable.bindings
-  | SrcToReturn of source
-  | ArgToSink of arg_pos * sink
-  | ArgToReturn of arg_pos
+  | SrcToSink of source_to_sink
+  | SrcToReturn of source * trace * AST_generic.tok
+  | ArgToSink of arg_pos * trace * sink
+  | ArgToReturn of arg_pos * trace * AST_generic.tok
+[@@deriving show]
+
+type taint_orig =
+  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
+  | Arg of arg_pos
+      (** A taint variable (potential taint coming through an argument). *)
+[@@deriving show]
+
+type taint = { orig : taint_orig; rev_trace : trace } [@@deriving show]
 
 module Taint : Set.S with type elt = taint
 (** A set of taint sources. *)

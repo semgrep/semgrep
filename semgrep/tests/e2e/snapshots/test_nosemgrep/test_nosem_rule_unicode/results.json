@@ -15,6 +15,7 @@
         "offset": 220
       },
       "extra": {
+        "fingerprint": "cf089facc6344023a41b09e1e56ca416",
         "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",

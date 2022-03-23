@@ -96,9 +96,7 @@ and tout = tin list
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
-
 type 'a comb_result = tin -> ('a * tout) list
-
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
 (*****************************************************************************)
@@ -266,7 +264,8 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     | MV.T _, MV.T _
     | MV.Text _, MV.Text _
     | MV.Params _, MV.Params _
-    | MV.Args _, MV.Args _ ->
+    | MV.Args _, MV.Args _
+    | MV.Xmls _, MV.Xmls _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
          * sgrep command line argument), we can not just use the
@@ -416,7 +415,6 @@ let lazy_rest_of_list v =
       Lazy.force v)
 
 let return () = return
-
 let fail () = fail
 
 (* TODO: deprecate *)
@@ -524,6 +522,11 @@ let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     | [], _ :: _ when less_is_ok -> return ()
     (* dots: '...', can also match no argument *)
     | [ a ], [] when is_dots a -> return ()
+    (* opti: if is_metavar_ellipsis and less_is_ok is false, then
+     * it's useless to enumerate all the candidates below; only the
+     * one that match everything will work
+    | [ a ], xs when is_metavar_ellipsis a <> None && not less_is_ok ->
+     *)
     (* dots: metavars: $...ARGS *)
     | a :: xsa, xsb when is_metavar_ellipsis a <> None -> (
         match is_metavar_ellipsis a with
@@ -626,11 +629,8 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 (* ---------------------------------------------------------------------- *)
 
 let m_eq a b = if a = b then return () else fail ()
-
 let m_bool a b = if a = b then return () else fail ()
-
 let m_int a b = if a =|= b then return () else fail ()
-
 let m_string a b = if a =$= b then return () else fail ()
 
 (* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.
@@ -659,7 +659,6 @@ let m_filepath_prefix a b =
  * so we can just  'return ()'
  *)
 let m_info _a _b = return ()
-
 let m_tok a b = m_info a b
 
 let m_wrap f a b =
@@ -703,10 +702,11 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         in
         let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
         (s, info)
-      with Not_found ->
-        logger#error "could not find %s in %s" s raw_str;
-        (* return original token ... better than failwith? *)
-        (s, info))
+      with
+      | Not_found ->
+          logger#error "could not find %s in %s" s raw_str;
+          (* return original token ... better than failwith? *)
+          (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket

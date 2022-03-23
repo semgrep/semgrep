@@ -31,6 +31,7 @@
         "offset": 65
       },
       "extra": {
+        "fingerprint": "f9bbe14a8af6a339f3cc7cdc5711cbef",
         "is_ignored": true,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
@@ -53,6 +54,7 @@
         "offset": 88
       },
       "extra": {
+        "fingerprint": "67c54169efa9c748edf95241ee778bdf",
         "is_ignored": true,
         "lines": "    test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -75,6 +77,7 @@
         "offset": 138
       },
       "extra": {
+        "fingerprint": "67c54169efa9c748edf95241ee778bdf",
         "is_ignored": false,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
@@ -97,6 +100,7 @@
         "offset": 46
       },
       "extra": {
+        "fingerprint": "07e730a3e726e712edacef96fcadd56e",
         "is_ignored": true,
         "lines": "\ttest_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -119,6 +123,7 @@
         "offset": 92
       },
       "extra": {
+        "fingerprint": "7e2705db07e96e2c9df398c0335dfe4a",
         "is_ignored": false,
         "lines": "\ttest_nosem_func()",
         "message": "test-nosem-message",
@@ -141,6 +146,7 @@
         "offset": 119
       },
       "extra": {
+        "fingerprint": "7cac99a9ad46157d35ddc0d0d89d7de8",
         "is_ignored": true,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
@@ -163,6 +169,7 @@
         "offset": 146
       },
       "extra": {
+        "fingerprint": "cc984be310f9da74059c9c360d798105",
         "is_ignored": true,
         "lines": "        test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -185,6 +192,7 @@
         "offset": 200
       },
       "extra": {
+        "fingerprint": "cc984be310f9da74059c9c360d798105",
         "is_ignored": false,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
@@ -207,6 +215,7 @@
         "offset": 17
       },
       "extra": {
+        "fingerprint": "ec9b3d5c685906c78a8684d058495f78",
         "is_ignored": true,
         "lines": "test_nosem_func() // nosem",
         "message": "test-nosem-message",
@@ -229,6 +238,7 @@
         "offset": 44
       },
       "extra": {
+        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
         "is_ignored": true,
         "lines": "test_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -251,6 +261,7 @@
         "offset": 89
       },
       "extra": {
+        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
         "is_ignored": true,
         "lines": "test_nosem_func() // NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
@@ -273,6 +284,7 @@
         "offset": 180
       },
       "extra": {
+        "fingerprint": "c267f61d678cdd7bd6e5793aa237d0f1",
         "is_ignored": false,
         "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
@@ -295,6 +307,7 @@
         "offset": 208
       },
       "extra": {
+        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -317,6 +330,7 @@
         "offset": 254
       },
       "extra": {
+        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -339,6 +353,7 @@
         "offset": 300
       },
       "extra": {
+        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -361,6 +376,7 @@
         "offset": 364
       },
       "extra": {
+        "fingerprint": "e8b81bdbbf5fb56e9e50541288d71e9c",
         "is_ignored": false,
         "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
         "message": "test-nosem-message",
@@ -383,6 +399,7 @@
         "offset": 383
       },
       "extra": {
+        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
         "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -405,6 +422,7 @@
         "offset": 43
       },
       "extra": {
+        "fingerprint": "f88c97c09e92836a72616320fd134fea",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -427,6 +445,7 @@
         "offset": 88
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -449,6 +468,7 @@
         "offset": 137
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -471,6 +491,7 @@
         "offset": 168
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -493,6 +514,7 @@
         "offset": 217
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -515,6 +537,7 @@
         "offset": 236
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -537,6 +560,7 @@
         "offset": 281
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
@@ -559,6 +583,7 @@
         "offset": 326
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nosemgrep: rules.test-nosem",
         "message": "test-nosem-message",
@@ -581,6 +606,7 @@
         "offset": 375
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEMGREP",
         "message": "test-nosem-message",
@@ -603,6 +629,7 @@
         "offset": 406
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nOseMgREP: rules.test-nosem",
         "message": "test-nosem-message",
@@ -625,6 +652,7 @@
         "offset": 456
       },
       "extra": {
+        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
         "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",

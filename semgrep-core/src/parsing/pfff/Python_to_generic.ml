@@ -90,21 +90,13 @@ let is_in_scope env s =
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let vref f x = ref (f !x)
-
 let string = id
-
 let bool = id
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let fb = AST_generic.fake_bracket
 
 (*****************************************************************************)
@@ -118,9 +110,7 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let name _env v = wrap string v
-
 let dotted_name env v = list (name env) v
 
 let module_name env (v1, dots) =

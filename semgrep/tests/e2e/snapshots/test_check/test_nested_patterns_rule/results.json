@@ -17,6 +17,7 @@
         "offset": 52
       },
       "extra": {
+        "fingerprint": "10857124920c5c4572e0861aeafd337b",
         "is_ignored": false,
         "lines": "    nested_patterns_func('foo', 1)",
         "message": "test",
@@ -57,6 +58,7 @@
         "offset": 87
       },
       "extra": {
+        "fingerprint": "72e37a26a3fcf44b28375ba83a4a70af",
         "is_ignored": false,
         "lines": "    nested_patterns_func('bar', 2)",
         "message": "test",

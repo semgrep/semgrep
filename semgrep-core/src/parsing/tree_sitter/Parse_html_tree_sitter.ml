@@ -31,9 +31,7 @@ module PI = Parse_info
 type env = unit H.env
 
 let fake = AST_generic.fake
-
 let token = H.token
-
 let str = H.str
 
 (*****************************************************************************)

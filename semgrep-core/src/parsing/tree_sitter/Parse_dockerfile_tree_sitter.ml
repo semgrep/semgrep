@@ -30,7 +30,6 @@ let strict = true
 type env = (AST_bash.input_kind * shell_compatibility) H.env
 
 let token = H.token
-
 let str = H.str
 
 let concat_tokens first_tok other_toks : string wrap =
@@ -80,7 +79,8 @@ let classify_shell ((_open, ar, _close) : string_array) :
   let command =
     match ar with
     | Arr_string (_, [ String_content ("/usr/bin/env", _) ])
-      :: Arr_string (_loc, [ String_content (name, _) ]) :: _ ->
+      :: Arr_string (_loc, [ String_content (name, _) ])
+      :: _ ->
         Some name
     | Arr_string (_loc, [ String_content (path, _) ]) :: _ -> Some path
     | _ -> None
@@ -115,7 +115,8 @@ let find_nonblank (s : string) =
       | _ -> raise Exit
     done;
     None
-  with Exit -> Some !pos
+  with
+  | Exit -> Some !pos
 
 let remove_blank_prefix (x : string wrap) : string wrap =
   let s, tok = x in

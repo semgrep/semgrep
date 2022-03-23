@@ -43,16 +43,12 @@ let recover_when_partial_error = ref true
 type env = unit H.env
 
 let token = H.token
-
 let fake = PI.fake_info
-
 let fb = PI.fake_bracket
-
 let str = H.str
 
 (* for declarators *)
 let id x = x
-
 let error t s = raise (Parse_info.Other_error (s, t))
 
 (* To use in situations where we should raise an error, unless

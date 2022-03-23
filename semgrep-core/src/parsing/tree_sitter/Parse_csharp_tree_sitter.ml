@@ -36,7 +36,6 @@ module PI = Parse_info
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
 
 (* less: we should check we consume all constraints *)
@@ -277,13 +276,9 @@ end
 *)
 
 let todo_expr _env tok = G.OtherExpr (("CSharpTodo", tok), []) |> G.e
-
 let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
-
 let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
-
 let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
-
 let todo_type _env tok = G.OtherType (("Todo", tok), []) |> G.t
 
 let _TODOparameter_modifier (env : env) (x : CST.parameter_modifier) =
