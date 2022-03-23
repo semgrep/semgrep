@@ -109,6 +109,8 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                            Match_search_rules.check_rule r match_hook
                              default_config pformula xtarget
                        | Taint taint_spec ->
+                           (* TODO: 'debug_taint' should just be part of 'res'
+                            * (i.e., add a "debugging" field to 'Report.match_result'). *)
                            let res, _TODO_debug_taint =
                              Match_tainting_rules.check_rule r match_hook
                                default_config taint_spec xtarget

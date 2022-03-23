@@ -51,6 +51,10 @@ end)
 (*****************************************************************************)
 
 type var = Dataflow_core.var
+
+(* TODO: Given that the analysis is path-insensitive, the trace should capture
+ * all potential paths. So a set of tokens seems more appropriate than a list.
+ *)
 type trace = G.tok list [@@deriving show]
 
 type deep_match = PM of Pattern_match.t | Call of G.expr * trace * deep_match
@@ -60,11 +64,19 @@ type source = deep_match [@@deriving show]
 type sink = deep_match [@@deriving show]
 type arg_pos = int [@@deriving show]
 
+type source_to_sink = {
+  source : source;
+  trace : trace;
+  sink : sink;
+  merged_env : Metavariable.bindings;
+}
+[@@deriving show]
+
 type finding =
-  | SrcToSink of source * trace * sink * Metavariable.bindings
-  | SrcToReturn of source * trace
+  | SrcToSink of source_to_sink
+  | SrcToReturn of source * trace * tok
   | ArgToSink of arg_pos * trace * sink
-  | ArgToReturn of arg_pos * trace
+  | ArgToReturn of arg_pos * trace * tok
 [@@deriving show]
 
 type taint_orig = Src of source | Arg of arg_pos [@@deriving show]
@@ -91,7 +103,7 @@ module Taint = Set.Make (struct
     | PM p, PM q -> compare_pm p q
     | PM _, Call _ -> -1
     | Call _, PM _ -> 1
-    | Call (c1, _, d1), Call (c2, _, d2) ->
+    | Call (c1, _t1, d1), Call (c2, _t2, d2) ->
         let c_cmp = Int.compare c1.e_id c2.e_id in
         if c_cmp <> 0 then c_cmp else compare_dm d1 d2
 
@@ -103,6 +115,9 @@ module Taint = Set.Make (struct
     | Arg _, Src _ -> -1
     | Src _, Arg _ -> 1
 
+  (* TODO: Right now we disregard the trace so we only keep one potential path.
+   *       This may have to become a map (orig -> trace) rather than a set, so
+   *       that we can merge the traces when merging taint at join points. *)
   let compare t1 t2 = compare_orig t1.orig t2.orig
 end)
 
@@ -199,24 +214,24 @@ let findings_of_tainted_sink (taint : Taint.t) (sink : sink) : finding list =
          | Arg i ->
              (* We need to check unifiability at the call site. *)
              Some (ArgToSink (i, trace, sink))
-         | Src src ->
-             let src_pm = pm_of_dm src in
+         | Src source ->
+             let src_pm = pm_of_dm source in
              let sink_pm = pm_of_dm sink in
-             let* env = unify_meta_envs sink_pm.PM.env src_pm.PM.env in
-             Some (SrcToSink (src, trace, sink, env)))
+             let* merged_env = unify_meta_envs sink_pm.PM.env src_pm.PM.env in
+             Some (SrcToSink { source; trace; sink; merged_env }))
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks (taint : Taint.t) (sinks : sink list) :
     finding list =
   sinks |> List.concat_map (findings_of_tainted_sink taint)
 
-let findings_of_tainted_return (taint : Taint.t) : finding list =
+let findings_of_tainted_return (taint : Taint.t) return_tok : finding list =
   taint |> Taint.elements
   |> List.map (fun taint ->
          let trace = List.rev taint.rev_trace in
          match taint.orig with
-         | Arg i -> ArgToReturn (i, trace)
-         | Src src -> SrcToReturn (src, trace))
+         | Arg i -> ArgToReturn (i, trace, return_tok)
+         | Src src -> SrcToReturn (src, trace, return_tok))
 
 (*****************************************************************************)
 (* Tainted *)
@@ -341,10 +356,10 @@ let check_function_signature env fun_exp args_taint =
       Some
         (fun_sig
         |> List.filter_map (function
-             | SrcToReturn (dm, trace) ->
+             | SrcToReturn (dm, trace, _return_tok) ->
                  let dm = Call (eorig, trace, dm) in
                  Some (Taint.singleton { orig = Src dm; rev_trace = [] })
-             | ArgToReturn (i, trace) ->
+             | ArgToReturn (i, trace, _return_tok) ->
                  let* arg_taint = taint_of_arg i in
                  Some
                    (arg_taint
@@ -477,7 +492,7 @@ let (transfer :
     | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
         let taint = check_tainted_return env tok e in
-        let findings = findings_of_tainted_return taint in
+        let findings = findings_of_tainted_return taint tok in
         report_findings env findings;
         let pmatches =
           taint |> Taint.elements

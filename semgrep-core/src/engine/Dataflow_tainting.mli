@@ -17,14 +17,22 @@ type source = deep_match [@@deriving show]
 type sink = deep_match [@@deriving show]
 type arg_pos = int [@@deriving show]
 
+type source_to_sink = {
+  source : source;
+  trace : trace;
+  sink : sink;
+  merged_env : Metavariable.bindings;
+}
+[@@deriving show]
+
 (** Function-level finding (not necessarily a Semgrep finding). These may
   * depend on taint variables so they must be interpreted on a specific
   * context. *)
 type finding =
-  | SrcToSink of source * trace * sink * Metavariable.bindings
-  | SrcToReturn of source * trace
+  | SrcToSink of source_to_sink
+  | SrcToReturn of source * trace * AST_generic.tok
   | ArgToSink of arg_pos * trace * sink
-  | ArgToReturn of arg_pos * trace
+  | ArgToReturn of arg_pos * trace * AST_generic.tok
 [@@deriving show]
 
 type taint_orig =

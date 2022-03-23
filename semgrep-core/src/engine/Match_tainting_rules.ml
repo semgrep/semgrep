@@ -188,9 +188,9 @@ let taint_config_of_rule default_config equivs file ast_and_errors
 let pm_of_finding file finding =
   let open Dataflow_tainting in
   match finding with
-  | SrcToSink (_src, _trace, sink, src_sink_bindings) -> (
+  | SrcToSink { source = _; trace = _; sink; merged_env } -> (
       match sink with
-      | PM sink_pm -> Some { sink_pm with env = src_sink_bindings }
+      | PM sink_pm -> Some { sink_pm with env = merged_env }
       | Call (fun_call, _trace, _) -> (
           let code = G.E fun_call in
           match V.range_of_any_opt code with
@@ -206,7 +206,7 @@ let pm_of_finding file finding =
                   file;
                   range_loc;
                   tokens;
-                  env = src_sink_bindings;
+                  env = merged_env;
                 }))
   | SrcToReturn _
   (* TODO: We might want to report functions that let input taint
