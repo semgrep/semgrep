@@ -294,9 +294,15 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             snapshot.assert_match(json.dumps(meta_json, indent=4), "meta.json")
 
             findings_json = post_mock.mock_calls[1].kwargs["json"]
+            for f in findings_json["findings"]:
+                assert f["commit_date"] is not None
+                f["commit_date"] = "sanitized"
             snapshot.assert_match(json.dumps(findings_json, indent=4), "findings.json")
 
             ignores_json = post_mock.mock_calls[2].kwargs["json"]
+            for f in ignores_json["findings"]:
+                assert f["commit_date"] is not None
+                f["commit_date"] = "sanitized"
             snapshot.assert_match(json.dumps(ignores_json, indent=4), "ignores.json")
 
             complete_json = post_mock.mock_calls[3].kwargs["json"]
