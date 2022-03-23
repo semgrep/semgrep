@@ -379,6 +379,27 @@ let var_stats prog : var_stats =
                   | _ -> ())
                 es;
               vout (E e2)
+          | Call
+              ( { e = IdSpecial (IncrDecr _, _); _ },
+                ( _,
+                  [
+                    Arg
+                      {
+                        e =
+                          N
+                            (Id
+                              ( id,
+                                {
+                                  id_resolved = { contents = Some (_kind, sid) };
+                                  _;
+                                } ));
+                        _;
+                      };
+                  ],
+                  _ ) ) ->
+              let var = (H.str_of_ident id, sid) in
+              let stat = get_stat_or_create var h in
+              incr stat.lvalue
           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
             ->
               let var = (H.str_of_ident id, sid) in
