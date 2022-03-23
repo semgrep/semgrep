@@ -34,6 +34,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
 - Symlinks found in directories are skipped from being scanned again.
   This is a fix for a regression introduced in 0.85.0.
+- HTML: multiline raw text tokens now contain the newline characters (#4855)
 - Constant-propagation: A conditional expression where both alternatives are
   constant will also be considered constant (#4301)
 
