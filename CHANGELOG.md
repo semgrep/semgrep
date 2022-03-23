@@ -35,6 +35,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Symlinks found in directories are skipped from being scanned again.
   This is a fix for a regression introduced in 0.85.0.
 - HTML: multiline raw text tokens now contain the newline characters (#4855)
+- Go: fix unicode parsing bugs (#4725) by switching to latest tree-sitter-go
 - Constant propagation: A conditional expression where both alternatives are
   constant will also be considered constant (#4301)
 - Constant propagation now recognizes operators `++` and `--` as side-effectful
