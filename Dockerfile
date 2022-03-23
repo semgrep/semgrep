@@ -82,16 +82,16 @@ RUN apk add --no-cache --virtual=.build-deps build-base && \
      semgrep --version && \
      apk del .build-deps && \
      mkdir -p /tmp/.cache && \
-     chmod 0777 /src /tmp/.cache \
+     chmod 0777 /src /tmp/.cache && \
      adduser -D -u 1000 semgrep
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
-ENV SEMGREP_IN_DOCKER=1\
-     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version\
-     SEMGREP_USER_AGENT_APPEND="(Docker)"\
-     PYTHONIOENCODING=utf8\
+ENV SEMGREP_IN_DOCKER=1 \
+     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
+     SEMGREP_USER_AGENT_APPEND="(Docker)" \
+     PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
 USER 1000
