@@ -1,0 +1,20 @@
+Fetching configuration from semgrep.dev
+Adding ignore patterns configured on semgrep.dev as `--exclude` options: ('.semgrep/', '.semgrep_logs/')
+Scanning 1 file with 4 python rules.
+  Current version has 12 findings.
+
+Switching repository to baseline commit '<sanitized base_commit>'.
+  Will report findings introduced by these commits:
+    * <sanitized head_commit> Some other commit/ message
+
+Scanning 1 file with 4 python rules.
+
+Some files were skipped.
+  Scan was limited to files changed since baseline commit.
+
+Ran 4 rules on 1 file: 10 findings.
+Ran 3 blocking rules, 1 audit rules, and 0 internal rules used for rule recommendations.
+2 findings were from rules in audit rule board. These non-blocking findings are not displayed.
+Reporting findings to semgrep.dev ...
+Success.
+Has findings for blocking rules so exiting with code 1
