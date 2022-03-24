@@ -217,6 +217,10 @@ let rec eval env x : svalue option =
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
+  | Conditional (_e1, e2, e3) ->
+      let* v2 = eval env e2 in
+      let* v3 = eval env e3 in
+      Some (Dataflow_svalue.union v2 v3)
   | Call
       ( { e = IdSpecial (EncodedString str_kind, _); _ },
         (_, [ Arg { e = L (String (str, str_tok) as str_lit); _ } ], _) ) -> (
@@ -375,6 +379,27 @@ let var_stats prog : var_stats =
                   | _ -> ())
                 es;
               vout (E e2)
+          | Call
+              ( { e = IdSpecial (IncrDecr _, _); _ },
+                ( _,
+                  [
+                    Arg
+                      {
+                        e =
+                          N
+                            (Id
+                              ( id,
+                                {
+                                  id_resolved = { contents = Some (_kind, sid) };
+                                  _;
+                                } ));
+                        _;
+                      };
+                  ],
+                  _ ) ) ->
+              let var = (H.str_of_ident id, sid) in
+              let stat = get_stat_or_create var h in
+              incr stat.lvalue
           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
             ->
               let var = (H.str_of_ident id, sid) in

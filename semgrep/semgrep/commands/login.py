@@ -134,7 +134,7 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}api/agent/deployment", timeout=10, headers=headers
+            f"{SEMGREP_URL}api/agent/deployments", timeout=10, headers=headers
         )
         return r.ok
 
@@ -151,7 +151,7 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}api/agent/deployment", timeout=10, headers=headers
+            f"{SEMGREP_URL}api/agent/deployments", timeout=10, headers=headers
         )
         if r.ok:
             data = r.json()
@@ -167,8 +167,10 @@ class Authentication:
         - settings file
         - None
         """
-        login_token = os.environ.get(Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
-        if login_token:
+        login_token = os.environ.get(
+            Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME, None
+        )
+        if login_token is not None:
             logger.debug(
                 f"Using environment variable {Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME} as api token"
             )

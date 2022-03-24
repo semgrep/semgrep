@@ -1136,6 +1136,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | Xmls v1 ->
+        let v1 = map_of_list map_xml_body v1 in
+        Xmls v1
     | ForOrIfComp v1 ->
         let v1 = map_for_or_if_comp v1 in
         ForOrIfComp v1

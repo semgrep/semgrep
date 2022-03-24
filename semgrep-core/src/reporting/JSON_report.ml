@@ -92,7 +92,8 @@ let range_of_any_opt startp_of_match_range any =
    *)
   | Ss []
   | Params []
-  | Args [] ->
+  | Args []
+  | Xmls [] ->
       Some empty_range
   | _ ->
       let ( let* ) = Common.( >>= ) in

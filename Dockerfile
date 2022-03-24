@@ -65,36 +65,32 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 # We change container, bringing only the 'semgrep-core' binary with us.
 #
 
-FROM python:3.10.1-alpine3.15@sha256:dce56d40d885d2c8847aa2a278a29d50450c8e3d10f9d7ffeb2f38dcc1eb0ea4
-LABEL maintainer="support@r2c.dev"
-ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
+FROM python:3.10-alpine@sha256:bddea3d56e850b245bb09e7197f25a60bedf71b4bf0ee50b0d70f8684dd0d9c3
 
-# ugly: circle CI requires valid git and ssh programs in the container
-# when running semgrep on a repository containing submodules
-RUN apk add --no-cache git openssh
+WORKDIR /src
+LABEL maintainer="support@r2c.dev"
+ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
+     PIP_NO_CACHE_DIR=true \
+     SEMGREP_IN_DOCKER=1 \
+     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
+     SEMGREP_USER_AGENT_APPEND="(Docker)" \
+     PYTHONIOENCODING=utf8 \
+     PYTHONUNBUFFERED=1
 
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
-RUN semgrep-core -version
-
 COPY semgrep /semgrep
+
 # hadolint ignore=DL3013
-RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep && \
+RUN apk add --no-cache --virtual=.build-deps build-base && \
+     apk add --no-cache --virtual=.run-deps git openssh && \
+     SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
-     mkdir -p /src && \
-     chmod 777 /src && \
-     mkdir -p /tmp/.cache && \
-     chmod 777 /tmp/.cache
+     apk del .build-deps && \
+     mkdir -p /tmp/.cache
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
-RUN adduser -D -u 1000 semgrep
-USER 1000
-ENV SEMGREP_IN_DOCKER=1
-ENV SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version
-ENV SEMGREP_USER_AGENT_APPEND="(Docker)"
-ENV PYTHONIOENCODING=utf8
-ENV PYTHONUNBUFFERED=1
 ENTRYPOINT ["semgrep"]
 CMD ["--help"]

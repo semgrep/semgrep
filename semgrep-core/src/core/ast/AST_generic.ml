@@ -811,7 +811,7 @@ and xml_attribute =
 and a_xml_attr_value = expr
 
 and xml_body =
-  (* sgrep-ext: can contain "..." *)
+  (* sgrep-ext: can contain "...". The string can also contain multiple lines *)
   | XmlText of string wrap
   (* this can be None when people abuse {} to put comments in it *)
   | XmlExpr of expr option bracket
@@ -1147,7 +1147,7 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
-   * TODO: could merge with TyN when name has proper qualifiers?
+   * TODO: could merge with TyN now that qualified_info has type_arguments
    *)
   | TyApply of type_ * type_arguments
   (* old: was 'TyFun of type_ list * type*' , but languages such as C and
@@ -1374,7 +1374,7 @@ and type_parameter =
   (* sgrep-ext: *)
   | TParamEllipsis of tok
   (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
-   * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
+   * regular Param in C++/Go, AnonTypeParam/TPRest/TPNested in C++
    *)
   | OtherTypeParam of todo_kind * any list
 
@@ -1744,6 +1744,7 @@ and any =
   | Flds of field list
   | Args of argument list
   | Params of parameter list
+  | Xmls of xml_body list
   | Partial of partial
   (* misc *)
   | I of ident

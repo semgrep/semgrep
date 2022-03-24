@@ -96,6 +96,7 @@ def invoke_semgrep(
         filtered_matches_by_rule,
         _,
         _,
+        _,
         filtered_rules,
         profiler,
         profiling_data,
@@ -193,7 +194,7 @@ def remove_matches_in_baseline(
 
     for rule, matches in head_matches_by_rule.items():
         baseline_matches = {
-            match.ci_unique_key for match in baseline_matches_by_rule[rule]
+            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
         kept_matches_by_rule[rule] = [
             match for match in matches if match.ci_unique_key not in baseline_matches
@@ -235,6 +236,7 @@ def main(
     baseline_commit: Optional[str] = None,
 ) -> Tuple[
     RuleMatchMap,
+    List[SemgrepError],
     Set[Path],
     IgnoreLog,
     List[Rule],
@@ -441,6 +443,7 @@ def main(
 
     return (
         filtered_matches_by_rule,
+        semgrep_errors,
         all_targets,
         target_manager.ignore_log,
         filtered_rules,

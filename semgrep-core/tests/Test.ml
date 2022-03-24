@@ -278,7 +278,7 @@ let tainting_test lang rules_file file =
         lazy_content = lazy (Common.read_file file);
         lazy_ast_and_errors = lazy (ast, []);
     } in
-    let res = Match_tainting_rules.check_rule rule
+    let res, _debug = Match_tainting_rules.check_rule rule
         (fun _ _ _ -> ())
         (Config_semgrep.default_config, equivs)
         taint_spec xtarget

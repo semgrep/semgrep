@@ -1,4 +1,5 @@
 import binascii
+import datetime
 import itertools
 import textwrap
 from collections import Counter
@@ -250,6 +251,48 @@ class RuleMatch:
         A UUID representation of ci_unique_key.
         """
         return UUID(hex=self.syntactic_id)
+
+    @property
+    def is_blocking(self) -> bool:
+        """
+        Returns if this finding indicates it should block CI
+        """
+        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
+    def to_app_finding_format(self, commit_date: str) -> Dict[str, Any]:
+        """
+        commit_date here for legacy reasons.
+        commit date of the head commit in epoch time
+        """
+        commit_date_app_format = str(datetime.datetime.fromtimestamp(int(commit_date)))
+
+        # Follow semgrep.dev severity conventions
+        if self.severity.value == RuleSeverity.ERROR.value:
+            app_severity = 2
+        elif self.severity.value == RuleSeverity.WARNING.value:
+            app_severity = 1
+        else:
+            app_severity = 0
+
+        ret = {
+            "check_id": self.rule_id,
+            "path": str(self.path),
+            "line": self.start.line,
+            "column": self.start.col,
+            "end_line": self.end.line,
+            "end_column": self.end.col,
+            "message": self.message,
+            "severity": app_severity,
+            "index": self.index,
+            "commit_date": commit_date_app_format,
+            "syntactic_id": self.syntactic_id,
+            "metadata": self.metadata,
+            "is_blocking": self.is_blocking,
+        }
+
+        if self.extra.get("fixed_lines"):
+            ret["fixed_lines"] = self.extra.get("fixed_lines")
+        return ret
 
     def __hash__(self) -> int:
         """
