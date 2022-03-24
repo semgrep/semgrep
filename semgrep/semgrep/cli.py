@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import click
 
+from semgrep.commands.ci import ci
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
 from semgrep.commands.publish import publish
@@ -13,6 +14,7 @@ def cli() -> None:
     pass
 
 
+cli.add_command(ci)
 cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(publish)
