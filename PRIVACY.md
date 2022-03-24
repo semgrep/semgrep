@@ -222,19 +222,19 @@ Two types of data are sent to r2c servers for this logged-in use case: scan data
 They power dashboards, identify anomalies with the product, and are needed for billing.
 The classes of scan data are:
 
-- Project identity (e.g. name, URL)
-- Scan environment (e.g. CI provider, OS)
-- Author identity (e.g. committer email)
-- Commit metadata (e.g. commit hash)
-- Review and review-requester identifying data (e.g. pull-request ID, branch, merge base, request author)
-- Scan metadata, including type of scan and scan parameters (e.g. paths scanned)
-- Timing metrics (e.g. time taken to scan per-rule and per-path)
-- Semgrep environment (e.g. version, interpreter, timestamp)
+- Project identity (e.g., name, URL)
+- Scan environment (e.g., CI provider, OS)
+- Author identity (e.g., committer email)
+- Commit metadata (e.g., commit hash)
+- Review and review-requester identifying data (e.g., pull-request ID, branch, merge base, request author)
+- Scan metadata, including type of scan and scan parameters (e.g., paths scanned)
+- Timing metrics (e.g., time taken to scan per-rule and per-path)
+- Semgrep environment (e.g., version, interpreter, timestamp)
 
 **Findings data** are used to provide human readable content for notifications and integrations,
 as well tracking results as new, fixed, or duplicate. The classes of findings data are:
 
-- Check ID and metadata (as defined in the rule definition; e.g. OWASP category, message, severity)
+- Check ID and metadata (as defined in the rule definition; e.g., OWASP category, message, severity)
 - Code location, including file path, that triggered findings
 - A one-way hash of a unique code identifier that includes the triggering code content
 - Source code is NOT collected
