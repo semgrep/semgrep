@@ -119,6 +119,8 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
             subprocess.run(
                 ["git", "checkout", stashed_rev],
                 encoding="utf-8",
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
                 check=True,
                 timeout=GIT_SH_TIMEOUT,
             )
