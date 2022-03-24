@@ -300,15 +300,15 @@ def ci(
                 sys.exit(FATAL_EXIT_CODE)
 
             # Append ignores configured on semgrep.dev
-            if scan_handler:
-                assert exclude is not None  # exclude is default empty tuple
-                exclude = (
-                    *exclude,
-                    *yield_exclude_paths(scan_handler.ignore_patterns),
-                )
+            requested_excludes = scan_handler.ignore_patterns if scan_handler else []
+            if requested_excludes:
                 logger.info(
                     f"Adding ignore patterns configured on semgrep.dev as `--exclude` options: {exclude}"
                 )
+
+            assert exclude is not None  # exclude is default empty tuple
+            exclude = (*exclude, *yield_exclude_paths(requested_excludes))
+
             assert config  # Config has to be defined here. Helping mypy out
             start = time.time()
             (
