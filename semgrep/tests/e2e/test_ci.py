@@ -344,3 +344,44 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
             r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
         )
         snapshot.assert_match(sanitized_output, "output.txt")
+
+
+@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
+def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
+    repo_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    post_mock = mock.MagicMock(return_value=mock.MagicMock())
+
+    with ci_mocks(base_commit, autofix):
+        # Mock session.post
+        with mock.patch.object(Session, "post", post_mock):
+            runner = CliRunner(
+                env={
+                    SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                    Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                }
+            )
+            result = runner.invoke(cli, ["ci", "--dry-run"], env={})
+
+            post_mock.assert_not_called()
+            sanitized_output = (
+                result.output.replace(head_commit, "<sanitized head_commit>")
+                .replace(head_commit[:7], "<sanitized head_commit>")
+                .replace(base_commit, "<sanitized base_commit>")
+                .replace(__VERSION__, "<sanitized semgrep_version>")
+            )
+            sanitized_output = re.sub(
+                r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+            )
+            # Sanitize commit_date
+            sanitized_output = re.sub(
+                r"\"commit_date\": .*\"",
+                '"commit_date": <sanitized date>',
+                sanitized_output,
+            )
+            sanitized_output = re.sub(
+                r"\"total_time\": .*",
+                '"total_time": <sanitized date>',
+                sanitized_output,
+            )
+            snapshot.assert_match(sanitized_output, "output.txt")

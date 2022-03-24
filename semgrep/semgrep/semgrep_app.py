@@ -64,12 +64,16 @@ class ScanHandler:
 
         Returns None if api_token is invalid/doesn't have associated deployment
         """
+        url = f"{self.app_url}/api/agent/deployments/current"
+        logger.debug(f"Retrieveing deployment details from {url}")
         r = self.session.get(
-            f"{self.app_url}/api/agent/deployments/current",
+            url,
             timeout=10,
         )
+
         if r.ok:
             data = r.json()
+            logger.debug(f"Received: {data}")
             return data.get("deployment", {}).get("id"), data.get("deployment", {}).get(
                 "name"
             )
@@ -82,9 +86,13 @@ class ScanHandler:
 
         returns ignored list
         """
+        logger.debug("Starting scan")
         if self.dry_run:
             repo_name = meta["repository"]
             self._dry_run_rules_url = f"{self.app_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
+            logger.debug(
+                f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
+            )
             return
 
         response = self.session.post(
@@ -115,8 +123,12 @@ class ScanHandler:
     @property
     def scan_rules_url(self) -> str:
         if self.dry_run:
-            return self._dry_run_rules_url
-        return f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+            url = self._dry_run_rules_url
+        else:
+            url = f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+
+        logger.debug(f"Using {url} as scan rules url")
+        return url
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -207,10 +219,10 @@ class ScanHandler:
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
             return
-
-        logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
-        logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
-        logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
+        else:
+            logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
+            logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
+            logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = self.session.post(
             f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings",
