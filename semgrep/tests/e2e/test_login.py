@@ -105,6 +105,6 @@ def test_login(tmp_path):
             )
             assert result.exit_code == 1
             assert (
-                "https://semgrep.dev/api/agent/deployment/1/repos/org/repo/rules.yaml"
+                "https://semgrep.dev/api/agent/deployments/1/repos/org/repo/rules.yaml"
                 in result.output
             )

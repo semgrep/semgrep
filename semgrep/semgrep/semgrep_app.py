@@ -63,7 +63,7 @@ class ScanHandler:
         Returns None if api_token is invalid/doesn't have associated deployment
         """
         r = self.session.get(
-            f"{self.app_url}/api/agent/deployment",
+            f"{self.app_url}/api/agent/deployments",
             timeout=10,
         )
         if r.ok:
@@ -81,7 +81,7 @@ class ScanHandler:
         returns ignored list
         """
         response = self.session.post(
-            f"{self.app_url}/api/agent/deployment/{self.deployment_id}/scan",
+            f"{self.app_url}/api/agent/deployments/{self.deployment_id}/scans",
             json={"meta": meta},
             timeout=30,
         )
@@ -107,7 +107,7 @@ class ScanHandler:
 
     @property
     def scan_rules_url(self) -> str:
-        return f"{self.app_url}/api/agent/scan/{self.scan_id}/rules.yaml"
+        return f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -115,7 +115,7 @@ class ScanHandler:
         and return what exit code semgrep should exit with.
         """
         response = self.session.post(
-            f"{self.app_url}/api/agent/scan/{self.scan_id}/error",
+            f"{self.app_url}/api/agent/scans/{self.scan_id}/error",
             json={
                 "exit_code": exit_code,
                 "stderr": "",
@@ -188,7 +188,7 @@ class ScanHandler:
         logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/findings",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings",
             json=findings,
             timeout=30,
         )
@@ -204,7 +204,7 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/ignores",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/ignores",
             json=ignores,
             timeout=30,
         )
@@ -215,7 +215,7 @@ class ScanHandler:
 
         # mark as complete
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/complete",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/complete",
             json=complete,
             timeout=30,
         )

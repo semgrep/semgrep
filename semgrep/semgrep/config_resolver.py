@@ -565,7 +565,7 @@ def url_for_policy(config_str: str) -> str:
             "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
         )
 
-    request_url = f"{(SEMGREP_URL)}api/agent/deployment/{deployment_id}/repos/{repo_name}/rules.yaml"
+    request_url = f"{(SEMGREP_URL)}api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
 
     if include_cai:
         return f"{request_url}?include_cai=1"
