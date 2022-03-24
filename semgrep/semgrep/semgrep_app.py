@@ -169,7 +169,9 @@ class ScanHandler:
             ],
         }
         complete = {
-            "exit_code": 1 if any(match.is_blocking for match in all_matches) else 0,
+            "exit_code": 1
+            if any(match.is_blocking and not match.is_ignored for match in all_matches)
+            else 0,
             "stats": {
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
@@ -192,6 +194,7 @@ class ScanHandler:
 
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
+        breakpoint()
 
         response = self.session.post(
             f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/ignores",
