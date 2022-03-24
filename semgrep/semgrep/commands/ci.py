@@ -363,14 +363,20 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = {}
     nonblocking_matches_by_rule: RuleMatchMap = {}
     cai_matches_by_rule: RuleMatchMap = {}
-    for k, v in filtered_matches_by_rule.items():
-        if "r2c-internal-cai" in k.id:
-            cai_matches_by_rule[k] = v
+    for rule, matches in filtered_matches_by_rule.items():
+        if "r2c-internal-cai" in rule.id:
+            cai_matches_by_rule[rule] = [
+                match for match in matches if not match.is_ignored
+            ]
         else:
-            if k.is_blocking:
-                blocking_matches_by_rule[k] = v
+            if rule.is_blocking:
+                blocking_matches_by_rule[rule] = [
+                    match for match in matches if not match.is_ignored
+                ]
             else:
-                nonblocking_matches_by_rule[k] = v
+                nonblocking_matches_by_rule[rule] = [
+                    match for match in matches if not match.is_ignored
+                ]
 
     num_cai_findings = sum(len(v) for v in cai_matches_by_rule.values())
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
