@@ -146,33 +146,26 @@ def ci_mocks(base_commit, autofix):
         """
     ).lstrip()
 
-    with (
-        mock.patch.object(
-            GitlabMeta, "_fetch_branch_get_merge_base", return_value=base_commit
-        ),
-        # Mock rules
-        mock.patch.object(
-            ConfigPath, "_make_config_request", mock.Mock(return_value=file_content)
-        ),
-        # Mock deployment_id
-        mock.patch.object(
-            ScanHandler,
-            "_get_deployment_details",
-            mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
-        ),
-        mock.patch.object(Authentication, "is_valid_token", return_value=True),
-        mock.patch.object(
-            ScanHandler,
-            "scan_rules_url",
-            mock.PropertyMock(
-                return_value="https://semgrep.dev/api/agent/scans/1234/rules.yaml"
-            ),
-        ),
-        mock.patch.object(
-            ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
-        ),
+    with mock.patch.object(
+        GitlabMeta, "_fetch_branch_get_merge_base", return_value=base_commit
     ):
-        yield
+        # Mock rules
+        with mock.patch.object(
+            ConfigPath, "_make_config_request", mock.Mock(return_value=file_content)
+        ):
+            # Mock deployment_id
+            with mock.patch.object(
+                ScanHandler,
+                "_get_deployment_details",
+                mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
+            ):
+                with mock.patch.object(
+                    Authentication, "is_valid_token", return_value=True
+                ):
+                    with mock.patch.object(
+                        ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
+                    ):
+                        yield
 
 
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
