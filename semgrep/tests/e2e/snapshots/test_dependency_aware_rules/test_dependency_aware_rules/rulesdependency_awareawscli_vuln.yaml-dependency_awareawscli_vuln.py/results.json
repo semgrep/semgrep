@@ -153,6 +153,7 @@
         "offset": 0
       },
       "extra": {
+        "fingerprint": "aff1d5db7585f1a20463e0e73435132c",
         "is_ignored": false,
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
