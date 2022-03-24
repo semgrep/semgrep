@@ -36,7 +36,7 @@ RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
 
 
 class ScanHandler:
-    def __init__(self, app_url: str, token: str, dryrun: bool) -> None:
+    def __init__(self, app_url: str, token: str, dry_run: bool) -> None:
         self.app_url = app_url
         session = requests.Session()
         session.mount("https://", RETRYING_ADAPTER)
@@ -48,7 +48,7 @@ class ScanHandler:
         self.scan_id = None
         self.ignore_patterns: List[str] = []
         self._autofix = False
-        self.dryrun = dryrun
+        self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
 
     @property
@@ -82,7 +82,7 @@ class ScanHandler:
 
         returns ignored list
         """
-        if self.dryrun:
+        if self.dry_run:
             repo_name = meta["repository"]
             self._dry_run_rules_url = f"{self.app_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
             return
@@ -114,7 +114,7 @@ class ScanHandler:
 
     @property
     def scan_rules_url(self) -> str:
-        if self.dryrun:
+        if self.dry_run:
             return self._dry_run_rules_url
         return f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
 
@@ -123,7 +123,7 @@ class ScanHandler:
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
         """
-        if self.dryrun:
+        if self.dry_run:
             logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
             return
 
@@ -196,7 +196,7 @@ class ScanHandler:
             },
         }
 
-        if self.dryrun:
+        if self.dry_run:
             logger.info(
                 f"Would have sent findings blob: {json.dumps(findings, indent=4)}"
             )
