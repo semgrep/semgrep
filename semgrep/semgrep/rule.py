@@ -155,8 +155,8 @@ class Rule:
 
     @property
     def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
-        if "project-depends-on" in self._raw:
-            depends_on = self._raw["project-depends-on"]
+        if "r2c-internal-project-depends-on" in self._raw:
+            depends_on = self._raw["r2c-internal-project-depends-on"]
             if "depends-on-either" in depends_on:
                 dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
                 return dependencies

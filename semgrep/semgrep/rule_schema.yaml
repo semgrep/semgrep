@@ -88,7 +88,7 @@ definitions:
                       - patterns
                   - required:
                       - pattern-either
-  project-depends-on-content:
+  r2c-internal-project-depends-on-content:
     type: object
     title: "One or more dependencies that the project contains in a lock file"
     properties:
@@ -465,8 +465,8 @@ properties:
           $ref: "#/definitions/patterns-content"
         pattern-either:
           $ref: "#/definitions/pattern-either-content"
-        project-depends-on:
-          $ref: "#/definitions/project-depends-on-content"
+        r2c-internal-project-depends-on:
+          $ref: "#/definitions/r2c-internal-project-depends-on-content"
       additionalProperties: false
 
       oneOf:
@@ -563,7 +563,7 @@ properties:
                   - required:
                       - pattern-either
             - required:
-                - project-depends-on
+                - r2c-internal-project-depends-on
               not:
                 anyOf:
                   - required:
