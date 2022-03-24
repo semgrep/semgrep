@@ -1,3 +1,8 @@
+Scan environment:
+  versions    - semgrep 0.85.0 on python <sanitized_version>
+  environment - running in environment gitlab-ci, triggering event is push
+  semgrep.dev - authenticated as org_name
+
 Fetching configuration from semgrep.dev
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ('.semgrep/', '.semgrep_logs/')
 Scanning 1 file with 4 python rules.
@@ -5,9 +10,9 @@ Scanning 1 file with 4 python rules.
 Some files were skipped.
   Scan was limited to files tracked by git.
 
-Ran 4 rules on 1 file: 9 findings.
+Ran 4 rules on 1 file: 5 findings.
 Ran 2 blocking rules, 1 audit rules, and 1 internal rules used for rule recommendations.
-2 findings were from rules in audit rule board. These non-blocking findings are not displayed.
+1 findings were from rules in audit rule board. These non-blocking findings are not displayed.
 Reporting findings to semgrep.dev ...
 Success.
 Has findings for blocking rules so exiting with code 1

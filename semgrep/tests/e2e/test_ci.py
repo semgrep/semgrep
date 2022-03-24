@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -152,7 +153,9 @@ def ci_mocks(base_commit, autofix):
         ):
             # Mock deployment_id
             with mock.patch.object(
-                ScanHandler, "_get_deployment_id", mock.Mock(return_value=DEPLOYMENT_ID)
+                ScanHandler,
+                "_get_deployment_details",
+                mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
             ):
                 with mock.patch.object(
                     Authentication, "is_valid_token", return_value=True
@@ -274,6 +277,9 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
                 result.output.replace(head_commit, "<sanitized head_commit>")
                 .replace(head_commit[:7], "<sanitized head_commit>")
                 .replace(base_commit, "<sanitized base_commit>")
+            )
+            sanitized_output = re.sub(
+                r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
             )
             snapshot.assert_match(sanitized_output, "output.txt")
 
