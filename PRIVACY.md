@@ -57,13 +57,13 @@ The following never leave your environment and are not sent or shared with anyon
 
 The following data will never leave your environment as part of metrics.
 
-- Filenames, file contents
+- Filenames
 - Git commit hashes, messages, authors
 - User-identifiable data about Semgrep’s findings in your code, including finding messages
 
 This data will be sent to Semgrep App only if you explicitly request it
 (such as with `semgrep login && semgrep ci` to connect with Semgrep App,
-or with the upcoming `semgrep flare` to send a report to support)
+or with the upcoming `semgrep flare` to send a debug report to support)
 Even in that case, your source code and private rules will never be sent.
 
 ## Data collected as metrics
@@ -218,9 +218,9 @@ and are not sent when not logged in.
 
 Two types of data are sent to r2c servers for this logged-in use case: scan data and findings data.
 
-Scan data provide information on the environment and performance of Semgrep.
+**Scan data** provide information on the environment and performance of Semgrep.
 They power dashboards, identify anomalies with the product, and are needed for billing.
-The classes of data are:
+The classes of scan data are:
 
 - Project identity (e.g. name, URL)
 - Scan environment (e.g. CI provider, OS)
@@ -231,8 +231,8 @@ The classes of data are:
 - Timing metrics (e.g. time taken to scan per-rule and per-path)
 - Semgrep environment (e.g. version, interpreter, timestamp)
 
-Findings data are used to provide human readable content for notifications and integrations,
-as well tracking results as new, fixed, or duplicate. The classes of data are:
+**Findings data** are used to provide human readable content for notifications and integrations,
+as well tracking results as new, fixed, or duplicate. The classes of findings data are:
 
 - Check ID and metadata (as defined in the rule definition; e.g. OWASP category, message, severity)
 - Code location, including file path, that triggered findings
