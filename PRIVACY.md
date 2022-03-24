@@ -61,9 +61,8 @@ The following data will never leave your environment as part of metrics.
 - Git commit hashes, messages, authors
 - User-identifiable data about Semgrep’s findings in your code, including finding messages
 
-This data will be sent to Semgrep App only if you explicitly request it
-(such as with `semgrep login && semgrep ci` to connect with Semgrep App,
-or with the upcoming `semgrep flare` to send a debug report to support)
+This data will be sent to Semgrep App only if you explicitly request it,
+such as with `semgrep login && semgrep ci` to connect with Semgrep App.
 Even in that case, your source code and private rules will never be sent.
 
 ## Data collected as metrics
