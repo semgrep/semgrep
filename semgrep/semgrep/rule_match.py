@@ -1,6 +1,8 @@
+import base64
 import binascii
 import datetime
 import itertools
+import os
 import textwrap
 from collections import Counter
 from functools import total_ordering
@@ -20,6 +22,9 @@ import pymmh3
 from attrs import evolve
 from attrs import field
 from attrs import frozen
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
@@ -27,6 +32,22 @@ from semgrep.types import JsonObject
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
+
+
+ENCRYPTION_SALT = base64.b64decode(b"GPM0QpnVC+nIqF70swdO5g==")
+KEY_DERIVER = PBKDF2HMAC(
+    algorithm=hashes.SHA256(),
+    length=32,
+    salt=ENCRYPTION_SALT,
+    iterations=390000,
+)
+
+
+def encrypt(content: str, passphrase: str) -> str:
+    key = KEY_DERIVER.derive(passphrase.encode())
+    f = Fernet(key)
+    token = f.encrypt(content.encode())
+    return base64.b64encode(token).decode()
 
 
 @frozen(order=True)
@@ -292,6 +313,13 @@ class RuleMatch:
 
         if self.extra.get("fixed_lines"):
             ret["fixed_lines"] = self.extra.get("fixed_lines")
+
+        passphrase = os.getenv("SEMGREP_ENCRYPTION_PASSPHRASE")
+        if passphrase:
+            ret["encrypted_syntactic_context"] = encrypt(
+                self.syntactic_context, passphrase
+            )
+
         return ret
 
     def __hash__(self) -> int:

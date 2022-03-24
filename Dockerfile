@@ -82,7 +82,7 @@ COPY --from=build-semgrep-core \
 COPY semgrep /semgrep
 
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base && \
+RUN apk add --no-cache --virtual=.build-deps build-base rust && \
      apk add --no-cache --virtual=.run-deps git openssh && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
