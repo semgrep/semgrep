@@ -4,6 +4,7 @@ Scan environment:
   environment - running in environment git, triggering event is unknown
 
 Fetching configuration from semgrep.dev
+Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
 
 Some files were skipped.
