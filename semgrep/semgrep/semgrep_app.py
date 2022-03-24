@@ -194,7 +194,6 @@ class ScanHandler:
 
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
-        breakpoint()
 
         response = self.session.post(
             f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/ignores",
