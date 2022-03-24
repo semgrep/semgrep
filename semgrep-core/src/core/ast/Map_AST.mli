@@ -15,7 +15,6 @@ and visitor_out = {
 }
 
 val default_visitor : visitor_in
-
 val mk_visitor : visitor_in -> visitor_out
 
 val mk_fix_token_locations :

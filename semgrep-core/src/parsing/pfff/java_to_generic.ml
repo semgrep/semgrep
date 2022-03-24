@@ -29,21 +29,13 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let (string : string -> string) = id
-
 let (bool : bool -> bool) = id
-
 let (int : int -> int) = id
-
 let error = AST_generic.error
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
@@ -72,7 +64,6 @@ let entity_to_param { G.name; attrs; tparams = _unused } t =
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -80,11 +71,8 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let list1 _of_a = list _of_a
-
 let ident v = wrap string v
-
 let qualified_ident v = list ident v
 
 let rec typ = function
@@ -418,7 +406,6 @@ and argument v =
   G.Arg v
 
 and arguments v : G.argument list G.bracket = bracket (list argument) v
-
 and fix_op v = H.conv_incr v
 
 and resource t (v : resource) : G.stmt =

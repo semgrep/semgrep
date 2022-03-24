@@ -6,13 +6,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
-  with `--gitlab-sast` and `--gitlab-secrets`.
+- Semgrep can now output findings in GitLab's SAST report and secret scanning
+  report formats with `--gitlab-sast` and `--gitlab-secrets`.
+- JSON output now includes a fingerprint of each finding.
+  This fingerprint remains consistent when matching code is just moved around
+  or reindented.
+- Go: use latest tree-sitter-go with support for Go 1.18 generics (#4823)
 - Terraform: basic support for constant propagation of locals (#1147)
+  and variables (#4816)
+- HTML: you can now use metavariable ellipsis inside <script> (#4841)
+  (e.g., `<script>$...JS</script>`)
 
 ### Changed
 
-- Semgrep should now be more tolerant to rules using futur extensions by
+- SARIF output will include matching code snippet (#4812)
+- semgrep-core should now be more tolerant to rules using futur extensions by
   skipping those rules instead of just crashing (#4835)
 - Removed `tests` from published python wheel
 - Findings are now considered identical between baseline and current scans
@@ -25,20 +33,30 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- Entropy analysis: strings made of repeated characters such as
+  `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
 - Symlinks found in directories are skipped from being scanned again.
   This is a fix for a regression introduced in 0.85.0.
+- HTML: multiline raw text tokens now contain the newline characters (#4855)
+- Go: fix unicode parsing bugs (#4725) by switching to latest tree-sitter-go
+- Constant propagation: A conditional expression where both alternatives are
+  constant will also be considered constant (#4301)
+- Constant propagation now recognizes operators `++` and `--` as side-effectful
+  (#4667)
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
 ### Added
 
 - C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
-- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
-- Scala: The data-flow engine can now handle expression blocks. This used to
-  cause some false negatives during taint analysis, which will now be reported.
-- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
-- When scanning multiple languages,
-  Semgrep will now print a table of how many rules and files are used for each language.
+- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>`) (#4078)
+- Scala: The data-flow engine can now handle expression blocks.
+  This used to cause some false negatives during taint analysis,
+  which will now be reported.
+- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]`
+  (#4770).
+- When scanning multiple languages, Semgrep will now print a table of how
+  many rules and files are used for each language.
 
 ### Fixed
 

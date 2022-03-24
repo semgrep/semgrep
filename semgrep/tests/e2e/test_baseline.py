@@ -9,7 +9,14 @@ import pytest
 SENTINEL_1 = 23478921
 
 
-def _git_commit(serial_no: int = 1):
+def _git_commit(serial_no: int = 1, add: bool = False) -> str:
+    if add:
+        subprocess.run(
+            ["git", "add", "."],
+            check=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
     year = 2000 + serial_no  # arbitrary base year
     date_string = f"Mon 10 Mar {year} 00:00:00Z"
 
@@ -32,6 +39,9 @@ def _git_commit(serial_no: int = 1):
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
     )
+    return subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
 
 
 def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
@@ -354,6 +364,51 @@ def test_no_intersection(git_tmp_path, snapshot):
         baseline_output.stderr.replace(base_commit, "baseline-commit"),
         "baseline_error.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "new_name",
+    [
+        pytest.param("bar.py", id="case-insensitive"),
+        pytest.param("Foo.py", id="case-sensitive"),
+    ],
+)
+def test_renamed_file(git_tmp_path, snapshot, new_name):
+    old_name = "foo.py"
+    old_path = git_tmp_path / old_name
+    # write lots of static text so git will recognize the file as renamed
+    old_path.write_text("1\n\n" * 100)
+    base_commit = _git_commit(1, add=True)
+
+    subprocess.run(
+        ["git", "mv", old_name, new_name],
+        check=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    new_path = git_tmp_path / new_name
+    new_path.write_text("1\n\n" * 100 + f"x = {SENTINEL_1}")
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report 1 finding
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "output.txt")
+    assert output.stdout != ""
+    snapshot.assert_match(
+        output.stderr.replace(base_commit, "baseline-commit"), "error.txt"
+    )
+
+    # Baseline scan should report same finding
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
+    assert baseline_output.stdout == output.stdout
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
+    )
+
+    assert set(git_tmp_path.glob("*.py")) == {
+        new_path
+    }, "the old path should be gone now"
 
 
 def test_multiple_on_same_line(git_tmp_path, snapshot):

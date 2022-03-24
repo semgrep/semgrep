@@ -33,7 +33,6 @@ type issue = {
 
 (* in theory can have note, and can also be a PR *)
 type card = issue [@@deriving show]
-
 type column = { colname : string; cards : card list } [@@deriving show]
 
 (* the customer board! *)
@@ -72,7 +71,6 @@ let array f j =
 (* Helpers *)
 (*****************************************************************************)
 let filter_some xs = xs |> Common.map_filter (fun x -> x)
-
 let find_issue_opt x xs = xs |> List.find_opt (fun y -> y.url = x.url)
 
 let has_issue x xs =
@@ -224,7 +222,6 @@ let report ~base ~today =
 (*****************************************************************************)
 (* flags *)
 let base = ref "yesterday.json"
-
 let today = ref "today.json"
 
 (*****************************************************************************)

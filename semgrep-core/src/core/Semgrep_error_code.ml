@@ -37,7 +37,6 @@ and error_kind =
 type severity = Error | Warning
 
 let g_errors = ref []
-
 let options () = []
 
 (****************************************************************************)

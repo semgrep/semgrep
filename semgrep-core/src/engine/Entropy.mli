@@ -30,5 +30,4 @@ val information_density : string -> float
    This is designed to detect secret keys encoded in Base64 or hexadecimal.
 *)
 val score : string -> int
-
 val has_high_score : string -> bool

@@ -15,6 +15,7 @@
         "offset": 1037
       },
       "extra": {
+        "fingerprint": "2dad36618046aba1c66784346119c366",
         "is_ignored": false,
         "lines": "            logger.error(userName);",
         "message": "log4j logger.error tainted argument",

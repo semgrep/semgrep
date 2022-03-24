@@ -5,9 +5,7 @@
 open Printf
 
 let entropy_threshold = 64.
-
 let density_threshold = 0.6
-
 let low_entropy_strings = [ ""; "a"; "ab"; "!@"; "change"; "1234" ]
 
 let high_entropy_strings =
@@ -52,6 +50,8 @@ let low_score_strings =
     "password123";
     "someReallyLongComplicatedObjectiveCMethodName";
     "{$variable.someProperty}";
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
     (* grey zone *)
     "ringerringerringerringerringerringerringerringerringerringerringer";
     "Many hands make light work.";

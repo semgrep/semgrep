@@ -46,15 +46,12 @@ let default_extra_env =
   { cnt = 0; struct_defs_toadd = []; enum_defs_toadd = []; typedefs_toadd = [] }
 
 let gensym_struct cnt = spf "__anon_struct_%d" cnt
-
 let gensym_enum cnt = spf "__anon_enum_%d" cnt
 
 type env = extra H.env
 
 let _fake = G.fake
-
 let token = H.token
-
 let str = H.str
 
 (*****************************************************************************)

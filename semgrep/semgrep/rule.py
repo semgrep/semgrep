@@ -139,6 +139,13 @@ class Rule:
         return self._raw.get("metadata", {})
 
     @property
+    def is_blocking(self) -> bool:
+        """
+        Returns if this rule indicates matches should block CI
+        """
+        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
+    @property
     def severity(self) -> RuleSeverity:
         return RuleSeverity(self._raw["severity"])
 

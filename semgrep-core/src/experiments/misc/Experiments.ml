@@ -42,7 +42,8 @@ let ebnf_to_menhir file =
     | (T.Kwd (")" | "*" | "?") as x) :: ((T.Ident _ | T.String _) as y) :: xs ->
         x :: T.Kwd " " :: insert_space_when_needed (y :: xs)
     | ((T.Ident _ | T.String _) as x)
-      :: ((T.Ident _ | T.String _ | T.Kwd "(") as y) :: xs ->
+      :: ((T.Ident _ | T.String _ | T.Kwd "(") as y)
+      :: xs ->
         x :: T.Kwd " " :: insert_space_when_needed (y :: xs)
     | x :: xs -> x :: insert_space_when_needed xs
   in

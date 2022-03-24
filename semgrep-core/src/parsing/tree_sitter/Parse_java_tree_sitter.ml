@@ -39,11 +39,8 @@ module H = Parse_tree_sitter_helpers
 type env = unit H.env
 
 let fake = PI.fake_info
-
 let token = H.token
-
 let str = H.str
-
 let option = Option.map
 
 (*****************************************************************************)
@@ -485,9 +482,7 @@ and name_of_id env tok =
 
 (* TODO: use a special at some point *)
 and super env tok = name_of_id env tok
-
 and super_id_field env tok = str env tok
-
 and new_id env tok = str env tok
 
 and primary_expression (env : env) (x : CST.primary_expression) =

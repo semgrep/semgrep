@@ -15,6 +15,7 @@
         "offset": 537
       },
       "extra": {
+        "fingerprint": "c3281feb0f4821f2e7ae791684266776",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
@@ -37,6 +38,7 @@
         "offset": 670
       },
       "extra": {
+        "fingerprint": "ef682f6bc12cdbd85c49a606c32993a4",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
@@ -59,6 +61,7 @@
         "offset": 537
       },
       "extra": {
+        "fingerprint": "dedcd224bb4ca1f44d2d715aa5f76c4e",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
@@ -81,6 +84,7 @@
         "offset": 670
       },
       "extra": {
+        "fingerprint": "1eb50fa7a4176e5d4b926f1909272008",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
@@ -103,6 +107,7 @@
         "offset": 537
       },
       "extra": {
+        "fingerprint": "9e5f5095ba7cf122624d0dd92024baa0",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
@@ -125,6 +130,7 @@
         "offset": 670
       },
       "extra": {
+        "fingerprint": "516830f4f7443db4f84e28fc557fb881",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",

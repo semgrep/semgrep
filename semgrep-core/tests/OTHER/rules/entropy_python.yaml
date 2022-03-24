@@ -1,0 +1,11 @@
+rules:
+  - id: entropy-python
+    patterns:
+      - pattern: $A = $B
+      - metavariable-analysis:
+          analyzer: entropy
+          metavariable: $B
+    message: found high-entropy string
+    languages:
+      - python
+    severity: ERROR

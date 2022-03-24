@@ -169,9 +169,7 @@ type tok = Parse_info.t [@@deriving show]
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
  *)
 let equal_tok _t1 _t2 = true
-
 let hash_tok _t = 0
-
 let hash_fold_tok acc _t = acc
 
 (* a shortcut to annotate some information with position information *)
@@ -242,7 +240,6 @@ type module_name =
  *)
 (* a single unique gensym'ed number. See gensym() below *)
 type sid = int
-
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -425,13 +422,15 @@ and expr_kind =
   | Constructor of name * expr list bracket
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
   | N of name
-  | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
+  | IdSpecial of
+      special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
   | Call of expr * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
-  | Xml of xml (* IntepolatedString of expr list is simulated with a
-                * Call(IdSpecial (Concat ...)) *)
+  | Xml of xml
+  (* IntepolatedString of expr list is simulated with a
+   * Call(IdSpecial (Concat ...)) *)
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
    * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.
@@ -536,7 +535,21 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap (* TODO? bracket, ', ", or even """ *)
+  (* String literals:
+     The token includes the quotes (if any) but the string value excludes them.
+     The value is the escaped string content. For example,
+     The escaped content of the Python string literal '\\(\\)' is \\(\\).
+     The unescaped content would be \(\).
+     TODO: use bracket instead of wrap, ', ", or even """
+     TODO: expose the unescaped contents if known, so that we could analyze
+     string contents correctly.
+     An incremental change could be:
+
+     | String of (string * string option) bracket
+                  ^^^^^^   ^^^^^^
+                  escaped  unescaped
+  *)
+  | String of string wrap
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
@@ -655,8 +668,9 @@ and special =
   (* Similar to Spread, but for a var containing a hashtbl.
    * The corresponding constructor in a parameter context is ParamHashSplat.
    *)
-  | HashSplat (* **x in Python/Ruby
-               * (not to confused with Pow below which is a Binary op *)
+  | HashSplat
+    (* **x in Python/Ruby
+     * (not to confused with Pow below which is a Binary op *)
   | ForOf (* Javascript, for generators, used in ForEach *)
   (* used for unary and binary operations
    * TODO: move out of special too, in separate OpCall? (where can also
@@ -740,7 +754,6 @@ and operator =
 
 (* '++', '--' *)
 and incr_decr = Incr | Decr
-
 and prefix_postfix = Prefix | Postfix
 
 and concat_string_kind =
@@ -798,7 +811,7 @@ and xml_attribute =
 and a_xml_attr_value = expr
 
 and xml_body =
-  (* sgrep-ext: can contain "..." *)
+  (* sgrep-ext: can contain "...". The string can also contain multiple lines *)
   | XmlText of string wrap
   (* this can be None when people abuse {} to put comments in it *)
   | XmlExpr of expr option bracket
@@ -984,7 +997,6 @@ and catch_exn =
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt
-
 and label = ident
 
 and label_ident =
@@ -998,10 +1010,14 @@ and label_ident =
 and for_header =
   (* todo? copy Go and have 'of simple option * expr * simple option'? *)
   | ForClassic of
-      for_var_or_expr list (* init *) * expr option (* cond *) * expr option (* next *)
+      for_var_or_expr list (* init *)
+      * expr option (* cond *)
+      * expr option (* next *)
   (* newvar: *)
   | ForEach of
-      pattern * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *) * expr (* pattern 'in' expr *)
+      pattern
+      * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *)
+      * expr (* pattern 'in' expr *)
   (* Lua. todo: merge with ForEach? *)
   (* pattern 'in' expr *)
   | ForIn of for_var_or_expr list (* init *) * expr list
@@ -1047,7 +1063,8 @@ and other_stmt_operator =
   | OS_TryOrElse
   | OS_ThrowFrom
   | OS_ThrowNothing
-  | OS_ThrowArgsLocation (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
+  | OS_ThrowArgsLocation
+    (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
   | OS_Pass
   | OS_Async
   (* C/C++ *)
@@ -1130,7 +1147,7 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
-   * TODO: could merge with TyN when name has proper qualifiers?
+   * TODO: could merge with TyN now that qualified_info has type_arguments
    *)
   | TyApply of type_ * type_arguments
   (* old: was 'TyFun of type_ list * type*' , but languages such as C and
@@ -1357,7 +1374,7 @@ and type_parameter =
   (* sgrep-ext: *)
   | TParamEllipsis of tok
   (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
-   * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
+   * regular Param in C++/Go, AnonTypeParam/TPRest/TPNested in C++
    *)
   | OtherTypeParam of todo_kind * any list
 
@@ -1646,7 +1663,10 @@ and directive = {
 and directive_kind =
   (* newvar: *)
   | ImportFrom of
-      tok (* 'import'/'from' for Python *) * module_name * ident * alias option (* as name alias *)
+      tok (* 'import'/'from' for Python *)
+      * module_name
+      * ident
+      * alias option (* as name alias *)
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ #include and C++ 'using namespace'.
@@ -1684,7 +1704,6 @@ and alias = ident * id_info
  * TODO? make it an alias to stmt_or_def_or_dir instead?
  *)
 and item = stmt
-
 and program = item list
 
 (*****************************************************************************)
@@ -1725,6 +1744,7 @@ and any =
   | Flds of field list
   | Args of argument list
   | Params of parameter list
+  | Xmls of xml_body list
   | Partial of partial
   (* misc *)
   | I of ident
@@ -1789,7 +1809,6 @@ let error tok msg = raise (Error (msg, tok))
  * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
  *)
 let fake s = Parse_info.unsafe_fake_info s
-
 let fake_bracket x = (fake "(", x, fake ")")
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
@@ -1837,7 +1856,6 @@ let p x = x
 
 (* before Naming_AST.resolve can do its job *)
 let sid_TODO = -1
-
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =
@@ -1963,7 +1981,6 @@ let emptystmt t = s (Block (t, [], t))
  * pattern_to_expr, etc.
  *)
 let stmt_to_expr st = e (StmtExpr st)
-
 let empty_body = fake_bracket []
 
 let stmt1 xs =

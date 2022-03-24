@@ -61,7 +61,8 @@ let opt f = function
  * on fake tokens. It instead returns the fake token string
  *)
 let token default tok =
-  try Parse_info.str_of_info tok with Parse_info.NoTokenLocation _ -> default
+  try Parse_info.str_of_info tok with
+  | Parse_info.NoTokenLocation _ -> default
 
 let print_type t =
   match t.t with
@@ -803,12 +804,7 @@ let svalue env = function
   | G.NotCst -> "TOP"
   | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
   | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
-  | G.Lit l -> (
-      match l with
-      | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
-      | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
-      | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
-      | ___else___ -> "lit(???)")
+  | G.Lit l -> Printf.sprintf "lit(%s)" (literal env l)
 
 (*****************************************************************************)
 (* Entry points *)

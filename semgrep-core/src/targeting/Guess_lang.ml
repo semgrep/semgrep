@@ -93,7 +93,9 @@ let get_first_line path =
   let ic = open_in_bin path in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
-    (fun () -> try input_line ic with End_of_file -> (* empty file *) "")
+    (fun () ->
+      try input_line ic with
+      | End_of_file -> (* empty file *) "")
 
 (*
    Get the first N bytes of the file, which is ideally obtained from
@@ -108,7 +110,6 @@ let get_first_block ?(block_size = 4096) path =
       really_input_string ic len)
 
 let shebang_re = lazy (SPcre.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
-
 let split_cmd_re = lazy (SPcre.regexp "[ \t]+")
 
 (*

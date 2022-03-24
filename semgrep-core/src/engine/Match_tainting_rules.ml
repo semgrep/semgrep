@@ -70,6 +70,12 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * to prevent duplicates.
  *)
 
+type debug_taint = {
+  sources : Range_with_metavars.ranges;
+  sanitizers : Range_with_metavars.ranges;
+  sinks : Range_with_metavars.ranges;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -78,9 +84,7 @@ module F2 = IL
 
 module DataflowY = Dataflow_core.Make (struct
   type node = F2.node
-
   type edge = F2.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
@@ -167,22 +171,27 @@ let taint_config_of_rule default_config equivs file ast_and_errors
              else None
            else Some rng)
   in
-  {
-    Dataflow_tainting.filepath = file;
-    rule_id = fst rule.R.id;
-    is_source = (fun x -> any_in_ranges x sources_ranges);
-    is_sanitizer = (fun x -> any_in_ranges x sanitizers_ranges);
-    is_sink = (fun x -> any_in_ranges x sinks_ranges);
-    handle_findings;
-  }
+  ( {
+      Dataflow_tainting.filepath = file;
+      rule_id = fst rule.R.id;
+      is_source = (fun x -> any_in_ranges x sources_ranges);
+      is_sanitizer = (fun x -> any_in_ranges x sanitizers_ranges);
+      is_sink = (fun x -> any_in_ranges x sinks_ranges);
+      handle_findings;
+    },
+    {
+      sources = sources_ranges;
+      sanitizers = sanitizers_ranges;
+      sinks = sinks_ranges;
+    } )
 
 let pm_of_finding file finding =
   let open Dataflow_tainting in
   match finding with
-  | SrcToSink (_src, sink, src_sink_bindings) -> (
+  | SrcToSink { source = _; trace = _; sink; merged_env } -> (
       match sink with
-      | PM sink_pm -> Some { sink_pm with env = src_sink_bindings }
-      | Call (fun_call, _) -> (
+      | PM sink_pm -> Some { sink_pm with env = merged_env }
+      | Call (fun_call, _trace, _) -> (
           let code = G.E fun_call in
           match V.range_of_any_opt code with
           | None ->
@@ -197,7 +206,7 @@ let pm_of_finding file finding =
                   file;
                   range_loc;
                   tokens;
-                  env = src_sink_bindings;
+                  env = merged_env;
                 }))
   | SrcToReturn _
   (* TODO: We might want to report functions that let input taint
@@ -222,7 +231,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   let (ast, errors), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
-  let taint_config =
+  let taint_config, debug_taint =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
@@ -295,9 +304,10 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
                   match_hook str m.env m.tokens))
     |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
-  {
-    RP.matches;
-    errors;
-    skipped_targets = [];
-    profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
-  }
+  ( {
+      RP.matches;
+      errors;
+      skipped_targets = [];
+      profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
+    },
+    debug_taint )

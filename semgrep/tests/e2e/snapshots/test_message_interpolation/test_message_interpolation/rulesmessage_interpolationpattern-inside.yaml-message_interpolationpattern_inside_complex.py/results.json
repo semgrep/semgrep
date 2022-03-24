@@ -15,6 +15,7 @@
         "offset": 44
       },
       "extra": {
+        "fingerprint": "10f4f27b7406da7d14a53ae3b843d214",
         "is_ignored": false,
         "lines": "    def B():\n        print(\"hey\")",
         "message": "method B is in A",
@@ -72,6 +73,7 @@
         "offset": 79
       },
       "extra": {
+        "fingerprint": "b63c624439ed0aa55765d94ecf0d23c4",
         "is_ignored": false,
         "lines": "    def C():\n        print(\"yeh\")",
         "message": "method C is in A",
@@ -129,6 +131,7 @@
         "offset": 122
       },
       "extra": {
+        "fingerprint": "c1ee7ef310f6056ca320d41d32c06213",
         "is_ignored": false,
         "lines": "    def C():\n        print(\"\")",
         "message": "method C is in B",

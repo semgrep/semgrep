@@ -14,7 +14,6 @@
  *)
 open Common
 open OCaml (* map_of_string, ... *)
-
 open AST_generic
 module G = AST_generic
 module B = AST_generic_v1_t
@@ -41,7 +40,6 @@ exception NoInterpolatedElement
 (* Helpers *)
 (*****************************************************************************)
 let map_id x = x
-
 let map_of_ref f x = f !x
 
 let error any =
@@ -75,7 +73,6 @@ let map_bracket of_a (v1, v2, v3) =
   (v1, v2, v3)
 
 let map_ident (v : ident) : B.ident = map_wrap map_of_string v
-
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
 let rec _map_qualifier = function
@@ -732,7 +729,6 @@ and map_stmt x : B.stmt =
   { B.s = skind; s_id = x.s_id }
 
 and map_condition _x = failwith "TODO"
-
 and map_other_stmt_with_stmt_operator _x = "TODO"
 
 and map_label_ident = function
@@ -989,7 +985,6 @@ and map_function_definition
   { B.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
 
 and map_function_body x = map_stmt (H.funcbody_to_stmt x)
-
 and map_parameters v = map_of_list map_parameter v
 
 and map_parameter = function
@@ -1157,11 +1152,11 @@ and map_alias (v1, v2) =
   (v1, v2)
 
 and map_item x = map_stmt x
-
 and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Xmls _
   | ForOrIfComp _
   | Tp _
   | Ta _ ->

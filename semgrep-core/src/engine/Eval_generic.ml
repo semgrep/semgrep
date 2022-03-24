@@ -59,7 +59,6 @@ type env = { mvars : (MV.mvar, value) Hashtbl.t; constant_propagation : bool }
 type code = AST_generic.expr
 
 exception NotHandled of code
-
 exception NotInEnv of Metavariable.mvar
 
 (*****************************************************************************)
@@ -88,8 +87,8 @@ let parse_json file =
        ("metavars", J.Object xs);
       ] ->
           let lang =
-            try Hashtbl.find Lang.lang_map lang
-            with Not_found -> failwith (spf "unsupported language %s" lang)
+            try Hashtbl.find Lang.lang_map lang with
+            | Not_found -> failwith (spf "unsupported language %s" lang)
           in
           (* less: could also use Parse_pattern *)
           let code =
@@ -148,10 +147,10 @@ let rec eval env code =
       value_of_lit ~code lit
   | G.N (G.Id ((s, _t), _idinfo))
     when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
-      try Hashtbl.find env.mvars s
-      with Not_found ->
-        logger#trace "could not find a value for %s in env" s;
-        raise (NotInEnv s))
+      try Hashtbl.find env.mvars s with
+      | Not_found ->
+          logger#trace "could not find a value for %s in env" s;
+          raise (NotInEnv s))
   (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
@@ -311,7 +310,7 @@ let text_of_binding mvar mval =
       (* Note that `text` may be produced by constant folding, in which
        * case we will not have range info. *)
       Some text
-  | ___else___ -> (
+  | _ -> (
       let any = MV.mvalue_to_any mval in
       match Visitor_AST.range_of_any_opt any with
       | None ->
@@ -346,9 +345,10 @@ let test_eval file =
     let env, code = parse_json file in
     let res = eval env code in
     print_result (Some res)
-  with NotHandled e ->
-    pr2 (G.show_expr e);
-    raise (NotHandled e)
+  with
+  | NotHandled e ->
+      pr2 (G.show_expr e);
+      raise (NotHandled e)
 
 (* We need to swallow most exns in eval_bool(). This is because the
  * metavariable-comparison code in [e] may be valid
