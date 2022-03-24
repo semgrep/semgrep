@@ -36,7 +36,7 @@ RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
 
 
 class ScanHandler:
-    def __init__(self, app_url: str, token: str) -> None:
+    def __init__(self, app_url: str, token: str, dryrun: bool) -> None:
         self.app_url = app_url
         session = requests.Session()
         session.mount("https://", RETRYING_ADAPTER)
@@ -48,6 +48,8 @@ class ScanHandler:
         self.scan_id = None
         self.ignore_patterns: List[str] = []
         self._autofix = False
+        self.dryrun = dryrun
+        self._dry_run_rules_url: str = ""
 
     @property
     def autofix(self) -> bool:
@@ -63,7 +65,7 @@ class ScanHandler:
         Returns None if api_token is invalid/doesn't have associated deployment
         """
         r = self.session.get(
-            f"{self.app_url}/api/agent/deployments",
+            f"{self.app_url}/api/agent/deployments/current",
             timeout=10,
         )
         if r.ok:
@@ -80,6 +82,11 @@ class ScanHandler:
 
         returns ignored list
         """
+        if self.dryrun:
+            repo_name = meta["repository"]
+            self._dry_run_rules_url = f"{self.app_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
+            return
+
         response = self.session.post(
             f"{self.app_url}/api/agent/deployments/{self.deployment_id}/scans",
             json={"meta": meta},
@@ -107,6 +114,8 @@ class ScanHandler:
 
     @property
     def scan_rules_url(self) -> str:
+        if self.dryrun:
+            return self._dry_run_rules_url
         return f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
 
     def report_failure(self, exit_code: int) -> None:
@@ -114,6 +123,10 @@ class ScanHandler:
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
         """
+        if self.dryrun:
+            logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
+            return
+
         response = self.session.post(
             f"{self.app_url}/api/agent/scans/{self.scan_id}/error",
             json={
@@ -182,6 +195,18 @@ class ScanHandler:
                 "total_time": total_time,
             },
         }
+
+        if self.dryrun:
+            logger.info(
+                f"Would have sent findings blob: {json.dumps(findings, indent=4)}"
+            )
+            logger.info(
+                f"Would have sent ignores blob: {json.dumps(ignores, indent=4)}"
+            )
+            logger.info(
+                f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
+            )
+            return
 
         logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
         logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")

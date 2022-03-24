@@ -164,6 +164,14 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_RULES",
 )
+@click.option(
+    "--dryrun",
+    is_flag=True,
+    help="""
+        When set, will not start a scan on semgrep.dev and will not report findings.
+        Instead will print out json objects it would have sent.
+    """,
+)
 def ci(
     ctx: click.Context,
     *,
@@ -229,7 +237,7 @@ def ci(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
-        scan_handler = ScanHandler(app_url, token)
+        scan_handler = ScanHandler(app_url, token, dryrun)
 
     output_format = OutputFormat.TEXT
     if json:
