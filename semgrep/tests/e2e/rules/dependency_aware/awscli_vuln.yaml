@@ -4,7 +4,7 @@ rules:
       - pattern-either:
           - pattern: boto3.resource('s3', ...)
           - pattern: boto3.client('s3', ...)
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: pypi
         package: awscli
         version: "== 1.11.82"
@@ -12,7 +12,7 @@ rules:
     languages: [python]
     severity: WARNING
   - id: unconditional-depends-on-only
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: pypi
         package: awscli
         version: "== 1.11.82"
@@ -21,7 +21,7 @@ rules:
     severity: WARNING
   - id: vulnerable-awscli-apr-2017-wrong-pattern
     pattern: neverexists.resource('s3', ...)
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: pypi
         package: awscli
         version: "== 1.11.82"
@@ -32,7 +32,7 @@ rules:
     pattern-either:
       - pattern: boto3.resource('s3', ...)
       - pattern: boto3.client('s3', ...)
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: pypi
         package: awscli
         version: "== 1.11.83"
@@ -43,7 +43,7 @@ rules:
     pattern-either:
       - pattern: boto3.resource('s3', ...)
       - pattern: boto3.client('s3', ...)
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: pypi
         package: awscli
         version: ">= 0.0.1"
@@ -54,7 +54,7 @@ rules:
     pattern-either:
       - pattern: boto3.resource('s3', ...)
       - pattern: boto3.client('s3', ...)
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: pypi
         package: awscli
         version: "<= 1.11.82"

@@ -8,7 +8,7 @@ rules:
         import org.apache.logging.log4j.$PKG;
         ...
     - pattern-not: (Logger $LOGGER).$METHOD("...");
-  project-depends-on:
+  r2c-internal-project-depends-on:
       namespace: maven
       package: log4j-core
       version: "<= 0.0.2" # Changed to a fake version to silence dependabot lol

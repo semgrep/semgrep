@@ -1,7 +1,7 @@
 rules:
   - id: ruby-sca
     pattern: bad()
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: gem
         package: parallel
         version: "== 1.21.0"

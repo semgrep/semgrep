@@ -1,7 +1,7 @@
 rules:
   - id: GHSA-p6mc-m468-83gw
     pattern: $LODASH.zipObjectDeep(...)
-    project-depends-on:
+    r2c-internal-project-depends-on:
         namespace: npm
         package: lodash
         version: "<= 4.17.19"
