@@ -1,4 +1,5 @@
 import binascii
+import datetime
 import itertools
 import textwrap
 from collections import Counter
@@ -260,9 +261,10 @@ class RuleMatch:
 
     def to_app_finding_format(self, commit_date: str) -> Dict[str, Any]:
         """
-        commit_date here for legacy reasons. It is the commit date
-        of the head commit in epoch time
+        commit_date here for legacy reasons.
+        commit date of the head commit in epoch time
         """
+        commit_date_app_format = str(datetime.datetime.fromtimestamp(int(commit_date)))
 
         # Follow semgrep.dev severity conventions
         if self.severity.value == RuleSeverity.ERROR.value:
@@ -282,7 +284,7 @@ class RuleMatch:
             "message": self.message,
             "severity": app_severity,
             "index": self.index,
-            "commit_date": commit_date,
+            "commit_date": commit_date_app_format,
             "syntactic_id": self.syntactic_id,
             "metadata": self.metadata,
             "is_blocking": self.is_blocking,

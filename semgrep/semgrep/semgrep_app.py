@@ -1,4 +1,5 @@
 # Handle communication of findings / errors to semgrep.app
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,9 @@ from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.util import partition
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 # 4, 8, 16 seconds
@@ -178,6 +182,10 @@ class ScanHandler:
                 "total_time": total_time,
             },
         }
+
+        logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
+        logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
+        logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = self.session.post(
             f"{SEMGREP_URL}/api/agent/scan/{self.scan_id}/findings",
