@@ -330,5 +330,7 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
             }
         )
         result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
-
-        snapshot.assert_match(result.output, "output.txt")
+        sanitized_output = re.sub(
+            r"python 3\.\d+\.\d+", "python <sanitized_version>", result.output
+        )
+        snapshot.assert_match(sanitized_output, "output.txt")
