@@ -100,6 +100,11 @@ jobs:
           SEMGREP_SKIP_BIN: true
         run: |
           cd semgrep
+
+          # tests should simulate CI environment iff they need one
+          unset CI
+          unset "${!GITHUB_@}"
+
           # See tox.ini for pytest command being run
           tox -e py  # Run tox using the version of Python in `PATH`
 

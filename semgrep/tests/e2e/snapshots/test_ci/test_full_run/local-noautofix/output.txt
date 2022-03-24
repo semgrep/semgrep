@@ -5,7 +5,6 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ('.semgrep/', '.semgrep_logs/')
-Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
 
 Some files were skipped.

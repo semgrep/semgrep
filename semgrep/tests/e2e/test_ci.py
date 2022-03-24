@@ -2,6 +2,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
@@ -223,6 +224,10 @@ def ci_mocks(base_commit, autofix):
         },
     ],
     ids=["local", "github-push", "github-pr", "gitlab", "gitlab-push"],
+)
+@pytest.mark.skipif(
+    sys.version_info < (3, 8),
+    reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
 def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
