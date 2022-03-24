@@ -4,6 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.86.1](https://github.com/returntocorp/semgrep/releases/tag/v0.86.1) - 2022-03-24
+
+### Fixed
+
+- The fingerprint of findings ignored with `# nosemgrep` is supposed to be the same
+  as if the ignore comment wasn't there.
+  This has previously only worked for single-line findings, including in `semgrep-agent`.
+  Now the fingerprint is consistent as expected for multiline findings as well.
+
 ## [0.86.0](https://github.com/returntocorp/semgrep/releases/tag/v0.86.0) - 2022-03-24
 
 ### Added
