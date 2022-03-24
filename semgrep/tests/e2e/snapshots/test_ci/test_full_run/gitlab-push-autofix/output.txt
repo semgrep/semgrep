@@ -1,5 +1,5 @@
 Scan environment:
-  versions    - semgrep 0.85.0 on python <sanitized_version>
+  versions    - semgrep <sanitized semgrep_version> on python <sanitized_version>
   environment - running in environment gitlab-ci, triggering event is push
   semgrep.dev - authenticated as org_name
 

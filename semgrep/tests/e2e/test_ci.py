@@ -10,6 +10,7 @@ import pytest
 from click.testing import CliRunner
 from requests import Session
 
+from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.commands.login import Authentication
 from semgrep.config_resolver import ConfigPath
@@ -277,6 +278,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
                 result.output.replace(head_commit, "<sanitized head_commit>")
                 .replace(head_commit[:7], "<sanitized head_commit>")
                 .replace(base_commit, "<sanitized base_commit>")
+                .replace(__VERSION__, "<sanitized semgrep_version>")
             )
             sanitized_output = re.sub(
                 r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
@@ -330,7 +332,10 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
             }
         )
         result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
+        sanitized_output = result.output.replace(
+            __VERSION__, "<sanitized semgrep_version>"
+        )
         sanitized_output = re.sub(
-            r"python 3\.\d+\.\d+", "python <sanitized_version>", result.output
+            r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
         )
         snapshot.assert_match(sanitized_output, "output.txt")
