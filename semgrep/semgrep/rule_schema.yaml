@@ -89,8 +89,8 @@ definitions:
                   - required:
                       - pattern-either
   project-depends-on-content:
-    type: array
-    title: "A dependency that the project contains in a lock file"
+    type: object
+    title: "One or more dependencies that the project contains in a lock file"
     properties:
       namespace:
         type: string
@@ -98,11 +98,38 @@ definitions:
         type: string
       version:
         type: string
-    additionalProperties: false
-    required:
-      - namespace
-      - package
-      - version
+      depends-on-either:
+        type: array
+        properties:
+          namespace:
+            type: string
+          package:
+            type: string
+          version:
+            type: string
+        additionalProperties: false
+        required:
+          - namespace
+          - package
+          - version
+    oneOf:
+      - required:
+          - namespace
+          - package
+          - version
+        not:
+          required:
+            - depends-on-either
+      - required:
+          - depends-on-either
+        not:
+          anyOf:
+            - required:
+                - namespace
+            - required:
+                - package
+            - required:
+                - version
   join-content:
     type: object
     title: "Join one or more rules together based on metavariable contents"

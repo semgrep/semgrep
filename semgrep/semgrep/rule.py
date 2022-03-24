@@ -148,7 +148,15 @@ class Rule:
 
     @property
     def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
-        return self._raw.get("project-depends-on", None)
+        if "project-depends-on" in self._raw:
+            depends_on = self._raw["project-depends-on"]
+            if "depends-on-either" in depends_on:
+                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                return dependencies
+            else:
+                return [depends_on]
+        else:
+            return None
 
     @property
     def languages(self) -> List[Language]:

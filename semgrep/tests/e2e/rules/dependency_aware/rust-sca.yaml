@@ -2,7 +2,7 @@ rules:
   - id: rust-sca
     pattern: bad()
     project-depends-on:
-      - namespace: cargo
+        namespace: cargo
         package: adler
         version: "<= 1.0.3"
     message: oh no

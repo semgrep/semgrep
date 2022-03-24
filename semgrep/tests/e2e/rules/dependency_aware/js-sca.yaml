@@ -2,7 +2,7 @@ rules:
   - id: js-sca
     pattern: bad()
     project-depends-on:
-      - namespace: npm
+        namespace: npm
         package: "@types/jquery"
         version: "== 3.3.22"
     message: oh no

@@ -50,7 +50,7 @@ rules:
         import { $ANSI } from "ansi-html";
         ...
   project-depends-on:
-    - namespace: npm
+      namespace: npm
       package: ansi-html
       version: < 0.0.8
   severity: ERROR

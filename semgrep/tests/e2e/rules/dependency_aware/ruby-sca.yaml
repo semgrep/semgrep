@@ -2,7 +2,7 @@ rules:
   - id: ruby-sca
     pattern: bad()
     project-depends-on:
-      - namespace: gem
+        namespace: gem
         package: parallel
         version: "== 1.21.0"
     message: oh no

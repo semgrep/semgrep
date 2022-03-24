@@ -2,7 +2,7 @@ rules:
   - id: go-sca
     pattern: bad()
     project-depends-on:
-      - namespace: gomod
+        namespace: gomod
         package: github.com/cheekybits/genny
         version: "== 1.0.0"
     message: oh no

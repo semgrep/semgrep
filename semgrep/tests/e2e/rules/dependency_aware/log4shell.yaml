@@ -9,7 +9,7 @@ rules:
         ...
     - pattern-not: (Logger $LOGGER).$METHOD("...");
   project-depends-on:
-    - namespace: maven
+      namespace: maven
       package: log4j-core
       version: "<= 0.0.2" # Changed to a fake version to silence dependabot lol
   message: log4j $LOGGER.$METHOD tainted argument
