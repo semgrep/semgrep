@@ -307,7 +307,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
-          python-version: 3.9.10
+          python-version: 3.9.11
       - name: Brew update
         run: brew update
       - name: Install brew pipgrip
