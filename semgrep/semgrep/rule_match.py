@@ -23,29 +23,30 @@ from attrs import evolve
 from attrs import field
 from attrs import frozen
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.types import JsonObject
 
+# from cryptography.hazmat.primitives import hashes
+# from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 if TYPE_CHECKING:
     from semgrep.rule import Rule
 
 
-ENCRYPTION_SALT = base64.b64decode(b"GPM0QpnVC+nIqF70swdO5g==")
-KEY_DERIVER = PBKDF2HMAC(
-    algorithm=hashes.SHA256(),
-    length=32,
-    salt=ENCRYPTION_SALT,
-    iterations=390000,
-)
+# ENCRYPTION_SALT = base64.b64decode(b"GPM0QpnVC+nIqF70swdO5g==")
+# KEY_DERIVER = PBKDF2HMAC(
+#     algorithm=hashes.SHA256(),
+#     length=32,
+#     salt=ENCRYPTION_SALT,
+#     iterations=390000,
+# )
 
 
 def encrypt(content: str, passphrase: str) -> str:
-    key = KEY_DERIVER.derive(passphrase.encode())
-    f = Fernet(key)
+    # key = KEY_DERIVER.derive(passphrase.encode())
+    f = Fernet(passphrase.encode())
     token = f.encrypt(content.encode())
     return base64.b64encode(token).decode()
 
