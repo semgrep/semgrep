@@ -474,11 +474,10 @@ and expr_aux env ?(void = false) e_gen =
   | G.New (tok, ty, args) ->
       (* TODO: lift up New in IL like we did in AST_generic *)
       let special = (New, tok) in
-      let any = G.Ar (G.ArgType ty) in
-      let arg = fixme_exp ToDo any (Related any) in
+      let arg = G.ArgType ty in
       let args = arguments env args in
       add_call env tok eorig ~void (fun res ->
-          CallSpecial (res, special, arg :: args))
+          CallSpecial (res, special, argument env arg :: args))
   | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
       let tok = snd spec in
       let special = call_special env spec in
@@ -713,6 +712,7 @@ and argument env arg =
   | G.ArgKwdOptional (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
+  | G.ArgType { t = TyExpr e; _ } -> expr env e
   | _ ->
       let any = G.Ar arg in
       fixme_exp ToDo any (Related any)
