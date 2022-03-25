@@ -165,6 +165,22 @@ let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
          Hashtbl.add h id m);
   h
 
+let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
+ fun r range ->
+  let m = range.origin in
+  let rule_id = m.rule_id in
+  (* adjust the rule id *)
+  let rule_id =
+    {
+      rule_id with
+      Pattern_match.id = fst r.R.id;
+      message = r.R.message (* keep pattern_str which can be useful to debug *);
+    }
+  in
+  (* Need env to be the result of evaluate_formula, which propagates metavariables *)
+  (* rather than the original metavariables for the match                          *)
+  { m with rule_id; env = range.mvars }
+
 let error_with_rule_id rule_id (error : E.error) =
   { error with rule_id = Some rule_id }
 
@@ -1054,7 +1070,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
   {
     RP.matches =
       final_ranges
-      |> List.map (RM.range_to_pattern_match_adjusted r)
+      |> List.map (range_to_pattern_match_adjusted r)
       (* dedup similar findings (we do that also in Match_patterns.ml,
        * but different mini-rules matches can now become the same match)
        *)
