@@ -16,13 +16,13 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import pymmh3
 from attrs import evolve
 from attrs import field
 from attrs import frozen
 
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
+from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.types import JsonObject
 
 if TYPE_CHECKING:
@@ -245,7 +245,7 @@ class RuleMatch:
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
         # but we need to keep consistent hashes so we cannot change this easily
-        hash_int = pymmh3.hash128(str(self.ci_unique_key))
+        hash_int = hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
