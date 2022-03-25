@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   This has previously only worked for single-line findings, including in `semgrep-agent`.
   Now the fingerprint is consistent as expected for multiline findings as well.
 
+### Changed
+
+- `--timeout-threshold` default set to 3 instead of 0
+
 ## [0.86.0](https://github.com/returntocorp/semgrep/releases/tag/v0.86.0) - 2022-03-24
 
 ### Added
