@@ -209,7 +209,7 @@ class ConfigPath:
             logger.verbose("Using token")
             headers["Authorization"] = f"Bearer {token}"
 
-        r = requests.get(config_url, stream=True, headers=headers, timeout=20)
+        r = requests.get(config_url, headers=headers, timeout=20)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             yaml_types = [
