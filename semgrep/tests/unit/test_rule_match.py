@@ -147,5 +147,5 @@ def test_rule_match_set_indexes():
         sorted_matches = list(sorted(matches))
     assert sorted_matches[0].index == 0, "1st duplicate match must be assigned index 0"
     assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"
-    assert sorted_matches[3].index == 2, "3nd duplicate match must be assigned index 2"
+    assert sorted_matches[3].index == 2, "3rd duplicate match must be assigned index 2"
     assert sorted_matches[2].index == 0, "unique match must be assigned index 0"
