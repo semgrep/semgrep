@@ -228,6 +228,10 @@ and vof_expr e =
   | Call (v1, v2) ->
       let v1 = vof_expr v1 and v2 = vof_arguments v2 in
       OCaml.VSum ("Call", [ v1; v2 ])
+  | New (v0, v1, v2) ->
+      let v0 = vof_tok v0 in
+      let v1 = vof_type_ v1 and v2 = vof_arguments v2 in
+      OCaml.VSum ("New", [ v0; v1; v2 ])
   | Assign (v1, v2, v3) ->
       let v1 = vof_expr v1 and v2 = vof_tok v2 and v3 = vof_expr v3 in
       OCaml.VSum ("Assign", [ v1; v2; v3 ])
@@ -409,7 +413,6 @@ and vof_special = function
   | Typeof -> OCaml.VSum ("Typeof", [])
   | Instanceof -> OCaml.VSum ("Instanceof", [])
   | Sizeof -> OCaml.VSum ("Sizeof", [])
-  | New -> OCaml.VSum ("New", [])
   | ConcatString v1 ->
       let v1 = vof_interpolated_kind v1 in
       OCaml.VSum ("ConcatString", [ v1 ])

@@ -1341,10 +1341,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
         | Some x -> Some (map_call_arguments env x)
         | None -> None
       in
-      let special = IdSpecial (New, tnew) |> G.e in
       match argsopt with
-      | None -> Call (special, fb [ ArgType t ]) |> G.e
-      | Some (lp, es, rp) -> Call (special, (lp, ArgType t :: es, rp)) |> G.e)
+      | None -> New (tnew, t, fb []) |> G.e
+      | Some (lp, es, rp) -> New (tnew, t, (lp, es, rp)) |> G.e)
 
 and map_return_parameters (env : env)
     ((v1, v2, v3, v4, v5) : CST.return_parameters) : type_ =

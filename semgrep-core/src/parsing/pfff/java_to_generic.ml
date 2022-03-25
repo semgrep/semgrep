@@ -265,8 +265,7 @@ and expr e =
       and v2 = list argument v2
       and v3 = option (bracket decls) v3 in
       match v3 with
-      | None ->
-          G.Call (G.IdSpecial (G.New, v0) |> G.e, (lp, G.ArgType v1 :: v2, rp))
+      | None -> G.New (v0, v1, (lp, v2, rp))
       | Some decls ->
           let anonclass =
             G.AnonClass
@@ -280,8 +279,7 @@ and expr e =
               }
             |> G.e
           in
-          G.Call
-            (G.IdSpecial (G.New, v0) |> G.e, (lp, G.Arg anonclass :: v2, rp)))
+          G.Call (anonclass, (lp, v2, rp)))
   | NewArray (v0, v1, v2, v3, v4) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -295,10 +293,8 @@ and expr e =
       in
       let t = mk_array (v3 + List.length v2) in
       match v4 with
-      | None -> G.Call (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: v2))
-      | Some e ->
-          G.Call
-            (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
+      | None -> G.New (v0, t, fb v2)
+      | Some e -> G.New (v0, t, fb (G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, tok2, v2, v3, v4) ->
       let v0 = expr v0

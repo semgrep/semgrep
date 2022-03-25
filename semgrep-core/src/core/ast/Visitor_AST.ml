@@ -326,6 +326,10 @@ let (mk_visitor :
       | Call (v1, v2) ->
           let v1 = v_expr v1 and v2 = v_arguments v2 in
           ()
+      | New (v0, v1, v2) ->
+          v_tok v0;
+          let v1 = v_type_ v1 and v2 = v_arguments v2 in
+          ()
       | Assign (v1, v2, v3) ->
           let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_expr v3 in
           ()
@@ -490,7 +494,6 @@ let (mk_visitor :
     | Typeof -> ()
     | Instanceof -> ()
     | Sizeof -> ()
-    | New -> ()
     | Spread -> ()
     | HashSplat -> ()
     | NextArrayIndex -> ()

@@ -193,7 +193,7 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 let generalize_call env e =
   match e.e with
-  | Call ({ e = IdSpecial (New, _); _ }, _) -> []
+  | New (_, _, _) -> []
   | Call (e, (lp, es, rp)) -> (
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =

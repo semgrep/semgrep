@@ -627,6 +627,7 @@ and expr env e =
   | N (IdQualified qualified_info) -> id_qualified env qualified_info
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
+  | New (_, t, es) -> new_call env (t, es)
   | L x -> literal env x
   | Container (Tuple, (_, es, _)) -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, (_, e2, _)) ->
@@ -664,10 +665,13 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
 
 and special env = function
   | This, _ -> "this"
-  | New, _ -> "new"
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
   | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))
+
+and new_call env (t, (_, es, _)) =
+  let s1 = print_type t in
+  F.sprintf "new %s(%s)" s1 (arguments env es)
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
@@ -678,8 +682,6 @@ and call env (e, (_, es, _)) =
       F.sprintf "%s not in %s" (argument env e1) (argument env e2)
   | IdSpecial (Op _, _), [ x; y ] ->
       F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
-  | IdSpecial (New, _), x :: ys ->
-      F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
   | IdSpecial (IncrDecr (i_d, pre_post), _), [ x ] -> (
       let op_str =
         match i_d with
