@@ -96,6 +96,7 @@ def invoke_semgrep(
         filtered_matches_by_rule,
         _,
         _,
+        _,
         filtered_rules,
         profiler,
         profiling_data,
@@ -135,6 +136,9 @@ def run_rules(
     dependency_aware_rules = [
         r for r in rest_of_the_rules if r.project_depends_on is not None
     ]
+    dependency_only_rules, rest_of_the_rules = partition(
+        lambda rule: not rule.should_run_on_semgrep_core, rest_of_the_rules
+    )
     filtered_rules = rest_of_the_rules
 
     (
@@ -235,6 +239,7 @@ def main(
     baseline_commit: Optional[str] = None,
 ) -> Tuple[
     RuleMatchMap,
+    List[SemgrepError],
     Set[Path],
     IgnoreLog,
     List[Rule],
@@ -441,6 +446,7 @@ def main(
 
     return (
         filtered_matches_by_rule,
+        semgrep_errors,
         all_targets,
         target_manager.ignore_log,
         filtered_rules,

@@ -100,6 +100,7 @@ jobs:
           SEMGREP_SKIP_BIN: true
         run: |
           cd semgrep
+
           # See tox.ini for pytest command being run
           tox -e py  # Run tox using the version of Python in `PATH`
 
@@ -133,13 +134,16 @@ jobs:
       - name: Install semgrep
         run: |
           cd semgrep
-          export PATH=/github/home/.local/bin:$PATH
-          pip3 install pipenv==2021.5.29
+          pip install pipenv==2021.5.29
           pipenv install --dev
       - name: Test semgrep
         run: |
           cd semgrep
-          export PATH=/github/home/.local/bin:$PATH
+
+          # tests should simulate CI environment iff they need one
+          unset CI
+          unset "${!GITHUB_@}"
+
           pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -vv --tb=short --durations=0 --snapshot-update tests/
       - name: Generate cheatsheets for semgrep.dev
         run: ./scripts/generate-cheatsheet

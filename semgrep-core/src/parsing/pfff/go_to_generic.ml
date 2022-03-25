@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2021 r2c
+ * Copyright (C) 2020-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -52,7 +52,6 @@ let _fake_id tok s = (s, fake tok s)
 let unsafe_fake_id s = (s, unsafe_fake s)
 let fb = G.fake_bracket
 let mk_name s tok = G.Id ((s, tok), G.empty_id_info ())
-let ii_of_any = Lib_parsing_go.ii_of_any
 
 (* TODO? do results "parameters" can have names? *)
 let return_type_of_results results =
@@ -114,6 +113,11 @@ let top_func () =
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
         G.TyN name
+    | TGeneric (v1, v2) ->
+        let id = ident v1 in
+        let targs = type_arguments v2 in
+        let name = H.name_of_id id in
+        G.TyApply (G.TyN name |> G.t, targs)
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
         G.TyPointer (t, v1)
@@ -144,6 +148,10 @@ let top_func () =
     | TInterface (t, v1) ->
         let v1 = bracket (list interface_field) v1 in
         G.TyRecordAnon ((G.Interface, t), v1)
+  and type_arguments v = bracket (list type_argument) v
+  and type_argument v =
+    let t = type_ v in
+    G.TA t
   and chan_dir = function
     | TSend -> G.TyN (G.Id (unsafe_fake_id "send", G.empty_id_info ())) |> G.t
     | TRecv -> G.TyN (G.Id (unsafe_fake_id "recv", G.empty_id_info ())) |> G.t
@@ -209,6 +217,12 @@ let top_func () =
         let st = G.exprstmt e in
         G.F st
     | FieldEllipsis2 t -> G.fieldEllipsis t
+    | Constraints xs -> (
+        match xs with
+        | [] -> raise Impossible
+        | (_tilde_opt, id) :: _xs ->
+            let st = G.OtherStmt (G.OS_Todo, [ G.I id ]) |> G.s in
+            G.F st)
   and expr_or_type v = either expr type_ v
   and expr e =
     (match e with
@@ -295,9 +309,9 @@ let top_func () =
         let _v1 = expr v1 and v2 = tok v2 in
         error v2 "TypeSwitchExpr should be handled in Switch statement"
     | ParenType v1 ->
-        let _v1 = type_ v1 in
+        let v1 = type_ v1 in
         error
-          (ii_of_any (T v1) |> List.hd)
+          (Visitor_AST.ii_of_any (G.T v1) |> List.hd)
           ("ParenType should disappear" ^ Common.dump v1))
     |> G.e
   and literal = function
@@ -543,9 +557,11 @@ let top_func () =
         let v1 = tok v1 in
         [ G.Default v1 ]
   and comm_clause v = case_clause v
-  and call_expr (v1, v2) =
-    let v1 = expr v1 and v2 = bracket arguments v2 in
-    (v1, v2)
+  and call_expr (v1, v2, v3) =
+    let e = expr v1 in
+    let _toptTODO = option type_arguments v2 in
+    let args = bracket arguments v3 in
+    (e, args)
   and decl = function
     | DConst (v1, v2, v3) ->
         let v1 = ident v1
@@ -565,16 +581,29 @@ let top_func () =
         let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in
         let ent = G.basic_entity v1 in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
-    | DTypeDef (v1, v2) ->
-        let v1 = ident v1 and v2 = type_ v2 in
-        let ent = G.basic_entity v1 in
-        G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType v2 }) |> G.s
+    | DTypeDef (v1, v2, v3) ->
+        let id = ident v1 in
+        let tparams = option type_parameters v2 |> Common.optlist_to_list in
+        let ty = type_ v3 in
+        let ent = G.basic_entity id ~tparams in
+        G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
+  and type_parameters v : G.type_parameters =
+    let _, xs, _ = bracket (list type_parameter) v in
+    xs
+  and type_parameter v : G.type_parameter =
+    let p = parameter_binding v in
+    G.OtherTypeParam (("Param", G.fake ""), [ G.Pa p ])
   and top_decl = function
-    | DFunc (t, v1, (v2, v3)) ->
-        let v1 = ident v1 and params, ret = func_type v2 and v3 = stmt v3 in
-        let ent = G.basic_entity v1 in
+    | DFunc (t, v1, v2, (v3, v4)) ->
+        let v1 = ident v1 in
+        let tparams = option type_parameters v2 |> Common.optlist_to_list in
+        let params, ret = func_type v3 in
+        let body = stmt v4 in
+        let ent = G.basic_entity v1 ~tparams in
         G.DefStmt
-          (ent, G.FuncDef (mk_func_def (G.Function, t) params ret (G.FBStmt v3)))
+          ( ent,
+            G.FuncDef (mk_func_def (G.Function, t) params ret (G.FBStmt body))
+          )
         |> G.s
     | DMethod (t, v1, v2, (v3, v4)) ->
         let v1 = ident v1

@@ -14,7 +14,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JSON output now includes a fingerprint of each finding.
   This fingerprint remains consistent when matching code is just moved around
   or reindented.
-- HTML: you can now use metavariable ellipsis (#4841)
+- Go: use latest tree-sitter-go with support for Go 1.18 generics (#4823)
+- Terraform: basic support for constant propagation of locals (#1147)
+  and variables (#4816)
+- HTML: you can now use metavariable ellipsis inside <script> (#4841)
   (e.g., `<script>$...JS</script>`)
 
 ### Changed
@@ -41,6 +44,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   constant will also be considered constant (#4301)
 - Constant propagation now recognizes operators `++` and `--` as side-effectful
   (#4667)
+- Taint mode now propagates metavariables that are bound by a `pattern-inside`.
+  In particular, these metavariables are now available to the rule message. (#4464)
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 

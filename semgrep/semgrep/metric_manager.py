@@ -78,6 +78,7 @@ class _MetricManager:
                 "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
             )
         self._send_metrics = metrics_state or legacy_state or MetricsState.AUTO
+        self._using_server = False
 
     def get_is_using_server(self) -> bool:
         return self._using_server

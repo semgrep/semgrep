@@ -279,7 +279,7 @@ class OutputHandler:
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
-        self.rule_matches += [
+        self.rule_matches = [
             match
             for matches_of_one_rule in rule_matches_by_rule.values()
             for match in matches_of_one_rule
