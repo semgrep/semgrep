@@ -294,6 +294,8 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             meta_json = post_mock.mock_calls[0].kwargs["json"]
             assert meta_json["meta"]["commit"] == head_commit
             meta_json["meta"]["commit"] = "sanitized"
+            assert meta_json["meta"]["semgrep_version"] == __VERSION__
+            meta_json["meta"]["semgrep_version"] = "<sanitized version>"
 
             if env.get("GITLAB_CI"):
                 # If in a merge pipeline, base_sha is defined, otherwise is None
