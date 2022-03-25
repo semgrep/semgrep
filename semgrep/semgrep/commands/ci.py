@@ -129,6 +129,10 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         yield
 
 
+def url(string: str) -> str:
+    return string.rstrip("/")
+
+
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @scan_options
@@ -144,7 +148,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     default="https://semgrep.dev",
     # This env var is separate from SEMGREP_URL so you can override registry & scan API endpoints separately
     envvar="SEMGREP_APP_URL",
-    type=str,
+    type=url,
     hidden=True,
 )
 @click.option(
@@ -215,6 +219,7 @@ def ci(
     vim: bool,
 ) -> None:
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
+
     metric_manager.configure(metrics, metrics_legacy)
     scan_handler = None
 
