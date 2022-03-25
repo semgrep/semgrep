@@ -440,9 +440,8 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
   | ExprStmt
       ( {
           e =
-            New
-              ( _,
-                { t = TyN (Id (("locals", _), _)); _ },
+            Call
+              ( { e = N (Id (("locals", _), _)); _ },
                 (_, [ Arg { e = Record (_, xs, _); _ } ], _) );
           _;
         },
@@ -467,9 +466,8 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
   | ExprStmt
       ( {
           e =
-            New
-              ( _,
-                { t = TyN (Id (("variable", _), _)); _ },
+            Call
+              ( { e = N (Id (("variable", _), _)); _ },
                 ( _,
                   [
                     Arg { e = L (String id); _ };

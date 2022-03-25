@@ -589,8 +589,19 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   let body = Record (lb, flds, rb) |> G.e in
   let es = args_id @ [ body ] in
   let args = es |> List.map G.arg in
-  (* TODO? convert in something else? *)
-  G.New (snd id, TyN n |> G.t, fake_bracket args) |> G.e
+  (* coupling: if you modify this code, you should adjust
+   * Constant_propagation.terraform_stmt_to_vardefs.
+   * bugfix: I used to transform that in a New (..., TyN n, ...) but
+   * lots of terraform rules are using some
+   *   pattern-inside: resource ... {}
+   *   pattern: resource
+   * and the second pattern is parsed as an expression which would not
+   * match the TyN.
+   * TODO? convert in something else?
+   * TODO: should we use something else than Call since it's already used
+   * for expressions in map_expr_term() above?
+   *)
+  G.Call (N n |> G.e, fake_bracket args) |> G.e
 
 (* We convert to a field, to be similar to map_object_, so some
  * patterns like 'a=1 ... b=2' can match block body as well as objects.
