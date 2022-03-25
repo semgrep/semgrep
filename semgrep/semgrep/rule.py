@@ -22,7 +22,6 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
-from semgrep.util import flatten
 
 
 class Rule:
@@ -155,21 +154,16 @@ class Rule:
         return self._mode
 
     @property
-    def project_depends_on(self) -> Optional[List[List[Dict[str, str]]]]:
-        """
-        If the rule contains `project-depends-on` keys under patterns, return the values of those keys
-        Otherwise return None
-        """
-        # TODO: in initial implementation, this key is allowed only as a top-level key under `patterns`
-        PROJECT_DEPENDS_ON_KEY_NAME = "r2c-internal-project-depends-on"
-        matched_keys = [d for d in self._raw.get("patterns", [])]
-        depends_entries = [
-            list(_.values()) for _ in matched_keys if PROJECT_DEPENDS_ON_KEY_NAME in _
-        ]
-        flattened = flatten(depends_entries)
-        if len(flattened) == 0:
+    def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
+        if "r2c-internal-project-depends-on" in self._raw:
+            depends_on = self._raw["r2c-internal-project-depends-on"]
+            if "depends-on-either" in depends_on:
+                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                return dependencies
+            else:
+                return [depends_on]
+        else:
             return None
-        return flattened
 
     @property
     def languages(self) -> List[Language]:
@@ -220,17 +214,13 @@ class Rule:
     def should_run_on_semgrep_core(self) -> bool:
         """
         Used to detect whether the rule had patterns that need to run on the core
-        (beyond Python-handled patterns, like `pattern-depends-on`).
+        (beyond Python-handled patterns, like `project-depends-on`).
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
 
         def has_runnable_rule(d: Dict[str, Any]) -> bool:
             for k in d:
-                # `pattern-inside` is valid without an accompanying `pattern`
-                if k in RuleValidation.PATTERN_KEYS or k == "pattern-inside":
-                    children = d.get(k)
-                    if children is not None and isinstance(children, list):
-                        return any(has_runnable_rule(_) for _ in children)
+                if k in RuleValidation.PATTERN_KEYS:
                     return True
             return False
 

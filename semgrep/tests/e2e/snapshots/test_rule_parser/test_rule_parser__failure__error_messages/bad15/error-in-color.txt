@@ -9,6 +9,7 @@
 [94m[22m[24m8  | [0m    patterns:
 [94m[22m[24m9  | [0m      - pattern: $X != $X
 
-[31m[22m[24mOne of these properties may be invalid: 'pattern', 'patterns'[0m
+[31m[22m[24mOne of these properties may be invalid: 'pattern', 'patterns'
+One of these properties is missing: 'r2c-internal-project-depends-on'[0m
 [0m
 [31m[22m[24mRan with --strict and got 1 error while loading configs[0m
