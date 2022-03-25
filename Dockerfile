@@ -82,8 +82,8 @@ COPY --from=build-semgrep-core \
 COPY semgrep /semgrep
 
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base rust && \
-     apk add --no-cache --virtual=.run-deps git openssh && \
+RUN apk add --no-cache --virtual=.build-deps build-base rust libffi-dev openssl-dev && \
+     apk add --no-cache --virtual=.run-deps git openssh libffi openssl && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
      apk del .build-deps && \
