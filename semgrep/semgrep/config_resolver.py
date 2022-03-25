@@ -16,6 +16,7 @@ from typing import Tuple
 
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
+from urllib3.util.retry import Retry
 
 from semgrep.commands.login import Authentication
 from semgrep.constants import CLI_RULE_ID
@@ -158,7 +159,6 @@ class ConfigPath:
     def _download_config(self) -> Mapping[str, YamlTree]:
         config_url = self._config_path
         logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
-
         try:
             config = parse_config_string(
                 "remote-url",
@@ -201,15 +201,30 @@ class ConfigPath:
 
         config_url = self._config_path
 
-        headers = {"User-Agent": SEMGREP_USER_AGENT, **(self._extra_headers or {})}
+        session = requests.Session()
+        retries = requests.adapters.HTTPAdapter(
+            max_retries=Retry(
+                total=3,
+                backoff_factor=4,
+                allowed_methods=["GET", "POST"],
+                status_forcelist=(413, 429, 500, 502, 503),
+            ),
+        )
+        session.mount("https://", retries)
+        headers = {
+            "User-Agent": SEMGREP_USER_AGENT,
+            **(self._extra_headers or {}),
+        }
+        for k, v in headers.items():
+            session.headers[k] = v
 
         token = Authentication.get_token()
         # For now c/p endpoint fails with auth so only add it for policy
         if token and "api/agent/" in config_url:
             logger.verbose("Using token")
-            headers["Authorization"] = f"Bearer {token}"
+            session.headers["Authorization"] = f"Bearer {token}"
 
-        r = requests.get(config_url, headers=headers, timeout=20)
+        r = session.get(config_url, timeout=30)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             yaml_types = [
