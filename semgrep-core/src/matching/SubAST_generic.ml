@@ -91,6 +91,17 @@ let subexprs_of_stmt_kind = function
 
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
+let subexprs_of_args args =
+  args |> unbracket
+  |> Common.map_filter (function
+       | Arg e
+       | ArgKwd (_, e)
+       | ArgKwdOptional (_, e) ->
+           Some e
+       | ArgType _
+       | OtherArg _ ->
+           None)
+
 (* used for deep expression matching *)
 let subexprs_of_expr with_symbolic_propagation e =
   match e.e with
@@ -127,18 +138,10 @@ let subexprs_of_expr with_symbolic_propagation e =
          |> List.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
+  | New (_, _t, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
-      e
-      :: (args |> unbracket
-         |> Common.map_filter (function
-              | Arg e
-              | ArgKwd (_, e)
-              | ArgKwdOptional (_, e) ->
-                  Some e
-              | ArgType _
-              | OtherArg _ ->
-                  None))
+      e :: subexprs_of_args args
   | SliceAccess (e1, e2) ->
       e1
       :: (e2 |> unbracket

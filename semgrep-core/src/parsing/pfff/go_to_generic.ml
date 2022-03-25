@@ -271,8 +271,7 @@ let top_func () =
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and l, v2, r = bracket (list init_for_composite_lit) v2 in
-        G.Call
-          (G.IdSpecial (G.New, fake l "new") |> G.e, (l, G.ArgType v1 :: v2, r))
+        G.New (fake l "new", v1, (l, v2, r))
     | Slice (v1, (t1, v2, t2)) ->
         let e = expr v1 in
         let v1, v2, v3 = v2 in

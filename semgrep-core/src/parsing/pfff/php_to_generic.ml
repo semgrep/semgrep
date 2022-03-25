@@ -270,16 +270,15 @@ and expr e : G.expr =
   | Class_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.FDynamic v2)
-  | New (t, v1, v2) ->
+  | New (v0, v1, v2) ->
       let v1 = expr v1 and v2 = list expr v2 in
-      G.Call (G.IdSpecial (G.New, t) |> G.e, fb (v1 :: v2 |> List.map G.arg))
-  | NewAnonClass (t, args, cdef) ->
+      let t = H.expr_to_type v1 in
+      G.New (v0, t, fb (v2 |> List.map G.arg))
+  | NewAnonClass (_tTODO, args, cdef) ->
       let _ent, cdef = class_def cdef in
       let args = list expr args in
       let anon_class = G.AnonClass cdef |> G.e in
-      G.Call
-        ( G.IdSpecial (G.New, t) |> G.e,
-          fb (anon_class :: args |> List.map G.arg) )
+      G.Call (anon_class, fb (args |> List.map G.arg))
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Call

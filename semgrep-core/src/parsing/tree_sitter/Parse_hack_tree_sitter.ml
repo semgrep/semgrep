@@ -1587,15 +1587,15 @@ and expression (env : env) (x : CST.expression) : G.expr =
       | `Call_exp x -> call_expression env x
       | `Sele_exp x -> selection_expression env x
       | `New_exp (v1, v2, v3, v4) ->
-          let v1 = (* "new" *) token env v1 in
-          let v2 = G.fake_bracket [ G.Arg (variablish env v2) ] in
+          let tnew = (* "new" *) token env v1 in
+          let ty = H2.expr_to_type (variablish env v2) in
           let _v3TODO =
             match v3 with
             | Some x -> type_arguments env x
             | None -> None
           in
           let v4 = arguments env v4 in
-          G.Call (G.Call (G.IdSpecial (New, v1) |> G.e, v2) |> G.e, v4) |> G.e
+          G.New (tnew, ty, v4) |> G.e
       | `Incl_exp (v1, v2) ->
           (* Q: See question below in Requ *)
           let v1 =

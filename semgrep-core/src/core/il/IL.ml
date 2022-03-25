@@ -245,12 +245,8 @@ and instr_kind =
 
 and call_special =
   | Eval
-  (* Note that in some languages (e.g., Python) some regular calls are
-   * actually New under the hood.
-   * The type_ argument is usually a name, but it can also be an name[] in
-   * Java/C++.
-   *)
-  | New (* TODO: lift up and add 'of type_ * argument list'? *)
+  (* TODO: lift up like in AST_generic *)
+  | New
   | Typeof
   | Instanceof
   | Sizeof
