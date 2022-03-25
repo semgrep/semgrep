@@ -32,23 +32,6 @@ let (match_result_to_range : Pattern_match.t -> t) =
   let r = Range.range_of_token_locations start_loc end_loc in
   { r; mvars; origin = m; kind = Plain }
 
-let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
- fun r range ->
-  let m = range.origin in
-  let rule_id = m.rule_id in
-  (* adjust the rule id *)
-  let rule_id =
-    {
-      rule_id with
-      Pattern_match.id = fst r.Rule.id;
-      message =
-        r.Rule.message (* keep pattern_str which can be useful to debug *);
-    }
-  in
-  (* Need env to be the result of evaluate_formula, which propagates metavariables *)
-  (* rather than the original metavariables for the match                          *)
-  { m with rule_id; env = range.mvars }
-
 (*****************************************************************************)
 (* Set operations *)
 (*****************************************************************************)
