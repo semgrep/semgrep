@@ -18,6 +18,7 @@ module H = AST_generic_helpers
 module V = Visitor_AST
 module R = Rule
 module PM = Pattern_match
+module RM = Range_with_metavars
 module RP = Report
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -71,9 +72,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 type debug_taint = {
-  sources : Range_with_metavars.ranges;
-  sanitizers : Range_with_metavars.ranges;
-  sinks : Range_with_metavars.ranges;
+  sources : RM.ranges;
+  sanitizers : RM.ranges;
+  sinks : RM.ranges;
 }
 
 (*****************************************************************************)
@@ -92,7 +93,7 @@ end)
 
 let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
 
-let any_in_ranges any rwms =
+let any_in_ranges rule any rwms =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
@@ -103,8 +104,8 @@ let any_in_ranges any rwms =
       []
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
-      List.filter (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms
-      |> List.map (fun rwm -> rwm.Range_with_metavars.origin)
+      List.filter (fun rwm -> Range.( $<=$ ) r rwm.RM.r) rwms
+      |> List.map (RM.range_to_pattern_match_adjusted rule)
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
@@ -159,13 +160,9 @@ let taint_config_of_rule default_config equivs file ast_and_errors
            if not_conflicting then
              if
                not
-                 (List.exists
-                    (fun rng' ->
-                      rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
-                    sinks_ranges
+                 (List.exists (fun rng' -> rng'.RM.r = rng.RM.r) sinks_ranges
                  || List.exists
-                      (fun rng' ->
-                        rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                      (fun rng' -> rng'.RM.r = rng.RM.r)
                       sources_ranges)
              then Some rng
              else None
@@ -174,9 +171,9 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   ( {
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
-      is_source = (fun x -> any_in_ranges x sources_ranges);
-      is_sanitizer = (fun x -> any_in_ranges x sanitizers_ranges);
-      is_sink = (fun x -> any_in_ranges x sinks_ranges);
+      is_source = (fun x -> any_in_ranges rule x sources_ranges);
+      is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
+      is_sink = (fun x -> any_in_ranges rule x sinks_ranges);
       handle_findings;
     },
     {
