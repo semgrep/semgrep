@@ -127,12 +127,6 @@
             ],
             "version": "==3.14.10"
         },
-        "pymmh3": {
-            "hashes": [
-                "sha256:c47e9e735518501a3c9b719dbd795aa5d5a1dba48d9c85bae1777ab9ae6c7c45"
-            ],
-            "version": "==0.0.5"
-        },
         "pyparsing": {
             "hashes": [
                 "sha256:18ee9022775d270c55187733956460083db60b37d0d0fb357445f3094eed3eea",
@@ -212,7 +206,7 @@
                 "sha256:dc6a613d6c74eef5a14a214d433d06291526145431c3b964f5e16529b1842bed",
                 "sha256:de9c6b8a1ba52919ae919f3ae96abb72b994dd0350226e28f3686cb4f142165c"
             ],
-            "markers": "platform_python_implementation == 'CPython' and python_version < '3.11'",
+            "markers": "python_version < '3.11' and platform_python_implementation == 'CPython'",
             "version": "==0.2.6"
         },
         "semgrep": {
@@ -224,16 +218,16 @@
                 "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
                 "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==1.16.0"
         },
         "tqdm": {
             "hashes": [
-                "sha256:1d9835ede8e394bb8c9dcbffbca02d717217113adc679236873eeaac5bc0b3cd",
-                "sha256:e643e071046f17139dea55b880dc9b33822ce21613b4a4f5ea57f202833dbc29"
+                "sha256:4230a49119a416c88cc47d0d2d32d5d90f1a282d5e497d49801950704e49863d",
+                "sha256:6461b009d6792008d0000e1b0c7ca50195ec78c0e808a3a6b668a56a3236c3a5"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-            "version": "==4.63.0"
+            "version": "==4.63.1"
         },
         "urllib3": {
             "hashes": [
@@ -409,7 +403,7 @@
                 "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
                 "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==1.16.0"
         },
         "toml": {
@@ -417,7 +411,7 @@
                 "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b",
                 "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"
             ],
-            "markers": "python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2'",
+            "markers": "python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==0.10.2"
         },
         "tomli": {
@@ -580,10 +574,10 @@
         },
         "types-datetimerange": {
             "hashes": [
-                "sha256:ea614251a825447ffcfcfcfd15578e97849f39d75e48a0194a26669515edb1af",
-                "sha256:f8cc4e6000458df419696f49fe6bec38d44dcdfd674378b653af55d10efb82aa"
+                "sha256:38a42c48d6aea8c9f53015e83da054dde2901adbb535071bbde85d47cb4299cf",
+                "sha256:4533342e42c3caa5289fd1f38ba5f8e781202e9a81b49fc51b9ed626a7dc0859"
             ],
-            "version": "==1.2.3"
+            "version": "==1.2.4"
         },
         "types-decorator": {
             "hashes": [
@@ -818,10 +812,10 @@
         },
         "types-protobuf": {
             "hashes": [
-                "sha256:00d59b1e07c808f2f03c6ca8ba4b077281585bb28148a3020cfbf7ec5fc7fb86",
-                "sha256:8f9192068983e24358d5554d6c8e84f56f790a34836cd57666e94c215b6f1134"
+                "sha256:4673a4e56495886590c36cd87f2d855299a699a598eacb2e27d82b57eb4afb05",
+                "sha256:d371d0a5b32e78c2d684329a5d4491d385e6eadcab497b37c41172ded328c5d9"
             ],
-            "version": "==3.19.14"
+            "version": "==3.19.15"
         },
         "types-pyaudio": {
             "hashes": [
