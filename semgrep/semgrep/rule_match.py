@@ -337,8 +337,8 @@ class RuleMatchSet(Set[RuleMatch]):
         The index lets us still notify when some code with findings is duplicated,
         even though we'd otherwise deduplicate the findings.
         """
-        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key])
         self._ci_key_counts[match.ci_unique_key] += 1
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         super().add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
