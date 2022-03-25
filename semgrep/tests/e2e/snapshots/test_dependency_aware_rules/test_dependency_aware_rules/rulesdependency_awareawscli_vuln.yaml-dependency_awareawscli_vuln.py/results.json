@@ -54,28 +54,6 @@
       }
     },
     {
-      "check_id": "rules.dependency_aware.unconditional-depends-on-only",
-      "end": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      },
-      "extra": {
-        "fingerprint": "aff1d5db7585f1a20463e0e73435132c",
-        "is_ignored": false,
-        "lines": "",
-        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
-        "metadata": {},
-        "severity": "WARNING"
-      },
-      "path": ".",
-      "start": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      }
-    },
-    {
       "check_id": "rules.dependency_aware.version-ge",
       "end": {
         "col": 43,
@@ -165,6 +143,28 @@
         "col": 25,
         "line": 24,
         "offset": 632
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.unconditional-depends-on-only",
+      "end": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
+      },
+      "extra": {
+        "fingerprint": "aff1d5db7585f1a20463e0e73435132c",
+        "is_ignored": false,
+        "lines": "",
+        "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": ".",
+      "start": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
       }
     }
   ]
