@@ -62,6 +62,9 @@
  *    because this is not always possible (e.g., a,b=foo()) and people may
  *    want to explicitely match tuples assignments (we do some magic in
  *    Generic_vs_generic though to let 'a=1' matches also 'a,b=1,2').
+ *  - multiple entity imports in one declaration (e.g., from foo import {a,b})
+ *    are expanded in multiple individual imports
+ *    (in the example, from foo import a; from foo import b).
  *  - multiple ways to define a function are converted all to a
  *    'function_definition' (e.g., Javascript arrows are converted in that)
  *    update: but we now have a more precise function_body type
@@ -100,7 +103,7 @@
  *  - Facebook Infer SIL (for C++, Java, Objective-C)
  *  - Dawson Engler and Fraser Brown micro-checkers for multiple languages
  *  - Comby common representation by Rijnard,
- *    see "Lightweight Multi-language syntax transformation", but does not
+ *    see "Lightweight Multi-language syntax transformation", but it does not
  *    really operate on an AST
  *  - https://tabnine.com/ which supports multiple languages, but probably
  *    again does not operate on an AST
@@ -420,12 +423,21 @@ and expr_kind =
    * how user think.
    *)
   | Constructor of name * expr list bracket
-  (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
+  (* see also New(...) for other values *)
   | N of name
   | IdSpecial of
       special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
   | Call of expr * arguments
+  (* 'type_' below is usually a TyN or TyArray (or TyExpr).
+   * Note that certain languages do not have a 'new' keyword
+   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
+   * old: this is used to be an IdSpecial used in conjunction with
+   * Call ([ArgType _; ...]) but better to be more precise here as
+   * New is really important for typing (and other program analysis).
+   * note: see also AnonClass which is also a New.
+   *)
+  | New of tok (* 'new' (can be fake) *) * type_ * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -467,8 +479,10 @@ and expr_kind =
         bracket
   (* very special value. 'fbody' is usually an FExpr. *)
   | Lambda of function_definition
-  (* also a special value. Usually an argument of a New
-   * (used in Java, Javascript, etc.) *)
+  (* also a special value; usually an argument of a New
+   * (used in Java/Javascript/Scala/...)
+   * TODO: rename as NewAnonClass and add the token for 'new'
+   *)
   | AnonClass of class_definition
   (* a.k.a ternary expression. Note that even in languages like OCaml
    * where 'if's are expressions, we still prefer to use the stmt 'If'
@@ -636,11 +650,6 @@ and special =
   | Instanceof
   | Sizeof (* takes a ArgType *)
   | Defined (* defined? in Ruby, other? *)
-  (* Note that certain languages do not have a 'new' keyword
-   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
-   * Note that 'new' by itself is not a valid expression
-   *)
-  | New (* usually associated with Call(New, [ArgType _;...]) *)
   (* used for interpolated strings constructs
    * TODO: move out of 'special' and make special construct InterpolatedConcat
    * in 'expr' instead of abusing Call for that? that way can also

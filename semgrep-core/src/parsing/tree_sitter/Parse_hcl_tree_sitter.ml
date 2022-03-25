@@ -19,6 +19,7 @@ module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
+module Loc = Tree_sitter_run.Loc
 
 (*****************************************************************************)
 (* Prelude *)
@@ -97,7 +98,6 @@ let map_template_literal (env : env) (xs : CST.template_literal) :
   match xs with
   | [] -> None
   | ((x_pos, x_str) as x) :: xs ->
-      let module Loc = Tree_sitter_run.Loc in
       let base_col = x_pos.Loc.start.column in
       let rec concat_chunks acc_str prev_row prev_col xs =
         match xs with
@@ -561,8 +561,8 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
  *)
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
-  let v1 = (* identifier *) map_identifier env v1 in
-  let v2 =
+  let id = (* identifier *) map_identifier env v1 in
+  let args_id =
     List.map
       (fun x ->
         match x with
@@ -575,23 +575,33 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
             N n |> G.e)
       v2
   in
-  let v3 = (* "{" *) token env v3 in
-  let v4 =
+  let lb = (* "{" *) token env v3 in
+  let body =
     match v4 with
     | Some x -> map_body env x
     | None -> []
   in
-  let v5 = (* "}" *) token env v5 in
+  let rb = (* "}" *) token env v5 in
 
-  let n = H2.name_of_id v1 in
+  let n = H2.name_of_id id in
   (* convert in a Record like map_object *)
-  let flds = v4 in
-  let body = Record (v3, flds, v5) |> G.e in
-  let es = [ N n |> G.e ] @ v2 @ [ body ] in
+  let flds = body in
+  let body = Record (lb, flds, rb) |> G.e in
+  let es = args_id @ [ body ] in
   let args = es |> List.map G.arg in
-  (* TODO? convert in something else? *)
-  let special = IdSpecial (New, snd v1) |> G.e in
-  G.Call (special, fake_bracket args) |> G.e
+  (* coupling: if you modify this code, you should adjust
+   * Constant_propagation.terraform_stmt_to_vardefs.
+   * bugfix: I used to transform that in a New (..., TyN n, ...) but
+   * lots of terraform rules are using some
+   *   pattern-inside: resource ... {}
+   *   pattern: resource
+   * and the second pattern is parsed as an expression which would not
+   * match the TyN.
+   * TODO? convert in something else?
+   * TODO: should we use something else than Call since it's already used
+   * for expressions in map_expr_term() above?
+   *)
+  G.Call (N n |> G.e, fake_bracket args) |> G.e
 
 (* We convert to a field, to be similar to map_object_, so some
  * patterns like 'a=1 ... b=2' can match block body as well as objects.
