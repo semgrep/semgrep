@@ -36,7 +36,7 @@ RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
 
 
 class ScanHandler:
-    def __init__(self, app_url: str, token: str) -> None:
+    def __init__(self, app_url: str, token: str, dry_run: bool) -> None:
         self.app_url = app_url
         session = requests.Session()
         session.mount("https://", RETRYING_ADAPTER)
@@ -48,6 +48,8 @@ class ScanHandler:
         self.scan_id = None
         self.ignore_patterns: List[str] = []
         self._autofix = False
+        self.dry_run = dry_run
+        self._dry_run_rules_url: str = ""
 
     @property
     def autofix(self) -> bool:
@@ -62,12 +64,16 @@ class ScanHandler:
 
         Returns None if api_token is invalid/doesn't have associated deployment
         """
+        url = f"{self.app_url}/api/agent/deployments/current"
+        logger.debug(f"Retrieveing deployment details from {url}")
         r = self.session.get(
-            f"{self.app_url}/api/agent/deployments",
+            url,
             timeout=10,
         )
+
         if r.ok:
             data = r.json()
+            logger.debug(f"Received: {data}")
             return data.get("deployment", {}).get("id"), data.get("deployment", {}).get(
                 "name"
             )
@@ -80,6 +86,15 @@ class ScanHandler:
 
         returns ignored list
         """
+        logger.debug("Starting scan")
+        if self.dry_run:
+            repo_name = meta["repository"]
+            self._dry_run_rules_url = f"{self.app_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
+            logger.debug(
+                f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
+            )
+            return
+
         response = self.session.post(
             f"{self.app_url}/api/agent/deployments/{self.deployment_id}/scans",
             json={"meta": meta},
@@ -107,13 +122,23 @@ class ScanHandler:
 
     @property
     def scan_rules_url(self) -> str:
-        return f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+        if self.dry_run:
+            url = self._dry_run_rules_url
+        else:
+            url = f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+
+        logger.debug(f"Using {url} as scan rules url")
+        return url
 
     def report_failure(self, exit_code: int) -> None:
         """
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
         """
+        if self.dry_run:
+            logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
+            return
+
         response = self.session.post(
             f"{self.app_url}/api/agent/scans/{self.scan_id}/error",
             json={
@@ -183,9 +208,21 @@ class ScanHandler:
             },
         }
 
-        logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
-        logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
-        logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
+        if self.dry_run:
+            logger.info(
+                f"Would have sent findings blob: {json.dumps(findings, indent=4)}"
+            )
+            logger.info(
+                f"Would have sent ignores blob: {json.dumps(ignores, indent=4)}"
+            )
+            logger.info(
+                f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
+            )
+            return
+        else:
+            logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
+            logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
+            logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = self.session.post(
             f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings",

@@ -324,10 +324,10 @@ _scan_options = [
     optgroup.option(
         "--timeout-threshold",
         type=int,
-        default=0,
+        default=3,
         help="""
             Maximum number of rules that can timeout on a file before the file is
-            skipped. If set to 0 will not have limit. Defaults to 0.
+            skipped. If set to 0 will not have limit. Defaults to 3.
         """,
     ),
     optgroup.group("Display options"),
@@ -407,16 +407,6 @@ _scan_options = [
         "--debug",
         is_flag=True,
         help="All of --verbose, but with additional debugging information.",
-    ),
-    click.option(
-        "--dryrun/--no-dryrun",
-        is_flag=True,
-        default=False,
-        help="""
-            If --dryrun, does not write autofixes to a file. This will print the changes
-            to the console. This lets you see the changes before you commit to them. Only
-            works with the --autofix flag. Otherwise does nothing.
-        """,
     ),
     optgroup.group(
         "Output formats",
@@ -505,6 +495,16 @@ def scan_options(func: Callable) -> Callable:
     "-l",
     help="Parse pattern and all files in specified language. Must be used with -e/--pattern.",
     shell_complete=__get_language_options,
+)
+@click.option(
+    "--dryrun/--no-dryrun",
+    is_flag=True,
+    default=False,
+    help="""
+        If --dryrun, does not write autofixes to a file. This will print the changes
+        to the console. This lets you see the changes before you commit to them. Only
+        works with the --autofix flag. Otherwise does nothing.
+    """,
 )
 @click.option(
     "--severity",

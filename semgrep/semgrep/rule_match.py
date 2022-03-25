@@ -191,9 +191,13 @@ class RuleMatch:
         when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
         and thus CI systems don't retrigger notifications.
         """
-        code = "".join(self.lines)  # the lines end with newlines already
+        lines = [*self.lines]
+        if len(lines) > 0:
+            lines[0] = NOSEM_INLINE_COMMENT_RE.sub("", lines[0])
+            lines[0] = lines[0].rstrip() + "\n"
+
+        code = "".join(lines)  # the lines end with newlines already
         code = textwrap.dedent(code)
-        code = NOSEM_INLINE_COMMENT_RE.sub("", code)
         code = code.strip()
         return code
 
@@ -361,8 +365,8 @@ class RuleMatchSet(Set[RuleMatch]):
         The index lets us still notify when some code with findings is duplicated,
         even though we'd otherwise deduplicate the findings.
         """
-        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key])
         self._ci_key_counts[match.ci_unique_key] += 1
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         super().add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
