@@ -104,6 +104,7 @@ def test_rule_match_set_indexes():
             5 == 5 # nosem
             5 == 5 # nosem
             6 == 6 # nosem
+            5 == 5 # nosem
         """
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
@@ -131,11 +132,20 @@ def test_rule_match_set_indexes():
             start=CoreLocation(5, 1, 48),
             end=CoreLocation(5, 15, 62),
         )
+        line6 = RuleMatch(
+            rule_id="rule_id",
+            message="message",
+            severity=RuleSeverity.ERROR,
+            path=Path("foo.py"),
+            start=CoreLocation(6, 1, 60),
+            end=CoreLocation(6, 15, 74),
+        )
         matches = RuleMatchSet()
         matches.update(
-            [line3, line4, line5]
+            [line3, line4, line5, line6]
         )  # we do need to add them in the correct order
         sorted_matches = list(sorted(matches))
     assert sorted_matches[0].index == 0, "1st duplicate match must be assigned index 0"
     assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"
+    assert sorted_matches[3].index == 2, "3nd duplicate match must be assigned index 2"
     assert sorted_matches[2].index == 0, "unique match must be assigned index 0"
