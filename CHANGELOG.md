@@ -4,6 +4,45 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
+
+## Changed
+
+- Set minimum urllib3 version
+
+## [0.86.4](https://github.com/returntocorp/semgrep/releases/tag/v0.86.4) - 2022-03-25
+
+### Changed
+
+- Increase rule fetch timeout from 20s to 30s
+
+## [0.86.3](https://github.com/returntocorp/semgrep/releases/tag/v0.86.3) - 2022-03-25
+
+### Fixed
+
+- Network timeouts during rule download are now less likely.
+
+## [0.86.2](https://github.com/returntocorp/semgrep/releases/tag/v0.86.2) - 2022-03-24
+
+### Fixed
+
+- Some finding fingerprints were not matching what semgrep-agent would return.
+
+## [0.86.1](https://github.com/returntocorp/semgrep/releases/tag/v0.86.1) - 2022-03-24
+
+### Fixed
+
+- The fingerprint of findings ignored with `# nosemgrep` is supposed to be the same
+  as if the ignore comment wasn't there.
+  This has previously only worked for single-line findings, including in `semgrep-agent`.
+  Now the fingerprint is consistent as expected for multiline findings as well.
+
+### Changed
+
+- `--timeout-threshold` default set to 3 instead of 0
+
+## [0.86.0](https://github.com/returntocorp/semgrep/releases/tag/v0.86.0) - 2022-03-24
+
 ### Added
 
 - Semgrep can now output findings in GitLab's SAST report and secret scanning
@@ -16,6 +55,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   and variables (#4816)
 - HTML: you can now use metavariable ellipsis inside <script> (#4841)
   (e.g., `<script>$...JS</script>`)
+- A `semgrep ci` subcommand that auto-detects settings from your CI environment
+  and can upload findings to Semgrep App when logged in.
 
 ### Changed
 
@@ -28,6 +69,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Two findings are now identical after whitespace changes such as re-indentation
   - Two findings are now identical after a nosemgrep comment is added
   - Findings are now different if the same code triggered them on different lines
+- Docker image now runs as root to allow the docker image to be used in CI/CD pipelines
+- Support XDG Base directory specification (#4818)
 
 ### Fixed
 

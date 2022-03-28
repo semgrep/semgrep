@@ -41,9 +41,9 @@
             "end_column": 11,
             "message": "useless comparison",
             "severity": 2,
-            "index": 1,
+            "index": 3,
             "commit_date": "sanitized",
-            "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
+            "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
             "metadata": {},
             "is_blocking": true
         },

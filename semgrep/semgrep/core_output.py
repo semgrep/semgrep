@@ -15,6 +15,7 @@ from typing import Dict
 from typing import List
 from typing import NewType
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 from attrs import define
@@ -25,7 +26,6 @@ from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
-from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
@@ -347,20 +347,15 @@ class CoreOutput:
             )
 
         findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
+        seen_cli_unique_keys: Set[Tuple] = set()
         for match in self.matches:
             rule_match = convert_to_rule_match(match)
+            if rule_match.cli_unique_key in seen_cli_unique_keys:
+                continue
+            seen_cli_unique_keys.add(rule_match.cli_unique_key)
             findings[match.rule].add(rule_match)
 
         # Sort results so as to guarantee the same results across different
         # runs. Results may arrive in a different order due to parallelism
         # (-j option).
-        ordered_unique_findings: Dict[Rule, OrderedRuleMatchList] = {}
-        for rule, matches in findings.items():
-            unique_matches = {
-                # a dict keeps the last match of each key, so we iterate in reverse
-                match.cli_unique_key: match
-                for match in sorted(matches, reverse=True)
-            }
-            ordered_unique_findings[rule] = sorted(unique_matches.values())
-
-        return ordered_unique_findings
+        return {rule: sorted(matches) for rule, matches in findings.items()}
