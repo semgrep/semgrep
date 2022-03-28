@@ -471,6 +471,12 @@ let lang_tainting_tests =
       let lang = Lang.Ts in
       tainting_tests_for_lang files lang
     );
+    pack_tests "tainting Scala" (
+      let dir = Filename.concat taint_tests_path "scala" in
+      let files = Common2.glob (spf "%s/*.scala" dir) in
+      let lang = Lang.Scala in
+      tainting_tests_for_lang files lang
+    );
   ]
 
 let eval_regression_tests = [
