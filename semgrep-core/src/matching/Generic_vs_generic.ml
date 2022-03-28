@@ -1184,8 +1184,10 @@ and m_compatible_type typed_mvar t e =
           envf typed_mvar (MV.E e)
       | _ -> fail ())
 
-and type_of_expr e =
+(* returns a type option and an ident that can be used to query LSP *)
+and type_of_expr e : (G.ident * G.type_ option) option =
   match e.B.e with
+  (* TODO  | B.New (tk, t, _) -> Some (("new", tk), Some t) *)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
