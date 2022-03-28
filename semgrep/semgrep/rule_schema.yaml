@@ -21,7 +21,6 @@ definitions:
         - $ref: "#/definitions/metavariable-regex"
         - $ref: "#/definitions/metavariable-pattern"
         - $ref: "#/definitions/metavariable-comparison"
-        - $ref: "#/definitions/r2c-internal-project-depends-on"
   pattern-either-content:
     type: array
     title: "Return finding where any of the nested conditions are true"
@@ -89,11 +88,18 @@ definitions:
                       - patterns
                   - required:
                       - pattern-either
-  r2c-internal-project-depends-on:
+  r2c-internal-project-depends-on-content:
     type: object
-    title: "A dependency that the project contains in a lock file"
+    title: "One or more dependencies that the project contains in a lock file"
     properties:
-      r2c-internal-project-depends-on:
+      namespace:
+        type: string
+      package:
+        type: string
+      version:
+        type: string
+      depends-on-either:
+        type: array
         properties:
           namespace:
             type: string
@@ -106,8 +112,24 @@ definitions:
           - namespace
           - package
           - version
-    required:
-      - r2c-internal-project-depends-on
+    oneOf:
+      - required:
+          - namespace
+          - package
+          - version
+        not:
+          required:
+            - depends-on-either
+      - required:
+          - depends-on-either
+        not:
+          anyOf:
+            - required:
+                - namespace
+            - required:
+                - package
+            - required:
+                - version
   join-content:
     type: object
     title: "Join one or more rules together based on metavariable contents"
@@ -443,6 +465,8 @@ properties:
           $ref: "#/definitions/patterns-content"
         pattern-either:
           $ref: "#/definitions/pattern-either-content"
+        r2c-internal-project-depends-on:
+          $ref: "#/definitions/r2c-internal-project-depends-on-content"
       additionalProperties: false
 
       oneOf:
@@ -538,6 +562,18 @@ properties:
                       - patterns
                   - required:
                       - pattern-either
+            - required:
+                - r2c-internal-project-depends-on
+              not:
+                anyOf:
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+                  - required:
+                      - pattern
           not:
             anyOf:
               - required:

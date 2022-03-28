@@ -441,13 +441,8 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
       ( {
           e =
             Call
-              ( { e = IdSpecial (New, _); _ },
-                ( _,
-                  [
-                    Arg { e = N (Id (("locals", _), _)); _ };
-                    Arg { e = Record (_, xs, _); _ };
-                  ],
-                  _ ) );
+              ( { e = N (Id (("locals", _), _)); _ },
+                (_, [ Arg { e = Record (_, xs, _); _ } ], _) );
           _;
         },
         _ ) ->
@@ -472,10 +467,9 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
       ( {
           e =
             Call
-              ( { e = IdSpecial (New, _); _ },
+              ( { e = N (Id (("variable", _), _)); _ },
                 ( _,
                   [
-                    Arg { e = N (Id (("variable", _), _)); _ };
                     Arg { e = L (String id); _ };
                     Arg { e = Record (_, xs, _); _ };
                   ],

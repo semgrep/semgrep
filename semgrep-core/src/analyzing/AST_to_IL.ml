@@ -471,6 +471,13 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
+  | G.New (tok, ty, args) ->
+      (* TODO: lift up New in IL like we did in AST_generic *)
+      let special = (New, tok) in
+      let arg = G.ArgType ty in
+      let args = arguments env args in
+      add_call env tok eorig ~void (fun res ->
+          CallSpecial (res, special, argument env arg :: args))
   | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
       let tok = snd spec in
       let special = call_special env spec in
@@ -678,7 +685,6 @@ and call_special _env (x, tok) =
     | G.Typeof -> Typeof
     | G.Instanceof -> Instanceof
     | G.Sizeof -> Sizeof
-    | G.New -> New
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
     | G.EncodedString _
@@ -706,6 +712,7 @@ and argument env arg =
   | G.ArgKwdOptional (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
+  | G.ArgType { t = TyExpr e; _ } -> expr env e
   | _ ->
       let any = G.Ar arg in
       fixme_exp ToDo any (Related any)

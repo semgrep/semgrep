@@ -251,11 +251,10 @@ let new_index_from_end tok expr =
     H2.name_of_ids [ ("System", fake "System"); ("Index", fake "Index") ]
   in
   let index = TyN name |> G.t in
-  Call
-    ( IdSpecial (New, tok) |> G.e,
-      fake_bracket
-        [ ArgType index; Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ]
-    )
+  New
+    ( tok,
+      index,
+      fake_bracket [ Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ] )
   |> G.e
 
 module List = struct
@@ -1128,7 +1127,9 @@ and default_expression env (v1, v2) =
         (v1, [ v2 ], v3)
     | None -> fake_bracket []
   in
-  Call (IdSpecial (New, v1) |> G.e, v2) |> G.e
+  (* old: was a New *)
+  let e = G.OtherExpr (("Default", v1), []) |> G.e in
+  Call (e, v2) |> G.e
 
 and size_of_expression env (v1, v2, v3, v4) =
   let v1 = token env v1 (* "sizeof" *) in
@@ -1266,10 +1267,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> fake_bracket []
       in
       let lb, _, rb = v3 in
-      let args =
-        (lb, [ ArgType v2; Arg (G.Container (G.Tuple, v3) |> G.e) ], rb)
-      in
-      Call (IdSpecial (New, v1) |> G.e, args) |> G.e
+      let args = (lb, [ Arg (G.Container (G.Tuple, v3) |> G.e) ], rb) in
+      New (v1, v2, args) |> G.e
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "as" *) in
@@ -1349,7 +1348,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let lp, v2', rp = v2 in
       let args = (lp, v2' @ [ Arg (Container (Tuple, v3) |> G.e) ], rp) in
-      Call (IdSpecial (New, v1) |> G.e, args) |> G.e
+      (* old: was New *)
+      let e = G.OtherExpr (("NewNoType", v1), []) |> G.e in
+      Call (e, args) |> G.e
   | `Impl_stack_alloc_array_crea_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "stackalloc" *) in
       let _v2 = token env v2 (* "[" *) in
@@ -1415,10 +1416,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> fake_bracket []
       in
       let lp, v3', rp = v3 in
-      let args =
-        (lp, (ArgType v2 :: v3') @ [ Arg (Container (Tuple, v4) |> G.e) ], rp)
-      in
-      Call (IdSpecial (New, v1) |> G.e, args) |> G.e
+      let args = (lp, v3' @ [ Arg (Container (Tuple, v4) |> G.e) ], rp) in
+      New (v1, v2, args) |> G.e
   | `Paren_exp x -> parenthesized_expression env x
   | `Post_un_exp x -> postfix_unary_expression env x
   | `Prefix_un_exp x -> prefix_unary_expression env x

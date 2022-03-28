@@ -18,6 +18,7 @@ let lang_has_no_dollar_ids =
     | Lua
     | Elixir
     | R
+    | Swift
     | Html ->
         true
     | Js

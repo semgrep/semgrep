@@ -669,12 +669,11 @@ and m_expr a b =
     when MV.is_metavar_name str ->
       fail ()
   (* metavar: *)
-  (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
-   * info; instead the Id should match Call(IdSpecial _, _)
+  (* Matching a generic Id metavariable to an IdSpecial will fail as it is
+   * missing the token info; instead the Id should match Call(IdSpecial _, _)
    *)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
-  | G.N (G.Id ((str, _), _)), B.IdSpecial (B.New, _)
     when MV.is_metavar_name str ->
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
@@ -770,7 +769,10 @@ and m_expr a b =
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
+  | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
+      m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
   | G.Call _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+  | G.New _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -1048,7 +1050,6 @@ and m_special a b =
   | G.Typeof, B.Typeof -> return ()
   | G.Instanceof, B.Instanceof -> return ()
   | G.Sizeof, B.Sizeof -> return ()
-  | G.New, B.New -> return ()
   | G.Defined, B.Defined -> return ()
   | G.ConcatString a, B.ConcatString b -> m_concat_string_kind a b
   | G.InterpolatedElement, B.InterpolatedElement -> return ()
@@ -1068,7 +1069,6 @@ and m_special a b =
   | G.Typeof, _
   | G.Instanceof, _
   | G.Sizeof, _
-  | G.New, _
   | G.ConcatString _, _
   | G.Spread, _
   | G.Op _, _
@@ -1184,8 +1184,10 @@ and m_compatible_type typed_mvar t e =
           envf typed_mvar (MV.E e)
       | _ -> fail ())
 
-and type_of_expr e =
+(* returns a type option and an ident that can be used to query LSP *)
+and type_of_expr e : (G.ident * G.type_ option) option =
   match e.B.e with
+  | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
@@ -1207,6 +1209,7 @@ and type_of_expr e =
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
       | Some _ -> None
       | None -> None)
+  | B.ParenExpr (_, e, _) -> type_of_expr e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)

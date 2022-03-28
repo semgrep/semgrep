@@ -77,7 +77,8 @@ let special (x, tok) =
   | Module -> other_expr "Module"
   | Define -> other_expr "Define"
   | Arguments -> other_expr "Arguments"
-  | New -> SR_Special (G.New, tok)
+  (* TODO: lift up New in ast_js.ml in pfff *)
+  | New -> other_expr "New"
   | NewTarget -> other_expr "NewTarget"
   | Eval -> SR_Special (G.Eval, tok)
   | Seq -> SR_NeedArgs (fun args -> G.Seq args)

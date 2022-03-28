@@ -98,6 +98,7 @@ let print_bool env = function
       | Lang.Rust
       | Lang.Scala
       | Lang.Solidity
+      | Lang.Swift
       | Lang.Html
       | Lang.Hcl ->
           "true"
@@ -130,6 +131,7 @@ let print_bool env = function
       | Lang.Rust
       | Lang.Scala
       | Lang.Solidity
+      | Lang.Swift
       | Lang.Html
       | Lang.Hcl ->
           "false"
@@ -255,7 +257,10 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Vue
     | Lang.Kotlin
     | Lang.Rust
-    | Lang.R ->
+    | Lang.R
+    (* Swift does not require parentheses around the condition, but it does
+     * permit them. *)
+    | Lang.Swift ->
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
@@ -296,6 +301,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
+    | Lang.Swift
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
@@ -334,6 +340,7 @@ and do_while stmt env level (s, e) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
+    | Lang.Swift
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
@@ -383,7 +390,8 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Ts
     | Lang.Vue
     | Lang.Rust
-    | Lang.R ->
+    | Lang.R
+    | Lang.Swift ->
         F.sprintf "%s (%s) %s"
     | Lang.Go -> F.sprintf "%s %s %s"
     | Lang.Python
@@ -437,6 +445,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Yaml
       | Lang.Scala
       | Lang.Solidity
+      | Lang.Swift
       | Lang.Html
       | Lang.Hcl ->
           raise Todo
@@ -520,6 +529,7 @@ and return env (tok, eopt) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Swift
   | Lang.Ts
   | Lang.Vue
   | Lang.Lua ->
@@ -564,7 +574,8 @@ and break env (tok, lbl) _sc =
   | Lang.Ts
   | Lang.Vue
   | Lang.Lua
-  | Lang.R ->
+  | Lang.R
+  | Lang.Swift ->
       F.sprintf "%s%s" (token "break" tok) lbl_str
 
 and continue env (tok, lbl) _sc =
@@ -603,6 +614,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Swift
   | Lang.Ts
   | Lang.Vue ->
       F.sprintf "%s%s" (token "continue" tok) lbl_str
@@ -615,6 +627,7 @@ and expr env e =
   | N (IdQualified qualified_info) -> id_qualified env qualified_info
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
+  | New (_, t, es) -> new_call env (t, es)
   | L x -> literal env x
   | Container (Tuple, (_, es, _)) -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, (_, e2, _)) ->
@@ -652,10 +665,13 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
 
 and special env = function
   | This, _ -> "this"
-  | New, _ -> "new"
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
   | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))
+
+and new_call env (t, (_, es, _)) =
+  let s1 = print_type t in
+  F.sprintf "new %s(%s)" s1 (arguments env es)
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
@@ -666,8 +682,6 @@ and call env (e, (_, es, _)) =
       F.sprintf "%s not in %s" (argument env e1) (argument env e2)
   | IdSpecial (Op _, _), [ x; y ] ->
       F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
-  | IdSpecial (New, _), x :: ys ->
-      F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
   | IdSpecial (IncrDecr (i_d, pre_post), _), [ x ] -> (
       let op_str =
         match i_d with
@@ -716,7 +730,8 @@ and literal env l =
       | Lang.Ts
       | Lang.Lua
       | Lang.Rust
-      | Lang.R ->
+      | Lang.R
+      | Lang.Swift ->
           "\"" ^ s ^ "\"")
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/"

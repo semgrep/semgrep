@@ -454,13 +454,10 @@ and map_expr env x : G.expr =
       and lbrace, xs, rbrace =
         map_brace env (map_of_list (map_initialiser env)) v2
       in
-      let special = G.IdSpecial (G.New, lpar) |> G.e in
-      G.Call (special, (lbrace, G.ArgType t :: (xs |> List.map G.arg), rbrace))
-      |> G.e
+      G.New (lpar, t, (lbrace, xs |> List.map G.arg, rbrace)) |> G.e
   | ConstructedObject (v1, v2) ->
       let t = map_type_ env v1 and l, args, r = map_obj_init env v2 in
-      let special = G.IdSpecial (G.New, PI.fake_info l "new") |> G.e in
-      G.Call (special, (l, G.ArgType t :: args, r)) |> G.e
+      G.New (PI.fake_info l "new", t, (l, args, r)) |> G.e
   | TypeId (v1, v2) ->
       let v1 = map_tok env v1
       and _l, either, _r =
@@ -481,13 +478,12 @@ and map_expr env x : G.expr =
         map_of_option (map_paren env (map_of_list (map_argument env))) v3
       and v4 = map_type_ env v4
       and v5 = map_of_option (map_obj_init env) v5 in
-      let special = G.IdSpecial (G.New, v2) |> G.e in
       let l, args, r =
         match v5 with
-        | None -> G.fake_bracket [ G.ArgType v4 ]
-        | Some (l, args, r) -> (l, G.ArgType v4 :: args, r)
+        | None -> G.fake_bracket []
+        | Some (l, args, r) -> (l, args, r)
       in
-      G.Call (special, (l, args, r)) |> G.e
+      G.New (v2, v4, (l, args, r)) |> G.e
   | Delete (v1, v2, v3, v4) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2

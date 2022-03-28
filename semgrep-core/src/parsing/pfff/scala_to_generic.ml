@@ -411,9 +411,10 @@ and v_expr e : G.expr =
       let v1 = v_function_definition v1 in
       G.Lambda v1 |> G.e
   | New (v1, v2) ->
-      let v1 = v_tok v1 and v2 = v_template_definition v2 in
+      let _v1 = v_tok v1 and v2 = v_template_definition v2 in
       let cl = G.AnonClass v2 |> G.e in
-      G.special (G.New, v1) [ cl ]
+      (* TODO: transform in New if v_template_definition is simple *)
+      G.Call (cl, fb []) |> G.e
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
@@ -743,7 +744,7 @@ and v_variable_definitions
          | _ ->
              (* TODO: some patterns may have tparams? *)
              let ent =
-               G.{ name = EPattern (v_pattern pat); attrs; tparams = [] }
+               { G.name = EPattern (v_pattern pat); attrs; tparams = [] }
              in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef))
