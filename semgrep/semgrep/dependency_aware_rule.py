@@ -80,28 +80,19 @@ def run_dependency_aware_rule(
         # no dependencies to process, so skip
         return matches, []
 
-    if len(matches) == 0:
-        # if there are no semgrep patterns in the rule, just the dependency restriction,
-        # we may still report a result if the dependency is present
-        if rule.should_run_on_semgrep_core:
-            return [], dep_rule_errors
-        else:
-            # the rule didn't actually have any runnable semgrep rules
-            # so it should fire at the root of the target if the dependencies match
-            matches = [
-                RuleMatch(
-                    rule_id=rule.id,
-                    message=rule.message,
-                    metadata=rule.metadata,
-                    severity=rule.severity,
-                    path=top_level_target,  # TODO: this should probably be the offending lockfile
-                    fix=None,
-                    fix_regex=None,
-                    start=CoreLocation(0, 0, 0),
-                    end=CoreLocation(0, 0, 0),
-                    extra={},
-                )
-            ]
+
+    dummy_match = RuleMatch(
+        rule_id=rule.id,
+        message=rule.message,
+        metadata=rule.metadata,
+        severity=rule.severity,
+        path=top_level_target,  # TODO: this should probably be the offending lockfile
+        fix=None,
+        fix_regex=None,
+        start=CoreLocation(0, 0, 0),
+        end=CoreLocation(0, 0, 0),
+        extra={},
+    )
 
     try:
         depends_on_entries = list(parse_depends_on_yaml(dependencies))
@@ -110,7 +101,17 @@ def run_dependency_aware_rule(
                 depends_on_entries, find_and_parse_lockfiles(lockfile_target)
             )
         )
-        final_matches = [] if len(output) == 0 else matches
-        return final_matches, dep_rule_errors
+        # Dependency checks found nothing, so rule should not match
+        if output == []:
+            final_matches = []
+
+        # Dependency checks found something, so rule should match
+        # and we should get a dummy match indicating the dependency match
+        else:
+            final_matches = [dummy_match] + matches
+        
+        return final_matches,dep_rule_errors
+        
     except SemgrepError as e:
         return [], [e]
+
