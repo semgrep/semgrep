@@ -7,6 +7,7 @@ default:
 .PHONY: build
 build:
 	$(MAKE) -C semgrep build
+	$(MAKE) check
 
 .PHONY: test
 test:
