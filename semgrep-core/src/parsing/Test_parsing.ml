@@ -92,6 +92,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
       |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
+  | Lang.Swift ->
+      Tree_sitter_swift.Parse.file file
+      |> dump_and_print_errors Tree_sitter_swift.CST.dump_tree
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
