@@ -1187,7 +1187,7 @@ and m_compatible_type typed_mvar t e =
 (* returns a type option and an ident that can be used to query LSP *)
 and type_of_expr e : (G.ident * G.type_ option) option =
   match e.B.e with
-  (* TODO  | B.New (tk, t, _) -> Some (("new", tk), Some t) *)
+  | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
@@ -1209,6 +1209,7 @@ and type_of_expr e : (G.ident * G.type_ option) option =
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
       | Some _ -> None
       | None -> None)
+  | B.ParenExpr (_, e, _) -> type_of_expr e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)
