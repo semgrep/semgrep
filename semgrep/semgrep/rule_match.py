@@ -21,49 +21,13 @@ from attrs import evolve
 from attrs import field
 from attrs import frozen
 
+import semgrep.output_from_core as core
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.types import JsonObject
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
-
-
-@frozen(order=True)
-class CoreLocation:
-    """
-    parses:
-     {
-        "line": 5
-        "col": 6
-        "offset": 30
-     }
-    into an object
-    """
-
-    line: int
-    col: int
-    offset: int
-
-    def to_dict(self) -> JsonObject:
-        return {
-            "line": self.line,
-            "col": self.col,
-            "offset": self.offset,
-        }
-
-    @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreLocation":
-        line = raw_json.get("line")
-        col = raw_json.get("col")
-        offset = raw_json.get("offset")
-
-        # Please mypy
-        assert isinstance(line, int)
-        assert isinstance(col, int)
-        assert isinstance(offset, int)
-
-        return cls(line, col, offset)
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:
@@ -85,8 +49,8 @@ class RuleMatch:
     severity: RuleSeverity
 
     path: Path = field(repr=str)
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
 
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
     extra: Dict[str, Any] = field(repr=False, factory=dict)

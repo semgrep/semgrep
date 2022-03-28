@@ -23,6 +23,7 @@ from attr import frozen
 from ruamel.yaml import YAML
 from tqdm import tqdm
 
+import semgrep.output_from_core as core
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -38,7 +39,6 @@ from semgrep.error import with_color
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
@@ -103,7 +103,7 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 
 def uniq_error_id(
     error: SemgrepCoreError,
-) -> Tuple[int, Path, CoreLocation, CoreLocation, str]:
+) -> Tuple[int, Path, core.Position, core.Position, str]:
     return (error.code, error.path, error.start, error.end, error.message)
 
 
@@ -387,6 +387,7 @@ class CoreRunner:
                         core_stdout,
                         core_stderr,
                     )
+                print(f"errors from semgrep-core: {errors}")
                 raise errors[0].to_semgrep_error()
             else:
                 self._fail(

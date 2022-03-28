@@ -13,5 +13,5 @@ depends: [
   # https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
   # and also scripts/lint-ocaml
   "ocamlformat" {= "0.21.0" }  # used by the pre-commit hook
-  "atdpy"
+  "atdpy" {>= "2.4.1"}  # used to generate python code
 ]

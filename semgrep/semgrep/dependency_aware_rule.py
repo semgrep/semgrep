@@ -10,9 +10,9 @@ from dependencyparser.package_restrictions import dependencies_range_match_any
 from dependencyparser.package_restrictions import find_and_parse_lockfiles
 from dependencyparser.package_restrictions import ProjectDependsOnEntry
 
+import semgrep.output_from_core as core
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 
 
@@ -98,8 +98,8 @@ def run_dependency_aware_rule(
                     path=top_level_target,  # TODO: this should probably be the offending lockfile
                     fix=None,
                     fix_regex=None,
-                    start=CoreLocation(0, 0, 0),
-                    end=CoreLocation(0, 0, 0),
+                    start=core.Position(0, 0, 0),
+                    end=core.Position(0, 0, 0),
                     extra={},
                 )
             ]

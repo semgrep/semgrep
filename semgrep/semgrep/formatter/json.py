@@ -32,8 +32,8 @@ class JsonFormatter(BaseFormatter):
         return {
             "check_id": rule_match.rule_id,
             "path": str(rule_match.path),
-            "start": rule_match.start.to_dict(),
-            "end": rule_match.end.to_dict(),
+            "start": rule_match.start.to_json(),
+            "end": rule_match.end.to_json(),
             "extra": extra,
         }
 

@@ -24,13 +24,14 @@ from semgrep.error import LegacySpan
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
 from semgrep.types import RuleId
 from semgrep.verbose_logging import getLogger
+
+import semgrep.output_from_core as core
 
 logger = getLogger(__name__)
 
@@ -41,19 +42,23 @@ SkipDetails = NewType("SkipDetails", str)
 
 CoreRulesParseTime = NewType("CoreRulesParseTime", float)
 
-
+# TODO: remove once atdpy can insert decorators
 @frozen
 class MetavarValue:
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
+
+    @classmethod
+    def read(cls, x: core.MetavarValue) -> "MetavarValue":
+        start = x.start
+        end = x.end
+        return cls(start, end)
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "MetavarValue":
-        start = CoreLocation.parse(raw_json["start"])
-        end = CoreLocation.parse(raw_json["end"])
-        return cls(start, end)
+        return cls.read(core.MetavarValue.from_json(raw_json))
 
-
+# TODO: remove once atdpy can insert decorators
 @frozen
 class CoreMetavars:
     metavars: Dict[str, MetavarValue]
@@ -80,8 +85,8 @@ class CoreMatch:
 
     rule: Rule
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     extra: Dict[str, Any]
     metavars: CoreMetavars
 
@@ -92,8 +97,8 @@ class CoreMatch:
         path_str = location["path"]
         assert isinstance(path_str, str)
         path = Path(path_str)
-        start = CoreLocation.parse(location["start"])
-        end = CoreLocation.parse(location["end"])
+        start = core.Position.from_json(location["start"])
+        end = core.Position.from_json(location["end"])
         extra = raw_json.get("extra", {})
         metavars = CoreMetavars.parse(extra.get("metavars"))
         return cls(rule_id, path, start, end, extra, metavars)
@@ -109,8 +114,8 @@ class CoreError:
     error_type: CoreErrorType
     rule_id: Optional[RuleId]
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     message: CoreErrorMessage
     level: Level
     spans: Optional[Tuple[LegacySpan, ...]]
@@ -123,8 +128,8 @@ class CoreError:
         rule_id = RuleId(raw_rule_id) if raw_rule_id else None
         location = raw_json["location"]
         path = Path(location["path"])
-        start = CoreLocation.parse(location["start"])
-        end = CoreLocation.parse(location["end"])
+        start = core.Position.from_json(location["start"])
+        end = core.Position.from_json(location["end"])
         _extra = raw_json.get("extra", {})
         message = CoreErrorMessage(raw_json.get("message", "<no error message>"))
         level_str = raw_json["severity"]
