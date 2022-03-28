@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Set minimum urllib3 version
 
-## [0.86.4](https://github.com/returntocorp/semgrep/releases/tag/v0.86.3) - 2022-03-25
+## [0.86.4](https://github.com/returntocorp/semgrep/releases/tag/v0.86.4) - 2022-03-25
 
 ### Changed
 
