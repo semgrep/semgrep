@@ -1,4 +1,5 @@
 (* Yoann Padioleau
+ * Iago Abal
  *
  * Copyright (C) 2019-2021 r2c
  *
@@ -301,7 +302,7 @@ and stmt_kind =
   | FixmeStmt of fixme_kind * G.any
 
 and other_stmt =
-  (* everything except VarDef (which is transformed in a Set instr) *)
+  (* everything except VarDef (which is transformed in an Assign instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string
@@ -359,6 +360,9 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*****************************************************************************)
 (* L/Rvalue helpers *)
 (*****************************************************************************)
+
+let ( let* ) = Option.bind
+
 let lval_of_instr_opt x =
   match x.i with
   | Assign (lval, _)
@@ -372,8 +376,7 @@ let lval_of_instr_opt x =
   | FixmeInstr _ -> None
 
 let lvar_of_instr_opt x =
-  let open Common in
-  lval_of_instr_opt x >>= fun lval ->
+  let* lval = lval_of_instr_opt x in
   match lval.base with
   | Var n -> Some n
   | VarSpecial _
