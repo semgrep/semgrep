@@ -324,10 +324,10 @@ _scan_options = [
     optgroup.option(
         "--timeout-threshold",
         type=int,
-        default=0,
+        default=3,
         help="""
             Maximum number of rules that can timeout on a file before the file is
-            skipped. If set to 0 will not have limit. Defaults to 0.
+            skipped. If set to 0 will not have limit. Defaults to 3.
         """,
     ),
     optgroup.group("Display options"),
