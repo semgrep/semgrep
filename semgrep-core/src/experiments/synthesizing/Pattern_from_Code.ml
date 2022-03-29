@@ -72,6 +72,7 @@ let default_id str =
            id_type = ref None;
            id_svalue = ref None;
            id_hidden = false;
+           id_info_id = 0;
          } ))
   |> G.e
 

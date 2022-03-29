@@ -141,6 +141,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
        id_type = v_id_type;
        id_svalue = v3;
        id_hidden;
+       id_info_id;
       } ->
           let v3 = map_of_ref (map_of_option map_svalue) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
@@ -153,6 +154,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             id_type = v_id_type;
             id_svalue = v3;
             id_hidden;
+            id_info_id;
           }
     in
     vin.kidinfo (k, all_functions) v
