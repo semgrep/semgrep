@@ -1,28 +1,22 @@
-# Typecheck + run all the tests in arbitrary order.
-# See also 'all-tests'
+PYTEST ?= pipenv run pytest -v --tb=short --durations=10
+
+# Typecheck and run all tests from quickest to slowest.
 .PHONY: test
 test:
-	$(MAKE) check
-	pipenv run pytest -v --tb=short --durations=10 tests
+	$(MAKE) kinda-quick-tests
+	$(PYTEST) -m 'not quick and not kinda_slow' tests
 
 # Run only the tests marked as quick (@pytest.mark.quick)
 # We have also 'kinda_slow' and 'slow'. See 'tox.ini', section 'pytest'.
 .PHONY: quick-tests
 quick-tests:
 	$(MAKE) check
-	pipenv run pytest -v --tb=short --durations=10 -m quick tests
+	$(PYTEST) -m quick tests
 
 .PHONY: kinda-quick-tests
 kinda-quick-tests:
 	$(MAKE) quick-tests
-	pipenv run pytest -v --tb=short --durations=10 -m kinda_slow tests
-
-# Run all tests from quickest to slowest.
-# Warning: this won't run the tests that are not marked with @pytest.mark.XXX
-.PHONY: all-tests
-all-tests:
-	$(MAKE) kinda-quick-tests
-	pipenv run pytest -v --tb=short --durations=10 -m slow tests
+	$(PYTEST) -m kinda_slow tests
 
 .PHONY:
 regenerate-tests:
