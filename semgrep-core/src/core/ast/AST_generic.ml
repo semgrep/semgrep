@@ -373,7 +373,11 @@ and id_info = {
      exist in the source of the target.
   *)
   id_hidden : bool;
+  (* this is used by Naming_X in deep-semgrep *)
+  id_info_id : id_info_id;
 }
+
+and id_info_id = int
 
 (*****************************************************************************)
 (* Expression *)
@@ -1863,6 +1867,16 @@ let p x = x
 (* Ident and names *)
 (* ------------------------------------------------------------------------- *)
 
+(* For Naming_X.ml in deep-semgrep.
+ * This can be reseted to 0 before parsing each file, or not. It does
+ * not matter as the couple (filename, id_info_id) is unique.
+ *)
+let id_info_id_counter = ref 0
+
+let id_info_id () : id_info_id =
+  incr id_info_id_counter;
+  !id_info_id_counter
+
 (* before Naming_AST.resolve can do its job *)
 let sid_TODO = -1
 let empty_var = { vinit = None; vtype = None }
@@ -1873,6 +1887,7 @@ let empty_id_info ?(hidden = false) () =
     id_type = ref None;
     id_svalue = ref None;
     id_hidden = hidden;
+    id_info_id = id_info_id ();
   }
 
 let basic_id_info ?(hidden = false) resolved =
@@ -1881,6 +1896,7 @@ let basic_id_info ?(hidden = false) resolved =
     id_type = ref None;
     id_svalue = ref None;
     id_hidden = hidden;
+    id_info_id = id_info_id ();
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)

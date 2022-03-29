@@ -100,6 +100,7 @@ and vof_id_info
       id_type = v_id_type;
       id_svalue = v3;
       id_hidden;
+      id_info_id;
     } =
   let bnds = [] in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_svalue) v3 in
@@ -113,6 +114,9 @@ and vof_id_info
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_bool id_hidden in
   let bnd = ("id_hidden", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_int id_info_id in
+  let bnd = ("id_info_id", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
