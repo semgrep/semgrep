@@ -1,6 +1,7 @@
-import pytest
 import subprocess
 from pathlib import Path
+
+import pytest
 
 from ..conftest import _clean_output_json
 from ..conftest import TESTS_PATH

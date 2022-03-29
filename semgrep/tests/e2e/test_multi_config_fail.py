@@ -1,5 +1,6 @@
-import pytest
 import subprocess
+
+import pytest
 
 
 # Running semgrep with multiple configs should fail fast if any of them have errors

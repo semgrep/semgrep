@@ -64,8 +64,6 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
     ],
 )
-
-
 @pytest.mark.kinda_slow
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # Yes, this is fugly. I apologize. T_T

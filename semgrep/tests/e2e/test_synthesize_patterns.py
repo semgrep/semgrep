@@ -1,6 +1,7 @@
 import json
-import pytest
 import subprocess
+
+import pytest
 
 
 @pytest.mark.kinda_slow

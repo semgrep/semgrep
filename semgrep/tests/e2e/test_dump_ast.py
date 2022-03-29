@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.kinda_slow
 def test_dump_ast(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(

@@ -1,6 +1,7 @@
-import pytest
 import re
 import subprocess
+
+import pytest
 
 
 @pytest.mark.kinda_slow

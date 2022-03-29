@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",

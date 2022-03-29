@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.kinda_slow
 def test_severity_error(run_semgrep_in_tmp, snapshot):
     json_str = run_semgrep_in_tmp("rules/inside.yaml", options=["--severity", "ERROR"])[
