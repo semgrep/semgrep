@@ -1432,7 +1432,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
   | `Simple_id x ->
       let id = map_simple_identifier env x in
-      G.N (G.Id (id, G.empty_id_info ())) |> G.e
+      G.N (H2.name_of_id id) |> G.e
   | `Un_exp x -> map_unary_expression env x
   | `Bin_exp x -> map_binary_expression env x
   | `Tern_exp x -> map_ternary_expression env x
