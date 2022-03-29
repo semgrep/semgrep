@@ -14,6 +14,7 @@ from semgrep.profiling import Times
 from semgrep.types import MetricsState
 
 
+@pytest.mark.quick
 def test_configs_hash() -> None:
     metric_manager.set_configs_hash(["p/r2c"])
     old = metric_manager._configs_hash
@@ -30,6 +31,7 @@ def test_configs_hash() -> None:
     assert metric_manager._configs_hash != old
 
 
+@pytest.mark.quick
 def test_rules_hash() -> None:
     config1 = dedent(
         """
@@ -74,6 +76,7 @@ def test_rules_hash() -> None:
     assert old_hash != old_hash_2
 
 
+@pytest.mark.quick
 def test_send() -> None:
     """
     Check that no network does not cause failures
@@ -98,6 +101,7 @@ def test_send() -> None:
     metric_manager.send()
 
 
+@pytest.mark.quick
 def test_timings(snapshot) -> None:
     config1 = dedent(
         """
@@ -189,6 +193,7 @@ def test_timings(snapshot) -> None:
     ]
 
 
+@pytest.mark.quick
 def test_project_hash():
     metric_manager.set_project_hash("https://foo.bar.com/org/project.git")
     no_username_password = metric_manager._project_hash

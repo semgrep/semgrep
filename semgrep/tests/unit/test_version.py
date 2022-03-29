@@ -1,8 +1,11 @@
 from unittest import mock
 
+import pytest
+
 import semgrep.version
 
 
+@pytest.mark.quick
 def test_version_check_caching(tmp_path):
     tmp_cache_path = tmp_path / "semgrep_version"
 

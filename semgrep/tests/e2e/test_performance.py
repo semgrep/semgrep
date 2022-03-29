@@ -1,6 +1,8 @@
+import pytest
 import time
 
 
+@pytest.mark.slow
 def test_debug_performance(run_semgrep_in_tmp):
     """
     Verify that running semgrep with --debug does not result in

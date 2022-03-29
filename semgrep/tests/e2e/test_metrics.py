@@ -48,6 +48,7 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     yield
 
 
+@pytest.mark.kinda_slow
 @mark.parametrize(
     "config,options,env,should_send",
     [
@@ -130,6 +131,7 @@ def test_flags(
     )
 
 
+@pytest.mark.kinda_slow
 @mark.parametrize(
     "config,options,env",
     [
@@ -152,6 +154,7 @@ def test_flags_actual_send(
     assert "Failed to send pseudonymous metrics" not in output
 
 
+@pytest.mark.slow
 def test_legacy_flags(run_semgrep_in_tmp):
     """
     Test metrics sending respects legacy flags. Flags take precedence over envvar

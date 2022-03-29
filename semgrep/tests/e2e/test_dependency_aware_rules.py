@@ -1,6 +1,6 @@
 import pytest
 
-
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -27,6 +27,7 @@ def test_dependency_aware_rules(run_semgrep_in_tmp, snapshot, rule, target):
     )
 
 
+@pytest.mark.kinda_slow
 def test_explicit_lockfile_target(run_semgrep_in_tmp, snapshot):
     # We expect no results, because we explicitly passed a folder containing
     # a lockfile which does NOT contain the vulnerable dependency that this rule searches for

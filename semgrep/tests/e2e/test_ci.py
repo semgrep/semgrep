@@ -168,6 +168,7 @@ def ci_mocks(base_commit, autofix):
                         yield
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 @pytest.mark.parametrize(
     "env",
@@ -325,6 +326,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             snapshot.assert_match(json.dumps(complete_json, indent=4), "complete.json")
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
@@ -346,6 +348,7 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
         snapshot.assert_match(sanitized_output, "output.txt")
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit

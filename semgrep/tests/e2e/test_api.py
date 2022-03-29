@@ -2,9 +2,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from semgrep.semgrep_main import invoke_semgrep
 
-
+@pytest.mark.slow
 def test_api(capsys, run_semgrep_in_tmp):
     # Test that exposed python API works and prints out nothing to stderr or stdout
     output = invoke_semgrep(

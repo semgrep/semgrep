@@ -1,3 +1,6 @@
+import pytest
+
+@pytest.mark.kinda_slow
 def test_severity_error(run_semgrep_in_tmp, snapshot):
     json_str = run_semgrep_in_tmp("rules/inside.yaml", options=["--severity", "ERROR"])[
         0
@@ -7,6 +10,7 @@ def test_severity_error(run_semgrep_in_tmp, snapshot):
     assert '"severity": "WARNING"' not in json_str
 
 
+@pytest.mark.kinda_slow
 def test_severity_info(run_semgrep_in_tmp, snapshot):
     # Shouldn't return errors or results, since inside.yaml has 'severity: ERROR'
     snapshot.assert_match(
@@ -15,6 +19,7 @@ def test_severity_info(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_severity_warning(run_semgrep_in_tmp, snapshot):
     # Shouldn't return errors or results, since inside.yaml has 'severity: ERROR'
     snapshot.assert_match(
@@ -23,6 +28,7 @@ def test_severity_warning(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_severity_multiple(run_semgrep_in_tmp, snapshot):
     # Shouldn't return errors or results, since inside.yaml has 'severity: ERROR'
     # Differs from the two preceding tests in that we're testing adding multiple severity strings

@@ -1,3 +1,5 @@
+import pytest
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,6 +11,7 @@ from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
+@pytest.mark.kinda_slow
 def test_publish(tmp_path):
     runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
 

@@ -15,11 +15,13 @@ syntax_fails = [
 ]
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_passes)
 def test_rule_parser__success(run_semgrep_in_tmp, snapshot, filename):
     run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
@@ -28,12 +30,14 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
+@pytest.mark.kinda_slow
 def test_regex_with_bad_language(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/badlanguage.yaml")
     assert excinfo.value.returncode != 0
 
 
+@pytest.mark.kinda_slow
 def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(f"rules/syntax/empty.yaml")
@@ -41,6 +45,7 @@ def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
     with pytest.raises(CalledProcessError) as excinfo:
@@ -67,6 +72,7 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
 
 
 # https://github.com/returntocorp/semgrep/issues/1095
+@pytest.mark.kinda_slow
 def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
     # Check json output
     with pytest.raises(CalledProcessError) as excinfo:

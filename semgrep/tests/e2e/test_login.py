@@ -1,3 +1,5 @@
+import pytest
+
 from unittest.mock import patch
 
 from click.testing import CliRunner
@@ -7,6 +9,7 @@ from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
+@pytest.mark.slow
 def test_login(tmp_path):
     runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
 
