@@ -1428,11 +1428,15 @@ and m_arguments_concat a b =
       m_arguments_concat (G.Arg (G.L (G.String ("...", a)) |> G.e) :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs -> (
-      (* exception: for concat strings, don't have ellipsis match   *)
+      (* exception: for concat strings, don't have ellipsis/metavars match   *)
       (* string literals since string literals are implicitly not   *)
-      (* interpolated, and ellipsis implicitly is                   *)
+      (* interpolated, and ellipsis/metavars implicitly are                  *)
       match (xa, xb) with
       | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
+          fail ()
+      | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
+          G.Arg { e = G.L (G.String _); _ } )
+        when MV.is_metavar_name s ->
           fail ()
       | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _
