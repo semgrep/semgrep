@@ -1,3 +1,6 @@
+No subcommand passed so running `semgrep scan`
+Note that running semgrep without subcommand will be deprecated in 0.89.0
+Please update invocations of `semgrep ...` to `semgrep scan ...`
 [31m[22m[24m[31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad9.yaml:4
 [94m[22m[24m4 | [0m      - patter: $X = 1

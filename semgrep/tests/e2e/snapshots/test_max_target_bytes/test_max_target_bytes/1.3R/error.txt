@@ -1,3 +1,6 @@
+No subcommand passed so running `semgrep scan`
+Note that running semgrep without subcommand will be deprecated in 0.89.0
+Please update invocations of `semgrep ...` to `semgrep scan ...`
 Usage: python -m semgrep --max-target-bytes [OPTIONS] [TARGET]...
 
 Error: could not convert string to float: '1.3R'

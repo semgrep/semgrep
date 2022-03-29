@@ -1,3 +1,6 @@
+No subcommand passed so running `semgrep scan`
+Note that running semgrep without subcommand will be deprecated in 0.89.0
+Please update invocations of `semgrep ...` to `semgrep scan ...`
 Cannot find a commit with reference '12345'. Possible reasons:
 
 - the referenced commit does not exist

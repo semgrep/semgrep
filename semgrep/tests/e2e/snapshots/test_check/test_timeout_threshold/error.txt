@@ -1,3 +1,6 @@
+No subcommand passed so running `semgrep scan`
+Note that running semgrep without subcommand will be deprecated in 0.89.0
+Please update invocations of `semgrep ...` to `semgrep scan ...`
 running 3 rules from 1 config rules/multiple-long.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
 Rules:

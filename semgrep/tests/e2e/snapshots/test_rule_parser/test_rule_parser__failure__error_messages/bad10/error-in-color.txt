@@ -1,3 +1,6 @@
+No subcommand passed so running `semgrep scan`
+Note that running semgrep without subcommand will be deprecated in 0.89.0
+Please update invocations of `semgrep ...` to `semgrep scan ...`
 [31m[22m[24m[31m[22m[24msemgrep error[0m: null values prohibited
   --> rules/syntax/bad10.yaml:8
 [94m[22m[24m7 | [0m    # This key is missing a value

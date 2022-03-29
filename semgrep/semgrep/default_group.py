@@ -73,6 +73,15 @@ class DefaultGroup(click.Group):
 
         """
         if command_name not in self.commands and self.default_command_name:
+            click.echo("No subcommand passed so running `semgrep scan`", err=True)
+            click.echo(
+                "Note that running semgrep without subcommand will be deprecated in 0.89.0",
+                err=True,
+            )
+            click.echo(
+                "Please update invocations of `semgrep ...` to `semgrep scan ...`",
+                err=True,
+            )
             ctx._default_command_overwrite_args0 = command_name  # type: ignore
             command_name = self.default_command_name
 
