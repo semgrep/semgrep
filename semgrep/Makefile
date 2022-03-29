@@ -4,10 +4,13 @@ PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 .PHONY: test
 test:
 	$(MAKE) kinda-quick-tests
-	$(PYTEST) -m 'not quick and not kinda_slow' tests
+	$(PYTEST) -n auto -m 'not quick and not kinda_slow' tests
 
 # Run only the tests marked as quick (@pytest.mark.quick)
 # We have also 'kinda_slow' and 'slow'. See 'tox.ini', section 'pytest'.
+#
+# '-n auto' parallelizes with too much overhead for the quick tests.
+#
 .PHONY: quick-tests
 quick-tests:
 	$(MAKE) check
@@ -16,11 +19,13 @@ quick-tests:
 .PHONY: kinda-quick-tests
 kinda-quick-tests:
 	$(MAKE) quick-tests
-	$(PYTEST) -m kinda_slow tests
+	$(PYTEST) -n auto -m kinda_slow tests
 
 .PHONY:
 regenerate-tests:
-	pipenv run pytest tests/ --snapshot-update --ignore=tests/qa/test_public_repos.py
+	pipenv run pytest -n auto \
+	  --snapshot-update --ignore=tests/qa/test_public_repos.py \
+	  tests
 
 .PHONY:
 setup:
