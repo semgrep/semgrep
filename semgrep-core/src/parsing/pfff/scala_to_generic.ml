@@ -410,11 +410,26 @@ and v_expr e : G.expr =
   | Lambda v1 ->
       let v1 = v_function_definition v1 in
       G.Lambda v1 |> G.e
-  | New (v1, v2) ->
-      let _v1 = v_tok v1 and v2 = v_template_definition v2 in
-      let cl = G.AnonClass v2 |> G.e in
-      (* TODO: transform in New if v_template_definition is simple *)
-      G.Call (cl, fb []) |> G.e
+  | New (v1, v2) -> (
+      let v1 = v_tok v1 and v2 = v_template_definition v2 in
+      match v2 with
+      | {
+       cextends = [ (tp, args) ];
+       cparams = [];
+       cmixins = [];
+       cbody = _, [], _;
+       cimplements = [];
+       ckind = G.Object, _;
+      } ->
+          let args =
+            match args with
+            | None -> G.fake_bracket []
+            | Some args -> args
+          in
+          G.New (v1, tp, args) |> G.e
+      | _ ->
+          let cl = G.AnonClass v2 |> G.e in
+          G.Call (cl, fb []) |> G.e)
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
