@@ -336,6 +336,7 @@ let lang_parsing_tests =
     pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
     pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
+    pack_parsing_tests_for_lang Lang.Swift "swift" ".swift";
     pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
     pack_parsing_tests_for_lang Lang.Hack "hack" ".hack";
     (* here we have both a Pfff and tree-sitter parser *)
