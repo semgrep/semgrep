@@ -23,7 +23,7 @@ class PackageManagers(str, Enum):
     MAVEN = "maven"
 
 
-@dataclass(eq=True, order=True)
+@dataclass(eq=True, order=True, frozen=True)
 class LockfileDependency:
     name: str
     version: str
