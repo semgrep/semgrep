@@ -122,7 +122,7 @@ class BaselineHandler:
                     "--ignore-submodules",
                     "--relative",
                     "--merge-base",
-                    f"{self._base_commit}",
+                    self._base_commit,
                 ],
                 timeout=GIT_SH_TIMEOUT,
                 stderr=subprocess.PIPE,
@@ -282,8 +282,8 @@ class BaselineHandler:
         self._abort_on_conflicting_untracked_paths(self.status)
 
         logger.debug("Running git write-tree")
-        current_tree = subprocess.run(
-            ["git", "write-tree"],
+        current_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
             timeout=GIT_SH_TIMEOUT,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -291,18 +291,18 @@ class BaselineHandler:
             check=True,
         ).stdout.strip()
         try:
-            for a in status.added:
-                try:
-                    a.unlink()
-                except FileNotFoundError:
-                    logger.verbose(
-                        f"| {a} was not found when trying to delete", err=True
-                    )
+            merge_base_sha = (
+                sub_check_output(["git", "merge-base", self._base_commit, "HEAD"])
+                .rstrip()
+                .decode()
+            )
 
             logger.debug("Running git checkout for baseline context")
             subprocess.run(
-                ["git", "checkout", f"{self._base_commit}", "--", "."],
+                ["git", "reset", "--hard", merge_base_sha],
                 timeout=GIT_SH_TIMEOUT,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
                 check=True,
             )
             logger.debug("Finished git checkout for baseline context")
@@ -314,12 +314,14 @@ class BaselineHandler:
             # In this case, we still want to continue without error.
             # Note that we have no good way of detecting this issue without inspecting the checkout output
             # message, which means we are fragile with respect to git version here.
-            logger.debug("Running git checkout to return original context")
+            logger.debug("Running git reset to return original context")
             x = subprocess.run(
-                ["git", "checkout", f"{current_tree.strip()}", "--", "."],
+                ["git", "reset", "--hard", current_head],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
                 timeout=GIT_SH_TIMEOUT,
             )
-            logger.debug("Finished git checkout to return original context")
+            logger.debug("Finished git reset to return original context")
 
             if x.returncode != 0:
                 output = x.stderr.decode()
@@ -336,20 +338,6 @@ class BaselineHandler:
                     raise Exception(
                         f"Fatal error restoring Git state; please restore your repository state manually:\n{output}"
                     )
-
-            if status.removed:
-                # Need to check if file exists since it is possible file was deleted
-                # in both the base and head. Only call if there are files to delete
-                to_remove = [r for r in status.removed if r.exists()]
-                if to_remove:
-                    logger.debug("Running git rm")
-                    subprocess.run(
-                        ["git", "rm", "-f", *to_remove],
-                        timeout=GIT_SH_TIMEOUT,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    logger.debug("finished git rm")
 
     def print_git_log(self) -> None:
         base_commit_sha = (
