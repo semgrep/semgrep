@@ -90,12 +90,12 @@ let map_as_quest_custom (env : env) (tok : CST.as_quest_custom) =
 
 let map_assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   match x with
-  | `PLUSEQ tok -> (* "+=" *) token env tok
-  | `DASHEQ tok -> (* "-=" *) token env tok
-  | `STAREQ tok -> (* "*=" *) token env tok
-  | `SLASHEQ tok -> (* "/=" *) token env tok
-  | `PERCEQ tok -> (* "%=" *) token env tok
-  | `EQ tok -> (* "=" *) token env tok
+  | `PLUSEQ tok -> (Some G.Plus, (* "+=" *) token env tok)
+  | `DASHEQ tok -> (Some G.Minus, (* "-=" *) token env tok)
+  | `STAREQ tok -> (Some G.Mult, (* "*=" *) token env tok)
+  | `SLASHEQ tok -> (Some G.Div, (* "/=" *) token env tok)
+  | `PERCEQ tok -> (Some G.Mod, (* "%=" *) token env tok)
+  | `EQ tok -> (None, (* "=" *) token env tok)
 
 let map_ownership_modifier (env : env) (x : CST.ownership_modifier) =
   match x with
@@ -1426,11 +1426,13 @@ and map_direct_or_indirect_binding (env : env)
 and map_directly_assignable_expression (env : env)
     (x : CST.directly_assignable_expression) =
   match x with
-  | `Simple_id x -> map_simple_identifier env x
-  | `Navi_exp x -> map_navigation_expression env x |> todo env
-  | `Call_exp x -> map_call_expression env x |> todo env
-  | `Tuple_exp x -> map_tuple_expression env x |> todo env
-  | `Self_exp tok -> (* "self" *) token env tok |> todo env
+  | `Simple_id x ->
+      let id = map_simple_identifier env x in
+      G.N (H2.name_of_id id) |> G.e
+  | `Navi_exp x -> map_navigation_expression env x
+  | `Call_exp x -> map_call_expression env x
+  | `Tuple_exp x -> map_tuple_expression env x
+  | `Self_exp tok -> map_self_expression env tok
 
 and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
   let v1 = (* "do" *) token env v1 in
@@ -1513,16 +1515,24 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Bin_exp x -> map_binary_expression env x
   | `Tern_exp x -> map_ternary_expression env x
   | `Prim_exp x -> map_primary_expression env x
-  | `Assign (v1, v2, v3) ->
+  | `Assign (v1, v2, v3) -> (
       let v1 = map_directly_assignable_expression env v1 in
-      let v2 = map_assignment_and_operator env v2 in
+      let op, optok = map_assignment_and_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      match op with
+      | None -> G.Assign (v1, optok, v3) |> G.e
+      | Some op -> G.AssignOp (v1, (op, optok), v3) |> G.e)
   | `Exp_imme_quest (v1, v2) ->
       let v1 = map_expression env v1 in
       let v2 = (* "?" *) token env v2 in
-      todo env (v1, v2)
-  | `Async tok -> (* "async" *) token env tok |> todo env
+      (* This is how optional chaining is parsed. It looks like the fact that
+       * it's an optional chain is just discarded when analyzing JS, so this
+       * should be fine for now. *)
+      v1
+  | `Async tok ->
+      (* In this context, async is just a normal identifier *)
+      let id = str env tok in
+      G.N (H2.name_of_id id) |> G.e
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) : CST.for_statement) =
@@ -2430,7 +2440,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       in
       let v4 = (* "]" *) token env v4 in
       G.Container (G.Dict, (v1, v2, v4)) |> G.e
-  | `Self_exp tok -> G.IdSpecial (G.Self, (* "self" *) token env tok) |> G.e
+  | `Self_exp tok -> map_self_expression env tok
   | `Super_exp v1 -> G.IdSpecial (G.Super, (* "super" *) token env v1) |> G.e
   | `Try_exp (v1, v2) ->
       let v1 = map_try_operator env v1 in
@@ -2478,6 +2488,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       let tok = (* three_dot_operator_custom *) token env tok in
       let op = (G.Range, tok) in
       G.opcall op [ G.L (G.Null tok) |> G.e; G.L (G.Null tok) |> G.e ]
+
+and map_self_expression (env : env) tok =
+  G.IdSpecial (G.Self, (* "self" *) token env tok) |> G.e
 
 and map_property_binding_pattern (env : env) (x : CST.property_binding_pattern)
     =
