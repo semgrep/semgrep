@@ -6,6 +6,16 @@ test:
 	$(MAKE) kinda-quick-tests
 	$(PYTEST) -n auto -m 'not quick and not kinda_slow' tests
 
+.PHONY: check
+check:
+	pre-commit run -a mypy
+	$(MAKE) check-markers
+
+# Check that all the test_* functions are categorized by duration.
+.PHONY: check-markers
+check-markers:
+	./tests/check-markers tests
+
 # Run only the tests marked as quick (@pytest.mark.quick)
 # We have also 'kinda_slow' and 'slow'. See 'tox.ini', section 'pytest'.
 #
@@ -37,8 +47,3 @@ clean:
 	rm -rf .pytest_cache/ .benchmarks/
 	rm -f semgrep/bin/semgrep-core
 	rm -rf semgrep/__pycache__ semgrep/*/__pycache__
-
-.PHONY: check
-check:
-	pre-commit run -a mypy
-	#semgrep -pycheck .
