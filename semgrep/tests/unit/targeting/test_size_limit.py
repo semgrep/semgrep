@@ -6,6 +6,7 @@ import pytest
 from semgrep.target_manager import TargetManager
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "size_limit,should_skip",
     [

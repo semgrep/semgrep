@@ -144,6 +144,7 @@ jobs:
           unset CI
           unset "${!GITHUB_@}"
 
+          make check-markers
           pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -vv --tb=short --durations=0 --snapshot-update tests/
       - name: Generate cheatsheets for semgrep.dev
         run: ./scripts/generate-cheatsheet

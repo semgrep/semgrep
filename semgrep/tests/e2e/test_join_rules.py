@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -25,6 +26,7 @@ def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "rule,target",
     [
