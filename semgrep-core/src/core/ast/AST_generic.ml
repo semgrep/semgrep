@@ -374,7 +374,7 @@ and id_info = {
   *)
   id_hidden : bool;
   (* this is used by Naming_X in deep-semgrep *)
-  id_info_id : id_info_id;
+  id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
 
 and id_info_id = int
