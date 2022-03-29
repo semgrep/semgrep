@@ -80,7 +80,6 @@ def run_dependency_aware_rule(
         # no dependencies to process, so skip
         return matches, []
 
-
     dummy_match = RuleMatch(
         rule_id=rule.id,
         message=rule.message,
@@ -101,6 +100,14 @@ def run_dependency_aware_rule(
                 depends_on_entries, find_and_parse_lockfiles(lockfile_target)
             )
         )
+        output_for_json = [
+            {
+                "dependency_pattern": vars(dep_pat),
+                "found_dependency": vars(found_dep),
+                "lockfile": lockfile.name,
+            }
+            for dep_pat, found_dep, lockfile in output
+        ]
         # Dependency checks found nothing, so rule should not match
         if output == []:
             final_matches = []
@@ -108,10 +115,18 @@ def run_dependency_aware_rule(
         # Dependency checks found something, so rule should match
         # and we should get a dummy match indicating the dependency match
         else:
-            final_matches = [dummy_match] + matches
-        
-        return final_matches,dep_rule_errors
-        
+            if matches == []:
+                dummy_match.extra["dependency_match_only"] = True
+                dummy_match.extra["dependency_matches"] = output_for_json
+                matches.append(dummy_match)
+            else:
+                for match in matches:
+                    match.extra["dependency_match_only"] = False
+                    match.extra["dependency_matches"] = output_for_json
+
+            final_matches = matches
+
+        return final_matches, dep_rule_errors
+
     except SemgrepError as e:
         return [], [e]
-
