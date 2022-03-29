@@ -1,0 +1,26 @@
+#! /usr/bin/env bash
+#
+# Check that all the pytest tests are categorized by duration.
+#
+# Arguments (optional): pytest search root
+#
+set -eu
+
+echo "Checking that all tests are categorized by duration."
+
+# The pipenv command should select 0 tests.
+if pipenv run pytest --collect-only \
+   -m 'not quick and not kinda_slow and not slow' "$@"; \
+   [[ $? != 5 ]]; then
+  cat<<EOF
+*** The tests reported above are uncategorized.
+    Please apply one of the following decorators to the test_* functions:
+
+      @pytest.mark.quick       # test takes less than 100 ms
+      @pytest.mark.kinda_slow  # test takes up to 1 or 2 s
+      @pytest.mark.slow        # test takes more than 1 or 2 s
+EOF
+  exit 1
+else
+  echo "Nice."
+fi

@@ -83,6 +83,7 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
         raise e
 
 
+@pytest.mark.kinda_slow
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
     # Test that head having no change to base (git commit --allow-empty)
     # doesnt break semgrep
@@ -118,10 +119,12 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.quick
 def test_symlink(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.kinda_slow
 def test_no_findings_both(git_tmp_path, snapshot):
     # Test if no findings in head or base semgrep doesnt explode
     foo = git_tmp_path / "foo.py"
@@ -162,6 +165,7 @@ def test_no_findings_both(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_no_findings_head(git_tmp_path, snapshot):
     # Test that no findings in head reports no findings even if
     # findings in baseline
@@ -205,6 +209,7 @@ def test_no_findings_head(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_no_findings_baseline(git_tmp_path, snapshot):
     # Test when head contains all findings and baseline doesnt contain any
     foo = git_tmp_path / "foo.py"
@@ -246,6 +251,7 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_some_intersection(git_tmp_path, snapshot):
     # Test when baseline contains some findings of head
     foo = git_tmp_path / "foo.py"
@@ -286,6 +292,7 @@ def test_some_intersection(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_all_intersect(git_tmp_path, snapshot):
     # Test when baseline and head contain same findings none are reported
     foo = git_tmp_path / "foo.py"
@@ -326,6 +333,7 @@ def test_all_intersect(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_no_intersection(git_tmp_path, snapshot):
     # If no intersection of baseline and head finding should still report head finding
     foo = git_tmp_path / "foo.py"
@@ -366,6 +374,7 @@ def test_no_intersection(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "new_name",
     [
@@ -411,14 +420,17 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     }, "the old path should be gone now"
 
 
+@pytest.mark.quick
 def test_multiple_on_same_line(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.quick
 def test_run_in_subdirectory(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.kinda_slow
 def test_unstaged_changes(git_tmp_path, snapshot):
     # Should abort if have unstaged changes
     foo = git_tmp_path / "foo"
@@ -439,10 +451,12 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
+@pytest.mark.quick
 def test_baseline_has_head_untracked(git_tmp_path, snapshot):
     pass
 
 
+@pytest.mark.kinda_slow
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)
@@ -456,6 +470,7 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
+@pytest.mark.kinda_slow
 def test_commit_doesnt_exist(git_tmp_path, snapshot):
     # Should abort baseline scan if baseline is not valid commit
     foo = git_tmp_path / "foo"
@@ -472,6 +487,7 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
+@pytest.mark.quick
 @pytest.fixture
 def git_tmp_path(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)

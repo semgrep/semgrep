@@ -2,12 +2,15 @@ from pathlib import Path
 from textwrap import dedent
 from unittest import mock
 
+import pytest
+
 from semgrep.constants import RuleSeverity
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 
 
+@pytest.mark.quick
 def test_rule_match_attributes():
     file_content = dedent(
         """
@@ -37,6 +40,7 @@ def test_rule_match_attributes():
     ), "syntactic IDs must remain consistent to not trigger new notifications"
 
 
+@pytest.mark.quick
 def test_rule_match_sorting():
     file_content = dedent(
         """
@@ -70,6 +74,7 @@ def test_rule_match_sorting():
     # fmt: on
 
 
+@pytest.mark.quick
 def test_rule_match_hashing():
     file_content = dedent(
         """
@@ -90,6 +95,7 @@ def test_rule_match_hashing():
     assert {match, match} == {match}, "matches must deduplicate when added to a set"
 
 
+@pytest.mark.quick
 def test_rule_match_set_indexes():
     file_content = dedent(
         """

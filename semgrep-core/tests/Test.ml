@@ -336,6 +336,7 @@ let lang_parsing_tests =
     pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
     pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
+    pack_parsing_tests_for_lang Lang.Swift "swift" ".swift";
     pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
     pack_parsing_tests_for_lang Lang.Hack "hack" ".hack";
     (* here we have both a Pfff and tree-sitter parser *)
@@ -469,6 +470,12 @@ let lang_tainting_tests =
       let dir = Filename.concat taint_tests_path "ts" in
       let files = Common2.glob (spf "%s/*.ts" dir) in
       let lang = Lang.Ts in
+      tainting_tests_for_lang files lang
+    );
+    pack_tests "tainting Scala" (
+      let dir = Filename.concat taint_tests_path "scala" in
+      let files = Common2.glob (spf "%s/*.scala" dir) in
+      let lang = Lang.Scala in
       tainting_tests_for_lang files lang
     );
   ]
