@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- `-` is now parsed as a valid identifier in Scala
+- `new $OBJECT(...)` will now work properly as a taint sink (#4858)
+
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 
 ## Changed
@@ -84,8 +89,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   constant will also be considered constant (#4301)
 - Constant propagation now recognizes operators `++` and `--` as side-effectful
   (#4667)
-- `-` is now parsed as a valid identifier in Scala
-- `new $OBJECT(...)` will now work properly as a taint sink (#4858)
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
