@@ -11,6 +11,9 @@ from semgrep.default_group import DefaultGroup
 
 @click.group(cls=DefaultGroup, default_command="scan")
 def cli() -> None:
+    """
+    To get started quickly, run `semgrep scan --config auto`
+    """
     pass
 
 
