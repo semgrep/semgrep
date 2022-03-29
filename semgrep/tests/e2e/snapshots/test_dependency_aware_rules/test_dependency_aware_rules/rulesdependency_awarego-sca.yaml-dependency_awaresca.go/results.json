@@ -15,6 +15,51 @@
         "offset": 24
       },
       "extra": {
+        "dependency_match_only": false,
+        "dependency_matches": [
+          {
+            "dependency_pattern": {
+              "namespace": "gomod",
+              "package_name": "github.com/cheekybits/genny",
+              "semver_range": "== 1.0.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "gomod": [
+                  "uGGa4nei+j20rOSeDeP5Of12XVm7TGUd4dJA9RDitfE"
+                ]
+              },
+              "name": "github.com/cheekybits/genny",
+              "namespace": "gomod",
+              "resolved_url": [
+                "github.com/cheekybits/genny"
+              ],
+              "version": "1.0.0"
+            },
+            "lockfile": "go.sum"
+          },
+          {
+            "dependency_pattern": {
+              "namespace": "gomod",
+              "package_name": "github.com/cheekybits/genny",
+              "semver_range": "== 1.0.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "gomod": [
+                  "+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wXkRAgjxjQ"
+                ]
+              },
+              "name": "github.com/cheekybits/genny",
+              "namespace": "gomod",
+              "resolved_url": [
+                "github.com/cheekybits/genny"
+              ],
+              "version": "1.0.0"
+            },
+            "lockfile": "go.sum"
+          }
+        ],
         "fingerprint": "5c136ae7599499d8a4779d6ddbe0a3cf",
         "is_ignored": false,
         "lines": "\treturn bad()",

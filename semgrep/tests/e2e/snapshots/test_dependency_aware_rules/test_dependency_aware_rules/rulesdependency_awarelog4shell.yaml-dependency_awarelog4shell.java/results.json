@@ -15,6 +15,24 @@
         "offset": 1037
       },
       "extra": {
+        "dependency_match_only": false,
+        "dependency_matches": [
+          {
+            "dependency_pattern": {
+              "namespace": "maven",
+              "package_name": "log4j-core",
+              "semver_range": "<= 0.0.2"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "name": "log4j-core",
+              "namespace": "maven",
+              "resolved_url": null,
+              "version": "0.0.1"
+            },
+            "lockfile": "pom.xml"
+          }
+        ],
         "fingerprint": "2dad36618046aba1c66784346119c366",
         "is_ignored": false,
         "lines": "            logger.error(userName);",
