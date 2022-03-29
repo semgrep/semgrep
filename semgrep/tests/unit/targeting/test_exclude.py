@@ -28,6 +28,7 @@ CANDIDATE_NAMES = [
 CANDIDATES = frozenset(Path(name) for name in CANDIDATE_NAMES)
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "patterns, expected_kept",
     [
@@ -206,6 +207,7 @@ EQUIVALENT_PATTERNS = [
 ]
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize("pattern_variant", EQUIVALENT_PATTERNS)
 def test_filter_exclude__equivalent_variants(pattern_variant):
     """Test some different variations of the pattern yield the same result."""

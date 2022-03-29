@@ -1,7 +1,10 @@
 import json
 import subprocess
 
+import pytest
 
+
+@pytest.mark.kinda_slow
 def test_synthesize_patterns():
     output = subprocess.check_output(
         [
