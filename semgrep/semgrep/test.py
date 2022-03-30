@@ -304,7 +304,7 @@ def get_config_filenames(original_config: Path) -> List[Path]:
 def get_config_test_filenames(
     original_config: Path, configs: List[Path], original_target: Path
 ) -> Dict[Path, List[Path]]:
-    original_config_is_file_not_directory = original_target.is_file()
+    original_config_is_file_not_directory = original_config.is_file()
     original_target_is_file_not_directory = original_target.is_file()
 
     if original_config_is_file_not_directory and original_target_is_file_not_directory:
