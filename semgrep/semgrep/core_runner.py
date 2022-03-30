@@ -387,7 +387,6 @@ class CoreRunner:
                         core_stdout,
                         core_stderr,
                     )
-                print(f"errors from semgrep-core: {errors}")
                 raise errors[0].to_semgrep_error()
             else:
                 self._fail(
