@@ -29,5 +29,4 @@ COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
 # cd ~
 WORKDIR /home/semgrep
 
-USER semgrep
 ENTRYPOINT ["/bin/bash"]
