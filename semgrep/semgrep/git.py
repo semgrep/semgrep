@@ -138,9 +138,13 @@ class BaselineHandler:
         removed = []
         unmerged = []
         while status_output:
-            code = status_output[0]
-            fname = status_output[1]
-            trim_size = 2
+            code = status_output.pop(0)
+            fname = status_output.pop(0)
+            new_fname = None
+
+            # code is RXXX, where XXX is percent similarity
+            if code[0] == StatusCode.Renamed:
+                new_fname = status_output.pop(0)
 
             if not code.strip():
                 continue
@@ -157,12 +161,9 @@ class BaselineHandler:
             # The following detection for unmerged codes comes from `man git-status`
             if code == StatusCode.Unmerged:
                 unmerged.append(path)
-            if (
-                code[0] == StatusCode.Renamed
-            ):  # code is RXXX, where XXX is percent similarity
+            # code is RXXX, where XXX is percent similarity
+            if code[0] == StatusCode.Renamed and new_fname:
                 removed.append(path)
-                new_fname = status_output[2]
-                trim_size += 1
                 added.append(Path(new_fname))
             if code == StatusCode.Added:
                 added.append(path)
@@ -171,7 +172,6 @@ class BaselineHandler:
             if code == StatusCode.Deleted:
                 removed.append(path)
 
-            status_output = status_output[trim_size:]
         logger.debug(
             f"Git status:\nadded: {added}\nmodified: {modified}\nremoved: {removed}\nunmerged: {unmerged}"
         )

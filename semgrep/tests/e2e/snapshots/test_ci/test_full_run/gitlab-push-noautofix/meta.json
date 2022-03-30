@@ -1,5 +1,6 @@
 {
     "meta": {
+        "semgrep_version": "<sanitized version>",
         "repository": "project_name/project_name",
         "repo_url": "https://example.com/gitlab-org/gitlab-foss",
         "branch": "some/branch-name",

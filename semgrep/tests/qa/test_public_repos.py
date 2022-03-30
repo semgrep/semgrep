@@ -174,6 +174,7 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
     return repo_destination
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("repo_object", ALL_REPOS)
 #
 # This test runs [which checks?] against one public git repo.

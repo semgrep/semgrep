@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -19,6 +20,7 @@ def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
     )
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",
     [

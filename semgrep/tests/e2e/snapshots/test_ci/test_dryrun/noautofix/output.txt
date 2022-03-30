@@ -4,7 +4,6 @@ Scan environment:
   semgrep.dev - authenticated as org_name
 
 Fetching configuration from semgrep.dev
-Adding ignore patterns configured on semgrep.dev as `--exclude` options: ('.semgrep/', '.semgrep_logs/')
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
 
@@ -58,9 +57,9 @@ Would have sent findings blob: {
             "end_column": 11,
             "message": "useless comparison",
             "severity": 2,
-            "index": 1,
+            "index": 3,
             "commit_date": <sanitized date>,
-            "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
+            "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
             "metadata": {},
             "is_blocking": true
         },
@@ -154,9 +153,9 @@ Would have sent ignores blob: {
             "end_column": 11,
             "message": "useless comparison",
             "severity": 2,
-            "index": 1,
+            "index": 2,
             "commit_date": <sanitized date>,
-            "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
+            "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
             "metadata": {},
             "is_blocking": true
         },

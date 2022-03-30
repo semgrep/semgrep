@@ -15,6 +15,24 @@
         "offset": 9
       },
       "extra": {
+        "dependency_match_only": false,
+        "dependency_matches": [
+          {
+            "dependency_pattern": {
+              "namespace": "gem",
+              "package_name": "parallel",
+              "semver_range": "== 1.21.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "name": "parallel",
+              "namespace": "gem",
+              "resolved_url": null,
+              "version": "1.21.0"
+            },
+            "lockfile": "Gemfile.lock"
+          }
+        ],
         "fingerprint": "c61fb1ce8248b3d7e7d5200726fadbcf",
         "is_ignored": false,
         "lines": "x = bad()",

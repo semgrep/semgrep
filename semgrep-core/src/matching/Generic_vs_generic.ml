@@ -532,9 +532,20 @@ and m_ident_and_empty_id_info a1 b1 =
  *)
 and m_id_info a b =
   match (a, b) with
-  | ( { G.id_resolved = _a1; id_type = _a2; id_svalue = _a3; id_hidden = _a4 },
-      { B.id_resolved = _b1; id_type = _b2; id_svalue = _b3; id_hidden = _b4 } )
-    ->
+  | ( {
+        G.id_resolved = _a1;
+        id_type = _a2;
+        id_svalue = _a3;
+        id_hidden = _a4;
+        id_info_id = _a5;
+      },
+      {
+        B.id_resolved = _b1;
+        id_type = _b2;
+        id_svalue = _b3;
+        id_hidden = _b4;
+        id_info_id = _b5;
+      } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
        * but doing import flask in a source file means every reference
        * to flask.xxx will be tagged with a ImportedEntity, but
@@ -1417,11 +1428,15 @@ and m_arguments_concat a b =
       m_arguments_concat (G.Arg (G.L (G.String ("...", a)) |> G.e) :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs -> (
-      (* exception: for concat strings, don't have ellipsis match   *)
+      (* exception: for concat strings, don't have ellipsis/metavars match   *)
       (* string literals since string literals are implicitly not   *)
-      (* interpolated, and ellipsis implicitly is                   *)
+      (* interpolated, and ellipsis/metavars implicitly are                  *)
       match (xa, xb) with
       | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
+          fail ()
+      | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
+          G.Arg { e = G.L (G.String _); _ } )
+        when MV.is_metavar_name s ->
           fail ()
       | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _

@@ -84,6 +84,7 @@ let default_visitor =
           id_type = v_id_type;
           id_svalue = _IGNORED;
           id_hidden = _IGNORED2;
+          id_info_id = _IGNORED3;
         } =
           x
         in
@@ -191,6 +192,7 @@ let (mk_visitor :
         id_type = v_id_type;
         id_svalue = v_id_svalue;
         id_hidden = v_id_hidden;
+        id_info_id = _IGNORED;
       } =
         x
       in

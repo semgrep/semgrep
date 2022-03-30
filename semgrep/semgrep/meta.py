@@ -14,6 +14,7 @@ from glom import glom
 from glom import T
 from glom.core import TType
 
+from semgrep import __VERSION__
 from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.verbose_logging import getLogger
 
@@ -146,6 +147,7 @@ class GitMeta:
         ).strip()
 
         return {
+            "semgrep_version": __VERSION__,
             # REQUIRED for semgrep-app backend
             "repository": self.repo_name,
             #  OPTIONAL for semgrep-app backend

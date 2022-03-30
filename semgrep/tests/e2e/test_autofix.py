@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
     snapshot.assert_match(
@@ -38,6 +39,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
         )
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(
     "rule,target",
@@ -62,6 +64,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
     ],
 )
+@pytest.mark.kinda_slow
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(

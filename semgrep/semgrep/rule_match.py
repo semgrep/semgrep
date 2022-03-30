@@ -16,7 +16,6 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import pymmh3
 from attrs import evolve
 from attrs import field
 from attrs import frozen
@@ -24,7 +23,7 @@ from attrs import frozen
 import semgrep.output_from_core as core
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
-from semgrep.types import JsonObject
+from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
@@ -134,9 +133,13 @@ class RuleMatch:
         when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
         and thus CI systems don't retrigger notifications.
         """
-        code = "".join(self.lines)  # the lines end with newlines already
+        lines = [*self.lines]
+        if len(lines) > 0:
+            lines[0] = NOSEM_INLINE_COMMENT_RE.sub("", lines[0])
+            lines[0] = lines[0].rstrip() + "\n"
+
+        code = "".join(lines)  # the lines end with newlines already
         code = textwrap.dedent(code)
-        code = NOSEM_INLINE_COMMENT_RE.sub("", code)
         code = code.strip()
         return code
 
@@ -205,7 +208,7 @@ class RuleMatch:
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
         # but we need to keep consistent hashes so we cannot change this easily
-        hash_int = pymmh3.hash128(str(self.ci_unique_key))
+        hash_int = hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
@@ -297,8 +300,8 @@ class RuleMatchSet(Set[RuleMatch]):
         The index lets us still notify when some code with findings is duplicated,
         even though we'd otherwise deduplicate the findings.
         """
-        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key])
         self._ci_key_counts[match.ci_unique_key] += 1
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         super().add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:

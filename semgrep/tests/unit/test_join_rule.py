@@ -8,6 +8,7 @@ from semgrep.join_rule import JoinOperator
 from semgrep.join_rule import model_factory
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "A,propA,B,propB,op",
     [
@@ -43,6 +44,7 @@ def test_condition_parse(A, propA, B, propB, op):
     assert expected == actual
 
 
+@pytest.mark.quick
 def test_condition_parse_dot_behavior():
     A = "a.b.c.d.e"
     propA = "$FOO"
@@ -60,6 +62,7 @@ def test_condition_parse_dot_behavior():
     assert actual.operator == op
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "condition_string",
     [
@@ -76,6 +79,7 @@ def test_invalid_condition_string(condition_string):
         Condition.parse(condition_string)
 
 
+@pytest.mark.quick
 def test_model_factory():
     model = model_factory("HelloWorld", ["a", "b", "c"])
     assert model.__name__ == "HelloWorld"
@@ -86,6 +90,7 @@ def test_model_factory():
         _ = model.d
 
 
+@pytest.mark.quick
 def test_create_collection_set_from_conditions():
     conditions = [
         Condition("A", "propA1", "B", "propB", JoinOperator("==")),
@@ -97,6 +102,7 @@ def test_create_collection_set_from_conditions():
     assert expected == actual
 
 
+@pytest.mark.quick
 def test_create_model_map():
     results = [
         {

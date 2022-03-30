@@ -168,6 +168,7 @@ def ci_mocks(base_commit, autofix):
                         yield
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 @pytest.mark.parametrize(
     "env",
@@ -294,6 +295,8 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             meta_json = post_mock.mock_calls[0].kwargs["json"]
             assert meta_json["meta"]["commit"] == head_commit
             meta_json["meta"]["commit"] = "sanitized"
+            assert meta_json["meta"]["semgrep_version"] == __VERSION__
+            meta_json["meta"]["semgrep_version"] = "<sanitized version>"
 
             if env.get("GITLAB_CI"):
                 # If in a merge pipeline, base_sha is defined, otherwise is None
@@ -325,6 +328,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             snapshot.assert_match(json.dumps(complete_json, indent=4), "complete.json")
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
@@ -346,6 +350,7 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
         snapshot.assert_match(sanitized_output, "output.txt")
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
