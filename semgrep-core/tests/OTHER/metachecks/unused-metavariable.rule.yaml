@@ -1,7 +1,14 @@
 rules:
-- id: test-rule-file-run
+- id: unused-metavariable
   patterns:
-    - pattern: require(...);
-  message: Confirm that the rule file is run
+    - pattern: |
+        var $UTIL = require("something_or_other");
+        ...
+        $UTIL.$FUNC(...)
+    # ruleid: semgrep-metacheck-builtin
+    - metavariable-regex:
+        metavariable: $METHOD
+        regex: (a|b|c)
+  message: Bad method call
   languages: [js]
   severity: WARNING
