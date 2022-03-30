@@ -13,7 +13,6 @@ import click
 import requests
 from urllib3.util.retry import Retry
 
-from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -225,7 +224,7 @@ class ScanHandler:
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings",
+            f"{self.app_url}/api/agent/scans/{self.scan_id}/findings",
             json=findings,
             timeout=30,
         )
@@ -241,7 +240,7 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/ignores",
+            f"{self.app_url}/api/agent/scans/{self.scan_id}/ignores",
             json=ignores,
             timeout=30,
         )
@@ -252,7 +251,7 @@ class ScanHandler:
 
         # mark as complete
         response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/complete",
+            f"{self.app_url}/api/agent/scans/{self.scan_id}/complete",
             json=complete,
             timeout=30,
         )
@@ -261,5 +260,5 @@ class ScanHandler:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
-                f"API server at {SEMGREP_URL} returned this error: {response.text}"
+                f"API server at {self.app_url} returned this error: {response.text}"
             )

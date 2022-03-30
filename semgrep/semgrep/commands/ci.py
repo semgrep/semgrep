@@ -143,7 +143,7 @@ def url(string: str) -> str:
 @click.option(
     "--app-url",
     default="https://semgrep.dev",
-    # This env var is separate from SEMGREP_URL so you can override registry & scan API endpoints separately
+    # This env var is separate from SEMGREP_REGISTRY_URL so you can override registry & scan API endpoints separately
     envvar="SEMGREP_APP_URL",
     type=url,
     hidden=True,

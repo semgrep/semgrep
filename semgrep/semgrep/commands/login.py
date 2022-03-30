@@ -8,7 +8,7 @@ import click
 
 from semgrep.constants import IN_DOCKER
 from semgrep.constants import IN_GH_ACTION
-from semgrep.constants import SEMGREP_URL
+from semgrep.constants import SEMGREP_REGISTRY_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.settings import SETTINGS
 from semgrep.verbose_logging import getLogger
@@ -21,7 +21,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
     session_id = uuid.uuid4()
     return (
         session_id,
-        f"{SEMGREP_URL}login?cli-token={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
+        f"{SEMGREP_REGISTRY_URL}login?cli-token={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
     )
 
 
@@ -66,7 +66,7 @@ def login() -> None:
         for _ in range(MAX_RETRIES):
             headers = {"User-Agent": SEMGREP_USER_AGENT}
             r = requests.post(
-                f"{SEMGREP_URL}api/agent/tokens/requests",
+                f"{SEMGREP_REGISTRY_URL}/api/agent/tokens/requests",
                 json={"token_request_key": str(session_id)},
                 timeout=10,
                 headers=headers,
@@ -79,7 +79,7 @@ def login() -> None:
                     sys.exit(1)
             elif r.status_code != 404:
                 click.echo(
-                    f"Unexpected failure from {SEMGREP_URL}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                    f"Unexpected failure from {SEMGREP_REGISTRY_URL}: status code {r.status_code}; please contact support@r2c.dev if this persists",
                     err=True,
                 )
 
@@ -106,7 +106,7 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
             f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {SETTINGS.get_path_to_settings()}."
         )
         click.echo(
-            f"Note: You can always generate more tokens at {SEMGREP_URL}orgs/-/settings/tokens"
+            f"Note: You can always generate more tokens at {SEMGREP_REGISTRY_URL}orgs/-/settings/tokens"
         )
         return True
     else:
@@ -136,7 +136,7 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}api/agent/deployments/current", timeout=10, headers=headers
+            f"{SEMGREP_REGISTRY_URL}/api/agent/deployments/current", timeout=10, headers=headers
         )
         return r.ok
 
@@ -153,11 +153,8 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}api/agent/deployments/current", timeout=10, headers=headers
-        )
-
+            f"{SEMGREP_REGISTRY_URL}/api/agent/deployments", timeout=10, headers=headers
         if r.ok:
-            data = r.json()
             return data.get("deployment", {}).get("id")  # type: ignore
         else:
             return None
