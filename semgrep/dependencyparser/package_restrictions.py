@@ -7,25 +7,12 @@ from typing import List
 from typing import Tuple
 
 import packaging.version
-from dependencyparser.find_lockfiles import find_lockfiles
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.parse_lockfile import parse_lockfile_str
 from packaging.specifiers import SpecifierSet
 
 from semgrep.error import SemgrepError
-
-
-@functools.lru_cache(maxsize=None)
-def find_and_parse_lockfiles(current_dir: Path) -> Dict[Path, List[LockfileDependency]]:
-    # print('looking for lockfiles...')
-    dependencies = {}
-    for lockfile in find_lockfiles(current_dir):
-        dependencies[lockfile] = list(
-            parse_lockfile_str(lockfile.read_text(), lockfile)
-        )
-        # print(f'lockfile: {lockfile} with # deps: {len(dependencies[lockfile])}')
-    return dependencies
 
 
 @dataclass(eq=True, order=True, frozen=True)

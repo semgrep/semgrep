@@ -25,8 +25,10 @@ class Node:
 class DependencyTrie:
     def __init__(self) -> None:
         self.root: Node = Node(children={}, val=None)
+        self.all_deps: Dict[Path, List[LockfileDependency]] = dict()
 
     def insert(self, path: Path, deps: List[LockfileDependency]) -> None:
+        self.all_deps[path] = deps
         curr = self.root
         for part in path.parts[:-1]:
             if part not in curr.children:
@@ -67,8 +69,8 @@ def make_dependency_trie(target: Path) -> DependencyTrie:
                     go(full_path, frozenset(new_paths))
                 if entry.is_file() and entry.name.lower() in TARGET_LOCKFILE_FILENAMES:
                     dep_trie.insert(
-                        current, parse_lockfile_str(current.read_text(), current)
+                        full_path, parse_lockfile_str(full_path.read_text(), full_path)
                     )
 
-    go(target, FrozenSet(), DependencyTrie())
+    go(target, frozenset())
     return dep_trie
