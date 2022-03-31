@@ -12,6 +12,7 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 from typing import Union
+
 from dependencyparser.find_lockfiles import make_dependency_tree
 
 from semgrep import __VERSION__
@@ -164,17 +165,17 @@ def run_rules(
 
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import run_dependency_aware_rule
+
         targets = [t.path for t in target_manager.targets]
         top_level_target_rooted = list(targets[0].parents)
         top_level_target: Path = (
-        targets[0] if len(top_level_target_rooted) == 0 else top_level_target_rooted[-1]
+            targets[0]
+            if len(top_level_target_rooted) == 0
+            else top_level_target_rooted[-1]
         )
 
         for rule in dependency_aware_rules:
-            (
-                dep_rule_matches,
-                dep_rule_errors,
-            ) = run_dependency_aware_rule(
+            (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
                 rule_matches_by_rule.get(rule, []),
                 rule,
                 top_level_target,

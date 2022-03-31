@@ -52,7 +52,7 @@ def semver_matches(expression: str, actual_version: str) -> bool:
 def dependencies_range_match_any(
     search_for_ranges: List[ProjectDependsOnEntry],
     lockfile_path: Path,
-    have_deps: List[LockfileDependency]
+    have_deps: List[LockfileDependency],
 ) -> Generator[Tuple[ProjectDependsOnEntry, LockfileDependency, Path], None, None]:
     for have_dep in have_deps:
         for target_range in search_for_ranges:
@@ -60,8 +60,7 @@ def dependencies_range_match_any(
             #    f"comparing {target_range} <-> {have_dep.namespace} {have_dep.name} {have_dep.version}"
             # )
             if (
-                target_range.namespace.value.lower()
-                == have_dep.namespace.value.lower()
+                target_range.namespace.value.lower() == have_dep.namespace.value.lower()
                 and target_range.package_name == have_dep.name
                 and semver_matches(target_range.semver_range, have_dep.version)
             ):

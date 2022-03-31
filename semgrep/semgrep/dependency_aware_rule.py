@@ -5,13 +5,12 @@ from typing import Generator
 from typing import List
 from typing import Tuple
 
+from dependencyparser.find_lockfiles import DependencyTrie
+from dependencyparser.find_lockfiles import make_dependency_trie
 from dependencyparser.models import PackageManagers
 from dependencyparser.package_restrictions import dependencies_range_match_any
 from dependencyparser.package_restrictions import ProjectDependsOnEntry
-from dependencyparser.find_lockfiles import DependencyTrie
-from dependencyparser.find_lockfiles import make_dependency_trie
 from dependencyparser.parse_lockfile import EXTENSION_TO_LOCKFILES
-
 
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -82,9 +81,15 @@ def run_dependency_aware_rule(
         all_deps = dep_trie.find_dependencies(match.path) or {}
         lang_lockfiles = EXTENSION_TO_LOCKFILES.get(match.path.suffix)
         if not lang_lockfiles:
-            raise SemgrepError(f"We cannot scan lockfiles for the language with extension: {match.path.suffix}")
+            raise SemgrepError(
+                f"We cannot scan lockfiles for the language with extension: {match.path.suffix}"
+            )
 
-        lang_deps = [(key,all_deps[key]) for key in all_deps if key.parts[-1].lower() in lang_lockfiles]
+        lang_deps = [
+            (key, all_deps[key])
+            for key in all_deps
+            if key.parts[-1].lower() in lang_lockfiles
+        ]
 
         if not lang_deps:
             # No dependencies to scan at all
@@ -92,12 +97,15 @@ def run_dependency_aware_rule(
             continue
 
         if len(lang_deps) > 1:
-            raise SemgrepError(f"Multiple different lockfile formats found for file {match.path}?")
+            raise SemgrepError(
+                f"Multiple different lockfile formats found for file {match.path}?"
+            )
 
-        [lockfile_path,deps] = lang_deps
+        [lockfile_path, deps] = lang_deps
 
-        output = list(dependencies_range_match_any(depends_on_entries,lockfile_path,deps))
-
+        output = list(
+            dependencies_range_match_any(depends_on_entries, lockfile_path, deps)
+        )
 
         output_for_json = [
             {
