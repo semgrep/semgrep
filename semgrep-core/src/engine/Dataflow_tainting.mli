@@ -58,6 +58,7 @@ type config = {
   is_sanitizer : AST_generic.any -> Pattern_match.t list;
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
+  unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
     finding list ->
@@ -80,12 +81,6 @@ type fun_env = (var, Pattern_match.Set.t) Hashtbl.t
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
 val pm_of_dm : deep_match -> Pattern_match.t
-
-val unify_meta_envs :
-  Metavariable.bindings -> Metavariable.bindings -> Metavariable.bindings option
-(** [unify_meta_envs env1 env2] returns [Some (env1 U env2)] if
-  * [env1] and [env2] contain no conflicting metavariable assignments,
-  * otherwise [None]. *)
 
 val hook_function_taint_signature :
   (config -> AST_generic.expr -> finding list option) option ref

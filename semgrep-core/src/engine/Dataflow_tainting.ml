@@ -127,6 +127,7 @@ type config = {
   is_source : G.any -> PM.t list;
   is_sink : G.any -> PM.t list;
   is_sanitizer : G.any -> PM.t list;
+  unify_mvars : bool;
   handle_findings :
     var option -> finding list -> Taint.t Dataflow_core.env -> unit;
 }
@@ -184,28 +185,49 @@ let report_findings env findings =
   if findings <> [] then
     env.config.handle_findings env.fun_name findings env.var_env
 
-let unify_meta_envs env1 env2 =
+let unify_mvars_sets mvars1 mvars2 =
   let xs =
     List.fold_left
       (fun xs (mvar, mval) ->
         let* xs = xs in
-        match List.assoc_opt mvar env2 with
+        match List.assoc_opt mvar mvars2 with
         | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->
             if Metavariable.equal_mvalue mval mval' then
               Some ((mvar, mval) :: xs)
             else None)
-      (Some []) env1
+      (Some []) mvars1
   in
   let ys =
-    List.filter (fun (mvar, _) -> not @@ List.mem_assoc mvar env1) env2
+    List.filter (fun (mvar, _) -> not @@ List.mem_assoc mvar mvars1) mvars2
   in
   Option.map (fun xs -> xs @ ys) xs
+
+let sink_biased_union_mvars source_mvars sink_mvars =
+  let source_mvars' =
+    List.filter
+      (fun (mvar, _) -> not @@ List.mem_assoc mvar sink_mvars)
+      source_mvars
+  in
+  Some (source_mvars' @ sink_mvars)
+
+let merge_source_sink_mvars env =
+  if env.config.unify_mvars then
+    (* This used to be the default, but it turned out to be confusing even for
+     * r2c's security team! Typically you think of `pattern-sources` and
+     * `pattern-sinks` as independent. We keep this option mainly for
+     * backwards compatibility, it may be removed later on if no real use
+     * is found. *)
+    unify_mvars_sets
+  else
+    (* The union of both sets, but taking the sink mvars in case of collision. *)
+    sink_biased_union_mvars
 
 let union_map f xs = xs |> List.map f |> List.fold_left Taint.union Taint.empty
 
 (* Produces a finding for every taint source that is unifiable with the sink. *)
-let findings_of_tainted_sink (taint : Taint.t) (sink : sink) : finding list =
+let findings_of_tainted_sink env (taint : Taint.t) (sink : sink) : finding list
+    =
   let ( let* ) = Option.bind in
   taint |> Taint.elements
   |> List.filter_map (fun taint ->
@@ -217,13 +239,15 @@ let findings_of_tainted_sink (taint : Taint.t) (sink : sink) : finding list =
          | Src source ->
              let src_pm = pm_of_dm source in
              let sink_pm = pm_of_dm sink in
-             let* merged_env = unify_meta_envs sink_pm.PM.env src_pm.PM.env in
+             let* merged_env =
+               merge_source_sink_mvars env sink_pm.PM.env src_pm.PM.env
+             in
              Some (SrcToSink { source; trace; sink; merged_env }))
 
 (* Produces a finding for every unifiable source-sink pair. *)
-let findings_of_tainted_sinks (taint : Taint.t) (sinks : sink list) :
+let findings_of_tainted_sinks env (taint : Taint.t) (sinks : sink list) :
     finding list =
-  sinks |> List.concat_map (findings_of_tainted_sink taint)
+  sinks |> List.concat_map (findings_of_tainted_sink env taint)
 
 let findings_of_tainted_return (taint : Taint.t) return_tok : finding list =
   taint |> Taint.elements
@@ -267,7 +291,7 @@ let check_tainted_var env (var : IL.name) : Taint.t =
   | _ :: _ -> Taint.empty
   | [] ->
       let sinks = sink_pms |> List.map dm_of_pm in
-      let findings = findings_of_tainted_sinks taint sinks in
+      let findings = findings_of_tainted_sinks env taint sinks in
       report_findings env findings;
       taint
 
@@ -314,7 +338,7 @@ let rec check_tainted_expr env exp =
       let sinks = orig_is_sink env.config exp.eorig |> List.map dm_of_pm in
       let taint_sources = orig_is_source env.config exp.eorig |> taint_of_pms in
       let taint = taint_sources |> Taint.union (check_subexpr exp) in
-      let findings = findings_of_tainted_sinks taint sinks in
+      let findings = findings_of_tainted_sinks env taint sinks in
       report_findings env findings;
       taint
 
@@ -373,7 +397,7 @@ let check_function_signature env fun_exp args_taint =
                  let* arg_taint = taint_of_arg i in
                  arg_taint
                  |> Taint.iter (fun t ->
-                        findings_of_tainted_sink (Taint.singleton t) sink
+                        findings_of_tainted_sink env (Taint.singleton t) sink
                         |> report_findings env);
                  None
              (* THINK: Should we report something here? *)
@@ -417,7 +441,7 @@ let check_tainted_instr env instr : Taint.t =
         orig_is_source env.config instr.iorig |> taint_of_pms
       in
       let taint = taint_sources |> Taint.union (check_instr instr.i) in
-      let findings = findings_of_tainted_sinks taint sinks in
+      let findings = findings_of_tainted_sinks env taint sinks in
       report_findings env findings;
       taint
 
@@ -429,7 +453,7 @@ let check_tainted_return env tok e =
     |> List.map dm_of_pm
   in
   let taint = check_tainted_expr env e in
-  let findings = findings_of_tainted_sinks taint sinks in
+  let findings = findings_of_tainted_sinks env taint sinks in
   report_findings env findings;
   taint
 
