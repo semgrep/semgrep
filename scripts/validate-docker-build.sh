@@ -38,6 +38,20 @@ if [[ $# -gt 0 ]]; then
   esac
 fi
 
+# Running just the image should print help without error.
+docker run "$image"
+
+# Random valid shell commands should run ok
+docker run "$image" echo -l -a -t -r -v -e -f
+
+# TODO: Scans with --config should run ok
+#       (not sure how to test this though)
+# docker run "$image" --config=p/ci
+
+# The publish subcommand should run ok
+docker run "$image" publish --help
+
+# Random valid shell commands should run ok
 echo "if 1 == 1: pass" \
-    | docker run -i "$image" -l python -e '$X == $X' - \
+    | docker run "$image" semgrep -l python -e '$X == $X' - \
     | grep -q "1 == 1"
