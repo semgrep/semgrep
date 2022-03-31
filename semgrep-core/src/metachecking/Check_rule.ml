@@ -88,9 +88,20 @@ let unknown_metavar_in_comparison env f =
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
            matcher expose the metavariables it detects. *)
-        let words = Str.split (Str.regexp "[^a-zA-Z0-9_$]") pstr in
+        (* First get the potential metavar ellipsis words *)
+        let words_with_dot = Str.split (Str.regexp "[^a-zA-Z0-9_\\.$]") pstr in
+        let ellipsis_metavars =
+          words_with_dot |> List.filter Metavariable.is_metavar_ellipsis
+        in
+        (* Then split the individual metavariables *)
+        let words =
+          List.flatten
+            (List.map
+               (fun word -> String.split_on_char '.' word)
+               words_with_dot)
+        in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
-        Set.of_list metavars
+        Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = List.map collect_metavars xs in
