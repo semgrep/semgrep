@@ -211,17 +211,18 @@ let sink_biased_union_mvars source_mvars sink_mvars =
   in
   Some (source_mvars' @ sink_mvars)
 
-let merge_source_sink_mvars env =
+(* Merge source's and sink's bound metavariables. *)
+let merge_source_sink_mvars env source_mvars sink_mvars =
   if env.config.unify_mvars then
     (* This used to be the default, but it turned out to be confusing even for
      * r2c's security team! Typically you think of `pattern-sources` and
      * `pattern-sinks` as independent. We keep this option mainly for
      * backwards compatibility, it may be removed later on if no real use
      * is found. *)
-    unify_mvars_sets
+    unify_mvars_sets source_mvars sink_mvars
   else
     (* The union of both sets, but taking the sink mvars in case of collision. *)
-    sink_biased_union_mvars
+    sink_biased_union_mvars source_mvars sink_mvars
 
 let union_map f xs = xs |> List.map f |> List.fold_left Taint.union Taint.empty
 

@@ -155,18 +155,20 @@ let taint_config_of_rule default_config equivs file ast_and_errors
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
-    |> List.filter_map (fun (not_conflicting, rng) ->
+    |> List.filter_map (fun (not_conflicting, range) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if
                not
-                 (List.exists (fun rng' -> rng'.RM.r = rng.RM.r) sinks_ranges
+                 (List.exists
+                    (fun range' -> range'.RM.r = range.RM.r)
+                    sinks_ranges
                  || List.exists
-                      (fun rng' -> rng'.RM.r = rng.RM.r)
+                      (fun range' -> range'.RM.r = range.RM.r)
                       sources_ranges)
-             then Some rng
+             then Some range
              else None
-           else Some rng)
+           else Some range)
   in
   ( {
       Dataflow_tainting.filepath = file;
