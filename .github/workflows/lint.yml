@@ -9,10 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      # Setuptools 61.0.0 had breaking changes
-      # see https://github.com/returntocorp/semgrep/pull/4924
-      # can remove once we re-release semgrep after 0.86.5
-      - run: pip install setuptools==60.10.0
       - uses: pre-commit/action@v2.0.3
 
   pre-commit-manual:
@@ -20,10 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      # Setuptools 61.0.0 had breaking changes
-      # see https://github.com/returntocorp/semgrep/pull/4924
-      # can remove once we re-release semgrep after 0.86.5
-      - run: pip install setuptools==60.10.0
       - uses: pre-commit/action@v2.0.3
         with:
           extra_args: --hook-stage manual
