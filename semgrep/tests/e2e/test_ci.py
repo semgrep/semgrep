@@ -184,6 +184,17 @@ def ci_mocks(base_commit, autofix):
             "GITHUB_ACTOR": "some_test_username",
             "GITHUB_REF": BRANCH_NAME,
         },
+        {  # GithubEnterprise full scan
+            "CI": "true",
+            "GITHUB_ACTIONS": "true",
+            "GITHUB_EVENT_NAME": "push",
+            "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            # Sent in metadata but no functionality change
+            "GITHUB_RUN_ID": "35",
+            "GITHUB_ACTOR": "some_test_username",
+            "GITHUB_REF": BRANCH_NAME,
+            "GITHUB_ENTERPRISE_URL": "https://some.enterprise.url.com",
+        },
         {  # Github PR
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -224,7 +235,14 @@ def ci_mocks(base_commit, autofix):
             "CI_JOB_URL": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
         },
     ],
-    ids=["local", "github-push", "github-pr", "gitlab", "gitlab-push"],
+    ids=[
+        "local",
+        "github-push",
+        "github-enterprise",
+        "github-pr",
+        "gitlab",
+        "gitlab-push",
+    ],
 )
 @pytest.mark.skipif(
     sys.version_info < (3, 8),
