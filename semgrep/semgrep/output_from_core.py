@@ -283,7 +283,7 @@ class AST:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class UniqueIdType:
     """Original type: unique_id_type = [ ... ]"""
 
@@ -315,7 +315,7 @@ class UniqueIdType:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class UniqueId:
     """Original type: unique_id = { ... }"""
 
@@ -353,7 +353,7 @@ class UniqueId:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RuleTimes:
     """Original type: rule_times = { ... }"""
 
@@ -393,7 +393,7 @@ class RuleTimes:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class TargetTime:
     """Original type: target_time = { ... }"""
 
@@ -433,7 +433,7 @@ class TargetTime:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Time:
     """Original type: time = { ... }"""
 
@@ -474,7 +474,7 @@ class Time:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Stats:
     """Original type: stats = { ... }"""
 
@@ -628,7 +628,7 @@ class TooManyMatches:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class SkipReason:
     """Original type: skip_reason = [ ... ]"""
 
@@ -699,7 +699,7 @@ class RuleId:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class SkippedTarget:
     """Original type: skipped_target = { ... }"""
 
@@ -743,73 +743,7 @@ class SkippedTarget:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
-class Error_:
-    """Original type: severity = [ ... | Error | ... ]"""
-
-    @property
-    def kind(self) -> str:
-        """Name of the class representing this variant."""
-        return "Error_"
-
-    @staticmethod
-    def to_json() -> Any:
-        return "error"
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass
-class Warning:
-    """Original type: severity = [ ... | Warning | ... ]"""
-
-    @property
-    def kind(self) -> str:
-        """Name of the class representing this variant."""
-        return "Warning"
-
-    @staticmethod
-    def to_json() -> Any:
-        return "warning"
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass
-class Severity:
-    """Original type: severity = [ ... ]"""
-
-    value: Union[Error_, Warning]
-
-    @property
-    def kind(self) -> str:
-        """Name of the class representing this variant."""
-        return self.value.kind
-
-    @classmethod
-    def from_json(cls, x: Any) -> "Severity":
-        if isinstance(x, str):
-            if x == "error":
-                return cls(Error_())
-            if x == "warning":
-                return cls(Warning())
-            _atd_bad_json("Severity", x)
-        _atd_bad_json("Severity", x)
-
-    def to_json(self) -> Any:
-        return self.value.to_json()
-
-    @classmethod
-    def from_json_string(cls, x: str) -> "Severity":
-        return cls.from_json(json.loads(x))
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass
+@dataclass(frozen=True, order=True)
 class Position:
     """Original type: position = { ... }"""
 
@@ -849,12 +783,118 @@ class Position:
         return json.dumps(self.to_json(), **kw)
 
 
+@dataclass(frozen=True)
+class SkippedRule:
+    """Original type: skipped_rule = { ... }"""
+
+    rule_id: RuleId
+    details: str
+    position: Position
+
+    @classmethod
+    def from_json(cls, x: Any) -> "SkippedRule":
+        if isinstance(x, dict):
+            return cls(
+                rule_id=RuleId.from_json(x["rule_id"])
+                if "rule_id" in x
+                else _atd_missing_json_field("SkippedRule", "rule_id"),
+                details=_atd_read_string(x["details"])
+                if "details" in x
+                else _atd_missing_json_field("SkippedRule", "details"),
+                position=Position.from_json(x["position"])
+                if "position" in x
+                else _atd_missing_json_field("SkippedRule", "position"),
+            )
+        else:
+            _atd_bad_json("SkippedRule", x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res["rule_id"] = (lambda x: x.to_json())(self.rule_id)
+        res["details"] = _atd_write_string(self.details)
+        res["position"] = (lambda x: x.to_json())(self.position)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "SkippedRule":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
 @dataclass
+class Error_:
+    """Original type: severity = [ ... | Error | ... ]"""
+
+    @property
+    def kind(self) -> str:
+        """Name of the class representing this variant."""
+        return "Error_"
+
+    @staticmethod
+    def to_json() -> Any:
+        return "error"
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
+class Warning:
+    """Original type: severity = [ ... | Warning | ... ]"""
+
+    @property
+    def kind(self) -> str:
+        """Name of the class representing this variant."""
+        return "Warning"
+
+    @staticmethod
+    def to_json() -> Any:
+        return "warning"
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
+class Severity:
+    """Original type: severity = [ ... ]"""
+
+    value: Union[Error_, Warning]
+
+    @property
+    def kind(self) -> str:
+        """Name of the class representing this variant."""
+        return self.value.kind
+
+    @classmethod
+    def from_json(cls, x: Any) -> "Severity":
+        if isinstance(x, str):
+            if x == "error":
+                return cls(Error_())
+            if x == "warning":
+                return cls(Warning())
+            _atd_bad_json("Severity", x)
+        _atd_bad_json("Severity", x)
+
+    def to_json(self) -> Any:
+        return self.value.to_json()
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "Severity":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
 class MetavarValue:
     """Original type: metavar_value = { ... }"""
 
     start: Position
-    end_: Position
+    end: Position
     abstract_content: str
     unique_id: UniqueId
 
@@ -865,7 +905,7 @@ class MetavarValue:
                 start=Position.from_json(x["start"])
                 if "start" in x
                 else _atd_missing_json_field("MetavarValue", "start"),
-                end_=Position.from_json(x["end"])
+                end=Position.from_json(x["end"])
                 if "end" in x
                 else _atd_missing_json_field("MetavarValue", "end"),
                 abstract_content=_atd_read_string(x["abstract_content"])
@@ -881,7 +921,7 @@ class MetavarValue:
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
         res["start"] = (lambda x: x.to_json())(self.start)
-        res["end"] = (lambda x: x.to_json())(self.end_)
+        res["end"] = (lambda x: x.to_json())(self.end)
         res["abstract_content"] = _atd_write_string(self.abstract_content)
         res["unique_id"] = (lambda x: x.to_json())(self.unique_id)
         return res
@@ -894,18 +934,18 @@ class MetavarValue:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class MatchExtra:
     """Original type: match_extra = { ... }"""
 
-    metavars: List[Tuple[str, MetavarValue]]
+    metavars: Dict[str, MetavarValue]
     message: Optional[str] = None
 
     @classmethod
     def from_json(cls, x: Any) -> "MatchExtra":
         if isinstance(x, dict):
             return cls(
-                metavars=_atd_read_assoc_object_into_list(MetavarValue.from_json)(
+                metavars=_atd_read_assoc_object_into_dict(MetavarValue.from_json)(
                     x["metavars"]
                 )
                 if "metavars" in x
@@ -917,7 +957,7 @@ class MatchExtra:
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
-        res["metavars"] = _atd_write_assoc_list_to_object((lambda x: x.to_json()))(
+        res["metavars"] = _atd_write_assoc_dict_to_object((lambda x: x.to_json()))(
             self.metavars
         )
         if self.message is not None:
@@ -932,13 +972,13 @@ class MatchExtra:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Location:
     """Original type: location = { ... }"""
 
     path: str
     start: Position
-    end_: Position
+    end: Position
     lines: List[str]
 
     @classmethod
@@ -951,7 +991,7 @@ class Location:
                 start=Position.from_json(x["start"])
                 if "start" in x
                 else _atd_missing_json_field("Location", "start"),
-                end_=Position.from_json(x["end"])
+                end=Position.from_json(x["end"])
                 if "end" in x
                 else _atd_missing_json_field("Location", "end"),
                 lines=_atd_read_list(_atd_read_string)(x["lines"])
@@ -965,7 +1005,7 @@ class Location:
         res: Dict[str, Any] = {}
         res["path"] = _atd_write_string(self.path)
         res["start"] = (lambda x: x.to_json())(self.start)
-        res["end"] = (lambda x: x.to_json())(self.end_)
+        res["end"] = (lambda x: x.to_json())(self.end)
         res["lines"] = _atd_write_list(_atd_write_string)(self.lines)
         return res
 
@@ -977,7 +1017,7 @@ class Location:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Match:
     """Original type: match_ = { ... }"""
 
@@ -1016,7 +1056,7 @@ class Match:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Error:
     """Original type: error = { ... }"""
 
@@ -1075,14 +1115,15 @@ class Error:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class MatchResults:
     """Original type: match_results = { ... }"""
 
     matches: List[Match]
     errors: List[Error]
-    skipped: List[SkippedTarget]
+    skipped_targets: List[SkippedTarget]
     stats: Stats
+    skipped_rules: Optional[List[SkippedRule]] = None
     time: Optional[Time] = None
 
     @classmethod
@@ -1095,12 +1136,15 @@ class MatchResults:
                 errors=_atd_read_list(Error.from_json)(x["errors"])
                 if "errors" in x
                 else _atd_missing_json_field("MatchResults", "errors"),
-                skipped=_atd_read_list(SkippedTarget.from_json)(x["skipped"])
+                skipped_targets=_atd_read_list(SkippedTarget.from_json)(x["skipped"])
                 if "skipped" in x
                 else _atd_missing_json_field("MatchResults", "skipped"),
                 stats=Stats.from_json(x["stats"])
                 if "stats" in x
                 else _atd_missing_json_field("MatchResults", "stats"),
+                skipped_rules=_atd_read_list(SkippedRule.from_json)(x["skipped_rules"])
+                if "skipped_rules" in x
+                else None,
                 time=Time.from_json(x["time"]) if "time" in x else None,
             )
         else:
@@ -1110,14 +1154,79 @@ class MatchResults:
         res: Dict[str, Any] = {}
         res["matches"] = _atd_write_list((lambda x: x.to_json()))(self.matches)
         res["errors"] = _atd_write_list((lambda x: x.to_json()))(self.errors)
-        res["skipped"] = _atd_write_list((lambda x: x.to_json()))(self.skipped)
+        res["skipped"] = _atd_write_list((lambda x: x.to_json()))(self.skipped_targets)
         res["stats"] = (lambda x: x.to_json())(self.stats)
+        if self.skipped_rules is not None:
+            res["skipped_rules"] = _atd_write_list((lambda x: x.to_json()))(
+                self.skipped_rules
+            )
         if self.time is not None:
             res["time"] = (lambda x: x.to_json())(self.time)
         return res
 
     @classmethod
     def from_json_string(cls, x: str) -> "MatchResults":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
+class CveResult:
+    """Original type: cve_result = { ... }"""
+
+    url: str
+    filename: str
+    funcnames: List[str]
+
+    @classmethod
+    def from_json(cls, x: Any) -> "CveResult":
+        if isinstance(x, dict):
+            return cls(
+                url=_atd_read_string(x["url"])
+                if "url" in x
+                else _atd_missing_json_field("CveResult", "url"),
+                filename=_atd_read_string(x["filename"])
+                if "filename" in x
+                else _atd_missing_json_field("CveResult", "filename"),
+                funcnames=_atd_read_list(_atd_read_string)(x["funcnames"])
+                if "funcnames" in x
+                else _atd_missing_json_field("CveResult", "funcnames"),
+            )
+        else:
+            _atd_bad_json("CveResult", x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res["url"] = _atd_write_string(self.url)
+        res["filename"] = _atd_write_string(self.filename)
+        res["funcnames"] = _atd_write_list(_atd_write_string)(self.funcnames)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "CveResult":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
+class CveResults:
+    """Original type: cve_results"""
+
+    value: List[CveResult]
+
+    @classmethod
+    def from_json(cls, x: Any) -> "CveResults":
+        return cls(_atd_read_list(CveResult.from_json)(x))
+
+    def to_json(self) -> Any:
+        return _atd_write_list((lambda x: x.to_json()))(self.value)
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "CveResults":
         return cls.from_json(json.loads(x))
 
     def to_json_string(self, **kw: Any) -> str:
