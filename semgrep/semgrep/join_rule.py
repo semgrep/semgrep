@@ -20,6 +20,7 @@ from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
 
+import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
@@ -30,7 +31,6 @@ from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
@@ -527,8 +527,8 @@ def run_join_rule(
                 )
             ),
             path=Path(match.get("path", "[empty]")),
-            start=CoreLocation.parse(match["start"]),
-            end=CoreLocation.parse(match["end"]),
+            start=core.Position.from_json(match["start"]),
+            end=core.Position.from_json(match["end"]),
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,

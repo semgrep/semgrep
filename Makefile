@@ -26,6 +26,7 @@ endif
 build:
 	$(MAKE) build-core
 	$(MAKE) -C toy-matcher
+	$(MAKE) -C semgrep build
 	cd semgrep && pipenv install --dev
 
 .PHONY: install

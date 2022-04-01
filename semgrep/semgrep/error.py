@@ -11,12 +11,12 @@ from typing import Tuple
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
+import semgrep.output_from_core as core
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.rule_match import CoreLocation
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -89,8 +89,8 @@ class SemgrepError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class LegacySpan:
-    config_start: CoreLocation
-    config_end: CoreLocation
+    config_start: core.Position
+    config_end: core.Position
     config_path: Tuple[str]
 
 
@@ -101,8 +101,8 @@ class SemgrepCoreError(SemgrepError):
     error_type: str
     rule_id: Optional[str]
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     message: str
     spans: Optional[Tuple[LegacySpan, ...]]
     details: Optional[str]

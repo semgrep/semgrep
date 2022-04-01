@@ -21,14 +21,16 @@
 (* Location *)
 (*****************************************************************************)
 
-type location = {
+type location
+  <python decorator="dataclass(frozen=True)"> = {
   path: string (* source file *);
   start: position;
-  end_ <json name="end">: position;
+  end <ocaml name="end_">: position;
   lines: string list;
 }
 
-type position = {
+type position
+  <python decorator="dataclass(frozen=True, order=True)"> = {
   line: int; (* starts from 1 *)
   col: int; (* starts from 1 *)
   offset: int; (* byte position from the beginning of the file, starts at 0 *)
@@ -38,7 +40,8 @@ type position = {
 (* Match results *)
 (*****************************************************************************)
 
-type match_results = {
+type match_results
+  <python decorator="dataclass(frozen=True)"> = {
   matches: match_ list;
   errors: error list;
   skipped_targets <json name="skipped">: skipped_target list;
@@ -48,7 +51,8 @@ type match_results = {
   ?time: time option;
 }
 
-type match_ = {
+type match_
+  <python decorator="dataclass(frozen=True)"> = {
   ?rule_id: rule_id option;
   location: location;
   extra: match_extra;
@@ -56,24 +60,28 @@ type match_ = {
 
 type rule_id = string
 
-type match_extra = {
+type match_extra
+  <python decorator="dataclass(frozen=True)"> = {
   ?message: string option; (* rule.message (?) *)
 
   (*
      name/value map of the matched metavariables.
      The leading '$' must be included in the metavariable name.
   *)
-  metavars: (string * metavar_value) list <json repr="object">;
+  metavars: (string * metavar_value) list
+    <json repr="object">
+    <python repr="dict">;
 }
 
-type metavar_value = {
+type metavar_value
+  <python decorator="dataclass(frozen=True)"> = {
   (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'
    * to represent an empty metavariable value. The rest of the Python
    * code (message metavariable substitution and autofix) works
    * without change for empty ranges (when end = start).
    *)
   start: position;
-  end_ <json name="end">: position;
+  end <ocaml name="end_">: position;
   abstract_content: string; (* value? *)
 
   (* The unique ID of a metavariable indicates the kind object that was
@@ -103,7 +111,8 @@ type metavar_value = {
    In order to accommodate two record types into one variant, use
    the atdgen feature called a json adapter.
 *)
-type unique_id = {
+type unique_id
+  <python decorator="dataclass(frozen=True)"> = {
   (* pad: we should use a sum type here because it's either
      AST of md5sum | Id of sid * ... but that would require
      to update the python side, so for now I use optional
@@ -116,7 +125,8 @@ type unique_id = {
   ?sid: int option;
 }
 
-type unique_id_type = [
+type unique_id_type
+  <python decorator="dataclass(frozen=True)"> = [
   | ID <json name="id">
   | AST
 ]
@@ -126,7 +136,8 @@ type unique_id_type = [
 (*****************************************************************************)
 
 (* See Semgrep_error_code *)
-type error = {
+type error
+  <python decorator="dataclass(frozen=True)"> = {
   ?rule_id: rule_id option;
   error_type: string;
   severity: severity;
@@ -137,13 +148,15 @@ type error = {
 }
 
 
-type severity = [
+type severity
+  <python decorator="dataclass(frozen=True)"> = [
   | Error <json name="error">
   | Warning <json name="warning">
 ] <ocaml repr="classic">
 
 
-type stats = {
+type stats
+  <python decorator="dataclass(frozen=True)"> = {
   okfiles: int;
   errorfiles: int;
 }
@@ -157,7 +170,8 @@ type stats = {
    If the 'rule_id' field is missing, the target is assumed to have
    been skipped for all the rules.
 *)
-type skipped_target = {
+type skipped_target
+  <python decorator="dataclass(frozen=True)"> = {
   path: string;
   reason: skip_reason;
   details: string;
@@ -167,7 +181,8 @@ type skipped_target = {
 (*
    A reason for skipping a target file or a pair (target, rule).
 *)
-type skip_reason = [
+type skip_reason
+  <python decorator="dataclass(frozen=True)"> = [
   | Excluded_by_config <json name="excluded_by_config">
   | Wrong_language <json name="wrong_language">
   | Too_big <json name="too_big">
@@ -177,7 +192,8 @@ type skip_reason = [
   | Too_many_matches <json name="too_many_matches">
 ] <ocaml repr="classic">
 
-type skipped_rule = {
+type skipped_rule
+  <python decorator="dataclass(frozen=True)"> = {
   rule_id: rule_id;
   details: string;
   (* position of the error in the rule file *)
@@ -188,7 +204,8 @@ type skipped_rule = {
 (* Profiling information *)
 (*****************************************************************************)
 
-type time = {
+type time
+  <python decorator="dataclass(frozen=True)"> = {
   targets: target_time list;
 
   (* List of rules received by core *)
@@ -197,7 +214,8 @@ type time = {
   ?rules_parse_time: float option; (* not used in spacegrep *)
 }
 
-type target_time = {
+type target_time
+  <python decorator="dataclass(frozen=True)"> = {
   path: string;
 
   (* parse and match time for each rule on target *)
@@ -207,7 +225,8 @@ type target_time = {
   run_time: float;
 }
 
-type rule_times = {
+type rule_times
+  <python decorator="dataclass(frozen=True)"> = {
   rule_id: string;
 
   parse_time: float;
@@ -223,10 +242,12 @@ type rule_times = {
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
 (*****************************************************************************)
 
-type cve_result = {
+type cve_result
+  <python decorator="dataclass(frozen=True)"> = {
    url: string;
    filename: string;
    funcnames: string list
 }
 
-type cve_results = cve_result list
+type cve_results
+  <python decorator="dataclass(frozen=True)"> = cve_result list
