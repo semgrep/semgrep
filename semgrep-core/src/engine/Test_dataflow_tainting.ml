@@ -29,6 +29,7 @@ let test_dfg_tainting file =
                  is_source = (fun _ -> []);
                  is_sink = (fun _ -> []);
                  is_sanitizer = (fun _ -> []);
+                 unify_mvars = false;
                  handle_findings = (fun _ _ _ -> ());
                }
              in

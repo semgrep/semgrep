@@ -4,11 +4,28 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- taint-mode: We no longer force the unification of metavariables between
+  sources and sinks by default. It is not clear that this is the most natural
+  behavior; and we realized that, in fact, it was confusing even for experienced
+  Semgrep users. Instead, each set of metavariables is now considered independent.
+  The metavariables available to the rule message are all metavariables bound by
+  `pattern-sinks`, plus the subset of metavariables bound by `pattern-sources`
+  that do not collide with the ones bound by `pattern-sinks`. We do not expect
+  this change to break many taint rules because source-sink metavariable
+  unification had a bug (see #4464) that prevented metavariables bound by a
+  `pattern-inside` to be unified, thus limiting the usefulness of the feature.
+  Nonetheless, it is still possible to force metavariable unification by setting
+  `taint_unify_mvars: true` in the rule's `options`.
+
 ### Fixed
 
 - `-` is now parsed as a valid identifier in Scala
 - `new $OBJECT(...)` will now work properly as a taint sink (#4858)
 - JS/TS: `...{$X}...` will no longer match `str`
+- taint-mode: Metavariables bound by a `pattern-inside` are now available to the
+  rule message. (#4464)
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 
