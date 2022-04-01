@@ -4,6 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- New `focus-metavariable` operator that lets you focus (or "zoom in") the match
+  on the code region delimited by a metavariable. This operator is useful for
+  narrowing down the code matched by a rule, to focus on what really matters. (#4453)
+
 ### Changed
 
 - taint-mode: We no longer force the unification of metavariables between
