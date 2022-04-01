@@ -18,18 +18,19 @@ repos:
       - id: fix-byte-order-marker
 
   - repo: https://github.com/psf/black
-    rev: 22.1.0
+    rev: 22.3.0
     hooks:
       - id: black
+        args: [--exclude=/semgrep/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.7.1
+    rev: v3.0.1
     hooks:
       - id: reorder-python-imports
         args: [--py37-plus]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.931"
+    rev: "v0.942"
     hooks:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
@@ -66,7 +67,7 @@ repos:
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.84.0"
+    rev: "0.86.5-tmp-fix-pre-commit"
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -100,7 +101,7 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.82.0"
+    rev: "0.86.5-tmp-fix-pre-commit"
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
@@ -130,7 +131,7 @@ repos:
 
   # Reformat YAML, JSON, and Markdown files
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.5.1
+    rev: v2.6.1
     hooks:
       - id: prettier
         exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$"

@@ -12,9 +12,9 @@ from dependencyparser.package_restrictions import dependencies_range_match_any
 from dependencyparser.package_restrictions import ProjectDependsOnEntry
 from dependencyparser.parse_lockfile import EXTENSION_TO_LOCKFILES
 
+import semgrep.output_from_core as core
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 
 
