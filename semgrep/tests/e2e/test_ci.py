@@ -183,8 +183,9 @@ def ci_mocks(base_commit, autofix):
             "GITHUB_RUN_ID": "35",
             "GITHUB_ACTOR": "some_test_username",
             "GITHUB_REF": BRANCH_NAME,
+            "GITHUB_SERVER_URL": "https://github.com",
         },
-        {  # GithubEnterprise full scan
+        {  # github but different server url - full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
             "GITHUB_EVENT_NAME": "push",
@@ -193,7 +194,7 @@ def ci_mocks(base_commit, autofix):
             "GITHUB_RUN_ID": "35",
             "GITHUB_ACTOR": "some_test_username",
             "GITHUB_REF": BRANCH_NAME,
-            "GITHUB_ENTERPRISE_URL": "https://some.enterprise.url.com",
+            "GITHUB_SERVER_URL": "https://some.enterprise.url.com",
         },
         {  # Github PR
             "CI": "true",
