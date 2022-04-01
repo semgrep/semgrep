@@ -27,7 +27,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- `semgrep ci` uses "GITHUB_ENTERPRISE_URL" as repository url if it is available
+- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
 
 ### Fixed
 
