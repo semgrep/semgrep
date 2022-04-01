@@ -9,7 +9,7 @@ from semgrep.commands.scan import scan
 from semgrep.default_group import DefaultGroup
 
 
-@click.group(cls=DefaultGroup, default_command="scan")
+@click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
 def cli() -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
