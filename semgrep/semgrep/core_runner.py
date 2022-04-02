@@ -78,7 +78,13 @@ def setrlimits_preexec_fn() -> None:
             hard_limit / 3
         ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
         int(hard_limit / 4),
-        5120000,  # Magic number that seems to work for most cases
+        old_soft_limit * 100,
+        old_soft_limit * 10,
+        old_soft_limit * 5,
+        1000000000,
+        512000000,
+        51200000,
+        5120000,  # Magic numbers that seems to work for most cases
         old_soft_limit,
     ]
 
@@ -88,10 +94,12 @@ def setrlimits_preexec_fn() -> None:
         try:
             logger.info(f"Trying to set soft limit to {soft_limit}")
             resource.setrlimit(resource.RLIMIT_STACK, (soft_limit, hard_limit))
-            logger.info(f"Set stack limit to {soft_limit}, {hard_limit}")
+            logger.info(f"Successfully set stack limit to {soft_limit}, {hard_limit}")
             return
         except Exception as e:
-            logger.info(f"Failed to set stack limit to {soft_limit}, {hard_limit}")
+            logger.info(
+                f"Failed to set stack limit to {soft_limit}, {hard_limit}. Trying again."
+            )
             logger.verbose(str(e))
 
     logger.info("Failed to change stack limits")
