@@ -28,13 +28,13 @@ yaml = YAML(typ="rt")
 
 
 @define
-class Repository(object):
+class Repository:
     url: str = field(default="")
     commit_hash: str = field(default="HEAD")
 
 
 @define
-class RuleConfig(object):
+class RuleConfig:
     config_str: str = field(default="")
 
     def _fetch_rule_config_from_url(self, rule_config_url: str) -> Optional[str]:
@@ -175,7 +175,7 @@ class RuleConfig(object):
 
 
 @define
-class BenchmarkRunSetupData(object):
+class BenchmarkRunSetupData:
     """
     Stores data about an individual benchmark run
     """
@@ -187,7 +187,7 @@ class BenchmarkRunSetupData(object):
 
 
 @define
-class SemgrepBenchmarkConfig(object):
+class SemgrepBenchmarkConfig:
     """
     Stores data needed to start a benchmarking run.
 
@@ -215,7 +215,7 @@ class SemgrepBenchmarkConfig(object):
         cls: Type["SemgrepBenchmarkConfig"], config_file: Path
     ) -> "SemgrepBenchmarkConfig":
         logger.debug(f"Using config at {config_file.absolute()}")
-        with open(config_file, "r") as fin:
+        with open(config_file) as fin:
             config = yaml.load(fin)
 
         return SemgrepBenchmarkConfig(

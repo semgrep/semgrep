@@ -41,38 +41,30 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path):
     monkeypatch.chdir(repo_base)
 
     # Initialize State
-    subprocess.run(
-        ["git", "init"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-    )
+    subprocess.run(["git", "init"], check=True, capture_output=True)
     subprocess.run(
         ["git", "config", "user.email", AUTHOR_EMAIL],
         check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
     subprocess.run(
         ["git", "config", "user.name", AUTHOR_NAME],
         check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
     subprocess.run(
         ["git", "checkout", "-B", MAIN_BRANCH_NAME],
         check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
 
     foo = repo_base / "foo.py"
     foo.write_text(f"x = 1\n")
-    subprocess.run(
-        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-    )
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", COMMIT_MESSAGE],
         check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
 
     base_commit = subprocess.check_output(
@@ -82,22 +74,18 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path):
     subprocess.run(
         ["git", "checkout", "-B", BRANCH_NAME],
         check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
 
     shutil.copy(
         Path(__file__).parent.parent / "e2e" / "targets" / "ci" / "foo.py",
         repo_base / "foo.py",
     )
-    subprocess.run(
-        ["git", "add", "."], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-    )
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", COMMIT_MESSAGE_2],
         check=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
     head_commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], encoding="utf-8"

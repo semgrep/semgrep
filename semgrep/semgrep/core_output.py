@@ -130,7 +130,7 @@ class CoreError:
         path = Path(location["path"])
         start = core.Position.from_json(location["start"])
         end = core.Position.from_json(location["end"])
-        _extra = raw_json.get("extra", {})
+        raw_json.get("extra", {})
         message = CoreErrorMessage(raw_json.get("message", "<no error message>"))
         level_str = raw_json["severity"]
         if level_str.upper() == "WARNING":

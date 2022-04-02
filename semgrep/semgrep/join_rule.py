@@ -475,7 +475,7 @@ def run_join_rule(
         alias_lookup[collection]
         for collection in create_collection_set_from_conditions(conditions)
     }
-    rule_ids = set(result.get("check_id") for result in results)
+    rule_ids = {result.get("check_id") for result in results}
     if collection_set_unaliased - rule_ids:
         logger.debug(
             f"No results for {collection_set_unaliased - rule_ids} in join rule '{join_rule.get('id')}'."

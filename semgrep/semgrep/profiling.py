@@ -6,9 +6,15 @@ from typing import Optional
 
 from semgrep.rule import Rule
 
-Semgrep_run = NamedTuple("Semgrep_run", [("rule", Rule), ("target", Path)])
 
-Times = NamedTuple("Times", [("parse_time", float), ("match_time", float)])
+class Semgrep_run(NamedTuple):
+    rule: Rule
+    target: Path
+
+
+class Times(NamedTuple):
+    parse_time: float
+    match_time: float
 
 
 class ProfilingData:
@@ -105,10 +111,8 @@ class ProfilingData:
 
         parse_match_times = [times[rule] for rule in times]
         if len(parse_match_times) > 0:
-            self._file_parse_time[target] = max([time[0] for time in parse_match_times])
-            self._file_match_times[target] = sum(
-                [time[1] for time in parse_match_times]
-            )
+            self._file_parse_time[target] = max(time[0] for time in parse_match_times)
+            self._file_match_times[target] = sum(time[1] for time in parse_match_times)
         self._file_num_times_scanned[target] = len(parse_match_times)
 
         for rule in times:
