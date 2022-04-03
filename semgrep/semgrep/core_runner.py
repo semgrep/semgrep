@@ -199,7 +199,7 @@ class StreamingSemgrepCore:
             # readline returns empty when EOF
             if not line_bytes:
                 self._stderr = "".join(stderr_lines)
-                break
+                exit(0)
 
             line = line_bytes.decode("utf-8")
             stderr_lines.append(line)
