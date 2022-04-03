@@ -52,9 +52,12 @@ module G = AST_generic
  * Note that we still want to be close to the original code so that
  * error reported on the IL can be mapped back to error on the original code
  * (source "maps"), or more importantly semantic information computed
- * on the IL (e.g., types, svalue) can be mapped back to the generic AST.
+ * on the IL (e.g., types, svalue, match range, taint) can be mapped back
+ * to the generic AST.
  * This is why you will see some 'eorig', 'iorig' fields below and the use of
  * refs such as svalue shared with the generic AST.
+ * TODO? alt: store just the range and id_info_id, so easy to propagate back
+ * info to generic AST or to return match ranges to semgrep.
  *
  * history:
  *  - cst_php.ml (was actually called ast_php.ml)
