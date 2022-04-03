@@ -247,7 +247,7 @@ class StreamingSemgrepCore:
             )
 
         rc = asyncio.run(self._stream_subprocess())
-
+        subprocess.call("touch /tmp")
         if self._progress_bar:
             self._progress_bar.close()
 
