@@ -296,15 +296,6 @@ LOCKFILE_PARSERS = {
     "pom.xml": parse_Pom_str,  # Java
 }
 
-EXTENSION_TO_LOCKFILES = {
-    ".py": {"pipfile.lock"},
-    ".js": {"yarn.lock", "package-lock.json"},
-    ".rb": {"gemfile.lock"},
-    ".go": {"go.sum"},
-    ".rs": {"cargo.lock"},
-    ".java": {"pom.xml"},
-}
-
 
 def parse_lockfile_str(
     lockfile_text: str, filepath_for_reference: Path

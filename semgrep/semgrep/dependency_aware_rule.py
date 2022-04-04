@@ -1,4 +1,3 @@
-from os import getenv
 from pathlib import Path
 from typing import Dict
 from typing import Generator
@@ -6,11 +5,11 @@ from typing import List
 from typing import Tuple
 
 from dependencyparser.find_lockfiles import DependencyTrie
-from dependencyparser.find_lockfiles import make_dependency_trie
+from dependencyparser.models import LANGUAGE_TO_NAMESPACE
+from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.package_restrictions import dependencies_range_match_any
 from dependencyparser.package_restrictions import ProjectDependsOnEntry
-from dependencyparser.parse_lockfile import EXTENSION_TO_LOCKFILES
 
 import semgrep.output_from_core as core
 from semgrep.error import SemgrepError
@@ -59,99 +58,32 @@ def parse_depends_on_yaml(
 def run_dependency_aware_rule(
     matches: List[RuleMatch],
     rule: Rule,
-    top_level_target: Path,
+    dep_trie: DependencyTrie,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Run a dependency aware rule. These rules filters the results based on the precense or absence
     of dependencies. Dependencies are determined by searching for lockfiles under the first entry
     in the `targets` argument.
     """
-    dependencies: List[Dict[str, str]] = rule.project_depends_on or []
+    depends_on_keys: List[Dict[str, str]] = rule.project_depends_on or []
     dep_rule_errors: List[SemgrepError] = []
 
-    if len(dependencies) == 0:
+    if len(depends_on_keys) == 0:
         # no dependencies to process, so skip
         return matches, []
 
-    dep_trie = make_dependency_trie(top_level_target)
+    depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
+    final_matches: List[RuleMatch] = []
 
-    depends_on_entries = list(parse_depends_on_yaml(dependencies))
-    final_matches = []
-
-    if not rule.should_run_on_semgrep_core:
-        # This was a rule with no patterns
-        # matches should be empty
-        for lockfile_path, deps in dep_trie.all_deps.items():
-            try:
-                output = list(
-                    dependencies_range_match_any(
-                        depends_on_entries, lockfile_path, deps
-                    )
-                )
-                if not output:
-                    continue
-                output_for_json = [
-                    {
-                        "dependency_pattern": vars(dep_pat),
-                        "found_dependency": vars(found_dep),
-                        "lockfile": lockfile.name,
-                    }
-                    for dep_pat, found_dep, lockfile in output
-                ]
-
-                dummy_match = RuleMatch(
-                    rule_id=rule.id,
-                    message=rule.message,
-                    metadata=rule.metadata,
-                    severity=rule.severity,
-                    path=lockfile_path,
-                    fix=None,
-                    fix_regex=None,
-                    start=CoreLocation(0, 0, 0),
-                    end=CoreLocation(0, 0, 0),
-                    extra={
-                        "dependency_match_only": True,
-                        "dependency_matches": output_for_json,
-                    },
-                )
-
-                final_matches.append(dummy_match)
-            except SemgrepError as e:
-                dep_rule_errors.append(e)
-
-        return final_matches, dep_rule_errors
-
-    for match in matches:
+    namespaces = {LANGUAGE_TO_NAMESPACE[l] for l in rule.languages}
+    dependencies: List[Tuple[Path, List[LockfileDependency]]] = [
+        dep for ns in namespaces for dep in dep_trie.all_deps[ns].items()
+    ]
+    for lockfile_path, deps in dependencies:
         try:
-            all_deps = dep_trie.find_dependencies(match.path) or {}
-            lang_lockfiles = EXTENSION_TO_LOCKFILES.get(match.path.suffix)
-            if not lang_lockfiles:
-                raise SemgrepError(
-                    f"We cannot scan lockfiles for the language with extension: {match.path.suffix}"
-                )
-
-            lang_deps = [
-                (key, all_deps[key])
-                for key in all_deps
-                if key.parts[-1].lower() in lang_lockfiles
-            ]
-
-            if not lang_deps:
-                # No dependencies to scan at all
-                final_matches.append(match)
-                continue
-
-            if len(lang_deps) > 1:
-                raise SemgrepError(
-                    f"Multiple different lockfile formats found for file {match.path}?"
-                )
-
-            [(lockfile_path, deps)] = lang_deps
-
             output = list(
                 dependencies_range_match_any(depends_on_entries, lockfile_path, deps)
             )
-
             if not output:
                 continue
 
@@ -163,9 +95,38 @@ def run_dependency_aware_rule(
                 }
                 for dep_pat, found_dep, lockfile in output
             ]
-            match.extra["dependency_match_only"] = False
-            match.extra["dependency_matches"] = output_for_json
-            final_matches.append(match)
+
+            reachable = []
+            matches_remaining = []
+            for match in matches:
+                if lockfile_path in (dep_trie.find_dependencies(match.path) or {}):
+                    match.extra["dependency_match_only"] = False
+                    match.extra["dependency_matches"] = output_for_json
+                    reachable.append(match)
+                else:
+                    matches_remaining.append(match)
+            matches = matches_remaining
+
+            if not reachable:
+                dummy_match = RuleMatch(
+                    rule_id=rule.id,
+                    message=rule.message,
+                    metadata=rule.metadata,
+                    severity=rule.severity,
+                    path=lockfile_path,
+                    fix=None,
+                    fix_regex=None,
+                    start=core.Position(0, 0, 0),
+                    end=core.Position(0, 0, 0),
+                    extra={
+                        "dependency_match_only": True,
+                        "dependency_matches": output_for_json,
+                    },
+                )
+                final_matches.append(dummy_match)
+            else:
+                final_matches.extend(reachable)
+
         except SemgrepError as e:
             dep_rule_errors.append(e)
     return final_matches, dep_rule_errors
