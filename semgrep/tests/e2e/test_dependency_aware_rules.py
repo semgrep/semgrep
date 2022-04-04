@@ -26,17 +26,3 @@ def test_dependency_aware_rules(run_semgrep_in_tmp_no_symlink, snapshot, rule, t
         run_semgrep_in_tmp_no_symlink(rule, target_name=target)[0],
         "results.json",
     )
-
-
-@pytest.mark.kinda_slow
-def test_explicit_lockfile_target(run_semgrep_in_tmp_no_symlink, snapshot):
-    # We expect no results, because we explicitly passed a folder containing
-    # a lockfile which does NOT contain the vulnerable dependency that this rule searches for
-    snapshot.assert_match(
-        run_semgrep_in_tmp_no_symlink(
-            "rules/dependency_aware/go-sca.yaml",
-            target_name="dependency_aware/sca.go",
-            env={"SEMGREP_LOCKFILE_PATH": "targets/dependency_aware/subproject"},
-        )[0],
-        "results.json",
-    )

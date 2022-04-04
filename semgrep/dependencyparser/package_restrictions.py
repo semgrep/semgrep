@@ -40,9 +40,6 @@ def dependencies_range_match_any(
 ) -> Generator[Tuple[ProjectDependsOnEntry, LockfileDependency, Path], None, None]:
     for have_dep in have_deps:
         for target_range in search_for_ranges:
-            # print(
-            #    f"comparing {target_range} <-> {have_dep.namespace} {have_dep.name} {have_dep.version}"
-            # )
             if (
                 target_range.namespace.value.lower() == have_dep.namespace.value.lower()
                 and target_range.package_name == have_dep.name
