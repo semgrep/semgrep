@@ -25,6 +25,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Nonetheless, it is still possible to force metavariable unification by setting
   `taint_unify_mvars: true` in the rule's `options`.
 
+### Added
+
+- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
+
 ### Fixed
 
 - `-` is now parsed as a valid identifier in Scala
