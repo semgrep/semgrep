@@ -59,7 +59,10 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     Resp.skipped_target =
   let rule_id, _ = rule.id in
   let details =
-    spf "target doesn't contain some elements required by rule '%s'" rule_id
+    spf
+      "No need to perform deeper matching because target does not contain some \
+       elements necessary for the rule to match '%s'"
+      rule_id
   in
   {
     path = file_and_more.file;
