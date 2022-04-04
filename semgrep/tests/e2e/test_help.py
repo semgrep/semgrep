@@ -1,9 +1,11 @@
+import pytest
 from click.testing import CliRunner
 
 from semgrep.cli import cli
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
+@pytest.mark.quick
 def test_help_text(tmp_path, snapshot):
     """
     Test to make sure top level help text doesn't change unintentionally
