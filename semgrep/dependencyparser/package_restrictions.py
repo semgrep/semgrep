@@ -1,7 +1,5 @@
-import functools
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 from typing import Generator
 from typing import List
 from typing import Tuple
@@ -9,7 +7,6 @@ from typing import Tuple
 import packaging.version
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
-from dependencyparser.parse_lockfile import parse_lockfile_str
 from packaging.specifiers import SpecifierSet
 
 from semgrep.error import SemgrepError
