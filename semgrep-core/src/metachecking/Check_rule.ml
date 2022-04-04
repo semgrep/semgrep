@@ -116,7 +116,7 @@ let unknown_metavar_in_comparison env f =
            *)
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
-    | And { conjuncts; conditions; _ } ->
+    | And { tok = _; conjuncts; conditions; focus } ->
         let mv_sets = List.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
@@ -129,8 +129,10 @@ let unknown_metavar_in_comparison env f =
              variants of this *)
           error env t
             (mv
-           ^ " is used in a metavariable-cond/regexp but is never used or only \
-              used in a pattern-not )")
+           ^ " is used in a 'metavariable-*' conditional or \
+              'focus-metavariable' operator but is never bound by a positive \
+              pattern (or is only bound by negative patterns like \
+              'pattern-not')")
         in
         conditions
         |> List.iter (fun (t, metavar_cond) ->
@@ -142,6 +144,8 @@ let unknown_metavar_in_comparison env f =
                    if not (Set.mem mv mvs) then mv_error mv t
                | CondAnalysis (mv, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t);
+        focus
+        |> List.iter (fun (t, mv) -> if not (Set.mem mv mvs) then mv_error mv t);
         mvs
   in
   let _ = collect_metavars f in

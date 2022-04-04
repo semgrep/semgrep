@@ -202,8 +202,10 @@ class GithubMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
+        server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
+
         if self.repo_name:
-            return f"https://github.com/{self.repo_name}"
+            return f"{server_url}/{self.repo_name}"
         return None
 
     @property
