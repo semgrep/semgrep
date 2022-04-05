@@ -83,6 +83,20 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
+    results, _errors = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        env={"NO_COLOR": "1"},
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
 def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snapshot):
     """
     NO_COLOR would normally disable color: https://no-color.org/
