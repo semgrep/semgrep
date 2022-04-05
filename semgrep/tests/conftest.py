@@ -189,8 +189,7 @@ def _run_semgrep(
     output = subprocess.run(
         cmd,
         encoding="utf-8",
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
         env=env,
     )
 

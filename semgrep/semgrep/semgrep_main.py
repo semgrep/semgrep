@@ -90,7 +90,7 @@ def invoke_semgrep(
     if output_settings is None:
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
 
-    io_capture = StringIO()
+    StringIO()
     output_handler = OutputHandler(output_settings)
     (
         filtered_matches_by_rule,

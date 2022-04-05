@@ -7,12 +7,12 @@ from typing import List
 from typing import Tuple
 
 import packaging.version
+from packaging.specifiers import SpecifierSet
+
 from dependencyparser.find_lockfiles import find_lockfiles
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.parse_lockfile import parse_lockfile_str
-from packaging.specifiers import SpecifierSet
-
 from semgrep.error import SemgrepError
 
 

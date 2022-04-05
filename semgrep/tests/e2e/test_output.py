@@ -8,11 +8,11 @@ from typing import Mapping
 from xml.etree import cElementTree
 
 import pytest
-from tests.conftest import _clean_output_json
-from tests.conftest import TESTS_PATH
 
 from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
+from tests.conftest import _clean_output_json
+from tests.conftest import TESTS_PATH
 
 
 # https://stackoverflow.com/a/10077069

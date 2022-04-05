@@ -176,7 +176,7 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     """
     if not os.path.isfile(path):
         return None
-    with open(path, mode="r") as fd:
+    with open(path) as fd:
         contents = fd.read()
         words = contents.split()
     # Find all of the individual words that contain the search_term
@@ -212,7 +212,7 @@ def format_bytes(num: float) -> str:
         if abs(num) < 1024.0:
             return "%3d%sB" % (num, unit)
         num /= 1024.0
-    return "%.1f%sB" % (num, "Y")
+    return "{:.1f}{}B".format(num, "Y")
 
 
 def truncate(file_name: str, col_lim: int) -> str:

@@ -216,7 +216,7 @@ def test_create_model_map():
     ]
     model_map = create_model_map(results)
 
-    check_ids = set(result.get("check_id") for result in results)
+    check_ids = {result.get("check_id") for result in results}
     assert set(model_map.keys()) == check_ids
     for result in results:
         check_id = result.get("check_id")
