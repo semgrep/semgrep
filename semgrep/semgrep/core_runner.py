@@ -264,7 +264,7 @@ class Task:
 class Plan(List[Task]):
     @property
     def rule_count(self) -> int:
-        return len(set(rule for task in self for rule in task.rule_ids))
+        return len({rule for task in self for rule in task.rule_ids})
 
     @property
     def file_count(self) -> int:
@@ -616,7 +616,6 @@ class CoreRunner:
             stderr: Optional[int] = subprocess.PIPE
             if is_debug():
                 cmd += ["--debug"]
-                stderr = None
 
             if dump_command_for_core:
                 print(" ".join(cmd))

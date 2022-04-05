@@ -3,11 +3,11 @@ from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
-from tests.conftest import TESTS_PATH
 
 from semgrep.cli import cli
 from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
+from tests.conftest import TESTS_PATH
 
 
 @pytest.mark.kinda_slow

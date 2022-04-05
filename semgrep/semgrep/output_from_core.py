@@ -421,7 +421,7 @@ class TargetTime:
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
         res["path"] = _atd_write_string(self.path)
-        res["rule_times"] = _atd_write_list((lambda x: x.to_json()))(self.rule_times)
+        res["rule_times"] = _atd_write_list(lambda x: x.to_json())(self.rule_times)
         res["run_time"] = _atd_write_float(self.run_time)
         return res
 
@@ -460,7 +460,7 @@ class Time:
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
-        res["targets"] = _atd_write_list((lambda x: x.to_json()))(self.targets)
+        res["targets"] = _atd_write_list(lambda x: x.to_json())(self.targets)
         res["rules"] = _atd_write_list(_atd_write_string)(self.rules)
         if self.rules_parse_time is not None:
             res["rules_parse_time"] = _atd_write_float(self.rules_parse_time)
@@ -957,7 +957,7 @@ class MatchExtra:
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
-        res["metavars"] = _atd_write_assoc_dict_to_object((lambda x: x.to_json()))(
+        res["metavars"] = _atd_write_assoc_dict_to_object(lambda x: x.to_json())(
             self.metavars
         )
         if self.message is not None:
@@ -1152,12 +1152,12 @@ class MatchResults:
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
-        res["matches"] = _atd_write_list((lambda x: x.to_json()))(self.matches)
-        res["errors"] = _atd_write_list((lambda x: x.to_json()))(self.errors)
-        res["skipped"] = _atd_write_list((lambda x: x.to_json()))(self.skipped_targets)
+        res["matches"] = _atd_write_list(lambda x: x.to_json())(self.matches)
+        res["errors"] = _atd_write_list(lambda x: x.to_json())(self.errors)
+        res["skipped"] = _atd_write_list(lambda x: x.to_json())(self.skipped_targets)
         res["stats"] = (lambda x: x.to_json())(self.stats)
         if self.skipped_rules is not None:
-            res["skipped_rules"] = _atd_write_list((lambda x: x.to_json()))(
+            res["skipped_rules"] = _atd_write_list(lambda x: x.to_json())(
                 self.skipped_rules
             )
         if self.time is not None:
@@ -1223,7 +1223,7 @@ class CveResults:
         return cls(_atd_read_list(CveResult.from_json)(x))
 
     def to_json(self) -> Any:
-        return _atd_write_list((lambda x: x.to_json()))(self.value)
+        return _atd_write_list(lambda x: x.to_json())(self.value)
 
     @classmethod
     def from_json_string(cls, x: str) -> "CveResults":

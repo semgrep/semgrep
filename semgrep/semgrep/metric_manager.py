@@ -104,7 +104,7 @@ class _MetricManager:
                 else:
                     # For now don't do anything special with other git-url formats
                     sanitized_url = project_url
-            except ValueError as e:
+            except ValueError:
                 logger.debug(f"Failed to parse url {project_url}")
                 sanitized_url = project_url
 

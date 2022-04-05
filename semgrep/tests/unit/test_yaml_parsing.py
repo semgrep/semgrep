@@ -91,7 +91,7 @@ def test_multiple_configs():
         assert not errors
         rules = config.get_rules(True)
         assert len(rules) == 3
-        assert {"rule1", "rule2", "rule3"} == set([rule.id for rule in rules])
+        assert {"rule1", "rule2", "rule3"} == {rule.id for rule in rules}
 
 
 @pytest.mark.quick

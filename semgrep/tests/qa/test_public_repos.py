@@ -71,8 +71,7 @@ def _assert_sentinel_results(
 
     semgrep_run = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         encoding="utf-8",
     )
 
@@ -236,8 +235,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
     res = subprocess.run(
         cmd,
         encoding="utf-8",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     returncode = res.returncode
     print("--- semgrep error output ---")

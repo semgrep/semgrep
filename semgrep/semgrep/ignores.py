@@ -101,7 +101,7 @@ class FileIgnore:
 # This class is an exact duplicate of the Parser class in semgrep-action
 @define
 class Parser:
-    """
+    r"""
     A parser for semgrepignore syntax.
 
     semgrepignore syntax mirrors gitignore syntax, with the following modifications:

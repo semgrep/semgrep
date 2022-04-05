@@ -120,7 +120,7 @@ class SemgrepCoreError(SemgrepError):
             base["path"] = str(self.path)
 
         if self.spans:
-            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
+            base["spans"] = tuple(attr.asdict(s) for s in self.spans)
 
         return base
 
@@ -182,8 +182,6 @@ class SemgrepInternalError(Exception):
 
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
-
-    pass
 
 
 @attr.s(auto_attribs=True, frozen=True)
