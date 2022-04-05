@@ -20,7 +20,7 @@ TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()
 @dataclass
 class Node:
     children: Dict[str, "Node"]
-    val: Optional[Dict[str, List[LockfileDependency]]]
+    val: Optional[Dict[Path, List[LockfileDependency]]]
 
 
 class DependencyTrie:
@@ -45,13 +45,13 @@ class DependencyTrie:
             curr = curr.children[part]
 
         if curr.val is None:
-            curr.val = {path.name: deps}
+            curr.val = {path: deps}
         else:
-            curr.val[path.name] = deps
+            curr.val[path] = deps
 
     def find_dependencies(
         self, path: Path
-    ) -> Optional[Dict[str, List[LockfileDependency]]]:
+    ) -> Optional[Dict[Path, List[LockfileDependency]]]:
         curr = self.root
         for part in path.parts:
             if part not in curr.children:
@@ -67,7 +67,6 @@ def make_dependency_trie(target: Path, langs: List[Language]) -> DependencyTrie:
     for namespace in [LANGUAGE_TO_NAMESPACE[l] for l in langs]:
         for lockfile_type in NAMESPACE_TO_LOCKFILES[namespace]:
             for lockfile in target.glob("**/" + lockfile_type):
-                lockfile = Path(lockfile)
                 deps = list(parse_lockfile_str(lockfile.read_text(), lockfile))
                 dep_trie.insert(lockfile, deps, namespace)
 

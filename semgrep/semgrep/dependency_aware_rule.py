@@ -106,7 +106,6 @@ def run_dependency_aware_rule(
                 else:
                     matches_remaining.append(match)
             matches = matches_remaining
-
             if not reachable:
                 dummy_match = RuleMatch(
                     rule_id=rule.id,
