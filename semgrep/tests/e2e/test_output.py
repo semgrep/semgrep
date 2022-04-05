@@ -83,6 +83,7 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -97,6 +98,7 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snapshot):
     """
     NO_COLOR would normally disable color: https://no-color.org/
