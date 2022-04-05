@@ -96,7 +96,7 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
 
 
 @define
-class IgnoreLog:
+class IgnoreOrFailedLog:
     """Keeps track of which paths were ignored for what reason.
 
     Each attribute is a distinct reason why files could be ignored.
@@ -111,6 +111,7 @@ class IgnoreLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
+    failed_to_analyze: Set[Path] = Factory(set)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
@@ -157,6 +158,10 @@ class IgnoreLog:
         if self.semgrepignored:
             skip_fragments.append(
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
+            )
+        if self.failed_to_analyze:
+            skip_fragments.append(
+                f"{len(self.failed_to_analyze)} files not analyzed due to a parsing or internal Semgrep error"
             )
 
         if not limited_fragments and not skip_fragments:
@@ -225,6 +230,13 @@ class IgnoreLog:
         else:
             yield 2, "<none>"
 
+        yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
+        if self.failed_to_analyze:
+            for path in self.failed_to_analyze:
+                yield 2, with_color(Colors.cyan, str(path))
+        else:
+            yield 2, "<none>"
+
         for rule_id in self.rule_ids_with_skipped_paths:
             if rule_id.startswith("fingerprints."):
                 # Skip fingerprint rules, since they all have include patterns
@@ -288,6 +300,8 @@ class IgnoreLog:
                 "reason": "exceeded_size_limit",
                 "size_limit_bytes": self.target_manager.max_target_bytes,
             }
+        for path in self.failed_to_analyze:
+            yield {"path": str(path), "reason": "analysis_failed_internal_error"}
 
 
 @frozen(eq=False)  #
@@ -454,7 +468,7 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
-    ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
+    ignore_log: IgnoreOrFailedLog = Factory(IgnoreOrFailedLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
