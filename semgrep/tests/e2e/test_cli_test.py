@@ -1,7 +1,7 @@
 import pytest
-from tests.conftest import _mask_floats
 
 from semgrep.constants import OutputFormat
+from tests.conftest import _mask_floats
 
 
 @pytest.mark.kinda_slow

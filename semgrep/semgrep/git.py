@@ -68,8 +68,7 @@ class BaselineHandler:
                 subprocess.run(
                     ["git", "cat-file", "-e", base_commit],
                     check=True,
-                    stderr=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
+                    capture_output=True,
                 )
             except subprocess.CalledProcessError:
                 raise Exception(
@@ -125,8 +124,7 @@ class BaselineHandler:
                     f"{self._base_commit}",
                 ],
                 timeout=GIT_SH_TIMEOUT,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 encoding="utf-8",
                 check=True,
             ).stdout
@@ -194,8 +192,7 @@ class BaselineHandler:
         sub_out = subprocess.run(
             ["git", "status", "--porcelain", "-z"],
             timeout=GIT_SH_TIMEOUT,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             encoding="utf-8",
             check=True,
         )
@@ -285,8 +282,7 @@ class BaselineHandler:
         current_tree = subprocess.run(
             ["git", "write-tree"],
             timeout=GIT_SH_TIMEOUT,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             encoding="utf-8",
             check=True,
         ).stdout.strip()

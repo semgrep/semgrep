@@ -670,7 +670,9 @@ def scan(
     vim: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     """
-    Semgrep CLI. Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
+    Run semgrep rules on files
+
+    Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
 
     To get started quickly, run
 

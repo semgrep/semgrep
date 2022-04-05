@@ -5,10 +5,10 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import pytest
-from tests.conftest import _clean_output_json
-from tests.conftest import _mask_times
 
 from semgrep.constants import OutputFormat
+from tests.conftest import _clean_output_json
+from tests.conftest import _mask_times
 
 GITHUB_TEST_GIST_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -503,8 +503,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
     output = subprocess.run(
         f"ulimit -s 1000 && semgrep --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
         shell=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
         encoding="utf-8",
     )
     print(output.stderr)
@@ -517,8 +516,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
     output = subprocess.run(
         f"ulimit -S -s 1000 && semgrep --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
         shell=True,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
         encoding="utf-8",
     )
     # with a soft limit, semgrep should terminate without errors

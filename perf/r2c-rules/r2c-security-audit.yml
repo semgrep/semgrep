@@ -3704,7 +3704,7 @@ rules:
         Scripting')"
       references:
         - https://www.developsec.com/2017/11/09/xss-in-a-script-tag/
-        - https://github.com/bkimminich/juice-shop/blob/master/routes/videoHandler.js#L64
+        - https://github.com/juice-shop/juice-shop/blob/1ceb8751e986dacd3214a618c37e7411be6bc11a/routes/videoHandler.ts#L68
     severity: WARNING
     languages:
       - javascript

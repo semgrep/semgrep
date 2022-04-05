@@ -321,7 +321,7 @@ def prepare_rule_cache_for_this_run(
     logger.info(
         f"Rule cache for run {setup_data.run_name} created at {rule_cache_for_this_run}"
     )
-    rule_config_paths = list()
+    rule_config_paths = []
     for rule_config in setup_data.rule_configs:
         logger.info(f"Checking for rule config '{rule_config}' in cache")
         normalized_rule_config = rule_config.normalize_rule_config_name()
@@ -350,7 +350,7 @@ def prepare_benchmark_run(
     - downloads rule configs from an endpoint if necessary
     - generates a 'prep' file which clones a repo from a URL and checks out the commit
     """
-    corpuses: List[Corpus] = list()
+    corpuses: List[Corpus] = []
     for setup_data in benchmark_config.benchmark_setup_data:
         logger.info(f"Setting up benchmark run for run '{setup_data.run_name}'")
         rule_cache_dir, _ = prepare_rule_cache_for_this_run(setup_data, clean)

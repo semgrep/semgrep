@@ -92,8 +92,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
             encoding="utf-8",
             check=True,
             timeout=GIT_SH_TIMEOUT,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
         )
         logger.debug(f"git rev-parse stdout: {rev_parse.stdout}")
         logger.debug(f"git rev-parse stderr: {rev_parse.stderr}")
@@ -105,8 +104,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
             ["git", "checkout", metadata.head_ref],
             encoding="utf-8",
             check=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             timeout=GIT_SH_TIMEOUT,
         )
         logger.debug(f"git checkout stdout: {checkout.stdout}")
@@ -119,8 +117,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
             subprocess.run(
                 ["git", "checkout", stashed_rev],
                 encoding="utf-8",
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 check=True,
                 timeout=GIT_SH_TIMEOUT,
             )
@@ -218,6 +215,18 @@ def ci(
     verbose: bool,
     vim: bool,
 ) -> None:
+    """
+    The recommended way to run semgrep in CI
+
+    In pull_request/merge_request (PR/MR) contexts, `semgrep ci` will only report findings
+    that were introduced by the PR/MR.
+
+    When logged in, `semgrep ci` runs rules configured on Semgrep App and sends findings
+    to your findings dashboard.
+
+    Only displays findings that were marked as blocking.
+    """
+
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
 
     metric_manager.configure(metrics, metrics_legacy)
@@ -393,7 +402,7 @@ def ci(
                     match for match in matches if not match.is_ignored
                 ]
 
-    num_cai_findings = sum(len(v) for v in cai_matches_by_rule.values())
+    sum(len(v) for v in cai_matches_by_rule.values())
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 

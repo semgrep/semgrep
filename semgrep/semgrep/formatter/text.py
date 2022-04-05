@@ -227,13 +227,13 @@ class TextFormatter(BaseFormatter):
             return ext_to_lang.get(ext, "generic")
 
         ext_info = sorted(
-            [
+            (
                 (
                     lang_of_path(target["path"]),
                     (target["num_bytes"], target["run_time"]),
                 )
                 for target in targets
-            ],
+            ),
             key=lambda x: x[0],
         )
         lang_info = {k: list(v) for k, v in groupby(ext_info, lambda x: x[0])}
@@ -250,7 +250,7 @@ class TextFormatter(BaseFormatter):
         total_time = time_data["profiling_times"].get("total_time", 0.0)
         config_time = time_data["profiling_times"].get("config_time", 0.0)
         core_time = time_data["profiling_times"].get("core_time", 0.0)
-        _ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
+        time_data["profiling_times"].get("ignores_time", 0.0)
 
         yield f"\n============================[ summary ]============================"
 
@@ -299,8 +299,7 @@ class TextFormatter(BaseFormatter):
             f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.3f} seconds)"
             for lang in langs
         ]
-        for line in add_heading(ANALYZED, by_lang):
-            yield line
+        yield from add_heading(ANALYZED, by_lang)
 
         # Output errors
         def if_exists(num_errors: int, msg: str) -> str:
@@ -315,8 +314,7 @@ class TextFormatter(BaseFormatter):
             f"{type} ({num} files)" for (type, num) in error_types.items()
         ]
 
-        for line in add_heading(FAILED, error_lines):
-            yield line
+        yield from add_heading(FAILED, error_lines)
 
         yield ""
 
