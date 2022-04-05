@@ -5,11 +5,10 @@ from typing import List
 from typing import Tuple
 
 import packaging.version
+from packaging.specifiers import SpecifierSet
 
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
-from packaging.specifiers import SpecifierSet
-
 from semgrep.error import SemgrepError
 
 

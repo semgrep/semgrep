@@ -11,7 +11,6 @@ from dependencyparser.models import NAMESPACE_TO_LOCKFILES
 from dependencyparser.models import PackageManagers
 from dependencyparser.parse_lockfile import LOCKFILE_PARSERS
 from dependencyparser.parse_lockfile import parse_lockfile_str
-
 from semgrep.semgrep_types import Language
 
 TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()
@@ -26,9 +25,7 @@ class Node:
 class DependencyTrie:
     def __init__(self) -> None:
         self.root: Node = Node(children={}, val=None)
-        self.all_deps: Dict[
-            PackageManagers, Dict[Path, List[LockfileDependency]]
-        ] = dict()
+        self.all_deps: Dict[PackageManagers, Dict[Path, List[LockfileDependency]]] = {}
 
     def insert(
         self, path: Path, deps: List[LockfileDependency], namespace: PackageManagers
