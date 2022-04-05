@@ -91,9 +91,9 @@ def publish(
     target: str, visibility: VisibilityState, registry_id: Optional[str]
 ) -> None:
     """
-    If logged in, uploads a rule to the Semgrep Registry with the specified visibility.
+    Upload rule to semgrep.dev
 
-    Public rules need registry_id to specify where in the public registry they should live.
+    Must be logged in to use; see `semgrep login`
     """
     saved_login_token = Authentication.get_token()
     fail_count = 0

@@ -215,6 +215,18 @@ def ci(
     verbose: bool,
     vim: bool,
 ) -> None:
+    """
+    The recommended way to run semgrep in CI
+
+    In pull_request/merge_request (PR/MR) contexts, `semgrep ci` will only report findings
+    that were introduced by the PR/MR.
+
+    When logged in, `semgrep ci` runs rules configured on Semgrep App and sends findings
+    to your findings dashboard.
+
+    Only displays findings that were marked as blocking.
+    """
+
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
 
     metric_manager.configure(metrics, metrics_legacy)
