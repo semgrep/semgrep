@@ -302,7 +302,7 @@ class OutputHandler:
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
             if len(semgrep_core_errors) >= 1:
-                paths = set(err.path for err in semgrep_core_errors)
+                paths = {err.path for err in semgrep_core_errors}
                 final_error = semgrep_core_errors[-1]
                 self.ignore_log.failed_to_analyze.update(paths)
             else:
