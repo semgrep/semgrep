@@ -301,7 +301,10 @@ class IgnoreOrFailedLog:
                 "size_limit_bytes": self.target_manager.max_target_bytes,
             }
         for path in self.failed_to_analyze:
-            yield {"path": str(path), "reason": "analysis_failed_internal_error"}
+            yield {
+                "path": str(path),
+                "reason": "analysis_failed_parser_or_internal_error",
+            }
 
 
 @frozen(eq=False)  #

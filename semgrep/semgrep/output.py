@@ -281,30 +281,35 @@ class OutputHandler:
         self.profiler = profiler
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
+
         if ignore_log:
             self.ignore_log = ignore_log
         else:
-            self.ignore_log = None
+            # ignore log was not created, so the run failed before it even started
+            # create a fake log to track the errors
+            self.ignore_log = IgnoreOrFailedLog(TargetManager(["."]))
+
+        final_error = self.final_error if self.final_error else None
         if profiling_data:
             self.profiling_data = profiling_data
         if severities:
             self.severities = severities
 
-        final_error = None
         if self.semgrep_structured_errors:
-            # Assumption: only the semgrep core errors pertain to files
             semgrep_core_errors = [
                 cast(SemgrepCoreError, err)
                 for err in self.semgrep_structured_errors
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
-            paths = set(err.path for err in semgrep_core_errors)
-            final_error = semgrep_core_errors[-1]
-            if self.ignore_log is None:
-                # not ignore log was created, so the run failed before it even started
-                # create a fake ignore log to track the errors
-                self.ignore_log = IgnoreOrFailedLog(TargetManager(["."]))
-            self.ignore_log.failed_to_analyze.update(paths)
+            if len(semgrep_core_errors) >= 1:
+                paths = set(err.path for err in semgrep_core_errors)
+                final_error = semgrep_core_errors[-1]
+                self.ignore_log.failed_to_analyze.update(paths)
+            else:
+                # Assumption: only the semgrep core errors pertain to files; if there are other
+                # errors, they didn't affect the whether files were analyzed, but were a different
+                # kind of error (for example, baseline commit not found)
+                pass
 
         if self.has_output:
             output = self._build_output()
@@ -348,9 +353,7 @@ class OutputHandler:
             logger.info(output_text)
 
         any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
-        if self.final_error:
-            final_error = self.final_error
-        elif any_findings_not_ignored and self.settings.error_on_findings:
+        if any_findings_not_ignored and self.settings.error_on_findings:
             # This exception won't be visible to the user, we're just
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
