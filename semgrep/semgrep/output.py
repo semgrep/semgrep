@@ -41,7 +41,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
-from semgrep.target_manager import IgnoreOrFailedLog
+from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
 from semgrep.util import partition
@@ -266,7 +266,7 @@ class OutputHandler:
         *,
         all_targets: Set[Path],
         filtered_rules: List[Rule],
-        ignore_log: Optional[IgnoreOrFailedLog] = None,
+        ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
@@ -287,7 +287,7 @@ class OutputHandler:
         else:
             # ignore log was not created, so the run failed before it even started
             # create a fake log to track the errors
-            self.ignore_log = IgnoreOrFailedLog(TargetManager(["."]))
+            self.ignore_log = FileTargetingLog(TargetManager(["."]))
 
         final_error = self.final_error if self.final_error else None
         if profiling_data:

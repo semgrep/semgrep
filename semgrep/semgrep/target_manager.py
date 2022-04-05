@@ -96,7 +96,7 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
 
 
 @define
-class IgnoreOrFailedLog:
+class FileTargetingLog:
     """Keeps track of which paths were ignored for what reason.
 
     Each attribute is a distinct reason why files could be ignored.
@@ -471,7 +471,7 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
-    ignore_log: IgnoreOrFailedLog = Factory(IgnoreOrFailedLog, takes_self=True)
+    ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
