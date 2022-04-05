@@ -14,7 +14,6 @@ def cli() -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
     """
-    pass
 
 
 cli.add_command(ci)
