@@ -21,7 +21,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
     # writing.
     # This tempfile will be deleted when the with context closes.
     with tempfile.NamedTemporaryFile(dir=Path("targets")) as tf:
-        with open(Path("targets") / "autofix/autofix.py", "r") as fin:
+        with open(Path("targets") / "autofix/autofix.py") as fin:
             tf.write(fin.read().encode("utf-8"))
         tf.flush()  # Make sure file has been copied.
         tf.seek(
@@ -77,7 +77,7 @@ def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # writing.
     # This tempfile will be deleted when the with context closes.
     with tempfile.NamedTemporaryFile(dir=Path("targets")) as tf:
-        with open(Path("targets") / target, "r") as fin:
+        with open(Path("targets") / target) as fin:
             tf.write(fin.read().encode("utf-8"))
         tf.flush()  # Make sure file has been copied.
         tf.seek(

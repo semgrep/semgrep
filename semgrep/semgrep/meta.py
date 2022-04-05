@@ -42,8 +42,7 @@ class GitMeta:
 
         rev_parse = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             encoding="utf-8",
             timeout=GIT_SH_TIMEOUT,
         )
@@ -101,8 +100,7 @@ class GitMeta:
         try:
             rev_parse = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             )
@@ -256,8 +254,7 @@ class GithubMeta(GitMeta):
                     self.base_branch_tip,
                 ],
                 check=True,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 encoding="utf-8",
                 timeout=GIT_SH_TIMEOUT,
             )
@@ -268,8 +265,7 @@ class GithubMeta(GitMeta):
                 ["git", "fetch", "origin", "--depth", str(fetch_depth), self.head_ref],
                 check=True,
                 encoding="utf-8",
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 timeout=GIT_SH_TIMEOUT,
             )
             logger.debug(
@@ -280,8 +276,7 @@ class GithubMeta(GitMeta):
             process = subprocess.run(
                 ["git", "merge-base", self.base_branch_tip, self.head_ref],
                 encoding="utf-8",
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 check=True,
                 timeout=GIT_SH_TIMEOUT,
             )
@@ -381,8 +376,7 @@ class GitlabMeta(GitMeta):
             ["git", "fetch", url, branch_name],
             check=True,
             timeout=GIT_SH_TIMEOUT,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
         )
 
         base_sha = subprocess.check_output(

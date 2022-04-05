@@ -5,6 +5,7 @@ from typing import List
 from typing import Tuple
 
 import packaging.version
+
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from packaging.specifiers import SpecifierSet

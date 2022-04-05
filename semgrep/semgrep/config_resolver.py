@@ -234,7 +234,7 @@ class ConfigPath:
                 "text/yaml",
                 "text/vnd.yaml",
             ]
-            if content_type and any((ct in content_type for ct in yaml_types)):
+            if content_type and any(ct in content_type for ct in yaml_types):
                 return r.content.decode("utf-8", errors="replace")
             else:
                 raise SemgrepError(
@@ -485,7 +485,7 @@ def parse_config_string(
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
-    except EmptyYamlException as se:
+    except EmptyYamlException:
         raise SemgrepError(
             f"Empty configuration file {filename}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
@@ -641,7 +641,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         for version_string in versions_json:
             try:
                 versions_parsed.append(Version(version_string))
-            except ValueError as e:
+            except ValueError:
                 logger.info(
                     f"Could not parse {version_string} in versions of {ruleset_name} pack as valid semver. Ignoring that version string."
                 )
@@ -811,7 +811,7 @@ def list_current_public_rulesets() -> List[JsonObject]:
     headers = {"User-Agent": SEMGREP_USER_AGENT}
     try:
         r = requests.get(api_full_url, headers=headers, timeout=20)
-    except Exception as e:
+    except Exception:
         raise SemgrepError(f"Failed to download list of public rulesets")
 
     if not r.ok:

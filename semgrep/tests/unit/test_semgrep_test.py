@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import itertools
 from itertools import product
 from typing import Any
