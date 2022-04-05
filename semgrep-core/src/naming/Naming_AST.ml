@@ -345,6 +345,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Unit tok); _ } -> make_type "unit" tok
       | Some { e = L (Null tok); _ } -> make_type "null" tok
       | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
+      (* alt: lookup id in env to get its type, which would be cleaner *)
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, (_, _, _)); _ } -> Some tp
       | _ -> None)
@@ -461,8 +462,12 @@ let resolve lang prog =
            * construct
            * todo? should add those somewhere instead of in_lvalue detection? *)
             when is_resolvable_name_ctx env lang ->
-              (* Need to visit expressions first so that type is populated, e.g.
-               * if we do var a = 3, then var b = a, we want to propagate the type of a. *)
+              (* Need to visit expressions first so that the id_type of
+               * an id gets populated, e.g.
+               * if we do var a = 3, then var b = a, we want to propagate the
+               * type of a.
+               * alt: do the lookup type in resolved_type
+               *)
               k x;
               declare_var env lang id id_info ~explicit:true vinit vtype
           | { name = EN (Id (id, id_info)); _ }, FuncDef _
