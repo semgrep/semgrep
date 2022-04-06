@@ -108,27 +108,42 @@ class BaselineHandler:
 
         # Output of git command will be relative to git project root not cwd
         logger.debug("Running git diff")
-        status_output = zsplit(
-            subprocess.run(
-                [
-                    "git",
-                    "diff",
-                    "--cached",
-                    "--name-status",
-                    "--no-ext-diff",
-                    "-z",
-                    "--diff-filter=ACDMRTUXB",
-                    "--ignore-submodules",
-                    "--relative",
-                    "--merge-base",
-                    self._base_commit,
-                ],
+        status_cmd = [
+            "git",
+            "diff",
+            "--cached",
+            "--name-status",
+            "--no-ext-diff",
+            "-z",
+            "--diff-filter=ACDMRTUXB",
+            "--ignore-submodules",
+            "--relative",
+            self._base_commit,
+        ]
+        try:
+            raw_output = subprocess.run(
+                [*status_cmd, "--merge-base"],
                 timeout=GIT_SH_TIMEOUT,
                 capture_output=True,
                 encoding="utf-8",
                 check=True,
             ).stdout
-        )
+
+        except subprocess.CalledProcessError as exc:
+            if exc.stderr.strip() == "fatal: multiple merge bases found":
+                logger.warn(
+                    "git could not find a single branch-off point, so we will compare the baseline commit directly"
+                )
+                raw_output = subprocess.run(
+                    status_cmd,
+                    timeout=GIT_SH_TIMEOUT,
+                    capture_output=True,
+                    encoding="utf-8",
+                    check=True,
+                ).stdout
+            else:
+                raise exc
+        status_output = zsplit(raw_output)
         logger.debug("Finished git diff. Parsing git status output")
         logger.debug(status_output)
         added = []
@@ -271,7 +286,7 @@ class BaselineHandler:
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
-        status = self.status
+        self.status
 
         # Reabort in case for some reason aborting in __init__ did not cause
         # semgrep to exit
@@ -297,8 +312,7 @@ class BaselineHandler:
             subprocess.run(
                 ["git", "reset", "--hard", merge_base_sha],
                 timeout=GIT_SH_TIMEOUT,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 check=True,
             )
             logger.debug("Finished git checkout for baseline context")
@@ -313,8 +327,7 @@ class BaselineHandler:
             logger.debug("Running git reset to return original context")
             x = subprocess.run(
                 ["git", "reset", "--hard", current_head],
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 timeout=GIT_SH_TIMEOUT,
             )
             logger.debug("Finished git reset to return original context")
