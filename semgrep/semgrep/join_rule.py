@@ -40,7 +40,6 @@ logger = getLogger(__file__)
 yaml = YAML()
 
 
-# TODO: refactor into nice code files instead of this giant file
 # TODO: probably, add error handling
 # TODO: decide how to represent these kinds of rules in the output.
 # TODO(bug): join rules don't propagate metavariables forward into messages
@@ -79,7 +78,6 @@ class Ref:
     id: str
     renames: Dict[str, str]
     alias: str
-    recursive: Dict[str, str]
 
 
 @define
@@ -401,7 +399,9 @@ def run_join_rule(
     for an example.
     """
     join_contents = join_rule.get("join", {})
-    semgrep_config_strings = [ref.get("rule") for ref in join_contents.get("refs", [])]
+
+    refs = join_contents.get("refs", [])
+    semgrep_config_strings = [ref.get("rule") for ref in refs]
     config_map = create_config_map(semgrep_config_strings)
 
     join_rule_refs: List[Ref] = [
@@ -412,12 +412,22 @@ def run_join_rule(
                 for rename in ref.get("renames", [])
             },
             alias=ref.get("as"),
-            recursive=ref.get("recursive"),
         )
         for ref in join_contents.get("refs", [])
     ]
     refs_lookup = {ref.id: ref for ref in join_rule_refs}
     alias_lookup = {ref.alias: ref.id for ref in join_rule_refs}
+
+    inline_rules = join_contents.get("rules", [])
+    inline_rules = [Rule.from_json(rule) for rule in inline_rules]
+
+    # Hack: Use the rule ID for inline rules as keys for refs_lookup and alias_lookup.
+    # This behavior should probably split out into a separate code
+    # path that only deals with refs in the future.
+    refs_lookup.update(
+        {rule.id: Ref(id=rule.id, renames={}, alias=rule.id) for rule in inline_rules}
+    )
+    alias_lookup.update({rule.id: rule.id for rule in inline_rules})
 
     try:
         conditions = [
@@ -429,8 +439,16 @@ def run_join_rule(
 
     # Run Semgrep
     with tempfile.NamedTemporaryFile() as rule_path:
-        yaml.dump({"rules": [rule.raw for rule in config_map.values()]}, rule_path)
+        # Combine inline rules and refs
+        raw_rules = [rule.raw for rule in inline_rules]
+        raw_rules.extend([rule.raw for rule in config_map.values()])
+        yaml.dump({"rules": raw_rules}, rule_path)
         rule_path.flush()
+        rule_path.seek(0)
+
+        logger.debug(
+            f"Running join mode rule {join_rule.get('id')} on {len(targets)} files."
+        )
         output = semgrep.semgrep_main.invoke_semgrep(
             config=Path(rule_path.name),
             targets=targets,
