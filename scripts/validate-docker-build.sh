@@ -51,7 +51,7 @@ docker run "$image" --config=p/ci --help
 docker run "$image" ci --help
 docker run "$image" publish --help
 
-# Random valid shell commands should run ok
+# Semgrep should be able to return findings
 echo "if 1 == 1: pass" \
-    | docker run "$image" semgrep -l python -e '$X == $X' - \
+    | docker run -i "$image" semgrep -l python -e '$X == $X' - \
     | grep -q "1 == 1"
