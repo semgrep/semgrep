@@ -427,7 +427,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | ForEllipsis tok -> token "..." tok
     | ForIn (init, exprs) ->
         F.sprintf "%s %s %s" (show_init_list init) "in"
-          (String.concat "," (List.map (fun e -> expr env e) exprs))
+          (String.concat "," (Common.map (fun e -> expr env e) exprs))
   in
   let body_str = stmt env (level + 1) s in
   for_format (token "for" for_tok) hdr_str body_str
@@ -659,7 +659,7 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   match name_middle with
   | Some (QDots dot_ids) ->
       (* TODO: do not do fst, look also at type qualification *)
-      F.sprintf "%s.%s" (dotted_access env (List.map fst dot_ids)) (ident id)
+      F.sprintf "%s.%s" (dotted_access env (Common.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 

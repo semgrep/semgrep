@@ -259,7 +259,7 @@ and eval_lval env lval =
 
 and eval_op env wop args =
   let op, tok = wop in
-  let cs = List.map (eval env) args in
+  let cs = Common.map (eval env) args in
   match (op, cs) with
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
@@ -279,7 +279,7 @@ and eval_op env wop args =
   | ___else___ -> G.NotCst
 
 and eval_concat env args =
-  match List.map (eval env) args with
+  match Common.map (eval env) args with
   | [] -> G.Lit (literal_of_string "")
   | G.Lit (G.String (r, tok)) :: args' ->
       List.fold_left
@@ -417,7 +417,7 @@ let transfer :
             let cexp = eval_or_sym_prop inp' exp in
             D.VarMap.add (str_of_name var) cexp inp'
         | Call (Some { base = Var var; offset = NoOffset }, func, args) -> (
-            let args_val = List.map (eval inp') args in
+            let args_val = Common.map (eval inp') args in
             match (lang, func, args_val) with
             (* Built-in knowledge, we know these functions return constants when
              * given constant arguments. *)

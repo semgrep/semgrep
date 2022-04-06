@@ -245,7 +245,7 @@ let rec eval env x : svalue option =
 
 and eval_args env args =
   args |> unbracket
-  |> List.map (function
+  |> Common.map (function
        | Arg e -> eval env e
        | _ -> None)
 
@@ -504,7 +504,7 @@ let terraform_sid = 0
 
 let add_special_constants env lang prog =
   if lang = Lang.Hcl then
-    let vars = prog |> List.map terraform_stmt_to_vardefs |> List.flatten in
+    let vars = prog |> Common.map terraform_stmt_to_vardefs |> List.flatten in
     vars
     |> List.iter (fun (id, v) ->
            match v.e with

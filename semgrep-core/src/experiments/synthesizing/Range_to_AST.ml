@@ -150,7 +150,7 @@ let join_anys (anys : AST_generic.any list) : AST_generic.any option =
   match anys with
   | [] -> None
   | [ xs ] -> Some xs
-  | G.S _ :: _ -> Some (G.Ss (List.map any_to_stmt anys))
+  | G.S _ :: _ -> Some (G.Ss (Common.map any_to_stmt anys))
   | _ ->
       failwith
         "Unable to handle ranges that contain multiple expressions. Range must \
@@ -158,7 +158,7 @@ let join_anys (anys : AST_generic.any list) : AST_generic.any option =
 
 let split_any (any : G.any) : G.any list =
   match any with
-  | G.Ss stmts -> List.map (fun s -> G.S s) stmts
+  | G.Ss stmts -> Common.map (fun s -> G.S s) stmts
   | x -> [ x ]
 
 let any_at_range_all r1 ast : AST_generic.any option =

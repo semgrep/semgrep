@@ -118,7 +118,7 @@ let name_of_ids xs =
   | x :: xs ->
       let qualif =
         if xs = [] then None
-        else Some (QDots (xs |> List.rev |> List.map (fun id -> (id, None))))
+        else Some (QDots (xs |> List.rev |> Common.map (fun id -> (id, None))))
       in
       IdQualified
         {
@@ -154,7 +154,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       let before =
         match name_middle with
         (* we skip the type parts in ds ... *)
-        | Some (QDots ds) -> ds |> List.map fst
+        | Some (QDots ds) -> ds |> Common.map fst
         | Some (QExpr _) ->
             logger#error "unexpected qualifier type";
             []
@@ -173,10 +173,10 @@ let rec expr_to_pattern e =
   match e.e with
   | N (Id (id, info)) -> PatId (id, info)
   | Container (Tuple, (t1, xs, t2)) ->
-      PatTuple (t1, xs |> List.map expr_to_pattern, t2)
+      PatTuple (t1, xs |> Common.map expr_to_pattern, t2)
   | L l -> PatLiteral l
   | Container (List, (t1, xs, t2)) ->
-      PatList (t1, xs |> List.map expr_to_pattern, t2)
+      PatList (t1, xs |> Common.map expr_to_pattern, t2)
   | Ellipsis t -> PatEllipsis t
   (* Todo:  PatKeyVal *)
   | _ -> OtherPat (("ExprToPattern", fake ""), [ E e ])
@@ -188,10 +188,10 @@ let rec pattern_to_expr p =
   (match p with
   | PatId (id, info) -> N (Id (id, info))
   | PatTuple (t1, xs, t2) ->
-      Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
+      Container (Tuple, (t1, xs |> Common.map pattern_to_expr, t2))
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
-      Container (List, (t1, xs |> List.map pattern_to_expr, t2))
+      Container (List, (t1, xs |> Common.map pattern_to_expr, t2))
   | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
   | _ -> raise NotAnExpr)
   |> G.e
@@ -358,14 +358,14 @@ let ac_matching_nf op args =
   (* yes... here we use exceptions like a "goto" to avoid the option monad *)
   let rec nf args1 =
     args1
-    |> List.map (function
+    |> Common.map (function
          | Arg e -> e
          | ArgKwd _
          | ArgKwdOptional _
          | ArgType _
          | OtherArg _ ->
              raise_notrace Exit)
-    |> List.map nf_one |> List.flatten
+    |> Common.map nf_one |> List.flatten
   and nf_one e =
     match e.e with
     | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op = op1

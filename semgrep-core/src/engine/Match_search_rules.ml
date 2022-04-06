@@ -211,7 +211,7 @@ let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
-  |> List.map (fun mr ->
+  |> Common.map (fun mr ->
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
@@ -250,7 +250,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
       let (matches, errors), match_time =
         Common.with_time (fun () ->
             let mini_rules =
-              patterns |> List.map (mini_rule_of_pattern xlang)
+              patterns |> Common.map (mini_rule_of_pattern xlang)
             in
 
             if !debug_timeout || !debug_matches then
@@ -320,10 +320,10 @@ let (matches_of_matcher :
         let res, match_time =
           Common.with_time (fun () ->
               xpatterns
-              |> List.map (fun (xpat, id, pstr) ->
+              |> Common.map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
-                     |> List.map (fun ((loc1, loc2), env) ->
+                     |> Common.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = fake_rule_id (id, pstr) in
                             {
@@ -380,12 +380,12 @@ let spacegrep_matcher (doc, src) file pat =
       doc
   in
   matches
-  |> List.map (fun m ->
+  |> Common.map (fun m ->
          let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
          let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
          let env =
            m.Spacegrep.Match.named_captures
-           |> List.map (fun (s, capture) ->
+           |> Common.map (fun (s, capture) ->
                   let mvar = "$" ^ s in
                   let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
                   let loc = lexing_pos_to_loc file pos str in
@@ -439,7 +439,7 @@ let matches_of_spacegrep spacegreps file =
 let regexp_matcher big_str file (re_str, re) =
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
   subs |> Array.to_list
-  |> List.map (fun sub ->
+  |> Common.map (fun sub ->
          let matched_str = Pcre.get_substring sub 0 in
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
          let str = matched_str in
@@ -507,10 +507,10 @@ let comby_matcher (m_all, source) file pat =
   let matches = m_all ~template:pat ~source () in
   (*Format.printf "%a@." CK.Match.pp_json_lines (None, matches);*)
   matches
-  |> List.map (fun { CK.Match.range; environment; matched } ->
+  |> Common.map (fun { CK.Match.range; environment; matched } ->
          let env =
            CK.Match.Environment.vars environment
-           |> List.map (fun s ->
+           |> Common.map (fun s ->
                   let mvar = "$" ^ s in
                   let str_opt = CK.Match.Environment.lookup environment s in
                   let range_opt =
@@ -854,9 +854,10 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
         | None -> RM.Plain
       in
       match_results
-      |> List.map RM.match_result_to_range
-      |> List.map (fun r -> { r with RM.kind })
-  | S.Or xs -> xs |> List.map (evaluate_formula env opt_context) |> List.flatten
+      |> Common.map RM.match_result_to_range
+      |> Common.map (fun r -> { r with RM.kind })
+  | S.Or xs ->
+      xs |> Common.map (evaluate_formula env opt_context) |> List.flatten
   | S.And
       {
         selector_opt;
@@ -880,7 +881,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
        *)
 
       (* let's start with the positive ranges *)
-      let posrs = List.map (evaluate_formula env opt_context) pos in
+      let posrs = Common.map (evaluate_formula env opt_context) pos in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -976,7 +977,7 @@ and run_selector_on_ranges env selector_opt ranges =
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
       res.matches
-      |> List.map RM.match_result_to_range
+      |> Common.map RM.match_result_to_range
       |> RM.intersect_ranges (fst env.config) !debug_matches ranges
 
 and apply_focus_on_ranges env focus ranges : RM.ranges =
@@ -1054,7 +1055,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
   {
     RP.matches =
       final_ranges
-      |> List.map (RM.range_to_pattern_match_adjusted r)
+      |> Common.map (RM.range_to_pattern_match_adjusted r)
       (* dedup similar findings (we do that also in Match_patterns.ml,
        * but different mini-rules matches can now become the same match)
        *)
@@ -1064,7 +1065,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
                     hook str m.env m.tokens));
-    errors = res.errors |> List.map (error_with_rule_id rule_id);
+    errors = res.errors |> Common.map (error_with_rule_id rule_id);
     skipped_targets = res.skipped_targets;
     profiling = res.profiling;
   }
