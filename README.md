@@ -95,9 +95,6 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 # to make selecting relevant rules fast next time;
 # source code will not be uploaded.
 $ semgrep --config auto
-
-# Run the r2c-ci ruleset (with rules for many languages) on your own code!
-$ semgrep --config=p/r2c-ci path/to/src
 ```
 
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
