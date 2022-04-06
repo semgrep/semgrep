@@ -93,12 +93,12 @@ let formula_to_sformula formula =
     | R.P (p, inside) -> Leaf (p, inside)
     | R.And { tok = _; conjuncts = fs; conditions = conds; focus } ->
         And (convert_and_formulas fs conds focus)
-    | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
+    | R.Or (_, fs) -> Or (Common.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
   and convert_and_formulas fs cond focus =
     let pos, neg = split_and fs in
-    let pos = List.map formula_to_sformula pos in
-    let neg = List.map formula_to_sformula neg in
+    let pos = Common.map formula_to_sformula pos in
+    let neg = Common.map formula_to_sformula neg in
     let sel, pos =
       (* We only want a selector if there is something to select from. *)
       match remove_selectors (None, []) pos with
@@ -109,8 +109,8 @@ let formula_to_sformula formula =
       selector_opt = sel;
       positives = pos;
       negatives = neg;
-      conditionals = cond |> List.map snd;
-      focus = focus |> List.map snd;
+      conditionals = cond |> Common.map snd;
+      focus = focus |> Common.map snd;
     }
   in
   formula_to_sformula formula

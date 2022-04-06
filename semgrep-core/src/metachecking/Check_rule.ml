@@ -94,17 +94,12 @@ let unknown_metavar_in_comparison env f =
           words_with_dot |> List.filter Metavariable.is_metavar_ellipsis
         in
         (* Then split the individual metavariables *)
-        let words =
-          List.flatten
-            (List.map
-               (fun word -> String.split_on_char '.' word)
-               words_with_dot)
-        in
+        let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
-        let mv_sets = List.map collect_metavars xs in
+        let mv_sets = Common.map collect_metavars xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
            * speaking a metavariable needs to be in all cases of a pattern-either
@@ -117,7 +112,7 @@ let unknown_metavar_in_comparison env f =
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
     | And { tok = _; conjuncts; conditions; focus } ->
-        let mv_sets = List.map collect_metavars conjuncts in
+        let mv_sets = Common.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
@@ -205,7 +200,7 @@ let semgrep_check config metachecks rules =
   let _success, res, _targets =
     Run_semgrep.semgrep_with_raw_results_and_exn_handler config
   in
-  res.matches |> List.map match_to_semgrep_error
+  res.matches |> Common.map match_to_semgrep_error
 
 (* TODO *)
 
@@ -234,11 +229,11 @@ let run_checks config fparser metachecks xs =
       let semgrep_found_errs = semgrep_check config metachecks rules in
       let ocaml_found_errs =
         rules
-        |> List.map (fun file ->
+        |> Common.map (fun file ->
                logger#info "processing %s" file;
                try
                  let rs = fparser file in
-                 rs |> List.map (fun file -> check file) |> List.flatten
+                 rs |> Common.map (fun file -> check file) |> List.flatten
                with
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)

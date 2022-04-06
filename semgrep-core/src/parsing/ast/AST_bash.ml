@@ -627,7 +627,7 @@ let concat_blists (x : blist list) : blist =
 
 let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
     cmd_redir =
-  let all_locs = cmd_r.loc :: List.map redirect_loc redirects in
+  let all_locs = cmd_r.loc :: Common.map redirect_loc redirects in
   let loc = Loc.of_list (fun loc -> loc) all_locs in
   { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
 
