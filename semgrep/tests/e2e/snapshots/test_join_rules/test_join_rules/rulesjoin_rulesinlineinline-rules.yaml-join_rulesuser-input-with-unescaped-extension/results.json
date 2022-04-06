@@ -16,7 +16,7 @@
         "fingerprint": "b4fd4cd964c1be735cfdda0da54ad19f",
         "is_ignored": false,
         "lines": "        <li>person_name_full is <b>{{ person_name_full }}</b></li>",
-        "message": "Detected a XSS vulnerability: '$VAR' is rendered\nunsafely in '$TEMPLATE'. \n",
+        "message": "Detected a XSS vulnerability: '$VAR' is rendered\nunsafely in '$TEMPLATE'.\n",
         "metadata": {},
         "metavars": {
           "$VAR": {
