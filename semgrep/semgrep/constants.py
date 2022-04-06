@@ -10,9 +10,9 @@ from semgrep import __VERSION__
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
-SEMGREP_REGISTRY_URL = os.environ.get(
-    "SEMGREP_REGISTRY_URL", os.environ.get("SEMGREP_URL", "https://semgrep.dev")
-)
+SEMGREP_URL = os.environ.get(
+    "SEMGREP_APP_URL", os.environ.get("SEMGREP_URL", "https://semgrep.dev")
+).rstrip("/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"

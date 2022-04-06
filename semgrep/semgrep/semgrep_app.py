@@ -13,6 +13,7 @@ import click
 import requests
 from urllib3.util.retry import Retry
 
+from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -35,8 +36,7 @@ RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
 
 
 class ScanHandler:
-    def __init__(self, app_url: str, token: str, dry_run: bool) -> None:
-        self.app_url = app_url
+    def __init__(self, token: str, dry_run: bool) -> None:
         session = requests.Session()
         session.mount("https://", RETRYING_ADAPTER)
         session.headers["User-Agent"] = SEMGREP_USER_AGENT
@@ -63,7 +63,7 @@ class ScanHandler:
 
         Returns None if api_token is invalid/doesn't have associated deployment
         """
-        url = f"{self.app_url}/api/agent/deployments/current"
+        url = f"{SEMGREP_URL}/api/agent/deployments/current"
         logger.debug(f"Retrieveing deployment details from {url}")
         r = self.session.get(
             url,
@@ -88,14 +88,14 @@ class ScanHandler:
         logger.debug("Starting scan")
         if self.dry_run:
             repo_name = meta["repository"]
-            self._dry_run_rules_url = f"{self.app_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
+            self._dry_run_rules_url = f"{SEMGREP_URL}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
             logger.debug(
                 f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
             )
             return
 
         response = self.session.post(
-            f"{self.app_url}/api/agent/deployments/{self.deployment_id}/scans",
+            f"{SEMGREP_URL}/api/agent/deployments/{self.deployment_id}/scans",
             json={"meta": meta},
             timeout=30,
         )
@@ -104,14 +104,14 @@ class ScanHandler:
             raise Exception(
                 "Failed to create a scan with given token and deployment_id."
                 "Please make sure they have been set correctly."
-                f"API server at {self.app_url} returned this response: {response.text}"
+                f"API server at {SEMGREP_URL} returned this response: {response.text}"
             )
 
         try:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
-                f"API server at {self.app_url} returned this error: {response.text}"
+                f"API server at {SEMGREP_URL} returned this error: {response.text}"
             )
 
         body = response.json()
@@ -124,7 +124,7 @@ class ScanHandler:
         if self.dry_run:
             url = self._dry_run_rules_url
         else:
-            url = f"{self.app_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+            url = f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/rules.yaml"
 
         logger.debug(f"Using {url} as scan rules url")
         return url
@@ -139,7 +139,7 @@ class ScanHandler:
             return
 
         response = self.session.post(
-            f"{self.app_url}/api/agent/scans/{self.scan_id}/error",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/error",
             json={
                 "exit_code": exit_code,
                 "stderr": "",
@@ -224,7 +224,7 @@ class ScanHandler:
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = self.session.post(
-            f"{self.app_url}/api/agent/scans/{self.scan_id}/findings",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings",
             json=findings,
             timeout=30,
         )
@@ -240,7 +240,7 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         response = self.session.post(
-            f"{self.app_url}/api/agent/scans/{self.scan_id}/ignores",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/ignores",
             json=ignores,
             timeout=30,
         )
@@ -251,7 +251,7 @@ class ScanHandler:
 
         # mark as complete
         response = self.session.post(
-            f"{self.app_url}/api/agent/scans/{self.scan_id}/complete",
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/complete",
             json=complete,
             timeout=30,
         )
@@ -260,5 +260,5 @@ class ScanHandler:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
-                f"API server at {self.app_url} returned this error: {response.text}"
+                f"API server at {SEMGREP_URL} returned this error: {response.text}"
             )

@@ -11,7 +11,7 @@ import click
 
 from semgrep.commands.login import Authentication
 from semgrep.config_resolver import get_config
-from semgrep.constants import SEMGREP_REGISTRY_URL
+from semgrep.constants import SEMGREP_URL
 from semgrep.project import get_project_url
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames
@@ -19,9 +19,9 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_URL}/api/registry/rule"
-SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_URL}/r/"
-SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_REGISTRY_URL}/s/"
+SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_URL}/api/registry/rule"
+SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_URL}/r/"
+SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_URL}/s/"
 
 
 class VisibilityState(str, Enum):
