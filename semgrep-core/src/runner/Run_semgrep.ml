@@ -452,11 +452,16 @@ let targets_of_config (config : Runner_config.t)
  * It takes a set of rules and a set of targets and
  * recursively process those targets.
  *)
-let semgrep_with_rules config ((rules, skipped_rules), rules_parse_time) =
-  (* if there are no rules but just skipped rules, better to return an exn *)
-  (match (rules, skipped_rules) with
+let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
+  (* Return an exception
+     - always, if there are no rules but just invalid rules
+     - when users want to fail fast, if there are valid and invalid rules *)
+  (* TODO right now there is no option to not fail fast *)
+  (match (rules, invalid_rules) with
   | [], [] -> ()
   | [], err :: _ -> raise (Rule.InvalidRule err)
+  | _, err :: _ (* TODO fail fast when only when strict? *) ->
+      raise (Rule.InvalidRule err)
   | _ -> ());
 
   let rule_table = mk_rule_table rules in
@@ -471,8 +476,10 @@ let semgrep_with_rules config ((rules, skipped_rules), rules_parse_time) =
            let file = target.In.path in
            let xlang = Xlang.of_string target.In.language in
            let rules =
-             Common.map
-               (fun r_id -> Hashtbl.find rule_table r_id)
+             (* Assumption: find_opt will return None iff a r_id
+                 is in skipped_rules *)
+             List.filter_map
+               (fun r_id -> Hashtbl.find_opt rule_table r_id)
                target.In.rule_ids
            in
 
@@ -515,7 +522,7 @@ let semgrep_with_rules config ((rules, skipped_rules), rules_parse_time) =
       RP.matches;
       errors;
       skipped_targets;
-      skipped_rules;
+      skipped_rules = invalid_rules;
       final_profiling = res.RP.final_profiling;
     },
     targets |> Common.map (fun x -> x.In.path) )
