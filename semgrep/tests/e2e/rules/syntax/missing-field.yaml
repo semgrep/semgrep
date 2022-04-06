@@ -6,7 +6,7 @@ rules:
       - pattern-not: |
           flask.response.set_cookie(..., httponly=True, secure=True,...)
       - pattern: |
-          flask.response.set_cookie(....)
+          flask.response.set_cookie(...)
     message: |
       Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
       If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
