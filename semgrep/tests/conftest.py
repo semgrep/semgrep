@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from shutil import copytree
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -231,6 +232,19 @@ def chdir(dirname=None):
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+
+    yield _run_semgrep
+
+
+# Needed to test the project-depends-on rules
+# pathlib.glob (and semgrep by extension) do not traverse into symlinks
+# Lockfile targeting begins at the parent of the first semgrep target
+# which in this case is tmp_path, which normally contains only symlinks :/
+@pytest.fixture
+def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
+    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
+    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep

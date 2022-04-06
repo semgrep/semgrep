@@ -130,14 +130,14 @@
             "lockfile": "Pipfile.lock"
           }
         ],
-        "fingerprint": "ca5cdc2e103577cd4498783ce4ed8b08",
+        "fingerprint": "df8bb4ca6dcad1077ee95e84d9c27608",
         "is_ignored": false,
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
         "severity": "WARNING"
       },
-      "path": ".",
+      "path": "targets/dependency_aware/Pipfile.lock",
       "start": {
         "col": 0,
         "line": 0,
@@ -359,14 +359,14 @@
             "lockfile": "Pipfile.lock"
           }
         ],
-        "fingerprint": "aff1d5db7585f1a20463e0e73435132c",
+        "fingerprint": "684309d311f194819a654774d5b29c57",
         "is_ignored": false,
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
         "metadata": {},
         "severity": "WARNING"
       },
-      "path": ".",
+      "path": "targets/dependency_aware/Pipfile.lock",
       "start": {
         "col": 0,
         "line": 0,
