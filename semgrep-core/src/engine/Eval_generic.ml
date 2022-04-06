@@ -97,7 +97,7 @@ let parse_json file =
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
-            xs |> List.map (fun (s, json) -> (s, metavar_of_json s json))
+            xs |> Common.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           let env =
             {
@@ -164,13 +164,13 @@ let rec eval env code =
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
-        |> List.map (function
+        |> Common.map (function
              | G.Arg e -> eval env e
              | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
-      let vs = List.map (eval env) xs in
+      let vs = Common.map (eval env) xs in
       List vs
   (* Emulate Python re.match just enough *)
   | G.Call

@@ -135,7 +135,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Comprehension (_, (_, (e, xs), _)) ->
       e
       :: (xs
-         |> List.map (function
+         |> Common.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
   | New (_, _t, args) -> subexprs_of_args args
@@ -146,7 +146,7 @@ let subexprs_of_expr with_symbolic_propagation e =
       e1
       :: (e2 |> unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
-         |> List.map Option.to_list |> List.flatten)
+         |> Common.map Option.to_list |> List.flatten)
   | Yield (_, eopt, _) -> Option.to_list eopt
   | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
@@ -197,13 +197,13 @@ let substmts_of_stmt st =
   | Block (_, xs, _) -> xs
   | Switch (_, _, xs) ->
       xs
-      |> List.map (function
+      |> Common.map (function
            | CasesAndBody (_, st) -> [ st ]
            | CaseEllipsis _ -> [])
       |> List.flatten
   | Try (_, st, xs, opt) -> (
       [ st ]
-      @ (xs |> List.map Common2.thd3)
+      @ (xs |> Common.map Common2.thd3)
       @
       match opt with
       | None -> []
@@ -291,9 +291,9 @@ let flatten_substmts_of_stmts xs =
     (if !go_really_deeper_stmt then
      let es = subexprs_of_stmt x in
      (* getting deeply nested lambdas stmts *)
-     let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
+     let lambdas = es |> Common.map lambdas_in_expr_memo |> List.flatten in
      lambdas
-     |> List.map (fun def -> H.funcbody_to_stmt def.fbody)
+     |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
      |> List.iter aux);
 
     let xs = substmts_of_stmt x in

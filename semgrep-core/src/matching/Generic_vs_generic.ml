@@ -426,7 +426,7 @@ let rec m_name a b =
       let new_qualifier =
         match List.rev dotted with
         | [] -> raise Impossible
-        | _x :: xs -> List.rev xs |> List.map (fun id -> (id, None))
+        | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
       in
       m_name a
         (B.IdQualified
@@ -657,7 +657,7 @@ and m_expr a b =
           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
-      let full = (names |> List.map fst) @ [ alabel ] in
+      let full = (names |> Common.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -1657,8 +1657,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
           in
           let tout =
             m_list__m_argument
-              (List.map G.arg avars_dots)
-              (List.map B.arg bs') tin
+              (Common.map G.arg avars_dots)
+              (Common.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten

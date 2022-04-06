@@ -421,7 +421,7 @@ module Cache = struct
     let cached_span : Stmts_match_span.t = access.get_span_field cached_acc in
 
     let patched_full_env =
-      List.map
+      Common.map
         (fun ((k, _v) as cached_binding) ->
           if Env.has_backref k backrefs (* = is in min_env *) then
             cached_binding
@@ -482,7 +482,7 @@ module Cache = struct
             match res with
             | [] -> []
             | res ->
-                List.map
+                Common.map
                   (fun cached_acc ->
                     patch_result_from_cache ~access backrefs a acc cached_acc)
                   res)

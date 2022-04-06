@@ -1921,7 +1921,7 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, fake_bracket (es |> List.map arg)) |> e
+  Call (IdSpecial spec |> e, fake_bracket (es |> Common.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
@@ -1938,13 +1938,13 @@ let interpolated (lquote, xs, rquote) =
         ( special,
           ( lquote,
             xs
-            |> List.map (function
+            |> Common.map (function
                  | Common.Left3 str -> Arg (L (String str) |> e)
                  | Common.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
                      in
-                     let args = eopt |> Option.to_list |> List.map arg in
+                     let args = eopt |> Option.to_list |> Common.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
                  | Common.Middle3 e -> Arg e),
             rquote ) )

@@ -75,12 +75,12 @@ let print_match ?str match_format mvars mvar_binding ii_of_any
 
     let strings_metavars =
       mvars
-      |> List.map (fun x ->
+      |> Common.map (fun x ->
              match Common2.assoc_opt x mvar_binding with
              | Some any ->
                  any |> ii_of_any
                  |> List.filter PI.is_origintok
-                 |> List.map PI.str_of_info
+                 |> Common.map PI.str_of_info
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not binded" x))
     in
@@ -178,19 +178,19 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   in
   let new_errors, new_skipped =
     offending_file_list
-    |> List.map (fun file ->
+    |> Common.map (fun file ->
            (* logging useful info for rule writers *)
            logger#info "too many matches on %s, generating exn for it" file;
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
-             |> List.map (fun m ->
+             |> Common.map (fun m ->
                     let rule_id = m.Pattern_match.rule_id in
                     ( ( rule_id.Pattern_match.id,
                         rule_id.Pattern_match.pattern_string ),
                       m ))
              |> Common.group_assoc_bykey_eff
-             |> List.map (fun (k, xs) -> (k, List.length xs))
+             |> Common.map (fun (k, xs) -> (k, List.length xs))
              |> Common.sort_by_val_highfirst
              (* nosemgrep *)
            in
@@ -217,7 +217,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> List.map (fun ((rule_id, _pat), n) ->
+             |> Common.map (fun ((rule_id, _pat), n) ->
                     let details =
                       spf
                         "found %i matches for rule %s, which exceeds the \
@@ -370,7 +370,7 @@ let rules_for_xlang xlang rules =
          | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
 
 let mk_rule_table rules =
-  let rule_pairs = List.map (fun r -> (fst r.R.id, r)) rules in
+  let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
   Common.hash_of_list rule_pairs
 
 let xtarget_of_file _config xlang file =
@@ -420,7 +420,7 @@ let targets_of_config (config : Runner_config.t)
       let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
       let targets =
         files
-        |> List.map (fun file ->
+        |> Common.map (fun file ->
                {
                  In.path = file;
                  language = Xlang.to_string xlang;
@@ -466,7 +466,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
 
   let rule_table = mk_rule_table rules in
   let targets, skipped =
-    targets_of_config config (List.map (fun r -> fst r.R.id) rules)
+    targets_of_config config (Common.map (fun r -> fst r.R.id) rules)
   in
   logger#info "processing %d files, skipping %d files" (List.length targets)
     (List.length skipped);
@@ -525,7 +525,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       skipped_rules = invalid_rules;
       final_profiling = res.RP.final_profiling;
     },
-    targets |> List.map (fun x -> x.In.path) )
+    targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
   let rules_file = config.rules_file in
@@ -660,9 +660,9 @@ let semgrep_with_one_pattern config =
       in
       (* simpler code path than in semgrep_with_rules *)
       let targets, _skipped =
-        targets_of_config config (List.map (fun r -> r.MR.id) minirule)
+        targets_of_config config (Common.map (fun r -> r.MR.id) minirule)
       in
-      let files = targets |> List.map (fun t -> t.In.path) in
+      let files = targets |> Common.map (fun t -> t.In.path) in
       files
       |> List.iter (fun file ->
              logger#info "processing: %s" file;
