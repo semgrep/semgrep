@@ -522,7 +522,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       RP.matches;
       errors;
       skipped_targets;
-      invalid_rules;
+      skipped_rules = invalid_rules;
       final_profiling = res.RP.final_profiling;
     },
     targets |> List.map (fun x -> x.In.path) )
