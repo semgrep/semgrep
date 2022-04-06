@@ -47,6 +47,9 @@ docker run "$image" echo -l -a -t -r -v -e -f
 # Semgrep should run when a config is passed
 docker run "$image" --config=p/ci --help
 
+# Semgrep should run when just help is requested
+docker run "$image" --help
+
 # Semgrep should run when a subcommand is passed
 docker run "$image" ci --help
 docker run "$image" publish --help

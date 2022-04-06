@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ "$*" =~ "--config" || "$1" == "publish" || "$1" == "ci" ]]; then
+if [[ "$*" =~ "--config" || "$*" == "--help" || "$1" == "publish" || "$1" == "ci" ]]; then
   # 1) --config is a required semgrep scan argument,
   #    so if it's present, we assume the user meant to call semgrep.
   #
