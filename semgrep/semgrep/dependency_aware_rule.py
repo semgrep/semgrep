@@ -106,7 +106,7 @@ def run_dependency_aware_rule(
                     matches_remaining.append(match)
             matches = matches_remaining
             if not reachable:
-                dummy_match = RuleMatch(
+                dependency_only_match = RuleMatch(
                     rule_id=rule.id,
                     message=rule.message,
                     metadata=rule.metadata,
@@ -121,7 +121,7 @@ def run_dependency_aware_rule(
                         "dependency_matches": output_for_json,
                     },
                 )
-                final_matches.append(dummy_match)
+                final_matches.append(dependency_only_match)
             else:
                 final_matches.extend(reachable)
 

@@ -18,11 +18,34 @@ TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()
 
 @dataclass
 class Node:
+    """
+    Nodes of a DependencyTrie
+    """
+
     children: Dict[str, "Node"]
     val: Optional[Dict[Path, List[LockfileDependency]]]
 
 
 class DependencyTrie:
+    """
+    A trie of lockfile paths (root)
+    Also contains a mapping from lockfile namespaces to mappings from lockfiles to their dependencies (all_deps)
+
+    The path `A/B/lock1`, containing the parsed dependencies `deps1` is represented as
+
+    A -> B -> {A/B/lock1 : deps1}
+
+    If we insert `A/B/lock2` it becomes
+
+    A -> B -> {A/B/lock1 : deps1, A/B/lock2 : deps2}
+
+    If we insert `A/C/lock3` it becomes
+
+    A -> B -> {A/B/lock1 : deps1, A/B/lock2 : deps2}
+    |
+     ->  C -> {A/C/lock3 : deps3}
+    """
+
     def __init__(self) -> None:
         self.root: Node = Node(children={}, val=None)
         self.all_deps: Dict[PackageManagers, Dict[Path, List[LockfileDependency]]] = {}
@@ -30,6 +53,10 @@ class DependencyTrie:
     def insert(
         self, path: Path, deps: List[LockfileDependency], namespace: PackageManagers
     ) -> None:
+        """
+        Inserts `path` into the trie in accordance with the behavior described in the class comment
+        `namespace` is namespace that this lockfile will be listed under in all_deps
+        """
         if namespace in self.all_deps:
             self.all_deps[namespace][path] = deps
         else:
@@ -49,6 +76,11 @@ class DependencyTrie:
     def find_dependencies(
         self, path: Path
     ) -> Optional[Dict[Path, List[LockfileDependency]]]:
+        """
+        Finds all the lockfiles and their parsed dependencies that `path` depends on
+        Traversing the trie finds the lockfile whose path shares the longest common
+        prefix with `path`
+        """
         curr = self.root
         for part in path.parts:
             if part not in curr.children:
