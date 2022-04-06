@@ -6,7 +6,7 @@
 [94m[22m[24m6  | [0m      - pattern-not: |
 [94m[22m[24m7  | [0m          flask.response.set_cookie(..., httponly=True, secure=True,...)
 [94m[22m[24m8  | [0m      - pattern: |
-[94m[22m[24m9  | [0m          flask.response.set_cookie(....)
+[94m[22m[24m9  | [0m          flask.response.set_cookie(...)
 [94m[22m[24m10 | [0m    message: |
 [94m[22m[24m11 | [0m      Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
 [94m[22m[24m12 | [0m      If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript

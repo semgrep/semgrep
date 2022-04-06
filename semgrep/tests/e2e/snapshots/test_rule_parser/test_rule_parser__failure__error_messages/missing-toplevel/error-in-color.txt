@@ -1,12 +1,20 @@
-[31m[22m[24m[31m[22m[24msemgrep error[0m: missing keys
+[31m[22m[24m[31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/missing-toplevel.yaml:2
-[94m[22m[24m2 | [0mrule:
-[94m[22m[24m3 | [0m  - id: flask-secure-set-cookie
-[94m[22m[24m4 | [0m    languages: [python]
-[94m[22m[24m5 | [0m    patterns:
-[94m[22m[24m6 | [0m      - pattern-not: |
-[94m[22m[24m7 | [0m          flask.response.set_cookie(..., httponly=True, secure=True,...)
+[94m[22m[24m2  | [0mrule:
+[94m[22m[24m3  | [0m  - id: flask-secure-set-cookie
+[94m[22m[24m4  | [0m    languages: [python]
+[94m[22m[24m5  | [0m    patterns:
+[94m[22m[24m6  | [0m      - pattern-not: |
+[94m[22m[24m7  | [0m          flask.response.set_cookie(..., httponly=True, secure=True,...)
+[94m[22m[24m8  | [0m      - pattern: |
+[94m[22m[24m9  | [0m          flask.response.set_cookie(...)
+[94m[22m[24m10 | [0m    message: |
+[94m[22m[24m11 | [0m      Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
+[94m[22m[24m12 | [0m      If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
+[94m[22m[24m13 | [0m      read the cookie, set httponly=False. If you want to attach cookies to requests for external sites,
+[94m[22m[24m14 | [0m      set samesite=None.
+[94m[22m[24m15 | [0m    severity: ERROR
 
-[31m[22m[24mrules/syntax/missing-toplevel.yaml_0 is missing `rules` as top-level key[0m
+[31m[22m[24mOne of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'[0m
 [0m
 [31m[22m[24mRan with --strict and got 1 error while loading configs[0m

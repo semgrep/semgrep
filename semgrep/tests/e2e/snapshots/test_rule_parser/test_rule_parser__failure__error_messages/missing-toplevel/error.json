@@ -3,8 +3,8 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "rules/syntax/missing-toplevel.yaml_0 is missing `rules` as top-level key",
-      "short_msg": "missing keys",
+      "long_msg": "One of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
           "config_end": null,
@@ -13,11 +13,11 @@
           "context_end": null,
           "context_start": null,
           "end": {
-            "col": 0,
-            "line": 7
+            "col": 1,
+            "line": 16
           },
           "file": "rules/syntax/missing-toplevel.yaml",
-          "source_hash": "f1b1a7f0ef1f89134e4320d364d2e44df788d24337d22506a99c55191350d4fe",
+          "source_hash": "9ead7da5530d0fbde3853faa9cd94e68d990f62dcda4b5a907a8d1dfe86c26ee",
           "start": {
             "col": 1,
             "line": 2

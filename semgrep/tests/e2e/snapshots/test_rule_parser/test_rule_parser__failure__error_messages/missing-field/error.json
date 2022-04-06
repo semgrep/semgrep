@@ -17,7 +17,7 @@
             "line": 15
           },
           "file": "rules/syntax/missing-field.yaml",
-          "source_hash": "11211df936d8dd4787be2c2be20d33fd13c465c766569eb9fc10e3e812829a02",
+          "source_hash": "96fd05e669eb80f31c6fc6133f9391e76518e7192ab7d526c4f62c959b3f4871",
           "start": {
             "col": 5,
             "line": 3
