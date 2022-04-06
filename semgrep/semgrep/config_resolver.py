@@ -278,7 +278,7 @@ class Config:
 
         If empty list is passed, tries to read config file at default locations
         """
-        config_dict: Dict[str, YamlTree] = {}
+        config_dict: Dict[str, YamlTree[YamlMap]] = {}
         errors: List[SemgrepError] = []
 
         if not configs:
@@ -362,7 +362,7 @@ class Config:
 
     @staticmethod
     def _validate(
-        config_dict: Mapping[str, YamlTree]
+        config_dict: Mapping[str, YamlTree[YamlMap]]
     ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
@@ -375,25 +375,26 @@ class Config:
                 errors.append(SemgrepError(f"{config_id} was not a mapping"))
                 continue
 
-            rules = config.get(RULES_KEY)
-            if rules is None:
-                errors.append(
-                    InvalidRuleSchemaError(
-                        short_msg="missing keys",
-                        long_msg=f"{config_id} is missing `{RULES_KEY}` as top-level key",
-                        spans=[config_yaml_tree.span.truncate(lines=5)],
-                    )
-                )
-                continue
             valid_rules = []
-            for rule_dict in rules.value:
+            rules = config.get(RULES_KEY)
 
+            if rules is None:
                 try:
-                    rule = validate_single_rule(config_id, rule_dict)
+                    single_rule = Rule.from_yamltree(config_yaml_tree)
                 except InvalidRuleSchemaError as ex:
                     errors.append(ex)
                 else:
-                    valid_rules.append(rule)
+                    if single_rule:
+                        valid_rules.append(single_rule)
+            else:
+                for rule_dict in rules.value:
+                    try:
+                        rule = validate_single_rule(config_id, rule_dict)
+                    except InvalidRuleSchemaError as ex:
+                        errors.append(ex)
+                    else:
+                        if rule:
+                            valid_rules.append(rule)
 
             if valid_rules:
                 valid[config_id] = valid_rules
