@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - New `focus-metavariable` operator that lets you focus (or "zoom in") the match
   on the code region delimited by a metavariable. This operator is useful for
   narrowing down the code matched by a rule, to focus on what really matters. (#4453)
+- Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 
 ### Changed
 
