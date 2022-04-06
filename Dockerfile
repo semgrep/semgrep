@@ -65,7 +65,7 @@ RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 # We change container, bringing only the 'semgrep-core' binary with us.
 #
 
-FROM python:3.10-alpine@sha256:bddea3d56e850b245bb09e7197f25a60bedf71b4bf0ee50b0d70f8684dd0d9c3
+FROM python:3.10-alpine
 
 WORKDIR /src
 LABEL maintainer="support@r2c.dev"
@@ -83,14 +83,17 @@ COPY semgrep /semgrep
 
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \
-     apk add --no-cache --virtual=.run-deps git openssh && \
+     apk add --no-cache --virtual=.run-deps bash git git-lfs openssh && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
      apk del .build-deps && \
      mkdir -p /tmp/.cache
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
-ENTRYPOINT ["semgrep"]
-CMD ["--help"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["semgrep", "--help"]
