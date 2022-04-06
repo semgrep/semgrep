@@ -53,6 +53,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: `...{$X}...` will no longer match `str`
 - taint-mode: Metavariables bound by a `pattern-inside` are now available to the
   rule message. (#4464)
+- parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 

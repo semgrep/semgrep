@@ -1,0 +1,35 @@
+{
+  "errors": [
+    {
+      "code": 2,
+      "level": "error",
+      "message": "[ERROR] Semgrep Core \u2014 Pattern parse error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nIn rule rules.invalid-rules.console_log: Invalid pattern for TypeScript\n",
+      "rule_id": "rules.invalid-rules.console_log",
+      "spans": [
+        {
+          "config_end": {
+            "col": 25,
+            "line": 10,
+            "offset": 197
+          },
+          "config_path": [
+            "rules",
+            "1",
+            "pattern"
+          ],
+          "config_start": {
+            "col": 12,
+            "line": 10,
+            "offset": 184
+          }
+        }
+      ],
+      "type": "Pattern parse error"
+    }
+  ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": []
+}

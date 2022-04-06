@@ -1,0 +1,11 @@
+rules:
+- id: eqeq
+  pattern: $X == $X
+  message: Useless comparison
+  languages: [js]
+  severity: WARNING
+- id: console_log
+  pattern: console.l..);
+  message: Using console.log
+  languages: [js]
+  severity: WARNING
