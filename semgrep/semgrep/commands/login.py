@@ -153,7 +153,7 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}/api/agent/deployments", timeout=10, headers=headers
+            f"{SEMGREP_URL}/api/agent/deployments/current", timeout=10, headers=headers
         )
 
         if r.ok:
