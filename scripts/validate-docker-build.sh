@@ -44,11 +44,11 @@ docker run "$image"
 # Random valid shell commands should run ok
 docker run "$image" echo -l -a -t -r -v -e -f
 
-# TODO: Scans with --config should run ok
-#       (not sure how to test this though)
-# docker run "$image" --config=p/ci
+# Semgrep should run when a config is passed
+docker run "$image" --config=p/ci --help
 
-# The publish subcommand should run ok
+# Semgrep should run when a subcommand is passed
+docker run "$image" ci --help
 docker run "$image" publish --help
 
 # Random valid shell commands should run ok
