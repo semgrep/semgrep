@@ -139,7 +139,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Constant propagation now recognizes operators `++` and `--` as side-effectful
   (#4667)
 - Scala: unicode characters now parse
-- Scala: mulitple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
+- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
