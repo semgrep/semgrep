@@ -509,7 +509,7 @@ let program file =
     }
   in
   let xs = parse env in
-  List.map G.exprstmt xs
+  Common.map G.exprstmt xs
 
 let any str =
   let file = "<pattern_file>" in

@@ -29,7 +29,7 @@ let lang_of_opt_xlang (x : t option) : Lang.t =
   | Some xlang -> to_lang xlang
 
 let assoc : (string * t) list =
-  List.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
+  Common.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
   @ [ ("regex", LRegex); ("generic", LGeneric) ]
 
 let map = Common.hash_of_list assoc

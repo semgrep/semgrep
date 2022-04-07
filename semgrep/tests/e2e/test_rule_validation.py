@@ -11,6 +11,11 @@ import pytest
         ("rules/invalid-rules/invalid-metavariable-regex.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-pattern-child.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-missing-top-item.yaml", "basic/stupid.py"),
+        pytest.param(
+            "rules/invalid-rules/invalid-pattern.yaml",
+            "basic/stupid.js",
+            marks=pytest.mark.xfail(reason="unknown, just saw it failing a lot"),
+        ),
     ],
 )
 def test_validation_of_invalid_rules(run_semgrep_in_tmp, snapshot, rule, target):

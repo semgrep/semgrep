@@ -83,6 +83,43 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
+def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
+    results, _errors = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        env={"NO_COLOR": "1"},
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snapshot):
+    """
+    NO_COLOR would normally disable color: https://no-color.org/
+
+    But a tool specific flag should override a global flag.
+    So when both are set, we should have color.
+    """
+    results, _errors = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        force_color=True,
+        env={"NO_COLOR": "1"},
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(

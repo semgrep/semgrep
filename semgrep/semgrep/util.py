@@ -27,6 +27,8 @@ T = TypeVar("T")
 
 global FORCE_COLOR
 FORCE_COLOR = False
+global FORCE_NO_COLOR
+FORCE_NO_COLOR = False
 
 global VERBOSITY
 VERBOSITY = logging.INFO
@@ -101,6 +103,13 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     if force_color or os.environ.get("SEMGREP_FORCE_COLOR") is not None:
         FORCE_COLOR = True
 
+    global FORCE_NO_COLOR
+    if (
+        os.environ.get("NO_COLOR") is not None  # https://no-color.org/
+        or os.environ.get("SEMGREP_FORCE_NO_COLOR") is not None
+    ):
+        FORCE_NO_COLOR = True
+
 
 def partition(
     pred: Callable[[T], Any], iterable: Iterable[T]
@@ -136,6 +145,11 @@ def with_color(
     Use ANSI color names or 8 bit colors (24-bit is not well supported by terminals)
     In click bold always switches colors to their bright variant (if there is one)
     """
+    if FORCE_NO_COLOR and not FORCE_COLOR:
+        # for 'no color' there is a global env var (https://no-color.org/)
+        # while the env var to 'force color' is semgrep-specific
+        # so we let the more specific setting override the broader one
+        return text
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
     return click.style(

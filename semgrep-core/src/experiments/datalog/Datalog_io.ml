@@ -38,13 +38,14 @@ let string_of_value = function
       spf "'%s'" x
   | Z i -> spf "%d" i
 
-let csv_of_tuple xs = (xs |> List.map string_of_value |> Common.join ",") ^ "\n"
+let csv_of_tuple xs =
+  (xs |> Common.map string_of_value |> Common.join ",") ^ "\n"
 
 (*****************************************************************************)
 (* Write *)
 (*****************************************************************************)
 let write_facts_for_doop facts dir =
-  let facts = facts |> List.map D.meta_fact in
+  let facts = facts |> Common.map D.meta_fact in
   let groups = facts |> Common.group_assoc_bykey_eff in
   groups
   |> List.iter (fun (table, tuples) ->

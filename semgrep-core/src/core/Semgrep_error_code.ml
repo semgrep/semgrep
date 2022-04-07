@@ -213,7 +213,7 @@ let (expected_error_lines_of_files :
       (Common.filename * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) test_files ->
   test_files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          Common.cat file |> Common.index_list_1
          |> Common.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
@@ -231,7 +231,7 @@ let (expected_error_lines_of_files :
 let compare_actual_to_expected actual_errors expected_error_lines =
   let actual_error_lines =
     actual_errors
-    |> List.map (fun err ->
+    |> Common.map (fun err ->
            let loc = err.loc in
            (loc.PI.file, loc.PI.line))
   in

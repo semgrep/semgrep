@@ -38,7 +38,7 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
-from semgrep.target_manager import IgnoreLog
+from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
 from semgrep.util import unit_str
@@ -249,7 +249,7 @@ def main(
     RuleMatchMap,
     List[SemgrepError],
     Set[Path],
-    IgnoreLog,
+    FileTargetingLog,
     List[Rule],
     ProfileManager,
     ProfilingData,

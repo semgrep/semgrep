@@ -105,7 +105,7 @@ let any_in_ranges rule any rwms =
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
       List.filter (fun rwm -> Range.( $<=$ ) r rwm.RM.r) rwms
-      |> List.map (RM.range_to_pattern_match_adjusted rule)
+      |> Common.map (RM.range_to_pattern_match_adjusted rule)
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
@@ -141,7 +141,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   let find_range_w_metas_santizers specs =
     specs
     |> List.concat_map (fun spec ->
-           List.map
+           Common.map
              (fun pf -> (spec.Rule.not_conflicting, pf))
              (range_w_metas_of_pformula config equivs file_and_more rule
                 spec.pformula))
@@ -302,7 +302,8 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
            |> List.iter (fun (m : Pattern_match.t) ->
                   let str = Common.spf "with rule %s" m.rule_id.id in
                   match_hook str m.env m.tokens))
-    |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
+    |> Common.map (fun m ->
+           { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
   ( {
       RP.matches;

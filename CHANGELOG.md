@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- Moved description of parse/internal errors to the "skipped" section of output
+
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
 ### Added
@@ -26,6 +30,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `pattern-inside` to be unified, thus limiting the usefulness of the feature.
   Nonetheless, it is still possible to force metavariable unification by setting
   `taint_unify_mvars: true` in the rule's `options`.
+- `r2c-internal-project-depends-on`: this is now a rule key, and not part of the pattern language.
+  The `depends-on-either` key can be used analgously to `pattern-either`
+- `r2c-internal-project-depends-on`: each rule with this key will now distinguish between
+  _reachable_ and _unreachable_ findings. A _reachable_ finding is one with both a dependency match
+  and a pattern match: a vulnerable dependency was found and the vulnerable part of the dependency
+  (according to the patterns in the rule) is used somewhere in code. An _unreachable_ finding
+  is one with only a dependency match. Reachable findings are reported as coming from the
+  code that was pattern matched. Unreachable findings are reported as coming from the lockfile
+  that was dependency matched. Both kinds of findings specify their kind, along with all matched
+  dependencies, in the `extra` field of semgrep's JSON output, using the `dependency_match_only`
+  and `dependency_matches` fields, respectively.
+- `r2c-internal-project-depends-on`: a finding will only be considered reachable if the file
+  containing the pattern match actually depends on the dependencies in the lockfile containing the
+  dependency match. A file depends on a lockfile if it is the nearest lockfile going up the
+  directory tree.
 
 ### Added
 
@@ -38,6 +57,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: `...{$X}...` will no longer match `str`
 - taint-mode: Metavariables bound by a `pattern-inside` are now available to the
   rule message. (#4464)
+- parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 

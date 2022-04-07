@@ -161,11 +161,11 @@ let rec pm_of_dm = function
 let dm_of_pm pm = PM pm
 let src_of_pm pm = Src (PM pm)
 let taint_of_pm pm = { orig = src_of_pm pm; rev_trace = [] }
-let taint_of_pms pms = pms |> List.map taint_of_pm |> Taint.of_list
+let taint_of_pms pms = pms |> Common.map taint_of_pm |> Taint.of_list
 
 (* Debug *)
 let show_taint_set taint =
-  taint |> Taint.elements |> List.map show_taint |> String.concat ", "
+  taint |> Taint.elements |> Common.map show_taint |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"
 
 (* Debug *)
@@ -224,7 +224,8 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
 
-let union_map f xs = xs |> List.map f |> List.fold_left Taint.union Taint.empty
+let union_map f xs =
+  xs |> Common.map f |> List.fold_left Taint.union Taint.empty
 
 (* Produces a finding for every taint source that is unifiable with the sink. *)
 let findings_of_tainted_sink env (taint : Taint.t) (sink : sink) : finding list
@@ -252,7 +253,7 @@ let findings_of_tainted_sinks env (taint : Taint.t) (sinks : sink list) :
 
 let findings_of_tainted_return (taint : Taint.t) return_tok : finding list =
   taint |> Taint.elements
-  |> List.map (fun taint ->
+  |> Common.map (fun taint ->
          let trace = List.rev taint.rev_trace in
          match taint.orig with
          | Arg i -> ArgToReturn (i, trace, return_tok)
@@ -291,7 +292,7 @@ let check_tainted_var env (var : IL.name) : Taint.t =
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
   | _ :: _ -> Taint.empty
   | [] ->
-      let sinks = sink_pms |> List.map dm_of_pm in
+      let sinks = sink_pms |> Common.map dm_of_pm in
       let findings = findings_of_tainted_sinks env taint sinks in
       report_findings env findings;
       taint
@@ -336,7 +337,7 @@ let rec check_tainted_expr env exp =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       Taint.empty
   | [] ->
-      let sinks = orig_is_sink env.config exp.eorig |> List.map dm_of_pm in
+      let sinks = orig_is_sink env.config exp.eorig |> Common.map dm_of_pm in
       let taint_sources = orig_is_source env.config exp.eorig |> taint_of_pms in
       let taint = taint_sources |> Taint.union (check_subexpr exp) in
       let findings = findings_of_tainted_sinks env taint sinks in
@@ -420,7 +421,7 @@ let check_tainted_instr env instr : Taint.t =
     | AssignAnon _ -> Taint.empty (* TODO *)
     | Call (_, e, args) -> (
         let e_taint = check_expr e in
-        let args_taint = List.map check_expr args in
+        let args_taint = Common.map check_expr args in
         match check_function_signature env e args_taint with
         | Some call_taint -> call_taint
         | None ->
@@ -437,7 +438,7 @@ let check_tainted_instr env instr : Taint.t =
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
       Taint.empty
   | [] ->
-      let sinks = orig_is_sink env.config instr.iorig |> List.map dm_of_pm in
+      let sinks = orig_is_sink env.config instr.iorig |> Common.map dm_of_pm in
       let taint_sources =
         orig_is_source env.config instr.iorig |> taint_of_pms
       in
@@ -451,7 +452,7 @@ let check_tainted_instr env instr : Taint.t =
 let check_tainted_return env tok e =
   let sinks =
     env.config.is_sink (G.Tk tok) @ orig_is_sink env.config e.eorig
-    |> List.map dm_of_pm
+    |> Common.map dm_of_pm
   in
   let taint = check_tainted_expr env e in
   let findings = findings_of_tainted_sinks env taint sinks in

@@ -187,19 +187,19 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
     | OCaml.VInt i -> J.Int i
-    | OCaml.VTuple xs -> J.Array (List.map aux xs)
-    | OCaml.VDict xs -> J.Object (List.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VTuple xs -> J.Array (Common.map aux xs)
+    | OCaml.VDict xs -> J.Object (Common.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ -> J.Object [ (s, J.Array (List.map aux xs)) ])
+        | _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
     | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
-    | OCaml.VList xs -> J.Array (List.map aux xs)
+    | OCaml.VList xs -> J.Array (Common.map aux xs)
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
@@ -255,7 +255,7 @@ let dump_v1_json file =
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
-    |> List.map (fun lang_str ->
+    |> Common.map (fun lang_str ->
            match Lang.lang_of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
