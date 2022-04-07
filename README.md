@@ -80,7 +80,7 @@ $ brew install semgrep
 $ python3 -m pip install semgrep
 
 # To try Semgrep without installation run via Docker
-$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep
 ```
 
 Once installed, Semgrep can run with single rules or entire rulesets. Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:

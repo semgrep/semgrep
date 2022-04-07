@@ -63,7 +63,7 @@ let prepend_period_if_needed s =
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.
 *)
 let has_extension extensions =
-  has_suffix (List.map prepend_period_if_needed extensions)
+  has_suffix (Common.map prepend_period_if_needed extensions)
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 

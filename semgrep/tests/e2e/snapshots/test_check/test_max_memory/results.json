@@ -12,7 +12,12 @@
     "scanned": [
       "targets/equivalence/open_redirect.py"
     ],
-    "skipped": []
+    "skipped": [
+      {
+        "path": "targets/equivalence/open_redirect.py",
+        "reason": "analysis_failed_parser_or_internal_error"
+      }
+    ]
   },
   "results": [],
   "time": {

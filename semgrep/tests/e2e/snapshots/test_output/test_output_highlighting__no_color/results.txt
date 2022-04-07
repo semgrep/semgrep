@@ -1,0 +1,9 @@
+
+Findings:
+
+  targets/cli_test/basic/basic.py 
+     rules.cli_test.basic.basic-test
+        Basic test
+
+
+          2┆ print(1 == 1)

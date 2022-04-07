@@ -46,6 +46,37 @@ rules:
     paths:
       exclude:
         - SPcre.ml
+
+  - id: no-list-map
+    pattern: List.map
+    message: >-
+      `List.map` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `Common.map` instead.
+    fix: Common.map
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - semgrep-core/src/*
+
+  - id: use-concat-map
+    pattern-either:
+      - pattern: List.map ... |> List.flatten
+      - pattern: Common.map ... |> List.flatten
+      - pattern: List.map ... |> List.concat
+      - pattern: Common.map ... |> List.concat
+      - pattern: List.flatten ( List.map ... )
+      - pattern: List.flatten ( Common.map ... )
+      - pattern: List.concat ( List.map ... )
+      - pattern: List.concat ( Common.map ... )
+    message: >-
+      `List.concat_map` is more efficient and more readable than a `map` followed
+      by `concat`.
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      include:
+        - semgrep-core/src/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |

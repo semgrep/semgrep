@@ -21,7 +21,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
     session_id = uuid.uuid4()
     return (
         session_id,
-        f"{SEMGREP_URL}login?cli-token={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
+        f"{SEMGREP_URL}/login?cli-token={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
     )
 
 
@@ -66,7 +66,7 @@ def login() -> None:
         for _ in range(MAX_RETRIES):
             headers = {"User-Agent": SEMGREP_USER_AGENT}
             r = requests.post(
-                f"{SEMGREP_URL}api/agent/tokens/requests",
+                f"{SEMGREP_URL}/api/agent/tokens/requests",
                 json={"token_request_key": str(session_id)},
                 timeout=10,
                 headers=headers,
@@ -106,7 +106,7 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
             f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {SETTINGS.get_path_to_settings()}."
         )
         click.echo(
-            f"Note: You can always generate more tokens at {SEMGREP_URL}orgs/-/settings/tokens"
+            f"Note: You can always generate more tokens at {SEMGREP_URL}/orgs/-/settings/tokens"
         )
         return True
     else:
@@ -136,7 +136,7 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}api/agent/deployments/current", timeout=10, headers=headers
+            f"{SEMGREP_URL}/api/agent/deployments/current", timeout=10, headers=headers
         )
         return r.ok
 
@@ -153,7 +153,7 @@ class Authentication:
 
         headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
         r = requests.get(
-            f"{SEMGREP_URL}api/agent/deployments/current", timeout=10, headers=headers
+            f"{SEMGREP_URL}/api/agent/deployments/current", timeout=10, headers=headers
         )
 
         if r.ok:

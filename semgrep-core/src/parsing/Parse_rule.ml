@@ -105,11 +105,11 @@ let generic_to_json env (key : key) ast =
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
     | G.L (String (s, _)) -> J.String s
-    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> List.map aux)
+    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
           (xs
-          |> List.map (fun x ->
+          |> Common.map (fun x ->
                  match x.G.e with
                  | G.Container
                      (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
@@ -219,7 +219,7 @@ let parse_string_wrap_no_env (key : key) x =
 
 let parse_list_no_env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.map f xs
+  | G.Container (Array, (_, xs, _)) -> Common.map f xs
   | _ -> yaml_error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list_no_env (key : key) e =
@@ -245,7 +245,7 @@ let parse_string env (key : key) x = parse_string_wrap env key x |> fst
 
 let parse_list env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.map (f env) xs
+  | G.Container (Array, (_, xs, _)) -> Common.map (f env) xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
@@ -670,7 +670,7 @@ let parse_languages ~id langs : Xlang.t =
   | xs -> (
       let languages =
         xs
-        |> List.map (function s, t ->
+        |> Common.map (function s, t ->
                (match Lang.lang_of_string_opt s with
                | None -> raise (R.InvalidRule (R.InvalidLanguage s, fst id, t))
                | Some l -> l))

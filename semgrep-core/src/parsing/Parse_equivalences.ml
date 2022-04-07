@@ -32,7 +32,7 @@ let parse file =
       match v with
       | `O [ ("equivalences", `A xs) ] ->
           xs
-          |> List.map (fun v ->
+          |> Common.map (fun v ->
                  match v with
                  | `O xs -> (
                      match Common.sort_by_key_lowfirst xs with
@@ -43,7 +43,7 @@ let parse file =
                      ] ->
                          let languages =
                            langs
-                           |> List.map (function
+                           |> Common.map (function
                                 | `String s -> (
                                     match Lang.lang_of_string_opt s with
                                     | None ->
