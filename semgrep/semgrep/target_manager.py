@@ -208,20 +208,6 @@ class FileTargetingLog:
         else:
             yield 2, "<none>"
 
-        yield 1, "Skipped by --include patterns:"
-        if self.cli_includes:
-            for path in self.cli_includes:
-                yield 2, with_color(Colors.cyan, str(path))
-        else:
-            yield 2, "<none>"
-
-        yield 1, "Skipped by --exclude patterns:"
-        if self.cli_excludes:
-            for path in self.cli_excludes:
-                yield 2, with_color(Colors.cyan, str(path))
-        else:
-            yield 2, "<none>"
-
         yield 1, f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:"
         yield 1, "(Adjust with the --max-target-bytes flag)"
         if self.size_limit:
