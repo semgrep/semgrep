@@ -288,8 +288,6 @@ class BaselineHandler:
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
-        self.status
-
         # Reabort in case for some reason aborting in __init__ did not cause
         # semgrep to exit
         self._abort_on_pending_changes()
