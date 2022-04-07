@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "[ERROR] Semgrep Core \u2014 Pattern parse error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nIn rule rules.invalid-rules.console_log: Invalid pattern for TypeScript\n",
+      "message": "[ERROR] Semgrep Core \u2014 Pattern parse error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nIn rule rules.invalid-rules.console_log: Invalid pattern for JavaScript\n",
       "rule_id": "rules.invalid-rules.console_log",
       "spans": [
         {
