@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   narrowing down the code matched by a rule, to focus on what really matters. (#4453)
 - Scala support is now officially GA
   - Ellipsis method chaining is now supported
-  - Type metavariables are not supported
+  - Type metavariables are now supported
 
 ### Changed
 
