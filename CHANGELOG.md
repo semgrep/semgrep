@@ -54,7 +54,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Metavariables bound by a `pattern-inside` are now available to the
   rule message. (#4464)
 - parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
-- Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string (#4875)
+- Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
+  allowing `metavariable-comparison` with integers (#4875)
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 
