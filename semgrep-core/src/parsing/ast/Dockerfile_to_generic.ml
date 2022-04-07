@@ -213,7 +213,13 @@ let expose_port_expr (x : expose_port) : G.expr list =
   | Expose_semgrep_ellipsis tok -> [ ellipsis_expr tok ]
   | Expose_port (port_tok, None) -> [ int_expr port_tok ]
   | Expose_port (port_tok, Some protocol_tok) ->
-      [ int_expr port_tok; string_expr protocol_tok ]
+      [
+        G.Container
+          ( G.Tuple,
+            PI.unsafe_fake_bracket
+              [ int_expr port_tok; string_expr protocol_tok ] )
+        |> G.e;
+      ]
   | Expose_fragment x -> [ string_fragment_expr x ]
 
 let healthcheck env loc name (x : healthcheck) =
