@@ -237,24 +237,6 @@ class FileTargetingLog:
         else:
             yield 2, "<none>"
 
-        for rule_id in self.rule_ids_with_skipped_paths:
-            if rule_id.startswith("fingerprints."):
-                # Skip fingerprint rules, since they all have include patterns
-                continue
-            yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's include patterns:"
-            if self.rule_includes[rule_id]:
-                for path in self.rule_includes[rule_id]:
-                    yield 2, with_color(Colors.cyan, str(path))
-            else:
-                yield 2, "<none>"
-
-            yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's exclude patterns:"
-            if self.rule_excludes[rule_id]:
-                for path in self.rule_excludes[rule_id]:
-                    yield 2, with_color(Colors.cyan, str(path))
-            else:
-                yield 2, "<none>"
-
     def verbose_output(self) -> str:
         formatters_by_level: Mapping[int, Callable[[str], str]] = {
             0: lambda line: "\n".join([40 * "=", line, 40 * "="]),
