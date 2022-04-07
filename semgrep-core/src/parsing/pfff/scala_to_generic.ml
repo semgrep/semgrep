@@ -355,6 +355,9 @@ and v_expr e : G.expr =
   match e with
   | Ellipsis v1 -> G.Ellipsis v1 |> G.e
   | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1) |> G.e
+  | DotAccessEllipsis (v1, v2) ->
+    let v1 = v_expr v1 in
+    G.DotAccessEllipsis (v1,v2) |> G.e
   | L v1 -> (
       let v1 = v_literal v1 in
       match v1 with

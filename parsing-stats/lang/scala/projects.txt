@@ -2,11 +2,8 @@
 # Top scala projects from GitHub, sorted by stars.
 # Created by ../../../semgrep-core/src/ocaml-tree-sitter-core/scripts/most-starred-for-language.
 #
-https://github.com/apache/spark
 https://github.com/prisma/prisma1
-https://github.com/scala/scala
 https://github.com/apache/predictionio
-https://github.com/playframework/playframework
 https://github.com/akka/akka
 https://github.com/yahoo/CMAK
 https://github.com/ornicar/lila
@@ -16,17 +13,23 @@ https://github.com/rtyley/bfg-repo-cleaner
 https://github.com/twitter-archive/snowflake
 https://github.com/lhartikk/ArnoldC
 https://github.com/snowplow/snowplow
-https://github.com/guardian/frontend
 https://github.com/apache/openwhisk
 https://github.com/linkerd/linkerd
 https://github.com/gatling/gatling
 https://github.com/enso-org/enso
 https://github.com/airbnb/aerosolve
-https://github.com/typelevel/cats
-https://github.com/scalaz/scalaz
-https://github.com/sbt/sbt
 https://github.com/mesos/chronos
-https://github.com/scala-js/scala-js
 https://github.com/polynote/polynote
-https://github.com/scala-native/scala-native
 https://github.com/mesosphere/marathon
+https://github.com/zio/zio
+https://github.com/microsoft/SynapseML
+https://github.com/yahoo/CMAK
+https://github.com/delta-io/delta
+https://github.com/lichess-org/scalachess
+https://github.com/outworkers/phantom
+https://github.com/zio/zio-quill
+https://github.com/debasishg/scala-redis
+https://github.com/scalikejdbc/scalikejdbc
+https://github.com/slick/slick
+https://github.com/ValeLang/Vale
+https://github.com/JohnSnowLabs/spark-nlp
