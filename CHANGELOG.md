@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - New `focus-metavariable` operator that lets you focus (or "zoom in") the match
   on the code region delimited by a metavariable. This operator is useful for
   narrowing down the code matched by a rule, to focus on what really matters. (#4453)
+- Scala support is now officially GA
+  - Ellipsis method chaining is now supported
+  - Type metavariables are not supported
 
 ### Changed
 
@@ -54,6 +57,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Metavariables bound by a `pattern-inside` are now available to the
   rule message. (#4464)
 - parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
+- Scala: unicode characters now parse
+- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 
@@ -108,9 +113,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   (e.g., `<script>$...JS</script>`)
 - A `semgrep ci` subcommand that auto-detects settings from your CI environment
   and can upload findings to Semgrep App when logged in.
-- Scala support is now officially GA
-  - Ellipsis method chaining is now supported
-  - Type metavariables are not supported
 
 ### Changed
 
@@ -138,8 +140,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   constant will also be considered constant (#4301)
 - Constant propagation now recognizes operators `++` and `--` as side-effectful
   (#4667)
-- Scala: unicode characters now parse
-- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
