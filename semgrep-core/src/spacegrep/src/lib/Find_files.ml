@@ -76,7 +76,7 @@ let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
                  and overall minimize surprises. *)
               Array.sort compare_filenames a;
               Array.to_list a
-              |> List.map (fun name -> Filename.concat path name)
+              |> Common.map (fun name -> Filename.concat path name)
             in
             List.fold_left fold acc children
       | Some Unix.S_REG -> if accept_file_name name then f acc path else acc

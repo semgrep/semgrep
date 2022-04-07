@@ -564,7 +564,7 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
   | `Shell_cmd (v1, v2, v3) -> (
       (* Stitch back the fragments together, then parse using the correct
          shell language. *)
-      let _comment_lines = List.map (comment_line env) v1 in
+      let _comment_lines = Common.map (comment_line env) v1 in
       let first_frag = shell_fragment env v2 in
       let more_frags =
         v3

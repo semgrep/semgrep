@@ -170,12 +170,12 @@ let collate_rule_results :
   }
 
 let make_final_result results rules ~report_time ~rules_parse_time =
-  let matches = results |> List.map (fun x -> x.matches) |> List.flatten in
-  let errors = results |> List.map (fun x -> x.errors) |> List.flatten in
+  let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
+  let errors = results |> Common.map (fun x -> x.errors) |> List.flatten in
   let skipped_targets =
-    results |> List.map (fun x -> x.skipped_targets) |> List.flatten
+    results |> Common.map (fun x -> x.skipped_targets) |> List.flatten
   in
-  let file_times = results |> List.map (fun x -> x.profiling) in
+  let file_times = results |> Common.map (fun x -> x.profiling) in
   let final_profiling =
     if report_time then Some { rules; rules_parse_time; file_times } else None
   in
