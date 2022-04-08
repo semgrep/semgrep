@@ -4,6 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Scala support is now officially GA
+  - Ellipsis method chaining is now supported
+  - Type metavariables are now supported
+
 ### Changed
 
 - Moved description of parse/internal errors to the "skipped" section of output
@@ -12,6 +18,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
   allowing `metavariable-comparison` with integers (#4875)
+- Scala: unicode character literals now parse
+- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
 
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
