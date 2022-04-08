@@ -10,6 +10,7 @@ from semgrep.default_group import DefaultGroup
 
 
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.help_option("--help", "-h")
 def cli() -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
