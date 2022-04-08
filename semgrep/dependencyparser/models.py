@@ -5,6 +5,7 @@ from typing import List
 from typing import Optional
 from typing import Set
 
+from semgrep.error import SemgrepError
 from semgrep.semgrep_types import Language
 
 KNOWN_HASH_ALGORITHMS: Set[str] = {
@@ -42,15 +43,28 @@ class LockfileDependency:
             ), f"unknown hash type {k} not in {KNOWN_HASH_ALGORITHMS}"
 
 
-LANGUAGE_TO_NAMESPACE = {
-    Language("python"): PackageManagers.PYPI,
-    Language("js"): PackageManagers.NPM,
-    Language("ts"): PackageManagers.NPM,
-    Language("ruby"): PackageManagers.GEM,
-    Language("go"): PackageManagers.GOMOD,
-    Language("rust"): PackageManagers.CARGO,
-    Language("java"): PackageManagers.MAVEN,
-}
+def languages_to_namespaces(langs: List[Language]) -> Set[PackageManagers]:
+    LANGUAGE_TO_NAMESPACE = {
+        Language("python"): PackageManagers.PYPI,
+        Language("js"): PackageManagers.NPM,
+        Language("ts"): PackageManagers.NPM,
+        Language("ruby"): PackageManagers.GEM,
+        Language("go"): PackageManagers.GOMOD,
+        Language("rust"): PackageManagers.CARGO,
+        Language("java"): PackageManagers.MAVEN,
+    }
+    if Language("generic") in langs:
+        return set(LANGUAGE_TO_NAMESPACE.values())
+
+    namespaces = set()
+    for lang in langs:
+        if lang not in LANGUAGE_TO_NAMESPACE:
+            raise SemgrepError(
+                f"r2c-internal-project-depends-on does not support language {lang}"
+            )
+        namespaces.add(LANGUAGE_TO_NAMESPACE[lang])
+    return namespaces
+
 
 NAMESPACE_TO_LOCKFILES = {
     PackageManagers.PYPI: {"Pipfile.lock"},
