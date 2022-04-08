@@ -4,13 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
 - Moved description of parse/internal errors to the "skipped" section of output
+
+## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
 ### Added
 
 - New `focus-metavariable` operator that lets you focus (or "zoom in") the match
   on the code region delimited by a metavariable. This operator is useful for
   narrowing down the code matched by a rule, to focus on what really matters. (#4453)
+- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
+- You can now set `NO_COLOR=1` to force-disable colored output
 
 ### Changed
 
@@ -41,10 +47,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   containing the pattern match actually depends on the dependencies in the lockfile containing the
   dependency match. A file depends on a lockfile if it is the nearest lockfile going up the
   directory tree.
-
-### Added
-
-- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
+- The returntocorp/semgrep Docker image no longer sets `semgrep` as the entrypoint.
+  This means that `semgrep` is no longer prepended automatically to any command you run in the image.
+  This makes it possible to use the image in CI executors that run provisioning commands within the image.
 
 ### Fixed
 
@@ -54,6 +59,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Metavariables bound by a `pattern-inside` are now available to the
   rule message. (#4464)
 - parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
+- Setting either `SEMGREP_URL` or `SEMGREP_APP_URL`
+  now updates the URL used both for Semgrep App communication,
+  and for fetching Semgrep Registry rules.
+- The pre-commit hook exposed from semgrep's repository no longer fails
+  when trying to install with recent setuptools versions.
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 
