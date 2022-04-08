@@ -43,6 +43,7 @@ def test_dependency_aware_rules(run_semgrep_in_tmp_no_symlink, snapshot, rule, t
 # contains no lockfiles for the language in our rule, we need to _not_ pass in
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to _run_semgrep and manually do some cd-ing
+@pytest.mark.kinda_slow
 def test_no_lockfiles(monkeypatch, tmp_path, snapshot):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
