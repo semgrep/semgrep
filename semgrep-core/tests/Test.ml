@@ -126,6 +126,9 @@ let language_exceptions = [
     ["deep_exprstmt";"dots_stmts"];
     (* good boy *)
     Lang.Php, [];
+
+    (* good boy, this feature has been deprecated *)
+    Lang.Scala, ["regexp_string"]
 ]
 
 (*****************************************************************************)
@@ -610,11 +613,11 @@ let maturity_tests =
     check_maturity Lang.Python "python" ".py" GA;
     check_maturity Lang.Ruby "ruby" ".rb" GA;
     check_maturity Lang.Ts "ts" ".ts" GA;
+    check_maturity Lang.Scala "scala" ".scala" GA;
 
     (* Beta *)
     check_maturity Lang.Hack "hack" ".hack" Beta;
     check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
-    check_maturity Lang.Scala "scala" ".scala" Beta;
     (* Terraform/HCL has too many NA, not worth it *)
 
     (* Experimental *)
