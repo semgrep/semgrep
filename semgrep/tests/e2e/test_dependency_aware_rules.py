@@ -1,4 +1,9 @@
+from pathlib import Path
+
 import pytest
+
+from ..conftest import _run_semgrep
+from ..conftest import TESTS_PATH
 
 
 @pytest.mark.kinda_slow
@@ -30,5 +35,24 @@ import pytest
 def test_dependency_aware_rules(run_semgrep_in_tmp_no_symlink, snapshot, rule, target):
     snapshot.assert_match(
         run_semgrep_in_tmp_no_symlink(rule, target_name=target)[0],
+        "results.json",
+    )
+
+
+# Quite awkward. To test that we can handle a target whose toplevel parent
+# contains no lockfiles for the language in our rule, we need to _not_ pass in
+# a target that begins with "targets", as that dir contains every kind of lockfile
+# So we add the keyword arg to _run_semgrep and manually do some cd-ing
+def test_no_lockfiles(monkeypatch, tmp_path, snapshot):
+    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path / "targets" / "basic")
+
+    snapshot.assert_match(
+        _run_semgrep(
+            "../../rules/dependency_aware/js-sca.yaml",
+            target_name="stupid.js",
+            assume_targets_dir=False,
+        )[0],
         "results.json",
     )
