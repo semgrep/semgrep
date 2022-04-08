@@ -8,6 +8,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Moved description of parse/internal errors to the "skipped" section of output
 
+### Fixed
+
+- `r2c-internal-project-depends-on`:
+  - Generic mode rules work again
+  - Semgrep will not fail on targets that contain no relevant lockfiles
+
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
 ### Added
