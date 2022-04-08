@@ -134,6 +134,23 @@ let rec expr e =
         }
       in
       G.Lambda def
+  | Lambda (tok, params_opt, xs) ->
+      let params =
+        match params_opt with
+        | None -> []
+        | Some xs -> xs
+      in
+      let params = list formal_param params in
+      let st = G.Block (tok, list_stmts xs, tok) |> G.s in
+      let def =
+        {
+          G.fparams = params;
+          frettype = None;
+          fbody = G.FBStmt st;
+          fkind = (G.LambdaKind, tok);
+        }
+      in
+      G.Lambda def
   | S x ->
       let st = stmt x in
       let x = G.stmt_to_expr st in

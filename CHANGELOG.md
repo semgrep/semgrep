@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala support is now officially GA
   - Ellipsis method chaining is now supported
   - Type metavariables are now supported
+- Ruby: Add basic support for lambdas in patterns. You can now write patterns
+  of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
 
 ### Changed
 
