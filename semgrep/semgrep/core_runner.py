@@ -2,7 +2,6 @@ import asyncio
 import collections
 import json
 import os
-import resource
 import subprocess
 import sys
 import tempfile
@@ -68,6 +67,14 @@ def setrlimits_preexec_fn() -> None:
     Note this is intended to run as a preexec_fn before semgrep-core in a subprocess
     so all code here runs in a child fork before os switches to semgrep-core binary
     """
+    if os.name != "posix":
+        logger.warning(
+            f"Memory protection is only available for UNIX systems; disabling memory protection"
+        )
+        return
+
+    import resource
+
     # Get current soft and hard stack limits
     old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
     logger.info(f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}")
@@ -420,7 +427,9 @@ class CoreRunner:
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
-            if returncode == -11:
+            if returncode == -11 and os.name == "posix":
+                import resource
+
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
                 soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
