@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Type metavariables are now supported
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
+- `semgrep install deepsemgrep` command for DeepSemgrep beta (#4993)
 
 ### Changed
 
