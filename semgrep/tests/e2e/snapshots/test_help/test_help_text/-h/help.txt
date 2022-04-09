@@ -7,6 +7,7 @@ Options:
 
 Commands:
   ci       The recommended way to run semgrep in CI
+  install  Install specific semgrep dependencies (Experimental)
   login    Obtain and save credentials for semgrep.dev
   logout   Remove locally stored credentials to semgrep.dev
   publish  Upload rule to semgrep.dev
