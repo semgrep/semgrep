@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 import requests
+from tqdm import tqdm
 
 from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_URL
@@ -64,7 +65,7 @@ def deepsemgrep(force: bool) -> None:
     headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
 
     with requests.get(
-        f"{SEMGREP_URL}/api/agent/deployment/deepbinary",
+        f"{SEMGREP_URL}/api/agent/deployments/deepbinary",
         headers=headers,
         timeout=60,
         stream=True,
@@ -72,8 +73,11 @@ def deepsemgrep(force: bool) -> None:
         # TODO if does not have access point to beta info page
         r.raise_for_status()
 
+        file_size = int(r.headers.get("Content-Length", 0))
+
         with open(deep_semgrep_path, "wb") as f:
-            shutil.copyfileobj(r.raw, f)
+            with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
+                shutil.copyfileobj(r_raw, f)
 
     logger.info(f"Installed deepsemgrep to {deep_semgrep_path}")
 
