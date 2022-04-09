@@ -64,13 +64,33 @@ def deepsemgrep(force: bool) -> None:
 
     headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
 
+    if sys.platform.startswith("darwin"):
+        platform = "osx"
+    elif sys.platform.startswith("linux"):
+        platform = "manylinux"
+    else:
+        platform = "manylinux"
+        logger.info(
+            "Running on potentially unsupported platform. Installing linux compatible binary"
+        )
+
     with requests.get(
-        f"{SEMGREP_URL}/api/agent/deployments/deepbinary",
+        f"{SEMGREP_URL}/api/agent/deployments/deepbinary/{platform}",
         headers=headers,
         timeout=60,
         stream=True,
     ) as r:
-        # TODO if does not have access point to beta info page
+        if r.status_code == 401:
+            logger.info(
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again."
+            )
+            sys.exit(INVALID_API_KEY_EXIT_CODE)
+        if r.status_code == 403:
+            logger.info("Logged in deployment does not have access to DeepSemgrep beta")
+            logger.info(
+                "Visit https://semgrep.dev/deep-semgrep-beta for more information."
+            )
+            sys.exit(FATAL_EXIT_CODE)
         r.raise_for_status()
 
         file_size = int(r.headers.get("Content-Length", 0))
