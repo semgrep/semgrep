@@ -192,7 +192,7 @@ let expose_port (env : env) (x : CST.expose_port) : expose_port =
             Some (PI.str_of_info tok, tok)
         | None -> None
       in
-      let port_num = port_tok |> PI.str_of_info |> int_of_string_opt in
+      let port_num = port_tok |> PI.str_of_info in
       Expose_port ((port_num, port_tok), protocol)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
