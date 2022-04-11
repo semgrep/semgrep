@@ -1,4 +1,6 @@
+import os
 import shutil
+import stat
 import sys
 from pathlib import Path
 
@@ -87,4 +89,8 @@ def install_deep_semgrep() -> None:
             with tqdm.wrapattr(r.raw, "read", total=file_size) as r_raw:
                 shutil.copyfileobj(r_raw, f)
 
+    os.chmod(
+        deep_semgrep_path,
+        os.stat(deep_semgrep_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,
+    )
     logger.info(f"Installed deepsemgrep to {deep_semgrep_path}")
