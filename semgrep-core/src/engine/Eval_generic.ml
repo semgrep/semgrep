@@ -142,7 +142,23 @@ let value_of_lit ~code x =
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
-  | G.N (G.Id ((_s, _t), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
+  | G.N (G.Id ((_, _), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
+  (* coupling: Constant_propagation.eval *)
+  | G.Call
+      ( { e = G.N (G.Id (("!dockerfile_expand!", _), _)); _ },
+        ( _,
+          [
+            G.Arg
+              {
+                e =
+                  G.N
+                    (G.Id
+                      ( (_, _),
+                        { id_svalue = { contents = Some (G.Lit lit) }; _ } ));
+                _;
+              };
+          ],
+          _ ) )
     when env.constant_propagation ->
       value_of_lit ~code lit
   | G.N (G.Id ((s, _t), _idinfo))

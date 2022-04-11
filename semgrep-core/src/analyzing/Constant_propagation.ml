@@ -227,7 +227,6 @@ let rec eval env x : svalue option =
           ],
           _ ) )
     when is_lang env Lang.Dockerfile ->
-      Printf.printf "EVALING DOCKERFILE EXPANSION %s\n" (show_svalue x);
       Some x
   | Conditional (_e1, e2, e3) ->
       let* v2 = eval env e2 in
@@ -576,7 +575,10 @@ let propagate_basic lang prog =
       V.kexpr =
         (fun (k, v) x ->
           match x.e with
-          | N (Id (id, id_info))
+          | N (Id (id, id_info)) when not !(env.in_lvalue) ->
+              let/ svalue = find_id env id id_info in
+              id_info.id_svalue := Some svalue
+          (* ugly: dockerfile specific *)
           | Call
               ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
                 (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
@@ -623,7 +625,8 @@ let propagate_basic lang prog =
                            !(stats.lvalue) = 1
                            (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
                            && (is_lang env Lang.Python || is_lang env Lang.Ruby
-                             || is_lang env Lang.Php || is_js env)
+                             || is_lang env Lang.Php || is_js env
+                              || is_lang env Lang.Dockerfile)
                            && kind = Global
                          then add_constant_env id (sid, svalue) env
                      | None ->

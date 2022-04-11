@@ -416,6 +416,7 @@ let declare_var env lang id id_info ~explicit vinit vtype =
 
 let assign_implicitly_declares lang =
   lang = Lang.Python || lang = Lang.Ruby || lang = Lang.Php || Lang.is_js lang
+  || lang = Lang.Dockerfile
 
 (*****************************************************************************)
 (* Entry point *)
