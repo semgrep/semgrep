@@ -525,7 +525,7 @@ and expr_aux env ?(void = false) e_gen =
                  ());
           expr env last)
   | G.Container (kind, xs) ->
-      let xs = bracket_keep (List.map (expr env)) xs in
+      let xs = bracket_keep (Common.map (expr env)) xs in
       let kind = composite_kind kind in
       mk_e (Composite (kind, xs)) eorig
   | G.Comprehension _ -> todo (G.E e_gen)
@@ -610,7 +610,7 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Fetch tmp) NoOrig
   | G.Constructor (cname, (tok1, esorig, tok2)) ->
       let cname = var_of_name cname in
-      let es = esorig |> List.map (fun eiorig -> expr env eiorig) in
+      let es = esorig |> Common.map (fun eiorig -> expr env eiorig) in
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml _ -> todo (G.E e_gen)
@@ -635,7 +635,7 @@ and expr_aux env ?(void = false) e_gen =
   | G.OtherExpr ((str, tok), xs) ->
       let es =
         xs
-        |> List.map (fun x ->
+        |> Common.map (fun x ->
                match x with
                | G.E e1orig -> expr env e1orig
                | __else__ -> fixme_exp ToDo x (related_tok tok))
@@ -703,7 +703,7 @@ and composite_kind = function
   | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> G.unbracket |> List.map (argument env)
+and arguments env xs = xs |> G.unbracket |> Common.map (argument env)
 
 and argument env arg =
   match arg with
@@ -721,7 +721,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
   let fields =
     origfields
-    |> List.map (function
+    |> Common.map (function
          | G.F
              {
                s =
@@ -801,7 +801,7 @@ and expr_with_pre_stmts_opt env eopt =
 
 and for_var_or_expr_list env xs =
   xs
-  |> List.map (function
+  |> Common.map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -871,11 +871,11 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> G.unbracket |> List.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> G.unbracket |> Common.map (stmt env) |> List.flatten
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
-      let st2 = List.map (stmt env) (st2 |> Option.to_list) |> List.flatten in
+      let st2 = List.concat_map (stmt env) (st2 |> Option.to_list) in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
       let ss, translate_cases =

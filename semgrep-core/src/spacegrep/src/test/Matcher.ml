@@ -45,7 +45,7 @@ let doc_eq doc1_str doc2_str =
 
 let matches_eq expected_doc_strings matches =
   let doc_strings =
-    List.map (fun (x : Match.match_) -> x.capture.value) matches
+    Common.map (fun (x : Match.match_) -> x.capture.value) matches
   in
   printf "=== expected matches ===\n";
   List.iter (fun s -> printf "%s\n--\n" s) expected_doc_strings;
@@ -210,7 +210,7 @@ let matcher_corpus_case_insensitive =
   [ ("case-insensitive", Matches [ "Foo"; "foo" ], "foo", "Foo or foo") ]
 
 let matcher_suite =
-  List.map
+  Common.map
     (fun (name, expectation, pat_str, doc_str) ->
       ( name,
         `Quick,
@@ -219,7 +219,7 @@ let matcher_suite =
     matcher_corpus
 
 let matcher_suite_case_insensitive =
-  List.map
+  Common.map
     (fun (name, expectation, pat_str, doc_str) ->
       ( name,
         `Quick,

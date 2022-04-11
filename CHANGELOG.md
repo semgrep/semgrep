@@ -6,10 +6,37 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Scala support is now officially GA
+  - Ellipsis method chaining is now supported
+  - Type metavariables are now supported
+- Ruby: Add basic support for lambdas in patterns. You can now write patterns
+  of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
+- Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
+
+### Changed
+
+- Moved description of parse/internal errors to the "skipped" section of output
+
+### Fixed
+
+- Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
+  allowing `metavariable-comparison` with integers (#4875)
+- Scala: unicode character literals now parse
+- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
+- Ruby: Allow 'unless' used as keyword argument or hash key (#4948)
+- `r2c-internal-project-depends-on`:
+  - Generic mode rules work again
+  - Semgrep will not fail on targets that contain no relevant lockfiles
+
+## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
+
+### Added
+
 - New `focus-metavariable` operator that lets you focus (or "zoom in") the match
   on the code region delimited by a metavariable. This operator is useful for
   narrowing down the code matched by a rule, to focus on what really matters. (#4453)
-- Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
+- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
+- You can now set `NO_COLOR=1` to force-disable colored output
 
 ### Changed
 
@@ -25,10 +52,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `pattern-inside` to be unified, thus limiting the usefulness of the feature.
   Nonetheless, it is still possible to force metavariable unification by setting
   `taint_unify_mvars: true` in the rule's `options`.
-
-### Added
-
-- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
+- `r2c-internal-project-depends-on`: this is now a rule key, and not part of the pattern language.
+  The `depends-on-either` key can be used analgously to `pattern-either`
+- `r2c-internal-project-depends-on`: each rule with this key will now distinguish between
+  _reachable_ and _unreachable_ findings. A _reachable_ finding is one with both a dependency match
+  and a pattern match: a vulnerable dependency was found and the vulnerable part of the dependency
+  (according to the patterns in the rule) is used somewhere in code. An _unreachable_ finding
+  is one with only a dependency match. Reachable findings are reported as coming from the
+  code that was pattern matched. Unreachable findings are reported as coming from the lockfile
+  that was dependency matched. Both kinds of findings specify their kind, along with all matched
+  dependencies, in the `extra` field of semgrep's JSON output, using the `dependency_match_only`
+  and `dependency_matches` fields, respectively.
+- `r2c-internal-project-depends-on`: a finding will only be considered reachable if the file
+  containing the pattern match actually depends on the dependencies in the lockfile containing the
+  dependency match. A file depends on a lockfile if it is the nearest lockfile going up the
+  directory tree.
+- The returntocorp/semgrep Docker image no longer sets `semgrep` as the entrypoint.
+  This means that `semgrep` is no longer prepended automatically to any command you run in the image.
+  This makes it possible to use the image in CI executors that run provisioning commands within the image.
 
 ### Fixed
 
@@ -37,6 +78,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: `...{$X}...` will no longer match `str`
 - taint-mode: Metavariables bound by a `pattern-inside` are now available to the
   rule message. (#4464)
+- parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
+- Setting either `SEMGREP_URL` or `SEMGREP_APP_URL`
+  now updates the URL used both for Semgrep App communication,
+  and for fetching Semgrep Registry rules.
+- The pre-commit hook exposed from semgrep's repository no longer fails
+  when trying to install with recent setuptools versions.
 
 ## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
 

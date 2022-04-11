@@ -80,7 +80,7 @@ let ranges_matched lang file pattern : Range.t list =
       (Config_semgrep.default_config, equiv)
       [ rule ] (file, lang, ast)
   in
-  List.map extract_range matches
+  Common.map extract_range matches
 
 let run_single_test file linecols expected_pattern =
   let lang, _, inferred_pattern =
@@ -92,7 +92,7 @@ let run_single_test file linecols expected_pattern =
   in
   let pattern_correct = actual_pattern = expected_pattern in
   let ranges_expected =
-    List.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
+    Common.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
   in
   let ranges_actual = ranges_matched lang file inferred_pattern in
   let ranges_correct =

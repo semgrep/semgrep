@@ -48,7 +48,7 @@ let pattern_of_ids ids =
   | [ id ] -> PatId (id, empty_id_info ()) |> G.p
   | _ ->
       let xs =
-        ids |> List.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
+        ids |> Common.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
       in
       PatTuple (fake_bracket xs) |> G.p
 
@@ -162,7 +162,7 @@ and map_anon_choice_temp_lit_c764a73 (env : env)
   match x with
   | `Temp_lit x ->
       let sopt = map_template_literal env x in
-      sopt |> Option.to_list |> List.map (fun s -> Left3 s)
+      sopt |> Option.to_list |> Common.map (fun s -> Left3 s)
   | `Temp_interp (v1, v2, v3, v4, v5) ->
       let v1 = (* template_interpolation_start *) token env v1 in
       (* TODO: what is this ~? *)
@@ -379,7 +379,7 @@ and map_function_arguments (env : env) ((v1, v2, v3) : CST.function_arguments) :
     argument list =
   let v1 = map_expression env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -455,7 +455,7 @@ and map_object_elem (env : env) (x : CST.object_elem) : field =
 and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
   let v1 = map_object_elem env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 =
           match v1 with
@@ -495,7 +495,7 @@ and map_splat (env : env) (x : CST.splat) =
         let access = FDynamic (IdSpecial (HashSplat, v1) |> G.e) in
         DotAccess (e, v1, access) |> G.e
       in
-      let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
+      let v2 = Common.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
   | `Full_splat (v1, v2) ->
       let v1 = (* "[*]" *) token env v1 in
@@ -503,7 +503,7 @@ and map_splat (env : env) (x : CST.splat) =
         let access = IdSpecial (HashSplat, v1) |> G.e in
         ArrayAccess (e, (v1, access, v1)) |> G.e
       in
-      let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
+      let v2 = Common.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
 
 and map_template_expr (env : env) (x : CST.template_expr) =
@@ -512,8 +512,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
       let v1 = (* quoted_template_start *) token env v1 in
       let v2 =
         match v2 with
-        | Some xs ->
-            List.map (map_anon_choice_temp_lit_c764a73 env) xs |> List.flatten
+        | Some xs -> List.concat_map (map_anon_choice_temp_lit_c764a73 env) xs
         | None -> []
       in
       let v3 = (* quoted_template_end *) token env v3 in
@@ -523,8 +522,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
       let v2 = (* heredoc_identifier *) token env v2 in
       let v3 =
         match v3 with
-        | Some xs ->
-            List.map (map_anon_choice_temp_lit_c764a73 env) xs |> List.flatten
+        | Some xs -> List.concat_map (map_anon_choice_temp_lit_c764a73 env) xs
         | None -> []
       in
       let v4 = (* heredoc_identifier *) token env v4 in
@@ -534,7 +532,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
 and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   let v1 = map_expression env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -563,7 +561,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
   let id = (* identifier *) map_identifier env v1 in
   let args_id =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Str_lit x ->
@@ -588,7 +586,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   let flds = body in
   let body = Record (lb, flds, rb) |> G.e in
   let es = args_id @ [ body ] in
-  let args = es |> List.map G.arg in
+  let args = es |> Common.map G.arg in
   (* coupling: if you modify this code, you should adjust
    * Constant_propagation.terraform_stmt_to_vardefs.
    * bugfix: I used to transform that in a New (..., TyN n, ...) but
@@ -607,7 +605,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
  * patterns like 'a=1 ... b=2' can match block body as well as objects.
  *)
 and map_body (env : env) (xs : CST.body) : field list =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Attr x ->
@@ -627,7 +625,7 @@ and map_body (env : env) (xs : CST.body) : field list =
  * Constant_propagation.terraform_stmt_to_vardefs?
  *)
 and map_body_top (env : env) (xs : CST.body) : stmt list =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Attr x ->

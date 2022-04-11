@@ -406,10 +406,10 @@ let remove_noop (e : formula_old) : formula_old =
   let rec aux e =
     match e with
     | PatEither (t, xs) ->
-        let xs = List.map aux (List.filter valid_formula xs) in
+        let xs = Common.map aux (List.filter valid_formula xs) in
         PatEither (t, xs)
     | Patterns (t, xs) -> (
-        let xs' = List.map aux (List.filter valid_formula xs) in
+        let xs' = Common.map aux (List.filter valid_formula xs) in
         (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
            after this filter it will be an empty And. To prevent
            an error, check for that *)
@@ -434,7 +434,7 @@ let (convert_formula_old : formula_old -> formula) =
     | PatNot (t, x) -> Not (t, P (x, None))
     | PatNotInside (t, x) -> Not (t, P (x, Some Inside))
     | PatEither (t, xs) ->
-        let xs = List.map aux xs in
+        let xs = Common.map aux xs in
         Or (t, xs)
     | Patterns (t, xs) ->
         let fs, conds, focus = Common.partition_either3 aux_and xs in

@@ -403,7 +403,7 @@ let rec lvals_of_exp e =
   | Composite (_, (_, xs, _))
   | Operator (_, xs) ->
       lvals_of_exps xs
-  | Record ys -> lvals_of_exps (ys |> List.map snd)
+  | Record ys -> lvals_of_exps (ys |> Common.map snd)
   | FixmeExp (_, _, Some e) -> lvals_of_exp e
   | FixmeExp (_, _, None) -> []
 
@@ -420,7 +420,7 @@ and lvals_in_lval lval =
   in
   base_lvals @ offset_lvals
 
-and lvals_of_exps xs = xs |> List.map lvals_of_exp |> List.flatten
+and lvals_of_exps xs = xs |> Common.map lvals_of_exp |> List.flatten
 
 (** The lvals in the RHS of the instruction. *)
 let rlvals_of_instr x =
