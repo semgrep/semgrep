@@ -4,12 +4,25 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Scala support is now officially GA
+  - Ellipsis method chaining is now supported
+  - Type metavariables are now supported
+- Ruby: Add basic support for lambdas in patterns. You can now write patterns
+  of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
+
 ### Changed
 
 - Moved description of parse/internal errors to the "skipped" section of output
 
 ### Fixed
 
+- Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
+  allowing `metavariable-comparison` with integers (#4875)
+- Scala: unicode character literals now parse
+- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
+- Ruby: Allow 'unless' used as keyword argument or hash key (#4948)
 - `r2c-internal-project-depends-on`:
   - Generic mode rules work again
   - Semgrep will not fail on targets that contain no relevant lockfiles
