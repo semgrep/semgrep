@@ -667,7 +667,7 @@ let rec filter_ranges env xs cond =
              in
 
              let env =
-               Eval_generic.bindings_to_env_with_just_strings (fst env.config)
+               Eval_generic.bindings_to_env ~just_strings:true (fst env.config)
                  bindings
              in
              Eval_generic.eval_bool env e

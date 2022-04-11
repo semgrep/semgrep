@@ -51,7 +51,6 @@ let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
   G.Block (bracket loc stmts) |> G.s |> expr_of_stmt
 
 let string_expr s : G.expr = G.L (G.String s) |> G.e
-let int_expr i : G.expr = G.L (G.Int i) |> G.e
 
 let id_expr (x : string wrap) : G.expr =
   G.N (G.Id (x, G.empty_id_info ())) |> G.e
@@ -211,13 +210,13 @@ let array_or_paths (x : array_or_paths) : G.expr list =
 let expose_port_expr (x : expose_port) : G.expr list =
   match x with
   | Expose_semgrep_ellipsis tok -> [ ellipsis_expr tok ]
-  | Expose_port (port_tok, None) -> [ int_expr port_tok ]
+  | Expose_port (port_tok, None) -> [ string_expr port_tok ]
   | Expose_port (port_tok, Some protocol_tok) ->
       [
         G.Container
           ( G.Tuple,
             PI.unsafe_fake_bracket
-              [ int_expr port_tok; string_expr protocol_tok ] )
+              [ string_expr port_tok; string_expr protocol_tok ] )
         |> G.e;
       ]
   | Expose_fragment x -> [ string_fragment_expr x ]

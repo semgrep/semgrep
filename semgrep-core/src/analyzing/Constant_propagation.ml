@@ -215,8 +215,11 @@ let rec eval env x : svalue option =
   | DotAccess
       ( { e = N (Id ((("local" | "var"), _), _)); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) when is_lang env Lang.Hcl ->
       Some x
+  | Call ({e = N (Id (("!dockerfile_expand!",_),_)) ; _}, (_,[ Arg {e = N (Id (_, {id_svalue = { contents = Some x} ; _})) ; _} ],_)) when is_lang env Lang.Dockerfile -> 
+    Printf.printf "EVALING DOCKERFILE EXPANSION %s\n" (show_svalue x);
+    Some x
   | Conditional (_e1, e2, e3) ->
       let* v2 = eval env e2 in
       let* v3 = eval env e3 in
@@ -496,23 +499,43 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
            | _ -> None)
   | _ -> []
 
+
+let (dockerfile_stmt_to_vardefs : item -> (ident * expr) list) =
+  fun st ->
+   match st.s with
+   (* coupling: reverse of Parse_hcl_tree_sitter.map_block *)
+   (* ex: locals { foo = 1, bar = 2 } *)
+   | ExprStmt
+       ( {
+           e =
+             Call
+               ( { e = N (Id (("ENV", _), _)); _ },
+                 (_, args , _) );
+           _;
+         },
+         _ ) ->
+       args
+       |> Common.map_filter (function ArgKwd (lbl,e) -> Some (lbl,e) | _ -> (* Should never actually happen *) None)
+   | _ -> []
+
+
 (* the sid does not matter here, there is no nested scope in terraform,
  * no shadowing, and we prefix with var. and local. so there is no
  * ambiguity and name clash.
  *)
 let terraform_sid = 0
+let dockerfile_sid = 0
 
-let add_special_constants env lang prog =
-  if lang = Lang.Hcl then
-    let vars = prog |> Common.map terraform_stmt_to_vardefs |> List.flatten in
-    vars
-    |> List.iter (fun (id, v) ->
-           match v.e with
-           | L literal ->
-               logger#trace "adding special terraform constant for %s" (fst id);
-               add_constant_env id (terraform_sid, Lit literal) env
-           | _ -> ())
-  else ()
+let add_special_constants stmt_to_var_def sid env lang prog =
+  let vars = prog |> Common.map stmt_to_var_def |> List.flatten in
+  vars
+  |> List.iter (fun (id, v) ->
+          match v.e with
+          | L literal ->
+              Printf.printf "adding special %s constant for %s\n" (Lang.to_string lang) (fst id);
+              logger#trace "adding special %s constant for %s" (Lang.to_string lang) (fst id);
+              add_constant_env id (sid, Lit literal) env
+          | _ -> ())
 
 (*****************************************************************************)
 (* Entry point *)
@@ -523,7 +546,11 @@ let propagate_basic lang prog =
   let env = default_env (Some lang) in
 
   (* right now this is used only for Terraform *)
-  add_special_constants env lang prog;
+  (match lang with 
+    | Lang.Hcl -> add_special_constants terraform_stmt_to_vardefs terraform_sid env lang prog
+    | Lang.Dockerfile -> add_special_constants dockerfile_stmt_to_vardefs dockerfile_sid env lang prog
+    | _ -> ()
+    );
 
   (* step1: first pass const analysis for languages without 'const/final' *)
   let stats = var_stats prog in
@@ -582,6 +609,11 @@ let propagate_basic lang prog =
               let var = (prefix ^ "." ^ str, terraform_sid) in
               let/ svalue = Hashtbl.find_opt env.constants var in
               id_info.id_svalue := Some svalue
+          | Call ({e = N (Id (("!dockerfile_expand!",_),_)) ; _}, (_,[ Arg {e = N (Id ((str,_), id_info)) ; _} ],_)) when is_lang env Lang.Dockerfile && not !(env.in_lvalue) ->
+            Printf.printf "FOUND DOCKERFILE CONSTANT %s\n" str;
+            let/ svalue = Hashtbl.find_opt env.constants (str,terraform_sid) in
+            Printf.printf "PROPAGATING DOCKERFILE CONSTANT %s = %s\n" str (show_svalue svalue);
+            id_info.id_svalue := Some svalue
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
               Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
