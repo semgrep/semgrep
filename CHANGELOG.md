@@ -23,6 +23,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: unicode character literals now parse
 - Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
 - Ruby: Allow 'unless' used as keyword argument or hash key (#4948)
+- `r2c-internal-project-depends-on`:
+  - Generic mode rules work again
+  - Semgrep will not fail on targets that contain no relevant lockfiles
 
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
