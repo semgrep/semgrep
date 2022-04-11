@@ -120,6 +120,7 @@ def _run_semgrep(
     fail_on_nonzero: bool = True,
     settings_file: Optional[str] = None,
     force_color: Optional[bool] = None,
+    assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -182,7 +183,13 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        *options,
+        (Path("targets") / target_name if assume_targets_dir else Path(target_name)),
+    ]
     # join here so that one can easily copy-paste the command
     str_cmd = " ".join(str(c) for c in cmd)
     print(f"current directory: {os.getcwd()}")
