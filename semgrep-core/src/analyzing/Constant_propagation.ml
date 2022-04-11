@@ -575,7 +575,11 @@ let propagate_basic lang prog =
       V.kexpr =
         (fun (k, v) x ->
           match x.e with
-          | N (Id (id, id_info)) when not !(env.in_lvalue) ->
+          | N (Id (id, id_info))
+          | Call
+              ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
+                (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
+            when not !(env.in_lvalue) ->
               let/ svalue = find_id env id id_info in
               id_info.id_svalue := Some svalue
           (* ugly: dockerfile specific *)
