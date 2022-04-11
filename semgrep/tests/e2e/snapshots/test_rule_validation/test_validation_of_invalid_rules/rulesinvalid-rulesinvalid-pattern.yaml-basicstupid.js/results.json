@@ -3,16 +3,33 @@
     {
       "code": 2,
       "level": "error",
-      "message": "[ERROR] Semgrep Core \u2014 Fatal error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line targets/basic/stupid.js:1: Not_found\n\n====[ BEGIN error trace ]====\nRaised at Stdlib__hashtbl.find in file \"hashtbl.ml\", line 539, characters 13-28\nCalled from Stdlib__list.map in file \"list.ml\", line 92, characters 20-23\nCalled from Stdlib__list.map in file \"list.ml\", line 92, characters 32-39\nCalled from Run_semgrep.semgrep_with_rules.(fun) in file \"src/runner/Run_semgrep.ml\", line 474, characters 13-113\nCalled from Run_semgrep.iter_targets_and_get_matches_and_exn_to_errors.(fun) in file \"src/runner/Run_semgrep.ml\", line 305, characters 21-29\nCalled from Stdlib__fun.protect in file \"fun.ml\", line 33, characters 8-15\nRe-raised at Stdlib__fun.protect in file \"fun.ml\", line 38, characters 6-52\nCalled from Memory_limit.run_with_memory_limit in file \"src/system/Memory_limit.ml\", line 77, characters 6-62\nCalled from Run_semgrep.iter_targets_and_get_matches_and_exn_to_errors.(fun) in file \"src/runner/Run_semgrep.ml\", line 296, characters 17-1023\n=====[ END error trace ]=====\n",
-      "path": "targets/basic/stupid.js",
-      "type": "Fatal error"
+      "message": "[ERROR] Semgrep Core \u2014 Pattern parse error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nIn rule rules.invalid-rules.console_log: Invalid pattern for TypeScript\n",
+      "rule_id": "rules.invalid-rules.console_log",
+      "spans": [
+        {
+          "config_end": {
+            "col": 25,
+            "line": 10,
+            "offset": 197
+          },
+          "config_path": [
+            "rules",
+            "1",
+            "pattern"
+          ],
+          "config_start": {
+            "col": 12,
+            "line": 10,
+            "offset": 184
+          }
+        }
+      ],
+      "type": "Pattern parse error"
     }
   ],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/basic/stupid.js"
-    ]
+    "scanned": []
   },
   "results": []
 }
