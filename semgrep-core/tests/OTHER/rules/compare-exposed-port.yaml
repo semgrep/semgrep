@@ -21,3 +21,5 @@ rules:
           - metavariable-comparison:
               metavariable: $PORT
               comparison: $PORT > 65535
+              strip: true
+              base: 10
