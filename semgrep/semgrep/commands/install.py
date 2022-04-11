@@ -18,21 +18,10 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-@click.group()
-def install() -> None:
+@click.command(hidden=True)
+def install_deep_semgrep() -> None:
     """
-    Install specific semgrep dependencies (Experimental)
-    """
-    set_flags(verbose=False, debug=False, quiet=False, force_color=False)
-
-
-@click.command()
-@click.option(
-    "--force", is_flag=True, help="Override existing installation of DeepSemgrep"
-)
-def deepsemgrep(force: bool) -> None:
-    """
-    Install the DeepSemgrep binary.
+    Install the DeepSemgrep binary (Experimental)
 
     The binary is installed in the same directory that semgrep-core
     is installed in. Does not reinstall if existing binary already exists.
@@ -40,6 +29,8 @@ def deepsemgrep(force: bool) -> None:
     Must be logged in and have access to DeepSemgrep beta
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
+    set_flags(verbose=False, debug=False, quiet=False, force_color=False)
+
     core_path = SemgrepCore.path()
     if core_path is None:
         logger.info(
@@ -50,12 +41,9 @@ def deepsemgrep(force: bool) -> None:
 
     deep_semgrep_path = Path(core_path).parent / "deep-semgrep"
     if deep_semgrep_path.exists():
-        logger.info(f"DeepSemgrep binary already installed in {deep_semgrep_path}. ")
-        if not force:
-            logger.info("Rerun with `--force` to override existing binary")
-            sys.exit(FATAL_EXIT_CODE)
-        else:
-            logger.info(f"Reinstalling DeepSemgrep since `--force` passed.")
+        logger.info(
+            f"Overwriting DeepSemgrep binary already installed in {deep_semgrep_path}"
+        )
 
     token = Authentication.get_token()
     if token is None:
@@ -100,6 +88,3 @@ def deepsemgrep(force: bool) -> None:
                 shutil.copyfileobj(r_raw, f)
 
     logger.info(f"Installed deepsemgrep to {deep_semgrep_path}")
-
-
-install.add_command(deepsemgrep)
