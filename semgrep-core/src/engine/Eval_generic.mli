@@ -31,7 +31,8 @@ val test_eval : Common.filename -> unit
 val parse_json : Common.filename -> env * code
 
 (* for MetavarCond *)
-val bindings_to_env : ?just_strings:bool -> Config_semgrep.t -> Metavariable.bindings -> env
+val bindings_to_env :
+  ?just_strings:bool -> Config_semgrep.t -> Metavariable.bindings -> env
 
 (* For entropy analysis and other string analyzers.
    The mvar is only for making an error message. *)
