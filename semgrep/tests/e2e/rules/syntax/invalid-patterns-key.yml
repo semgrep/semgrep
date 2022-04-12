@@ -1,0 +1,25 @@
+id: dockerfile-source-not-pinned
+patterns:
+  - pattern-either:
+      patterns: # this should cause a syntax error
+          - pattern: FROM $IMAGE:$VERSION@$HASH
+          - metavariable-regex:
+              metavariable: $HASH
+              regex: (?!sha256:)
+      - patterns:
+          - pattern: FROM $IMAGE
+          - pattern: FROM $IMAGE:$VERSION
+          - pattern-not-inside: FROM $IMAGE:$VERSION@$HASH
+message: To ensure reproducible builds, pin Dockerfile `FROM` commands to a
+  specific hash. You can find the hash by running `docker pull $IMAGE` and then
+  specify it with `$IMAGE:$VERSION@sha256:<hash goes here>`
+fix: FROM $IMAGE:$VERSION@sha256:$HASH
+languages:
+  - dockerfile
+severity: ERROR
+metadata:
+  references:
+    - https://stackoverflow.com/a/33511811/4965
+  category: best-practice
+  technology:
+    - docker
