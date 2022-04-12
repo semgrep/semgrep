@@ -226,7 +226,6 @@ let rec eval env x : svalue option =
           ],
           _ ) )
     when is_lang env Lang.Dockerfile ->
-      Printf.printf "EVALING DOCKERFILE EXPANSION %s\n" (show_svalue x);
       Some x
   | Conditional (_e1, e2, e3) ->
       let* v2 = eval env e2 in
@@ -425,7 +424,7 @@ let var_stats prog : var_stats =
   h
 
 (*****************************************************************************)
-(* Terraform hardcoded semantic *)
+(* Terraform/Dockerfile hardcoded semantic *)
 (*****************************************************************************)
 (* ugly: In Terraform/HCL, locals and variables are introduced in a weird way
  * as in 'locals { foo = 1 }' or 'variable "foo" { default = 1 }'. They
@@ -441,6 +440,11 @@ let var_stats prog : var_stats =
  *
  * For more information on terraform locals and variables semantic
  * see https://www.terraform.io/language/values
+ *
+ * We have a similar, but slighlty nicer situation in Dockerfile,
+ * where variables are declared 'ENV var1-foo var2=bar' and are
+ * just refered to by their names
+ * The same reasoning about changing the generic translation applies
  *)
 
 let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
@@ -509,14 +513,18 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
 
 let (dockerfile_stmt_to_vardefs : item -> (ident * expr) list) =
  fun st ->
+  let seen = Hashtbl.create 10 in
   match st.s with
-  (* coupling: reverse of Parse_hcl_tree_sitter.map_block *)
-  (* ex: locals { foo = 1, bar = 2 } *)
   | ExprStmt
       ({ e = Call ({ e = N (Id (("ENV", _), _)); _ }, (_, args, _)); _ }, _) ->
       args
       |> Common.map_filter (function
-           | ArgKwd (lbl, e) -> Some (lbl, e)
+           (* A shadowed variable cannot be constant, just ignore it *)
+           | ArgKwd (lbl, e) ->
+               if Hashtbl.mem seen lbl then None
+               else (
+                 Hashtbl.add seen lbl ();
+                 Some (lbl, e))
            | _ -> (* Should never actually happen *) None)
   | _ -> []
 
@@ -525,6 +533,11 @@ let (dockerfile_stmt_to_vardefs : item -> (ident * expr) list) =
  * ambiguity and name clash.
  *)
 let terraform_sid = 0
+
+(* dockerfile also has no nested scope. There is shadowing, but shadowing
+   makes a variable non-constant, so dockerfile_stmt_to_vardefs just ignores
+   variables that are declared more than once
+*)
 let dockerfile_sid = 0
 
 let add_special_constants stmt_to_var_def sid env lang prog =
@@ -533,8 +546,6 @@ let add_special_constants stmt_to_var_def sid env lang prog =
   |> List.iter (fun (id, v) ->
          match v.e with
          | L literal ->
-             Printf.printf "adding special %s constant for %s\n"
-               (Lang.to_string lang) (fst id);
              logger#trace "adding special %s constant for %s"
                (Lang.to_string lang) (fst id);
              add_constant_env id (sid, Lit literal) env
@@ -548,7 +559,6 @@ let propagate_basic lang prog =
   logger#trace "Constant_propagation.propagate_basic program";
   let env = default_env (Some lang) in
 
-  (* right now this is used only for Terraform *)
   (match lang with
   | Lang.Hcl ->
       add_special_constants terraform_stmt_to_vardefs terraform_sid env lang
@@ -615,16 +625,16 @@ let propagate_basic lang prog =
               let var = (prefix ^ "." ^ str, terraform_sid) in
               let/ svalue = Hashtbl.find_opt env.constants var in
               id_info.id_svalue := Some svalue
+          (* ugly: dockerfile specific
+           * couple: with eval() above
+           *)
           | Call
               ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
                 (_, [ Arg { e = N (Id ((str, _), id_info)); _ } ], _) )
             when is_lang env Lang.Dockerfile && not !(env.in_lvalue) ->
-              Printf.printf "FOUND DOCKERFILE CONSTANT %s\n" str;
               let/ svalue =
-                Hashtbl.find_opt env.constants (str, terraform_sid)
+                Hashtbl.find_opt env.constants (str, dockerfile_sid)
               in
-              Printf.printf "PROPAGATING DOCKERFILE CONSTANT %s = %s\n" str
-                (show_svalue svalue);
               id_info.id_svalue := Some svalue
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
