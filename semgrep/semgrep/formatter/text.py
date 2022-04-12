@@ -150,12 +150,13 @@ class TextFormatter(BaseFormatter):
                 ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
             if stripped:
-                yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
-            trimmed_str = (
-                f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
-            )
+                stripped_str = (
+                    f"[hid a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
+                )
+                yield stripped_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
             if per_finding_max_lines_limit != 1:
                 if trimmed > 0:
+                    trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
                     yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
                 elif show_separator:
                     yield f" " * 10 + f"⋮┆" + f"-" * 40
@@ -347,7 +348,7 @@ class TextFormatter(BaseFormatter):
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                shortlink_text = (8 * " " + shortlink) if shortlink else ""
+                shortlink_text = (8 * " " + shortlink + "\n") if shortlink else ""
                 rule_id_text = click.wrap_text(
                     f"{with_color(Colors.foreground, rule_id, bold=True)}",
                     width + 10,
@@ -358,7 +359,7 @@ class TextFormatter(BaseFormatter):
                 message_text = click.wrap_text(
                     f"{message}", width, 8 * " ", 8 * " ", True
                 )
-                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}\n"
+                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}"
 
             last_file = current_file
             last_message = message
