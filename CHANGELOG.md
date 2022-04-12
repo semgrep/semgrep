@@ -9,6 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala support is now officially GA
   - Ellipsis method chaining is now supported
   - Type metavariables are now supported
+- `metavariable-regex` now supports and optional `constant-propagation` key.
+  When this is set to `true`, information learned from constant propagation
+  will be used when matching the metavariable against the regex. By default
+  it is set to `false`
+- Dockerfile: constant propagation now works on variables declared with `ENV`
 
 ### Changed
 
@@ -16,8 +21,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
-- Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
-  allowing `metavariable-comparison` with integers (#4875)
 - Scala: unicode character literals now parse
 - Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
 - Ruby: Allow 'unless' used as keyword argument or hash key (#4948)
