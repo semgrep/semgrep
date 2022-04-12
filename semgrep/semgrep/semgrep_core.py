@@ -6,8 +6,12 @@ from typing import Optional
 import pkg_resources
 
 
-def compute_executable_path(exec_name: str) -> str:
-    """Determine full executable path if full path is needed to run it."""
+def compute_executable_path(exec_name: str) -> Optional[str]:
+    """
+    Determine full executable path if full path is needed to run it.
+
+    Return None if no executable found
+    """
     # First, try packaged binaries
     pkg_exec = pkg_resources.resource_filename("semgrep.bin", exec_name)
     if os.path.isfile(pkg_exec):
@@ -28,7 +32,7 @@ def compute_executable_path(exec_name: str) -> str:
     if os.path.isfile(relative_path):
         return relative_path
 
-    raise Exception(f"Could not locate '{exec_name}' binary")
+    return None
 
 
 class SemgrepCore:
@@ -39,10 +43,13 @@ class SemgrepCore:
     def path(cls) -> str:
         if cls._SEMGREP_PATH_ is None:
             cls._SEMGREP_PATH_ = compute_executable_path("semgrep-core")
+            if cls._SEMGREP_PATH_ is None:
+                raise Exception("Could not locate semgrep-core binary")
+
         return cls._SEMGREP_PATH_
 
     @classmethod
-    def deep_path(cls) -> str:
+    def deep_path(cls) -> Optional[str]:
         if cls._DEEP_PATH_ is None:
             cls._DEEP_PATH_ = compute_executable_path("deep-semgrep")
         return cls._DEEP_PATH_

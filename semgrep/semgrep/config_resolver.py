@@ -116,7 +116,7 @@ class ConfigPath:
                 self._extra_headers["X-Semgrep-Project"] = self._project_url
                 logger.warning(
                     terminal_wrap(
-                        f"Logging in to the Semgrep Registry as project '{self._project_url}'..."
+                        f"Looking up '{self._project_url}' in Registry to see if recommendations exist..."
                     )
                 )
             self._config_path = f"{SEMGREP_URL}/{AUTO_CONFIG_LOCATION}"

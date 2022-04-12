@@ -1,4 +1,4 @@
-exclude: "^semgrep/tests/e2e/(targets|snapshots)|^semgrep-core/tests|^semgrep/semgrep/external|\\binvalid\\b"
+exclude: "^semgrep/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^semgrep/semgrep/external|\\binvalid\\b"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
