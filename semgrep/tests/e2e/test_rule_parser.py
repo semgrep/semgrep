@@ -90,3 +90,22 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
             force_color=True,
         )
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
+
+
+@pytest.mark.kinda_slow
+def test_rule_parser_error_text(run_semgrep_in_tmp, snapshot):
+    check_error_text = [
+        "invalid-key-name.yml",
+        "invalid-metavariable-regex.yml",
+        "invalid-patterns-key.yml",
+    ]
+
+    # Check pretty print output for a few rules
+    for c in check_error_text:
+        with pytest.raises(CalledProcessError) as excinfo:
+            run_semgrep_in_tmp(
+                f"rules/syntax/{c}",
+                output_format=OutputFormat.TEXT,
+                force_color=True,
+            )
+        snapshot.assert_match(excinfo.value.stderr, "error.txt")
