@@ -6,25 +6,19 @@ rules:
       - id: user-input
         pattern: |
           $VAR = flask.request.$SOMETHING.get(...)
-        severity: INFO
-        message: Flask user input $VAR
         languages: [python]
       - id: unescaped-extensions
         languages: [python]
-        severity: INFO
         patterns:
         - pattern: |
             flask.render_template("$TEMPLATE", ..., $KWARG=$VAR, ...)
         - metavariable-regex:
             metavariable: '$TEMPLATE'
             regex: ".*(?<!html)$"
-        message: 'Unescaped extension $TEMPLATE'
       - id: template-vars
         languages: [generic]
-        severity: INFO
         pattern: |
           {{ $VAR }}
-        message: Template var $VAR
     on:
     - 'user-input.$VAR == unescaped-extensions.$VAR'
     - 'unescaped-extensions.$KWARG == template-vars.$VAR'
