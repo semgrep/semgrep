@@ -47,6 +47,7 @@ from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
 from semgrep.util import is_quiet
+from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -602,7 +603,22 @@ class CoreRunner:
                 else:
                     raise SemgrepError("deep mode needs a single target (root) dir")
 
-                cmd = [SemgrepCore.deep_path()] + [
+                deep_path = SemgrepCore.deep_path()
+                if deep_path is None:
+                    raise SemgrepError(
+                        "Could not run deep analysis: DeepSemgrep not installed. Run `semgrep install-deep-semgrep`"
+                    )
+
+                logger.info(f"Using DeepSemgrep installed in {deep_path}")
+                version = sub_check_output(
+                    [deep_path, "--version"],
+                    timeout=10,
+                    encoding="utf-8",
+                    stderr=subprocess.DEVNULL,
+                ).rstrip()
+                logger.info(f"DeepSemgrep Version Info: ({version})")
+
+                cmd = [deep_path] + [
                     "--json",
                     "--rules",
                     rule_file.name,
