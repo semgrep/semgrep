@@ -237,27 +237,21 @@ let healthcheck env loc name (x : healthcheck) =
       let args = healthcheck_cmd_args env params cmd in
       call name loc args
 
-let env_decl pairs =
+let env_decl loc name pairs =
   let decls =
     pairs
-    |> Common.map (function
-         | Label_semgrep_ellipsis tok ->
-             let assign =
-               G.Assign
-                 ( G.Ellipsis tok |> G.e,
-                   PI.unsafe_fake_info "=",
-                   G.Ellipsis tok |> G.e )
-               |> G.e
-             in
-             G.ExprStmt (assign, PI.unsafe_sc) |> G.s
+    |> Common.map_filter (function
+         | Label_semgrep_ellipsis _ -> None
          | Label_pair (_loc, key, eq, value) -> (
              match key with
              | Var_ident v
              | Var_semgrep_metavar v ->
                  let assign = G.Assign (id_expr v, eq, str_expr value) |> G.e in
-                 G.ExprStmt (assign, PI.unsafe_sc) |> G.s))
+                 Some (G.ExprStmt (assign, PI.unsafe_sc) |> G.s)))
   in
-  G.StmtExpr (G.Block (PI.unsafe_fake_bracket decls) |> G.s) |> G.e
+  let env_call = G.exprstmt @@ call name loc (label_pairs pairs) in
+  G.StmtExpr (G.Block (PI.unsafe_fake_bracket (env_call :: decls)) |> G.s)
+  |> G.e
 
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
@@ -270,7 +264,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Expose (loc, name, port_protos) ->
       let args = List.concat_map expose_port_expr port_protos in
       call_exprs name loc args
-  | Env (_loc, _name, pairs) -> env_decl pairs
+  | Env (loc, name, pairs) -> env_decl loc name pairs
   | Add (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
   | Copy (loc, name, param, src, dst) ->
@@ -295,7 +289,9 @@ let rec instruction_expr env (x : instruction) : G.expr =
 
 let instruction env (x : instruction) : G.stmt =
   let expr = instruction_expr env x in
-  stmt_of_expr (instruction_loc x) expr
+  match expr.e with
+  | StmtExpr stmt -> stmt
+  | _ -> stmt_of_expr (instruction_loc x) expr
 
 let program (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x
