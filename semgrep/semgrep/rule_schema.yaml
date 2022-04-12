@@ -173,7 +173,7 @@ definitions:
               items:
                 - type: string
             pattern:
-              $ref: "#/definitions/pattern"
+              type: string
             patterns:
               $ref: "#/definitions/patterns-content"
           additionalProperties: false
