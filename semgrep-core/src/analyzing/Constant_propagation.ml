@@ -651,6 +651,7 @@ let propagate_dataflow lang ast =
   logger#trace "Constant_propagation.propagate_dataflow program";
   match lang with
   | Lang.Dockerfile ->
+      (* Dockerfile has no functions. The whole file is just a single scope *)
       let xs =
         AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
       in
