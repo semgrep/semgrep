@@ -1,0 +1,2 @@
+[31m[22m[24mWARNING: unable to find a config; path `invalid-patterns-key.yml` does not exist[0m
+[31m[22m[24mRan with --strict and got 1 error while loading configs[0m
