@@ -133,7 +133,7 @@ let unknown_metavar_in_comparison env f =
         |> List.iter (fun (t, metavar_cond) ->
                match metavar_cond with
                | CondEval _ -> ()
-               | CondRegexp (mv, _) ->
+               | CondRegexp (mv, _, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t

@@ -599,7 +599,12 @@ and parse_formula_and_new env (x : G.expr) :
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string env key mvar in
               let x = parse_string_wrap env key re in
-              Right (t, R.CondRegexp (mvar, parse_regexp env x))
+              Right (t, R.CondRegexp (mvar, parse_regexp env x, false))
+          | G.Container (Array, (_, [ mvar; re; const_prop ], _)) ->
+              let mvar = parse_string env key mvar in
+              let x = parse_string_wrap env key re in
+              let const_prop = parse_bool env key const_prop in
+              Right (t, R.CondRegexp (mvar, parse_regexp env x, const_prop))
           | _ -> error_at_expr env value "Expected a metavariable and regex")
       | _ -> Left (parse_formula_new env x))
   | _ -> Left (R.P (parse_xpattern_expr env x, None))
@@ -625,11 +630,17 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
         | R.DuplicateYamlKey (msg, t) ->
             error env t (msg ^ ". You should use multiple metavariable-regex")
       in
-      let metavar, regexp =
+      let metavar, regexp, const_prop =
         ( take mv_regex_dict env parse_string "metavariable",
-          take mv_regex_dict env parse_string_wrap "regex" )
+          take mv_regex_dict env parse_string_wrap "regex",
+          take_opt mv_regex_dict env parse_bool "constant-propagation" )
       in
-      R.MetavarRegexp (metavar, parse_regexp env regexp)
+      R.MetavarRegexp
+        ( metavar,
+          parse_regexp env regexp,
+          match const_prop with
+          | Some b -> b
+          | None -> false )
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
       let metavar = take mv_pattern_dict env parse_string "metavariable" in
