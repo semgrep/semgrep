@@ -237,21 +237,21 @@ let healthcheck env loc name (x : healthcheck) =
       let args = healthcheck_cmd_args env params cmd in
       call name loc args
 
-let env_decl loc name pairs =
+let env_decl _loc _name pairs =
   let decls =
     pairs
-    |> Common.map_filter (function
-         | Label_semgrep_ellipsis _ -> None
+    |> Common.map (function
+         | Label_semgrep_ellipsis tok ->
+             G.ExprStmt (G.Ellipsis tok |> G.e, PI.unsafe_sc) |> G.s
          | Label_pair (_loc, key, eq, value) -> (
              match key with
              | Var_ident v
              | Var_semgrep_metavar v ->
                  let assign = G.Assign (id_expr v, eq, str_expr value) |> G.e in
-                 Some (G.ExprStmt (assign, PI.unsafe_sc) |> G.s)))
+                 G.ExprStmt (assign, PI.unsafe_sc) |> G.s))
   in
-  let env_call = G.exprstmt @@ call name loc (label_pairs pairs) in
-  G.StmtExpr (G.Block (PI.unsafe_fake_bracket (env_call :: decls)) |> G.s)
-  |> G.e
+  (* let env_call = G.exprstmt @@ call name loc (label_pairs pairs) in *)
+  G.StmtExpr (G.Block (PI.unsafe_fake_bracket decls) |> G.s) |> G.e
 
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
