@@ -441,8 +441,8 @@ let var_stats prog : var_stats =
  * For more information on terraform locals and variables semantic
  * see https://www.terraform.io/language/values
  *
- * We have a similar, but slighlty nicer situation in Dockerfile,
- * where variables are declared 'ENV var1-foo var2=bar' and are
+ * We have a similar, but slightly nicer situation in Dockerfile,
+ * where variables are declared 'ENV var1=foo var2=bar' and are
  * just refered to by their names
  * The same reasoning about changing the generic translation applies
  *)
