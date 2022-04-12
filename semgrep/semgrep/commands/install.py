@@ -1,6 +1,7 @@
 import os
 import shutil
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.util import set_flags
+from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -94,3 +96,11 @@ def install_deep_semgrep() -> None:
         os.stat(deep_semgrep_path).st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH,
     )
     logger.info(f"Installed deepsemgrep to {deep_semgrep_path}")
+
+    version = sub_check_output(
+        [str(deep_semgrep_path), "--version"],
+        timeout=10,
+        encoding="utf-8",
+        stderr=subprocess.DEVNULL,
+    ).rstrip()
+    logger.info(f"DeepSemgrep Version Info: ({version})")
