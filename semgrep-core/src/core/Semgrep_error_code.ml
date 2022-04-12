@@ -39,11 +39,24 @@ type severity = Error | Warning
 let g_errors = ref []
 let options () = []
 
+let please_file_issue_text =
+  "An error occurred while invoking the Semgrep engine. Please help us fix \
+   this by creating an issue at https://github.com/returntocorp/semgrep"
+
 (****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
 
 let mk_error ?(rule_id = None) loc msg err =
+  let msg =
+    match err with
+    | MatchingError
+    | AstBuilderError
+    | FatalError
+    | TooManyMatches ->
+        Printf.sprintf "%s\n\n%s" please_file_issue_text msg
+    | _ -> msg
+  in
   { rule_id; loc; typ = err; msg; details = None; yaml_path = None }
 
 let mk_error_tok ?(rule_id = None) tok msg err =
