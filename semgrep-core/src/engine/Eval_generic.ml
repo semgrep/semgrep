@@ -144,10 +144,6 @@ let rec eval env code =
   | G.L x -> value_of_lit ~code x
   | G.N (G.Id ((_, _), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
   (* ugly: coupling with Constant_progation.eval *)
-  | DotAccess
-      ( { e = N (Id ((("local" | "var"), _), _)); _ },
-        _,
-        FN (Id (_, { id_svalue = { contents = Some (G.Lit lit) }; _ })) )
   | Call
       ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
         ( _,
