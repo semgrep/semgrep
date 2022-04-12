@@ -9,7 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala support is now officially GA
   - Ellipsis method chaining is now supported
   - Type metavariables are now supported
-- `metavariable-regex` now supports and optional `constant-propagation` key.
+- `metavariable-regex` now supports an optional `constant-propagation` key.
   When this is set to `true`, information learned from constant propagation
   will be used when matching the metavariable against the regex. By default
   it is set to `false`

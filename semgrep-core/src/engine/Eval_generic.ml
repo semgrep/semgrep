@@ -299,10 +299,10 @@ let text_of_binding mvar mval =
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))
 
-let bindings_to_env (config : Config_semgrep.t) xs =
+let bindings_to_env (config : Config_semgrep.t) bindings =
   let constant_propagation = config.constant_propagation in
   let mvars =
-    xs
+    bindings
     |> Common.map_filter (fun (mvar, mval) ->
            let try_bind_to_exp e =
              try
@@ -340,10 +340,11 @@ let string_of_binding mvar mval =
   Option.bind (text_of_binding mvar mval) @@ fun x -> Some (mvar, String x)
 
 (* this is for metavariable-regexp *)
-let bindings_to_env_just_strings_const_prop (config : Config_semgrep.t) xs =
+let bindings_to_env_just_strings_const_prop (config : Config_semgrep.t) bindings
+    =
   let constant_propagation = config.constant_propagation in
   let mvars =
-    xs
+    bindings
     |> Common.map_filter (fun (mvar, mval) ->
            let try_bind_to_exp e =
              try

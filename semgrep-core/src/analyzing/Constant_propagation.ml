@@ -525,7 +525,9 @@ let (dockerfile_stmt_to_vardefs : item -> (ident * expr) list) =
                else (
                  Hashtbl.add seen lbl ();
                  Some (lbl, e))
-           | _ -> (* Should never actually happen *) None)
+           | _ ->
+               logger#error "Non ArgKwd in Dockerfile ENV call";
+               None)
   | _ -> []
 
 (* the sid does not matter here, there is no nested scope in terraform,
