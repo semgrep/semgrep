@@ -1,0 +1,31 @@
+Scanning 1 file.
+  Current version has 9 findings.
+
+Switching repository to baseline commit 'bar'.
+  Will report findings introduced by these commits:
+    * fe51afb merging bar~6
+    * 4917fac commit #9
+    * 9914f12 commit #8
+    * c9ac2d0 commit #7
+    * 01aedc2 commit #6
+    * 657cdba commit #5
+    * 4c7d0ba commit #4
+    * 5275d4b commit #3
+    * 9121d4d commit #2
+  The current branch is missing these commits from the baseline branch:
+    * ea6d96d commit #9
+    * 0367792 commit #8
+    * 4a37202 commit #7
+    * 5fe55c3 commit #6
+    * f0d065e commit #5
+    * b62d8d6 commit #4
+  Any finding these commits fixed will look like a new finding in the current branch.
+  To avoid reporting such findings, compare to the branch-off point with:
+    --baseline-commit=$(git merge-base bar HEAD)
+
+Scanning 1 file.
+
+Some files were skipped.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 1 file: 8 findings.
