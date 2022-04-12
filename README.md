@@ -80,7 +80,7 @@ $ brew install semgrep
 $ python3 -m pip install semgrep
 
 # To try Semgrep without installation run via Docker
-$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep
 ```
 
 Once installed, Semgrep can run with single rules or entire rulesets. Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:
@@ -95,9 +95,6 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 # to make selecting relevant rules fast next time;
 # source code will not be uploaded.
 $ semgrep --config auto
-
-# Run the r2c-ci ruleset (with rules for many languages) on your own code!
-$ semgrep --config=p/r2c-ci path/to/src
 ```
 
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.

@@ -180,19 +180,20 @@ let expose_port (env : env) (x : CST.expose_port) : expose_port =
   match x with
   | `Semg_ellips tok -> Expose_semgrep_ellipsis (token env tok (* "..." *))
   | `Pat_217c202_opt_choice_SLAS (v1, v2) ->
-      let port = token env v1 (* pattern \d+ *) in
+      let port_tok = token env v1 (* pattern \d+ *) in
       let protocol =
         match v2 with
         | Some x ->
-            [
-              (match x with
+            let tok =
+              match x with
               | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
-              | `SLAS_c773c8d tok -> token env tok (* "/udp" *));
-            ]
-        | None -> []
+              | `SLAS_c773c8d tok -> token env tok (* "/udp" *)
+            in
+            Some (PI.str_of_info tok, tok)
+        | None -> None
       in
-      let tok = PI.combine_infos port protocol in
-      Expose_element (String_content (PI.str_of_info tok, tok))
+      let port_num = port_tok |> PI.str_of_info |> int_of_string_opt in
+      Expose_port ((port_num, port_tok), protocol)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
   let colon = token env v1 (* ":" *) in
@@ -564,7 +565,7 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
   | `Shell_cmd (v1, v2, v3) -> (
       (* Stitch back the fragments together, then parse using the correct
          shell language. *)
-      let _comment_lines = List.map (comment_line env) v1 in
+      let _comment_lines = Common.map (comment_line env) v1 in
       let first_frag = shell_fragment env v2 in
       let more_frags =
         v3
@@ -664,7 +665,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
               (fun x ->
                 match x with
                 | `Expose_port x -> expose_port env x
-                | `Expa x -> Expose_element (expansion env x))
+                | `Expa x -> Expose_fragment (expansion env x))
               v2
           in
           let _, end_ = Loc.of_list expose_port_loc port_protos in

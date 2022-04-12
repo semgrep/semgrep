@@ -116,7 +116,8 @@ type healthcheck =
 
 type expose_port =
   | Expose_semgrep_ellipsis of tok
-  | Expose_element of string_fragment
+  | Expose_port of (* port/protocol *) int option wrap * string wrap option
+  | Expose_fragment of string_fragment
 
 type instruction =
   | From of
@@ -234,7 +235,9 @@ let healthcheck_loc = function
 
 let expose_port_loc = function
   | Expose_semgrep_ellipsis tok -> (tok, tok)
-  | Expose_element x -> string_fragment_loc x
+  | Expose_port ((_, tok1), Some (_, tok2)) -> (tok1, tok2)
+  | Expose_port ((_, tok), None) -> (tok, tok)
+  | Expose_fragment x -> string_fragment_loc x
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc

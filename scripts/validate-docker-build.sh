@@ -38,6 +38,23 @@ if [[ $# -gt 0 ]]; then
   esac
 fi
 
+# Running just the image should print help without error.
+docker run "$image"
+
+# Random valid shell commands should run ok
+docker run "$image" echo -l -a -t -r -v -e -f
+
+# Semgrep should run when a config is passed
+docker run "$image" --config=p/ci --help
+
+# Semgrep should run when just help is requested
+docker run "$image" --help
+
+# Semgrep should run when a subcommand is passed
+docker run "$image" ci --help
+docker run "$image" publish --help
+
+# Semgrep should be able to return findings
 echo "if 1 == 1: pass" \
-    | docker run -i "$image" -l python -e '$X == $X' - \
+    | docker run -i "$image" semgrep -l python -e '$X == $X' - \
     | grep -q "1 == 1"

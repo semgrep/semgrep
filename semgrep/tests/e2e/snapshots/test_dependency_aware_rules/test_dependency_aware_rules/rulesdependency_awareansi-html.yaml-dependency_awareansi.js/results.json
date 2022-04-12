@@ -35,7 +35,7 @@
             "lockfile": "yarn.lock"
           }
         ],
-        "fingerprint": "34dbc50eb98e00ba192ad6f3e9716450",
+        "fingerprint": "e87e6dc13255fff5bd134556c84b5a22",
         "is_ignored": false,
         "lines": "",
         "message": "This affects all versions of package ansi-html. If an attacker provides a malicious string, it will get stuck processing the input for an extremely long time. There is no upgrade fix at this time (the package is no longer being maintained), but you can change to use the 'ansi-html-community@0.0.8' package instead.\n",
@@ -54,7 +54,7 @@
         },
         "severity": "ERROR"
       },
-      "path": ".",
+      "path": "targets/dependency_aware/yarn.lock",
       "start": {
         "col": 0,
         "line": 0,

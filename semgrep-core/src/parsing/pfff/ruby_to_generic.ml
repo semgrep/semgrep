@@ -134,6 +134,23 @@ let rec expr e =
         }
       in
       G.Lambda def
+  | Lambda (tok, params_opt, xs) ->
+      let params =
+        match params_opt with
+        | None -> []
+        | Some xs -> xs
+      in
+      let params = list formal_param params in
+      let st = G.Block (tok, list_stmts xs, tok) |> G.s in
+      let def =
+        {
+          G.fparams = params;
+          frettype = None;
+          fbody = G.FBStmt st;
+          fkind = (G.LambdaKind, tok);
+        }
+      in
+      G.Lambda def
   | S x ->
       let st = stmt x in
       let x = G.stmt_to_expr st in
@@ -419,12 +436,19 @@ and literal x =
       | Tick (l, xs, r) ->
           G.OtherExpr
             (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
-  | Regexp ((l, xs, r), opt) -> (
-      match xs with
-      | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
-      | _ ->
-          (* TODO *)
-          string_contents_list (l, xs, r))
+  | Regexp ((l, xs, r), opt) ->
+      let rec f strs toks = function
+        | [ StrChars (s, t) ] ->
+            let str = String.concat "" (s :: strs) in
+            let tok = PI.combine_infos t toks in
+            G.L (G.Regexp ((l, (str, tok), r), opt))
+        | StrChars (s, t) :: tl -> f (s :: strs) (t :: toks) tl
+        | StrExpr _ :: _
+        | [] ->
+            (* TODO *)
+            string_contents_list (l, xs, r)
+      in
+      f [] [] (List.rev xs)
 
 and expr_as_stmt = function
   | S x -> stmt x

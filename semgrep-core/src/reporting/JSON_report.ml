@@ -118,7 +118,7 @@ let metavars startp_of_match_range (s, mval) =
             any |> V.ii_of_any
             |> List.filter PI.is_origintok
             |> List.sort Parse_info.compare_pos
-            |> List.map PI.str_of_info
+            |> Common.map PI.str_of_info
             |> Matching_report.join_with_space_if_needed;
           unique_id = unique_id any;
         } )
@@ -140,7 +140,7 @@ let match_to_match x =
          extra =
            {
              message = Some x.rule_id.message;
-             metavars = x.env |> List.map (metavars startp);
+             metavars = x.env |> Common.map (metavars startp);
            };
        }
         : ST.match_)
@@ -201,19 +201,19 @@ let error_to_error err =
 let json_time_of_profiling_data profiling_data =
   let json_time_of_rule_times rule_times =
     rule_times
-    |> List.map (fun { RP.rule_id; parse_time; match_time } ->
+    |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
            { ST.rule_id; parse_time; match_time })
   in
   {
     ST.targets =
       profiling_data.RP.file_times
-      |> List.map (fun { RP.file = target; rule_times; run_time } ->
+      |> Common.map (fun { RP.file = target; rule_times; run_time } ->
              {
                ST.path = target;
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
-    rules = List.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
+    rules = Common.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 
@@ -231,7 +231,7 @@ let match_results_of_matches_and_errors files res =
   let count_ok = List.length files - count_errors in
   {
     ST.matches;
-    errors = errs |> List.map error_to_error;
+    errors = errs |> Common.map error_to_error;
     skipped_targets = res.RP.skipped_targets;
     skipped_rules =
       (match res.RP.skipped_rules with
@@ -239,7 +239,7 @@ let match_results_of_matches_and_errors files res =
       | xs ->
           Some
             (xs
-            |> List.map (fun (kind, rule_id, tk) ->
+            |> Common.map (fun (kind, rule_id, tk) ->
                    let loc = PI.unsafe_token_location_of_info tk in
                    {
                      ST.rule_id;

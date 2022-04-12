@@ -2,6 +2,7 @@
 import click
 
 from semgrep.commands.ci import ci
+from semgrep.commands.install import install_deep_semgrep
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
 from semgrep.commands.publish import publish
@@ -10,6 +11,7 @@ from semgrep.default_group import DefaultGroup
 
 
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
+@click.help_option("--help", "-h")
 def cli() -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
@@ -21,3 +23,4 @@ cli.add_command(login)
 cli.add_command(logout)
 cli.add_command(publish)
 cli.add_command(scan)
+cli.add_command(install_deep_semgrep)

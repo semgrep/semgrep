@@ -116,10 +116,10 @@ class ConfigPath:
                 self._extra_headers["X-Semgrep-Project"] = self._project_url
                 logger.warning(
                     terminal_wrap(
-                        f"Logging in to the Semgrep Registry as project '{self._project_url}'..."
+                        f"Looking up '{self._project_url}' in Registry to see if recommendations exist..."
                     )
                 )
-            self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
+            self._config_path = f"{SEMGREP_URL}/{AUTO_CONFIG_LOCATION}"
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = str(Path(config_str).expanduser())
@@ -554,7 +554,7 @@ def registry_id_to_url(registry_id: str) -> str:
     """
     Convert from registry_id to semgrep.dev url
     """
-    return f"{SEMGREP_URL}{registry_id}"
+    return f"{SEMGREP_URL}/{registry_id}"
 
 
 def url_for_policy(config_str: str) -> str:
@@ -580,7 +580,7 @@ def url_for_policy(config_str: str) -> str:
             "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
         )
 
-    request_url = f"{(SEMGREP_URL)}api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
+    request_url = f"{SEMGREP_URL}/api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
 
     if include_cai:
         return f"{request_url}?include_cai=1"
