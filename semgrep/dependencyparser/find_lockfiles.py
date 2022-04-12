@@ -5,7 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from dependencyparser.models import LANGUAGE_TO_NAMESPACE
+from dependencyparser.models import languages_to_namespaces
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import NAMESPACE_TO_LOCKFILES
 from dependencyparser.models import PackageManagers
@@ -93,7 +93,7 @@ class DependencyTrie:
 def make_dependency_trie(target: Path, langs: List[Language]) -> DependencyTrie:
     dep_trie = DependencyTrie()
     # Triple for loop, but the outer two are (basically) constant time and guaranteed to be almost instant
-    for namespace in [LANGUAGE_TO_NAMESPACE[l] for l in langs]:
+    for namespace in languages_to_namespaces(langs):
         for lockfile_type in NAMESPACE_TO_LOCKFILES[namespace]:
             for lockfile in target.glob("**/" + lockfile_type):
                 deps = list(parse_lockfile_str(lockfile.read_text(), lockfile))

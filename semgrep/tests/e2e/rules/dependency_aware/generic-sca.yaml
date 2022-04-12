@@ -1,0 +1,10 @@
+rules:
+  - id: generic-sca
+    pattern: foobar
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: "@types/jquery"
+        version: "== 3.3.22"
+    message: oh no
+    languages: [generic]
+    severity: WARNING

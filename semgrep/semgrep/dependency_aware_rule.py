@@ -5,7 +5,7 @@ from typing import List
 from typing import Tuple
 
 from dependencyparser.find_lockfiles import DependencyTrie
-from dependencyparser.models import LANGUAGE_TO_NAMESPACE
+from dependencyparser.models import languages_to_namespaces
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.package_restrictions import dependencies_range_match_any
@@ -74,10 +74,12 @@ def run_dependency_aware_rule(
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
     final_matches: List[RuleMatch] = []
 
-    namespaces = {LANGUAGE_TO_NAMESPACE[l] for l in rule.languages}
-    dependencies: List[Tuple[Path, List[LockfileDependency]]] = [
-        dep for ns in namespaces for dep in dep_trie.all_deps[ns].items()
-    ]
+    namespaces = languages_to_namespaces(rule.languages)
+    dependencies: List[Tuple[Path, List[LockfileDependency]]] = []
+    for ns in namespaces:
+        if ns in dep_trie.all_deps:
+            dependencies.extend(dep_trie.all_deps[ns].items())
+
     for lockfile_path, deps in dependencies:
         try:
             output = list(
