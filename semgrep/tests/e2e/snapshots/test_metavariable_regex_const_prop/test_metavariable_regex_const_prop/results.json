@@ -1,0 +1,113 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/metavariable-regex-const-prop.dockerfile"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.use-absolute-workdir",
+      "end": {
+        "col": 20,
+        "line": 4,
+        "offset": 64
+      },
+      "extra": {
+        "fingerprint": "6f80011b4f0fb4d0fc6b8ee96fd8abdb",
+        "fix": "WORKDIR /$WORD",
+        "is_ignored": false,
+        "lines": "WORKDIR usr/src/app",
+        "message": "Detected a relative WORKDIR. Use absolute paths. This prevents issues based on assumptions about the WORKDIR of previous containers.",
+        "metadata": {
+          "category": "best-practice",
+          "references": [
+            "https://github.com/hadolint/hadolint/wiki/DL3000"
+          ],
+          "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3000",
+          "technology": [
+            "dockerfile"
+          ]
+        },
+        "metavars": {
+          "$DIR": {
+            "abstract_content": "usr/src/app",
+            "end": {
+              "col": 20,
+              "line": 4,
+              "offset": 64
+            },
+            "start": {
+              "col": 9,
+              "line": 4,
+              "offset": 53
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/metavariable-regex-const-prop.dockerfile",
+      "start": {
+        "col": 1,
+        "line": 4,
+        "offset": 45
+      }
+    },
+    {
+      "check_id": "rules.use-absolute-workdir",
+      "end": {
+        "col": 20,
+        "line": 11,
+        "offset": 182
+      },
+      "extra": {
+        "fingerprint": "3bf68d5fd0f00c5c40b21a872158826e",
+        "fix": "WORKDIR /$WORD",
+        "is_ignored": false,
+        "lines": "WORKDIR ${dirpath1}",
+        "message": "Detected a relative WORKDIR. Use absolute paths. This prevents issues based on assumptions about the WORKDIR of previous containers.",
+        "metadata": {
+          "category": "best-practice",
+          "references": [
+            "https://github.com/hadolint/hadolint/wiki/DL3000"
+          ],
+          "source-rule-url": "https://github.com/hadolint/hadolint/wiki/DL3000",
+          "technology": [
+            "dockerfile"
+          ]
+        },
+        "metavars": {
+          "$DIR": {
+            "abstract_content": "$$dirpath1}",
+            "end": {
+              "col": 20,
+              "line": 11,
+              "offset": 182
+            },
+            "start": {
+              "col": 9,
+              "line": 11,
+              "offset": 171
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/metavariable-regex-const-prop.dockerfile",
+      "start": {
+        "col": 1,
+        "line": 11,
+        "offset": 163
+      }
+    }
+  ]
+}
