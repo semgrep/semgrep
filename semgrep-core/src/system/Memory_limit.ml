@@ -33,7 +33,7 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
   let mem_limit = mem_limit_mb * mb in
   let stack_warning = stack_warning_kb * 1024 in
   let stack_already_warned = ref false in
-  let heap_warning =
+  let heap_warning_start =
     (* If there is a memory limit, and we reach 80% of that limit, then we
      * also warn. Whatever happens first. *)
     let mem_limit_warning = int_of_float (float_of_int mem_limit *. 0.8) in
@@ -41,7 +41,7 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
       heap_warning_mb * mb
     else mem_limit_warning
   in
-  let heap_already_warned = ref false in
+  let heap_warning = ref heap_warning_start in
   let limit_memory () =
     let stat = Gc.quick_stat () in
     let heap_bytes = stat.heap_words * (Sys.word_size / 8) in
@@ -52,14 +52,12 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
         "exceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
         mem_bytes stack_bytes heap_bytes;
       raise (ExceededMemoryLimit "Exceeded memory limit"))
-    else if
-      heap_warning > 0 && heap_bytes > heap_warning && not !heap_already_warned
-    then (
+    else if !heap_warning > 0 && heap_bytes > !heap_warning then (
       logger#warning
         "large heap size: %d MiB (memory limit is %d MiB). If a crash follows, \
          you could suspect OOM."
         (heap_bytes / mb) mem_limit_mb;
-      heap_already_warned := true)
+      heap_warning := max (2 * !heap_warning) !heap_warning)
     else if
       stack_warning > 0
       && stack_bytes > stack_warning
