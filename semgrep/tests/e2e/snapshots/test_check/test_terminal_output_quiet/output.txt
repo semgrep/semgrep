@@ -5,7 +5,6 @@ Findings:
      [1m[24mrules.javascript-basic-eqeq-bad[0m
         useless comparison
 
-
           3┆ console.log([1m[24mx == x[0m)
 
 
