@@ -4,11 +4,8 @@ Rules:
 - rules.cli_test.parse_errors.eqeq-is-bad
 - rules.cli_test.parse_errors.func
 Scanning 1 file with 2 js rules.
-[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Semgrep Core — Syntax error
-An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
-
-At line targets/cli_test/parse_errors/invalid_javascript.js:5: `key:` was unexpected
-[0m
+[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Syntax error at line targets/cli_test/parse_errors/invalid_javascript.js:5:
+ `key:` was unexpected[0m
 
 ========================================
 Files skipped:

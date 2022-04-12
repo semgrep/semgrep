@@ -4,12 +4,9 @@ Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 Scanning 1 file with 2 python rules.
-[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Semgrep Core — Syntax error
-An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
-
-At line targets/bad/invalid_python.py:1: `
-    ` was unexpected
-[0m
+[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Syntax error at line targets/bad/invalid_python.py:1:
+ `
+    ` was unexpected[0m
 
 ========================================
 Files skipped:
