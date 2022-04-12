@@ -1,0 +1,17 @@
+[31m[22m[24m[31m[22m[24msemgrep error[0m: Invalid rule schema
+  --> rules/syntax/invalid-key-name.yml:4
+[94m[22m[24m4  | [0m      - patterns-either:   # this is an invalid key name
+[94m[22m[24m5  | [0m          - patterns:
+[94m[22m[24m6  | [0m              - pattern: FROM $IMAGE:$VERSION@$HASH
+[94m[22m[24m7  | [0m              - metavariable-regex:
+[94m[22m[24m8  | [0m                  metavariable: $HASH
+[94m[22m[24m9  | [0m                  regex: (?!sha256:)
+[94m[22m[24m10 | [0m          - patterns:
+[94m[22m[24m11 | [0m              - pattern: FROM $IMAGE
+[94m[22m[24m12 | [0m              - pattern: FROM $IMAGE:$VERSION
+[94m[22m[24m13 | [0m              - pattern-not-inside: FROM $IMAGE:$VERSION@$HASH
+[94m[22m[24m14 | [0m    message: To ensure reproducible builds, pin Dockerfile `FROM` commands to a
+
+[31m[22m[24mAdditional properties are not allowed ('patterns-either' was unexpected)[0m
+[0m
+[31m[22m[24mRan with --strict and got 1 error while loading configs[0m
