@@ -625,8 +625,7 @@ let propagate_basic lang prog =
                            !(stats.lvalue) = 1
                            (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
                            && (is_lang env Lang.Python || is_lang env Lang.Ruby
-                             || is_lang env Lang.Php || is_js env
-                              || is_lang env Lang.Dockerfile)
+                             || is_lang env Lang.Php || is_js env)
                            && kind = Global
                          then add_constant_env id (sid, svalue) env
                      | None ->

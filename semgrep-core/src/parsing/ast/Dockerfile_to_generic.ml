@@ -237,20 +237,22 @@ let healthcheck env loc name (x : healthcheck) =
       let args = healthcheck_cmd_args env params cmd in
       call name loc args
 
-let env_decl _loc _name pairs =
+let env_decl pairs =
   let decls =
     pairs
     |> Common.map (function
          | Label_semgrep_ellipsis tok ->
              G.ExprStmt (G.Ellipsis tok |> G.e, PI.unsafe_sc) |> G.s
-         | Label_pair (_loc, key, eq, value) -> (
+         | Label_pair (_loc, key, _eq, value) -> (
              match key with
              | Var_ident v
              | Var_semgrep_metavar v ->
-                 let assign = G.Assign (id_expr v, eq, str_expr value) |> G.e in
-                 G.ExprStmt (assign, PI.unsafe_sc) |> G.s))
+                 let entity = G.basic_entity v in
+                 let vardef =
+                   G.VarDef { vinit = Some (str_expr value); vtype = None }
+                 in
+                 G.DefStmt (entity, vardef) |> G.s))
   in
-  (* let env_call = G.exprstmt @@ call name loc (label_pairs pairs) in *)
   G.StmtExpr (G.Block (PI.unsafe_fake_bracket decls) |> G.s) |> G.e
 
 let rec instruction_expr env (x : instruction) : G.expr =
@@ -264,7 +266,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Expose (loc, name, port_protos) ->
       let args = List.concat_map expose_port_expr port_protos in
       call_exprs name loc args
-  | Env (loc, name, pairs) -> env_decl loc name pairs
+  | Env (_loc, _name, pairs) -> env_decl pairs
   | Add (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
   | Copy (loc, name, param, src, dst) ->
