@@ -144,7 +144,7 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of MV.mvar * regexp
+  | CondRegexp of MV.mvar * regexp * bool (* constant-propagation *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -179,7 +179,7 @@ type formula_old =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
-  | MetavarRegexp of MV.mvar * regexp
+  | MetavarRegexp of MV.mvar * regexp * bool
   | MetavarPattern of MV.mvar * Xlang.t option * formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
@@ -364,7 +364,7 @@ let rewrite_metavar_comparison_strip mvar cond =
 
 let convert_extra x =
   match x with
-  | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
+  | MetavarRegexp (mvar, re, const_prop) -> CondRegexp (mvar, re, const_prop)
   | MetavarPattern (mvar, opt_xlang, formula) ->
       CondNestedFormula (mvar, opt_xlang, formula)
   | MetavarComparison comp -> (

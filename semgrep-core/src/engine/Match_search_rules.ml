@@ -644,7 +644,7 @@ let rec filter_ranges env xs cond =
           * which may not always be a string. The regexp is really done on
           * the text representation of the metavar content.
           *)
-         | R.CondRegexp (mvar, (re_str, _re)) ->
+         | R.CondRegexp (mvar, (re_str, _re), _const_prop) ->
              let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
