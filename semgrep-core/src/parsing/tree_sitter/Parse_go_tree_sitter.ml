@@ -65,7 +65,12 @@ let raw_string_literal env tok =
   (* Remove leading and trailing backticks. The grammar guarantees that raw
    * string literals will always have leading and trailing backticks, so this
    * String.sub call should be safe. Let's check just to be sure. *)
-  if not (String.get s 0 = '`' && String.get s (String.length s - 1) = '`') then
+  if
+    not
+      (String.length s >= 2
+      && String.get s 0 = '`'
+      && String.get s (String.length s - 1) = '`')
+  then
     failwith @@ "Found unexpected raw string literal without delimiters: " ^ s;
   let s = String.sub s 1 (String.length s - 2) in
   let tok = (loc, s) in
