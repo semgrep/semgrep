@@ -650,16 +650,25 @@ let propagate_basic a b =
 
 let propagate_dataflow lang ast =
   logger#trace "Constant_propagation.propagate_dataflow program";
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition lang def in
-            let flow = CFG_build.cfg_of_stmts xs in
-            let mapping = Dataflow_svalue.fixpoint lang inputs flow in
-            Dataflow_svalue.update_svalue flow mapping);
-      }
-  in
-  v (Pr ast)
+  match lang with
+  | Lang.Dockerfile ->
+      let xs =
+        AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
+      in
+      let flow = CFG_build.cfg_of_stmts xs in
+      let mapping = Dataflow_svalue.fixpoint lang [] flow in
+      Dataflow_svalue.update_svalue flow mapping
+  | _ ->
+      let v =
+        V.mk_visitor
+          {
+            V.default_visitor with
+            V.kfunction_definition =
+              (fun (_k, _) def ->
+                let inputs, xs = AST_to_IL.function_definition lang def in
+                let flow = CFG_build.cfg_of_stmts xs in
+                let mapping = Dataflow_svalue.fixpoint lang inputs flow in
+                Dataflow_svalue.update_svalue flow mapping);
+          }
+      in
+      v (Pr ast)
