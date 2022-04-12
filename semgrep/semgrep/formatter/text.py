@@ -14,8 +14,6 @@ from typing import Sequence
 import click
 import colorama
 
-from semgrep.constants import BREAK_LINE_CHAR
-from semgrep.constants import BREAK_LINE_WIDTH
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
@@ -42,6 +40,8 @@ if width <= 110:
     width = width - 5
 else:
     width = width - (width - 100)
+
+FINDINGS_INDENT_DEPTH = 10
 
 
 class TextFormatter(BaseFormatter):
@@ -150,16 +150,14 @@ class TextFormatter(BaseFormatter):
                 ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
             if stripped:
-                stripped_str = (
-                    f"[hid a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
-                )
-                yield stripped_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
+                stripped_str = f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
+                yield " " * FINDINGS_INDENT_DEPTH + stripped_str
             if per_finding_max_lines_limit != 1:
                 if trimmed > 0:
                     trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
-                    yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
+                    yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
                 elif show_separator:
-                    yield f" " * 10 + f"⋮┆" + f"-" * 40
+                    yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
