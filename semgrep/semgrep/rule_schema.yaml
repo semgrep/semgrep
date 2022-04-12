@@ -190,6 +190,8 @@ definitions:
             type: string
           regex:
             type: string
+          constant-propagation:
+            type: boolean
         required:
           - metavariable
           - regex
