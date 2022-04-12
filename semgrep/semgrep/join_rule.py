@@ -419,6 +419,9 @@ def run_join_rule(
     alias_lookup = {ref.alias: ref.id for ref in join_rule_refs}
 
     inline_rules = join_contents.get("rules", [])
+    for rule in inline_rules:
+        # Add severity and message fields so that it can be a full rule
+        rule.update({"severity": "INFO", "message": "join rule"})
     inline_rules = [Rule.from_json(rule) for rule in inline_rules]
 
     # Hack: Use the rule ID for inline rules as keys for refs_lookup and alias_lookup.
