@@ -175,7 +175,7 @@ class StreamingSemgrepCore:
 
             # read returns empty when EOF
             if not line_bytes:
-                self._stdout = b"".join(stdout_lines).decode("utf-8")
+                self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
                 break
 
             if line_bytes == b".\n":
@@ -210,7 +210,7 @@ class StreamingSemgrepCore:
                 self._stderr = "".join(stderr_lines)
                 break
 
-            line = line_bytes.decode("utf-8")
+            line = line_bytes.decode("utf-8", "replace")
             stderr_lines.append(line)
 
     async def _stream_subprocess(self) -> int:
