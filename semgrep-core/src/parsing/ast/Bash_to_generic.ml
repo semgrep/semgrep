@@ -280,6 +280,8 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       match arguments with
       | [ (Expr_semgrep_ellipsis tok as e) ] ->
           Expr ((tok, tok), expression env e)
+      | [ (String_fragment (loc, Frag_semgrep_named_ellipsis _) as e) ] ->
+          Expr (loc, expression env e)
       | arguments ->
           let args = Common.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
@@ -494,6 +496,7 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
       let arg = blist env x |> block |> as_expr in
       call loc C.cmd_subst [ arg ]
   | Frag_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
+  | Frag_semgrep_named_ellipsis x -> G.N (mk_name x) |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.
