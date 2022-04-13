@@ -96,6 +96,71 @@ def test_rule_match_hashing():
 
 
 @pytest.mark.quick
+def test_rule_match_is_nosemgrep_agnostic():
+    file_content = dedent(
+        """
+        # first line
+        def foo():
+            (5
+                ==
+            5)
+        """
+    ).lstrip()
+    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
+        match_1 = RuleMatch(
+            rule_id="rule_id",
+            message="message",
+            severity=RuleSeverity.ERROR,
+            path=Path("foo.py"),
+            start=core.Position(3, 1, 28),
+            end=core.Position(5, 2, 48),
+        )
+    file_content = dedent(
+        """
+        # first line
+        def foo():
+            (5  # nosemgrep: something
+                ==
+            5)
+        """
+    ).lstrip()
+    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
+        match_2 = RuleMatch(
+            rule_id="rule_id",
+            message="message",
+            severity=RuleSeverity.ERROR,
+            path=Path("foo.py"),
+            start=core.Position(3, 1, 28),
+            end=core.Position(5, 2, 72),
+        )
+    file_content = dedent(
+        """
+        # first line
+        def foo():
+            # nosemgrep: something
+            (5
+                ==
+            5)
+        """
+    ).lstrip()
+    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
+        match_3 = RuleMatch(
+            rule_id="rule_id",
+            message="message",
+            severity=RuleSeverity.ERROR,
+            path=Path("foo.py"),
+            start=core.Position(4, 1, 55),
+            end=core.Position(6, 2, 75),
+        )
+    assert (
+        match_1.ci_unique_key == match_2.ci_unique_key
+    ), "matches are identical per semgrep ci deduplication if the only difference is an inline nosemgrep comment"
+    assert (
+        match_1.ci_unique_key == match_3.ci_unique_key
+    ), "matches are identical per semgrep ci deduplication if the only difference is a previous-line nosemgrep comment"
+
+
+@pytest.mark.quick
 def test_rule_match_set_indexes():
     file_content = dedent(
         """
