@@ -33,6 +33,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Generic mode rules work again
   - Semgrep will not fail on targets that contain no relevant lockfiles
 - Go: parse multiline string literals
+- Handle utf-8 decoding errors without crashing (#5023)
 
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
