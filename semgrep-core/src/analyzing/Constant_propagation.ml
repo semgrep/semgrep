@@ -209,6 +209,10 @@ let rec eval env x : svalue option =
   | DotAccess
       ( { e = IdSpecial (This, _); _ },
         _,
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
+  | DotAccess
+      ( { e = IdSpecial (Self, _); _ },
+        _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
   (* ugly: terraform specific. less: should require lang = Hcl *)
@@ -568,6 +572,7 @@ let propagate_basic lang prog =
               let/ svalue = find_id env id id_info in
               id_info.id_svalue := Some svalue
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
+          | DotAccess ({ e = IdSpecial (Self, _); _ }, _, FN (Id (id, id_info)))
             when not !(env.in_lvalue) ->
               let/ svalue = find_id env id id_info in
               id_info.id_svalue := Some svalue
