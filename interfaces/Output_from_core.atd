@@ -83,7 +83,7 @@ type metavar_value
   start: position;
   end <ocaml name="end_">: position;
   abstract_content: string; (* value? *)
-  propagated_value: svalue_value option;
+  ?propagated_value: svalue_value option;
 
   (* The unique ID of a metavariable indicates the kind object that was
      captured for equality purposes. In the simplest case, this is only

@@ -936,8 +936,8 @@ class MetavarValue:
     start: Position
     end: Position
     abstract_content: str
-    propagated_value: Optional[SvalueValue]
     unique_id: UniqueId
+    propagated_value: Optional[SvalueValue] = None
 
     @classmethod
     def from_json(cls, x: Any) -> "MetavarValue":
@@ -952,14 +952,12 @@ class MetavarValue:
                 abstract_content=_atd_read_string(x["abstract_content"])
                 if "abstract_content" in x
                 else _atd_missing_json_field("MetavarValue", "abstract_content"),
-                propagated_value=_atd_read_option(SvalueValue.from_json)(
-                    x["propagated_value"]
-                )
-                if "propagated_value" in x
-                else _atd_missing_json_field("MetavarValue", "propagated_value"),
                 unique_id=UniqueId.from_json(x["unique_id"])
                 if "unique_id" in x
                 else _atd_missing_json_field("MetavarValue", "unique_id"),
+                propagated_value=SvalueValue.from_json(x["propagated_value"])
+                if "propagated_value" in x
+                else None,
             )
         else:
             _atd_bad_json("MetavarValue", x)
@@ -969,10 +967,9 @@ class MetavarValue:
         res["start"] = (lambda x: x.to_json())(self.start)
         res["end"] = (lambda x: x.to_json())(self.end)
         res["abstract_content"] = _atd_write_string(self.abstract_content)
-        res["propagated_value"] = _atd_write_option(lambda x: x.to_json())(
-            self.propagated_value
-        )
         res["unique_id"] = (lambda x: x.to_json())(self.unique_id)
+        if self.propagated_value is not None:
+            res["propagated_value"] = (lambda x: x.to_json())(self.propagated_value)
         return res
 
     @classmethod
