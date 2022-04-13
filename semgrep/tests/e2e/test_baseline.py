@@ -8,6 +8,8 @@ from typing import Optional
 
 import pytest
 
+pytestmark = pytest.mark.kinda_slow
+
 SENTINEL_1 = 23478921
 
 
@@ -124,7 +126,6 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
         raise e
 
 
-@pytest.mark.kinda_slow
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
     foo = git_tmp_path / "foo.py"
     foo.write_text(f"x = {SENTINEL_1}\n")
@@ -156,7 +157,6 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.quick
 def test_symlink(git_tmp_path, snapshot):
     # Test that head having no change to base (git commit --allow-empty)
     # doesnt break semgrep
@@ -196,7 +196,6 @@ def test_symlink(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.quick
 def test_renamed_dir(git_tmp_path, snapshot):
     dir = git_tmp_path / "dir_old"
     dir.mkdir()
@@ -223,7 +222,6 @@ def test_renamed_dir(git_tmp_path, snapshot):
     snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.quick
 def test_dir_symlink_changed(git_tmp_path, snapshot):
     dir_one = git_tmp_path / "dir_one"
     dir_two = git_tmp_path / "dir_two"
@@ -256,7 +254,6 @@ def test_dir_symlink_changed(git_tmp_path, snapshot):
     snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.quick
 def test_file_changed_to_dir(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_dir.py"
     file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
@@ -285,7 +282,6 @@ def test_file_changed_to_dir(git_tmp_path, snapshot):
     snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.quick
 def test_dir_changed_to_file(git_tmp_path, snapshot):
     file_or_dir_path = git_tmp_path / "file_or_dir.py"
     file_or_dir_path.mkdir()
@@ -317,7 +313,6 @@ def test_dir_changed_to_file(git_tmp_path, snapshot):
     snapshot.assert_match(baseline_output.stderr, "diff.err")
 
 
-@pytest.mark.kinda_slow
 def test_no_findings_both(git_tmp_path, snapshot):
     # Test if no findings in head or base semgrep doesnt explode
     foo = git_tmp_path / "foo.py"
@@ -354,7 +349,52 @@ def test_no_findings_both(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
+def test_file_changed_to_symlink(git_tmp_path, snapshot):
+    file_or_dir_path = git_tmp_path / "file_or_link.py"
+    file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
+    _git_commit(1, add=True)
+
+    file_or_dir_path.rename("definitely_a_file.py")
+    file_or_dir_path.symlink_to("definitely_a_file.py")
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "full.out")
+    assert (
+        output.stdout != ""
+    ), "If you fail this assertion, above snapshot was incorrectly changed"
+    snapshot.assert_match(output.stderr, "full.err")
+
+    baseline_output = run_sentinel_scan(base_commit="HEAD^")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
+
+
+def test_symlink_changed_to_file(git_tmp_path, snapshot):
+    file_path = git_tmp_path / "definitely_a_file.py"
+    file_path.write_text(f"x = {SENTINEL_1}\n")
+    symlink_or_file_path = git_tmp_path / "symlink_or_file.py"
+    symlink_or_file_path.symlink_to(file_path)
+    _git_commit(1, add=True)
+
+    symlink_or_file_path.unlink()
+    file_path.rename(symlink_or_file_path)
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "full.out")
+    assert (
+        output.stdout != ""
+    ), "If you fail this assertion, above snapshot was incorrectly changed"
+    snapshot.assert_match(output.stderr, "full.err")
+
+    baseline_output = run_sentinel_scan(base_commit="HEAD^")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
+
+
 def test_no_findings_head(git_tmp_path, snapshot):
     # Test that no findings in head reports no findings even if
     # findings in baseline
@@ -394,7 +434,6 @@ def test_no_findings_head(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
 def test_no_findings_baseline(git_tmp_path, snapshot):
     # Test when head contains all findings and baseline doesnt contain any
     foo = git_tmp_path / "foo.py"
@@ -432,7 +471,6 @@ def test_no_findings_baseline(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
 def test_some_intersection(git_tmp_path, snapshot):
     # Test when baseline contains some findings of head
     foo = git_tmp_path / "foo.py"
@@ -469,7 +507,6 @@ def test_some_intersection(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
 def test_all_intersect(git_tmp_path, snapshot):
     # Test when baseline and head contain same findings none are reported
     foo = git_tmp_path / "foo.py"
@@ -506,7 +543,6 @@ def test_all_intersect(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
 def test_no_intersection(git_tmp_path, snapshot):
     # If no intersection of baseline and head finding should still report head finding
     foo = git_tmp_path / "foo.py"
@@ -543,7 +579,6 @@ def test_no_intersection(git_tmp_path, snapshot):
     )
 
 
-@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "new_name",
     [
@@ -588,17 +623,14 @@ def test_renamed_file(git_tmp_path, snapshot, new_name):
     }, "the old path should be gone now"
 
 
-@pytest.mark.quick
 def test_multiple_on_same_line(git_tmp_path, snapshot):
     pass
 
 
-@pytest.mark.quick
 def test_run_in_subdirectory(git_tmp_path, snapshot):
     pass
 
 
-@pytest.mark.kinda_slow
 def test_unstaged_changes(git_tmp_path, snapshot):
     # Should abort if have unstaged changes
     foo = git_tmp_path / "foo"
@@ -617,12 +649,10 @@ def test_unstaged_changes(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.quick
 def test_baseline_has_head_untracked(git_tmp_path, snapshot):
     pass
 
 
-@pytest.mark.kinda_slow
 def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     # Should abort baseline scan if not a git directory
     monkeypatch.chdir(tmp_path)
@@ -636,7 +666,6 @@ def test_not_git_directory(monkeypatch, tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.kinda_slow
 def test_commit_doesnt_exist(git_tmp_path, snapshot):
     # Should abort baseline scan if baseline is not valid commit
     foo = git_tmp_path / "foo"
@@ -651,7 +680,6 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     snapshot.assert_match(output.stderr, "error.txt")
 
 
-@pytest.mark.quick
 @pytest.fixture
 def git_tmp_path(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
@@ -749,7 +777,6 @@ def complex_merge_repo(git_tmp_path, snapshot):
 
 
 @pytest.mark.parametrize("current, baseline", permutations(["foo", "bar", "baz"], 2))
-@pytest.mark.kinda_slow
 def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     subprocess.run(["git", "checkout", current])
     output = run_sentinel_scan(base_commit=baseline)
