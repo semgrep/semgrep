@@ -196,6 +196,127 @@ def test_symlink(git_tmp_path, snapshot):
     )
 
 
+@pytest.mark.quick
+def test_renamed_dir(git_tmp_path, snapshot):
+    dir = git_tmp_path / "dir_old"
+    dir.mkdir()
+    foo = dir / "foo.py"
+    foo.write_text(f"x = {SENTINEL_1}\n")
+    bar = dir / "bar.py"
+    bar.write_text(f"y = {SENTINEL_1}\n")
+    _git_commit(1, add=True)
+
+    dir.rename(git_tmp_path / "dir_new")
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "full.out")
+    assert (
+        output.stdout != ""
+    ), "If you fail this assertion, above snapshot was incorrectly changed"
+    snapshot.assert_match(output.stderr, "full.err")
+
+    # Baseline scan should also report findings due to changed paths
+    baseline_output = run_sentinel_scan(base_commit="HEAD^")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
+
+
+@pytest.mark.quick
+def test_dir_symlink_changed(git_tmp_path, snapshot):
+    dir_one = git_tmp_path / "dir_one"
+    dir_two = git_tmp_path / "dir_two"
+    dir_one.mkdir()
+    dir_two.mkdir()
+    dir_link = git_tmp_path / "dir_link"
+    dir_link.symlink_to(dir_one)
+
+    foo = dir_one / "foo.py"
+    foo.write_text(f"x = {SENTINEL_1}\n")
+    bar = dir_two / "bar.py"
+    bar.write_text(f"y = {SENTINEL_1}\n")
+    _git_commit(1, add=True)
+
+    dir_link.unlink()
+    dir_link.symlink_to(dir_two)
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "full.out")
+    assert (
+        output.stdout != ""
+    ), "If you fail this assertion, above snapshot was incorrectly changed"
+    snapshot.assert_match(output.stderr, "full.err")
+
+    # Baseline scan should report no findings
+    baseline_output = run_sentinel_scan(base_commit="HEAD^")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
+
+
+@pytest.mark.quick
+def test_file_changed_to_dir(git_tmp_path, snapshot):
+    file_or_dir_path = git_tmp_path / "file_or_dir.py"
+    file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
+    _git_commit(1, add=True)
+
+    file_or_dir_path.unlink()
+    file_or_dir_path.mkdir()
+
+    foo = file_or_dir_path / "foo.py"
+    foo.write_text(f"x = {SENTINEL_1}\n")
+    bar = file_or_dir_path / "bar.py"
+    bar.write_text(f"y = {SENTINEL_1}\n")
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "full.out")
+    assert (
+        output.stdout != ""
+    ), "If you fail this assertion, above snapshot was incorrectly changed"
+    snapshot.assert_match(output.stderr, "full.err")
+
+    # Baseline scan should report no findings
+    baseline_output = run_sentinel_scan(base_commit="HEAD^")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
+
+
+@pytest.mark.quick
+def test_dir_changed_to_file(git_tmp_path, snapshot):
+    file_or_dir_path = git_tmp_path / "file_or_dir.py"
+    file_or_dir_path.mkdir()
+
+    foo = file_or_dir_path / "foo.py"
+    foo.write_text(f"x = {SENTINEL_1}\n")
+    bar = file_or_dir_path / "bar.py"
+    bar.write_text(f"y = {SENTINEL_1}\n")
+
+    _git_commit(1, add=True)
+
+    foo.unlink()
+    bar.unlink()
+    file_or_dir_path.rmdir()
+    file_or_dir_path.write_text(f"x = {SENTINEL_1}\n")
+    _git_commit(2, add=True)
+
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "full.out")
+    assert (
+        output.stdout != ""
+    ), "If you fail this assertion, above snapshot was incorrectly changed"
+    snapshot.assert_match(output.stderr, "full.err")
+
+    # Baseline scan should report no findings
+    baseline_output = run_sentinel_scan(base_commit="HEAD^")
+    snapshot.assert_match(baseline_output.stdout, "diff.out")
+    snapshot.assert_match(baseline_output.stderr, "diff.err")
+
+
 @pytest.mark.kinda_slow
 def test_no_findings_both(git_tmp_path, snapshot):
     # Test if no findings in head or base semgrep doesnt explode
