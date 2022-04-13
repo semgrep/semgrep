@@ -173,7 +173,8 @@ class GithubMeta(GitMeta):
     """Gather metadata from GitHub Actions."""
 
     environment: str = field(default="github-actions", init=False)
-    MAX_FETCH_ATTEMPT_COUNT: int = field(default=6, init=False)
+    # the last attempt will be 4**10 == 1048576 commits
+    MAX_FETCH_ATTEMPT_COUNT: int = field(default=10, init=False)
 
     def glom_event(self, spec: TType) -> Any:
         return glom(self.event, spec, default=None)
@@ -226,7 +227,7 @@ class GithubMeta(GitMeta):
     def base_branch_tip(self) -> Optional[str]:
         return self.glom_event(T["pull_request"]["base"]["sha"])  # type: ignore
 
-    def _find_branchoff_point(self, attempt_count: int = 0) -> str:
+    def _find_branchoff_point(self, attempt_count: int = 1) -> str:
         """
         GithubActions is a shallow clone and the "base" that github sends
         is not the merge base. We must fetch and get the merge-base ourselves
@@ -236,7 +237,7 @@ class GithubMeta(GitMeta):
         assert self.base_branch_tip is not None
 
         fetch_depth: int = 4**attempt_count  # fetch 4, 16, 64, 256, 1024, ...
-        if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
+        if attempt_count > self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
             fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
 
         logger.debug(
