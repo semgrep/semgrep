@@ -3,4 +3,4 @@
    this file would be a symlink.
 -->
 
-[Contribution guidelines can be found in `doc/`](http://semgrep.dev/docs/contributing/contributing-code/).
+[Contribution guidelines can be found in `doc/`](https://semgrep.dev/docs/contributing/how-to-contribute/).
