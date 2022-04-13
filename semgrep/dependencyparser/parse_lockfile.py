@@ -57,69 +57,70 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
             return parsed_name
 
     def remove_trailing_octothorpe(s: str) -> str:
-        return "#".join(s.split("#")[:-1])
+        return "#".join(s.split("#")[:-1]) if "#" in s else s
 
-    package_name, version, resolved, integrity = None, None, None, None
-    for line in lockfile_text.split("\n") + [""]:
-        line = line.strip()
-        if line.startswith("#"):
-            continue
-        if package_name is None and len(line) != 0:
-            package_name = extract_yarn_name(line)
-            continue
+    def remove_quotes(s: str) -> str:
+        return s[1:-1]
 
-        if line.startswith("version") and not version:
-            version = line.split("version")[1].replace('"', "").strip()
-            continue
-
-        elif line.startswith("resolved") and not resolved:
-            resolved = remove_trailing_octothorpe(
-                line.split("resolved")[1].replace('"', "").strip()
-            )
-            continue
-
-        elif line.startswith("integrity") and not integrity:
-            integrity = line.split("integrity")[1].replace('"', "").strip()
-            continue
-
-        if len(line) == 0 and package_name and version and resolved:
-            yield LockfileDependency(
-                package_name,
-                version,
-                PackageManagers.NPM,
-                allowed_hashes=extract_npm_lockfile_hash(integrity)
-                if integrity
-                else {},
-                resolved_url=[resolved],
-            )
-            package_name, version, resolved, integrity = None, None, None, None
+    _comment, all_deps_text = lockfile_text.split("\n\n\n")
+    dep_texts = all_deps_text.split("\n\n")
+    for dep_text in dep_texts:
+        lines = dep_text.split("\n")
+        package_name = extract_yarn_name(lines[0])
+        version = remove_quotes(lines[1].split()[1])
+        resolved = remove_trailing_octothorpe(
+            remove_quotes(lines[2].split()[1]).strip()
+        )
+        integrity = (
+            lines[3].split()[1]
+            if len(lines) > 3 and lines[3].strip().startswith("integrity")
+            else None
+        )
+        yield LockfileDependency(
+            package_name,
+            version,
+            PackageManagers.NPM,
+            allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
+            resolved_url=[resolved],
+        )
 
 
 def parse_NPM_package_lock_str(
     lockfile_text: str,
 ) -> Generator[LockfileDependency, None, None]:
     as_json = json.loads(lockfile_text)
-    # Newer versions of NPM (>= v7) use 'packages', older versions use 'dependencies', if both are present, 'packages' is the default
+    # Newer versions of NPM (>= v7) use 'packages'
+    # But 'dependencies' is kept up to date, and 'packages' uses relative, not absolute names
     # https://docs.npmjs.com/cli/v8/configuring-npm/package-lock-json
-    deps = as_json["packages"] if "packages" in as_json else as_json["dependencies"]
+    if "dependencies" in as_json:
+        deps = as_json["dependencies"]
+    elif "packages" in as_json:
+        deps = as_json["packages"]
+    else:
+        logger.info("Found package-lock with no 'dependencies' or 'packages'")
+        return
+
     for dep, dep_blob in deps.items():
-        version = dep_blob.get("version", None)
+        version = dep_blob.get("version")
+        if not version:
+            logger.info(f"no version for dependency: {dep}")
+            continue
         try:
             Version(version)
-            resolved_url = dep_blob.get("resolved")
-            integrity = dep_blob.get("integrity")
-            yield LockfileDependency(
-                dep,
-                version,
-                PackageManagers.NPM,
-                allowed_hashes=extract_npm_lockfile_hash(integrity)
-                if integrity
-                else {},
-                resolved_url=[resolved_url] if resolved_url else None,
-            )
-        # Either we had no version at all, or the version was a github commit
+        # Version was a github commit
         except InvalidVersion:
             logger.info(f"no version for dependency: {dep}")
+            continue
+
+        resolved_url = dep_blob.get("resolved")
+        integrity = dep_blob.get("integrity")
+        yield LockfileDependency(
+            dep,
+            version,
+            PackageManagers.NPM,
+            allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
+            resolved_url=[resolved_url] if resolved_url else None,
+        )
 
 
 def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
