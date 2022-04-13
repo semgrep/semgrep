@@ -101,8 +101,39 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = position_range min_loc max_loc in
       Some (startp, endp)
 
+let metavar_string_of_any any =
+  any |> V.ii_of_any
+  |> List.filter PI.is_origintok
+  |> List.sort Parse_info.compare_pos
+  |> Common.map PI.str_of_info |> Matching_report.join_with_space_if_needed
+
+let get_propagated_value default_start metavar =
+  let any_to_svalue_value any =
+    match range_of_any_opt default_start any with
+    | Some (start, end_) ->
+        Some
+          {
+            ST.svalue_start = start;
+            svalue_end = end_;
+            svalue_abstract_content = metavar_string_of_any any;
+          }
+    | None -> None
+  in
+  match metavar with
+  | E { e = N (Id (_, id_info)); _ } -> (
+      match !(id_info.id_svalue) with
+      | Some (Lit x) ->
+          let any = E (L x |> e) in
+          any_to_svalue_value any
+      | Some (Sym x) -> any_to_svalue_value (E x)
+      | Some (Cst _) -> None
+      | Some NotCst -> None
+      | None -> None)
+  | _ -> None
+
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
+  pr2 (show_any any);
   match range_of_any_opt startp_of_match_range any with
   | None ->
       raise
@@ -114,12 +145,8 @@ let metavars startp_of_match_range (s, mval) =
         {
           ST.start = startp;
           end_ = endp;
-          abstract_content =
-            any |> V.ii_of_any
-            |> List.filter PI.is_origintok
-            |> List.sort Parse_info.compare_pos
-            |> Common.map PI.str_of_info
-            |> Matching_report.join_with_space_if_needed;
+          abstract_content = metavar_string_of_any any;
+          propagated_value = get_propagated_value startp_of_match_range any;
           unique_id = unique_id any;
         } )
 
