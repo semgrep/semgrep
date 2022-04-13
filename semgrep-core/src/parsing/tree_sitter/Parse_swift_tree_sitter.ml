@@ -960,11 +960,11 @@ and map_anon_opt_user_type_dot_simple_id_opt_LPAR_choice_simple_id_COLON_switch_
   in
   todo env (v1, v2, v3, v4, v5)
 
-and map_array_type (env : env) ((v1, v2, v3) : CST.array_type) =
+and map_array_type (env : env) ((v1, v2, v3) : CST.array_type) : G.type_ =
   let v1 = (* "[" *) token env v1 in
   let v2 = map_type_ env v2 in
   let v3 = (* "]" *) token env v3 in
-  todo env (v1, v2, v3)
+  G.TyArray ((v1, None, v3), v2) |> G.t
 
 and map_associatedtype_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.associatedtype_declaration) =
@@ -1296,7 +1296,7 @@ and map_class_member_declarations (env : env)
 and map_constructor_suffix (env : env) (v1 : CST.constructor_suffix) =
   match v1 with
   | `Cons_value_args x -> map_constructor_value_arguments env x
-  | `Lambda_lit x -> map_lambda_literal env x |> todo env
+  | `Lambda_lit x -> G.fake_bracket [ G.Arg (map_lambda_literal env x) ]
 
 and map_constructor_value_arguments (env : env)
     ((v1, v2, v3) : CST.constructor_value_arguments) : G.arguments =
@@ -1335,9 +1335,9 @@ and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
 and map_dictionary_literal_item (env : env)
     ((v1, v2, v3) : CST.dictionary_literal_item) =
   let v1 = map_expression env v1 in
-  let v2 = (* ":" *) token env v2 in
+  let _v2 = (* ":" *) token env v2 in
   let v3 = map_expression env v3 in
-  todo env (v1, v2, v3)
+  G.Container (G.Tuple, G.fake_bracket [ v1; v3 ]) |> G.e
 
 and map_dictionary_type (env : env) ((v1, v2, v3, v4, v5) : CST.dictionary_type)
     =
@@ -1346,7 +1346,10 @@ and map_dictionary_type (env : env) ((v1, v2, v3, v4, v5) : CST.dictionary_type)
   let v3 = (* ":" *) token env v3 in
   let v4 = map_type_ env v4 in
   let v5 = (* "]" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  (* Modeled after Semgrep treats map types in Go. In Swift, [Int: Int] is
+   * equivalent to Dictionary<Int, Int>, so we'll just desugar to that. *)
+  let dict_name = H2.name_of_id ("Dictionary", v1) in
+  G.TyApply (G.TyN dict_name |> G.t, (v1, [ G.TA v2; G.TA v4 ], v5)) |> G.t
 
 and map_direct_or_indirect_binding (env : env)
     ((v1, v2) : CST.direct_or_indirect_binding) =
@@ -2161,7 +2164,7 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
     =
   let v1 =
     match v1 with
-    | `Navi_type_exp x -> map_navigable_type_expression env x
+    | `Navi_type_exp x -> map_navigable_type_expression env x |> todo env
     | `Exp x -> map_expression env x
   in
   let v2 = map_navigation_suffix env v2 in
@@ -2260,7 +2263,7 @@ and map_possibly_implicitly_unwrapped_type (env : env)
   in
   todo env (v1, v2)
 
-and map_primary_expression (env : env) (x : CST.primary_expression) =
+and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
   match x with
   | `Tuple_exp x -> map_tuple_expression env x |> todo env
   | `Basic_lit x -> map_basic_literal env x
@@ -2298,45 +2301,47 @@ and map_primary_expression (env : env) (x : CST.primary_expression) =
             let v2 =
               Common.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
-                  let v2 = map_expression env v2 in
-                  todo env (v1, v2))
+                  let _v1 = (* "," *) token env v1 in
+                  map_expression env v2)
                 v2
             in
-            todo env (v1, v2)
-        | None -> todo env ()
+            v1 :: v2
+        | None -> []
       in
       let v3 =
         match v3 with
-        | Some tok -> (* "," *) token env tok
-        | None -> todo env ()
+        | Some tok -> Some ((* "," *) token env tok)
+        | None -> None
       in
       let v4 = (* "]" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      G.Container (G.Array, (v1, v2, v4)) |> G.e
   | `Dict_lit (v1, v2, v3, v4) ->
       let v1 = (* "[" *) token env v1 in
       let v2 =
         match v2 with
-        | `COLON tok -> (* ":" *) token env tok
+        | `COLON tok ->
+            let _colon = (* ":" *) token env tok in
+            (* Empty dict literal *)
+            []
         | `Dict_lit_item_rep_COMMA_dict_lit_item (v1, v2) ->
             let v1 = map_dictionary_literal_item env v1 in
             let v2 =
               Common.map
                 (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
-                  let v2 = map_dictionary_literal_item env v2 in
-                  todo env (v1, v2))
+                  let _v1 = (* "," *) token env v1 in
+                  map_dictionary_literal_item env v2)
                 v2
             in
-            todo env (v1, v2)
+            v1 :: v2
       in
-      let v3 =
+      let () =
+        (* Optional trailing comma *)
         match v3 with
-        | Some tok -> (* "," *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "," *) ignore (token env tok)
+        | None -> ()
       in
       let v4 = (* "]" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      G.Container (G.Dict, (v1, v2, v4)) |> G.e
   | `Self_exp tok -> (* "self" *) token env tok |> todo env
   | `Super_exp v1 -> (* "super" *) token env v1 |> todo env
   | `Try_exp (v1, v2) ->
@@ -2354,7 +2359,11 @@ and map_primary_expression (env : env) (x : CST.primary_expression) =
         match v2 with
         | Some x -> (
             match x with
-            | `Simple_user_type x -> map_simple_user_type env x
+            | `Simple_user_type x ->
+                let id, targs = map_simple_user_type env x in
+                let name = H2.name_of_id id in
+                let name = H2.add_type_args_opt_to_name name targs in
+                G.TyN name |> G.t
             | `Array_type x -> map_array_type env x
             | `Dict_type x -> map_dictionary_type env x)
         | None -> todo env ()
@@ -2512,16 +2521,14 @@ and map_repeat_while_statement (env : env)
   in
   todo env (v1, v2, v3, v4, v5, v6, v7)
 
-and map_simple_user_type (env : env) (x : CST.simple_user_type) =
+and map_simple_user_type (env : env) (x : CST.simple_user_type) :
+    G.ident * G.type_arguments option =
   match x with
-  | `Rectype (v1, v2) ->
+  | `Rectype (v1, v2) -> (
       let v1 = map_simple_identifier env v1 in
-      let v2 =
-        match v2 with
-        | Some x -> map_type_arguments env x
-        | None -> todo env ()
-      in
-      todo env (v1, v2)
+      match v2 with
+      | Some x -> (v1, Some (map_type_arguments env x))
+      | None -> (v1, None))
 
 (* Semicolons are associated in the CST with the following statement rather than
  * the previous statement. The grammar is slightly more brief this way, but it
@@ -2749,37 +2756,37 @@ and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
   let v3 = map_type_ env v3 in
   todo env (v1, v2, v3)
 
-and map_type_ (env : env) (x : CST.type_) =
+and map_type_ (env : env) (x : CST.type_) : G.type_ =
   match x with
   | `Rectype (v1, v2) ->
-      let v1 =
+      let _v1 =
         match v1 with
-        | Some x -> map_type_modifiers env x
-        | None -> todo env ()
+        | Some x -> map_type_modifiers env x |> todo env
+        | None -> None
       in
       let v2 = map_unannotated_type env v2 in
-      todo env (v1, v2)
+      (* TODO include type modifiers *)
+      v2
 
 and map_type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
   let v1 = (* ":" *) token env v1 in
   let v2 = map_possibly_implicitly_unwrapped_type env v2 in
   todo env (v1, v2)
 
-and map_type_arguments (env : env) (x : CST.type_arguments) =
+and map_type_arguments (env : env) (x : CST.type_arguments) : G.type_arguments =
   match x with
   | `Rectype (v1, v2, v3, v4) ->
       let v1 = (* "<" *) token env v1 in
-      let v2 = map_type_ env v2 in
+      let v2 = G.TA (map_type_ env v2) in
       let v3 =
         Common.map
           (fun (v1, v2) ->
-            let v1 = (* "," *) token env v1 in
-            let v2 = map_type_ env v2 in
-            todo env (v1, v2))
+            let _v1 = (* "," *) token env v1 in
+            G.TA (map_type_ env v2))
           v3
       in
       let v4 = (* ">" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      (v1, v2 :: v3, v4)
 
 and map_type_constraint (env : env) (x : CST.type_constraint) =
   match x with
@@ -2932,7 +2939,7 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
         | `User_type x -> map_user_type env x
       in
       let v2 = map_constructor_suffix env v2 in
-      todo env (v1, v2)
+      G.New (G.fake "new", v1, v2) |> G.e
   | `Navi_exp x -> map_navigation_expression env x |> todo env
   | `Prefix_exp (v1, v2) ->
       let v1 = map_prefix_unary_operator env v1 in
@@ -2966,19 +2973,19 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       let v2 = (* three_dot_operator_custom *) token env v2 in
       todo env (v1, v2)
 
-and map_user_type (env : env) (x : CST.user_type) =
+and map_user_type (env : env) (x : CST.user_type) : G.type_ =
   match x with
   | `Rectype (v1, v2) ->
       let v1 = map_simple_user_type env v1 in
       let v2 =
         Common.map
           (fun (v1, v2) ->
-            let v1 = (* dot_custom *) token env v1 in
-            let v2 = map_simple_user_type env v2 in
-            todo env (v1, v2))
+            let _v1 = (* dot_custom *) token env v1 in
+            map_simple_user_type env v2)
           v2
       in
-      todo env (v1, v2)
+      let name = H2.name_of_ids_with_opt_typeargs (v1 :: v2) in
+      G.TyN name |> G.t
 
 and map_value_argument (env : env) ((v1, v2) : CST.value_argument) :
     G.argument list =

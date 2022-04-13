@@ -47,3 +47,24 @@ closure { x in x };
 // is parsed as two separate call expressions where the lambda is the argument
 // to the return value of the single-argument function call.
 mixedargs(foo: 3) { x in x };
+
+// Constructor expressions:
+
+// TODO The examples here that don't involve type parameters are parsed as call
+// expressions rather than constructor expressions, due to ambiguity in the
+// grammar. It might not be possible to disambiguate in the general case without
+// resolving names, but we should make sure that these constructs are matched by
+// patterns as users expect.
+
+// array type
+[Int]();
+[Thing<Int>]();
+// dict type
+[Int: Int]();
+[Int: Thing<Int>]();
+// user type
+UserType(bar);
+UserType<Int>(bar);
+
+[Int] { x in y };
+[Thing<Int>] { x in y };
