@@ -68,3 +68,36 @@ UserType<Int>(bar);
 
 [Int] { x in y };
 [Thing<Int>] { x in y };
+
+// Navigation expressions:
+
+5.foo;
+Int.foo;
+// TODO This is parsed as two comparison expressions. That's most likely wrong.
+Thing<Int>.foo;
+Thing<Int, String>.foo;
+// TODO This is parsed as a navigation expression where the first part is an
+// expression rather than an array type. Figure out if that's the correct
+// resolution to the ambiguity.
+[Int].5;
+[Thing<Int>].5;
+// TODO This is parsed as a navigation expression where the first part is an
+// expression rather than a dict type. Figure out if that's the correct
+// resolution to the ambiguity.
+[Int: Int].42;
+[Int: Thing<Int>].42;
+
+// Prefix expressions:
+
+++5;
+--5;
+-5;
++5;
+!5;
+&5;
+~5;
+.foo;
+.5;
+// Custom operators
+/!5;
+/!<5;
