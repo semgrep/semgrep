@@ -16,6 +16,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 
 - Moved description of parse/internal errors to the "skipped" section of output
+- Since 0.77.0 semgrep-core logs a warning when a worker process is consuming above
+  400 MiB of memory. Now, it will also log an extra warning every time memory usage
+  doubles. Again, this is meant to help diagnosing OOM-related crashes.
 
 ### Fixed
 
