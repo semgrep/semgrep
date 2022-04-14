@@ -84,11 +84,13 @@ COPY --from=build-semgrep-core /semgrep/semgrep /semgrep
 
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \
-     apk add --no-cache --virtual=.run-deps bash git=2.34.1-r0 git-lfs openssh && \
+     apk add --no-cache --virtual=.run-deps bash git git-lfs openssh && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
      apk del .build-deps && \
      mkdir -p /tmp/.cache
+
+RUN git config --global --add safe.directory="*"
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
