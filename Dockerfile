@@ -92,8 +92,6 @@ RUN apk add --no-cache --virtual=.build-deps build-base && \
      apk del .build-deps && \
      mkdir -p /tmp/.cache
 
-RUN git config --global --add safe.directory="*"
-
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
