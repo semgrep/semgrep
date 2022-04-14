@@ -14,6 +14,49 @@
     {
       "check_id": "rules.dependency_aware.js-sca",
       "end": {
+        "col": 6,
+        "line": 1,
+        "offset": 5
+      },
+      "extra": {
+        "dependency_match_only": false,
+        "dependency_matches": [
+          {
+            "dependency_pattern": {
+              "namespace": "npm",
+              "package_name": "bad-lib",
+              "semver_range": "< 0.0.8"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "name": "bad-lib",
+              "namespace": "npm",
+              "resolved_url": [
+                "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz"
+              ],
+              "version": "0.0.7"
+            },
+            "lockfile": "yarn.lock"
+          }
+        ],
+        "fingerprint": "f259dbe78c5afaa7d5dbc8059abb0792",
+        "is_ignored": false,
+        "lines": "bad()",
+        "message": "oh no",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/monorepo/webapp1/app.js",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.js-sca",
+      "end": {
         "col": 0,
         "line": 0,
         "offset": 0
@@ -54,45 +97,48 @@
       }
     },
     {
-      "check_id": "rules.dependency_aware.js-sca",
+      "check_id": "rules.dependency_aware.go-sca",
       "end": {
-        "col": 6,
-        "line": 1,
-        "offset": 5
+        "col": 0,
+        "line": 0,
+        "offset": 0
       },
       "extra": {
-        "dependency_match_only": false,
+        "dependency_match_only": true,
         "dependency_matches": [
           {
             "dependency_pattern": {
-              "namespace": "npm",
-              "package_name": "bad-lib",
-              "semver_range": "< 0.0.8"
+              "namespace": "gomod",
+              "package_name": "github.com/bad-lib",
+              "semver_range": "== 0.3.1"
             },
             "found_dependency": {
-              "allowed_hashes": {},
-              "name": "bad-lib",
-              "namespace": "npm",
+              "allowed_hashes": {
+                "gomod": [
+                  "xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU"
+                ]
+              },
+              "name": "github.com/bad-lib",
+              "namespace": "gomod",
               "resolved_url": [
-                "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz"
+                "github.com/bad-lib"
               ],
-              "version": "0.0.7"
+              "version": "0.3.1"
             },
-            "lockfile": "yarn.lock"
+            "lockfile": "go.sum"
           }
         ],
-        "fingerprint": "f259dbe78c5afaa7d5dbc8059abb0792",
+        "fingerprint": "322be9aa5aaeedf070e32bc5c825b878",
         "is_ignored": false,
-        "lines": "bad()",
+        "lines": "",
         "message": "oh no",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/monorepo/webapp1/app.js",
+      "path": "targets/dependency_aware/monorepo/webapp1/experiment/go.sum",
       "start": {
-        "col": 1,
-        "line": 1,
+        "col": 0,
+        "line": 0,
         "offset": 0
       }
     },
@@ -141,52 +187,6 @@
         "col": 2,
         "line": 2,
         "offset": 15
-      }
-    },
-    {
-      "check_id": "rules.dependency_aware.go-sca",
-      "end": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      },
-      "extra": {
-        "dependency_match_only": true,
-        "dependency_matches": [
-          {
-            "dependency_pattern": {
-              "namespace": "gomod",
-              "package_name": "github.com/bad-lib",
-              "semver_range": "== 0.3.1"
-            },
-            "found_dependency": {
-              "allowed_hashes": {
-                "gomod": [
-                  "xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU"
-                ]
-              },
-              "name": "github.com/bad-lib",
-              "namespace": "gomod",
-              "resolved_url": [
-                "github.com/bad-lib"
-              ],
-              "version": "0.3.1"
-            },
-            "lockfile": "go.sum"
-          }
-        ],
-        "fingerprint": "322be9aa5aaeedf070e32bc5c825b878",
-        "is_ignored": false,
-        "lines": "",
-        "message": "oh no",
-        "metadata": {},
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/monorepo/webapp1/experiment/go.sum",
-      "start": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
       }
     }
   ]
