@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+### Changed
+
+- Semgrep-core now logs the rule and file affected by a memory warning.
+
+### Fixed
+
+### Added
+
 - Scala support is now officially GA
   - Ellipsis method chaining is now supported
   - Type metavariables are now supported
