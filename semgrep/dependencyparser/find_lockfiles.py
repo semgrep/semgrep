@@ -96,6 +96,9 @@ def make_dependency_trie(target: Path, langs: List[Language]) -> DependencyTrie:
     for namespace in languages_to_namespaces(langs):
         for lockfile_type in NAMESPACE_TO_LOCKFILES[namespace]:
             for lockfile in target.glob("**/" + lockfile_type):
+                # Temporary hack until semgrepignore functionality works on lockfiles
+                if "node_modules" in lockfile.parts:
+                    continue
                 deps = list(parse_lockfile_str(lockfile.read_text(), lockfile))
                 dep_trie.insert(lockfile, deps, namespace)
 
