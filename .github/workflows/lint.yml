@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-    - develop
+      - develop
 
 jobs:
   pre-commit:
@@ -44,7 +44,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Check OCaml code
         run: |
-          git config --local --add safe.directory "$GITHUB_WORKSPACE"
+          sudo git config --global --add safe.directory "$GITHUB_WORKSPACE"
           # install correct version of ocamlformat
           sudo -u user opam install -y ocamlformat.0.21.0
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
