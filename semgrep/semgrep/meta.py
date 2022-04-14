@@ -227,7 +227,7 @@ class GithubMeta(GitMeta):
     def base_branch_tip(self) -> Optional[str]:
         return self.glom_event(T["pull_request"]["base"]["sha"])  # type: ignore
 
-    def _find_branchoff_point(self, attempt_count: int = 1) -> str:
+    def _find_branchoff_point(self, attempt_count: int = 0) -> str:
         """
         GithubActions is a shallow clone and the "base" that github sends
         is not the merge base. We must fetch and get the merge-base ourselves
@@ -236,7 +236,8 @@ class GithubMeta(GitMeta):
         assert self.head_ref is not None
         assert self.base_branch_tip is not None
 
-        fetch_depth: int = 4**attempt_count  # fetch 4, 16, 64, 256, 1024, ...
+        # fetch 0, 4, 16, 64, 256, 1024, ...
+        fetch_depth = 4**attempt_count if attempt_count else 0
         if attempt_count > self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
             fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
 
