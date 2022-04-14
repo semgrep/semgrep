@@ -85,6 +85,8 @@ COPY --from=build-semgrep-core /semgrep/semgrep /semgrep
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \
      apk add --no-cache --virtual=.run-deps bash git git-lfs openssh && \
+     apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/v3.14/main git=2.34.1 && \
+     apk add --no-cache git-lfs && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
      apk del .build-deps && \
