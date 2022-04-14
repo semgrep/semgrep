@@ -2,10 +2,10 @@ rules:
 - id: eqeq
   pattern: $X == $X
   message: Useless comparison
-  languages: [js]
+  languages: [py]
   severity: WARNING
-- id: console_log
-  pattern: console.l..);
-  message: Using console.log
-  languages: [js]
+- id: print 
+  pattern: print..);
+  message: Using print
+  languages: [py]
   severity: WARNING
