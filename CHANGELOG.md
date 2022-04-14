@@ -14,6 +14,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
 - Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
+- Bash/Dockerfile: Add support for named ellipses such as in
+  `echo $...ARGS` (#4887)
 
 ### Changed
 
