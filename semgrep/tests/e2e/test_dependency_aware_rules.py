@@ -19,7 +19,7 @@ from ..conftest import TESTS_PATH
             "dependency_aware/useslodash.js",
         ),
         (
-            "rules/dependency_aware/lodash-4.17.19.yaml",
+            "rules/dependency_aware/no-pattern.yaml",
             "dependency_aware",
         ),
         ("rules/dependency_aware/go-sca.yaml", "dependency_aware/sca.go"),
