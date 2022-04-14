@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Pre-checkout fixes
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --local --add safe.directory "$GITHUB_WORKSPACE"
           sudo chmod -R 777 /github
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
