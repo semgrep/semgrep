@@ -275,6 +275,8 @@ class CoreOutput:
             with open(match.path, errors="replace") as fd:
                 for metavariable, metavariable_data in match.metavars.items():
                     # Offsets are start inclusive and end exclusive
+
+                    # Emma TODO: use propagated_value if present
                     start_offset = metavariable_data.start.offset
                     end_offset = metavariable_data.end.offset
                     length = end_offset - start_offset
