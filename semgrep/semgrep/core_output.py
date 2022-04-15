@@ -235,7 +235,6 @@ class CoreOutput:
         rule_table = {rule.id: rule for rule in rules}
 
         match_results = core.MatchResults.from_json(raw_json)
-        print(raw_json)
 
         parsed_errors = [CoreError.make(error) for error in match_results.errors]
         parsed_matches = [
