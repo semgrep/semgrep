@@ -8,6 +8,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+### Changed
+
+### Fixed
+
+- TS: Fixed matching of parameters with type annotations. E.g., it is now possible
+  to match `({ params }: Request) => { }` with `({$VAR} : $REQ) => {...}`. (#5004)
+
+### Added
+
 - Scala support is now officially GA
   - Ellipsis method chaining is now supported
   - Type metavariables are now supported
