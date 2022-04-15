@@ -32,16 +32,12 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: actions/checkout@v2
       - name: Check OCaml code
         run: |
           # install correct version of ocamlformat
           sudo -u user opam install -y ocamlformat.0.21.0
-          # debugging
-          pwd
-          ls -al
-          pre-commit --version
-          # end debugging
           sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   changelog-reminder:
