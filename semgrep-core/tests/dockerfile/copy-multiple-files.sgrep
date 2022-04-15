@@ -1,0 +1,2 @@
+# bug: https://github.com/camdencheek/tree-sitter-dockerfile/issues/12
+COPY $A $B $DST

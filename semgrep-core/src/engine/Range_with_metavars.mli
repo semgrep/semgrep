@@ -19,6 +19,7 @@ type ranges = t list [@@deriving show]
 (* Functions *)
 
 val match_result_to_range : Pattern_match.t -> t
+val range_to_pattern_match_adjusted : Rule.rule -> t -> Pattern_match.t
 
 (* Set functions *)
 

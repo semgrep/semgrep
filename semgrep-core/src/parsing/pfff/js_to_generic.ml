@@ -29,17 +29,11 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
-let option = Common.map_opt
-
+let option = Option.map
 let list = List.map
-
 let bool = id
-
 let string = id
-
 let error = AST_generic.error
-
 let fb = G.fake_bracket
 
 (* for the require -> import translation *)
@@ -59,13 +53,9 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let name v = wrap id v
-
 let ident x = name x
-
 let filename v = wrap string v
-
 let label v = wrap string v
 
 type special_result =
@@ -87,7 +77,8 @@ let special (x, tok) =
   | Module -> other_expr "Module"
   | Define -> other_expr "Define"
   | Arguments -> other_expr "Arguments"
-  | New -> SR_Special (G.New, tok)
+  (* TODO: lift up New in ast_js.ml in pfff *)
+  | New -> other_expr "New"
   | NewTarget -> other_expr "NewTarget"
   | Eval -> SR_Special (G.Eval, tok)
   | Seq -> SR_NeedArgs (fun args -> G.Seq args)
@@ -103,7 +94,7 @@ let special (x, tok) =
         (fun args ->
           match args with
           | [ e ] ->
-              let tvoid = G.TyBuiltin ("void", tok) |> G.t in
+              let tvoid = G.ty_builtin ("void", tok) in
               G.Cast (tvoid, PI.fake_info tok ":", e)
           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
@@ -370,7 +361,7 @@ and stmt x =
       let v1 = stmt v1
       and v2 = option catch_block v2
       and v3 = option tok_and_stmt v3 in
-      G.Try (t, v1, Common.opt_to_list v2, v3) |> G.s
+      G.Try (t, v1, Option.to_list v2, v3) |> G.s
   | With (_v1, v2, v3) ->
       let e = expr v2 in
       let v3 = stmt v3 in
@@ -448,43 +439,43 @@ and case = function
 (* used to be an AST_generic.type_ with no conversion needed, but now that
  * we moved AST_generic.ml out of pfff, we need the boilerplate below
  *)
-and type_ x = type_kind x |> G.t
-
-and type_kind x =
+and type_ x =
   match x with
-  | TyBuiltin id -> G.TyBuiltin (ident id)
-  | TyName xs -> G.TyN (H.name_of_ids xs)
+  | TyBuiltin id -> G.ty_builtin (ident id)
+  | TyName xs -> G.TyN (H.name_of_ids xs) |> G.t
+  (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
       let l = literal l in
       G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
+      |> G.t
   | TyQuestion (tok, t) ->
       let t = type_ t in
-      G.TyQuestion (t, tok)
+      G.TyQuestion (t, tok) |> G.t
   | TyArray (t, (lt, (), rt)) ->
       let t = type_ t in
-      G.TyArray ((lt, None, rt), t)
+      G.TyArray ((lt, None, rt), t) |> G.t
   | TyTuple (lt, xs, rt) ->
       let xs = List.map tuple_type_member xs in
-      G.TyTuple (lt, xs, rt)
+      G.TyTuple (lt, xs, rt) |> G.t
   | TyFun (params, typ_opt) ->
       let params = List.map parameter_binding params in
       let rett =
         match typ_opt with
-        | None -> G.TyBuiltin ("void", PI.unsafe_fake_info "void") |> G.t
+        | None -> G.ty_builtin ("void", PI.unsafe_fake_info "void")
         | Some t -> type_ t
       in
-      G.TyFun (params, rett)
+      G.TyFun (params, rett) |> G.t
   | TyRecordAnon (lt, (), rt) ->
-      G.TyRecordAnon ((G.Class, PI.fake_info lt ""), (lt, [], rt))
+      G.TyRecordAnon ((G.Class, PI.fake_info lt ""), (lt, [], rt)) |> G.t
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
       let t2 = type_ t2 in
-      G.TyOr (t1, tk, t2)
+      G.TyOr (t1, tk, t2) |> G.t
   | TyAnd (t1, tk, t2) ->
       let t1 = type_ t1 in
       let t2 = type_ t2 in
-      G.TyAnd (t1, tk, t2)
-  | TypeTodo (categ, xs) -> G.OtherType (categ, List.map any xs)
+      G.TyAnd (t1, tk, t2) |> G.t
+  | TypeTodo (categ, xs) -> G.OtherType (categ, List.map any xs) |> G.t
 
 and tuple_type_member x =
   match x with
@@ -643,9 +634,14 @@ and field_classic
   match v3 with
   | Some (Fun (def, None)) ->
       let def, more_attrs = fun_ def in
-      let _kind, tok = def.G.fkind in
+      let fkind, tok = def.G.fkind in
+      let fkind =
+        match fkind with
+        | G.Function -> G.Method
+        | x -> x
+      in
       ( { ent with G.attrs = ent.G.attrs @ more_attrs },
-        G.FuncDef { def with G.fkind = (G.Method, tok) } )
+        G.FuncDef { def with G.fkind = (fkind, tok) } )
   | _ ->
       let v3 = option expr v3 in
       (ent, G.VarDef { G.vinit = v3; vtype = vt })
@@ -760,7 +756,8 @@ and require_to_import_in_stmt_opt st =
             let orig = stmt st in
             Some (ys @ [ orig ])
         | _ -> raise ComplicatedCase
-      with ComplicatedCase -> None)
+      with
+      | ComplicatedCase -> None)
   | _ -> None
 
 and list_stmt xs =

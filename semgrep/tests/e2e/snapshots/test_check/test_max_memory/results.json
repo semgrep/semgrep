@@ -3,11 +3,49 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Semgrep Core WARN - Out of memory: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Exceeded memory limit",
+      "message": "[WARN] Semgrep Core \u2014 Out of memory\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line targets/equivalence/open_redirect.py:1: Exceeded memory limit\n",
       "path": "targets/equivalence/open_redirect.py",
-      "rule_id": "rules.forcetimeout",
       "type": "Out of memory"
     }
   ],
-  "results": []
+  "paths": {
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ],
+    "skipped": [
+      {
+        "path": "targets/equivalence/open_redirect.py",
+        "reason": "analysis_failed_parser_or_internal_error"
+      }
+    ]
+  },
+  "results": [],
+  "time": {
+    "profiling_times": {
+      "config_time": 2.022,
+      "core_time": 2.022,
+      "ignores_time": 2.022,
+      "total_time": 2.022
+    },
+    "rules": [
+      {
+        "id": "rules.forcetimeout"
+      }
+    ],
+    "rules_parse_time": 2.022,
+    "targets": [
+      {
+        "match_times": [
+          2.022
+        ],
+        "num_bytes": 1763,
+        "parse_times": [
+          2.022
+        ],
+        "path": "targets/equivalence/open_redirect.py",
+        "run_time": 2.022
+      }
+    ],
+    "total_bytes": 1763
+  }
 }

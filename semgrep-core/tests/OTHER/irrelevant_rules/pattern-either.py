@@ -1,1 +1,2 @@
-irrelevant
+import django
+import os

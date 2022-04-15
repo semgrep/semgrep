@@ -138,7 +138,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/dropbox/mypy-protobuf", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/dropbox/nautilus-dropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/nsot", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/othw", "languages": ALL_LANGUAGES},
     {
@@ -179,10 +178,6 @@ PASSING_REPOS = [
         "repo": "https://github.com/returntocorp/bento-report",
         "languages": ALL_LANGUAGES,
     },
-    {
-        "repo": "https://github.com/returntocorp/buffer-rule-tests",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/returntocorp/check-docs", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/returntocorp/cli", "languages": ALL_LANGUAGES},
     {
@@ -221,7 +216,6 @@ PASSING_REPOS = [
         "languages": ALL_LANGUAGES,
     },
     {"repo": "https://github.com/secdev/scapy", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/apache/airflow", "languages": ALL_LANGUAGES},
     {
         "repo": "https://github.com/preset-io/elasticsearch-dbapi",
         "languages": ALL_LANGUAGES,
@@ -269,12 +263,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
-    # Excluding cause of https://github.com/returntocorp/semgrep/issues/2613
-    {
-        "repo": "https://github.com/zulip/zulip",
-        "languages": ALL_LANGUAGES,
-        "excludes": ["frontend_tests/puppeteer_lib/common.ts"],
-    },
 ]
 
 FAILING_REPOS = [
@@ -286,6 +274,14 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
+    xfail_repo(
+        {"repo": "https://github.com/zulip/zulip", "languages": ["javascript"]},
+        reason="static/js/blueslip.ts: `name` was unexpected",
+    ),
+    xfail_repo(
+        {"repo": "https://github.com/apache/airflow", "languages": ["javascript"]},
+        reason="ui/src/views/Pipelines/PipelinesTable.tsx: `} =` was unexpected",
+    ),
     xfail_repo(
         {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
         reason="https://github.com/tree-sitter/tree-sitter-ruby/issues/167",
@@ -372,6 +368,13 @@ FAILING_REPOS = [
             "languages": ALL_LANGUAGES,
         },
         reason="templates",
+    ),
+    xfail_repo(
+        {
+            "repo": "https://github.com/dropbox/nautilus-dropbox",
+            "languages": ALL_LANGUAGES,
+        },
+        reason="dropbox.in is invalid Python",
     ),
 ]
 

@@ -1,0 +1,21 @@
+# https://github.com/returntocorp/semgrep/issues/4464
+rules:
+  - id: test
+    options:
+      taint_unify_mvars: true
+    mode: taint
+    pattern-sources:
+      - patterns:
+        - pattern-inside: function $FUNC(...) { ... }
+        - pattern: source(...)
+    pattern-sinks:
+      # Note that the $FUNC here must be unifiable with the $FUNC coming
+      # from the pattern-sources match! We want to test that this works
+      # even when $FUNC is bound by a pattern-inside.
+      - patterns:
+        - pattern-inside: $FUNC($TAINT)
+        - pattern: $TAINT
+    message: Test
+    languages:
+      - js
+    severity: WARNING

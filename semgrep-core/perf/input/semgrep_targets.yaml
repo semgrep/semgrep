@@ -1,0 +1,15 @@
+rules:
+  - id: generic.secrets.security.detected-generic-secret.detected-generic-secret
+    pattern-regex: |
+      [sS][eE][cC][rR][eE][tT].*['|\"]?[0-9a-zA-Z]{32,45}['|\"]?
+    languages:
+      - regex
+    message: Generic Secret detected
+    severity: ERROR
+    metadata:
+      source-rule-url: https://github.com/dxa4481/truffleHogRegexes/blob/master/truffleHogRegexes/regexes.json
+      category: security
+      technology:
+        - secrets
+      confidence: MEDIUM
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]

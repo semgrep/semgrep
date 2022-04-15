@@ -1,0 +1,3 @@
+# MATCH:
+COPY foo bar
+

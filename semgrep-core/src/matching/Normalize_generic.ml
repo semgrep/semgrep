@@ -13,7 +13,6 @@
  * license.txt for more details.
  *)
 open Common (* >>= *)
-
 open AST_generic
 
 (*****************************************************************************)
@@ -65,46 +64,3 @@ let normalize_import_opt is_pattern i =
   | Pragma _
   | OtherDirective _ ->
       None
-
-(* see also Constant_propagation.ml. At some point we should remove
- * the code below and rely only on Constant_propagation.ml
- *)
-let rec eval x : constness option =
-  match x.e with
-  | L x -> Some (Lit x)
-  | N (Id (_, { id_constness = { contents = Some x }; _ }))
-  | DotAccess
-      ( { e = IdSpecial (This, _); _ },
-        _,
-        FN (Id (_, { id_constness = { contents = Some x }; _ })) ) ->
-      Some x
-  | Call ({ e = IdSpecial ((Op (Plus | Concat) | ConcatString _), _); _ }, args)
-    -> (
-      let literals =
-        args |> unbracket
-        |> Common.map_filter (fun arg ->
-               match arg with
-               | Arg e -> eval e
-               | _ -> None)
-      in
-      let strs =
-        literals
-        |> Common.map_filter (fun lit ->
-               match lit with
-               | Lit (String (s1, _)) -> Some s1
-               | _ -> None)
-      in
-      let concated = String.concat "" strs in
-      let all_args_are_string =
-        List.length strs = List.length (unbracket args)
-      in
-      match List.nth_opt literals 0 with
-      | Some (Lit (String (_s1, t1))) when all_args_are_string ->
-          Some (Lit (String (concated, t1)))
-      | _ -> None)
-  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
-      eval e
-  (* TODO: partial evaluation for ints/floats/... *)
-  | _ -> None
-
-let constant_propagation_and_evaluate_literal = eval

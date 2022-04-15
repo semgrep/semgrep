@@ -17,7 +17,7 @@ class SarifFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
         rule_match_sarif = {
-            "ruleId": rule_match.id,
+            "ruleId": rule_match.rule_id,
             "message": {"text": rule_match.message},
             "locations": [
                 {
@@ -27,6 +27,7 @@ class SarifFormatter(BaseFormatter):
                             "uriBaseId": "%SRCROOT%",
                         },
                         "region": {
+                            "snippet": {"text": "".join(rule_match.lines).rstrip()},
                             "startLine": rule_match.start.line,
                             "startColumn": rule_match.start.col,
                             "endLine": rule_match.end.line,
@@ -36,7 +37,7 @@ class SarifFormatter(BaseFormatter):
                 }
             ],
         }
-        if rule_match._is_ignored:
+        if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
         return rule_match_sarif
 
@@ -88,10 +89,15 @@ class SarifFormatter(BaseFormatter):
         """
         result = []
         if "cwe" in rule.metadata:
-            result.append(rule.metadata["cwe"])
+            cwe = rule.metadata["cwe"]
+            result.extend(cwe if isinstance(cwe, list) else [cwe])
         if "owasp" in rule.metadata:
             owasp = rule.metadata["owasp"]
-            result.append(f"OWASP-{owasp}")
+            result.extend(
+                [f"OWASP-{o}" for o in owasp]
+                if isinstance(owasp, list)
+                else [f"OWASP-{owasp}"]
+            )
 
         for tags in rule.metadata.get("tags", []):
             result.append(tags)

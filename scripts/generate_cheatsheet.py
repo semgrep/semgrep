@@ -11,6 +11,9 @@
 #
 #   ./scripts/generate-cheatsheet
 #
+# If you add support for a new language, you may need to update
+# LANG_DIR_TO_EXT below.
+#
 # CHEATSHEET_ENTRIES defines the entries shown on the cheatsheet for each
 # language, regardless of whether a pair (pattern, target) exists.
 # The web UI will show a message like "missing example" where appropriate.
@@ -88,6 +91,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "func_def": "Function Definitions",
     "key_value": "Object or Dictionary Key Value Pairs",
     "typed_fieldaccess": "Typed Metavariable Field Access",
+    "method_chaining": "Method Chaining",
 }
 
 LANGUAGE_EXCEPTIONS = {
@@ -114,6 +118,7 @@ CHEATSHEET_ENTRIES = {
         "string",
         "stmts",
         "nested_stmts",
+        "method_chaining",
     ],
     "metavar": [
         "call",
@@ -164,9 +169,9 @@ GA_FEATURES = {
     "deep": ["expr_operator"],
 }
 
-NUM_ALPHA_FEATURES = sum([len(val) for val in ALPHA_FEATURES.values()])
-NUM_BETA_FEATURES = sum([len(val) for val in BETA_FEATURES.values()])
-NUM_GA_FEATURES = sum([len(val) for val in GA_FEATURES.values()])
+NUM_ALPHA_FEATURES = sum(len(val) for val in ALPHA_FEATURES.values())
+NUM_BETA_FEATURES = sum(len(val) for val in BETA_FEATURES.values())
+NUM_GA_FEATURES = sum(len(val) for val in GA_FEATURES.values())
 
 
 def find_path(
@@ -223,8 +228,7 @@ def run_semgrep_on_example(
         print(">>> " + " ".join(cmd))
         output = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         if output.returncode == 0:
             print(output.stderr.decode("utf-8"))
@@ -553,6 +557,7 @@ def lang_dir_to_ext(lang: str):
         "ocaml": "ml",
         "csharp": "cs",
         "rust": "rs",
+        "solidity": "sol",
     }
     return LANG_DIR_TO_EXT.get(lang, lang)
 

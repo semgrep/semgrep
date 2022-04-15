@@ -1,72 +1,124 @@
-exclude: "^semgrep/tests/e2e/(targets|snapshots)|semgrep-core/tests|.*\\.md"
+exclude: "^semgrep/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^semgrep/semgrep/external|\\binvalid\\b"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v4.1.0
     hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: check-xml
       - id: check-yaml
         args: [--allow-multiple-documents]
-        exclude: ^semgrep\/tests\/.+$|^perf\/bench\/gitlab-rules\/.+$$
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
       - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: fix-encoding-pragma
+        args: [--remove]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: no-commit-to-branch
+      - id: requirements-txt-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-      - id: check-case-conflict
-      - id: check-added-large-files
-      - id: check-executables-have-shebangs
-      - id: check-merge-conflict
-      - id: check-symlinks
-      - id: fix-byte-order-marker
 
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.3.0
     hooks:
       - id: black
+        args: [--exclude=/semgrep/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v2.3.6
+    rev: v3.0.1
     hooks:
       - id: reorder-python-imports
-        args: [--py36-plus]
+        args: ["--application-directories=.:semgrep", --py37-plus]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.1
+    hooks:
+      - id: pyupgrade
+        args: ["--py37-plus"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.790"
+    rev: "v0.942"
     hooks:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
         args: [--config, mypy.ini, --show-error-codes]
+        additional_dependencies: &mypy-deps
+          # versions must be manually synced:
+          # - semgrep/setup.py lists dependencies
+          # - semgrep/Pipfile lists type hint packages for dev env
+          # - .pre-commit-config.yaml's mypy hooks also list type hint packages
+
+          # some packages ship with type definitions
+          - attrs~=21.3
+          - click~=8.0
+          - packaging~=21.0
+          - requests~=2.22
+          - defusedxml~=0.7.1
+          # other packages have separate typings published
+          - types-colorama~=0.4.0
+          - types-jsonschema~=3.2
+          - types-all
+          - types-setuptools
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
         files: ^semgrep\/tests\/.+$
         args: [--config, mypy-tests.ini, --show-error-codes]
+        additional_dependencies: *mypy-deps
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: "3.8.4"
+    rev: "3.9.2"
     hooks:
       - id: flake8
-        additional_dependencies: ["flake8-bugbear==20.1.4"]
+        additional_dependencies: ["flake8-bugbear==22.1.11"]
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
+  - repo: https://github.com/myint/autoflake
+    rev: v1.4
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --remove-all-unused-imports
+          - --ignore-init-module-imports
+
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.71.0'
+    rev: "0.86.5-tmp-fix-pre-commit"
     hooks:
       - id: semgrep
         name: Semgrep Python
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'https://semgrep.dev/p/python', '--error']
+        args: ["--config", "https://semgrep.dev/p/python", "--error"]
       - id: semgrep
         name: Semgrep Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
+        args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
 
   - repo: local
     hooks:
       - id: shellcheck
         name: shellcheck
         language: docker_image
-        entry: koalaman/shellcheck:v0.7.1
+        entry: koalaman/shellcheck:v0.8.0
         files: "[.]sh$"
 
   - repo: local
@@ -74,27 +126,27 @@ repos:
       - id: hadolint
         name: hadolint
         language: docker_image
-        files: "Dockerfile"
-        entry: hadolint/hadolint:v1.18.0 hadolint
+        types:
+          - dockerfile
+        entry: hadolint/hadolint:v2.8.0-alpine hadolint
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
-
 
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.71.0'
+    rev: "0.86.5-tmp-fix-pre-commit"
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'https://semgrep.dev/p/python', '--error']
+        args: ["--config", "p/python", "--error"]
         stages: [manual]
       - id: semgrep-docker-develop
         name: Semgrep Develop Bandit
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
+        args: ["--config", "p/bandit", "--error"]
         stages: [manual]
 
   # Reformat OCaml code (ml, mli) with ocamlformat if ocamlformat is
@@ -109,3 +161,10 @@ repos:
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
+
+  # Reformat YAML, JSON, and Markdown files
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.6.1
+    hooks:
+      - id: prettier
+        exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$"

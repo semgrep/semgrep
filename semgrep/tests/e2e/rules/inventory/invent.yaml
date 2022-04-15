@@ -1,8 +1,8 @@
 rules:
-- id: invent-subprocess
-  languages:
-    - python
-  message: |-
-    Detected subprocess dependency
-  pattern: import subprocess
-  severity: INVENTORY
+  - id: invent-subprocess
+    languages:
+      - python
+    message: |-
+      Detected subprocess dependency
+    pattern: import subprocess
+    severity: INVENTORY

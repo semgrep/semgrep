@@ -1,0 +1,26 @@
+rules:
+  - id: GHSA-p6mc-m468-83gw
+    pattern: $LODASH.zipObjectDeep(...)
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: lodash
+        version: "<= 4.17.19"
+    message: |
+      Versions of lodash prior to 4.17.19 are vulnerable to Prototype Pollution. The function zipObjectDeep allows a malicious user to modify the prototype of Object if the property identifiers are user-supplied. Being affected by this issue requires zipping objects based on user-provided property arrays.
+
+      This vulnerability causes the addition or modification of an existing property that will exist on all objects and may lead to Denial of Service or Code Execution under specific circumstances.
+    languages: [javascript]
+    severity: WARNING
+    metadata:
+      references:
+        - https://github.com/lodash/lodash/issues/4744
+        - https://github.com/lodash/lodash/commit/c84fe82760fb2d3e03a63379b297a1cc1a2fce12
+        - https://www.npmjs.com/advisories/1523
+        - https://nvd.nist.gov/vuln/detail/CVE-2020-8203
+        - https://hackerone.com/reports/712065
+        - https://security.netapp.com/advisory/ntap-20200724-0006/
+        - https://github.com/lodash/lodash/issues/4874
+        - https://www.oracle.com/security-alerts/cpuApr2021.html
+        - https://www.oracle.com//security-alerts/cpujul2021.html
+        - https://www.oracle.com/security-alerts/cpuoct2021.html
+        - https://github.com/advisories/GHSA-p6mc-m468-83gw

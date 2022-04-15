@@ -1,0 +1,9 @@
+rules:
+- id: test
+  options:
+    symbolic_propagation: true
+  pattern: pandas.DataFrame(...).index.set_value(...)
+  message: Test
+  languages:
+  - python
+  severity: WARNING

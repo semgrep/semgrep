@@ -1,5 +1,7 @@
-#!/usr/bin/env python3
+import itertools
 from itertools import product
+from typing import Any
+from typing import Iterable
 from typing import Iterator
 from typing import Set
 from typing import Tuple
@@ -15,7 +17,15 @@ from semgrep.test import RULEID
 from semgrep.test import SPACE_OR_NO_SPACE
 from semgrep.test import TODOOK
 from semgrep.test import TODORULEID
-from semgrep.util import powerset
+
+# cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
+@pytest.mark.quick
+def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
+    """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
+    s = list(iterable)
+    return itertools.chain.from_iterable(
+        itertools.combinations(s, r) for r in range(len(s) + 1)
+    )
 
 
 ANNOTATIONS = (TODOOK, TODORULEID, OK, RULEID)
@@ -33,6 +43,7 @@ def _generate_normalize_rule_ids_test_cases() -> Iterator[Tuple[str, Set[str]]]:
                     )
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "test_case,expected", list(_generate_normalize_rule_ids_test_cases())
 )
@@ -46,6 +57,7 @@ def _generate_line_has_test_cases(annotation: str) -> Iterator[str]:
             yield f"{comment_begin}{space}{annotation}:{space}{RULE_IDS[-1]}{comment_end}".strip()
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "test_case,expected",
     list(product(_generate_line_has_test_cases("ruleid"), (True,)))
@@ -56,6 +68,7 @@ def test_line_has_rule(test_case, expected):
     assert line_has_rule(test_case) == expected
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "test_case,expected",
     list(product(_generate_line_has_test_cases("ruleid"), (False,)))

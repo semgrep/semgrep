@@ -1,0 +1,7 @@
+Scanning 1 file.
+
+Some files were skipped.
+  Scan was limited to files tracked by git.
+
+Ran 1 rule on 1 file: 0 findings.
+(1 code inventory findings. Run --config auto again in a few seconds use new rule recommendations)

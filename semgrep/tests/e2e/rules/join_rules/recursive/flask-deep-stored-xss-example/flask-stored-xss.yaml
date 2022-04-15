@@ -1,0 +1,37 @@
+rules:
+- id: flask-stored-xss
+  message: stored xss
+  languages: [python]
+  severity: ERROR
+  mode: join
+  join:
+    refs:
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/callgraph.yaml
+      as: callgraph
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/callgraph2.yaml
+      as: callgraph2
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/models.yaml
+      as: models
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/model-data-returned.yaml
+      as: model-data-returned
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/unsafely-rendered-data.yaml
+      as: unsafe-render
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/unsanitized-data-sink.yaml
+      as: unsanitized-data-sink
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/param-saved-in-model.yaml
+      as: param-saved
+    - rule: rules/join_rules/recursive/flask-deep-stored-xss-example/rule-parts/template-variables.yaml
+      as: template-vars
+      renames:
+      - from: '$...VAR'
+        to: '$VAR'
+    on:
+    - 'models.$CLASS == param-saved.$MODEL'
+    - 'models.$CLASS == model-data-returned.$MODEL'
+    - 'callgraph.$CALLER --> callgraph.$CALLEE'
+    - 'unsanitized-data-sink.$SINK == callgraph.$CALLER'
+    - 'param-saved.$MODELSAVECALLER == callgraph.$CALLER' # || param-saved.$MODELSAVECALLER == callgraph.$CALLEE
+    - 'callgraph2.$CALLER --> callgraph2.$CALLEE'
+    - 'model-data-returned.$MODELCALLER == callgraph2.$CALLEE'
+    - 'callgraph2.$CALLER == unsafe-render.$RENDERCALLEE'
+    - 'unsafe-render.$KWARG == template-vars.$VAR'

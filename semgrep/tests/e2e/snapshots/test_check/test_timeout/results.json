@@ -3,11 +3,17 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Semgrep Core WARN - Timeout: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Run_semgrep.timeout_function:1",
+      "message": "[WARN] Semgrep Core \u2014 Timeout\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nWhen running rules.forcetimeout on targets/equivalence/open_redirect.py: \n",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
       "type": "Timeout"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ]
+  },
   "results": []
 }

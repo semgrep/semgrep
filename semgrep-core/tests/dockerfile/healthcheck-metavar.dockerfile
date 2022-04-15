@@ -1,0 +1,8 @@
+# MATCH:
+HEALTHCHECK --interval=5m --timeout=3s CMD echo
+
+# MATCH:
+HEALTHCHECK NONE
+
+# MATCH:
+HEALTHCHECK $X

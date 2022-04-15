@@ -4,8 +4,8 @@
   (libraries
      ANSITerminal
      unix
-
-     semgrep_core_response
+     pcre
+     semgrep_utils
   )
   (preprocess
    (pps

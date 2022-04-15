@@ -32,7 +32,6 @@ and error_kind =
 type severity = Error | Warning
 
 val g_errors : error list ref
-
 val options : unit -> Common.cmdline_options
 
 (*****************************************************************************)
@@ -49,8 +48,6 @@ val mk_error :
 val error :
   Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> unit
 
-val error_tok : Rule.rule_id -> Parse_info.t -> string -> error_kind -> unit
-
 val exn_to_error :
   ?rule_id:Rule.rule_id option -> Common.filename -> exn -> error
 
@@ -59,7 +56,6 @@ val exn_to_error :
 (*****************************************************************************)
 
 val try_with_exn_to_error : Common.filename -> (unit -> unit) -> unit
-
 val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
 
 (*
@@ -73,9 +69,7 @@ val try_with_print_exn_and_exit_fast : Common.filename -> (unit -> unit) -> unit
 (*****************************************************************************)
 
 val string_of_error : error -> string
-
 val string_of_error_kind : error_kind -> string
-
 val severity_of_error : error_kind -> severity
 
 (*****************************************************************************)

@@ -1,6 +1,6 @@
 rules:
   - id: test-regex
-    pattern-regex: '(abc'
+    pattern-regex: "(abc"
     message: "test regex message"
     languages: [python]
     severity: ERROR

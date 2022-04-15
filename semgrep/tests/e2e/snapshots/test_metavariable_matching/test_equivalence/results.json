@@ -1,5 +1,21 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/inside.py",
+      "targets/basic/metavariable-comparison-bad-content.py",
+      "targets/basic/metavariable-comparison-base.py",
+      "targets/basic/metavariable-comparison-strip.py",
+      "targets/basic/metavariable-comparison.py",
+      "targets/basic/metavariable-regex-multi-regex.py",
+      "targets/basic/metavariable-regex-multi-rule.py",
+      "targets/basic/metavariable-regex.py",
+      "targets/basic/nosem.py",
+      "targets/basic/regex.py",
+      "targets/basic/stupid.py"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.open-from-request",
@@ -9,6 +25,7 @@
         "offset": 96
       },
       "extra": {
+        "fingerprint": "dce9654204375612ebde83d55c295f4a",
         "is_ignored": false,
         "lines": "    open(path)",
         "message": "Unsafe open from request data",
@@ -49,6 +66,7 @@
         "offset": 262
       },
       "extra": {
+        "fingerprint": "2dc27f71ab5cf9450fcbd204f1e71640",
         "is_ignored": false,
         "lines": "    open(z)",
         "message": "Unsafe open from request data",

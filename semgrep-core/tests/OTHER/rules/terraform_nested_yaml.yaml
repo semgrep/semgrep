@@ -1,0 +1,14 @@
+rules:
+  - id: aws-ssm-document-logging-issues
+    message: blah
+    languages:
+      - hcl
+    severity: INFO
+    patterns:
+      - pattern: content = "$STRING"
+      - metavariable-pattern:
+          metavariable: $STRING
+          language: yaml
+          pattern: |
+            schemaVersion: '1.0'
+

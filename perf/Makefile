@@ -31,7 +31,12 @@ dummy:
 dummy-local:
 	./run-benchmarks --dummy --upload
 
+#TODO: we should not delete bench/dummy/!
 .PHONY: clean
 clean:
 	rm -rf bench/*/input
 	rm -rf bench/*/output
+
+.PHONY: regenerate-tests
+regenerate-tests:
+	./run-benchmarks --small-only --std-only --snapshot-update

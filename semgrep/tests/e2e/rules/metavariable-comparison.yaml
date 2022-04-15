@@ -1,10 +1,10 @@
 rules:
   - id: metavar-comparison-test
     patterns:
-      - pattern: 'metavariable_comparison_test($X)'
+      - pattern: "metavariable_comparison_test($X)"
       - metavariable-comparison:
-          metavariable: '$X'
-          comparison: '$X > 50 and $X < 150'
+          metavariable: "$X"
+          comparison: "$X > 50 and $X < 150"
     message: "Metavariable regex test"
     languages: [python]
     severity: ERROR

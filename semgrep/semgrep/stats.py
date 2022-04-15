@@ -5,9 +5,9 @@ from typing import cast
 from typing import Dict
 from typing import Set
 
-from semgrep.target_manager_extensions import ext_to_lang
-from semgrep.target_manager_extensions import FileExtension
-from semgrep.target_manager_extensions import Language
+from semgrep.semgrep_types import FileExtension
+from semgrep.semgrep_types import LANGUAGE
+from semgrep.semgrep_types import Language
 
 
 def make_target_stats(all_targets: Set[Path]) -> Dict[str, Any]:
@@ -27,8 +27,7 @@ def make_target_stats(all_targets: Set[Path]) -> Dict[str, Any]:
     for path in all_targets:
         suffix: FileExtension = cast(FileExtension, path.suffix)
         extensions[suffix] += 1
-        # an extension could map to multiple languages; just take the first one
-        lang = ext_to_lang(suffix)
+        lang = LANGUAGE.lang_by_ext[suffix]
         languages[lang] += 1
 
     return {

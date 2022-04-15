@@ -1,4 +1,8 @@
-excluding files:
-- excluded
-Running 4 rules...
-ran 4 rules on 2 files: 2 findings
+Scanning 2 files.
+
+Some files were skipped.
+  Scan was limited to files tracked by git.
+  Scan skipped: 2 files matching --exclude patterns
+  For a full list of skipped files, run semgrep with the --verbose flag.
+
+Ran 4 rules on 2 files: 2 findings.

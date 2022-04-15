@@ -36,21 +36,13 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
-let option = Common.map_opt
-
+let option = Option.map
 let list = List.map
-
 let bool = id
-
 let string = id
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let fb = G.fake_bracket
-
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
 (*****************************************************************************)
@@ -58,7 +50,6 @@ let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -66,7 +57,6 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let ident x = wrap string x
 
 let rec expr e =
@@ -98,22 +88,33 @@ let rec expr e =
       let e2 = expr e2 in
       let e3 = expr e3 in
       G.Conditional (e1, e2, e3)
-  | Call (e, xs, bopt) ->
+  | Call (e, xs, bopt) -> (
       let e = expr e in
       let lb, xs, rb = bracket (list argument) xs in
-      (* TODO: maybe make an extra separate Call for the block? *)
-      let last = option expr bopt |> Common.opt_to_list in
-      G.Call (e, (lb, xs @ (last |> List.map G.arg), rb))
-  | DotAccess (e, t, m) ->
+      let e_call = G.Call (e, (lb, xs, rb)) in
+      match bopt with
+      | None -> e_call
+      | Some b ->
+          (* There is a block to pass to `e`. We add an extra `Call` so that
+           * `f(x) { |n| puts n }` is translated as `f(x)({ |n| puts n })`
+           * rather than as `f(x, { |n| puts n })`. This way the pattern
+           * `f(...)` will only match `f(x)` and not the entire block,
+           * and `f($X)` will match `f(x)`. *)
+          let barg = b |> expr |> G.arg in
+          G.Call (G.e e_call, (lb, [ barg ], rb)))
+  | DotAccess (e, t, m) -> (
       let e = expr e in
-      let fld =
-        match method_name m with
-        | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
-        | Right e -> G.FDynamic e
-      in
-      G.DotAccess (e, t, fld)
+      match m with
+      | MethodEllipsis t -> G.DotAccessEllipsis (e, t)
+      | _ ->
+          let fld =
+            match method_name m with
+            | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
+            | Right e -> G.FDynamic e
+          in
+          G.DotAccess (e, t, fld))
   | Splat (t, eopt) ->
-      let xs = option expr eopt |> Common.opt_to_list |> List.map G.arg in
+      let xs = option expr eopt |> Option.to_list |> List.map G.arg in
       let special = G.IdSpecial (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
@@ -130,6 +131,23 @@ let rec expr e =
           frettype = None;
           fbody = G.FBStmt st;
           fkind = (G.LambdaKind, t1);
+        }
+      in
+      G.Lambda def
+  | Lambda (tok, params_opt, xs) ->
+      let params =
+        match params_opt with
+        | None -> []
+        | Some xs -> xs
+      in
+      let params = list formal_param params in
+      let st = G.Block (tok, list_stmts xs, tok) |> G.s in
+      let def =
+        {
+          G.fparams = params;
+          frettype = None;
+          fbody = G.FBStmt st;
+          fkind = (G.LambdaKind, tok);
         }
       in
       G.Lambda def
@@ -261,7 +279,7 @@ and variable_or_method_name = function
       | Left id -> id
       | Right _ -> failwith "TODO: variable_or_method_name")
 
-and method_name mn =
+and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
   match mn with
   | MethodId v -> Left (variable v)
   | MethodIdAssign (id, teq, id_kind) ->
@@ -283,6 +301,8 @@ and method_name mn =
               let t = PI.combine_infos l [ t2; r ] in
               Left (s, t)
           | _ -> Right (string_contents_list (l, xs, r) |> G.e)))
+  (* sgrep-ext: this should be covered in the caller *)
+  | MethodEllipsis t -> raise (Parse_info.Parsing_error t)
 
 and string_contents_list (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
@@ -416,12 +436,19 @@ and literal x =
       | Tick (l, xs, r) ->
           G.OtherExpr
             (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
-  | Regexp ((l, xs, r), opt) -> (
-      match xs with
-      | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
-      | _ ->
-          (* TODO *)
-          string_contents_list (l, xs, r))
+  | Regexp ((l, xs, r), opt) ->
+      let rec f strs toks = function
+        | [ StrChars (s, t) ] ->
+            let str = String.concat "" (s :: strs) in
+            let tok = PI.combine_infos t toks in
+            G.L (G.Regexp ((l, (str, tok), r), opt))
+        | StrChars (s, t) :: tl -> f (s :: strs) (t :: toks) tl
+        | StrExpr _ :: _
+        | [] ->
+            (* TODO *)
+            string_contents_list (l, xs, r)
+      in
+      f [] [] (List.rev xs)
 
 and expr_as_stmt = function
   | S x -> stmt x

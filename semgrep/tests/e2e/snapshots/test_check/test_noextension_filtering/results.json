@@ -1,5 +1,11 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/stupid_no_extension"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.eqeq-is-bad",
@@ -9,6 +15,7 @@
         "offset": 69
       },
       "extra": {
+        "fingerprint": "53303da989bf0423105dd1ef998e8f48",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",

@@ -1,0 +1,9 @@
+rules:
+- id: test
+  options:
+    symbolic_propagation: true
+  pattern: $X.lower() != $Y.lower()
+  message: Test
+  languages:
+  - python
+  severity: WARNING

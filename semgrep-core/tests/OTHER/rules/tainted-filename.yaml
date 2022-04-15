@@ -1,0 +1,588 @@
+# from https://github.com/Sjord/semgrep-rules/blob/php-tainted-filename/php/lang/security/injection/tainted-filename.yaml
+# this used to cause a stack overflow when running with -filter_irrelevant_rules
+# due to some list explosions when generating the CNF
+rules:
+- id: tainted-filename
+  severity: WARNING
+  message: >-
+    Filename based on user input risks server-side request forgery.
+  languages: [php]
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern: $_GET
+      - pattern: $_POST
+      - pattern: $_COOKIE
+      - pattern: $_REQUEST
+      - pattern: $_SERVER
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - patterns:
+        - pattern-inside: FFI::load($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: opcache_compile_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: opcache_invalidate($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: opcache_is_script_cached($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: runkit7_import($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: readline_read_history($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: readline_write_history($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Phar::addFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Phar::isValidPharFilename($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Phar::loadPhar($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Phar::unlinkArchive($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: PharData::addFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: RarArchive::open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rar_open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ZipArchive::open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: zip_open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: gzfile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: gzopen($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: readgzfile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: hash_file($ALGO, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: hash_update_file($CONTEXT, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: PDO::pgsqlCopyFromFile($TABLE_NAME, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: PDO::pgsqlCopyToFile($TABLE_NAME, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: OCILob::export($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: OCILob::import($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: pg_trace($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: SQLite3::open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: dio_open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: finfo_file($FINFO, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: finfo::file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: mime_content_type($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: finfo::file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: chgrp($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: chmod($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: chown($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: clearstatcache($CLEAR_REALPATH_CACHE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: file_exists($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: file_get_contents($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: file_put_contents($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fileatime($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: filectime($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: filegroup($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fileinode($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: filemtime($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fileowner($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fileperms($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: filesize($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: filetype($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fnmatch($PATTERN, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fopen($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_dir($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_executable($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_link($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_readable($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_uploaded_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: is_writable($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: lchgrp($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: lchown($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: lstat($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: parse_ini_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: readfile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: stat($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: touch($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: unlink($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: xattr_get($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: xattr_list($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: xattr_remove($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: xattr_set($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: xattr_supported($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: enchant_broker_request_pwl_dict($BROKER, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: pspell_config_personal($CONFIG, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: pspell_config_repl($CONFIG, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: pspell_new_personal($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: exif_imagetype($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: getimagesize($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: image2wbmp($IMAGE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromavif($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefrombmp($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromgd2($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromgd2part($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromgd($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromgif($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromjpeg($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefrompng($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromtga($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromwbmp($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromwebp($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromxbm($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagecreatefromxpm($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imageloadfont($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: imagexbm($IMAGE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: iptcembed($IPTC_DATA, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::__construct($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::read($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::readimage($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::readimageblob($IMAGECONTENTS, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::readimagefile($FP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::setfilename($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::setimagefilename($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Gmagick::writeimage($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::pingImage($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::readImage($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::readImageBlob($IMAGE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::setFilename($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::setImageFilename($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::writeImage($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Imagick::writeImages($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: mailparse_msg_extract_part_file($MIMEMAIL, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: mailparse_msg_extract_whole_part_file($MIMEMAIL, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: mailparse_msg_parse_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fdf_add_template($FDF_DOCUMENT, $NEWPAGE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fdf_get_ap($FDF_DOCUMENT, $FIELD, $FACE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fdf_open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fdf_save($FDF_DOCUMENT, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fdf_set_ap($FDF_DOCUMENT, $FIELD_NAME, $FACE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ps_add_launchlink($PSDOC, $LLX, $LLY, $URX, $URY, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ps_add_pdflink($PSDOC, $LLX, $LLY, $URX, $URY, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ps_open_file($PSDOC, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ps_open_image_file($PSDOC, $TYPE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: posix_access($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: posix_mkfifo($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: posix_mknod($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ftok($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fann_cascadetrain_on_file($ANN, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fann_read_train_from_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: fann_train_on_file($ANN, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: highlight_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: php_strip_whitespace($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: stream_resolve_include_path($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: swoole_async_read($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: swoole_async_readfile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: swoole_async_write($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: swoole_async_writefile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: swoole_load_module($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Async::read($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Async::readFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Async::write($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Async::writeFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Client::sendfile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Http\Client::addFile($PATH, $NAME, $TYPE, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Http\Response::sendfile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Mmap::open($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: Swoole\Server::sendfile($FD, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: tidy::parseFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: tidy_parse_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: tidy::repairFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: tidy_repair_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: get_meta_tags($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: yaml_emit_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: yaml_parse_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: curl_file_create($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: EventDnsBase::parseResolvConf($FLAGS, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ftp_chmod($FTP, $PERMISSIONS, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ftp_delete($FTP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ftp_mdtm($FTP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ftp_size($FTP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_create($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_fetch($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_graph($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_info($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_last($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_lastupdate($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_tune($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: rrd_update($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: snmp_read_mib($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ssh2_sftp_chmod($SFTP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ssh2_sftp_realpath($SFTP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: ssh2_sftp_unlink($SFTP, $FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: SVMModel::__construct($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: SVMModel::load($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: SVMModel::save($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: apache_lookup_uri($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: md5_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: sha1_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: COMPersistHelper::LoadFromFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: COMPersistHelper::SaveToFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: DOMDocument::load($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: DOMDocument::loadHTMLFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: DOMDocument::relaxNGValidate($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: DOMDocument::save($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: DOMDocument::saveHTMLFile($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: DOMDocument::schemaValidate($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: SimpleXMLElement::asXML($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: simplexml_load_file($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: XMLReader::setRelaxNGSchema($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: XMLReader::setSchema($FILENAME, ...)
+        - pattern: $FILENAME
+      - patterns:
+        - pattern-inside: XSLTProcessor::setProfiling($FILENAME, ...)
+        - pattern: $FILENAME

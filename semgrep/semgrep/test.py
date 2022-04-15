@@ -68,41 +68,6 @@ def normalize_rule_ids(line: str) -> Set[str]:
     return set(filter(None, [rule.strip() for rule in rules_clean]))
 
 
-def compute_confusion_matrix(
-    reported: Set[Any], expected: Set[Any], oked: Set[Any]
-) -> Tuple[int, int, int, int]:
-    true_positives = len(expected.intersection(reported))
-    false_positives = len(reported - expected)
-    true_negatives = len(oked)
-    false_negatives = len(expected - reported)
-
-    return (true_positives, true_negatives, false_positives, false_negatives)
-
-
-def _test_compute_confusion_matrix() -> None:
-    tp, tn, fp, fn = compute_confusion_matrix(set([1, 2, 3, 4]), set([1]), set())
-    assert tp == 1
-    assert tn == 0
-    assert fp == 3
-    assert fn == 0
-
-    tp, tn, fp, fn = compute_confusion_matrix(
-        set([1, 2, 3, 4]), set([1, 2, 3, 4]), set([1])
-    )
-    assert tp == 4
-    assert tn == 1
-    assert fp == 0
-    assert fn == 0
-
-    tp, tn, fp, fn = compute_confusion_matrix(
-        set([2, 3]), set([1, 2, 3, 4]), set([7, 8])
-    )
-    assert tp == 2
-    assert tn == 2
-    assert fp == 0
-    assert fn == 2
-
-
 def _annotations(annotation: str) -> Set[str]:
     # returns something like: {"#ruleid:", "# ruleid:", "//ruleid:", ...}
     return {
@@ -131,9 +96,57 @@ def line_has_todo_ok(line: str) -> bool:
     return any(annotation in line for annotation in rule_annotations)
 
 
-def score_output_json(
-    json_out: Dict[str, Any], test_files: List[Path], ignore_todo: bool
-) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
+def _add_line_to_dict_of_ruleids(
+    rule_ids: Set[str],
+    line_dict: Dict[str, Dict[str, List[int]]],
+    effective_line_num: int,
+    test_file_resolved: str,
+) -> None:
+    """
+    given that 'todoruleid' or 'todook' or 'ok' or 'todo' are detected, add the line number
+    flagged to the appropriate dictionary.
+    """
+    for rule_id in rule_ids:
+        line_dict[test_file_resolved][rule_id].append(effective_line_num)
+
+
+def check_rule_id_mismatch(
+    reported_lines: Dict[str, Dict[str, List[int]]], test_lines: Dict[str, Set]
+) -> None:
+    """
+    checks whether there exists a #ruleid: <rule name> annotation where a rule matching <rule name> doesn't exist.
+    leads to exit of 1 if there does exist such an occurence.
+    """
+    rule_id_mismatch = False
+    if reported_lines:
+        for file_path, test_ids in test_lines.items():
+            reported_ids = set(reported_lines[file_path].keys())
+            if test_ids.symmetric_difference(reported_ids):
+                test_id_no_reported_ids = test_ids - reported_ids
+                logger.error(
+                    f"Found rule id mismatch - file={file_path} 'ruleid' annotation with no YAML rule={test_id_no_reported_ids}"
+                )
+                rule_id_mismatch = True
+
+    if rule_id_mismatch:
+        logger.error(
+            "Failing due to rule id mismatch. There is a test denoted with 'ruleid: <rule name>' where the rule name does not exist or is not expected in the test file."
+        )
+        sys.exit(EXIT_FAILURE)
+
+
+def get_expected_and_reported_lines(
+    json_out: Dict[str, Any], test_files: List[Path]
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Collects the expected lines (which are the lines annotated with '#ruleid')
+    and the reported lines (which are the lines that the run of semgrep flagged on)
+    Returns the 'matches' dictionary, which maps check_ids -> file_paths involved -> expected
+    and reported line lists.
+
+    Note: we need matches to map check_ids -> file paths because some rule_ids have two
+    distinct test files (notably, for rules that work on both tsx and jsx)
+    """
     ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
@@ -146,11 +159,11 @@ def score_output_json(
     todo_ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
-        lambda: [0, 0, 0, 0]
+    todo_ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
     )
+
     matches_by_check_id: Dict[str, Dict[str, Any]] = collections.defaultdict(dict)
-    num_todo = 0
 
     for test_file in test_files:
         test_file_resolved = str(test_file.resolve())
@@ -163,25 +176,34 @@ def score_output_json(
             ok_in_line = line_has_ok(line)
             todo_rule_in_line = line_has_todo_rule(line)
             todo_ok_in_line = line_has_todo_ok(line)
-            num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
+
+            has_parseable_rule_id = (
+                rule_in_line or todo_rule_in_line or ok_in_line or todo_ok_in_line
+            ) and ":" in line
 
             try:
-                if (not ignore_todo and todo_rule_in_line) or rule_in_line:
-                    rule_ids = normalize_rule_ids(line)
-                    for rule_id in rule_ids:
-                        ruleid_lines[test_file_resolved][rule_id].append(
-                            effective_line_num
-                        )
-                if (not ignore_todo and todo_rule_in_line) or ok_in_line:
-                    rule_ids = normalize_rule_ids(line)
-                    for rule_id in rule_ids:
-                        ok_lines[test_file_resolved][rule_id].append(effective_line_num)
-                if ignore_todo and todo_ok_in_line:
-                    rule_ids = normalize_rule_ids(line)
-                    for rule_id in rule_ids:
-                        todo_ok_lines[test_file_resolved][rule_id].append(
-                            effective_line_num
-                        )
+                if not has_parseable_rule_id:
+                    continue
+                rule_ids = normalize_rule_ids(line)
+                if todo_rule_in_line or rule_in_line:
+                    _add_line_to_dict_of_ruleids(
+                        rule_ids, ruleid_lines, effective_line_num, test_file_resolved
+                    )
+                if todo_rule_in_line or ok_in_line:
+                    _add_line_to_dict_of_ruleids(
+                        rule_ids, ok_lines, effective_line_num, test_file_resolved
+                    )
+                if todo_ok_in_line:
+                    _add_line_to_dict_of_ruleids(
+                        rule_ids, todo_ok_lines, effective_line_num, test_file_resolved
+                    )
+                if todo_rule_in_line:
+                    _add_line_to_dict_of_ruleids(
+                        rule_ids,
+                        todo_ruleid_lines,
+                        effective_line_num,
+                        test_file_resolved,
+                    )
             except ValueError:  # comment looked like a test annotation but couldn't parse
                 logger.warning(
                     f"Could not parse {line} as a test annotation in file {test_file_resolved}. Skipping this line"
@@ -199,90 +221,57 @@ def score_output_json(
         for file_path, test_annotations in lines.items():
             test_lines[file_path].update(test_annotations.keys())
 
-    rule_id_mismatch = False
-    if reported_lines:
-        for file_path, test_ids in test_lines.items():
-            reported_ids = set(reported_lines[file_path].keys())
-            if test_ids.symmetric_difference(reported_ids):
-                logger.error(
-                    f"found rule id mismatch - file={file_path} results={reported_ids} expected={test_ids}"
-                )
-                rule_id_mismatch = True
-
-    if rule_id_mismatch:
-        logger.error("failing due to rule id mismatch")
-        sys.exit(EXIT_FAILURE)
+    check_rule_id_mismatch(reported_lines, test_lines)
 
     def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
         return set(a.keys()).union(set(b.keys()))
 
-    false_positive_lines = False
     for file_path in join_keys(ruleid_lines, reported_lines):
         for check_id in join_keys(ruleid_lines[file_path], reported_lines[file_path]):
             all_reported = set(reported_lines[file_path][check_id])
             expected = set(ruleid_lines[file_path][check_id])
-            oked = set(ok_lines[file_path][check_id])
             todo_oked = set(todo_ok_lines[file_path][check_id])
+            todo_ruleid = set(todo_ruleid_lines[file_path][check_id])
 
-            reported_oked_lines = oked.intersection(all_reported)
-            if reported_oked_lines:
-                logger.error(
-                    f"found false positives on ok'ed lines - file={file_path} fps={reported_oked_lines}"
-                )
-                false_positive_lines = True
+            reported = all_reported - todo_oked - todo_ruleid
+            expected = expected - todo_ruleid - todo_oked
 
-            reported = all_reported - todo_oked
-
-            new_cm = compute_confusion_matrix(reported, expected, oked)
             matches_by_check_id[check_id][file_path] = {
                 "expected_lines": sorted(expected),
                 "reported_lines": sorted(reported),
             }
-            old_cm = score_by_checkid[check_id]
-            score_by_checkid[check_id] = [
-                old_cm[i] + new_cm[i] for i in range(len(new_cm))
-            ]
 
-    if false_positive_lines:
-        logger.error("failing due to false positives")
-        sys.exit(EXIT_FAILURE)
-
-    return (score_by_checkid, matches_by_check_id, num_todo)
+    return matches_by_check_id
 
 
-def generate_confusion_string(check_results: Mapping[str, Any]) -> str:
-    confusion_tp = f"TP: {check_results['tp']}"
-    confusion_tn = f"TN: {check_results['tn']}"
-    confusion_fp = f"FP: {check_results['fp']}"
-    confusion_fn = f"FN: {check_results['fn']}"
-    return f"{confusion_tp} {confusion_tn} {confusion_fp} {confusion_fn}"
-
-
-def generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
-    status = "✔" if check_results["passed"] else "✖"
-    return f"\t{status} {check_id.ljust(60)} {generate_confusion_string(check_results)}"
-
-
-def generate_matches_line(check_results: Mapping[str, Any]) -> str:
-    def _generate_line(test_file: Any, matches: Mapping[str, Any]) -> str:
-        test = f"test: {test_file}"
+def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
+    def _generate_expected_vs_reported_lines(matches: Mapping[str, Any]) -> str:
         expected = f"expected lines: {matches['expected_lines']}"
         reported = f"reported lines: {matches['reported_lines']}"
-        return f"{test}, {expected}, {reported}"
+        return f"{expected}, {reported}"
 
-    return "\t" + "\t\n".join(
-        _generate_line(test_file, matches)
-        for test_file, matches in check_results["matches"].items()
+    expected_vs_reported_lines = "\t\n".join(
+        _generate_expected_vs_reported_lines(matches)
+        for _, matches in check_results["matches"].items()
     )
+
+    test_file_names = " ".join(
+        test_file for test_file, _ in check_results["matches"].items()
+    )
+
+    return f"\t✖ {check_id.ljust(60)} {expected_vs_reported_lines} \n\t test file path: {test_file_names}\n\n"
 
 
 def invoke_semgrep_multi(
     config: Path, targets: List[Path], **kwargs: Any
-) -> Tuple[Path, Optional[Exception], Any]:
+) -> Tuple[Path, Optional[str], Any]:
     try:
         output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
-        return (config, error, {})
+        # We must get the string of the error because the multiprocessing library
+        # will fail the marshal the error and hang
+        # See: https://bugs.python.org/issue39751
+        return (config, str(error), {})
     else:
         return (config, None, output)
 
@@ -300,6 +289,8 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
+    if original_config.is_file():
+        return [original_config]
     configs = list(original_config.rglob("*"))
     return [
         config
@@ -313,12 +304,24 @@ def get_config_filenames(original_config: Path) -> List[Path]:
 def get_config_test_filenames(
     original_config: Path, configs: List[Path], original_target: Path
 ) -> Dict[Path, List[Path]]:
-    targets = list(original_target.rglob("*"))
+    original_config_is_file_not_directory = original_config.is_file()
+    original_target_is_file_not_directory = original_target.is_file()
+
+    if original_config_is_file_not_directory and original_target_is_file_not_directory:
+        return {original_config: [original_target]}
+
+    if original_target_is_file_not_directory:
+        targets = list(original_target.parent.rglob("*"))
+    else:
+        targets = list(original_target.rglob("*"))
 
     def target_matches_config(target: Path, config: Path) -> bool:
         correct_suffix = is_config_test_suffix(target) or not is_config_suffix(target)
         return (
-            relatively_eq(original_target, target, original_config, config)
+            (
+                original_target_is_file_not_directory
+                or relatively_eq(original_target, target, original_config, config)
+            )
             and target.is_file()
             and correct_suffix
         )
@@ -329,11 +332,20 @@ def get_config_test_filenames(
     }
 
 
-def generate_file_pairs(
+def checkid_passed(matches_for_checkid: Dict[str, Any]) -> bool:
+    for _filename, expected_and_reported_lines in matches_for_checkid.items():
+        if (
+            not expected_and_reported_lines["expected_lines"]
+            == expected_and_reported_lines["reported_lines"]
+        ):
+            return False
+    return True
+
+
+def generate_test_results(
     *,
     target: Path,
     config: Path,
-    ignore_todo: bool,
     strict: bool,
     json_output: bool,
     save_test_output_tar: bool = True,
@@ -358,33 +370,28 @@ def generate_file_pairs(
 
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
     config_with_errors_output = [
-        {"filename": str(filename), "error": str(error), "output": output}
+        {"filename": str(filename), "error": error, "output": output}
         for filename, error, output in config_with_errors
     ]
 
     tested = {
-        filename: score_output_json(
-            output, config_test_filenames[filename], ignore_todo
+        filename: get_expected_and_reported_lines(
+            output, config_test_filenames[filename]
         )
         for filename, _, output in config_without_errors
     }
 
     results_output: Mapping[str, Mapping[str, Any]] = {
         str(filename): {
-            "todo": todo,
             "checks": {
                 check_id: {
-                    "tp": tp,
-                    "tn": tn,
-                    "fp": fp,
-                    "fn": fn,
-                    "passed": (fp == 0) and (fn == 0),
-                    "matches": matches[check_id],
+                    "passed": checkid_passed(filename_and_matches),
+                    "matches": filename_and_matches,
                 }
-                for check_id, (tp, tn, fp, fn) in output.items()
-            },
+                for check_id, filename_and_matches in matches.items()
+            }
         }
-        for filename, (output, matches, todo) in tested.items()
+        for filename, matches in tested.items()
     }
 
     output = {
@@ -417,11 +424,25 @@ def generate_file_pairs(
         with tarfile.open(SAVE_TEST_OUTPUT_TAR, "w:gz") as tar:
             tar.add(SAVE_TEST_OUTPUT_JSON)
 
-    if config_missing_tests_output:
-        print("The following config files are missing tests:")
-        print("\t" + "\n\t".join(config_missing_tests_output))
+    all_tests_passed: bool = True
+    check_output_lines: str = ""
+    for _filename, rr in results_output.items():
+        for check_id, check_results in sorted(rr["checks"].items()):
+            if not check_results["passed"]:
+                all_tests_passed = False
+                check_output_lines += _generate_check_output_line(
+                    check_id, check_results
+                )
+
+    if all_tests_passed:
+        print("✓ All tests passed!")
+    else:
+        print("The following unit tests did not pass:")
+        print(BREAK_LINE)
+        print(check_output_lines)
 
     if config_with_errors_output:
+        print(BREAK_LINE)
         print("The following config files produced errors:")
         print(
             "\t"
@@ -429,35 +450,6 @@ def generate_file_pairs(
                 f"{c['filename']}: {c['error']}" for c in config_with_errors_output
             )
         )
-
-    # Place failed and TODO tests at the bottom for higher visibility
-    passed_results_first = collections.OrderedDict(
-        sorted(
-            results_output.items(),
-            key=lambda t: any(
-                not c["passed"] or t[1]["todo"] for c in t[1]["checks"].values()
-            ),
-        )
-    )
-
-    print(f"{len(tested)} yaml files tested")
-    print("check id scoring:")
-    print(BREAK_LINE)
-
-    totals: Dict[str, Any] = collections.defaultdict(int)
-
-    for filename, rr in passed_results_first.items():
-        print(f"(TODO: {rr['todo']}) {filename}")
-        for check_id, check_results in sorted(rr["checks"].items()):
-            print(generate_check_output_line(check_id, check_results))
-            if not check_results["passed"]:
-                print(generate_matches_line(check_results))
-            for confusion in ["tp", "tn", "fp", "fn"]:
-                totals[confusion] += check_results[confusion]
-
-    print(BREAK_LINE)
-    print(f"final confusion matrix: {generate_confusion_string(totals)}")
-    print(BREAK_LINE)
 
     sys.exit(exit_code)
 
@@ -472,7 +464,6 @@ def test_main(
     save_test_output_tar: bool,
     optimizations: str,
 ) -> None:
-    _test_compute_confusion_matrix()
 
     if len(target) != 1:
         raise Exception("only one target directory allowed for tests")
@@ -483,12 +474,13 @@ def test_main(
             raise Exception("only one config directory allowed for tests")
         config_path = Path(config[0])
     else:
+        if target_path.is_file():
+            raise Exception("--config is required when running a test on single file")
         config_path = target_path
 
-    generate_file_pairs(
+    generate_test_results(
         target=target_path,
         config=config_path,
-        ignore_todo=test_ignore_todo,
         strict=strict,
         json_output=json,
         save_test_output_tar=save_test_output_tar,

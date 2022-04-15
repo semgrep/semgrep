@@ -1,7 +1,7 @@
 rules:
-- id: any-file
-  message: Match any file
-  languages:
-    - generic
-  severity: INFO
-  pattern-regex: ^.*
+  - id: any-file
+    message: Match any file
+    languages:
+      - generic
+    severity: INFO
+    pattern-regex: ^.*

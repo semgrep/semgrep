@@ -1,16 +1,16 @@
 runs:
-- name: gitlab  # javascript and r2c-security audit packs on a js/ruby repo
-  repos:
-  - url: https://gitlab.com/gitlab-org/gitlab
-    commit_hash: 915627de697e2dd71fe8205853de51ad3794f3ac
-  rule_configs:
-  - r2c-rules/javascript.yml
-  - r2c-rules/r2c-security-audit.yml
-  opts: []
-- name: njs-old-juice  # Run old nodejsscan rules on vulnerable app
-  repos:
-  - url: https://github.com/bkimminich/juice-shop
-    commit_hash: 98633f5ef242bf943608324a562058b22eca6dfe
-  rule_configs:
-  - njsscan
-  opts: []
+  - name: gitlab # javascript and r2c-security audit packs on a js/ruby repo
+    repos:
+      - url: https://gitlab.com/gitlab-org/gitlab
+        commit_hash: 915627de697e2dd71fe8205853de51ad3794f3ac
+    rule_configs:
+      - r2c-rules/javascript.yml
+      - r2c-rules/r2c-security-audit.yml
+    opts: []
+  - name: njs-old-juice # Run old nodejsscan rules on vulnerable app
+    repos:
+      - url: https://github.com/bkimminich/juice-shop
+        commit_hash: 98633f5ef242bf943608324a562058b22eca6dfe
+    rule_configs:
+      - njsscan
+    opts: []

@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module B = Bloom_filter
 module V = Visitor_AST
 module Set = Set_
 open AST_generic
@@ -29,6 +28,19 @@ open AST_generic
  * identifier.
  * The Bloom filter allows to generalize this idea to a set of identifiers
  * that must be present in some statements while still being space-efficient.
+ *
+ * We actually now use regular OCaml Sets instead of Bloom filters.
+ * In theory, sets ought to be less efficient than bloom filters, since bloom
+ * filters use bits and are constant size. However, in practice, the
+ * implementation of sets and strings are designed to reuse memory as much as
+ * possible. Since every string in the set is already in the AST, and a child
+ * node's set is a subset of its parent, there is a great deal of opportunity
+ * for reusing. From experimental spotchecking using top, set filters use less
+ * memory than bloom filters
+ *
+ * Using sets also ensures that we will never have a false positive, which from
+ * comparing benchmarks on https://dashboard.semgrep.dev/metrics appears to
+ * make a small difference.
  *
  * Note that we must make sure we don't skip statements we should analyze!
  * For example with the naming aliasing, a pattern like 'foo()'
@@ -54,7 +66,6 @@ open AST_generic
  *)
 
 let push_list s' s = s := Set.union s' !s
-
 let push v s = s := Set.add v !s
 
 (*****************************************************************************)
@@ -78,6 +89,21 @@ let rec statement_strings stmt =
       {
         V.default_visitor with
         V.kident = (fun (_k, _) (str, _tok) -> push str res);
+        V.kdir =
+          (fun (k, _) x ->
+            match x with
+            | { d = ImportFrom (_, FileName (str, _), _, _); _ }
+            | { d = ImportAs (_, FileName (str, _), _); _ }
+            | { d = ImportAll (_, FileName (str, _), _); _ }
+              when str <> "..."
+                   && (not (Metavariable.is_metavar_name str))
+                   && (* deprecated *) not (Pattern.is_regexp_string str) ->
+                (* Semgrep can match "foo" against "foo/bar", so we just
+                 * overapproximate taking the sub-strings, see
+                 * Generic_vs_generic.m_module_name_prefix. *)
+                Common.split {|/\|\\|} str |> List.iter (fun s -> push s res);
+                k x
+            | _ -> k x);
         V.kexpr =
           (fun (k, _) x ->
             match x.e with
@@ -87,7 +113,7 @@ let rec statement_strings stmt =
             | L (String (str, _tok)) -> push str res
             | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
             | _ -> k x);
-        V.kconstness =
+        V.ksvalue =
           (fun (k, _) x ->
             match x with
             | Lit (String (str, _tok)) ->
@@ -105,13 +131,8 @@ let rec statement_strings stmt =
             else
               (* For any other statement, recurse to add the filter *)
               let strs = statement_strings x in
-              let bf =
-                B.make_bloom_from_set
-                  !Flag_semgrep.set_instead_of_bloom_filter
-                  strs
-              in
               push_list strs res;
-              x.s_bf <- Some bf);
+              x.s_strings <- Some strs);
       }
   in
   visitor (S stmt);
@@ -120,8 +141,8 @@ let rec statement_strings stmt =
 (*****************************************************************************)
 (* Analyze the pattern *)
 (*****************************************************************************)
-let list_of_pattern_strings ?lang any =
-  Analyze_pattern.extract_specific_strings ?lang any
+let set_of_pattern_strings ?lang any =
+  Set_.of_list (Analyze_pattern.extract_specific_strings ?lang any)
 
 (*****************************************************************************)
 (* Analyze the code *)
@@ -136,12 +157,7 @@ let annotate_program ast =
         V.kstmt =
           (fun (_k, _) x ->
             let ids = statement_strings x in
-            let bf =
-              B.make_bloom_from_set
-                !Flag_semgrep.set_instead_of_bloom_filter
-                ids
-            in
-            x.s_bf <- Some bf);
+            x.s_strings <- Some ids);
       }
   in
   visitor (Ss ast)

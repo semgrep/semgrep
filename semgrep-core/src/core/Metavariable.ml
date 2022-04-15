@@ -21,8 +21,6 @@ open Ppx_hash_lib.Std.Hash.Builtin
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-let debug = false
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -67,8 +65,16 @@ type mvalue =
    *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
-  (* This is to match the content of a string or atom, without the
-   * enclosing quotes. For a string this can actually be empty. *)
+  | Params of AST_generic.parameter list
+  | Xmls of AST_generic.xml_body list
+  (* Text below is used to match the content of a string or atom, without the
+   * enclosing quotes. For a string this can actually be empty.
+   * TODO? use a separate 'Atom of string wrap' for atoms? This could be useful
+   * to allow 'foo :$ATOM ... obj.$ATOM', but not
+   * '"$STR" ... obj.$STR'? (even though this could also be useful for PHP
+   * where strings are often used to represent entities (e.g., function
+   * names).
+   *)
   | Text of string AST_generic.wrap
 [@@deriving show, eq, hash]
 
@@ -87,6 +93,8 @@ let mvalue_to_any = function
   | N x -> G.E (G.N x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
+  | Params x -> G.Params x
+  | Xmls x -> G.Xmls x
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
@@ -103,7 +111,9 @@ let program_of_mvalue : mvalue -> G.program option =
       Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
   | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
   | Ss stmts -> Some stmts
+  | Params _
   | Args _
+  | Xmls _
   | T _
   | P _
   | Text _ ->
@@ -113,10 +123,11 @@ let program_of_mvalue : mvalue -> G.program option =
 let range_of_mvalue mval =
   let ( let* ) = Common.( >>= ) in
   let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
-  Some (Range.range_of_token_locations tok_start tok_end)
+  (* We must return both the range *and* the file, due to metavariable-pattern
+   * using temporary files. See [Match_rules.satisfies_metavar_pattern_condition]. *)
+  Some (tok_start.file, Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
-
 let str_of_mval x = show_mvalue x
 
 (* note that the mvalue acts as the value of the metavar and also
@@ -165,7 +176,7 @@ let is_metavar_name s =
   | "$_SESSION"
   | "$_REQUEST"
   | "$_ENV"
-  (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
+    (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false
   | _ -> s =~ metavar_regexp_string
@@ -174,19 +185,15 @@ let is_metavar_name s =
  * $X... but this leads to parsing conflicts in Javascript.
  *)
 let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
-
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
   let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
-
   let equal_bindings = AST_utils.with_structural_equal equal_bindings
 end
 
 module Referential = struct
   let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
-
   let equal_bindings = AST_utils.with_referential_equal equal_bindings
-
   let hash_bindings = hash_bindings
 end

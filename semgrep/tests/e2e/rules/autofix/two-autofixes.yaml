@@ -1,0 +1,15 @@
+rules:
+  - id: remove-two
+    pattern-regex: one\ntwo
+    fix: one
+    message: This rule changes the line numbers for the other rule's match
+    languages:
+      - generic
+    severity: ERROR
+  - id: remove-four
+    pattern-regex: three\nfour
+    fix: four
+    message: If semgrep is not smart enough, the match of this rule will be out of range
+    languages:
+      - generic
+    severity: ERROR

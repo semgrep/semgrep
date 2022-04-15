@@ -3,7 +3,7 @@ val check : Rule.t -> Semgrep_error_code.error list
 
 (* to test -check_rules *)
 val run_checks :
-  Runner_common.config ->
+  Runner_config.t ->
   (Common.filename -> Rule.t list) ->
   Common.filename (* metachecks *) ->
   Common.filename list (* rules *) ->
@@ -11,7 +11,7 @@ val run_checks :
 
 (* -check_rules *)
 val check_files :
-  (unit -> Runner_common.config) ->
+  (unit -> Runner_config.t) ->
   (Common.filename -> Rule.t list) ->
   Common.filename list ->
   unit

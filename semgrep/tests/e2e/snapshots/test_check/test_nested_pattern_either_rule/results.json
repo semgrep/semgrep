@@ -1,5 +1,13 @@
 {
   "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/nested-patterns.js",
+      "targets/basic/nosem.js",
+      "targets/basic/stupid.js"
+    ]
+  },
   "results": [
     {
       "check_id": "rules.test",
@@ -9,29 +17,12 @@
         "offset": 52
       },
       "extra": {
+        "fingerprint": "10857124920c5c4572e0861aeafd337b",
         "is_ignored": false,
         "lines": "    nested_patterns_func('foo', 1)",
         "message": "test",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "'foo'",
-            "end": {
-              "col": 31,
-              "line": 2,
-              "offset": 48
-            },
-            "start": {
-              "col": 26,
-              "line": 2,
-              "offset": 43
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
+        "metavars": {},
         "severity": "WARNING"
       },
       "path": "targets/basic/nested-patterns.js",
@@ -49,29 +40,12 @@
         "offset": 87
       },
       "extra": {
+        "fingerprint": "72e37a26a3fcf44b28375ba83a4a70af",
         "is_ignored": false,
         "lines": "    nested_patterns_func('bar', 2)",
         "message": "test",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "'bar'",
-            "end": {
-              "col": 31,
-              "line": 3,
-              "offset": 83
-            },
-            "start": {
-              "col": 26,
-              "line": 3,
-              "offset": 78
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
+        "metavars": {},
         "severity": "WARNING"
       },
       "path": "targets/basic/nested-patterns.js",
@@ -89,6 +63,7 @@
         "offset": 122
       },
       "extra": {
+        "fingerprint": "767a1f087e54c907cff97a15f34992de",
         "is_ignored": false,
         "lines": "    nested_patterns_func('bar', 3)",
         "message": "test",
@@ -111,6 +86,7 @@
         "offset": 157
       },
       "extra": {
+        "fingerprint": "46cf017228276039d16a5b2fbec617f2",
         "is_ignored": false,
         "lines": "    nested_patterns_func('baz', 1)",
         "message": "test",

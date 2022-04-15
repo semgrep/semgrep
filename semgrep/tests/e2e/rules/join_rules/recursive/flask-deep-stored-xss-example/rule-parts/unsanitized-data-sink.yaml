@@ -1,0 +1,15 @@
+rules:
+- id: unsanitized-data-sink
+  severity: INFO
+  languages: [python]
+  message: $ROUTE,$SINK
+  mode: taint
+  pattern-sources:
+  - pattern: |
+      def $ROUTE(...):
+        ...
+        flask.request
+  pattern-sinks:
+  - pattern: $SINK(...)
+  pattern-sanitizers:
+  - pattern: flask.escape(...)

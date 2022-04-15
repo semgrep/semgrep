@@ -1,0 +1,7 @@
+rules:
+  - id: func
+    pattern: "$F(...)"
+    message: Called a function
+    languages:
+      - js
+    severity: ERROR

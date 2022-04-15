@@ -1,0 +1,9 @@
+rules:
+- id: callgraph
+  message: $CALLER,$CALLEE,$PARAM
+  severity: INFO
+  languages: [python]
+  pattern: |
+    def $CALLER(..., $PARAM, ...):
+      ...
+      $CALLEE(..., $PARAM, ...)

@@ -1,10 +1,12 @@
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from shutil import copytree
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -62,8 +64,48 @@ def _clean_output_json(output_json: str) -> str:
             p = r.get("path")
             if p and "/tmp" in p:
                 del r["path"]
+                del r["extra"]["fingerprint"]  # the fingerprint contains the path too
+
+    paths = output.get("paths", {})
+    if paths.get("scanned"):
+        paths["scanned"] = [
+            p if "/tmp" not in p else "/tmp/masked/path" for p in paths["scanned"]
+        ]
+    if paths.get("skipped"):
+        paths["skipped"] = [
+            {
+                **skip,
+                "path": skip["path"]
+                if "/tmp" not in skip["path"]
+                else "/tmp/masked/path",
+            }
+            for skip in paths["skipped"]
+        ]
 
     return json.dumps(output, indent=2, sort_keys=True)
+
+
+def _mask_times(result_json: str) -> str:
+    result = json.loads(result_json)
+
+    def zero_times(value):
+        if type(value) == float:
+            return 2.022
+        elif type(value) == list:
+            return [zero_times(val) for val in value]
+        elif type(value) == dict:
+            return {k: zero_times(v) for k, v in value.items()}
+        else:
+            return value
+
+    if "time" in result:
+        result["time"] = zero_times(result["time"])
+    return json.dumps(result, indent=2, sort_keys=True)
+
+
+def _mask_floats(text_output: str) -> str:
+    FLOATS = re.compile("([0-9]+).([0-9]+)")
+    return re.sub(FLOATS, "x.xxx", text_output)
 
 
 def _run_semgrep(
@@ -77,6 +119,8 @@ def _run_semgrep(
     env: Optional[Dict[str, str]] = None,
     fail_on_nonzero: bool = True,
     settings_file: Optional[str] = None,
+    force_color: Optional[bool] = None,
+    assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -95,6 +139,9 @@ def _run_semgrep(
 
     if not env:
         env = {}
+
+    if force_color:
+        env["SEMGREP_FORCE_COLOR"] = "true"
 
     if "SEMGREP_USER_AGENT_APPEND" not in env:
         env["SEMGREP_USER_AGENT_APPEND"] = "testing"
@@ -127,27 +174,43 @@ def _run_semgrep(
 
     if output_format == OutputFormat.JSON:
         options.append("--json")
+    elif output_format == OutputFormat.GITLAB_SAST:
+        options.append("--gitlab-sast")
+    elif output_format == OutputFormat.GITLAB_SECRETS:
+        options.append("--gitlab-secrets")
     elif output_format == OutputFormat.JUNIT_XML:
         options.append("--junit-xml")
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        *options,
+        (Path("targets") / target_name if assume_targets_dir else Path(target_name)),
+    ]
+    # join here so that one can easily copy-paste the command
+    str_cmd = " ".join(str(c) for c in cmd)
     print(f"current directory: {os.getcwd()}")
-    print(f"semgrep command: {cmd}")
+    print(f"semgrep command: {str_cmd}")
     output = subprocess.run(
         cmd,
         encoding="utf-8",
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        # LANG is necessary to work with Python 3.6
-        env={**env, "LANG": "en_US.UTF-8"},
+        capture_output=True,
+        env=env,
     )
 
     if fail_on_nonzero and output.returncode > 0:
+        print("--- stdout from semgrep process ---")
+        print(output.stdout)
+        print("--- end semgrep stdout ---")
+        print("--- stderr from semgrep process ---")
+        print(output.stderr)
+        print("--- end semgrep stderr ---")
         raise subprocess.CalledProcessError(
             returncode=output.returncode,
-            cmd=cmd,
+            cmd=str_cmd,
             output=output.stdout,
             stderr=output.stderr,
         )
@@ -176,6 +239,19 @@ def chdir(dirname=None):
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+
+    yield _run_semgrep
+
+
+# Needed to test the project-depends-on rules
+# pathlib.glob (and semgrep by extension) do not traverse into symlinks
+# Lockfile targeting begins at the parent of the first semgrep target
+# which in this case is tmp_path, which normally contains only symlinks :/
+@pytest.fixture
+def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
+    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
+    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep

@@ -23,7 +23,7 @@ class VimFormatter(BaseFormatter):
             str(rule_match.start.line),
             str(rule_match.start.col),
             severity[rule_match.severity],
-            rule_match.id,
+            rule_match.rule_id,
             rule_match.message,
         ]
 

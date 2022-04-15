@@ -27,7 +27,7 @@ type visitor_in = {
     (class_definition -> unit) * visitor_out -> class_definition -> unit;
   kinfo : (tok -> unit) * visitor_out -> tok -> unit;
   kid_info : (id_info -> unit) * visitor_out -> id_info -> unit;
-  kconstness : (constness -> unit) * visitor_out -> constness -> unit;
+  ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
 }
 
 (* note that internally the visitor uses OCaml.v_ref_do_not_visit *)
@@ -36,9 +36,15 @@ and visitor_out = any -> unit
 val default_visitor : visitor_in
 
 val mk_visitor :
-  ?vardef_assign:bool -> ?attr_expr:bool -> visitor_in -> visitor_out
+  ?vardef_assign:bool ->
+  ?flddef_assign:bool ->
+  ?attr_expr:bool ->
+  visitor_in ->
+  visitor_out
 (** @param vardef_assign VarDef-Assign equivalence (default is [false])
-    @param attr_expr Attribute-expression equivalence (default is [false]) *)
+    @param flddef_assign FieldDef-Assign equivalence (default is [false])
+    @param attr_expr Attribute-expression equivalence (default is [false])
+*)
 
 (* Note that ii_of_any relies on Visitor_AST which itself
  * uses OCaml.v_ref_do_not_visit, so no need to worry about
@@ -48,7 +54,6 @@ val ii_of_any : AST_generic.any -> Parse_info.t list
 
 (* may raise NoTokenLocation *)
 val first_info_of_any : AST_generic.any -> Parse_info.t
-
 val range_of_tokens : Parse_info.t list -> Parse_info.t * Parse_info.t
 
 val range_of_any_opt :

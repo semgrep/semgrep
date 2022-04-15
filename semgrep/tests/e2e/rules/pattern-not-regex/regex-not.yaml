@@ -2,7 +2,7 @@ rules:
   - id: test-regex
     patterns:
       - pattern-inside: $X == $X
-      - pattern-not-regex: '[Xx]'
+      - pattern-not-regex: "[Xx]"
     message: "test regex message"
     languages: [python]
     severity: ERROR

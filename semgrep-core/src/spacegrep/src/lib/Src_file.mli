@@ -4,7 +4,6 @@
 *)
 
 type t
-
 type source = File of string | Stdin | String | Channel
 
 (*
@@ -13,24 +12,21 @@ type source = File of string | Stdin | String | Channel
    of data.
 *)
 val of_string : ?source:source -> string -> t
-
 val of_channel : ?source:source -> ?max_len:int -> in_channel -> t
-
 val of_stdin : ?source:source -> unit -> t
-
 val of_file : ?source:source -> ?max_len:int -> string -> t
-
 val to_lexbuf : t -> Lexing.lexbuf
-
 val source : t -> source
-
 val show_source : source -> string
-
 val source_string : t -> string
-
 val contents : t -> string
-
 val length : t -> int
+
+(*
+   Replace some of the contents, typically for blanking out comments
+   as part of a preprocessing phase.
+*)
+val replace_contents : t -> (string -> string) -> t
 
 (*
    Extract a specific region specified as

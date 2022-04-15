@@ -3,5 +3,5 @@
     "$X": "0"
   },
   "language": "python",
-  "code": "re.match($X, '0|null|false')"
+  "code": "re.match('0|null|false', $X)"
 }

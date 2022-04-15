@@ -17,9 +17,9 @@
             "line": 6
           },
           "file": "rules/invalid-rules/invalid-missing-top-item.yaml",
-          "source_hash": "b0143677b77e29a9aa6c34af229cde719591be905079ee27fb4e4afc49251997",
+          "source_hash": "c13c6b19cfd4894806c7ef7570919e72f33cb88a77a4aa2fa1fef7c659235e08",
           "start": {
-            "col": 3,
+            "col": 5,
             "line": 2
           }
         }
@@ -29,9 +29,13 @@
     {
       "code": 7,
       "level": "error",
-      "message": "run with --strict and there were 1 errors loading configs",
+      "message": "Ran with --strict and got 1 error while loading configs",
       "type": "SemgrepError"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
   "results": []
 }

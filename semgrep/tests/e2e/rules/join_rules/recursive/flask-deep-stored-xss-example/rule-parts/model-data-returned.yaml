@@ -1,0 +1,13 @@
+rules:
+- id: model-data-returned
+  languages: [python]
+  message: $MODEL,$MODELCALLER
+  severity: INFO
+  mode: taint
+  pattern-sources:
+  - pattern: |
+      def $MODELCALLER(...):
+        ...
+        $MODEL.query.filter_by(...)
+  pattern-sinks:
+  - pattern: return ...

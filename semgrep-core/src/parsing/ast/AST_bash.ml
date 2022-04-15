@@ -29,10 +29,8 @@ type tok = Parse_info.t [@@deriving show]
    code. Each node of the AST has a field that's either a loc or a
    single tok.
 *)
-type loc = tok * tok
-
+type loc = Loc.t
 type 'a wrap = 'a * tok [@@deriving show]
-
 type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (*****************************************************************************)
@@ -114,7 +112,6 @@ type pipeline_bar = Bar | Bar_ampersand
    run in the foreground i.e. synchronously: ';' or '\n' or ';;'
 *)
 type fg_op = Fg_newline | Fg_semi | Fg_semisemi
-
 type unary_control_operator = Foreground of fg_op | (* & *) Background
 
 type write_kind =
@@ -191,8 +188,7 @@ and command =
   | For_loop_c_style of
       (* TODO: represent the loop header: for (( ... )); *)
       loc * blist
-  | Select
-      (* same syntax as For_loop *) of
+  | Select (* same syntax as For_loop *) of
       loc
       * (* select *) tok
       * (* loop variable *)
@@ -336,7 +332,6 @@ and case_clause_terminator =
   | Try_next of (* ;;& *) tok
 
 and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
-
 and else_ = loc * (* else *) tok * blist
 
 (* Declarations and optionally some assignments. Covers things like
@@ -414,6 +409,7 @@ and string_fragment =
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
   | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
+  | Frag_semgrep_named_ellipsis of (* $...X *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -430,7 +426,6 @@ and complex_expansion =
   | Complex_expansion_TODO of loc
 
 and eq_op = EQTILDE of (* "=~" *) tok | EQEQ of (* "==" *) tok
-
 and right_eq_operand = Literal of loc * expression | Regexp of string wrap
 
 and test_expression =
@@ -451,38 +446,6 @@ type program = blist
 (* Extraction of the first token, used for its location info *)
 (*****************************************************************************)
 
-let left_loc_tok (left, right) = if Parse_info.is_fake left then right else left
-
-let right_loc_tok (left, right) =
-  if Parse_info.is_fake right then left else right
-
-(*
-   Form a new location from a leftmost location and a rightmost location.
-   We try to mitigate problems due to fake tokens.
-*)
-let range a b =
-  let start_tok = left_loc_tok a in
-  let end_tok = right_loc_tok b in
-  if Parse_info.is_fake end_tok then (start_tok, start_tok)
-  else if Parse_info.is_fake start_tok then (end_tok, end_tok)
-  else (start_tok, end_tok)
-
-let extend_left new_start_tok (_, end_) : loc = (new_start_tok, end_)
-
-let extend_right (start, _) new_end_tok : loc = (start, new_end_tok)
-
-let unsafe_fake_tok = Parse_info.unsafe_fake_info "fake"
-
-let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
-
-(*
-   Convert a pair (loc, x) to a wrap, which uses a single token to indicate
-   the location of the object in the generic AST.
-*)
-let wrap (loc : loc) x : 'a wrap =
-  let start, _ = loc in
-  (x, start)
-
 (*
    Convert a pair (loc, x) to a bracket, which uses a leading and trailing
    token to indicate the location.
@@ -491,56 +454,8 @@ let bracket (loc : loc) x : 'a bracket =
   let start, end_ = loc in
   (start, x, end_)
 
-let compare_loc (a, _) (b, _) = Parse_info.compare_pos a b
-
-let min_tok tok_a tok_b =
-  if Parse_info.is_fake tok_a then tok_b
-  else if Parse_info.is_fake tok_b then tok_a
-  else if Parse_info.compare_pos tok_a tok_b <= 0 then tok_a
-  else tok_b
-
-let min_loc_tok a b =
-  let tok_a = left_loc_tok a in
-  let tok_b = left_loc_tok b in
-  min_tok tok_a tok_b
-
-let max_tok tok_a tok_b =
-  if Parse_info.is_fake tok_b then tok_a
-  else if Parse_info.is_fake tok_a then tok_b
-  else if Parse_info.compare_pos tok_a tok_b <= 0 then tok_b
-  else tok_a
-
-let max_loc_tok a b =
-  let tok_a = right_loc_tok a in
-  let tok_b = right_loc_tok b in
-  max_tok tok_a tok_b
-
-(*
-   Return the span of two ranges (locations) while trying to eliminate
-   fake positions (fake tokens).
-   If it's known that 'a' starts before 'b' and doesn't overlap,
-   then use 'range' instead.
-*)
-let union_loc a b = (min_loc_tok a b, max_loc_tok a b)
-
-(*
-   Return the span of a list of ranges (locations).
-   The location is extracted with the provided 'get_loc' function.
-*)
-let list_loc get_loc l =
-  match l with
-  | [] -> unsafe_fake_loc
-  | first :: other ->
-      List.fold_left
-        (fun loc x -> union_loc loc (get_loc x))
-        (get_loc first) other
-
-let wrap_tok (_, tok) : tok = tok
-
 let wrap_loc (_, tok) : loc = (tok, tok)
-
 let bracket_loc (start_tok, _, end_tok) : loc = (start_tok, end_tok)
-
 let todo_loc (TODO loc) = loc
 
 let command_loc = function
@@ -565,8 +480,6 @@ let command_loc = function
   | Negated_command (loc, _, _) -> loc
   | Function_definition (loc, _) -> loc
 
-let simple_command_loc (x : simple_command) = x.loc
-
 let pipeline_loc = function
   | Command x -> x.loc
   | Pipeline (loc, _, _, _) -> loc
@@ -576,8 +489,6 @@ let blist_loc = function
   | Seq (loc, _, _) -> loc
   | Pipelines (loc, _) -> loc
   | Empty loc -> loc
-
-let function_definition_loc (x : function_definition) = x.loc
 
 let sh_test_loc (x : sh_test) =
   let open_, _, close = x in
@@ -612,9 +523,7 @@ let else_loc (x : else_) =
   loc
 
 let assignment_loc (x : assignment) = x.loc
-
-let assignment_list_loc (x : assignment list) = list_loc assignment_loc x
-
+let assignment_list_loc (x : assignment list) = Loc.of_list assignment_loc x
 let declaration_loc (x : declaration) = x.loc
 
 let expression_loc = function
@@ -638,6 +547,7 @@ let string_fragment_loc = function
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
   | Frag_semgrep_metavar x -> wrap_loc x
+  | Frag_semgrep_named_ellipsis x -> wrap_loc x
 
 let expansion_loc = function
   | Simple_expansion (loc, _) -> loc
@@ -650,7 +560,6 @@ let variable_name_wrap = function
       x
 
 let variable_name_tok x = variable_name_wrap x |> snd
-
 let variable_name_loc x = variable_name_wrap x |> wrap_loc
 
 let complex_expansion_loc = function
@@ -708,20 +617,20 @@ let concat_blists (x : blist list) : blist =
   | [] ->
       (* TODO: use actual location in the program rather than completely
          fake location *)
-      Empty unsafe_fake_loc
+      Empty Loc.unsafe_fake_loc
   | last_blist :: blists ->
       let end_ = blist_loc last_blist in
       List.fold_left
         (fun acc blist ->
           let start = blist_loc blist in
-          let loc = range start end_ in
+          let loc = Loc.range start end_ in
           Seq (loc, blist, acc))
         last_blist blists
 
 let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
     cmd_redir =
-  let all_locs = cmd_r.loc :: List.map redirect_loc redirects in
-  let loc = list_loc (fun loc -> loc) all_locs in
+  let all_locs = cmd_r.loc :: Common.map redirect_loc redirects in
+  let loc = Loc.of_list (fun loc -> loc) all_locs in
   { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
 
 let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
@@ -729,11 +638,11 @@ let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
   | Command cmd_r -> Command (add_redirects_to_command cmd_r redirects)
   | Pipeline (loc, pip, bar, cmd_r) ->
       let cmd_r = add_redirects_to_command cmd_r redirects in
-      let loc = range loc cmd_r.loc in
+      let loc = Loc.range loc cmd_r.loc in
       Pipeline (loc, pip, bar, cmd_r)
   | Control_operator (loc, pip, op) ->
       let pip = add_redirects_to_last_command_of_pipeline pip redirects in
-      let loc = range loc (pipeline_loc pip) in
+      let loc = Loc.range loc (pipeline_loc pip) in
       Control_operator (loc, pip, op)
 
 let rec first_command_of_pipeline pip :

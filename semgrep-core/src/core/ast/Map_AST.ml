@@ -100,8 +100,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v2 = map_of_int v2 in
     (v1, v2)
   and map_resolved_name_kind = function
-    | Local -> Local
-    | Param -> Param
+    | LocalVar -> LocalVar
+    | Parameter -> Parameter
     | EnclosedVar -> EnclosedVar
     | Global -> Global
     | ImportedEntity v1 ->
@@ -113,6 +113,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
+    | ResolvedName v1 ->
+        let v1 = map_dotted_ident v1 in
+        ResolvedName v1
   and map_name_info
       {
         name_last = v1;
@@ -136,10 +139,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | {
        id_resolved = v_id_resolved;
        id_type = v_id_type;
-       id_constness = v3;
+       id_svalue = v3;
        id_hidden;
+       id_info_id;
       } ->
-          let v3 = map_of_ref (map_of_option map_constness) v3 in
+          let v3 = map_of_ref (map_of_option map_svalue) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
           let v_id_resolved =
             map_of_ref (map_of_option map_resolved_name) v_id_resolved
@@ -148,8 +152,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
           {
             id_resolved = v_id_resolved;
             id_type = v_id_type;
-            id_constness = v3;
+            id_svalue = v3;
             id_hidden;
+            id_info_id;
           }
     in
     vin.kidinfo (k, all_functions) v
@@ -207,6 +212,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let k x =
       let ekind =
         match x.e with
+        | ParenExpr v1 ->
+            let v1 = map_bracket map_expr v1 in
+            ParenExpr v1
         | N v1 ->
             let v1 = map_name v1 in
             N v1
@@ -251,6 +259,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | Call (v1, v2) ->
             let v1 = map_expr v1 and v2 = map_arguments v2 in
             Call (v1, v2)
+        | New (v1, v2, v3) ->
+            let v1 = map_tok v1
+            and v2 = map_type_ v2
+            and v3 = map_arguments v3 in
+            New (v1, v2, v3)
         | Assign (v1, v2, v3) ->
             let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
             Assign (v1, v2, v3)
@@ -301,6 +314,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let t = map_tok t in
             let v1 = map_expr v1 in
             DeRef (t, v1)
+        | Alias ((str, t), v1) ->
+            let t = map_tok t in
+            let v1 = map_expr v1 in
+            Alias ((str, t), v1)
         | Ellipsis v1 ->
             let v1 = map_tok v1 in
             Ellipsis v1
@@ -397,13 +414,16 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Cint -> Cint
     | Cstr -> Cstr
     | Cany -> Cany
-  and map_constness = function
+  and map_svalue = function
     | Lit v1 ->
         let v1 = map_literal v1 in
         Lit v1
     | Cst v1 ->
         let v1 = map_const_type v1 in
         Cst v1
+    | Sym v1 ->
+        let v1 = map_expr v1 in
+        Sym v1
     | NotCst -> NotCst
   and map_container_operator x = x
   and map_special x =
@@ -418,7 +438,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Typeof
     | Instanceof
     | Sizeof
-    | New
     | Spread
     | HashSplat
     | NextArrayIndex
@@ -449,16 +468,18 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_type_ v1 in
         ArgType v1
     | ArgKwd (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_expr v2 in
+        let v1 = map_ident v1 in
+        let v2 = map_expr v2 in
         ArgKwd (v1, v2)
+    | ArgKwdOptional (v1, v2) ->
+        let v1 = map_ident v1 in
+        let v2 = map_expr v2 in
+        ArgKwdOptional (v1, v2)
     | OtherArg (v1, v2) ->
         let v1 = map_other_argument_operator v1
         and v2 = map_of_list map_any v2 in
         OtherArg (v1, v2)
   and map_other_argument_operator x = x
-  and map_action (v1, v2) =
-    let v1 = map_pattern v1 and v2 = map_expr v2 in
-    (v1, v2)
   and map_type_ { t; t_attrs } =
     let t = map_type_kind t in
     let t_attrs = map_of_list map_attribute t_attrs in
@@ -481,9 +502,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v2 = map_tok v2 in
         let v3 = map_type_ v3 in
         TyAnd (v1, v2, v3)
-    | TyBuiltin v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        TyBuiltin v1
     | TyFun (v1, v2) ->
         let v1 = map_of_list map_parameter v1 and v2 = map_type_ v2 in
         TyFun (v1, v2)
@@ -568,10 +586,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let k x =
       let skind =
         match x.s with
-        | Match (v0, v1, v2) ->
-            let v0 = map_tok v0 in
-            let v1 = map_expr v1 and v2 = map_of_list map_action v2 in
-            Match (v0, v1, v2)
         | DisjStmt (v1, v2) ->
             let v1 = map_stmt v1 in
             let v2 = map_stmt v2 in
@@ -716,6 +730,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = map_catch_exn v1 and v2 = map_stmt v2 in
     (t, v1, v2)
   and map_catch_exn = function
+    | OtherCatch (v1, v2) ->
+        let v1 = map_todo_kind v1 in
+        let v2 = map_of_list map_any v2 in
+        OtherCatch (v1, v2)
     | CatchPattern v1 ->
         let v1 = map_pattern v1 in
         CatchPattern v1
@@ -885,6 +903,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_macroparams = map_of_list map_ident v_macroparams in
     { macroparams = v_macroparams; macrobody = v_macrobody }
   and map_type_parameter = function
+    | TParamEllipsis v1 ->
+        let v1 = map_tok v1 in
+        TParamEllipsis v1
     | TP v1 ->
         let v1 = map_type_parameter_classic v1 in
         TP v1
@@ -1121,6 +1142,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | Xmls v1 ->
+        let v1 = map_of_list map_xml_body v1 in
+        Xmls v1
+    | ForOrIfComp v1 ->
+        let v1 = map_for_or_if_comp v1 in
+        ForOrIfComp v1
     | Tp v1 ->
         let v1 = map_type_parameter v1 in
         Tp v1
@@ -1139,6 +1166,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Args v1 ->
         let v1 = map_of_list map_argument v1 in
         Args v1
+    | Params v1 ->
+        let v1 = map_of_list map_parameter v1 in
+        Params v1
     | Flds v1 ->
         let v1 = map_of_list map_field v1 in
         Flds v1
@@ -1225,23 +1255,28 @@ let (mk_visitor : visitor_in -> visitor_out) =
 (* Fix token locations *)
 (*****************************************************************************)
 
+(* Fix token locations to "relocate" a sub-AST. *)
 let mk_fix_token_locations fix =
   mk_visitor
     {
-      default_visitor with
+      kidinfo =
+        (fun (_k, _vout) ii ->
+          (* The id_info contains locations that should not be modified, and they
+           * are likely outside the sub-AST of interest anyways. *)
+          ii);
       kexpr =
         (fun (k, _) e ->
           k
             {
               e with
-              e_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) e.e_range;
+              e_range = Option.map (fun (x, y) -> (fix x, fix y)) e.e_range;
             });
       kstmt =
         (fun (k, _) s ->
           k
             {
               s with
-              s_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) s.s_range;
+              s_range = Option.map (fun (x, y) -> (fix x, fix y)) s.s_range;
             });
       kinfo = (fun (_, _) t -> Parse_info.fix_token_location fix t);
     }

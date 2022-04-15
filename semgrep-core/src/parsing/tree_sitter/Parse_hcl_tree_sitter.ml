@@ -19,6 +19,7 @@ module H = Parse_tree_sitter_helpers
 open AST_generic
 module G = AST_generic
 module H2 = AST_generic_helpers
+module Loc = Tree_sitter_run.Loc
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,7 +38,6 @@ module H2 = AST_generic_helpers
 type env = unit H.env
 
 let token = H.token
-
 let str = H.str
 
 (* for list/dict comprehensions *)
@@ -48,7 +48,7 @@ let pattern_of_ids ids =
   | [ id ] -> PatId (id, empty_id_info ()) |> G.p
   | _ ->
       let xs =
-        ids |> List.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
+        ids |> Common.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
       in
       PatTuple (fake_bracket xs) |> G.p
 
@@ -83,18 +83,43 @@ let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
       let x = str env tok in
       H.parse_number_literal x
 
+(* This is supposed to be a string, but we get a list of non-whitespace
+ * characters ('template_literal_chunk's or 'Token.t's), so we need to
+ * reconstruct the string from them.
+ *
+ * Note that we need to respect newlines and spaces so that HEREDOCs are
+ * correctly parsed, this is important e.g. if you later want to
+ * analyze the string with metavariable-regex or metavariable-pattern
+ * (see tests/OTHER/rules/terraform_nested_yaml).
+ *
+ * TODO: Could we handle this properly already in the Tree-sitter parser? *)
 let map_template_literal (env : env) (xs : CST.template_literal) :
     string wrap option =
-  (* each character is a separate template_literal_chunk, so we need
-   * to merge them in a single string.
-   *)
-  let xs = List.map (str env (* template_literal_chunk *)) xs in
   match xs with
   | [] -> None
-  | (s1, t1) :: ys ->
-      let str = List.map fst ys |> String.concat "" in
-      let toks = List.map snd ys in
-      Some (s1 ^ str, PI.combine_infos t1 toks)
+  | ((x_pos, x_str) as x) :: xs ->
+      let base_col = x_pos.Loc.start.column in
+      let rec concat_chunks acc_str prev_row prev_col xs =
+        match xs with
+        | [] -> acc_str
+        | x :: xs ->
+            let x_loc, x_str = x in
+            let prev_col =
+              if x_loc.Loc.start.row > prev_row then base_col else prev_col
+            in
+            let acc_str =
+              acc_str
+              ^ String.make (max 0 (x_loc.Loc.start.row - prev_row)) '\n'
+              ^ String.make (max 0 (x_loc.Loc.start.column - prev_col)) ' '
+              ^ x_str
+            in
+            concat_chunks acc_str x_loc.Loc.end_.row x_loc.Loc.end_.column xs
+      in
+      let str =
+        concat_chunks x_str x_pos.Loc.end_.row x_pos.Loc.end_.column xs
+      in
+      let tok = PI.rewrap_str str (token env x) in
+      Some (str, tok)
 
 let map_identifier (env : env) (x : CST.identifier) : ident =
   match x with
@@ -137,7 +162,7 @@ and map_anon_choice_temp_lit_c764a73 (env : env)
   match x with
   | `Temp_lit x ->
       let sopt = map_template_literal env x in
-      sopt |> Common.opt_to_list |> List.map (fun s -> Left3 s)
+      sopt |> Option.to_list |> Common.map (fun s -> Left3 s)
   | `Temp_interp (v1, v2, v3, v4, v5) ->
       let v1 = (* template_interpolation_start *) token env v1 in
       (* TODO: what is this ~? *)
@@ -354,7 +379,7 @@ and map_function_arguments (env : env) ((v1, v2, v3) : CST.function_arguments) :
     argument list =
   let v1 = map_expression env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -430,7 +455,7 @@ and map_object_elem (env : env) (x : CST.object_elem) : field =
 and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
   let v1 = map_object_elem env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 =
           match v1 with
@@ -470,7 +495,7 @@ and map_splat (env : env) (x : CST.splat) =
         let access = FDynamic (IdSpecial (HashSplat, v1) |> G.e) in
         DotAccess (e, v1, access) |> G.e
       in
-      let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
+      let v2 = Common.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
   | `Full_splat (v1, v2) ->
       let v1 = (* "[*]" *) token env v1 in
@@ -478,7 +503,7 @@ and map_splat (env : env) (x : CST.splat) =
         let access = IdSpecial (HashSplat, v1) |> G.e in
         ArrayAccess (e, (v1, access, v1)) |> G.e
       in
-      let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
+      let v2 = Common.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
 
 and map_template_expr (env : env) (x : CST.template_expr) =
@@ -487,8 +512,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
       let v1 = (* quoted_template_start *) token env v1 in
       let v2 =
         match v2 with
-        | Some xs ->
-            List.map (map_anon_choice_temp_lit_c764a73 env) xs |> List.flatten
+        | Some xs -> List.concat_map (map_anon_choice_temp_lit_c764a73 env) xs
         | None -> []
       in
       let v3 = (* quoted_template_end *) token env v3 in
@@ -498,8 +522,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
       let v2 = (* heredoc_identifier *) token env v2 in
       let v3 =
         match v3 with
-        | Some xs ->
-            List.map (map_anon_choice_temp_lit_c764a73 env) xs |> List.flatten
+        | Some xs -> List.concat_map (map_anon_choice_temp_lit_c764a73 env) xs
         | None -> []
       in
       let v4 = (* heredoc_identifier *) token env v4 in
@@ -509,7 +532,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
 and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   let v1 = map_expression env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -531,12 +554,14 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
   let def = { vinit = Some v3; vtype = None } in
   (ent, VarDef def)
 
-(* TODO? convert to a definition? a class_def? *)
+(* TODO? convert to a definition? a class_def?
+ * coupling: Constant_propagation.terraform_stmt_to_vardefs
+ *)
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
-  let v1 = (* identifier *) map_identifier env v1 in
-  let v2 =
-    List.map
+  let id = (* identifier *) map_identifier env v1 in
+  let args_id =
+    Common.map
       (fun x ->
         match x with
         | `Str_lit x ->
@@ -548,29 +573,39 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
             N n |> G.e)
       v2
   in
-  let v3 = (* "{" *) token env v3 in
-  let v4 =
+  let lb = (* "{" *) token env v3 in
+  let body =
     match v4 with
     | Some x -> map_body env x
     | None -> []
   in
-  let v5 = (* "}" *) token env v5 in
+  let rb = (* "}" *) token env v5 in
 
-  let n = H2.name_of_id v1 in
+  let n = H2.name_of_id id in
   (* convert in a Record like map_object *)
-  let flds = v4 in
-  let body = Record (v3, flds, v5) |> G.e in
-  let es = [ N n |> G.e ] @ v2 @ [ body ] in
-  let args = es |> List.map G.arg in
-  (* TODO? convert in something else? *)
-  let special = IdSpecial (New, snd v1) |> G.e in
-  G.Call (special, fake_bracket args) |> G.e
+  let flds = body in
+  let body = Record (lb, flds, rb) |> G.e in
+  let es = args_id @ [ body ] in
+  let args = es |> Common.map G.arg in
+  (* coupling: if you modify this code, you should adjust
+   * Constant_propagation.terraform_stmt_to_vardefs.
+   * bugfix: I used to transform that in a New (..., TyN n, ...) but
+   * lots of terraform rules are using some
+   *   pattern-inside: resource ... {}
+   *   pattern: resource
+   * and the second pattern is parsed as an expression which would not
+   * match the TyN.
+   * TODO? convert in something else?
+   * TODO: should we use something else than Call since it's already used
+   * for expressions in map_expr_term() above?
+   *)
+  G.Call (N n |> G.e, fake_bracket args) |> G.e
 
 (* We convert to a field, to be similar to map_object_, so some
  * patterns like 'a=1 ... b=2' can match block body as well as objects.
  *)
 and map_body (env : env) (xs : CST.body) : field list =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Attr x ->
@@ -584,9 +619,13 @@ and map_body (env : env) (xs : CST.body) : field list =
           G.fieldEllipsis t)
     xs
 
-(* almost copy-paste of map_body above, but returing statements *)
+(* almost copy-paste of map_body above, but returning statements
+ * TODO? we could transform the 'locals' and 'variable' blocks
+ * in regular VarDefs instead of doing it later in
+ * Constant_propagation.terraform_stmt_to_vardefs?
+ *)
 and map_body_top (env : env) (xs : CST.body) : stmt list =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | `Attr x ->

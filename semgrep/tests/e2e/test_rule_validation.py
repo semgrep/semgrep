@@ -4,12 +4,14 @@ from subprocess import CalledProcessError
 import pytest
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "rule,target",
     [
         ("rules/invalid-rules/invalid-metavariable-regex.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-pattern-child.yaml", "basic/stupid.py"),
         ("rules/invalid-rules/invalid-missing-top-item.yaml", "basic/stupid.py"),
+        ("rules/invalid-rules/invalid-pattern.yaml", "basic/stupid.py"),
     ],
 )
 def test_validation_of_invalid_rules(run_semgrep_in_tmp, snapshot, rule, target):

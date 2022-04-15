@@ -1,12 +1,12 @@
 rules:
-- id: bad
-  message: |
-    bad rule file; cannot use 'pattern' with language 'regex'
-  languages:
-  - regex
-  paths:
-    include:
-    - "*.html"
-  severity: WARNING
-  patterns:
-  - pattern: $X
+  - id: bad
+    message: |
+      bad rule file; cannot use 'pattern' with language 'regex'
+    languages:
+      - regex
+    paths:
+      include:
+        - "*.html"
+    severity: WARNING
+    patterns:
+      - pattern: $X

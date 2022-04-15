@@ -5,7 +5,5 @@
 *)
 
 let test_suites : unit Alcotest.test list = [ Matcher.test ]
-
 let main () = Alcotest.run "toy-matcher" test_suites
-
 let () = main ()

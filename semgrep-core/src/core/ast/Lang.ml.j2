@@ -1,0 +1,116 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2019-2021 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+module FT = File_type
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+[@@ocamlformat "disable"]
+
+type t =
+{% for item in langs %}  | {{ item.id }}
+{% endfor %}
+
+[@@deriving show { with_path = false }, eq]
+
+let is_js = function
+{% for item in langs %}{% if "is_js" in item.tags %}  | {{ item.id }}
+{% endif %}{% endfor %}  -> true
+  | _ -> false
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let assoc =
+  [
+{% for item in langs %}{% for key in item.keys %}    ("{{ key }}", {{ item.id }});
+{% endfor %}{% endfor %}  ]
+
+let lang_map = Common.hash_of_list assoc
+
+let lang_of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
+
+let keys = Common2.hkeys lang_map
+
+let supported_langs : string = String.concat ", " keys
+
+(* TODO: move file identification to lang.json *)
+let langs_of_filename filename =
+  let typ = File_type.file_type_of_file filename in
+  match typ with
+  | FT.PL (FT.Web FT.Js) -> [ Js ] (* Add TypeScript too? *)
+  | FT.PL (FT.Web FT.TypeScript) -> [ Ts ]
+  | FT.PL (FT.Web FT.Vue) -> [ Vue ]
+  | FT.PL FT.Python -> [ Python; Python2; Python3 ]
+  (* .h could also be Cpp at some point *)
+  | FT.PL (FT.C "c") -> [ C ]
+  | FT.PL (FT.C "h") -> [ C; Cpp ]
+  | FT.PL (FT.Cplusplus _) -> [ Cpp ]
+  | FT.PL (FT.OCaml ("ml" | "mli")) -> [ Ocaml ]
+  | FT.PL FT.Java -> [ Java ]
+  | FT.PL FT.Go -> [ Go ]
+  | FT.Config FT.Json -> [ Json ]
+  | FT.Config FT.Yaml -> [ Yaml ]
+  | FT.Config FT.HCL -> [ Hcl ]
+  | FT.PL FT.Ruby -> [ Ruby ]
+  | FT.PL FT.Csharp -> [ Csharp ]
+  | FT.PL (FT.Web (FT.Php _)) -> [ Php ]
+  | FT.PL (FT.Web FT.Hack) -> [ Hack ]
+  | FT.PL FT.Kotlin -> [ Kotlin ]
+  | FT.PL FT.Lua -> [ Lua ]
+  | FT.PL (FT.Script "bash") -> [ Bash ]
+  | FT.PL FT.Rust -> [ Rust ]
+  | FT.PL FT.R -> [ R ]
+  | FT.PL FT.Scala -> [ Scala ]
+  | FT.PL (FT.Web FT.Html) -> [ Html ]
+  | _ -> []
+
+let to_string = function
+{% for item in langs %}  | {{ item.id }} -> "{{ item.name }}"
+{% endfor %}
+
+(* must match [a-z][a-z0-9]* *)
+let to_lowercase_alnum = function
+{% for item in langs %}  | {{ item.id }} -> "{{ item.id }}"
+{% endfor %}
+
+(*
+   Exclusive file extensions for the language. See mli.
+*)
+let ext_of_lang = function
+{% for item in langs %}  | {{ item.id }} -> [ "{{ item.exts | join('"; "') }}" ]
+{% endfor %}
+
+let excluded_exts_of_lang = function
+{% for item in langs %}{% if item.excluded_exts | length > 0 %}  | {{ item.id }} -> [ "{{ item.excluded_exts | join('"; "') }}" ]
+{% else %}  | {{ item.id }} -> []
+{% endif %}{% endfor %}
+
+let shebangs_of_lang = function
+{% for item in langs %}{% if item.shebangs | length > 0 %}  | {{ item.id }} -> [ "{{ item.shebangs | join('"; "') }}" ]
+{% else %}  | {{ item.id }} -> []
+{% endif %}{% endfor %}
+
+let unsupported_language_message lang =
+  if lang = "unset" then "no language specified; use -lang"
+  else
+    Common.spf "unsupported language: %s; supported language tags are: %s" lang
+      supported_langs

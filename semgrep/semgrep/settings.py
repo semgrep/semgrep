@@ -53,12 +53,12 @@ class Settings:
     @staticmethod
     def get_path_to_settings() -> Path:
         """
-        Uses ~/.semgrep/settings.yaml unless SEMGREP_SETTINGS_FILE is set
+        Uses {$XDG_CONFIG_HOME/semgrep || ~/.semgrep}/settings.yaml unless SEMGREP_SETTINGS_FILE is set
         """
         if SEMGREP_SETTINGS_FILE:
             return Path(SEMGREP_SETTINGS_FILE)
 
-        return Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
+        return USER_DATA_FOLDER / SETTINGS_FILE
 
     def add_setting(self, key: str, value: Any) -> None:
         """
@@ -67,6 +67,9 @@ class Settings:
         :param value: The settings object
         """
         self._value[key] = value
+        self._write_settings()
+
+    def _write_settings(self) -> None:
         try:
             if not self._path.parent.exists():
                 self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -77,6 +80,16 @@ class Settings:
 
     def get_setting(self, key: str, *, default: Any) -> Any:
         return self._value.get(key, default)
+
+    def delete_setting(self, key: str) -> None:
+        """
+        Deletes key KEY from settings file if it exists
+
+        Noop otherwise
+        """
+        if key in self._value:
+            del self._value[key]
+            self._write_settings()
 
 
 SETTINGS = Settings()

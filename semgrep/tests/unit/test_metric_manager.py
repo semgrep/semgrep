@@ -14,6 +14,7 @@ from semgrep.profiling import Times
 from semgrep.types import MetricsState
 
 
+@pytest.mark.quick
 def test_configs_hash() -> None:
     metric_manager.set_configs_hash(["p/r2c"])
     old = metric_manager._configs_hash
@@ -30,6 +31,7 @@ def test_configs_hash() -> None:
     assert metric_manager._configs_hash != old
 
 
+@pytest.mark.quick
 def test_rules_hash() -> None:
     config1 = dedent(
         """
@@ -74,6 +76,7 @@ def test_rules_hash() -> None:
     assert old_hash != old_hash_2
 
 
+@pytest.mark.quick
 def test_send() -> None:
     """
     Check that no network does not cause failures
@@ -98,6 +101,7 @@ def test_send() -> None:
     metric_manager.send()
 
 
+@pytest.mark.quick
 def test_timings(snapshot) -> None:
     config1 = dedent(
         """
@@ -133,7 +137,7 @@ def test_timings(snapshot) -> None:
     with patch.object(Path, "stat") as stat_mock:
         m = MagicMock()
         # Note this mock is a little fragile and assumes st_size is called twice
-        # once in set_run_times then once in set_run_timings and assumes that
+        # once in set_file_times then once in set_run_timings and assumes that
         # it will be called for target[0] then target[1] then target[0] then target[1]
         type(m).st_size = PropertyMock(side_effect=[1, 2, 1, 2])
         stat_mock.return_value = m
@@ -141,41 +145,33 @@ def test_timings(snapshot) -> None:
         targets = [Path("a"), Path("b")]
 
         profiling_data = ProfilingData()
-        profiling_data.set_run_times(
-            rule1,
-            targets[0],
-            Times(match_time=0.2, run_time=0.4, parse_time=0.3),
-        )
-        profiling_data.set_run_times(
-            rule2,
-            targets[1],
-            Times(match_time=1.2, run_time=1.4, parse_time=0.2),
-        )
-        profiling_data.set_rule_parse_time(rule1, 0.05)
-        profiling_data.set_rule_parse_time(rule2, 0.04)
+
+        target_a_time = {
+            rule1: Times(match_time=0.2, parse_time=0.3),
+        }
+        target_b_time = {
+            rule2: Times(match_time=1.2, parse_time=0.2),
+        }
+        profiling_data.set_file_times(targets[0], target_a_time, 0.4)
+        profiling_data.set_file_times(targets[1], target_b_time, 1.4)
+        profiling_data.set_rules_parse_time(0.09)
 
         metric_manager.set_run_timings(profiling_data, targets, rules)
 
     assert metric_manager._rule_stats == [
         {
             "ruleHash": "720c14cd416c021bc45d6db0689dd0eb54d1d062bf9f446f85dae0cb5d1438c0",
-            "parseTime": 0.05,
             "matchTime": 0.2,
-            "runTime": 0.4,
             "bytesScanned": 1,
         },
         {
             "ruleHash": "a5360bb56a3b0a3c33c1bb2b6e7d6465e9a246ccb8940bc05710bc5b35a43e30",
-            "parseTime": 0.04,
             "matchTime": 1.2,
-            "runTime": 1.4,
             "bytesScanned": 2,
         },
         {
             "ruleHash": "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
-            "parseTime": 0.0,
             "matchTime": None,
-            "runTime": None,
             "bytesScanned": 0,
         },
     ]
@@ -197,6 +193,7 @@ def test_timings(snapshot) -> None:
     ]
 
 
+@pytest.mark.quick
 def test_project_hash():
     metric_manager.set_project_hash("https://foo.bar.com/org/project.git")
     no_username_password = metric_manager._project_hash

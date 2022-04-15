@@ -1,13 +1,12 @@
-import contextlib
 import pathlib
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
-from typing import Generator
 from typing import IO
 from typing import List
 from typing import Mapping
@@ -17,7 +16,8 @@ from typing import Sequence
 from typing import Set
 from typing import Type
 
-from semgrep import config_resolver
+from semgrep.commands.login import Authentication
+from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -26,20 +26,27 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
+from semgrep.formatter.gitlab_sast import GitlabSastFormatter
+from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.metric_manager import metric_manager
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
+from semgrep.target_manager import FileTargetingLog
+from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
+from semgrep.util import partition
 from semgrep.util import terminal_wrap
+from semgrep.util import unit_str
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -48,6 +55,8 @@ logger = getLogger(__name__)
 
 FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,
+    OutputFormat.GITLAB_SAST: GitlabSastFormatter,
+    OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
     OutputFormat.JSON: JsonFormatter,
     OutputFormat.JUNIT_XML: JunitXmlFormatter,
     OutputFormat.SARIF: SarifFormatter,
@@ -83,11 +92,15 @@ def _build_time_target_json(
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
     target_json["parse_times"] = [timing.parse_time for timing in timings]
     target_json["match_times"] = [timing.match_time for timing in timings]
-    target_json["run_times"] = [timing.run_time for timing in timings]
+    target_json["run_time"] = profiling_data.get_file_run_time(target)
 
     return target_json
 
 
+# coupling: if you change the JSON schema below, you probably need to
+# also modify perf/run-benchmarks. Run locally
+#    $ ./run-benchmarks --dummy --upload
+# to double check everything still works
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
@@ -106,10 +119,8 @@ def _build_time_json(
     # this list of all rules names is given here so they don't have to be
     # repeated for each target in the 'targets' field, saving space.
     time_info["rules"] = [{"id": rule.id} for rule in rules]
-    time_info["rule_parse_info"] = [
-        profiling_data.get_rule_parse_time(rule) for rule in rules
-    ]
-    time_info["total_time"] = profiler.calls["total_time"][0] if profiler else -1.0
+    time_info["rules_parse_time"] = profiling_data.get_rules_parse_time()
+    time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
         _build_time_target_json(rules, target, num_bytes, profiling_data)
@@ -134,20 +145,6 @@ class OutputSettings(NamedTuple):
     json_stats: bool = False
     output_time: bool = False
     timeout_threshold: int = 0
-
-
-@contextlib.contextmanager
-def managed_output(output_settings: OutputSettings) -> Generator:
-    """
-    Context manager to capture uncaught exceptions &
-    """
-    output_handler = OutputHandler(output_settings)
-    try:
-        yield output_handler
-    except Exception as ex:
-        output_handler.handle_unhandled_exception(ex)
-    finally:
-        output_handler.close()
 
 
 class OutputHandler:
@@ -175,8 +172,6 @@ class OutputHandler:
         self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
-        self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
-        self.stats_line: Optional[str] = None
         self.all_targets: Set[Path] = set()
         self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
@@ -206,16 +201,19 @@ class OutputHandler:
             ):
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
-                assert err.rule_id  # Always defined for timeout errors
-                timeout_errors[err.path].append(err.rule_id)
+
+                if not err.rule_id:
+                    timeout_errors[err.path].append("<unknown rule_id>")
+                else:
+                    timeout_errors[err.path].append(err.rule_id)
             else:
-                self.handle_semgrep_error(err)
+                self._handle_semgrep_error(err)
 
         if timeout_errors and self.settings.output_format == OutputFormat.TEXT:
             t_errors = dict(timeout_errors)  # please mypy
-            self.handle_semgrep_timeout_errors(t_errors)
+            self._handle_semgrep_timeout_errors(t_errors)
 
-    def handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
+    def _handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
         self.has_output = True
         separator = ", "
         print_threshold_hint = False
@@ -228,17 +226,17 @@ class OutputHandler:
             print_threshold_hint = print_threshold_hint or (
                 num_errs > 5 and not self.settings.timeout_threshold
             )
-            logger.error(with_color("red", terminal_wrap(error_msg)))
+            logger.error(with_color(Colors.red, terminal_wrap(error_msg)))
 
         if print_threshold_hint:
             logger.error(
                 with_color(
-                    "red",
+                    Colors.red,
                     f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
                 )
             )
 
-    def handle_semgrep_error(self, error: SemgrepError) -> None:
+    def _handle_semgrep_error(self, error: SemgrepError) -> None:
         """
         Reports generic exceptions that extend SemgrepError
         """
@@ -249,92 +247,56 @@ class OutputHandler:
             if self.settings.output_format == OutputFormat.TEXT and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
-                logger.error(with_color("red", str(error)))
+                logger.error(with_color(Colors.red, str(error)))
 
-    def handle_semgrep_core_output(
+    def _final_raise(self, ex: Optional[Exception]) -> None:
+        if ex is None:
+            return
+        if isinstance(ex, SemgrepError):
+            if ex.level == Level.ERROR:
+                raise ex
+            elif self.settings.strict:
+                raise ex
+        else:
+            raise ex
+
+    def output(
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
-        stats_line: str,
         all_targets: Set[Path],
-        profiler: ProfileManager,
         filtered_rules: List[Rule],
-        profiling_data: ProfilingData,  # (rule, target) -> duration
-        severities: Optional[Collection[RuleSeverity]],
+        ignore_log: Optional[FileTargetingLog] = None,
+        profiler: Optional[ProfileManager] = None,
+        profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
+        severities: Optional[Collection[RuleSeverity]] = None,
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
-        self.rule_matches += [
+        self.rule_matches = [
             match
             for matches_of_one_rule in rule_matches_by_rule.values()
             for match in matches_of_one_rule
         ]
         self.profiler = profiler
         self.all_targets = all_targets
-        self.stats_line = stats_line
-        self.debug_steps_by_rule.update(debug_steps_by_rule)
         self.filtered_rules = filtered_rules
-        self.profiling_data = profiling_data
+
+        if ignore_log:
+            self.ignore_log = ignore_log
+        else:
+            # ignore log was not created, so the run failed before it even started
+            # create a fake log to track the errors
+            self.ignore_log = FileTargetingLog(TargetManager(["."]))
+
+        if profiling_data:
+            self.profiling_data = profiling_data
         if severities:
             self.severities = severities
 
-    def handle_unhandled_exception(self, ex: Exception) -> None:
-        """
-        This is called by the context manager upon an unhandled exception. If you want to record a final
-        error & set the exit code, but keep executing to perform cleanup tasks, call this method.
-        """
-
-        if isinstance(ex, SemgrepError):
-            self.handle_semgrep_error(ex)
-        self.final_error = ex
-
-    def final_raise(self, ex: Optional[Exception], error_stats: Optional[str]) -> None:
-        if ex is None:
-            return
-        if isinstance(ex, SemgrepError):
-            if ex.level == Level.ERROR:
-                raise ex
-            else:
-                if self.settings.strict:
-                    raise ex
-                logger.info(
-                    terminal_wrap(
-                        f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
-                    )
-                )
-        else:
-            raise ex
-
-    def close(self) -> None:
-        """
-        Close the output handler.
-
-        This will write any output that hasn't been written so far. It returns
-        the exit code of the program.
-        """
-        if self.has_output:
-            output = self.build_output(
-                self.settings.output_destination is None and self.stdout.isatty(),
-                self.settings.output_per_finding_max_lines_limit,
-                self.settings.output_per_line_max_chars_limit,
-            )
-            if output:
-                try:
-                    print(output, file=self.stdout)
-                except UnicodeEncodeError as ex:
-                    raise Exception(
-                        "Received output encoding error, please set PYTHONIOENCODING=utf-8"
-                    ) from ex
-            if self.stats_line:
-                logger.info(self.stats_line)
-
-            if self.settings.output_destination:
-                self.save_output(self.settings.output_destination, output)
-
         final_error = None
-        error_stats = None
         any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
+
         if self.final_error:
             final_error = self.final_error
         elif any_findings_not_ignored and self.settings.error_on_findings:
@@ -342,31 +304,72 @@ class OutputHandler:
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
         elif self.semgrep_structured_errors:
-            # make a simplifying assumption that # errors = # files failed
-            # it's a quite a bit of work to simplify further because errors may or may not have path, span, etc.
-            num_errors = len(self.semgrep_structured_errors)
-            plural = "s" if num_errors > 1 else ""
-            error_stats = f"found problems analyzing {num_errors} file{plural}"
+            # Assumption: only the semgrep core errors pertain to files; if there are other
+            # errors, they didn't affect the whether files were analyzed, but were a different
+            # kind of error (for example, baseline commit not found)
+            semgrep_core_errors = [
+                cast(SemgrepCoreError, err)
+                for err in self.semgrep_structured_errors
+                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+            ]
+            paths = {err.path for err in semgrep_core_errors}
             final_error = self.semgrep_structured_errors[-1]
-        self.final_raise(final_error, error_stats)
+            self.ignore_log.failed_to_analyze.update(paths)
 
-    @classmethod
-    def save_output(cls, destination: str, output: str) -> None:
-        if is_url(destination):
-            cls.post_output(destination, output)
-        else:
-            if Path(destination).is_absolute():
-                save_path = Path(destination)
+        if self.has_output:
+            output = self._build_output()
+            if self.settings.output_destination:
+                self._save_output(self.settings.output_destination, output)
             else:
-                base_path = config_resolver.get_base_path()
-                save_path = base_path.joinpath(destination)
+                if output:
+                    try:
+                        print(output, file=self.stdout)
+                    except UnicodeEncodeError as ex:
+                        raise Exception(
+                            "Received output encoding error, please set PYTHONIOENCODING=utf-8"
+                        ) from ex
+
+        if self.filtered_rules:
+            fingerprint_matches, regular_matches = partition(
+                lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
+            )
+            num_findings = len(regular_matches)
+            num_fingerprint_findings = len(fingerprint_matches)
+            num_targets = len(self.all_targets)
+            num_rules = len(self.filtered_rules)
+
+            ignores_line = str(ignore_log or "No ignore information available")
+            if (
+                num_findings == 0
+                and num_targets > 0
+                and num_rules > 0
+                and metric_manager.get_is_using_server()
+                and Authentication.get_token() is None
+            ):
+                suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
+            else:
+                suggestion_line = ""
+            stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+            auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
+            if ignore_log is not None:
+                logger.verbose(ignore_log.verbose_output())
+            output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
+            output_text += "\n" + auto_line if num_fingerprint_findings else ""
+            logger.info(output_text)
+
+        self._final_raise(final_error)
+
+    def _save_output(self, destination: str, output: str) -> None:
+        if is_url(destination):
+            self._post_output(destination, output)
+        else:
+            save_path = Path(destination)
             # create the folders if not exists
             save_path.parent.mkdir(parents=True, exist_ok=True)
             with save_path.open(mode="w") as fout:
                 fout.write(output)
 
-    @classmethod
-    def post_output(cls, output_url: str, output: str) -> None:
+    def _post_output(self, output_url: str, output: str) -> None:
         import requests  # here for faster startup times
 
         logger.info(f"posting to {output_url}...")
@@ -378,34 +381,47 @@ class OutputHandler:
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
-    def build_output(
+    def _build_output(
         self,
-        color_output: bool,
-        per_finding_max_lines_limit: Optional[int],
-        per_line_max_chars_limit: Optional[int],
     ) -> str:
-        extra: Dict[str, Any] = {}
-        if self.settings.debug:
-            extra["debug"] = [
-                {rule.id: steps for rule, steps in self.debug_steps_by_rule.items()}
-            ]
+        # Extra, extra! This just in! 🗞️
+        # The extra dict is for blatantly skipping type checking and function signatures.
+        # - The text formatter uses it to store settings
+        # - But the JSON formatter uses it to store additional data to directly output
+        extra: Dict[str, Any] = {
+            "paths": {
+                "scanned": [str(path) for path in sorted(self.all_targets)],
+            }
+        }
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
                 "loc": make_loc_stats(self.all_targets),
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
-        if self.settings.output_time:
+        if self.settings.output_time or self.settings.verbose_errors:
             extra["time"] = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
                 self.profiling_data,
                 self.profiler,
             )
+        if self.settings.verbose_errors:
+            extra["paths"]["skipped"] = sorted(
+                self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
+            )
+        else:
+            extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
         if self.settings.output_format == OutputFormat.TEXT:
-            extra["color_output"] = color_output
-            extra["per_finding_max_lines_limit"] = per_finding_max_lines_limit
-            extra["per_line_max_chars_limit"] = per_line_max_chars_limit
+            extra["color_output"] = (
+                self.settings.output_destination is None and self.stdout.isatty(),
+            )
+            extra[
+                "per_finding_max_lines_limit"
+            ] = self.settings.output_per_finding_max_lines_limit
+            extra[
+                "per_line_max_chars_limit"
+            ] = self.settings.output_per_line_max_chars_limit
 
         return self.formatter.output(
             self.rules,

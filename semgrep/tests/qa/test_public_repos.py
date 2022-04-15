@@ -71,8 +71,7 @@ def _assert_sentinel_results(
 
     semgrep_run = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         encoding="utf-8",
     )
 
@@ -88,7 +87,7 @@ def _assert_sentinel_results(
 
     if output["errors"]:
         pytest.fail(
-            f"Running on {repo_url} with lang {language} had errors ({semgrep_run.args}): "
+            f"Running on {repo_url} (cached in {repo_path}) with lang {language} had errors ({semgrep_run.args}): "
             + json.dumps(output["errors"], indent=4)
         )
 
@@ -174,6 +173,7 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
     return repo_destination
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("repo_object", ALL_REPOS)
 #
 # This test runs [which checks?] against one public git repo.
@@ -235,8 +235,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
     res = subprocess.run(
         cmd,
         encoding="utf-8",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     returncode = res.returncode
     print("--- semgrep error output ---")

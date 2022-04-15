@@ -1,0 +1,11 @@
+rules:
+- id: test
+  options:
+    symbolic_propagation: true
+  pattern-either:
+    - pattern: return a.foo
+    - pattern: return b.foo
+  message: Test
+  languages:
+  - python
+  severity: WARNING

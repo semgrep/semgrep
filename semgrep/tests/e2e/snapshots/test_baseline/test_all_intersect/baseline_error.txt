@@ -1,0 +1,13 @@
+Scanning 1 file.
+  Current version has 1 finding.
+
+Switching repository to baseline commit 'baseline-commit'.
+  Will report findings introduced by these commits:
+    * 8ebfb32 commit #2
+
+Scanning 1 file.
+
+Some files were skipped.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 1 file: 0 findings.

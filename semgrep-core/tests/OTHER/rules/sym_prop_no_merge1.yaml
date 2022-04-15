@@ -1,0 +1,9 @@
+rules:
+- id: test
+  options:
+    symbolic_propagation: true
+  pattern: append(cpuids)
+  message: Test
+  languages:
+  - go
+  severity: WARNING

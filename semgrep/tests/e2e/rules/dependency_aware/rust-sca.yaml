@@ -1,0 +1,10 @@
+rules:
+  - id: rust-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: cargo
+        package: adler
+        version: "<= 1.0.3"
+    message: oh no
+    languages: [rust]
+    severity: WARNING

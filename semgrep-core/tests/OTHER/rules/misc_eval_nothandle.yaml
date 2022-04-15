@@ -1,0 +1,13 @@
+rules:
+- id: insecure-file-permissions
+  languages: [python]
+  severity: WARNING
+  message: >-
+    These permissions `$BITS` are widely permissive and grant access
+    to more people than may be necessary. A good default is `0o644` which
+    gives read and write access to yourself and read access to everyone else.
+  patterns:
+    - pattern: os.$METHOD($FILE, $BITS, ...)
+    - metavariable-comparison:
+        metavariable: $BITS
+        comparison: $BITS >= 0o650 and $BITS < 0o100000

@@ -1,0 +1,15 @@
+rules:
+  - id: asymmetric-hazmat-rsa-keylength
+    patterns:
+      - pattern: |
+          $VALUE = $KEYLENGTH
+          ... 
+          cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(..., key_size=$VALUE, ...)
+      - metavariable-comparison:
+          metavariable: $KEYLENGTH
+          comparison: $KEYLENGTH < 999999
+    message: |
+      RSA-$KEYLENGTH
+    languages:
+      - python
+    severity: WARNING

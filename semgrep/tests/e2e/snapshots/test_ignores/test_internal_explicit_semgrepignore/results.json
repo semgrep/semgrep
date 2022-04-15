@@ -1,0 +1,220 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/ignores/find.js",
+      "targets/ignores/ignore.min.js",
+      "targets/ignores/ignore_test.js",
+      "targets/ignores/ok/find.js",
+      "targets/ignores/tests/ignore.js"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "fingerprint": "919482dc9f5adb366c2dc50c9f05a493",
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/find.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "fingerprint": "ded5db274b8dad5c7eeb794969760c05",
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/ignore.min.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "fingerprint": "3f2c98c5e1b6481ad21edc6a83f5a13f",
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/ignore_test.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "fingerprint": "19a1293db9426788a3237e2ff2e5364b",
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/ok/find.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.eqeq-bad",
+      "end": {
+        "col": 15,
+        "line": 1,
+        "offset": 14
+      },
+      "extra": {
+        "fingerprint": "9efbd01eb7b06c93ec9e846b2f5ac4d6",
+        "is_ignored": false,
+        "lines": "var x = 0 == 0",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 9,
+              "line": 1,
+              "offset": 8
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/ignores/tests/ignore.js",
+      "start": {
+        "col": 9,
+        "line": 1,
+        "offset": 8
+      }
+    }
+  ]
+}

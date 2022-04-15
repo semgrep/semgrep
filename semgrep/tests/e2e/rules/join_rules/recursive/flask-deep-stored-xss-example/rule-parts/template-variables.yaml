@@ -1,0 +1,6 @@
+rules:
+- id: template-variables
+  message: $...VAR
+  severity: INFO
+  languages: [generic]
+  pattern: '{{ $...VAR }}'

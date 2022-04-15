@@ -1,10 +1,12 @@
-(* tin is for 'type in' and tout for 'type out' *)
+(* In what follows, tin stands for 'type in' and tout for 'type out' *)
+
 (* incoming environment *)
 type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  lang : Lang.t option;
   config : Config_semgrep.t;
 }
 
@@ -17,7 +19,7 @@ and tout = tin list
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
-(* currently A and B are usually the same type as we use the
+(* currently A and B are the same type because we use the
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
@@ -35,25 +37,19 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
 (* monadic combinators *)
 val ( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-
 val ( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout
-
 val ( >!> ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-
 val return : unit -> tin -> tout
-
 val fail : unit -> tin -> tout
-
 val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
-(* shortcut for >>=, since OCaml 4.08 you can define those "extended-let" *)
+(* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
-val empty_environment : tout Caching.Cache.t option -> Config_semgrep.t -> tin
+val empty_environment :
+  tout Caching.Cache.t option -> Lang.t option -> Config_semgrep.t -> tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
-
-val get_mv_capture : Metavariable.mvar -> tin -> Metavariable.mvalue option
 
 (* Update the matching list of statements by providing a new matching
    statement. *)
@@ -69,23 +65,21 @@ val if_config :
   tin ->
   tout
 
+val with_lang : (Lang.t option -> tin -> 'a) -> tin -> 'a
+
 val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue -> tin -> tin option
 
 (* helpers *)
-val has_ellipsis_stmts : AST_generic.stmt list -> bool
-
 val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
-
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
 
 (* [all_splits xs] returns all possible pairs [(ls, rs)] such that [ls@rs]
-  * contains the same elements as [xs].
-  *
-  * e.g.
-  *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
+   * contains the same elements as [xs].
+   *
+   * e.g.
+   *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
 val all_splits : 'a list -> ('a list * 'a list) list
-
 val lazy_rest_of_list : 'a Lazy.t -> 'a
 
 type regexp = Re.re
@@ -102,19 +96,24 @@ val m_option_ellipsis_ok :
   AST_generic.expr matcher -> AST_generic.expr option matcher
 
 val m_option_none_can_match_some : 'a matcher -> 'a option matcher
-
-val m_ref : 'a matcher -> 'a ref matcher
-
 val m_list : 'a matcher -> 'a list matcher
-
 val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*
-   Usage: m_list_with_dots f is_dots less_is_ok list_a list_b
+   Usage: m_list_with_dots less_is_ok f is_dots list_a list_b
 
    less_is_ok: whether the empty list pattern can match a non-empty list.
 *)
-val m_list_with_dots : 'a matcher -> ('a -> bool) -> bool -> 'a list matcher
+val m_list_with_dots :
+  less_is_ok:bool -> 'a matcher -> ('a -> bool) -> 'a list matcher
+
+val m_list_with_dots_and_metavar_ellipsis :
+  less_is_ok:bool ->
+  f:'a matcher ->
+  is_dots:('a -> bool) ->
+  is_metavar_ellipsis:
+    ('a -> (AST_generic.ident * ('a list -> Metavariable.mvalue)) option) ->
+  'a list matcher
 
 val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
 
@@ -152,30 +151,19 @@ val m_comb_1toN : ('a -> 'a list -> tin -> tout) -> 'a comb_matcher
 
 (* use = *)
 val m_eq : 'a matcher
-
 val m_bool : bool matcher
-
 val m_int : int matcher
-
 val m_string : string matcher
-
 val filepath_is_prefix : string -> string -> bool
-
 val m_filepath_prefix : string matcher
 
 val m_string_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
 
 val m_ellipsis_or_metavar_or_string : string AST_generic.wrap matcher
-
 val m_info : Parse_info.t matcher
-
 val m_tok : Parse_info.t matcher
-
 val m_wrap : 'a matcher -> 'a AST_generic.wrap matcher
-
 val m_bracket : 'a matcher -> 'a AST_generic.bracket matcher
-
 val m_tuple3 : 'a matcher -> 'b matcher -> 'c matcher -> ('a * 'b * 'c) matcher
-
 val m_other_xxx : 'a matcher

@@ -11,6 +11,8 @@ semgrep_core/sgrep.install
 
 # pad's stuff (but better to put in ~pad/config/commons/gitignore)
 /top.ml
+# codegraph serialized database
+*.marshall
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -156,16 +158,13 @@ semgrep-core/src/cli/version.ml
 TAGS
 /semgrep-core/log_config.json
 /semgrep-core/.vscode/settings.json
-/Pipfile
 /semgrep/pyproject.toml
 /scripts/oncall-email/today.json
 /scripts/oncall-email/yesterday.json
 /semgrep/semgrep/bin/semgrep-core
-/semgrep/semgrep/bin/spacegrep
 
 # Do not check in compiled binaries
 semgrep/semgrep/bin/semgrep-core
-semgrep/semgrep/bin/spacegrep
 
 # Ignore bench files
 perf/bench

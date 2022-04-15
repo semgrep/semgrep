@@ -1,0 +1,95 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/autofix/java-string-wrap.java"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.autofix.wrap-strings",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 52
+      },
+      "extra": {
+        "fingerprint": "2ca56c3f0400f7e2b8f57fc113dcdce0",
+        "fix": "wrap(\"a\")",
+        "is_ignored": false,
+        "lines": "        return \"a\" + \"b\";",
+        "message": "Wrap strings",
+        "metadata": {},
+        "metavars": {
+          "$S": {
+            "abstract_content": "\"a\"",
+            "end": {
+              "col": 19,
+              "line": 3,
+              "offset": 52
+            },
+            "start": {
+              "col": 16,
+              "line": 3,
+              "offset": 49
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/autofix/java-string-wrap.java",
+      "start": {
+        "col": 16,
+        "line": 3,
+        "offset": 49
+      }
+    },
+    {
+      "check_id": "rules.autofix.wrap-strings",
+      "end": {
+        "col": 25,
+        "line": 3,
+        "offset": 58
+      },
+      "extra": {
+        "fingerprint": "9af220ae02bffe7a9e310af3bb6caadf",
+        "fix": "wrap(\"b\")",
+        "is_ignored": false,
+        "lines": "        return \"a\" + \"b\";",
+        "message": "Wrap strings",
+        "metadata": {},
+        "metavars": {
+          "$S": {
+            "abstract_content": "\"b\"",
+            "end": {
+              "col": 25,
+              "line": 3,
+              "offset": 58
+            },
+            "start": {
+              "col": 22,
+              "line": 3,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/autofix/java-string-wrap.java",
+      "start": {
+        "col": 22,
+        "line": 3,
+        "offset": 55
+      }
+    }
+  ]
+}

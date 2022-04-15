@@ -1,0 +1,8 @@
+rules:
+  - id: assert_eq-true
+    message: Change assert_eq(True, x) to assert x
+    severity: INFO
+    languages:
+      - python
+    pattern: assert_eq(True, $ACTUAL)
+    fix: assert $ACTUAL

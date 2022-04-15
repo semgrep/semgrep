@@ -1,0 +1,77 @@
+rules:
+  - id: prototype-pollution-function
+    languages:
+      - javascript
+      - typescript
+    mode: taint
+    metadata:
+      cwe: "CWE-915: Improperly Controlled Modification of Dynamically-Determined
+        Object Attributes"
+      category: security
+      references:
+        - https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf
+      technology:
+        - javascript
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    severity: WARNING
+    message: "Possibility of prototype polluting function detected. By adding or
+      modifying attributes of an object prototype, it is possible to create
+      attributes that exist on every object, or replace critical attributes with
+      malicious ones. This can be problematic if the software depends on
+      existence or non-existence of certain attributes, or uses pre-defined
+      attributes of object prototype (such as hasOwnProperty, toString or
+      valueOf). Possible mitigations might be: freezing the object prototype,
+      using an object without prototypes (via Object.create(null) ), blocking
+      modifications of attributes that resolve to object prototype, using Map
+      instead of object."
+    pattern-sources:
+      - pattern-either:
+          - patterns:
+              - pattern: $SOURCE[$B]
+              - pattern-not: $SOURCE["..."]
+              - pattern-not: $SOURCE[`...${...}...`]
+              - pattern-not: |
+                  $SOURCE[($B: float)]
+          - pattern: function $X(..., $SOURCE, ...) { ... }
+    pattern-sinks:
+      - patterns:
+          - pattern: $TARGET[$A] = ...
+          - pattern-not: $TARGET["..."] = ...
+          - pattern-not: |
+              $TARGET[($A: float)] = ...
+          - pattern-not-inside: |
+              if (<... $TARGET.hasOwnProperty($A) ...>) {
+                ...
+              }
+          - pattern-either:
+              - pattern-inside: |
+                  $NAME = function $F(...) {
+                    ...
+                    $NAME(...)
+                    ...
+                  }
+              - pattern-inside: |
+                  function $NAME(...) {
+                    ...
+                    $NAME(...)
+                    ...
+                  }
+              - pattern-inside: |
+                  function $NAME(...) {
+                    ...
+                    $THIS.$NAME(...)
+                    ...
+                  }
+              - pattern-inside: |
+                  function $NAME(...) {
+                    ...
+                    $NAME.call(...)
+                    ...
+                  }
+    pattern-sanitizers:
+      - patterns:
+          - pattern: |
+              if (<...'constructor' ...>) {
+                ...
+              }
+              ...

@@ -1,21 +1,25 @@
+import functools
 import itertools
 import logging
+import operator
 import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import FrozenSet
 from typing import Iterable
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
 
 import click
 
+from semgrep.constants import Colors
+from semgrep.constants import USER_LOG_FILE
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
@@ -23,6 +27,11 @@ T = TypeVar("T")
 
 global FORCE_COLOR
 FORCE_COLOR = False
+global FORCE_NO_COLOR
+FORCE_NO_COLOR = False
+
+global VERBOSITY
+VERBOSITY = logging.INFO
 
 
 MAX_TEXT_WIDTH = 120
@@ -33,7 +42,7 @@ def is_quiet() -> bool:
     Returns true if logging level is quiet or quieter (higher)
     (i.e. only critical logs surfaced)
     """
-    return logging.getLogger("semgrep").getEffectiveLevel() >= logging.CRITICAL
+    return VERBOSITY >= logging.CRITICAL
 
 
 def is_debug() -> bool:
@@ -41,7 +50,7 @@ def is_debug() -> bool:
     Returns true if logging level is debug or noisier (lower)
     (i.e. want more logs)
     """
-    return logging.getLogger("semgrep").getEffectiveLevel() <= logging.DEBUG
+    return VERBOSITY <= logging.DEBUG
 
 
 def is_url(url: str) -> bool:
@@ -55,49 +64,67 @@ def is_url(url: str) -> bool:
 def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
-
     logger = logging.getLogger("semgrep")
-    logger.handlers = []
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(message)s")
-    handler.setFormatter(formatter)
+    logger.handlers = []  # Reset to no handlers
 
-    level = logging.INFO
+    stdout_level = logging.INFO
     if verbose:
-        level = logging.VERBOSE  # type: ignore[attr-defined]
+        stdout_level = logging.VERBOSE  # type: ignore[attr-defined]
     elif debug:
-        level = logging.DEBUG
+        stdout_level = logging.DEBUG
     elif quiet:
-        level = logging.CRITICAL
+        stdout_level = logging.CRITICAL
 
-    handler.setLevel(level)
-    logger.addHandler(handler)
-    logger.setLevel(level)
+    # Setup stdout logging
+    stdout_handler = logging.StreamHandler()
+    stdout_formatter = logging.Formatter("%(message)s")
+    stdout_handler.setFormatter(stdout_formatter)
+    stdout_handler.setLevel(stdout_level)
+    logger.addHandler(stdout_handler)
+
+    # Setup file logging
+    # USER_LOG_FILE dir must exist
+    USER_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    file_handler = logging.FileHandler(USER_LOG_FILE)
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+
+    # Needs to be DEBUG otherwise will filter before sending to handlers
+    logger.setLevel(logging.DEBUG)
+
+    global VERBOSITY
+    VERBOSITY = stdout_level
 
     global FORCE_COLOR
-    if force_color:
+    if force_color or os.environ.get("SEMGREP_FORCE_COLOR") is not None:
         FORCE_COLOR = True
 
+    global FORCE_NO_COLOR
+    if (
+        os.environ.get("NO_COLOR") is not None  # https://no-color.org/
+        or os.environ.get("SEMGREP_FORCE_NO_COLOR") is not None
+    ):
+        FORCE_NO_COLOR = True
 
-def partition(pred: Callable, iterable: Iterable) -> Tuple[List, List]:
+
+def partition(
+    pred: Callable[[T], Any], iterable: Iterable[T]
+) -> Tuple[List[T], List[T]]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
     return list(filter(pred, i1)), list(itertools.filterfalse(pred, i2))
 
 
-def partition_set(pred: Callable, iterable: Iterable) -> Tuple[Set, Set]:
+def partition_set(
+    pred: Callable[[T], Any], iterable: Iterable[T]
+) -> Tuple[FrozenSet[T], FrozenSet[T]]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
-    return set(filter(pred, i1)), set(itertools.filterfalse(pred, i2))
-
-
-# cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
-def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
-    """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
-    s = list(iterable)
-    return itertools.chain.from_iterable(
-        itertools.combinations(s, r) for r in range(len(s) + 1)
-    )
+    return frozenset(filter(pred, i1)), frozenset(itertools.filterfalse(pred, i2))
 
 
 def abort(message: str) -> None:
@@ -105,13 +132,33 @@ def abort(message: str) -> None:
     sys.exit(1)
 
 
-def with_color(color: str, text: str, bold: bool = False) -> str:
+def with_color(
+    color: Colors,
+    text: str,
+    bgcolor: Optional[Colors] = None,
+    bold: bool = False,
+    underline: bool = False,
+) -> str:
     """
     Wrap text in color & reset
+
+    Use ANSI color names or 8 bit colors (24-bit is not well supported by terminals)
+    In click bold always switches colors to their bright variant (if there is one)
     """
+    if FORCE_NO_COLOR and not FORCE_COLOR:
+        # for 'no color' there is a global env var (https://no-color.org/)
+        # while the env var to 'force color' is semgrep-specific
+        # so we let the more specific setting override the broader one
+        return text
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
-    return click.style(text, fg=color)
+    return click.style(
+        text,
+        fg=color.value,
+        bg=(bgcolor.value if bgcolor is not None else None),
+        underline=underline,
+        bold=bold,
+    )
 
 
 def terminal_wrap(text: str) -> str:
@@ -127,22 +174,13 @@ def terminal_wrap(text: str) -> str:
     return "\n".join(wrapped_paras)
 
 
-def sub_run(cmd: List[str], **kwargs: Any) -> Any:
-    """A simple proxy function to minimize and centralize subprocess usage."""
-    # fmt: off
-    result = subprocess.run(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-    # fmt: on
-    return result
-
-
 def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
-    # fmt: off
     if is_quiet():
         kwargs = {**kwargs, "stderr": subprocess.DEVNULL}
-    result = subprocess.check_output(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-    # fmt: on
-    return result
+
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+    return subprocess.check_output(cmd, **kwargs)
 
 
 def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[str]:
@@ -152,7 +190,7 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     """
     if not os.path.isfile(path):
         return None
-    with open(path, mode="r") as fd:
+    with open(path) as fd:
         contents = fd.read()
         words = contents.split()
     # Find all of the individual words that contain the search_term
@@ -160,6 +198,7 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     return matches[0] + suffix if len(matches) > 0 else None
 
 
+# TODO: seems dead
 def listendswith(l: List[T], tail: List[T]) -> bool:
     """
     E.g.
@@ -187,7 +226,7 @@ def format_bytes(num: float) -> str:
         if abs(num) < 1024.0:
             return "%3d%sB" % (num, unit)
         num /= 1024.0
-    return "%.1f%sB" % (num, "Y")
+    return "{:.1f}{}B".format(num, "Y")
 
 
 def truncate(file_name: str, col_lim: int) -> str:
@@ -196,3 +235,19 @@ def truncate(file_name: str, col_lim: int) -> str:
     if name_len > col_lim:
         file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
     return file_name
+
+
+def flatten(some_list: List[List[T]]) -> List[T]:
+    return functools.reduce(operator.iconcat, some_list, [])
+
+
+PathFilterCallable = Callable[..., FrozenSet[Path]]
+
+
+def unit_str(count: int, unit: str, pad: bool = False) -> str:
+    if count != 1:
+        unit += "s"
+    elif pad:
+        unit += " "
+
+    return f"{count} {unit}"

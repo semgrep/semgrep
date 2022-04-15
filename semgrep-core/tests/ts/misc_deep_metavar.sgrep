@@ -1,0 +1,3 @@
+$ASDF = <... $REQ.params.id ...>
+...
+$DB.orders.find(..., { $where: <... $ASDF ...> }, ...)

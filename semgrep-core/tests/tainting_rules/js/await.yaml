@@ -1,0 +1,17 @@
+rules:
+  - id: taint-test
+    severity: WARNING
+    message: taint test
+    languages:
+      - javascript
+      - typescript
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: function ... ($REQ, $RES) {...}
+              - pattern-inside: function ... ($REQ, $RES, $NEXT) {...}
+          - pattern: $REQ
+    pattern-sinks:
+      - pattern: |
+          "$SQLSTR" + $EXPR

@@ -138,10 +138,11 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     pattern_string = mr.Mini_rule.pattern_string;
   }
 
-let match_rules_and_recurse config (file, hook, matches) rules matcher k any x =
+let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
+    any x =
   rules
   |> List.iter (fun (pattern, rule, cache) ->
-         let env = MG.empty_environment cache config in
+         let env = MG.empty_environment cache (Some lang) config in
          let matches_with_env = matcher rule pattern x env in
          if matches_with_env <> [] then
            (* Found a match *)
@@ -171,13 +172,12 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
    * identifiers or strings from the pattern, then the pattern is too general
    * and we must analyze the stmt
    *)
-  match st.s_bf with
+  match st.s_strings with
   (* No bloom filter, expected if -bloom_filter is not used *)
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf ->
-      Bloom_filter.is_subset pattern_strs bf
-      = Bloom_filter.Maybe
+  | Some strs ->
+      Set_.subset pattern_strs strs
       |> Common.before_return (fun b ->
              if not b then logger#debug "skipping pattern on stmt %d" st.s_id)
 
@@ -193,8 +193,8 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
  *   filter allows us to avoid all that expensive stuff when matching expressions
  *   unless they fall in specific regions of the code.
  *   See also docs for {!check} in Match_pattern.mli. *)
-let check2 ~hook range_filter config rules equivs (file, lang, ast) =
-  logger#info "checking %s with %d mini rules" file (List.length rules);
+let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
+  logger#trace "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)
@@ -242,8 +242,8 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
            let push_with_annotation any pattern rules =
              let strs =
                if !Flag.use_bloom_filter then
-                 Bloom_annotation.list_of_pattern_strings any
-               else []
+                 Bloom_annotation.set_of_pattern_strings any
+               else Set_.empty
              in
              Common.push (pattern, strs, rule, cache) rules
            in
@@ -274,13 +274,13 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             |> List.iter (fun (pattern, _bf, rule, cache) ->
                    match V.range_of_any_opt (E x) with
                    | None ->
-                       (* TODO: Report a warning to the user? *)
-                       logger#error
-                         "Cannot report match because we lack range info: %s"
-                         (show_expr x);
+                       logger#error "Skipping because we lack range info: %s"
+                         (show_expr_kind x.e);
                        ()
                    | Some range_loc when range_filter range_loc ->
-                       let env = MG.empty_environment cache config in
+                       let env =
+                         MG.empty_environment cache (Some lang) config
+                       in
                        let matches_with_env = match_e_e rule pattern x env in
                        if matches_with_env <> [] then
                          (* Found a match *)
@@ -316,7 +316,7 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             let visit_stmt () =
               !stmt_rules
               |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                     let env = MG.empty_environment cache config in
+                     let env = MG.empty_environment cache (Some lang) config in
                      let matches_with_env = match_st_st rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
@@ -377,7 +377,9 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             !stmts_rules
             |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
                    Common.profile_code "Semgrep_generic.kstmts" (fun () ->
-                       let env = MG.empty_environment cache config in
+                       let env =
+                         MG.empty_environment cache (Some lang) config
+                       in
                        let matches_with_env =
                          match_sts_sts rule pattern x env
                        in
@@ -409,46 +411,47 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             k x);
         V.ktype_ =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !type_rules
-              match_t_t k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !type_rules match_t_t k
               (fun x -> T x)
               x);
         V.kpattern =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !pattern_rules
-              match_p_p k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !pattern_rules match_p_p k
               (fun x -> P x)
               x);
         V.kattr =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches)
+            match_rules_and_recurse lang config (file, hook, matches)
               !attribute_rules match_at_at k
               (fun x -> At x)
               x);
         V.kfield =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !fld_rules
+            match_rules_and_recurse lang config (file, hook, matches) !fld_rules
               match_fld_fld k
               (fun x -> Fld x)
               x);
         V.kfields =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !flds_rules
-              match_flds_flds k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !flds_rules match_flds_flds k
               (fun x -> Flds x)
               x);
         V.kpartial =
           (fun (k, _) x ->
-            match_rules_and_recurse config (file, hook, matches) !partial_rules
-              match_partial_partial k
+            match_rules_and_recurse lang config (file, hook, matches)
+              !partial_rules match_partial_partial k
               (fun x -> Partial x)
               x);
       }
     in
     let visitor =
       let vardef_assign = config.Config.vardef_assign in
+      let flddef_assign = config.Config.flddef_assign in
       let attr_expr = config.Config.attr_expr in
-      V.mk_visitor ~vardef_assign ~attr_expr hooks
+      V.mk_visitor ~vardef_assign ~flddef_assign ~attr_expr hooks
     in
     (* later: opti: dont analyze certain ASTs if they do not contain
      * certain constants that interect with the pattern?
@@ -469,6 +472,6 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
     |> PM.uniq
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook ?(range_filter = fun _ -> true) config a b c =
-  Common.profile_code "Semgrep_generic.check" (fun () ->
-      check2 ~hook range_filter config a b c)
+let check ~hook ?(range_filter = fun _ -> true) config a b =
+  Common.profile_code "Match_patterns.check" (fun () ->
+      check2 ~hook range_filter config a b)

@@ -35,9 +35,13 @@
     {
       "code": 7,
       "level": "error",
-      "message": "run with --strict and there were 1 errors loading configs",
+      "message": "Ran with --strict and got 1 error while loading configs",
       "type": "SemgrepError"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
   "results": []
 }

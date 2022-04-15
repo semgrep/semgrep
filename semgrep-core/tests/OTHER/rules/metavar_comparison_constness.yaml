@@ -1,0 +1,12 @@
+rules:
+  - id: c-comparing-const-vars
+    languages:
+      - c
+    message: Trying to compare constant variables
+    patterns:
+      - pattern: |
+          $X < $Y
+      - metavariable-comparison:
+          comparison: $X < $Y
+          metavariable: $X
+    severity: WARNING

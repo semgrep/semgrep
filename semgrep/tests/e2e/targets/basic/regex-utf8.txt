@@ -1,0 +1,11 @@
+# match
+😊 (smiley)
+
+# match
+🚀 (rocket)
+
+# don't match
+\x{1F680}
+
+# match
+<βγδ> (Greek letters)

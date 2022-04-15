@@ -1,0 +1,27 @@
+rules:
+  - id: ec2-instance-metadata-options
+    languages:
+      - terraform
+    message: EC2 instance does not set metadata options
+    severity: WARNING
+    patterns:
+      - pattern-inside: |
+          resource "aws_instance" "$RESNAME" {
+          ...
+          }
+      - pattern-not-inside: |
+          resource "aws_instance" "..." {
+            ...
+            metadata_options {
+              ...
+            }
+            ...
+          }
+    fix-regex:
+      regex: (.*)\}
+      replacement: |
+        \1
+          metadata_options {
+            http_tokens = "required"
+          }
+        }

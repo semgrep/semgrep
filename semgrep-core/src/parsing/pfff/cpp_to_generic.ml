@@ -16,7 +16,6 @@ open Common
 module H = AST_generic_helpers
 open Ast_cpp
 open OCaml (* for the map_of_xxx *)
-
 module PI = Parse_info
 module G = AST_generic
 
@@ -43,7 +42,6 @@ let recover_when_partial_error = ref true
 type env = { mutable defs_toadd : G.definition list }
 
 let empty_env () = { defs_toadd = [] }
-
 let error t s = raise (Parse_info.Other_error (s, t))
 
 (* See Parse_cpp_tree_sitter.error_unless_partial error *)
@@ -53,7 +51,6 @@ let error_unless_partial_error _env t s =
     logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
 
 let empty_stmt tk = Compound (tk, [], tk)
-
 let _id x = x
 
 let map_either _env f g x =
@@ -148,9 +145,7 @@ let map_angle_keep env _of_a (v1, v2, v3) =
   (v1, v2, v3)
 
 let map_sc env v = map_tok env v
-
 let map_todo_category env v : G.todo_kind = map_wrap env map_of_string v
-
 let map_ident env v = map_wrap env map_of_string v
 
 let rec map_name env (v1, v2, v3) : G.name =
@@ -216,7 +211,6 @@ and map_qualifier env = function
       (v1, Some v2)
 
 and map_a_class_name env v = map_name env v
-
 and map_a_ident_name env v = map_name env v
 
 and map_type_ env (v1, v2) : G.type_ =
@@ -227,11 +221,11 @@ and map_typeC env x : G.type_ =
   match x with
   | TPrimitive v1 ->
       let v1 = map_wrap env (map_primitive_type env) v1 in
-      G.TyBuiltin v1 |> G.t
+      G.ty_builtin v1
   | TSized (v1, v2) ->
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
-      let allt = v1 @ Common.opt_to_list v2 in
+      let allt = v1 @ Option.to_list v2 in
       G.OtherType (("TSized", G.fake ""), allt |> List.map (fun t -> G.T t))
       |> G.t
   | TPointer (v1, v2, v3) ->
@@ -351,7 +345,7 @@ and map_sized_type env (kind, t) : G.type_ =
     | TShort -> "short"
     | TLong -> "long"
   in
-  G.TyBuiltin (s, t) |> G.t
+  G.ty_builtin (s, t)
 
 and map_type_qualifiers env v : G.attribute list =
   map_of_list (map_qualifier_wrap env) v
@@ -460,13 +454,10 @@ and map_expr env x : G.expr =
       and lbrace, xs, rbrace =
         map_brace env (map_of_list (map_initialiser env)) v2
       in
-      let special = G.IdSpecial (G.New, lpar) |> G.e in
-      G.Call (special, (lbrace, G.ArgType t :: (xs |> List.map G.arg), rbrace))
-      |> G.e
+      G.New (lpar, t, (lbrace, xs |> List.map G.arg, rbrace)) |> G.e
   | ConstructedObject (v1, v2) ->
       let t = map_type_ env v1 and l, args, r = map_obj_init env v2 in
-      let special = G.IdSpecial (G.New, PI.fake_info l "new") |> G.e in
-      G.Call (special, (l, G.ArgType t :: args, r)) |> G.e
+      G.New (PI.fake_info l "new", t, (l, args, r)) |> G.e
   | TypeId (v1, v2) ->
       let v1 = map_tok env v1
       and _l, either, _r =
@@ -487,13 +478,12 @@ and map_expr env x : G.expr =
         map_of_option (map_paren env (map_of_list (map_argument env))) v3
       and v4 = map_type_ env v4
       and v5 = map_of_option (map_obj_init env) v5 in
-      let special = G.IdSpecial (G.New, v2) |> G.e in
       let l, args, r =
         match v5 with
-        | None -> G.fake_bracket [ G.ArgType v4 ]
-        | Some (l, args, r) -> (l, G.ArgType v4 :: args, r)
+        | None -> G.fake_bracket []
+        | Some (l, args, r) -> (l, args, r)
       in
-      G.Call (special, (l, args, r)) |> G.e
+      G.New (v2, v4, (l, args, r)) |> G.e
   | Delete (v1, v2, v3, v4) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
@@ -691,7 +681,6 @@ and map_cast_operator _env = function
   | Reinterpret_cast -> "Reinterpret_cast"
 
 and map_a_const_expr env v = map_expr env v
-
 and map_a_lhs env v = map_expr env v
 
 and map_stmt env x : G.stmt =
@@ -1015,7 +1004,7 @@ and map_jump env = function
       fun sc -> G.Break (v1, G.LNone, sc) |> G.s
   | Return (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_of_option (map_argument env) v2 in
-      let v2 = Common.map_opt H.argument_to_expr v2 in
+      let v2 = Option.map H.argument_to_expr v2 in
       fun sc -> G.Return (v1, v2, sc) |> G.s
   | GotoComputed (v1, v2, v3) ->
       let v1 = map_tok env v1
@@ -1130,7 +1119,7 @@ and map_decl env x : G.stmt list =
       let v1 = map_tok env v1
       and v2 = map_of_option (map_ident env) v2
       and _l, v3, r = map_declarations env v3 in
-      let dir1 = G.Package (v1, opt_to_list v2) |> G.d in
+      let dir1 = G.Package (v1, Option.to_list v2) |> G.d in
       let dir2 = G.PackageEnd r |> G.d in
       [ G.DirectiveStmt dir1 |> G.s ] @ v3 @ [ G.DirectiveStmt dir2 |> G.s ]
   | StaticAssert (v1, v2) ->
@@ -1771,7 +1760,10 @@ and map_sequencable :
  * with the field local helper
  *)
 and map_sequencable_for_field :
-      'a. env -> ('a -> (G.field, G.attribute) either list) -> 'a sequencable ->
+      'a.
+      env ->
+      ('a -> (G.field, G.attribute) either list) ->
+      'a sequencable ->
       (G.field, G.attribute) either list =
   let field x = Left (G.F x) in
   fun env _of_a -> function

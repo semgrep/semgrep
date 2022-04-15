@@ -37,7 +37,10 @@ let stat = memoize Unix.stat
 *)
 let create_visit_tracker () =
   let tbl = Hashtbl.create 100 in
-  let get_id path = try Some (stat path).st_ino with _ -> None in
+  let get_id path =
+    try Some (stat path).st_ino with
+    | _ -> None
+  in
   let was_visited path =
     match get_id path with
     | None -> true
@@ -50,7 +53,9 @@ let create_visit_tracker () =
   in
   { was_visited; mark_visited }
 
-let get_file_kind path = try Some (stat path).st_kind with _ -> None
+let get_file_kind path =
+  try Some (stat path).st_kind with
+  | _ -> None
 
 let compare_filenames = String.compare
 
@@ -71,7 +76,7 @@ let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
                  and overall minimize surprises. *)
               Array.sort compare_filenames a;
               Array.to_list a
-              |> List.map (fun name -> Filename.concat path name)
+              |> Common.map (fun name -> Filename.concat path name)
             in
             List.fold_left fold acc children
       | Some Unix.S_REG -> if accept_file_name name then f acc path else acc

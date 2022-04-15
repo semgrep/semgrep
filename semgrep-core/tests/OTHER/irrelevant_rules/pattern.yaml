@@ -1,0 +1,6 @@
+rules:
+- id: hello 
+  pattern: "hello"
+  languages: [py]
+  severity: WARNING 
+  message: "test"

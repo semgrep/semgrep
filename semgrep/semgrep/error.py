@@ -9,27 +9,32 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
-import attr
+import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
+import semgrep.output_from_core as core
+from semgrep.constants import Colors
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.rule_match import CoreLocation
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
 FATAL_EXIT_CODE = 2
-INVALID_CODE_EXIT_CODE = 3
+# the commented one below are not used anymore
+# INVALID_CODE_EXIT_CODE = 3
 INVALID_PATTERN_EXIT_CODE = 4
 UNPARSEABLE_YAML_EXIT_CODE = 5
-NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
+# NEED_ARBITRARY_CODE_EXEC_EXIT_CODE = 6
 MISSING_CONFIG_EXIT_CODE = 7
 INVALID_LANGUAGE_EXIT_CODE = 8
-MATCH_TIMEOUT_EXIT_CODE = 9
-MATCH_MAX_MEMORY_EXIT_CODE = 10
-LEXICAL_ERROR_EXIT_CODE = 11
-TOO_MANY_MATCHES_EXIT_CODE = 12
+# MATCH_TIMEOUT_EXIT_CODE = 9
+# MATCH_MAX_MEMORY_EXIT_CODE = 10
+# LEXICAL_ERROR_EXIT_CODE = 11
+# TOO_MANY_MATCHES_EXIT_CODE = 12
+INVALID_API_KEY_EXIT_CODE = 13
+SCAN_FAIL_EXIT_CODE = 14
 
 
 class Level(Enum):
@@ -70,6 +75,7 @@ class SemgrepError(Exception):
         """
         return {"message": str(self)}
 
+    # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
         return type(self).__name__
 
@@ -83,8 +89,8 @@ class SemgrepError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class LegacySpan:
-    config_start: CoreLocation
-    config_end: CoreLocation
+    config_start: core.Position
+    config_end: core.Position
     config_path: Tuple[str]
 
 
@@ -95,17 +101,14 @@ class SemgrepCoreError(SemgrepError):
     error_type: str
     rule_id: Optional[str]
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     message: str
     spans: Optional[Tuple[LegacySpan, ...]]
     details: Optional[str]
 
     def to_dict_base(self) -> Dict[str, Any]:
-        base: Dict[str, Any] = {
-            "type": self.error_type,
-            "message": self._full_error_message,
-        }
+        base: Dict[str, Any] = {"type": self.error_type, "message": str(self)}
         if self.rule_id:
             base["rule_id"] = self.rule_id
 
@@ -117,7 +120,7 @@ class SemgrepCoreError(SemgrepError):
             base["path"] = str(self.path)
 
         if self.spans:
-            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
+            base["spans"] = tuple(attr.asdict(s) for s in self.spans)
 
         return base
 
@@ -131,29 +134,24 @@ class SemgrepCoreError(SemgrepError):
         return f"{type(self).__name__}: {self.error_type}"
 
     @property
-    def _full_error_message(self) -> str:
-        """
-        Error message plus stack trace
-        """
-        return self._error_message + self._stack_trace
-
-    @property
     def _error_message(self) -> str:
         """
         Generate error message exposed to user
         """
+        header = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}"
         if self.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
             if (
                 self.error_type == "Rule parse error"
                 or self.error_type == "Pattern parse error"
             ):
-                msg = f"Semgrep Core {self.level.name} - {self.error_type}: In rule {self.rule_id}: {self.message}"
+                error_context = f"In rule {self.rule_id}"
             else:
-                msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
+                error_context = f"When running {self.rule_id} on {self.path}"
         else:
-            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}:{self.start.line}\n\t{self.message}"
-        return msg
+            error_context = f"At line {self.path}:{self.start.line}"
+
+        return f"{header}\n\n{error_context}: {self.message}\n"
 
     @property
     def _stack_trace(self) -> str:
@@ -162,14 +160,20 @@ class SemgrepCoreError(SemgrepError):
         """
         if self.error_type == "Fatal error":
             error_trace = self.details or "<no stack trace returned>"
-            return f"\n-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n"
+            return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
             return ""
 
     def __str__(self) -> str:
-        return with_color("red", self._error_message) + with_color(
-            "white", self._stack_trace
+        level_tag = (
+            with_color(Colors.red, "[", bgcolor=Colors.red)
+            + with_color(
+                Colors.forced_white, self.level.name, bgcolor=Colors.red, bold=True
+            )
+            + with_color(Colors.red, "]", bgcolor=Colors.red)
         )
+
+        return f"{level_tag} " + self._error_message + self._stack_trace
 
 
 class SemgrepInternalError(Exception):
@@ -178,8 +182,6 @@ class SemgrepInternalError(Exception):
 
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
-
-    pass
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -273,9 +275,9 @@ class ErrorWithSpan(SemgrepError):
         if line_number is not None:
             base_str = str(line_number)
             assert len(base_str) < width
-            return with_color("bright_blue", base_str.ljust(width) + "| ")
+            return with_color(Colors.bright_blue, base_str.ljust(width) + "| ")
         else:
-            return with_color("bright_blue", "".ljust(width) + "| ")
+            return with_color(Colors.bright_blue, "".ljust(width) + "| ")
 
     def _format_code_segment(
         self, start: Position, end: Position, source: List[str], part_of_span: Span
@@ -306,7 +308,7 @@ class ErrorWithSpan(SemgrepError):
         """
         Format this exception into a pretty string with context and color
         """
-        header = f"{with_color('red', 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
+        header = f"{with_color(Colors.red, 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             if span.file != "semgrep temp file":
@@ -329,7 +331,7 @@ class ErrorWithSpan(SemgrepError):
             snippet += self._format_code_segment(span.start, span.end, source, span)
             # Currently, only span highlighting if it's a one line span
             if span.start.line == span.end.line:
-                error = with_color("red", (span.end.col - span.start.col) * "^")
+                error = with_color(Colors.red, (span.end.col - span.start.col) * "^")
                 snippet.append(
                     self._format_line_number(span, None)
                     + " " * (span.start.col - 1)
@@ -343,7 +345,7 @@ class ErrorWithSpan(SemgrepError):
             snippets.append("\n".join(snippet))
         snippet_str = "\n".join(snippets)
         if self.help:
-            help_str = f"= {with_color('cyan', 'help', bold=True)}: {self.help}"
+            help_str = f"= {with_color(Colors.cyan, 'help', bold=True)}: {self.help}"
         else:
             help_str = ""
 
@@ -352,7 +354,7 @@ class ErrorWithSpan(SemgrepError):
             snippet_str_with_newline = ""
         else:
             snippet_str_with_newline = f"{snippet_str}\n"
-        return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color('red', self.long_msg or '')}\n"
+        return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
 
 
 @attr.s(frozen=True, eq=True)
@@ -368,10 +370,6 @@ class UnknownLanguageError(ErrorWithSpan):
 
 
 class _UnknownLanguageError(SemgrepInternalError):
-    pass
-
-
-class _UnknownExtensionError(SemgrepInternalError):
     pass
 
 

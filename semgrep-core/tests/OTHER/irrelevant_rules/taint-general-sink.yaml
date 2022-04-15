@@ -1,0 +1,13 @@
+# both source and sink are necessary for a match, so
+# despite having a general sink the specific source 
+# allows us to filter
+rules:
+- id: pattern-and 
+  mode: taint
+  pattern-sources:
+    - pattern: tainted_input
+  pattern-sinks:
+    - pattern: $X(...)
+  languages: [py]
+  severity: WARNING 
+  message: "test"

@@ -16,19 +16,10 @@ BIN_DIR = "bin"
 PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "semgrep", BIN_DIR)
 SEMGREP_CORE_BIN = "semgrep-core"
 SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
-SPACEGREP_BIN = "spacegrep"
-SPACEGREP_BIN_ENV = "SPACEGREP_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
 WHEEL_CMD = "bdist_wheel"
-
-
-def is_python_before_3_7():
-    """Can't user packaging.version on old systems so use this hack"""
-    current = sys.version.split(" ")[0]
-    major, minor, sub = current.split(".")
-    return int(major) < 3 or int(minor) < 7
 
 
 if WHEEL_CMD in sys.argv:
@@ -44,7 +35,7 @@ if WHEEL_CMD in sys.argv:
 
         def get_tag(self):
             _, _, plat = bdist_wheel.get_tag(self)
-            python = "cp36.cp37.cp38.cp39.py36.py37.py38.py39"
+            python = "cp37.cp38.cp39.py37.py38.py39"
             abi = "none"
             plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
             return python, abi, plat
@@ -84,7 +75,7 @@ def find_executable(env_name, exec_name):
 
 
 #
-# The default behavior is to copy the semgrep-core and spacegrep binaries
+# The default behavior is to copy the semgrep-core binary
 # into some other folder known to the semgrep wrapper. If somebody knows why,
 # please explain why we do this.
 #
@@ -97,7 +88,6 @@ def find_executable(env_name, exec_name):
 if not SEMGREP_SKIP_BIN:
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
-        (SPACEGREP_BIN_ENV, SPACEGREP_BIN),
     ]
 
     for binary_env, binary_name in binaries:
@@ -116,17 +106,30 @@ if not SEMGREP_SKIP_BIN:
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
 
 install_requires = [
-    "attrs>=19.3.0",
-    "colorama>=0.4.3",
-    "click>=8.0.1",
-    "click-option-group>=0.5.3",
-    "requests>=2.22.0",
+    # versions must be manually synced:
+    # - semgrep/setup.py lists dependencies
+    # - semgrep/Pipfile lists type hint packages for dev env
+    # - .pre-commit-config.yaml's mypy hooks also list type hint packages
+    #
+    # These version are flexible so semgrep can coexist with other tools.
+    # Flexibility is achieved by, in order of preference:
+    # 1. x.0~= operator pinning to x major version
+    # 2. >=x,<y operator pinning to multiple major versions
+    "attrs~=21.3",
+    "boltons~=21.0",
+    "colorama~=0.4.0",
+    "click~=8.0",
+    "click-option-group~=0.5",
+    "glom~=22.1",
+    "requests~=2.22",
     "ruamel.yaml>=0.16.0,<0.18",
-    "tqdm>=4.46.1",
-    "packaging>=20.4",
-    "jsonschema~=3.2.0",
-    "wcmatch==8.2",
-    "peewee~=3.14.4",
+    "tqdm~=4.46",
+    "packaging~=21.0",
+    "jsonschema~=3.2",
+    "wcmatch~=8.3",
+    "peewee~=3.14",
+    "defusedxml~=0.7.1",
+    "urllib3~=1.26",
     # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
     # overly prescriptive and pin the version for two reasons: 1) because
     # it may interfere with other 'setuptools' installs on the system,
@@ -148,7 +151,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=("*tests*",)),
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
     include_package_data=True,
     classifiers=[
@@ -156,13 +159,12 @@ setuptools.setup(
         "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     zip_safe=False,
 )

@@ -44,7 +44,6 @@ let subexprs_of_stmt_kind = function
   (* 1 *)
   | ExprStmt (e, _)
   | DoWhile (_, _, e)
-  | Match (_, e, _)
   | DefStmt (_, VarDef { vinit = Some e; _ })
   | DefStmt (_, FieldDefColon { vinit = Some e; _ })
   | For (_, ForEach (_, _, e), _)
@@ -60,14 +59,14 @@ let subexprs_of_stmt_kind = function
       match condopt with
       | None -> []
       | Some cond -> [ H.cond_to_expr cond ])
-  | Return (_, eopt, _) -> Common.opt_to_list eopt
+  | Return (_, eopt, _) -> Option.to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
       |> Common.map_filter (function
            | ForInitExpr e -> Some e
            | ForInitVar (_, vdef) -> vdef.vinit))
-      @ Common.opt_to_list eopt1 @ Common.opt_to_list eopt2
+      @ Option.to_list eopt1 @ Option.to_list eopt2
   | Assert (_, (_, args, _), _) ->
       args
       |> Common.map_filter (function
@@ -92,9 +91,23 @@ let subexprs_of_stmt_kind = function
 
 let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
+let subexprs_of_args args =
+  args |> unbracket
+  |> Common.map_filter (function
+       | Arg e
+       | ArgKwd (_, e)
+       | ArgKwdOptional (_, e) ->
+           Some e
+       | ArgType _
+       | OtherArg _ ->
+           None)
+
 (* used for deep expression matching *)
-let subexprs_of_expr e =
+let subexprs_of_expr with_symbolic_propagation e =
   match e.e with
+  | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
+    when with_symbolic_propagation ->
+      [ e1 ]
   | L _
   | N _
   | IdSpecial _
@@ -122,32 +135,27 @@ let subexprs_of_expr e =
   | Comprehension (_, (_, (e, xs), _)) ->
       e
       :: (xs
-         |> List.map (function
+         |> Common.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
+  | New (_, _t, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
-      e
-      :: (args |> unbracket
-         |> Common.map_filter (function
-              | Arg e
-              | ArgKwd (_, e) ->
-                  Some e
-              | ArgType _
-              | OtherArg _ ->
-                  None))
+      e :: subexprs_of_args args
   | SliceAccess (e1, e2) ->
       e1
       :: (e2 |> unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
-         |> List.map Common.opt_to_list
-         |> List.flatten)
-  | Yield (_, eopt, _) -> Common.opt_to_list eopt
+         |> Common.map Option.to_list |> List.flatten)
+  | Yield (_, eopt, _) -> Option.to_list eopt
   | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
+  | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
+  (* TODO? or call recursively on e? *)
+  | ParenExpr (_, e, _) -> [ e ]
   (* currently skipped over but could recurse *)
   | Constructor _
   | AnonClass _
@@ -156,6 +164,10 @@ let subexprs_of_expr e =
       []
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
+
+(* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
+let subexprs_of_expr ?(symbolic_propagation = false) e =
+  subexprs_of_expr symbolic_propagation e
 
 (* used for deep statement matching *)
 let substmts_of_stmt st =
@@ -179,19 +191,19 @@ let substmts_of_stmt st =
   | OtherStmtWithStmt (_, _, st) ->
       [ st ]
   (* 2 *)
-  | If (_, _, st1, st2) -> st1 :: Common.opt_to_list st2
+  | If (_, _, st1, st2) -> st1 :: Option.to_list st2
   | WithUsingResource (_, st1, st2) -> [ st1; st2 ]
   (* n *)
   | Block (_, xs, _) -> xs
   | Switch (_, _, xs) ->
       xs
-      |> List.map (function
+      |> Common.map (function
            | CasesAndBody (_, st) -> [ st ]
            | CaseEllipsis _ -> [])
       |> List.flatten
   | Try (_, st, xs, opt) -> (
       [ st ]
-      @ (xs |> List.map Common2.thd3)
+      @ (xs |> Common.map Common2.thd3)
       @
       match opt with
       | None -> []
@@ -217,8 +229,6 @@ let substmts_of_stmt st =
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
             def.cbody |> unbracket |> Common.map (function F st -> st))
-  (* TODO *)
-  | Match _ -> []
 
 (*****************************************************************************)
 (* Visitors  *)
@@ -281,9 +291,9 @@ let flatten_substmts_of_stmts xs =
     (if !go_really_deeper_stmt then
      let es = subexprs_of_stmt x in
      (* getting deeply nested lambdas stmts *)
-     let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
+     let lambdas = es |> Common.map lambdas_in_expr_memo |> List.flatten in
      lambdas
-     |> List.map (fun def -> H.funcbody_to_stmt def.fbody)
+     |> Common.map (fun def -> H.funcbody_to_stmt def.fbody)
      |> List.iter aux);
 
     let xs = substmts_of_stmt x in

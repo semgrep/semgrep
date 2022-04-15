@@ -1,0 +1,7 @@
+rules:
+- id: tpl_is_php
+  languages:
+  - php
+  pattern: foo(...)
+  message: found a match
+  severity: ERROR

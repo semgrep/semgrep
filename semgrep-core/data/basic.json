@@ -4,33 +4,21 @@
       "id": "stupid_equal",
       "match": "$X == $X",
       "message": "Dude, $X == $X is always true (Unless X is NAN ...)",
-      "languages": [
-        "python",
-        "javascript",
-        "ruby",
-        "c",
-        "go",
-        "ocaml"
-      ],
+      "languages": ["python", "javascript", "ruby", "c", "go", "ocaml"],
       "severity": "WARNING"
     },
     {
       "id": "stupid_not_equal",
       "match": "$X != $X",
       "message": "Dude, $X != $X is always false (Unless X is NAN ...)",
-      "languages": [
-        "python",
-        "javascript"
-      ],
+      "languages": ["python", "javascript"],
       "severity": "WARNING"
     },
     {
       "id": "stupid_conditional",
       "match": "if $E:\n  $S\nelse:\n  $S\n",
       "message": "Dune, both branches are equal",
-      "languages": [
-        "python"
-      ],
+      "languages": ["python"],
       "severity": "WARNING"
     }
   ]

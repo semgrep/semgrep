@@ -1,0 +1,188 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/inside.py",
+      "targets/basic/metavariable-comparison-bad-content.py",
+      "targets/basic/metavariable-comparison-base.py",
+      "targets/basic/metavariable-comparison-strip.py",
+      "targets/basic/metavariable-comparison.py",
+      "targets/basic/metavariable-regex-multi-regex.py",
+      "targets/basic/metavariable-regex-multi-rule.py",
+      "targets/basic/metavariable-regex.py",
+      "targets/basic/nested-patterns.js",
+      "targets/basic/nosem.c",
+      "targets/basic/nosem.go",
+      "targets/basic/nosem.java",
+      "targets/basic/nosem.js",
+      "targets/basic/nosem.py",
+      "targets/basic/regex.py",
+      "targets/basic/stupid.js",
+      "targets/basic/stupid.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 22,
+        "line": 5,
+        "offset": 138
+      },
+      "extra": {
+        "fingerprint": "cdd4972c722e9c2d806fc2a909c86272",
+        "is_ignored": false,
+        "lines": "    test_nosem_func();",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.c",
+      "start": {
+        "col": 5,
+        "line": 5,
+        "offset": 121
+      }
+    },
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 19,
+        "line": 5,
+        "offset": 92
+      },
+      "extra": {
+        "fingerprint": "7e2705db07e96e2c9df398c0335dfe4a",
+        "is_ignored": false,
+        "lines": "\ttest_nosem_func()",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.go",
+      "start": {
+        "col": 2,
+        "line": 5,
+        "offset": 75
+      }
+    },
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 26,
+        "line": 6,
+        "offset": 200
+      },
+      "extra": {
+        "fingerprint": "9ef206411d344954fc75328df41aefa7",
+        "is_ignored": false,
+        "lines": "        test_nosem_func();",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.java",
+      "start": {
+        "col": 9,
+        "line": 6,
+        "offset": 183
+      }
+    },
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 2,
+        "line": 7,
+        "offset": 180
+      },
+      "extra": {
+        "fingerprint": "2fdb92573a653fffb2894f37738b2d22",
+        "is_ignored": false,
+        "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.js",
+      "start": {
+        "col": 1,
+        "line": 5,
+        "offset": 118
+      }
+    },
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 2,
+        "line": 21,
+        "offset": 364
+      },
+      "extra": {
+        "fingerprint": "80d41c62ea9c7399c0d9956641b814d5",
+        "is_ignored": false,
+        "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.js",
+      "start": {
+        "col": 1,
+        "line": 18,
+        "offset": 302
+      }
+    },
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 18,
+        "line": 23,
+        "offset": 383
+      },
+      "extra": {
+        "fingerprint": "76ba64e5e6fe635e3b19a13b2901a98c",
+        "is_ignored": false,
+        "lines": "test_nosem_func()",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.js",
+      "start": {
+        "col": 1,
+        "line": 23,
+        "offset": 366
+      }
+    },
+    {
+      "check_id": "rules.test-nosem",
+      "end": {
+        "col": 18,
+        "line": 22,
+        "offset": 456
+      },
+      "extra": {
+        "fingerprint": "b895f701da5bb89398c5c400575e9ec5",
+        "is_ignored": false,
+        "lines": "test_nosem_func()",
+        "message": "test-nosem-message",
+        "metadata": {},
+        "metavars": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/basic/nosem.py",
+      "start": {
+        "col": 1,
+        "line": 22,
+        "offset": 439
+      }
+    }
+  ]
+}

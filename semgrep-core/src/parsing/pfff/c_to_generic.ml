@@ -30,9 +30,7 @@ open Ast_c
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
-let option = Common.map_opt
-
+let option = Option.map
 let list = Common.map
 
 let either f g x =
@@ -41,11 +39,8 @@ let either f g x =
   | Right x -> Right (g x)
 
 let string = id
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let fb = G.fake_bracket
 
 let opt_to_ident opt =
@@ -64,7 +59,6 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let name v = wrap string v
 
 let rec unaryOp (a, tok) =
@@ -118,36 +112,32 @@ and logicalOp = function
   | AndLog -> G.And
   | OrLog -> G.Or
 
-and type_ x =
-  let tk = type_kind x in
-  tk |> G.t
-
-and type_kind = function
+and type_ = function
   | TBase v1 ->
       let v1 = name v1 in
-      G.TyBuiltin v1
+      G.ty_builtin v1
   | TPointer (t, v1) ->
       let v1 = type_ v1 in
-      G.TyPointer (t, v1)
+      G.TyPointer (t, v1) |> G.t
   | TArray (v1, v2) ->
       let v1 = option const_expr v1 and v2 = type_ v2 in
-      G.TyArray (fb v1, v2)
+      G.TyArray (fb v1, v2) |> G.t
   | TFunction v1 ->
       let ret, params = function_type v1 in
-      G.TyFun (params, ret)
+      G.TyFun (params, ret) |> G.t
   | TStructName (v1, v2) ->
       let v1 = struct_kind v1 and v2 = name v2 in
-      G.OtherType (v1, [ G.I v2 ])
+      G.OtherType (v1, [ G.I v2 ]) |> G.t
   | TEnumName v1 ->
       let v1 = name v1 in
-      G.OtherType (("EnumName", unsafe_fake ""), [ G.I v1 ])
+      G.OtherType (("EnumName", unsafe_fake ""), [ G.I v1 ]) |> G.t
   | TTypeName v1 ->
       let v1 = name v1 in
-      G.TyN (G.Id (v1, G.empty_id_info ()))
+      G.TyN (H.name_of_id v1) |> G.t
   | TMacroApply (v1, (lp, v2, rp)) ->
       let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
-      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TA v2 ], rp))
+      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TA v2 ], rp)) |> G.t
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and v2 = list (fun x -> parameter x) v2 in
@@ -282,10 +272,7 @@ and expr e =
       G.Record v1 |> G.e
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.Call
-        ( G.IdSpecial (G.New, unsafe_fake "new") |> G.e,
-          fb (G.ArgType v1 :: ([ v2 ] |> List.map G.arg)) )
-      |> G.e
+      G.New (unsafe_fake "new", v1, fb ([ v2 ] |> List.map G.arg)) |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
@@ -494,7 +481,6 @@ and definition = function
       G.DefStmt v1
 
 let toplevel x = stmt x
-
 let program v = list toplevel v
 
 let any = function

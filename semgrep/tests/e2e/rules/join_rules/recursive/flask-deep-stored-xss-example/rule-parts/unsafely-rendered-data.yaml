@@ -1,0 +1,14 @@
+rules:
+- id: unsafely-rendered-data
+  languages: [python]
+  message: $RENDERCALLEE
+  severity: INFO
+  mode: taint
+  pattern-sources:
+  - pattern: $RENDERCALLEE(...)
+  pattern-sinks:
+  - patterns:
+    - pattern: flask.render_template("$TEMPLATE", ..., $KWARG=$ANY)
+    - metavariable-regex:
+        metavariable: $TEMPLATE
+        regex: '.*j2$'

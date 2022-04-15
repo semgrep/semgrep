@@ -1,0 +1,1 @@
+USER ${$USER_VAR}:${GROUP}

@@ -1,7 +1,10 @@
 import json
 import subprocess
 
+import pytest
 
+
+@pytest.mark.kinda_slow
 def test_synthesize_patterns():
     output = subprocess.check_output(
         [
@@ -15,7 +18,7 @@ def test_synthesize_patterns():
             "6:10-6:30",
             "--lang",
             "py",
-            "tests/e2e/rules/synthesizing/ex1.py",
+            "tests/e2e/targets/synthesizing/ex1.py",
         ],
         encoding="utf-8",
     )

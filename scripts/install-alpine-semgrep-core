@@ -53,7 +53,7 @@ echo "Install pfff dependencies"
   opam install --deps-only -y .
 )
 
-echo "Install semgrep-core and spacegrep"
+echo "Install semgrep-core"
 (
   cd semgrep-core
   opam install --deps-only -y .
@@ -65,6 +65,5 @@ echo "Copy executables to artifacts archive"
 rm -rf ocaml-build-artifacts
 bin=ocaml-build-artifacts/bin
 mkdir -p "$bin"
-cp ./semgrep-core/_build/install/default/bin/spacegrep "$bin"
 cp ./semgrep-core/_build/install/default/bin/semgrep-core "$bin"
 tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts

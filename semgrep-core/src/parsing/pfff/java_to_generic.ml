@@ -29,21 +29,13 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
-let option = Common.map_opt
-
+let option = Option.map
 let list = List.map
-
 let (string : string -> string) = id
-
 let (bool : bool -> bool) = id
-
 let (int : int -> int) = id
-
 let error = AST_generic.error
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
@@ -72,7 +64,6 @@ let entity_to_param { G.name; attrs; tparams = _unused } t =
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -80,27 +71,18 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let list1 _of_a = list _of_a
-
 let ident v = wrap string v
-
 let qualified_ident v = list ident v
 
-let rec typ x =
-  let x = typ_kind x in
-  x |> G.t
-
-and typ_kind = function
+let rec typ = function
   | TBasic v1 ->
       let v1 = wrap string v1 in
-      G.TyBuiltin v1
-  | TClass v1 ->
-      let v1 = class_type v1 in
-      v1
+      G.ty_builtin v1
+  | TClass v1 -> class_type v1
   | TArray (t1, v1, t2) ->
       let v1 = typ v1 in
-      G.TyArray ((t1, None, t2), v1)
+      G.TyArray ((t1, None, t2), v1) |> G.t
 
 and type_arguments v = bracket (list type_argument) v
 
@@ -119,8 +101,9 @@ and class_type v =
    *)
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
-  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
-  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
+  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ())) |> G.t
+  | [ (id, Some ts) ] ->
+      G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts) |> G.t
   | (id, None) :: xs ->
       G.TyN
         (G.IdQualified
@@ -130,9 +113,11 @@ and class_type v =
              name_middle = Some (G.QDots (List.rev xs));
              name_info = G.empty_id_info ();
            })
+      |> G.t
   | (id, Some ts) :: xs ->
       G.TyApply
         (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
+      |> G.t
 
 and type_argument = function
   | TArgument v1 ->
@@ -151,6 +136,7 @@ and type_argument = function
 and ref_type v = typ v
 
 let type_parameter = function
+  | TParamEllipsis v1 -> G.TParamEllipsis v1
   | TParam (v1, v2) ->
       let v1 = ident v1 and v2 = list ref_type v2 in
       G.tparam_of_id v1 ~tp_bounds:v2
@@ -279,8 +265,7 @@ and expr e =
       and v2 = list argument v2
       and v3 = option (bracket decls) v3 in
       match v3 with
-      | None ->
-          G.Call (G.IdSpecial (G.New, v0) |> G.e, (lp, G.ArgType v1 :: v2, rp))
+      | None -> G.New (v0, v1, (lp, v2, rp))
       | Some decls ->
           let anonclass =
             G.AnonClass
@@ -294,8 +279,7 @@ and expr e =
               }
             |> G.e
           in
-          G.Call
-            (G.IdSpecial (G.New, v0) |> G.e, (lp, G.Arg anonclass :: v2, rp)))
+          G.Call (anonclass, (lp, v2, rp)))
   | NewArray (v0, v1, v2, v3, v4) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -309,10 +293,8 @@ and expr e =
       in
       let t = mk_array (v3 + List.length v2) in
       match v4 with
-      | None -> G.Call (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: v2))
-      | Some e ->
-          G.Call
-            (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
+      | None -> G.New (v0, t, fb v2)
+      | Some e -> G.New (v0, t, fb (G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, tok2, v2, v3, v4) ->
       let v0 = expr v0
@@ -322,7 +304,7 @@ and expr e =
       let anys =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
-        @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
+        @ (Option.to_list v4 |> List.map G.unbracket |> List.flatten
           |> List.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
@@ -420,8 +402,21 @@ and argument v =
   G.Arg v
 
 and arguments v : G.argument list G.bracket = bracket (list argument) v
-
 and fix_op v = H.conv_incr v
+
+and resource t (v : resource) : G.stmt =
+  match v with
+  | Left v ->
+      let ent, v = var_with_init v in
+      G.DefStmt (ent, G.VarDef v) |> G.s
+  | Right e -> G.ExprStmt (expr e, t) |> G.s
+
+and resources (t1, v, t2) =
+  G.Block
+    ( t1,
+      (* TODO save the semicolon instead of using t2*) list (resource t2) v,
+      t2 )
+  |> G.s
 
 and stmt st =
   match st with
@@ -470,10 +465,13 @@ and stmt st =
       G.Label (v1, v2) |> G.s
   | Sync (v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.OtherStmt (G.OS_Sync, [ G.E v1; G.S v2 ]) |> G.s
-  | Try (t, _v0TODO, v1, v2, v3) ->
+      G.OtherStmtWithStmt (G.OSWS_Sync, [ G.E v1 ], v2) |> G.s
+  | Try (t, v0, v1, v2, v3) -> (
       let v1 = stmt v1 and v2 = catches v2 and v3 = option tok_and_stmt v3 in
-      G.Try (t, v1, v2, v3) |> G.s
+      let try_stmt = G.Try (t, v1, v2, v3) |> G.s in
+      match v0 with
+      | None -> try_stmt
+      | Some r -> G.WithUsingResource (t, resources r, try_stmt) |> G.s)
   | Throw (t, v1) ->
       let v1 = expr v1 in
       G.Throw (t, v1, G.sc) |> G.s
@@ -484,7 +482,7 @@ and stmt st =
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      let es = v1 :: Common.opt_to_list v2 in
+      let es = v1 :: Option.to_list v2 in
       let args = es |> List.map G.arg in
       G.Assert (t, fb args, G.sc) |> G.s
 
@@ -654,7 +652,7 @@ and class_decl
   let cdef =
     {
       G.ckind = v2;
-      cextends = Common.opt_to_list v5;
+      cextends = Option.to_list v5;
       cimplements = v6;
       cmixins = [];
       cparams;

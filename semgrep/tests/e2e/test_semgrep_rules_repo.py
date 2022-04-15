@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 
@@ -7,8 +8,7 @@ import pytest
 def _fail_subprocess_on_error(cmd):
     output = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         encoding="utf-8",
     )
 
@@ -16,10 +16,14 @@ def _fail_subprocess_on_error(cmd):
         pytest.fail(f"Failed running cmd={cmd}" + output.stdout + output.stderr)
 
 
+@pytest.mark.slow
 def test_semgrep_rules_repo(run_semgrep_in_tmp):
     subprocess.check_output(
         ["git", "clone", "--depth=1", "https://github.com/returntocorp/semgrep-rules"]
     )
+
+    # Remove subdir that doesnt contain rules
+    shutil.rmtree("./semgrep-rules/stats")
 
     _fail_subprocess_on_error(
         [

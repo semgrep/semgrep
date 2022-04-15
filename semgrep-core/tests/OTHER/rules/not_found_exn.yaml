@@ -1,0 +1,13 @@
+rules:
+  - id: asymmetric-rsa-weak-keylength
+    message: |
+      RSA-$KEYLENGTH
+    languages:
+      - go
+    severity: WARNING
+    patterns:
+      - pattern: |
+              rsa.GenerateKey(..., $KEYLENGTH)
+      - metavariable-comparison:
+          metavariable: $KEYLENGTH
+          comparison: $KEYLENGTH < 513

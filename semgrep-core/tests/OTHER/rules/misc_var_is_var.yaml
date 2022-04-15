@@ -1,0 +1,10 @@
+rules:
+  - id: test
+    languages:
+      - javascript
+    message: Match Found!
+    options:
+      let_is_var: false
+    pattern: var $X = 1;
+    severity: WARNING
+

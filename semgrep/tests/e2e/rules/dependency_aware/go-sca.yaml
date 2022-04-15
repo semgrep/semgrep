@@ -1,0 +1,14 @@
+rules:
+  - id: go-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      depends-on-either:
+        - namespace: gomod
+          package: github.com/cheekybits/genny
+          version: "== 1.0.0"
+        - namespace: gomod
+          package: github.com/cheekybits/genny
+          version: "<= 0.9.0"
+    message: oh no
+    languages: [go]
+    severity: WARNING

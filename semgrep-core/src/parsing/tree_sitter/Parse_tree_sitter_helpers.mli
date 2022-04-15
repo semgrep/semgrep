@@ -6,9 +6,7 @@ type 'a env = {
 }
 
 val line_col_to_pos : Common.filename -> (int * int, int) Hashtbl.t
-
 val token : 'a env -> Tree_sitter_run.Token.t -> Parse_info.t
-
 val str : 'a env -> Tree_sitter_run.Token.t -> string * Parse_info.t
 
 val str_if_wrong_content_temporary_fix :
@@ -22,7 +20,8 @@ val debug_sexp_cst_after_error : Sexplib.Sexp.t -> unit
 
 (*
    Call a tree-sitter parser and then map the CST into an AST
-   with the user-provided function. Takes care of error handling.
+   with the user-provided function. Takes care of error handling but lets
+   exceptions go through.
 *)
 val wrap_parser :
   (unit -> 'cst Tree_sitter_run.Parsing_result.t) ->

@@ -33,7 +33,6 @@ let rec print_node buf indent node =
 and print_nodes buf indent nodes = List.iter (print_node buf indent) nodes
 
 let print_root buf nodes = print_nodes buf "" nodes
-
 let to_buffer buf nodes = print_root buf nodes
 
 let to_string nodes =
@@ -42,7 +41,6 @@ let to_string nodes =
   Buffer.contents buf
 
 let to_channel oc nodes = output_string oc (to_string nodes)
-
 let to_stdout nodes = to_channel stdout nodes
 
 let to_file file nodes =
@@ -80,7 +78,6 @@ module Debug = struct
   and print_nodes buf indent nodes = List.iter (print_node buf indent) nodes
 
   let print_root buf nodes = print_nodes buf "" nodes
-
   let to_buffer buf nodes = print_root buf nodes
 
   let to_string nodes =
@@ -89,7 +86,6 @@ module Debug = struct
     Buffer.contents buf
 
   let to_channel oc nodes = output_string oc (to_string nodes)
-
   let to_stdout nodes = to_channel stdout nodes
 
   let to_file file nodes =

@@ -1,2 +1,10 @@
-Running 4 rules...
-ran 4 rules on 14 files: 2 findings
+
+Scanning across multiple languages:
+    python | 3 rules × 11 files
+        js | 1 rule  ×  3 files
+
+
+Some files were skipped.
+  Scan was limited to files tracked by git.
+
+Ran 4 rules on 14 files: 2 findings.

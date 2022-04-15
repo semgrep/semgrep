@@ -3,7 +3,7 @@
 *)
 
 let test_suites : unit Alcotest.test list =
-  [ File_type.test; Parser.test; Matcher.test; Src_file.test ]
+  [ File_type.test; Parser.test; Matcher.test; Src_file.test; Comment.test ]
 
 let main () =
   Spacegrep.Match.debug := true;

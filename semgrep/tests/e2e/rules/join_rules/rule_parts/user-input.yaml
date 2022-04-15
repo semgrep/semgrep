@@ -1,0 +1,16 @@
+rules:
+- id: user-input
+  message: $OBJ.$SINK
+  languages: [java]
+  severity: INFO
+  mode: taint
+  pattern-sources:
+  - pattern: |
+      @RequestMapping(...)
+      $RETURNTYPE $USERINPUTMETHOD(..., $TYPE $PARAMETER, ...) {
+        ...
+      }
+  pattern-sinks:
+  - patterns:
+    - pattern: $OBJ.$SINK(...)
+    - pattern: $PARAMETER

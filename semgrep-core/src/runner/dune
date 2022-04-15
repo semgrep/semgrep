@@ -1,5 +1,5 @@
 (library
- (name semgrep_running)
+ (public_name semgrep_running)
  (wrapped false)
  (libraries
     parmap
@@ -9,9 +9,12 @@
     semgrep_core
     semgrep_parsing
     semgrep_matching
-    semgrep_analyzing
-    semgrep_reporting
+    semgrep_datalog
     semgrep_engine
+    semgrep_experiments_misc
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps
+      ppx_deriving.show
+      ppx_profiling
+   ))
 )

@@ -3,7 +3,7 @@
 ;
 
 (library
- (name semgrep_system)
+ (public_name semgrep_system)
  (wrapped false)
  (libraries
    unix

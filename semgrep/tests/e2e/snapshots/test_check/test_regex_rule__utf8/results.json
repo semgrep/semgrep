@@ -1,0 +1,80 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/basic/regex-utf8.txt"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 2,
+        "offset": 12
+      },
+      "extra": {
+        "fingerprint": "2e51641579f597a719dc5a3969fc22da",
+        "is_ignored": false,
+        "lines": "\ud83d\ude0a (smiley)",
+        "message": "check different ways to match UTF-8-encoded Unicode text",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-utf8.txt",
+      "start": {
+        "col": 1,
+        "line": 2,
+        "offset": 8
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 5,
+        "line": 5,
+        "offset": 35
+      },
+      "extra": {
+        "fingerprint": "5811da4bb8392ebeb39c51ea03e7816f",
+        "is_ignored": false,
+        "lines": "\ud83d\ude80 (rocket)",
+        "message": "check different ways to match UTF-8-encoded Unicode text",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-utf8.txt",
+      "start": {
+        "col": 1,
+        "line": 5,
+        "offset": 31
+      }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 9,
+        "line": 11,
+        "offset": 87
+      },
+      "extra": {
+        "fingerprint": "c26d7e14437173c1ea8769b7c71feb46",
+        "is_ignored": false,
+        "lines": "<\u03b2\u03b3\u03b4> (Greek letters)",
+        "message": "check different ways to match UTF-8-encoded Unicode text",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-utf8.txt",
+      "start": {
+        "col": 1,
+        "line": 11,
+        "offset": 79
+      }
+    }
+  ]
+}

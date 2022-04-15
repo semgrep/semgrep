@@ -1,11 +1,57 @@
 running 2 rules from 1 config rules/eqeq-python.yaml_0
-Running 2 rules...
-rules:
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-skipped 'targets/bad/invalid_python.py' [rule assert-eqeq-is-ok]: irrelevant_rule: target doesn't contain some elements required by rule 'assert-eqeq-is-ok'
-Semgrep Core WARN - Syntax error in file targets/bad/invalid_python.py:1
-	`
+Scanning 1 file with 2 python rules.
+[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Semgrep Core — Syntax error
+An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
+
+At line targets/bad/invalid_python.py:1: `
     ` was unexpected
-ran 2 rules on 1 files: 0 findings
+[0m
+
+========================================
+Files skipped:
+========================================
+
+  [1m[24mAlways skipped by Semgrep:[0m
+
+   • <none>
+
+  [1m[24mSkipped by .gitignore:[0m
+  [1m[24m(Disable by passing --no-git-ignore)[0m
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  [1m[24mSkipped by .semgrepignore:[0m
+  [1m[24m(See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-
+  defaults)[0m
+
+   • <none>
+
+  [1m[24mSkipped by --include patterns:[0m
+
+   • <none>
+
+  [1m[24mSkipped by --exclude patterns:[0m
+
+   • <none>
+
+  [1m[24mSkipped by limiting to files smaller than 1000000 bytes:[0m
+  [1m[24m(Adjust with the --max-target-bytes flag)[0m
+
+   • <none>
+
+  [1m[24mSkipped by analysis failure due to parsing or internal Semgrep error[0m
+
+   • [36m[22m[24mtargets/bad/invalid_python.py[0m
+
+
+Some files were skipped.
+  Scan was limited to files tracked by git.
+  Scan skipped: 1 files not analyzed due to a parsing or internal Semgrep error
+  For a full list of skipped files, run semgrep with the --verbose flag.
+
+Ran 2 rules on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False

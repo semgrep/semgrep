@@ -1,128 +1,87 @@
+import binascii
+import datetime
 import itertools
+import textwrap
+from collections import Counter
+from functools import total_ordering
 from pathlib import Path
 from typing import Any
+from typing import Counter as CounterType
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
+from typing import TYPE_CHECKING
+from uuid import UUID
 
-import attr
+from attrs import evolve
+from attrs import field
+from attrs import frozen
 
+import semgrep.output_from_core as core
+from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
-from semgrep.types import JsonObject
+from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
+
+if TYPE_CHECKING:
+    from semgrep.rule import Rule
 
 
-@attr.s(auto_attribs=True, frozen=True)
-class CoreLocation:
-    """
-    parses:
-     {
-        "line": 5
-        "col": 6
-        "offset": 30
-     }
-    into an object
-    """
-
-    line: int
-    col: int
-    offset: int
-
-    def to_dict(self) -> JsonObject:
-        return {
-            "line": self.line,
-            "col": self.col,
-            "offset": self.offset,
-        }
-
-    @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreLocation":
-        line = raw_json.get("line")
-        col = raw_json.get("col")
-        offset = raw_json.get("offset")
-
-        # Please mypy
-        assert isinstance(line, int)
-        assert isinstance(col, int)
-        assert isinstance(offset, int)
-
-        return cls(line, col, offset)
+def rstrip(value: Optional[str]) -> Optional[str]:
+    return value.rstrip() if value else None
 
 
-@attr.s(frozen=True)
+@total_ordering
+@frozen(eq=False)
 class RuleMatch:
     """
-    A section of code that matches a single rule (which is potentially many patterns)
+    A section of code that matches a single rule (which is potentially many patterns).
+
+    This is also often referred to as a finding.
+    TODO: Rename this class to Finding?
     """
 
-    _id: str = attr.ib()
-    _message: str = attr.ib(repr=False)
-    _metadata: Dict[str, Any] = attr.ib(repr=False)
-    _severity: RuleSeverity = attr.ib(repr=False)
-    _fix: Optional[str] = attr.ib(repr=False)
-    _fix_regex: Optional[Dict[str, Any]] = attr.ib(repr=False)
-    _path: Path = attr.ib(repr=str)
-    _start: CoreLocation = attr.ib()
-    _end: CoreLocation = attr.ib()
+    rule_id: str
+    message: str = field(repr=False)
+    severity: RuleSeverity
 
-    _extra: Dict[str, Any] = attr.ib(repr=False)
-    _lines_cache: Dict[Tuple[int, int], List[str]] = attr.ib(repr=False)
+    path: Path = field(repr=str)
+    start: core.Position
+    end: core.Position
 
-    # optional attributes
-    _is_ignored: Optional[bool] = attr.ib(default=None)
+    metadata: Dict[str, Any] = field(repr=False, factory=dict)
+    extra: Dict[str, Any] = field(repr=False, factory=dict)
 
-    @property
-    def id(self) -> str:
-        return self._id
+    # We call rstrip() for consistency with semgrep-core, which ignores whitespace
+    # including newline chars at the end of multiline patterns
+    fix: Optional[str] = field(converter=rstrip, default=None)
+    fix_regex: Optional[Dict[str, Any]] = None
 
-    @property
-    def path(self) -> Path:
-        return self._path
+    index: int = 0
 
-    @property
-    def extra(self) -> Dict[str, Any]:
-        return self._extra
+    # None means we didn't check; ignore status is unknown
+    is_ignored: Optional[bool] = field(default=None)
 
-    @property
-    def fix(self) -> Optional[str]:
-        # We do this for consistency with semgrep-core, which ignores whitespace
-        # including newline chars at the end of multiline patterns
-        return self._fix.rstrip() if self._fix else self._fix
+    # derived attributes
+    lines: List[str] = field(init=False, repr=False)
+    previous_line: str = field(init=False, repr=False)
+    syntactic_context: str = field(init=False, repr=False)
+    cli_unique_key: Tuple = field(init=False, repr=False)
+    ci_unique_key: Tuple = field(init=False, repr=False)
+    ordering_key: Tuple = field(init=False, repr=False)
+    syntactic_id: str = field(init=False, repr=False)
 
-    @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:
-        return self._fix_regex
-
-    @property
-    def message(self) -> str:
-        return self._message
-
-    @property
-    def metadata(self) -> Dict[str, Any]:
-        return self._metadata
-
-    @property
-    def severity(self) -> RuleSeverity:
-        return self._severity
-
-    @property
-    def start(self) -> CoreLocation:
-        return self._start
-
-    @property
-    def end(self) -> CoreLocation:
-        return self._end
-
-    @property
-    def is_ignored(self) -> Optional[bool]:
-        return self._is_ignored
-
-    @property
-    def lines(self) -> List[str]:
+    @lines.default
+    def get_lines(self) -> List[str]:
         """
         Return lines in file that this RuleMatch is referring to.
 
         Assumes file exists.
+
+        Need to do on initialization instead of on read since file might not be the same
+        at read time
         """
         # Start and end line are one-indexed, but the subsequent slice call is
         # inclusive for start and exclusive for end, so only subtract from start
@@ -133,14 +92,232 @@ class RuleMatch:
             # Completely empty file
             return []
 
-        try:
-            return self._lines_cache[(start_line, end_line)]
-        except KeyError:
-            pass
-
         # buffering=1 turns on line-level reads
         with self.path.open(buffering=1, errors="replace") as fd:
             result = list(itertools.islice(fd, start_line, end_line))
 
-        self._lines_cache[(start_line, end_line)] = result
         return result
+
+    @previous_line.default
+    def get_previous_line(self) -> str:
+        """Return the line preceding the match, if any.
+
+        This is meant for checking for the presence of a nosemgrep comment.
+        This implementation was derived from the 'lines' method below.
+        Refer to it for relevant comments.
+        IT feels like a lot of duplication. Feel free to improve.
+        """
+        # see comments in '_get_lines' method
+        start_line = self.start.line - 2
+        end_line = start_line + 1
+        is_empty_file = self.end.line <= 0
+
+        if start_line < 0 or is_empty_file:
+            # no previous line
+            return ""
+
+        with self.path.open(buffering=1, errors="replace") as fd:
+            res = list(itertools.islice(fd, start_line, end_line))
+
+        if res:
+            return res[0]
+        else:
+            return ""
+
+    @syntactic_context.default
+    def get_syntactic_context(self) -> str:
+        """
+        The code that matched, with whitespace and nosem comments removed.
+
+        This is useful to so that findings can be considered the same
+        when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
+        and thus CI systems don't retrigger notifications.
+        """
+        lines = [*self.lines]
+        if len(lines) > 0:
+            lines[0] = NOSEM_INLINE_COMMENT_RE.sub("", lines[0])
+            lines[0] = lines[0].rstrip() + "\n"
+
+        code = "".join(lines)  # the lines end with newlines already
+        code = textwrap.dedent(code)
+        code = code.strip()
+        return code
+
+    @cli_unique_key.default
+    def get_cli_unique_key(self) -> Tuple:
+        """
+        A unique key designed with data-completeness & correctness in mind.
+
+        Results in more unique findings than ci_unique_key.
+
+        Used for deduplication in the CLI before writing output.
+        """
+        return (
+            self.rule_id,
+            str(self.path),
+            self.start.offset,
+            self.end.offset,
+            self.message,
+        )
+
+    @ci_unique_key.default
+    def get_ci_unique_key(self) -> Tuple:
+        """
+        A unique key designed with notification user experience in mind.
+
+        Results in fewer unique findings than cli_unique_key.
+
+        We use this to check if a finding matches its baseline equivalent,
+        and to de-duplicate findings when pushing to semgrep.dev from CI,
+        so that you don't get multiple notifications for the same finding
+        when just moving it around commit-after-commit in a pull request.
+
+        Some things that this key deduplicates to reduce useless notifications:
+        - findings that match different metavariables within the same code snippet
+        - findings that differ only in indentation
+        - findings that differ only because one is ignored with `# nosemgrep`
+
+        This key was originally implemented in and ported from semgrep-agent.
+        """
+        try:
+            path = self.path.relative_to(Path.cwd())
+        except ValueError:
+            path = self.path
+        return (self.rule_id, str(path), self.syntactic_context, self.index)
+
+    @ordering_key.default
+    def get_ordering_key(self) -> Tuple:
+        """
+        Used to sort findings in output.
+
+        Note that we often batch by rule ID when gathering matches,
+        so the included self.rule_id will not do anything in those cases.
+
+        The message field is included to ensure a consistent ordering
+        when two findings match with different metavariables on the same code.
+        """
+        return (self.path, self.start, self.end, self.rule_id, self.message)
+
+    @syntactic_id.default
+    def get_syntactic_id(self) -> str:
+        """
+        A 32-character hash representation of ci_unique_key.
+
+        This value is sent to semgrep.dev and used as a unique key in the database.
+        """
+        # Upon reviewing an old decision,
+        # there's no good reason for us to use MurmurHash3 here,
+        # but we need to keep consistent hashes so we cannot change this easily
+        hash_int = hash128(str(self.ci_unique_key))
+        hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
+        return str(binascii.hexlify(hash_bytes), "ascii")
+
+    @property
+    def uuid(self) -> UUID:
+        """
+        A UUID representation of ci_unique_key.
+        """
+        return UUID(hex=self.syntactic_id)
+
+    @property
+    def is_blocking(self) -> bool:
+        """
+        Returns if this finding indicates it should block CI
+        """
+        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
+    def to_app_finding_format(self, commit_date: str) -> Dict[str, Any]:
+        """
+        commit_date here for legacy reasons.
+        commit date of the head commit in epoch time
+        """
+        commit_date_app_format = str(datetime.datetime.fromtimestamp(int(commit_date)))
+
+        # Follow semgrep.dev severity conventions
+        if self.severity.value == RuleSeverity.ERROR.value:
+            app_severity = 2
+        elif self.severity.value == RuleSeverity.WARNING.value:
+            app_severity = 1
+        else:
+            app_severity = 0
+
+        ret = {
+            "check_id": self.rule_id,
+            "path": str(self.path),
+            "line": self.start.line,
+            "column": self.start.col,
+            "end_line": self.end.line,
+            "end_column": self.end.col,
+            "message": self.message,
+            "severity": app_severity,
+            "index": self.index,
+            "commit_date": commit_date_app_format,
+            "syntactic_id": self.syntactic_id,
+            "metadata": self.metadata,
+            "is_blocking": self.is_blocking,
+        }
+
+        if self.extra.get("fixed_lines"):
+            ret["fixed_lines"] = self.extra.get("fixed_lines")
+        return ret
+
+    def __hash__(self) -> int:
+        """
+        We use the "data-correctness" key to prevent keeping around duplicates.
+        """
+        return hash(self.cli_unique_key)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+        return self.cli_unique_key == other.cli_unique_key
+
+    def __lt__(self, other: "RuleMatch") -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.ordering_key < other.ordering_key
+
+
+class RuleMatchSet(Set[RuleMatch]):
+    """
+    A custom set type which is aware when findings are the same.
+
+    It also automagically adds the correct finding index when adding elements.
+    """
+
+    def __init__(self, __iterable: Optional[Iterable[RuleMatch]] = None) -> None:
+        self._ci_key_counts: CounterType[Tuple] = Counter()
+        if __iterable is None:
+            super().__init__()
+        else:
+            super().__init__(__iterable)
+
+    def add(self, match: RuleMatch) -> None:
+        """
+        Add finding, but if the same (rule, path, code) exists,
+        note this by incrementing the finding's index.
+
+        The index lets us still notify when some code with findings is duplicated,
+        even though we'd otherwise deduplicate the findings.
+        """
+        self._ci_key_counts[match.ci_unique_key] += 1
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
+        super().add(match)
+
+    def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
+        """
+        Add findings, but if the same (rule, path, code) exists,
+        note this by incrementing the finding's index.
+
+        The index lets us still notify when some code with findings is duplicated,
+        even though we'd otherwise deduplicate the findings.
+        """
+        for rule_matches in rule_match_iterables:
+            for rule_match in rule_matches:
+                self.add(rule_match)
+
+
+# Our code orders findings at one point and then just assumes they're in order.
+# This type marks variables that went through ordering already.
+OrderedRuleMatchList = List[RuleMatch]
+RuleMatchMap = Dict["Rule", OrderedRuleMatchList]

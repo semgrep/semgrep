@@ -7,17 +7,19 @@ in generating the OnCall Update email Matt started to send.
 
 ### Usage
 
-First you need to generate a github authentification token to
+First you need to generate a github authentication token to
 access the github API. Go to https://github.com/settings/tokens and
 generate a new token. You'll need to give this token a few
 capabilities. See https://docs.github.com/en/graphql/guides/forming-calls-with-graphql#authenticating-with-graphql
 
 Then you can call `curl.shell` with this token as a parameter:
+
 ```sh
 $ curl.shell $GITHUB_TOKEN > yesterday.json
 ```
 
 Then a day after, you can generate the data for the current day with:
+
 ```sh
 $ curl.shell $GITHUB_TOKEN > today.json
 ```
@@ -25,13 +27,14 @@ $ curl.shell $GITHUB_TOKEN > today.json
 Finally you can run the small OCaml program to compare the current
 state of the customer board with the one of yesterday. You should
 then get an email template that you can refine:
+
 ```sh
 $ dune build
 $ ./_build/default/oncall.exe -base yesterday.json today.json
 
 To Discuss (UNASSIGNED)
 
-	- [story] Figma can run `nginx` rules on their codebase and report that the performance was good 
+	- [story] Figma can run `nginx` rules on their codebase and report that the performance was good
 	<https://github.com/returntocorp/semgrep-app/issues/1736> ()
 
 Unassigned To do

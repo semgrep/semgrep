@@ -9,7 +9,8 @@ from typing import Optional
 from typing import Type
 from urllib.parse import urlparse
 
-import attr
+from attrs import define
+from attrs import field
 from constants import SEMGREP_URL
 from constants import SEMGREP_USER_AGENT
 from ruamel.yaml import YAML
@@ -26,15 +27,15 @@ logger.addHandler(handler)
 yaml = YAML(typ="rt")
 
 
-@attr.s
-class Repository(object):
-    url: str = attr.ib(default="")
-    commit_hash: str = attr.ib(default="HEAD")
+@define
+class Repository:
+    url: str = field(default="")
+    commit_hash: str = field(default="HEAD")
 
 
-@attr.s
-class RuleConfig(object):
-    config_str: str = attr.ib(default="")
+@define
+class RuleConfig:
+    config_str: str = field(default="")
 
     def _fetch_rule_config_from_url(self, rule_config_url: str) -> Optional[str]:
         import requests
@@ -173,20 +174,20 @@ class RuleConfig(object):
         return cache_path
 
 
-@attr.s
-class BenchmarkRunSetupData(object):
+@define
+class BenchmarkRunSetupData:
     """
     Stores data about an individual benchmark run
     """
 
-    run_name: str = attr.ib(default="benchmark_run")
-    rule_configs: List[RuleConfig] = attr.ib(default=["p/r2c"])
-    repositories: List[Repository] = attr.ib(factory=list)
-    semgrep_options: List[str] = attr.ib(factory=list)
+    run_name: str = field(default="benchmark_run")
+    rule_configs: List[RuleConfig] = field(default=["p/r2c"])
+    repositories: List[Repository] = field(factory=list)
+    semgrep_options: List[str] = field(factory=list)
 
 
-@attr.s
-class SemgrepBenchmarkConfig(object):
+@define
+class SemgrepBenchmarkConfig:
     """
     Stores data needed to start a benchmarking run.
 
@@ -207,14 +208,14 @@ class SemgrepBenchmarkConfig(object):
     '''
     """
 
-    benchmark_setup_data: List[BenchmarkRunSetupData] = attr.ib(factory=list)
+    benchmark_setup_data: List[BenchmarkRunSetupData] = field(factory=list)
 
     @classmethod
     def parse_config(
         cls: Type["SemgrepBenchmarkConfig"], config_file: Path
     ) -> "SemgrepBenchmarkConfig":
         logger.debug(f"Using config at {config_file.absolute()}")
-        with open(config_file, "r") as fin:
+        with open(config_file) as fin:
             config = yaml.load(fin)
 
         return SemgrepBenchmarkConfig(

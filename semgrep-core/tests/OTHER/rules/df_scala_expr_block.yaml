@@ -1,0 +1,16 @@
+rules:
+- id: test
+  mode: taint
+  pattern-sinks:
+  - patterns:
+    - pattern: Ok(...)
+  pattern-sources:
+  - patterns:
+    - pattern: $PARAM
+    - pattern-inside: |
+        def $METHOD(..., $PARAM: $TYPE, ...) = Action {
+          ...
+        }
+  message: Test
+  languages: [scala]
+  severity: WARNING

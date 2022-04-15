@@ -1,5 +1,6 @@
-including files:
-- excluded.*
-- included.*
-Running 4 rules...
-ran 4 rules on 4 files: 4 findings
+Scanning 4 files.
+
+Some files were skipped.
+  Scan was limited to files tracked by git.
+
+Ran 4 rules on 4 files: 4 findings.

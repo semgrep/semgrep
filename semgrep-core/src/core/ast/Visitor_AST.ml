@@ -50,7 +50,7 @@ type visitor_in = {
     (class_definition -> unit) * visitor_out -> class_definition -> unit;
   kinfo : (tok -> unit) * visitor_out -> tok -> unit;
   kid_info : (id_info -> unit) * visitor_out -> id_info -> unit;
-  kconstness : (constness -> unit) * visitor_out -> constness -> unit;
+  ksvalue : (svalue -> unit) * visitor_out -> svalue -> unit;
 }
 
 and visitor_out = any -> unit
@@ -82,22 +82,27 @@ let default_visitor =
         let {
           id_resolved = v_id_resolved;
           id_type = v_id_type;
-          id_constness = _IGNORED;
+          id_svalue = _IGNORED;
           id_hidden = _IGNORED2;
+          id_info_id = _IGNORED3;
         } =
           x
         in
         let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_resolved in
         let arg = v_ref_do_not_visit (v_option (fun _ -> ())) v_id_type in
         ());
-    kconstness = (fun (k, _) x -> k x);
+    ksvalue = (fun (k, _) x -> k x);
   }
 
 let v_id _ = ()
 
 let (mk_visitor :
-      ?vardef_assign:bool -> ?attr_expr:bool -> visitor_in -> visitor_out) =
- fun ?(vardef_assign = false) ?(attr_expr = false) vin ->
+      ?vardef_assign:bool ->
+      ?flddef_assign:bool ->
+      ?attr_expr:bool ->
+      visitor_in ->
+      visitor_out) =
+ fun ?(vardef_assign = false) ?(flddef_assign = false) ?(attr_expr = false) vin ->
   (* start of auto generation *)
   (* NOTE: we do a few subtle things at a few places now for semgrep
    * to trigger a few more artificial visits:
@@ -157,8 +162,8 @@ let (mk_visitor :
     v_resolved_name_kind v1;
     v_int v2
   and v_resolved_name_kind = function
-    | Local -> ()
-    | Param -> ()
+    | LocalVar -> ()
+    | Parameter -> ()
     | EnclosedVar -> ()
     | Global -> ()
     | ImportedEntity v1 ->
@@ -170,6 +175,9 @@ let (mk_visitor :
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
+    | ResolvedName v1 ->
+        let v1 = v_dotted_ident v1 in
+        ()
   and v_name_info
       { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =
     let v1 = v_ident_and_targs v1 in
@@ -182,14 +190,15 @@ let (mk_visitor :
       let {
         id_resolved = v_id_resolved;
         id_type = v_id_type;
-        id_constness = v_id_constness;
+        id_svalue = v_id_svalue;
         id_hidden = v_id_hidden;
+        id_info_id = _IGNORED;
       } =
         x
       in
       let arg = v_ref_do_visit (v_option v_resolved_name) v_id_resolved in
       let arg = v_ref_do_visit (v_option v_type_) v_id_type in
-      let arg = v_ref_do_visit (v_option v_constness) v_id_constness in
+      let arg = v_ref_do_visit (v_option v_svalue) v_id_svalue in
       let arg = v_hidden v_id_hidden in
       ()
     in
@@ -249,6 +258,7 @@ let (mk_visitor :
   and v_expr x =
     let k x =
       match x.e with
+      | ParenExpr v1 -> v_bracket v_expr v1
       | DotAccessEllipsis (v1, v2) ->
           v_expr v1;
           v_tok v2
@@ -318,6 +328,10 @@ let (mk_visitor :
       | Call (v1, v2) ->
           let v1 = v_expr v1 and v2 = v_arguments v2 in
           ()
+      | New (v0, v1, v2) ->
+          v_tok v0;
+          let v1 = v_type_ v1 and v2 = v_arguments v2 in
+          ()
       | Assign (v1, v2, v3) ->
           let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_expr v3 in
           ()
@@ -372,6 +386,10 @@ let (mk_visitor :
           ()
       | DeRef (t, v1) ->
           let t = v_tok t in
+          let v1 = v_expr v1 in
+          ()
+      | Alias (alias, v1) ->
+          let alias = v_wrap v_string alias in
           let v1 = v_expr v1 in
           ()
       | StmtExpr v1 ->
@@ -436,7 +454,7 @@ let (mk_visitor :
     | Cint -> ()
     | Cstr -> ()
     | Cany -> ()
-  and v_constness x =
+  and v_svalue x =
     let k = function
       | Lit v1 ->
           let v1 = v_literal v1 in
@@ -444,9 +462,12 @@ let (mk_visitor :
       | Cst v1 ->
           let v1 = v_const_type v1 in
           ()
+      | Sym v1 ->
+          let v1 = v_expr v1 in
+          ()
       | NotCst -> ()
     in
-    vin.kconstness (k, all_functions) x
+    vin.ksvalue (k, all_functions) x
   and v_hidden _is_hidden = ()
   and v_container_operator _x = ()
   and v_comprehension (v1, v2) =
@@ -475,7 +496,6 @@ let (mk_visitor :
     | Typeof -> ()
     | Instanceof -> ()
     | Sizeof -> ()
-    | New -> ()
     | Spread -> ()
     | HashSplat -> ()
     | NextArrayIndex -> ()
@@ -497,6 +517,7 @@ let (mk_visitor :
   and v_prepost _ = ()
   and v_arithmetic_operator _x = ()
   and v_arguments v = v_bracket (v_list v_argument) v
+  and v_required _x = ()
   and v_argument = function
     | Arg v1 ->
         let v1 = v_expr v1 in
@@ -505,6 +526,9 @@ let (mk_visitor :
         let v1 = v_type_ v1 in
         ()
     | ArgKwd (v1, v2) ->
+        let v1 = v_ident v1 and v2 = v_expr v2 in
+        ()
+    | ArgKwdOptional (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
     | OtherArg (v1, v2) ->
@@ -527,9 +551,6 @@ let (mk_visitor :
           v_type_ v1;
           v_tok v2;
           v_type_ v3
-      | TyBuiltin v1 ->
-          let v1 = v_wrap v_string v1 in
-          ()
       | TyFun (v1, v2) ->
           let v1 = v_list v_parameter v1 and v2 = v_type_ v2 in
           ()
@@ -597,6 +618,7 @@ let (mk_visitor :
   and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
   and v_type_parameter = function
+    | TParamEllipsis v1 -> v_tok v1
     | TP v1 -> v_type_parameter_classic v1
     | OtherTypeParam (t, xs) ->
         let t = v_todo_kind t in
@@ -662,18 +684,6 @@ let (mk_visitor :
     let k x =
       (* todo? visit the s_id too? *)
       match x.s with
-      | Match (v0, v1, v2) ->
-          v_partial ~recurse:false (PartialMatch (v0, v1));
-          let v0 = v_tok v0 in
-          let v1 = v_expr v1
-          and v2 =
-            v_list
-              (fun (v1, v2) ->
-                let v1 = v_pattern v1 and v2 = v_expr v2 in
-                ())
-              v2
-          in
-          ()
       | DisjStmt (v1, v2) ->
           let v1 = v_stmt v1 in
           let v2 = v_stmt v2 in
@@ -715,6 +725,9 @@ let (mk_visitor :
           let v1 = v_for_header v1 and v2 = v_stmt v2 in
           ()
       | Switch (v0, v1, v2) ->
+          (match v1 with
+          | Some (G.Cond v1) -> v_partial ~recurse:false (PartialMatch (v0, v1))
+          | _ -> ());
           let v0 = v_tok v0 in
           let v1 = v_option v_condition v1
           and v2 = v_list v_cases_and_body v2 in
@@ -808,6 +821,9 @@ let (mk_visitor :
     in
     vin.kcatch (k, all_functions) x
   and v_catch_exn = function
+    | OtherCatch (v1, v2) ->
+        v_todo_kind v1;
+        v_list v_any v2
     | CatchPattern p -> v_pattern p
     | CatchParam p -> v_parameter_classic p
   and v_finally (t, v) =
@@ -1098,6 +1114,20 @@ let (mk_visitor :
          *)
         v_expr (H.vardef_to_assign (ventity, vdef))
     | _ -> ()
+  and v_flddef_as_assign_expr ventity = function
+    (* No need to cover the VarDef({vinit = Some _; )} case here. It will
+     * be covered by v_vardef_as_assign_expr at some point when v_field
+     * below call v_stmt (which itself will call v_def).
+     *
+     * In certain languages like Javascript, some method definitions look
+     * really like assignements, so we would like an expression pattern like
+     * '$X = function() { ...}' to also match code like
+     * 'class Foo { x = function() { return; } }'.
+     *)
+    | FuncDef fdef when flddef_assign ->
+        let resolved = Some (LocalVar, G.sid_TODO) in
+        v_expr (H.funcdef_to_lambda (ventity, fdef) resolved)
+    | _ -> ()
   and v_field x =
     let k x =
       match x with
@@ -1108,6 +1138,7 @@ let (mk_visitor :
                 FieldDefColon { vinit = Some e; _ } ) ->
               let t = PI.fake_info (snd id) ":" in
               v_partial ~recurse:false (PartialSingleField (id, t, e))
+          | DefStmt (ent, def) -> v_flddef_as_assign_expr ent def
           | _ -> ());
           let v1 = v_stmt v1 in
           ()
@@ -1237,11 +1268,14 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Xmls v1 -> v_list v_xml_body v1
+    | ForOrIfComp v1 -> v_for_or_if_comp v1
     | Tp v1 -> v_type_parameter v1
     | Ta v1 -> v_type_argument v1
     | Cs v1 -> v_case v1
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
+    | Params v1 -> v_list v_parameter v1
     | Flds v1 -> v_fields v1
     | Anys v1 -> v_list v_any v1
     | Partial v1 -> v_partial ~recurse:true v1
@@ -1322,7 +1356,16 @@ let (mk_visitor :
 let extract_info_visitor recursor =
   let globals = ref [] in
   let hooks =
-    { default_visitor with kinfo = (fun (_k, _) i -> Common.push i globals) }
+    {
+      default_visitor with
+      kinfo = (fun (_k, _) i -> Common.push i globals);
+      kexpr =
+        (fun (k, _) x ->
+          match x.e with
+          (* Ignore the tokens from the expression str is aliased to *)
+          | Alias ((_str, t), _e) -> Common.push t globals
+          | _ -> k x);
+    }
   in
   let vout = mk_visitor hooks in
   recursor vout;
@@ -1331,8 +1374,7 @@ let extract_info_visitor recursor =
 (*e: function [[Lib_AST.extract_info_visitor]] *)
 
 (*s: function [[Lib_AST.ii_of_any]] *)
-let ii_of_any any =
-  extract_info_visitor (fun visitor -> visitor any)
+let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
   [@@profiling]
 
 (*e: function [[Lib_AST.ii_of_any]] *)

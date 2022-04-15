@@ -14,11 +14,13 @@ from typing import Set
 from typing import Tuple
 from typing import Type
 
-import attr
 import peewee as pw
+from attrs import define
+from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
 
+import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
@@ -29,8 +31,8 @@ from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
+from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__file__)
@@ -69,16 +71,18 @@ class JoinOperator(Enum):
     SIMILAR = "~"
     SIMILAR_LEFT = "<"
     SIMILAR_RIGHT = ">"
+    RECURSIVE = "-->"
 
 
-@attr.s(auto_attribs=True)
+@define
 class Ref:
     id: str
     renames: Dict[str, str]
     alias: str
+    recursive: Dict[str, str]
 
 
-@attr.s(auto_attribs=True)
+@define
 class Condition:
     collection_a: str
     property_a: str
@@ -172,6 +176,13 @@ def match_on_conditions(  # type: ignore
     The return value is the same as a 'peewee' .select() expression, such as
     BlogPost.select().where(author="Author").
     """
+    recursive_conditions, normal_conditions = partition(
+        lambda condition: condition.operator == JoinOperator.RECURSIVE,
+        conditions,
+    )
+
+    handle_recursive_conditions(recursive_conditions, model_map, aliases)
+
     # get all collections
     collections = create_collection_set_from_conditions(conditions)
     try:
@@ -191,7 +202,7 @@ def match_on_conditions(  # type: ignore
 
     # evaluate conjoined conditions
     condition_terms = []
-    for condition in conditions:
+    for condition in normal_conditions:
         collection_a_real = aliases.get(condition.collection_a, condition.collection_a)
         collection_b_real = aliases.get(condition.collection_b, condition.collection_b)
         A = model_map[collection_a_real]
@@ -211,7 +222,6 @@ def match_on_conditions(  # type: ignore
             *list(map(lambda terms: evaluate_condition(*terms), condition_terms))  # type: ignore
         )
     )
-    logger.debug(query)
     return query
 
 
@@ -302,6 +312,60 @@ def load_results_into_db(
             )
 
 
+def handle_recursive_conditions(
+    conditions: List[Condition],
+    model_map: Dict[str, Type[BaseModel]],
+    aliases: Dict[str, str],
+) -> None:
+    for condition in conditions:
+        if condition.collection_a != condition.collection_b:
+            raise InvalidConditionError(
+                f"Recursive conditions must use the same collection name. This condition uses two names: {condition.collection_a}, {condition.collection_b}"
+            )
+        collection = condition.collection_a
+        # Generate a recursive CTE. See https://docs.peewee-orm.com/en/latest/peewee/querying.html#recursive-ctes
+        model = model_map[aliases.get(collection, "")]
+        cte = generate_recursive_cte(model, condition.property_a, condition.property_b)
+        query = (
+            model.select(
+                model.raw,
+                getattr(cte.c, condition.property_a),
+                getattr(cte.c, condition.property_b),
+            )
+            .join(
+                cte,
+                join_type=pw.JOIN.LEFT_OUTER,
+                on=(
+                    getattr(cte.c, condition.property_a)
+                    == getattr(model, condition.property_a)
+                    and getattr(cte.c, condition.property_b)
+                    == getattr(model, condition.property_b)
+                ),
+            )
+            .with_cte(cte)
+        )
+        new_model = model_factory(
+            aliases.get(collection, "") + "-rec", query.dicts()[0].keys()
+        )
+        new_model.create_table()
+        for row in query.dicts():
+            new_model.create(**row)
+        model_map[aliases.get(collection, "")] = new_model
+
+
+def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -> CTE:  # type: ignore
+    first_clause = model.select(
+        getattr(model, column1),
+        getattr(model, column2),
+    ).cte("base", recursive=True)
+    union_clause = first_clause.select(
+        getattr(first_clause.c, column1),
+        getattr(model, column2),
+    ).join(model, on=(getattr(first_clause.c, column2) == getattr(model, column1)))
+    cte = first_clause.union(union_clause)
+    return cte
+
+
 def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
@@ -348,6 +412,7 @@ def run_join_rule(
                 for rename in ref.get("renames", [])
             },
             alias=ref.get("as"),
+            recursive=ref.get("recursive"),
         )
         for ref in join_contents.get("refs", [])
     ]
@@ -410,7 +475,7 @@ def run_join_rule(
         alias_lookup[collection]
         for collection in create_collection_set_from_conditions(conditions)
     }
-    rule_ids = set(result.get("check_id") for result in results)
+    rule_ids = {result.get("check_id") for result in results}
     if collection_set_unaliased - rule_ids:
         logger.debug(
             f"No results for {collection_set_unaliased - rule_ids} in join rule '{join_rule.get('id')}'."
@@ -442,11 +507,14 @@ def run_join_rule(
     )
     if matched_on_conditions:  # This is ugly, but makes mypy happy
         for match in matched_on_conditions:
-            matches.append(json.loads(match.raw.decode("utf-8", errors="replace")))
+            try:
+                matches.append(json.loads(match.raw.decode("utf-8", errors="replace")))
+            except AttributeError:
+                matches.append(json.loads(match.raw))
 
     rule_matches = [
         RuleMatch(
-            id=join_rule.get("id", match.get("check_id", "[empty]")),
+            rule_id=join_rule.get("id", match.get("check_id", "[empty]")),
             message=join_rule.get(
                 "message", match.get("extra", {}).get("message", "[empty]")
             ),
@@ -459,12 +527,11 @@ def run_join_rule(
                 )
             ),
             path=Path(match.get("path", "[empty]")),
-            start=CoreLocation.parse(match["start"]),
-            end=CoreLocation.parse(match["end"]),
+            start=core.Position.from_json(match["start"]),
+            end=core.Position.from_json(match["end"]),
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,
-            lines_cache={},
         )
         for match in matches
     ]

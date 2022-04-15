@@ -1,0 +1,7 @@
+# MATCH:
+ENV A=42
+
+# MATCH:
+ENV FOO=42
+
+ENV A=42 B=51

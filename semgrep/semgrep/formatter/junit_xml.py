@@ -17,7 +17,7 @@ class JunitXmlFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_test_case(rule_match: RuleMatch) -> TestCase:  # type: ignore
         test_case = TestCase(
-            rule_match.id,
+            rule_match.rule_id,
             file=str(rule_match.path),
             line=rule_match.start.line,
             classname=str(rule_match.path),

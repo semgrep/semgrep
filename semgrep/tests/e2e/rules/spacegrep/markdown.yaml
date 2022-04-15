@@ -1,8 +1,8 @@
 rules:
-- id: header-2
-  severity: INFO
-  languages: [generic]
-  message: Detected h2 Markdown header
-  patterns:
-  - pattern: '## $TEXT'
-  - pattern-not-inside: '### $TEXT'
+  - id: header-2
+    severity: INFO
+    languages: [generic]
+    message: Detected h2 Markdown header
+    patterns:
+      - pattern: "## $TEXT"
+      - pattern-not-inside: "### $TEXT"

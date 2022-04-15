@@ -1,0 +1,13 @@
+rules:
+- id: test-template
+  patterns:
+    - pattern-either:
+      - pattern: eval($X)
+      - pattern: $Y
+    # ERROR: metavariable-pattern with bad metavariable
+    - metavariable-pattern:
+      metavariable: $X
+      pattern: "cat"
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

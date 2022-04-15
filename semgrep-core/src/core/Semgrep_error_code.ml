@@ -1,6 +1,8 @@
 open Common
 module PI = Parse_info
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 type error = {
   rule_id : Rule.rule_id option;
   typ : error_kind;
@@ -35,7 +37,6 @@ and error_kind =
 type severity = Error | Warning
 
 let g_errors = ref []
-
 let options () = []
 
 (****************************************************************************)
@@ -52,9 +53,9 @@ let mk_error_tok ?(rule_id = None) tok msg err =
 let error rule_id loc msg err =
   Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
 
-let error_tok rule_id tok msg err =
-  Common.push (mk_error_tok ~rule_id:(Some rule_id) tok msg err) g_errors
-
+(* TODO: why not capture AST_generic.error here? So we could get rid
+ * of Run_semgrep.exn_to_error wrapper.
+ *)
 let exn_to_error ?(rule_id = None) file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) ->
@@ -69,30 +70,27 @@ let exn_to_error ?(rule_id = None) file exn =
       mk_error_tok tok msg ParseError
   | Parse_info.Other_error (s, tok) ->
       mk_error_tok ~rule_id tok s SpecifiedParseError
-  | Rule.InvalidRule (rule_id, s, pos) ->
-      mk_error_tok ~rule_id:(Some rule_id) pos s RuleParseError
-  | Rule.InvalidLanguage (rule_id, language, pos) ->
-      mk_error_tok ~rule_id:(Some rule_id) pos
-        (spf "invalid language %s" language)
-        RuleParseError
-  | Rule.InvalidRegexp (rule_id, message, pos) ->
-      mk_error_tok ~rule_id:(Some rule_id) pos
-        (spf "invalid regex %s" message)
-        RuleParseError
-  | Rule.InvalidPattern (rule_id, _pattern, xlang, _message, pos, yaml_path) ->
+  | Rule.InvalidRule
+      (Rule.InvalidPattern (_pattern, xlang, _message, yaml_path), rule_id, pos)
+    ->
       {
         rule_id = Some rule_id;
         typ = PatternParseError;
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
-          spf "Invalid pattern for %s" (Rule.string_of_xlang xlang);
+          spf "Invalid pattern for %s" (Xlang.to_string xlang);
         details = None;
         yaml_path = Some yaml_path;
       }
+  | Rule.InvalidRule (kind, rule_id, pos) ->
+      let str = Rule.string_of_invalid_rule_error_kind kind in
+      mk_error_tok ~rule_id:(Some rule_id) pos str RuleParseError
   | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg InvalidYaml
   | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok ~rule_id pos s InvalidYaml
   | Common.Timeout timeout_info ->
+      let s = Printexc.get_backtrace () in
+      logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
@@ -106,13 +104,14 @@ let exn_to_error ?(rule_id = None) file exn =
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
+      let trace = Printexc.get_backtrace () in
       let loc = Parse_info.first_loc_of_file file in
       {
         rule_id;
         typ = FatalError;
         loc;
         msg = Common.exn_to_s exn;
-        details = Some (Printexc.get_backtrace ());
+        details = Some trace;
         yaml_path = None;
       }
 
@@ -140,15 +139,20 @@ let string_of_error_kind = function
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
 
+let source_of_string = function
+  | "" -> "<input>"
+  | path -> path
+
 let string_of_error err =
   let pos = err.loc in
-  assert (pos.PI.file <> "");
   let details =
     match err.details with
     | None -> ""
     | Some s -> spf "\n%s" s
   in
-  spf "%s:%d:%d: %s: %s%s" pos.PI.file pos.PI.line pos.PI.column
+  spf "%s:%d:%d: %s: %s%s"
+    (source_of_string pos.PI.file)
+    pos.PI.line pos.PI.column
     (string_of_error_kind err.typ)
     err.msg details
 
@@ -173,25 +177,29 @@ let severity_of_error typ =
 (*****************************************************************************)
 
 let try_with_exn_to_error file f =
-  try f () with exn -> Common.push (exn_to_error file exn) g_errors
+  try f () with
+  | Timeout _ as exn -> raise exn
+  | exn -> Common.push (exn_to_error file exn) g_errors
 
 let try_with_print_exn_and_reraise file f =
-  try f ()
-  with exn ->
-    let bt = Printexc.get_backtrace () in
-    let err = exn_to_error file exn in
-    pr2 (string_of_error err);
-    pr2 bt;
-    (* does not really re-raise :( lose some backtrace *)
-    raise exn
+  try f () with
+  | Timeout _ as exn -> raise exn
+  | exn ->
+      let bt = Printexc.get_backtrace () in
+      let err = exn_to_error file exn in
+      pr2 (string_of_error err);
+      pr2 bt;
+      (* does not really re-raise :( lose some backtrace *)
+      raise exn
 
 (* fast = no stack trace *)
 let try_with_print_exn_and_exit_fast file f =
-  try f ()
-  with exn ->
-    let err = exn_to_error file exn in
-    pr2 (string_of_error err);
-    exit 2
+  try f () with
+  | Timeout _ as exn -> raise exn
+  | exn ->
+      let err = exn_to_error file exn in
+      pr2 (string_of_error err);
+      exit 2
 
 (*****************************************************************************)
 (* Helper functions to use in testing code *)
@@ -205,7 +213,7 @@ let (expected_error_lines_of_files :
       (Common.filename * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) test_files ->
   test_files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          Common.cat file |> Common.index_list_1
          |> Common.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
@@ -217,10 +225,13 @@ let (expected_error_lines_of_files :
                 else None))
   |> List.flatten
 
+(* A copy-paste of Error_code.compare_actual_to_expected but
+ * with Semgrep_error_code.error instead of Error_code.t for the error type.
+ *)
 let compare_actual_to_expected actual_errors expected_error_lines =
   let actual_error_lines =
     actual_errors
-    |> List.map (fun err ->
+    |> Common.map (fun err ->
            let loc = err.loc in
            (loc.PI.file, loc.PI.line))
   in

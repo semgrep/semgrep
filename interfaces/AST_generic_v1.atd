@@ -1,0 +1,1055 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2021 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+*)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Type definitions for the generic AST in the ATD format.
+ * See https://github.com/ahrefs/atd for more information on ATD.
+ *
+ * Those definitions will be useful to export the generic AST to JSON,
+ * so that other languages (e.g., Python) can leverage the generic AST.
+ * Those definitions can also be exported in a typed form to
+ * other typed languages (e.g., Java), which provides stronger guarantees
+ * when working on the generic AST.
+ *
+ * DO NOT MODIFY THIS FILE. The "API" defined here should be stable
+ * across multiple versions of Semgrep. If you really want to change
+ * things, you'll have to define an AST_generic_v2.atd
+ *
+ * process to atd-ify AST_generic.ml:
+ *  - add [] around variants
+ *  - add () around tuple types
+ *  - s/and/type for mutually recursive types
+ *  - remove ref types
+ *  - s/wrap/wrap_
+ *)
+
+(*****************************************************************************)
+(* Parse_info *)
+(*****************************************************************************)
+(* start of "atd-ification" of pfff/h_program-lang/Parse_info.ml *)
+
+type token_location = {
+  str: string; (* the content of the "token" *)
+  charpos: int; (* byte position, 0-based *)
+  line: int; (* 1-based *)
+  column: int; (* 0-based *)
+  filename: string;
+}
+
+type token = [
+  | OriginTok of token_location
+  | FakeTok of string
+]
+
+(*****************************************************************************)
+(* Token (leaf) *)
+(*****************************************************************************)
+(* start of "atd-ification" of semgrep-core/src/core/ast/AST_generic.ml *)
+
+type tok = token
+
+(* a shortcut to annotate some information with position information *)
+(* atd: 'wrap' is a predefined type name in ATD, hence the '_' here *)
+type 'a wrap_ = ('a * tok)
+
+(* Use for round(), square[], curly{}, and angle<> brackets.
+ * note: in theory we should not care about those tokens in an AST,
+ * but they are useful to report correct ranges in semgrep when we match
+ * something that can just be those brackets (e.g., an empty container).
+*)
+type 'a bracket = (tok * 'a * tok)
+
+(* semicolon, a FakeTok in languages that do not require them (e.g., Python).*)
+type sc = tok
+
+(*****************************************************************************)
+(* Names *)
+(*****************************************************************************)
+type ident = string wrap_
+
+(* usually separated by a '.', but can be used also with '::' separators *)
+type dotted_ident = ident list (* at least 1 element *)
+
+(* module_name can also be used for a package name or a namespace *)
+type module_name = [
+  | DottedName of dotted_ident (* ex: Python *)
+  (* in FileName the '/' is similar to the '.' in DottedName *)
+  | FileName of string wrap_   (* ex: Js import, C #include, Go import *)
+  ]
+
+(* A single unique id: sid (uid would be a better name, but it usually
+ * means "user id" for people).
+ *
+ * This single id simplifies further analysis which need less to care about
+ * maintaining scoping information, for example to deal with variable
+ * shadowing, or functions using the same parameter names
+ * (even though you still need to handle specially recursive functions), etc.
+ *
+ * See Naming_AST.ml for more information.
+*)
+
+type sid = int (* a single unique gensym'ed number *)
+
+type resolved_name = (resolved_name_kind * sid)
+
+type resolved_name_kind = [
+  (* Global is useful in codemap/efuns to highlight differently and warn
+   * about the use of globals inside functions.
+  *)
+  | Global
+  (* Those could be merged, but again this is useful in codemap/efuns *)
+  | Local | Param
+  (* For closures; can refer to a Local or Param.
+   * With sid this is potentially less useful for scoping-related issues,
+   * but this can be useful in codemap to again highlight specially
+   * enclosed vars.
+   * Note that it's tempting to add a depth parameter to EnclosedVar, but
+   * that would prevent semgrep to work because whatever the depth you are,
+   * if you reference the same entity, this entity must have the same
+   * resolved_name (sid and resolved_name_kind).
+  *)
+  | EnclosedVar
+
+  (* semgrep: those cases allow to match entities/modules even if they were
+   * aliased when imported.
+   * both dotted_ident must at least contain one element *)
+  | ImportedEntity of dotted_ident (* can also use 0 for gensym *)
+  | ImportedModule of module_name
+
+  (* used in Go, where you can pass types as arguments and where we
+   * need to resolve those cases
+  *)
+  | TypeName
+  (* used for C *)
+  | Macro
+  | EnumConstant
+  ]
+
+(* newvar: Id is sometimes abused to also introduce a newvar (as in Python)
+ * but ultimately those cases should be rewritten to first introduce a VarDef.
+*)
+type name = [
+  | Id of (ident * id_info)
+  | IdQualified of ((ident * name_info) * id_info)
+  ]
+
+
+type name_info = {
+  name_qualifier: qualifier option;
+  name_typeargs: type_arguments option; (* Java/Rust *)
+}
+
+type qualifier = [
+  | QTop of tok (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
+  | QDots of dotted_ident (* Java, OCaml *)
+  | QExpr of (expr * tok) (* Ruby *)
+  ]
+
+(* This is used to represent field names, where sometimes the name
+ * can be a dynamic expression, or more recently also to
+ * represent entities like in Ruby where a class name can be dynamic.
+*)
+type name_or_dynamic = [
+  (* In the case of a field, it may be hard to resolve the id_info inside name.
+   * For example, a method id can refer to many method definitions.
+   * But for certain things, like a private field, we can resolve it
+   * (right now we use an EnclosedVar for those fields).
+   *
+   * The IdQualified inside name is
+   * Useful for OCaml field access, but also for Ruby class entity name.
+  *)
+  | EN of name
+  (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby *)
+  | EDynamic of expr
+  ]
+
+(*****************************************************************************)
+(* Naming/typing *)
+(*****************************************************************************)
+
+type id_info = {
+  id_resolved: resolved_name option; (* variable tagger (naming) *)
+  id_type:     type_         option; (* type checker (typing) *)
+  id_constness: constness    option; (* constant propagation *)
+}
+
+(*****************************************************************************)
+(* Expression *)
+(*****************************************************************************)
+
+type expr = [
+  (* basic (atomic) values *)
+  | L of literal
+
+  (* composite values *)
+  | Container of (container_operator * expr list bracket)
+
+  (* special case of Container, at least 2 elements (except for Python where
+   * you can actually have 1-uple, e.g., '(1,)' *)
+  | Tuple of expr list bracket
+
+  (* And-type (field.vinit should be a Some) *)
+  | Record of field list bracket
+
+  (* Or-type (could be used instead of Container, Cons, Nil, etc.).
+   * (ab)used also for polymorphic variants where qualifier is QTop with
+   * the '`' token.
+  *)
+  | Constructor of (dotted_ident * expr list)
+  (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
+
+  | N of name
+
+  | IdSpecial of special wrap_
+
+  (* operators and function application *)
+  | Call of (expr * arguments bracket) (* can be fake '()' for OCaml/Ruby *)
+
+  (* (XHP, JSX, TSX), could be transpiled also *)
+  | Xml of xml
+
+  (* IntepolatedString of expr list is simulated with a
+   * Call(IdSpecial (Concat ...)) *)
+
+  (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
+   * but it can also be a pattern (Tuple, Container, even Record), but
+   * you should really use LetPattern for that.
+   * Assign can also be abused to declare new variables, but you should use
+   * variable_definition for that.
+  *)
+  | Assign of (expr * tok (* '=', '<-' in OCaml. ':=' Go is AssignOp (Eq) *) *
+              expr)
+
+  | AssignOp of (expr * operator wrap_ * expr)
+  (* newvar:! newscope:? in OCaml yes but we miss the 'in' part here  *)
+  | LetPattern of (pattern * expr)
+
+  (* can be used for Record, Class, or Module access depending on expr.
+   * In the last case it should be rewritten as a (N IdQualified) with a
+   * qualifier though.
+  *)
+  | DotAccess of (expr * tok (* ., ::, ->, # *) * name_or_dynamic)
+
+  (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
+  | ArrayAccess of (expr * expr bracket)
+
+  (* could also use ArrayAccess with a Tuple rhs, or use a special *)
+  | SliceAccess of (expr *
+                   (expr option (* lower *) * expr option (* upper *) * expr option (* step *)) bracket)
+
+
+  (* very special value *)
+  | Lambda of function_definition
+  (* usually an argument of a New (used in Java, Javascript) *)
+  | AnonClass of class_definition
+
+  (* a.k.a ternary expression, or regular if in OCaml *)
+  | Conditional of (expr * expr * expr)
+  | MatchPattern of (expr * action list)
+
+  | Yield of (tok * expr option * bool) (* 'from' for Python *)
+  | Await of (tok * expr)
+  (* Send/Recv of Go are currently in OtherExpr *)
+
+  | Cast of (type_ * expr)
+  | Seq of expr list (* at least 2 elements *)
+
+  | Ref   of (tok (* &, address of *) * expr)
+  | DeRef of (tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr)
+
+  (* semgrep: ... in expressions, args, stmts, items, and fields
+   * (and unfortunately also in types in Python) *)
+  | Ellipsis of tok (* '...' *)
+  | DeepEllipsis of expr bracket (* <... ...> *)
+  | DisjExpr of (expr * expr)
+  | TypedMetavar of (ident * tok (* : *) * type_)
+  (* for ellipsis in method chaining *)
+  | DotAccessEllipsis of (expr * tok (* '...' *))
+
+  | OtherExpr of (string * any list)
+  ]
+
+type literal = [
+  | Bool of bool wrap_
+  (* the numbers are an option because OCaml numbers (e.g., 63bits int)
+   * may not be able to represent all numbers.
+  *)
+  | Int of int option wrap_ | Float of float option wrap_
+  | Char of string wrap_ | String of string wrap_ | Regexp of string wrap_
+  | Unit of tok (* a.k.a Void *) | Null of tok | Undefined of tok (* JS *)
+  | Imag of string wrap_ (* Go, Python *) | Ratio of string wrap_ (* Ruby *)
+  | Atom of string wrap_ (* Ruby *)
+  ]
+
+(* The type of an unknown constant. *)
+type const_type = [ Cbool | Cint | Cstr | Cany ]
+
+(* set by the constant propagation algorithm and used in semgrep *)
+type constness = [ Lit of literal | Cst of const_type | NotCst ]
+
+type container_operator = [
+  (* Tuple was lifted up *)
+  | Array
+  | List | Set
+  | Dict (* a.k.a Hash or Map (combine with Tuple to get Key/value pair) *)
+  ]
+
+(* It's useful to keep track in the AST of all those special identifiers.
+ * They need to be handled in a special way by certain analysis and just
+ * using Name for them would be error-prone.
+ * Note though that by putting all of them together in a type, we lose
+ * typing information, for example Eval takes only one argument and
+ * InstanceOf takes a type and an expr. This is a tradeoff to also not
+ * polluate too much expr with too many constructs.
+*)
+
+type special = [
+  (* special vars *)
+  | This | Super (* called 'base' in C# *)
+  | Self | Parent (* different from This/Super? *)
+  | NextArrayIndex (* Lua *)
+
+  (* special calls *)
+  | Eval
+  | Typeof (* for C? and Go in switch x.(type) *)
+  | Instanceof | Sizeof (* takes a ArgType *)
+  | Defined (* defined? in Ruby, other? *)
+  (* note that certain languages do not have a 'new' keyword
+   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New' *)
+  | New  (* usually associated with Call(New, [ArgType _;...]) *)
+  (* new by itself is not a valid expression*)
+
+  (* used for interpolated strings constructs *)
+  | ConcatString of concat_string_kind
+  | EncodedString of string (* only for Python for now (e.g., b"foo") *)
+  (* TaggedString? for Javascript, for styled.div`bla{xx}`?
+   * We could have this TaggedString where the first arg of Call
+   * will be the tagging function, and the rest will be a Call ConcatString.
+   * However, it is simpler to just transform those special calls as
+   * regular calls even though they do not have parenthesis
+   * (not all calls have parenthesis anyway, as in OCaml or Ruby).
+  *)
+
+  (* "Inline" the content of a var containing a list (a.k.a a Splat in Ruby).
+   * Used in a Container or Call argument context.
+   * The corresponding constructor in a parameter context is ParamRest.
+  *)
+  | Spread (* ...x in JS, *x in Python/Ruby *)
+  (* Similar to Spread, but for a var containing a hashtbl.
+   * The corresponding constructor in a parameter context is ParamHashSplat.
+  *)
+  | HashSplat (* **x in Python/Ruby
+               * (not to confused with Pow below which is a Binary op *)
+
+  | ForOf (* Javascript, for generators, used in ForEach *)
+
+  (* used for unary and binary operations *)
+  | Op of operator
+  | IncrDecr of (incr_decr * prefix_postfix)
+  ]
+
+
+(* mostly binary operators.
+ * Note that Mod can be used for %style string formatting in Python.
+ * Note that Plus can also be used for string concatenations in Go/??.
+*)
+type operator = [
+  | Plus (* unary too *) | Minus (* unary too *)
+  | Mult | Div | Mod
+  | Pow (* ** binary op; for unary see HashSplat above *)
+  | FloorDiv | MatMult (* Python *)
+  | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+  | BitOr | BitXor | BitAnd | BitNot (* unary *) | BitClear (* Go *)
+  | And | Or (* also shortcut operator *) | Xor (* PHP*) | Pipe (* shell *)
+  | Not (* unary *)
+  | Eq (* '=' in OCaml, '==' in Go/... *)
+  | NotEq
+  | PhysEq (* '==' in OCaml, '===' in JS/... *)
+  | NotPhysEq
+  | Lt | LtE | Gt | GtE
+  | Cmp (* <=>, PHP *)
+  | Concat (* '.' PHP, '..' Lua *)
+  | Append (* x[] = ... in PHP, just in AssignOp *)
+  | RegexpMatch (* =~, Ruby (and Perl) *)
+  | NotMatch (* !~ Ruby *)
+  | Range (* .. or ..., Ruby, one arg can be nil for endless range *)
+  | RangeInclusive (* '..=' in Rust *)
+  | NotNullPostfix (* ! in Typescript, postfix operator *)
+  | Length (* '#' in Lua *)
+  (* See https://en.wikipedia.org/wiki/Elvis_operator.
+   * In PHP we currently generate a Conditional instead of a Binary Elvis.
+   * It looks like the Nullish operator is quite similar to the Elvis
+   * operator, so we may want to merge those operators at some point.
+  *)
+  | Elvis (* ?: in Kotlin, can compare possible null value *)
+  | Nullish (* ?? in Javascript *)
+  | In (* in: checks that value belongs to a collection *) | NotIn (* !in *)
+  | Is (* is: checks value has type *)| NotIs (* !is: *)
+  | Background (* & in shell *)
+  ]
+
+type incr_decr = [Incr | Decr] (* '++', '--' *)
+
+type prefix_postfix = [Prefix | Postfix]
+
+type concat_string_kind = [
+  (* many languages do not require a special syntax to use interpolated
+   * strings e.g. simply "this is {a}". Javascript uses backquotes.
+  *)
+  | InterpolatedConcat (* Javascript/PHP/Ruby/Perl *)
+  (* many languages have a binary Concat operator to concatenate strings,
+   * but some languages also allow the simple juxtaposition of multiple
+   * strings to be concatenated, e.g. "hello" "world" in Python.
+  *)
+  | SequenceConcat (* Python/C *)
+  (* Python requires the special f"" syntax to use interpolated strings,
+   * and some semgrep users may want to explicitely match only f-strings,
+   * which is why we record this information here.
+  *)
+  | FString of string(* Python *)
+  ]
+
+
+(* newscope: newvar: *)
+type action = (pattern * expr)
+
+(* this is for JSX/TSX in javascript land *)
+type xml = {
+  xml_kind: xml_kind;
+  xml_attrs: xml_attribute list;
+  xml_body: xml_body list;
+}
+
+type xml_kind = [
+  | XmlClassic   of (tok (*'<'*) * ident * tok (*'>'*) * tok) (*'</foo>'*)
+  | XmlSingleton of (tok (*'<'*) * ident * tok) (* '/>', with xml_body = [] *)
+  (* React/JS specific *)
+  | XmlFragment of (tok (* '<>' *) * tok) (* '</>', with xml_attrs = [] *)
+  ]
+
+type xml_attribute = [
+  | XmlAttr of (ident * tok (* = *) * xml_attr_value)
+  (* jsx: usually a Spread operation, e.g., <foo {...bar} /> *)
+  | XmlAttrExpr of expr bracket
+  (* semgrep: *)
+  | XmlEllipsis of tok
+  ]
+
+(* either a String or a bracketed expr, but right now we just use expr *)
+type xml_attr_value = expr
+
+type xml_body = [
+  (* semgrep-ext: can contain "..." *)
+  | XmlText of string wrap_
+  (* this can be None when people abuse {} to put comments in it *)
+  | XmlExpr of expr option bracket
+  | XmlXml of xml
+  ]
+
+type arguments = argument list
+type argument = [
+  (* regular argument *)
+  | Arg of expr (* can be Call (IdSpecial Spread, Id foo) *)
+  (* keyword argument *)
+  | ArgKwd of (ident * expr)
+  (* optional keyword argument - can occur in target code without being
+     specified in the pattern *)
+  | ArgKwdOptional of (ident * expr)
+  (* type argument for New, instanceof/sizeof/typeof, C macros *)
+  | ArgType of type_
+  | ArgOther of (string * any list)
+  ]
+
+(*****************************************************************************)
+(* Statement *)
+(*****************************************************************************)
+
+type stmt = {
+  s: stmt_kind;
+  (* this can be used to compare and hash more efficiently stmts,
+     or in semgrep to quickly know if a stmt is a children of another stmt.
+  *)
+  s_id: int;
+}
+type stmt_kind = [
+  (* See also IL.ml where Call/Assign/Seq are not in expr and where there are
+   * separate expr, instr, and stmt types *)
+  | ExprStmt of (expr * sc) (* fake tok in Python, but also in JS/Go with ASI *)
+
+  (* newscope: in C++/Java/Go *)
+  | Block of stmt list bracket (* can be fake {} in Python where use layout *)
+  (* EmptyStmt = Block [], or separate so can not be matched by $S? $ *)
+
+  (* newscope: for vardef in expr in C++/Go/... *)
+  | If of (tok (* 'if' or 'elif' *) * expr * stmt * stmt option)
+  | While   of (tok * expr * stmt)
+
+  | Return   of (tok * expr option * sc)
+
+  | DoWhile of (tok * stmt * expr)
+  (* newscope: *)
+  | For of (tok (* 'for', 'foreach'*) * for_header * stmt)
+
+  (* The expr can be None for Go and Ruby. *)
+  | Switch of (tok (* 'switch' or also 'select' in Go *) * expr option *
+              case_and_body list)
+
+  | Continue of (tok * label_ident * sc)
+  | Break    of (tok * label_ident * sc)
+
+  | Label of (label * stmt)
+  | Goto of (tok * label)
+
+  | Throw of (tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc)
+  | Try of (tok * stmt * catch list * finally option)
+  | WithUsingResource of (tok (* 'with' in Python, 'using' in C# *) * stmt (* resource acquisition *) * stmt (* newscope: block *))
+  | Assert of (tok * expr * expr option (* message *) * sc)
+
+  | DefStmt of definition
+  | DirectiveStmt of directive
+
+  (* semgrep: *)
+  | DisjStmt of (stmt * stmt)
+
+  (* this is important to correctly compute a CFG *)
+  | OtherStmtWithStmt of (string * expr option * stmt)
+  (* any here should not contain any statement! otherwise the CFG will be
+   * incorrect and some analysis (e.g., liveness) will be incorrect.
+   * TODO: other_stmt_operator wrap_, so enforce at least one token instead
+   * of relying that the any list contains at least one token
+  *)
+  | OtherStmt of (string * any list)
+  ]
+
+
+(* newscope: *)
+
+type case_and_body = [
+  | CasesAndBody of (case list * stmt)
+  (* semgrep: *)
+  | CaseEllipsis of tok (* ... *)
+  ]
+
+type case  = [
+  | Case    of (tok * pattern)
+  | Default of tok
+  (* For Go, expr can contain some Assign bindings. *)
+  | CaseEqualExpr of (tok * expr)
+  ]
+
+(* newvar: newscope: usually a PatVar *)
+
+type catch = (tok (* 'catch', 'except' in Python *) * pattern * stmt)
+(* newscope: *)
+
+type finally = (tok (* 'finally' *) * stmt)
+
+type label = ident
+
+type label_ident = [
+  | LNone (* C/Python *)
+  | LId of label (* Java/Go *)
+  | LInt of int wrap_ (* PHP *)
+  | LDynamic of expr (* PHP, woohoo, dynamic break! bailout for CFG *)
+  ]
+
+type for_header = [
+  | ForClassic of (for_var_or_expr list (* init *) *
+                  expr option (* cond *) *
+                  expr option) (* next *)
+  (* newvar: *)
+  | ForEach of (pattern *
+               tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *) *
+               expr) (* pattern 'in' expr *)
+  (* semgrep: *)
+  | ForEllipsis of tok (* ... *)
+
+  | ForIn of (for_var_or_expr list (* init *) *
+             expr list) (* pattern 'in' expr *)
+  ]
+
+type for_var_or_expr = [
+  (* newvar: *)
+  | ForInitVar of (entity * variable_definition)
+  | ForInitExpr of expr
+  ]
+
+(*****************************************************************************)
+(* Pattern *)
+(*****************************************************************************)
+(* This is quite similar to expr. A few constructs in expr have
+ * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
+ * maybe factorize with expr, and this may help semgrep, but I think it's
+ * cleaner to have a separate type because the scoping rules for a pattern and
+ * an expr are quite different type not any expr is allowed here.
+*)
+
+type pattern = [
+  | PatLiteral of literal
+  (* Or-Type, used also to match OCaml exceptions *)
+  (* Used with Rust path expressions, with an empty pattern list *)
+  | PatConstructor of (dotted_ident * pattern list)
+  (* And-Type*)
+  | PatRecord of (dotted_ident * pattern) list bracket
+
+  (* newvar:! *)
+  | PatId of (ident * id_info) (* Usually Local/Param, Global in toplevel let *)
+
+  (* special cases of PatConstructor *)
+  | PatTuple of pattern list bracket (* at least 2 elements *)
+  | PatList of pattern list bracket
+  | PatKeyVal of (pattern * pattern) (* a kind of PatTuple *)
+
+  (* special case of PatId *)
+  | PatUnderscore of tok
+
+  (* OCaml *)
+  | PatDisj  of (pattern * pattern) (* also abused for catch in Java *)
+  | PatTyped of (pattern * type_)
+  | PatWhen  of (pattern * expr)
+  | PatAs    of (pattern * (ident * id_info))
+
+  (* For Go also in switch x.(type) { case int: ... } *)
+  | PatType of type_
+  (* In catch for Java/PHP, and foreach in Java. *)
+  | PatVar of (type_ * (ident * id_info) option)
+
+  (* semgrep: *)
+  | PatEllipsis of tok
+  | DisjPat of (pattern * pattern)
+
+  | OtherPat of (string * any list)
+  ]
+
+(*****************************************************************************)
+(* Type *)
+(*****************************************************************************)
+
+type type_ = [
+  | TyBuiltin of string wrap_ (* int, bool, etc. *)
+
+  | TyFun of (parameter list * type_ (* return type *))
+
+  (* a special case of TApply, also a special case of TPointer *)
+  | TyArray of ((* const_expr *) expr option bracket * type_)
+  | TyTuple of type_ list bracket
+
+  | TyN of name
+  (* covers tuples, list, etc. *)
+  | TyNameApply of (dotted_ident * type_arguments)
+
+  | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
+  | TyAny of tok (* anonymous type, '_' in OCaml *)
+
+  | TyPointer of (tok * type_)
+  | TyRef of (tok * type_) (* C++/Rust *)
+
+  | TyQuestion of (type_ * tok) (* a.k.a option type *)
+  | TyRest of (tok * type_) (* '...foo' e.g. in a typescript tuple type *)
+
+  (* intersection types, used for Java Cast, and in Typescript *)
+  | TyAnd of (type_ * tok (* & *) * type_)
+  (* union types in Typescript *)
+  | TyOr of (type_ * tok (* | *) * type_)
+
+  (* Anonymous record type, a.k.a shape in PHP/Hack. See also AndType.
+   * Most record types are defined via a TypeDef and are then referenced
+   * via a TyName. Here we have flexible record types (a.k.a. rows in OCaml).
+  *)
+  | TyRecordAnon of (tok (* 'struct/shape', fake in other *)* field list bracket)
+  (* for Go *)
+  | TyInterfaceAnon of (tok (* 'interface' *)* field list bracket)
+
+  (* semgrep-ext: *)
+  | TyEllipsis of tok
+
+  | OtherType of (string * any list)
+  ]
+
+type type_arguments = type_argument list
+
+type type_argument = [
+  | TypeArg of type_
+  (* Java only *)
+  | TypeWildcard of (tok (* '?' *) *
+                    (bool wrap_ (* extends|super, true=super *) * type_) option)
+  (* Rust *)
+  | TypeLifetime of ident
+  | OtherTypeArg of (string * any list)
+  ]
+
+(*****************************************************************************)
+(* Attribute *)
+(*****************************************************************************)
+(* a.k.a decorators, annotations *)
+
+type attribute = [
+  | KeywordAttr of keyword_attribute wrap_
+  (* for general @annotations. *)
+  | NamedAttr of (tok (* @ *) * name * arguments bracket)
+
+  | OtherAttribute of (string * any list)
+  ]
+
+type keyword_attribute = [
+  | Static | Volatile | Extern
+  (* for class fields *)
+  | Public | Private | Protected
+  | Abstract | Final
+  | Override (* override *)
+  (* for vars (JS) *)
+  | Var | Let
+  (* for fields (kinda types) *)
+  | Mutable | Const (* a.k.a 'readonly' in Typescript *)
+  | Optional (* Typescript '?' *) | NotNull (* Typescript '!' *)
+  (* for functions *)
+  | Generator (* '*' in JS *) | Async
+  | Recursive | MutuallyRecursive
+  | Inline
+  (* for methods *)
+  | Ctor | Dtor
+  | Getter | Setter
+  (* Rust *)
+  | Unsafe
+  | DefaultImpl (* unstable, RFC 1210 *)
+  ]
+
+(*****************************************************************************)
+(* Definitions *)
+(*****************************************************************************)
+(* definition (or just declaration sometimes) *)
+
+type definition = (entity * definition_kind)
+
+type entity = {
+  (* In Ruby you can define a class with a qualified name as in
+   * class A::B::C, and even dynamically.
+   * In C++ you can define a method with a class qualifier outside a class,
+   * hence the use of name_or_dynamic below and not just ident.
+  *)
+  name: name_or_dynamic;
+  attrs: attribute list;
+  tparams: type_parameter list;
+}
+
+type definition_kind = [
+  (* newvar: can be used also for methods, nested functions, lambdas.
+   * note: can have empty "body" when the def is actually a declaration
+   * in a header file (called a prototype in C).
+  *)
+  | FuncDef   of function_definition
+
+  (* newvar: can be used also for constants.
+   * can contain special_multivardef_pattern ident in which case vinit
+   * is the pattern assignment.
+  *)
+  | VarDef    of variable_definition
+  (* FieldDefColon can be used only inside a record (in a FieldStmt).
+   * This used to be merged with VarDef, but in semgrep we don't want
+   * a VarDef to match a field definition for certain languages
+   * (e.g., JS, OCaml), and we definitely don't want the
+   * vardef_to_assign equivalence to be used on FieldDefColon.
+  *)
+  | FieldDefColon  of variable_definition
+
+  | ClassDef  of class_definition
+
+  | TypeDef   of type_definition
+
+  | ModuleDef of module_definition
+  | MacroDef of macro_definition
+
+  (* in a header file (e.g., .mli in OCaml or 'module sig') *)
+  | Signature of type_
+
+  (* Only used inside a function.
+   * Needed for languages without local VarDef (e.g., Python/PHP)
+   * where the first use is also its declaration. In that case when we
+   * want to access a global we need to disambiguate with creating a new
+   * local.
+  *)
+  | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
+
+  | OtherDef of (string * any list)
+  ]
+
+
+(* template/generics/polymorphic-type *)
+type type_parameter = (ident * type_parameter_constraint list)
+
+type type_parameter_constraint = [
+  | Extends of type_
+  | HasConstructor of tok
+  | OtherTypeParam of (string * any list)
+  ]
+
+(* ------------------------------------------------------------------------- *)
+(* Function (or method) definition *)
+(* ------------------------------------------------------------------------- *)
+
+type function_definition = {
+  fkind: function_kind wrap_;
+  fparams: parameters;
+  frettype: type_ option; (* return type *)
+  (* newscope:
+   * Can be empty statement for methods in interfaces.
+   * Can also be empty when used in a Partial.
+  *)
+  fbody: stmt;
+}
+
+(* We don't really care about the function_kind in semgrep, but who
+ * knows maybe one day we will. We care about the token in the
+ * function_kind wrap_ in fkind though for semgrep for accurate range.
+*)
+type function_kind = [
+  | Function
+  (* This is a bit redundant with having the func in a field *)
+  | Method
+  (* Also redundant; can just check if the fdef is in a Lambda *)
+  | LambdaKind
+  | Arrow (* a.k.a short lambdas *)
+  ]
+
+type parameters = parameter list
+
+(* newvar: *)
+type parameter = [
+  | ParamClassic of parameter_classic
+
+  | ParamPattern of pattern (* in OCaml, but also now JS, and Python2 *)
+
+  | ParamRest of (tok (* '...' in JS, '*' in Python *) * parameter_classic)
+  | ParamHashSplat of (tok (* '**' in Python *) * parameter_classic)
+
+  (* semgrep: ... in parameters
+   * note: foo(...x) of Js/Go is using the ParamRest, not this *)
+  | ParamEllipsis of tok
+
+  | OtherParam of (string * any list)
+  ]
+
+
+type parameter_classic = {
+  pname:    ident option;
+  ptype:    type_ option;
+  pdefault: expr  option;
+
+  pattrs: attribute list;
+
+  (* naming *)
+  pinfo: id_info; (* Always Param *)
+
+}
+
+(* ------------------------------------------------------------------------- *)
+(* Variable definition *)
+(* ------------------------------------------------------------------------- *)
+(* Also used for constant_definition with attrs = [Const].
+ * Also used for field definition in a class (and record).
+*)
+
+type variable_definition = {
+  vinit: expr option;
+  vtype: type_ option;
+}
+
+(* ------------------------------------------------------------------------- *)
+(* Type definition *)
+(* ------------------------------------------------------------------------- *)
+
+type type_definition = {
+  tbody: type_definition_kind;
+}
+
+type type_definition_kind = [
+  | OrType  of or_type_element list  (* enum/ADTs *)
+  (* field.vtype should be defined here
+   * record/struct (for class see class_definition)
+  *)
+  | AndType of field list bracket
+
+  (* a.k.a typedef in C (and alias type in Go) *)
+  | AliasType of type_
+  (* Haskell/Hack/Go ('type x foo' vs 'type x = foo' in Go) *)
+  | NewType of type_
+
+  | Exception of (ident (* same name than entity *) * type_ list)
+
+  | OtherTypeKind of (string * any list)
+  ]
+
+
+type or_type_element = [
+  (* OCaml *)
+  | OrConstructor of (ident * type_ list)
+  (* C *)
+  | OrEnum of (ident * expr option)
+  (* Java? *)
+  | OrUnion of (ident * type_)
+
+  | OtherOr of (string * any list)
+  ]
+
+(* ------------------------------------------------------------------------- *)
+(* Object/struct/record/class field definition *)
+(* ------------------------------------------------------------------------- *)
+
+(* Field definition and use, for classes, objects, and records.
+ * note: I don't call it field_definition because it's used both to
+ * define the shape of a field (a definition), and when creating
+ * an actual field (a value).
+ *
+ * Note that not all stmt in FieldStmt are definitions. You can have also
+ * a Block like in Kotlin for 'init' stmts.
+*)
+
+type field = [
+  | FieldStmt of stmt
+  | FieldSpread of (tok (* ... *) * expr) (* usually a Name *)
+  ]
+
+(* ------------------------------------------------------------------------- *)
+(* Class definition *)
+(* ------------------------------------------------------------------------- *)
+
+type class_definition = {
+  ckind: class_kind wrap_;
+
+  (* usually just one parent, and type_ should be a TyApply *)
+  cextends:     type_ list;
+  (* class_kind in type_ must be Interface *)
+  cimplements:  type_ list;
+  (* class_kind in type_ is usually a Trait *)
+  cmixins:      type_ list; (* PHP 'uses' *)
+
+  (* for Java Record or Scala Classes; we could transpile them into fields *)
+  cparams: parameters;
+  (* newscope: note: this can be an empty fake bracket when used in Partial.*)
+  cbody: field list bracket;
+}
+
+type class_kind = [
+  | Class
+  | Interface
+  | Trait
+  (* Kotlin, Scala *)
+  | Object
+  (* Java 'record', Scala 'case class' *)
+  | RecordClass
+  (* java: *)
+  | AtInterface (* @interface, a.k.a annotation type declaration *)
+  ]
+
+(* ------------------------------------------------------------------------- *)
+(* Module definition  *)
+(* ------------------------------------------------------------------------- *)
+
+type module_definition = {
+  mbody: module_definition_kind;
+}
+
+type module_definition_kind = [
+  | ModuleAlias of dotted_ident
+  (* newscope: *)
+  | ModuleStruct of (dotted_ident option * item list)
+
+  | OtherModule of (string * any list)
+  ]
+
+(* ------------------------------------------------------------------------- *)
+(* Macro definition *)
+(* ------------------------------------------------------------------------- *)
+(* Used by cpp in C/C++ *)
+
+type macro_definition = {
+  macroparams: ident list;
+  macrobody: any list;
+}
+
+(*****************************************************************************)
+(* Directives (Module import/export, package) *)
+(*****************************************************************************)
+
+(* It is tempting to simplify all those ImportXxx in a simpler
+ * 'Import of dotted_ident * ...', but module_name is not always a DottedName
+ * so it is better to clearly separate what is module_name/namespace from an
+ * entity (in this module/namespace) even though some languages such as Python
+ * blurs the difference.
+*)
+type directive = [
+  (* newvar: *)
+  | ImportFrom of (tok (* 'import'/'from' for Python, 'include' for C *) *
+                  module_name * ident * alias option) (* as name alias *)
+
+  | ImportAs   of (tok * module_name * alias option) (* as name *)
+  (* bad practice! hard to resolve name locally *)
+  | ImportAll  of (tok * module_name * tok) (* '.' in Go, '*' in Java/Python *)
+
+
+  (* packages are different from modules in that multiple files can reuse
+   * the same package name; they are agglomarated in the same package
+  *)
+  | Package of (tok * dotted_ident) (* a.k.a namespace *)
+  (* for languages such as C++/PHP with scoped namespaces *)
+  | PackageEnd of tok
+
+  | Pragma of (ident * any list)
+
+  | OtherDirective of (string * any list)
+  ]
+
+(* ... as name *)
+type alias = (ident * id_info)
+
+(*****************************************************************************)
+(* Toplevel *)
+(*****************************************************************************)
+(* item (a.k.a toplevel element, toplevel decl) is now equal to stmt.
+ * Indeed, many languages allow nested functions, nested class definitions,
+ * and even nested imports, so it is just simpler to merge item with stmt.
+ * This simplifies semgrep too.
+*)
+
+type item = stmt
+
+type program = item list
+
+(*****************************************************************************)
+(* Any *)
+(*****************************************************************************)
+
+type any = [
+
+  | E of expr
+  | S of stmt
+  | Ss of stmt list
+
+  (* also used for semgrep *)
+  | T of type_
+  | P of pattern
+  | At of attribute
+  | Fld of field
+  | Args of argument list
+
+  (* misc *)
+  | I of ident
+  | Str of string wrap_
+
+  | Tk of tok
+  | TodoK of string wrap_
+  ]

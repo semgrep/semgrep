@@ -44,7 +44,7 @@ class _MetricManager:
         self._num_targets: Optional[int] = None
         self._num_findings: Optional[int] = None
         self._num_ignored: Optional[int] = None
-        self._run_time: Optional[float] = None
+        self._profiling_times: Dict[str, float] = {}
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
         self._file_stats: List[Dict[str, Any]] = []
@@ -66,17 +66,26 @@ class _MetricManager:
         :param metrics_state: The value of the --metrics option
         :param legacy_state: Value of the --enable-metrics/--disable-metrics option
         :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
+        and their values are different
         """
 
-        if metrics_state is not None and legacy_state is not None:
+        if (
+            metrics_state is not None
+            and legacy_state is not None
+            and metrics_state != legacy_state
+        ):
             raise click.BadParameter(
                 "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
             )
         self._send_metrics = metrics_state or legacy_state or MetricsState.AUTO
+        self._using_server = False
+
+    def get_is_using_server(self) -> bool:
+        return self._using_server
 
     def set_using_server_true(self) -> None:
         if not self._using_server:
-            logger.info("Fetching rules from https://semgrep.dev/registry ...")
+            logger.info("Fetching rules from https://semgrep.dev/registry.")
 
         self._using_server = True
 
@@ -95,7 +104,7 @@ class _MetricManager:
                 else:
                     # For now don't do anything special with other git-url formats
                     sanitized_url = project_url
-            except ValueError as e:
+            except ValueError:
                 logger.debug(f"Failed to parse url {project_url}")
                 sanitized_url = project_url
 
@@ -137,8 +146,8 @@ class _MetricManager:
     def set_num_ignored(self, num_ignored: int) -> None:
         self._num_ignored = num_ignored
 
-    def set_run_time(self, run_time: float) -> None:
-        self._run_time = run_time
+    def set_profiling_times(self, profiling_times: Dict[str, float]) -> None:
+        self._profiling_times = profiling_times
 
     def set_total_bytes_scanned(self, total_bytes_scanned: int) -> None:
         self._total_bytes_scanned = total_bytes_scanned
@@ -162,9 +171,7 @@ class _MetricManager:
             rule_stats.append(
                 {
                     "ruleHash": rule.full_hash,
-                    "parseTime": profiling_data.get_rule_parse_time(rule),
                     "matchTime": profiling_data.get_rule_match_time(rule),
-                    "runTime": profiling_data.get_rule_run_time(rule),
                     "bytesScanned": profiling_data.get_rule_bytes_scanned(rule),
                 }
             )
@@ -197,7 +204,7 @@ class _MetricManager:
             "performance": {
                 "fileStats": self._file_stats,
                 "ruleStats": self._rule_stats,
-                "runTime": self._run_time,
+                "profilingTimes": self._profiling_times,
                 "numRules": self._num_rules,
                 "numTargets": self._num_targets,
                 "totalBytesScanned": self._total_bytes_scanned,

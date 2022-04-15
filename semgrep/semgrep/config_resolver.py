@@ -16,12 +16,16 @@ from typing import Tuple
 
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
+from urllib3.util.retry import Retry
 
+from semgrep.commands.login import Authentication
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
+from semgrep.constants import IN_DOCKER
+from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
@@ -33,12 +37,12 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.metric_manager import metric_manager
 from semgrep.rule import Rule
+from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
-from semgrep.semgrep_types import Language
 from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
@@ -46,9 +50,6 @@ from semgrep.util import terminal_wrap
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
-IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 
 SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
 OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
@@ -65,7 +66,7 @@ DEFAULT_CONFIG = {
             "id": "eqeq-is-bad",
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
-            "languages": [Language.PYTHON.value],
+            "languages": ["python"],
             "severity": RuleSeverity.ERROR.value,
         },
     ],
@@ -98,6 +99,8 @@ class ConfigPath:
             self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
             self._config_path = config_str
+        elif is_policy_id(config_str):
+            self._config_path = url_for_policy(config_str)
         elif is_registry_id(config_str):
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
@@ -113,19 +116,19 @@ class ConfigPath:
                 self._extra_headers["X-Semgrep-Project"] = self._project_url
                 logger.warning(
                     terminal_wrap(
-                        f"Logging in to the Semgrep Registry as project '{self._project_url}'..."
+                        f"Looking up '{self._project_url}' in Registry to see if recommendations exist..."
                     )
                 )
-            self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
+            self._config_path = f"{SEMGREP_URL}/{AUTO_CONFIG_LOCATION}"
         else:
             self._origin = ConfigType.LOCAL
-            self._config_path = config_str
+            self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
             metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
-        """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+        """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
         if self._origin == ConfigType.REGISTRY:
@@ -156,7 +159,6 @@ class ConfigPath:
     def _download_config(self) -> Mapping[str, YamlTree]:
         config_url = self._config_path
         logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
-
         try:
             config = parse_config_string(
                 "remote-url",
@@ -174,9 +176,7 @@ class ConfigPath:
         """
         Return config file(s) as dictionary object
         """
-        location = self._config_path
-        base_path = get_base_path()
-        loc = base_path.joinpath(location)
+        loc = Path(self._config_path)
 
         logger.debug(f"Loading local config from {loc}")
         if loc.exists():
@@ -201,8 +201,30 @@ class ConfigPath:
 
         config_url = self._config_path
 
-        headers = {"User-Agent": SEMGREP_USER_AGENT, **(self._extra_headers or {})}
-        r = requests.get(config_url, stream=True, headers=headers, timeout=20)
+        session = requests.Session()
+        retries = requests.adapters.HTTPAdapter(
+            max_retries=Retry(
+                total=3,
+                backoff_factor=4,
+                allowed_methods=["GET", "POST"],
+                status_forcelist=(413, 429, 500, 502, 503),
+            ),
+        )
+        session.mount("https://", retries)
+        headers = {
+            "User-Agent": SEMGREP_USER_AGENT,
+            **(self._extra_headers or {}),
+        }
+        for k, v in headers.items():
+            session.headers[k] = v
+
+        token = Authentication.get_token()
+        # For now c/p endpoint fails with auth so only add it for policy
+        if token and "api/agent/" in config_url:
+            logger.verbose("Using token")
+            session.headers["Authorization"] = f"Bearer {token}"
+
+        r = session.get(config_url, timeout=30)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             yaml_types = [
@@ -212,7 +234,7 @@ class ConfigPath:
                 "text/yaml",
                 "text/vnd.yaml",
             ]
-            if content_type and any((ct in content_type for ct in yaml_types)):
+            if content_type and any(ct in content_type for ct in yaml_types):
                 return r.content.decode("utf-8", errors="replace")
             else:
                 raise SemgrepError(
@@ -302,8 +324,14 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
 
+        # deduplicate rules, ignoring metadata, which is not displayed
+        # in the result
         return list(
-            OrderedDict.fromkeys([rule for rules in configs.values() for rule in rules])
+            OrderedDict(
+                (rule_without_metadata(rule), rule)
+                for rules in configs.values()
+                for rule in rules
+            ).values()
         )
 
     @staticmethod
@@ -413,14 +441,6 @@ def manual_config(
     }
 
 
-def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
-    base_path = get_base_path()
-    return [
-        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
-        for target in targets
-    ]
-
-
 def adjust_for_docker() -> None:
     # change into this folder so that all paths are relative to it
     if IN_DOCKER and not IN_GH_ACTION:
@@ -434,10 +454,6 @@ def adjust_for_docker() -> None:
             )
         if SRC_DIRECTORY.exists():
             os.chdir(SRC_DIRECTORY)
-
-
-def get_base_path() -> Path:
-    return Path(os.curdir)
 
 
 def indent(msg: str) -> str:
@@ -469,7 +485,7 @@ def parse_config_string(
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
-    except EmptyYamlException as se:
+    except EmptyYamlException:
         raise SemgrepError(
             f"Empty configuration file {filename}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
@@ -510,9 +526,8 @@ def load_default_config() -> Dict[str, YamlTree]:
     """
     Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
     """
-    base_path = get_base_path()
-    default_file = base_path.joinpath(DEFAULT_CONFIG_FILE)
-    default_folder = base_path.joinpath(DEFAULT_CONFIG_FOLDER)
+    default_file = Path(DEFAULT_CONFIG_FILE)
+    default_folder = Path(DEFAULT_CONFIG_FOLDER)
     if default_file.exists():
         return parse_config_at_path(default_file)
     elif default_folder.exists():
@@ -539,7 +554,41 @@ def registry_id_to_url(registry_id: str) -> str:
     """
     Convert from registry_id to semgrep.dev url
     """
-    return f"{SEMGREP_URL}{registry_id}"
+    return f"{SEMGREP_URL}/{registry_id}"
+
+
+def url_for_policy(config_str: str) -> str:
+    """
+    Return url to download a policy for a given repo_name
+
+    For now uses envvar to know what repo_name is
+
+    Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
+    """
+    deployment_id = Authentication.get_deployment_id()
+
+    if deployment_id is None:
+        raise SemgrepError(
+            "Invalid API Key. Run `semgrep logout` and `semgrep login` again."
+        )
+
+    repo_name = os.environ.get("SEMGREP_REPO_NAME")
+    include_cai = os.environ.get("SEMGREP_POLICY_INCLUDE_CAI")
+
+    if repo_name is None:
+        raise SemgrepError(
+            "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
+        )
+
+    request_url = f"{SEMGREP_URL}/api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
+
+    if include_cai:
+        return f"{request_url}?include_cai=1"
+    return request_url
+
+
+def is_policy_id(config_str: str) -> bool:
+    return config_str == "policy"
 
 
 def saved_snippet_to_url(snippet_id: str) -> str:
@@ -592,7 +641,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         for version_string in versions_json:
             try:
                 versions_parsed.append(Version(version_string))
-            except ValueError as e:
+            except ValueError:
                 logger.info(
                     f"Could not parse {version_string} in versions of {ruleset_name} pack as valid semver. Ignoring that version string."
                 )
@@ -753,3 +802,27 @@ def get_config(
         )
 
     return config, errors
+
+
+def list_current_public_rulesets() -> List[JsonObject]:
+    import requests  # here for faster startup times
+
+    api_full_url = f"{SEMGREP_URL}/api/registry/ruleset"
+    headers = {"User-Agent": SEMGREP_USER_AGENT}
+    try:
+        r = requests.get(api_full_url, headers=headers, timeout=20)
+    except Exception:
+        raise SemgrepError(f"Failed to download list of public rulesets")
+
+    if not r.ok:
+        raise SemgrepError(
+            f"Bad status code: {r.status_code} returned by url: {api_full_url}"
+        )
+
+    logger.debug(f"Retrieved rulesets: {r.text}")
+    try:
+        ruleset_json = json.loads(r.text)
+    except json.decoder.JSONDecodeError as e:
+        raise SemgrepError(f"Failed to parse rulesets as valid json")
+
+    return ruleset_json  # type:ignore
