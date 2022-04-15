@@ -17,6 +17,7 @@ import semgrep.semgrep_main
 from semgrep.commands.login import Authentication
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
+from semgrep.commands.wrapper import command_wrapper
 from semgrep.constants import OutputFormat
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
@@ -164,6 +165,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         Instead will print out json objects it would have sent.
     """,
 )
+@command_wrapper
 def ci(
     ctx: click.Context,
     *,

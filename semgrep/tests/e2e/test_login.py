@@ -52,7 +52,7 @@ def test_login(tmp_path):
             ["login"],
             env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 7
         assert "API token already exists in" in result.output
 
         # Clear login
