@@ -45,6 +45,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - Generic mode rules work again
   - Semgrep will not fail on targets that contain no relevant lockfiles
+  - `package-lock.json` parsing now defaults to `dependencies` instead of `packages`,
+    and will not completely fail on dependencies with no version
+  - `yarn.lock` parsing has been rewritten to fix a bug where sometimes
+    large numbers of dependencies would be ignored
 - Go: parse multiline string literals
 - Handle utf-8 decoding errors without crashing (#5023)
 
