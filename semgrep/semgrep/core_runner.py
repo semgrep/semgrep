@@ -266,7 +266,7 @@ class StreamingSemgrepCore:
 class Task:
     path: str = field(converter=str)
     language: Language
-    rule_ids: Sequence[str]
+    rule_ids: List[str]
 
 
 class Plan(List[Task]):
@@ -525,7 +525,7 @@ class CoreRunner:
                 Task(
                     path=target,
                     language=language,
-                    rule_ids=target_info[target, language],
+                    rule_ids=[id.value for id in target_info[target, language]],
                 )
                 for target, language in target_info
             ]

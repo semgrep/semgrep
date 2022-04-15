@@ -129,7 +129,7 @@ let match_to_match x =
     let startp, endp = position_range min_loc max_loc in
     Left
       ({
-         ST.rule_id = Some x.rule_id.id;
+         ST.rule_id = x.rule_id.id;
          location =
            {
              path = x.file;

@@ -205,7 +205,7 @@ class OutputHandler:
                 if not err.rule_id:
                     timeout_errors[err.path].append("<unknown rule_id>")
                 else:
-                    timeout_errors[err.path].append(err.rule_id)
+                    timeout_errors[err.path].append(str(err.rule_id))
             else:
                 self._handle_semgrep_error(err)
 
