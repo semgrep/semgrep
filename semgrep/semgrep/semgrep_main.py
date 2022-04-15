@@ -173,7 +173,7 @@ def run_rules(
             else top_level_target_rooted[-1]
         )
         langs = [l for r in dependency_aware_rules for l in r.languages]
-        dep_trie = make_dependency_trie(top_level_target, langs)
+        dep_trie = make_dependency_trie(top_level_target, langs, target_manager)
 
         for rule in dependency_aware_rules:
             (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
