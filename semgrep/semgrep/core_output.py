@@ -104,7 +104,7 @@ class CoreError:
 
         spans = None
         if error.yaml_path:
-            yaml_path = error.yaml_path[::-1]
+            yaml_path = tuple(error.yaml_path[::-1])
             spans = tuple([LegacySpan(start, end, yaml_path)])  # type: ignore
         return cls(
             error_type, rule_id, path, start, end, message, level, spans, details
