@@ -525,7 +525,7 @@ class CoreRunner:
                 Task(
                     path=target,
                     language=language,
-                    rule_ids=[id.value for id in target_info[target, language]],
+                    rule_ids=[id for id in target_info[target, language]],
                 )
                 for target, language in target_info
             ]

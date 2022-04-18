@@ -31,6 +31,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
+from semgrep.types import RuleId
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -74,7 +75,7 @@ class CoreError:
     """
 
     error_type: CoreErrorType
-    rule_id: Optional[str]
+    rule_id: Optional[RuleId]
     path: Path
     start: core.Position
     end: core.Position
@@ -86,7 +87,7 @@ class CoreError:
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
         error_type = CoreErrorType(error.error_type)
-        rule_id = error.rule_id.value if error.rule_id else None
+        rule_id = RuleId(error.rule_id.value) if error.rule_id else None
         path = Path(error.location.path)
         start = error.location.start
         end = error.location.end
@@ -144,14 +145,14 @@ class CoreError:
 
 @frozen
 class CoreSkipped:
-    rule_id: Optional[core.RuleId]
+    rule_id: Optional[RuleId]
     path: Path
     reason: SkipReason
     details: SkipDetails
 
     @classmethod
     def make(cls, skipped: core.SkippedTarget) -> "CoreSkipped":
-        rule_id = skipped.rule_id
+        rule_id = RuleId(skipped.rule_id.value) if skipped.rule_id else None
         path = Path(skipped.path)
         reason = skipped.reason
         details = SkipDetails(skipped.details)
