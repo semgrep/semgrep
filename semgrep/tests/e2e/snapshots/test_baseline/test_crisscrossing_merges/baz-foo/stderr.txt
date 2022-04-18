@@ -1,0 +1,51 @@
+git could not find a single branch-off point, so we will compare the baseline commit directly
+Scanning 3 files.
+  Current version has 21 findings.
+
+Switching repository to baseline commit 'foo'.
+  Will report findings introduced by these commits:
+    * ff8459e commit #9
+    * a0592d5 commit #8
+    * 4ec8882 commit #7
+    * 620f8c9 commit #6
+    * d373a3a commit #5
+    * 7d69b10 commit #4
+    * 4cb3ddb commit #3
+    * d623cf5 commit #2
+    * 19cc9d5 commit #1
+    *   a9cab85 merging 4a372020118b6787c208de20e374aac0cdc2b841
+    |\  
+    | * 4a37202 commit #7
+    | * 5fe55c3 commit #6
+    | * f0d065e commit #5
+    * | 6d572d7 merging 657cdbabbd73778d81796d0128207fee79136f10
+    * | e564346 merging b62d8d638ebfd9494bd16634cf8783db074836ea
+    |\| 
+    | * b62d8d6 commit #4
+    | * 97acb1c commit #3
+    | * 55e425e commit #2
+    * | 866f275 merging 5275d4bb21ad3fd0c6361b4e252b7d46ce3a6583
+    * | ab8ab0a merging e554aecf7fc79d7dafcf8e763ec65fd626828f28
+    |\| 
+    | * e554aec commit #1
+    * 23c546f commit #1
+  The current branch is missing these commits from the baseline branch:
+    *   fe51afb merging bar~6
+    |\  
+    | * 97acb1c commit #3
+    | * 55e425e commit #2
+    | * e554aec commit #1
+    * 4917fac commit #9
+    * 9914f12 commit #8
+    * c9ac2d0 commit #7
+    * 01aedc2 commit #6
+  Any finding these commits fixed will look like a new finding in the current branch.
+  To avoid reporting such findings, compare to the branch-off point with:
+    --baseline-commit=$(git merge-base foo HEAD)
+
+Scanning 1 file.
+
+Some files were skipped.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 3 files: 16 findings.
