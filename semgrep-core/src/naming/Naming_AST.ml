@@ -364,7 +364,8 @@ let is_resolvable_name_ctx env lang =
       | Lang.Java
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
-      | Lang.Ts ->
+      | Lang.Ts
+      | Lang.Php ->
           true
       | _ -> false)
 
@@ -380,7 +381,8 @@ let resolved_name_kind env lang =
       | Lang.Java
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
-      | Lang.Ts ->
+      | Lang.Ts
+      | Lang.Php ->
           EnclosedVar
       | _ -> raise Impossible)
 
@@ -745,7 +747,8 @@ let resolve lang prog =
                     let s, tok = id in
                     error tok (spf "could not find '%s' in environment" s));
               recurse := false
-          | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
+          | DotAccess
+              ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
             -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.
