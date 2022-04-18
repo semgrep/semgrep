@@ -14,48 +14,6 @@
     {
       "check_id": "rules.dependency_aware.js-sca",
       "end": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      },
-      "extra": {
-        "dependency_match_only": true,
-        "dependency_matches": [
-          {
-            "dependency_pattern": {
-              "namespace": "npm",
-              "package_name": "bad-lib",
-              "semver_range": "< 0.0.8"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "name": "bad-lib",
-              "namespace": "npm",
-              "resolved_url": [
-                "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz"
-              ],
-              "version": "0.0.7"
-            },
-            "lockfile": "yarn.lock"
-          }
-        ],
-        "fingerprint": "8ccc21b07b8a8b8cf034f4a0a0bd9f6b",
-        "is_ignored": false,
-        "lines": "",
-        "message": "oh no",
-        "metadata": {},
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/monorepo/webapp2/yarn.lock",
-      "start": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      }
-    },
-    {
-      "check_id": "rules.dependency_aware.js-sca",
-      "end": {
         "col": 6,
         "line": 1,
         "offset": 5
@@ -93,6 +51,48 @@
       "start": {
         "col": 1,
         "line": 1,
+        "offset": 0
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.js-sca",
+      "end": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
+      },
+      "extra": {
+        "dependency_match_only": true,
+        "dependency_matches": [
+          {
+            "dependency_pattern": {
+              "namespace": "npm",
+              "package_name": "bad-lib",
+              "semver_range": "< 0.0.8"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "name": "bad-lib",
+              "namespace": "npm",
+              "resolved_url": [
+                "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz"
+              ],
+              "version": "0.0.7"
+            },
+            "lockfile": "yarn.lock"
+          }
+        ],
+        "fingerprint": "8ccc21b07b8a8b8cf034f4a0a0bd9f6b",
+        "is_ignored": false,
+        "lines": "",
+        "message": "oh no",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/monorepo/webapp2/yarn.lock",
+      "start": {
+        "col": 0,
+        "line": 0,
         "offset": 0
       }
     },
