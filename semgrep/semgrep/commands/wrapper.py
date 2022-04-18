@@ -41,6 +41,7 @@ def handle_command_errors(func: Callable) -> Callable:
             sys.exit(e.code)
         except Exception as e:
             logger.exception(e)
+            metric_manager.set_return_code(FATAL_EXIT_CODE)
             sys.exit(FATAL_EXIT_CODE)
         else:
             metric_manager.set_return_code(OK_EXIT_CODE)
