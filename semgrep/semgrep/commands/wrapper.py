@@ -11,9 +11,9 @@ from semgrep.metric_manager import metric_manager
 from semgrep.verbose_logging import getLogger
 
 
-def command_wrapper(func: Callable) -> Callable:
+def handle_errors(func: Callable) -> Callable:
     """
-    Adds the following functionaity to our subcommands:
+    Adds the following functionality to our subcommands:
     - Enforces that exit code 1 is only for findings
     - Sets global logging level
     - Handles metric sending before exit
