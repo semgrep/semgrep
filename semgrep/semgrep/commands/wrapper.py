@@ -18,6 +18,10 @@ def command_wrapper(func: Callable) -> Callable:
     - Sets global logging level
     - Handles metric sending before exit
 
+    This needed to be done in a decorator so testing
+    using click.CliRunner would include this functionality.
+    In particular putting this in __main__ (outside click),
+    would have been harder to test
     """
 
     @wraps(func)
