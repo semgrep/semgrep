@@ -137,7 +137,8 @@ To disable Registry rule metrics, use `--metrics=off`.
 ### More
 
 - [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
-- [Contributing](https://semgrep.dev/docs/contributing/)
+- [Contributing](https://semgrep.dev/docs/contributing/how-to-contribute/)
+- [Build instructions for developers](INSTALL.md)
 - [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)

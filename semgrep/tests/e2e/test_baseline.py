@@ -126,8 +126,6 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
 
 @pytest.mark.kinda_slow
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
-    # Test that head having no change to base (git commit --allow-empty)
-    # doesnt break semgrep
     foo = git_tmp_path / "foo.py"
     foo.write_text(f"x = {SENTINEL_1}\n")
     bar = git_tmp_path / "bar.py"
@@ -160,7 +158,42 @@ def test_one_commit_with_baseline(git_tmp_path, snapshot):
 
 @pytest.mark.quick
 def test_symlink(git_tmp_path, snapshot):
-    pass
+    # Test that head having no change to base (git commit --allow-empty)
+    # doesnt break semgrep
+    foo = git_tmp_path / "foo.py"
+    foo.write_text(f"x = {SENTINEL_1}\n")
+    bar = git_tmp_path / "bar.py"
+    bar.write_text(f"y = {SENTINEL_1}\n")
+    bar_link = git_tmp_path / "bar_link.py"
+    bar_link.symlink_to(bar)
+    bar_link_link = git_tmp_path / "bar_link_link.py"
+    bar_link_link.symlink_to(bar_link)
+    broken_link = git_tmp_path / "broken_link.py"
+    broken_link.symlink_to("broken")
+
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    _git_commit(1)
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    # Add and commit noop change
+    _git_commit(2)
+    # Non-baseline scan should report findings
+    output = run_sentinel_scan()
+    snapshot.assert_match(output.stdout, "output.txt")
+    assert (
+        output.stdout != ""
+    )  # If you fail this assertion means above snapshot was incorrectly changed
+    snapshot.assert_match(output.stderr, "error.txt")
+
+    # Baseline scan should report 0 findings
+    baseline_output = run_sentinel_scan(base_commit=base_commit)
+    assert baseline_output.stdout == ""
+    snapshot.assert_match(
+        baseline_output.stderr.replace(base_commit, "baseline-commit"),
+        "baseline_error.txt",
+    )
 
 
 @pytest.mark.kinda_slow

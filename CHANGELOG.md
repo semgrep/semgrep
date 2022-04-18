@@ -4,6 +4,29 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- Lockfiles scanning now respects .semgrepignore
+
+## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
+
+### Added
+
+### Changed
+
+### Fixed
+
+- TS: Fixed matching of parameters with type annotations. E.g., it is now possible
+  to match `({ params }: Request) => { }` with `({$VAR} : $REQ) => {...}`. (#5004)
+
+### Added
+
+### Changed
+
+- Semgrep-core now logs the rule and file affected by a memory warning.
+
+### Fixed
+
 ### Added
 
 - Scala support is now officially GA
@@ -12,6 +35,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
 - Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
+- Bash/Dockerfile: Add support for named ellipses such as in
+  `echo $...ARGS` (#4887)
 
 ### Changed
 
@@ -32,7 +57,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - Generic mode rules work again
   - Semgrep will not fail on targets that contain no relevant lockfiles
+  - `package-lock.json` parsing now defaults to `dependencies` instead of `packages`,
+    and will not completely fail on dependencies with no version
+  - `yarn.lock` parsing has been rewritten to fix a bug where sometimes
+    large numbers of dependencies would be ignored
 - Go: parse multiline string literals
+- Handle utf-8 decoding errors without crashing (#5023)
 
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 

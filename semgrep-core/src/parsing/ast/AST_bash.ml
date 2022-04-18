@@ -409,6 +409,7 @@ and string_fragment =
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
   | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
+  | Frag_semgrep_named_ellipsis of (* $...X *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -546,6 +547,7 @@ let string_fragment_loc = function
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
   | Frag_semgrep_metavar x -> wrap_loc x
+  | Frag_semgrep_named_ellipsis x -> wrap_loc x
 
 let expansion_loc = function
   | Simple_expansion (loc, _) -> loc
