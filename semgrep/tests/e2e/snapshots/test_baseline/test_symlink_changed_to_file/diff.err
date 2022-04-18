@@ -1,9 +1,13 @@
-Nothing to scan.
-  Current version has 0 findings.
+Scanning 1 file.
+  Current version has 1 finding.
 
-Skipping baseline scan, because there are no current findings.
+Switching repository to baseline commit 'HEAD^'.
+  Will report findings introduced by these commits:
+    * 0262818 commit #2
+
+Nothing to scan.
 
 Some files were skipped.
   Scan was limited to files changed since baseline commit.
 
-Ran 1 rule on 0 files: 0 findings.
+Ran 1 rule on 1 file: 1 finding.
