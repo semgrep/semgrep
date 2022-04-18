@@ -375,7 +375,7 @@ def test_symlink_changed_to_file(git_tmp_path, snapshot):
     file_path = git_tmp_path / "definitely_a_file.py"
     file_path.write_text(f"x = {SENTINEL_1}\n")
     symlink_or_file_path = git_tmp_path / "symlink_or_file.py"
-    symlink_or_file_path.symlink_to(file_path)
+    symlink_or_file_path.symlink_to("definitely_a_file.py")
     _git_commit(1, add=True)
 
     symlink_or_file_path.unlink()
