@@ -400,6 +400,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
             snapshot.assert_match(sanitized_output, "output.txt")
 
 
+@pytest.mark.kinda_slow
 def test_fail_auth(tmp_path):
     """
     Test that failure to authenticate does not have exit code 0 or 1
@@ -425,6 +426,7 @@ def test_fail_auth(tmp_path):
         assert result.exit_code == 2
 
 
+@pytest.mark.kinda_slow
 def test_fail_start_scan(tmp_path):
     """
     Test that failing to start scan does not have exit code 0 or 1
@@ -450,6 +452,7 @@ def test_fail_start_scan(tmp_path):
                 assert result.exit_code == 2
 
 
+@pytest.mark.kinda_slow
 def test_bad_config(tmp_path):
     """
     Test that bad rules has exit code > 1
@@ -487,6 +490,7 @@ def test_bad_config(tmp_path):
                     assert result.exit_code == 7
 
 
+@pytest.mark.kinda_slow
 def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
@@ -510,6 +514,7 @@ def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit):
                 assert result.exit_code == 2
 
 
+@pytest.mark.kinda_slow
 def test_git_failure(tmp_path, git_tmp_path_with_commit):
     """
     Test failure from using git has exit code > 1
