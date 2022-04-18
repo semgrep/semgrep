@@ -26,7 +26,6 @@ from semgrep.error import LegacySpan
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.output_from_core import MetavarValue
-from semgrep.output_from_core import RuleId
 from semgrep.output_from_core import SkipReason
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -75,7 +74,7 @@ class CoreError:
     """
 
     error_type: CoreErrorType
-    rule_id: Optional[RuleId]
+    rule_id: Optional[str]
     path: Path
     start: core.Position
     end: core.Position
@@ -87,14 +86,18 @@ class CoreError:
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
         error_type = CoreErrorType(error.error_type)
-        rule_id = error.rule_id if error.rule_id else None
+        rule_id = error.rule_id.value if error.rule_id else None
         path = Path(error.location.path)
         start = error.location.start
         end = error.location.end
         message = CoreErrorMessage(error.message)
+
+        # Hackily convert the level string to Semgrep expectations
         level_str = error.severity.kind
         if level_str.upper() == "WARNING":
             level_str = "WARN"
+        if level_str.upper() == "ERROR_":
+            level_str = "ERROR"
         level = Level[level_str.upper()]
         details = error.details
 

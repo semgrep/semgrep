@@ -58,7 +58,7 @@ type match_
   extra: match_extra;
 }
 
-type rule_id = string
+type rule_id <python decorator="dataclass(frozen=True)"> = string
 
 type match_extra
   <python decorator="dataclass(frozen=True)"> = {

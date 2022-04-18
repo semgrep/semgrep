@@ -678,7 +678,7 @@ class SkipReason:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RuleId:
     """Original type: rule_id"""
 
