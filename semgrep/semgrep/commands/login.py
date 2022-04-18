@@ -6,7 +6,7 @@ from typing import Tuple
 
 import click
 
-from semgrep.commands.wrapper import handle_errors
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import IN_DOCKER
 from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
@@ -28,7 +28,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
 
 
 @click.command()
-@handle_errors
+@handle_command_errors
 def login() -> None:
     """
     Obtain and save credentials for semgrep.dev
@@ -118,7 +118,7 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
 
 
 @click.command()
-@handle_errors
+@handle_command_errors
 def logout() -> None:
     """
     Remove locally stored credentials to semgrep.dev

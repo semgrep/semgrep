@@ -10,7 +10,7 @@ from typing import Tuple
 import click
 
 from semgrep.commands.login import Authentication
-from semgrep.commands.wrapper import handle_errors
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
@@ -88,7 +88,7 @@ def _get_test_code_for_config(
     "registry_id",
     help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
 )
-@handle_errors
+@handle_command_errors
 def publish(
     target: str, visibility: VisibilityState, registry_id: Optional[str]
 ) -> None:

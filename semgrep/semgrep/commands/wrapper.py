@@ -11,7 +11,7 @@ from semgrep.metric_manager import metric_manager
 from semgrep.verbose_logging import getLogger
 
 
-def handle_errors(func: Callable) -> Callable:
+def handle_command_errors(func: Callable) -> Callable:
     """
     Adds the following functionality to our subcommands:
     - Enforces that exit code 1 is only for findings
