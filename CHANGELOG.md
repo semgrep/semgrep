@@ -4,9 +4,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- When running a baseline scan on a shallow-cloned git repository,
+  Semgrep still needs enough git history available
+  to reach the branch-off point between the baseline and current branch.
+  Previously, Semgrep would try to gradually fetch more and more commits
+  up to a thousand commits of history,
+  before giving up and just fetching all commits from the remote git server.
+  Now, Semgrep will keep trying smaller batches until up to a million commits.
+  This change should reduce runtimes on large baseline scans on very large repositories.
+
 ### Fixed
 
 - Lockfiles scanning now respects .semgrepignore
+- When a baseline scan diff showed that a path changed a symlink a proper file,
+  Semgrep used incorrectly skip that path. This is now fixed.
 
 ## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
 
