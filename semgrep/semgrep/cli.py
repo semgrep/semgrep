@@ -20,11 +20,14 @@ logger = getLogger(__name__)
 
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")
 @click.help_option("--help", "-h")
-def cli() -> None:
+@click.pass_context
+def cli(ctx: click.Context) -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
     """
     app_session.authenticate()
+    if ctx.invoked_subcommand:
+        app_session.user_agent.tags.add(f"command/{ctx.invoked_subcommand}")
 
     workspace = os.getenv("GITHUB_WORKSPACE")
     if workspace:
