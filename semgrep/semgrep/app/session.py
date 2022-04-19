@@ -31,8 +31,8 @@ class UserAgent:
 
     @tags.default
     def get_default_tags(self) -> Set[str]:
-        if note_from_env := os.getenv("SEMGREP_USER_AGENT_APPEND"):
-            return set({note_from_env})
+        if os.getenv("SEMGREP_USER_AGENT_APPEND"):
+            return set({os.environ["SEMGREP_USER_AGENT_APPEND"]})
         return set()
 
     def __str__(self) -> str:
