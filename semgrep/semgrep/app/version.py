@@ -116,6 +116,7 @@ def _get_latest_version(version_cache_path: Path) -> Optional[JsonObject]:
 
 
 def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:
+    logged_something = False
     banners = latest_version_object.get("banners", [])
     for b in banners:
         try:
@@ -130,6 +131,12 @@ def _show_banners(current_version: Version, latest_version_object: JsonObject) -
             not hide or current_version < hide
         ):
             logger.warning("\n" + b.get("message", ""))
+            logged_something = True
+
+    if logged_something and os.getenv("SEMGREP_ACTION"):
+        logger.warning(
+            "If you're using the returntocorp/semgrep-agent:v1 image, you will be automatically upgraded within 24 hours."
+        )
 
 
 def version_check(version_cache_path: Path = VERSION_CACHE_PATH) -> None:

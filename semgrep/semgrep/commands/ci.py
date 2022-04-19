@@ -437,4 +437,9 @@ def ci(
         logger.info("No findings so exiting with code 0")
         exit_code = 0
 
+    if enable_version_check:
+        from semgrep.app.version import version_check
+
+        version_check()
+
     sys.exit(exit_code)
