@@ -14,8 +14,6 @@ from typing import Sequence
 import click
 import colorama
 
-from semgrep.constants import BREAK_LINE_CHAR
-from semgrep.constants import BREAK_LINE_WIDTH
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
@@ -42,6 +40,8 @@ if width <= 110:
     width = width - 5
 else:
     width = width - (width - 100)
+
+FINDINGS_INDENT_DEPTH = 10
 
 
 class TextFormatter(BaseFormatter):
@@ -150,15 +150,14 @@ class TextFormatter(BaseFormatter):
                 ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
             if stripped:
-                yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
-            trimmed_str = (
-                f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
-            )
+                stripped_str = f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
+                yield " " * FINDINGS_INDENT_DEPTH + stripped_str
             if per_finding_max_lines_limit != 1:
                 if trimmed > 0:
-                    yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
+                    trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
+                    yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
                 elif show_separator:
-                    yield f" " * 10 + f"⋮┆" + f"-" * 40
+                    yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -347,7 +346,7 @@ class TextFormatter(BaseFormatter):
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                shortlink_text = (8 * " " + shortlink) if shortlink else ""
+                shortlink_text = (8 * " " + shortlink + "\n") if shortlink else ""
                 rule_id_text = click.wrap_text(
                     f"{with_color(Colors.foreground, rule_id, bold=True)}",
                     width + 10,
@@ -358,7 +357,7 @@ class TextFormatter(BaseFormatter):
                 message_text = click.wrap_text(
                     f"{message}", width, 8 * " ", 8 * " ", True
                 )
-                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}\n"
+                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}"
 
             last_file = current_file
             last_message = message

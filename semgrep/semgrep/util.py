@@ -129,7 +129,7 @@ def partition_set(
 
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
-    sys.exit(1)
+    sys.exit(2)
 
 
 def with_color(

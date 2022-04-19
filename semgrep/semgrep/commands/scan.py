@@ -19,6 +19,7 @@ from click_option_group import optgroup
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
@@ -37,7 +38,6 @@ from semgrep.types import MetricsState
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -609,6 +609,7 @@ def scan_options(func: Callable) -> Callable:
     # help="contact support@r2c.dev for more information on this"
 )
 @scan_options
+@handle_command_errors
 def scan(
     *,
     apply: bool,

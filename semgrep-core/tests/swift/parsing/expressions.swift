@@ -28,19 +28,9 @@ named(bar: baz:);
 
 closure { x in x };
 
-// TODO this leads the parser into an infinite loop in our CI environment. I
-// (nmote) have replicated it locally using the docker container that the
-// build-tests GitHub action uses, but it does not reproduce on my machine
-// otherwise. I verified by stepping through with gdb that the parser is indeed
-// in an infinite loop in scanner.c. Here's a backtrace from attaching to
-// semgrep-core while it's in the loop:
-// https://gist.github.com/nmote/0bddd68b30f925e71a60086eeff9fe23
-//
-// Reproduced using the command:
-//
-// $ semgrep-core -lang swift -dump_tree_sitter_cst expressions.swift
-//
-// doubleclosure { x in x } more: { y in y };
+// TODO this used to lead the parser into an infinite loop in CI. Test that it's
+// correctly parsed, even though that issue has been mitigated.
+doubleclosure { x in x } more: { y in y };
 
 // TODO tree-sitter-swift parses this incorrectly. The closure should be
 // considered the final argument to the function call as above, but instead this

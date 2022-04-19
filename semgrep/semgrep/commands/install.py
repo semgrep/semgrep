@@ -9,6 +9,7 @@ import click
 from tqdm import tqdm
 
 from semgrep.app import app_session
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -21,6 +22,7 @@ logger = getLogger(__name__)
 
 
 @click.command(hidden=True)
+@handle_command_errors
 def install_deep_semgrep() -> None:
     """
     Install the DeepSemgrep binary (Experimental)

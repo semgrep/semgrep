@@ -30,7 +30,7 @@ def test_publish(tmp_path):
         ["publish", valid_target],
     )
     print(result.output)
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert result.output == "run `semgrep login` before using upload\n"
 
     # Patch Token Validation:
@@ -61,7 +61,7 @@ def test_publish(tmp_path):
                 ),
             ],
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Invalid rule definition:" in result.output
 
         # fails if a yaml with more than one rule is specified
@@ -76,7 +76,7 @@ def test_publish(tmp_path):
                 ),
             ],
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert (
             "Rule contains more than one rule: only yaml files with a single can be published"
             in result.output
@@ -87,7 +87,7 @@ def test_publish(tmp_path):
             cli,
             ["publish", "--visibility=public", valid_target],
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert (
             "Only one public rule can be uploaded at a time: specify a single Semgrep rule"
             in result.output
@@ -97,5 +97,5 @@ def test_publish(tmp_path):
             cli,
             ["publish", "--visibility=public", valid_single_file_target],
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "--visibility=public requires --registry-id" in result.output
