@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Lockfiles scanning now respects .semgrepignore
 - When a baseline scan diff showed that a path changed a symlink a proper file,
   Semgrep used incorrectly skip that path. This is now fixed.
+- Dockerfile support: handle image aliases correctly (#4881)
 
 ## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
 
