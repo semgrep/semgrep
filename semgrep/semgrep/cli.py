@@ -4,6 +4,7 @@ import subprocess
 
 import click
 
+from semgrep.app import app_session
 from semgrep.commands.ci import ci
 from semgrep.commands.install import install_deep_semgrep
 from semgrep.commands.login import login
@@ -23,6 +24,8 @@ def cli() -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
     """
+    app_session.authenticate()
+
     workspace = os.getenv("GITHUB_WORKSPACE")
     if workspace:
         try:

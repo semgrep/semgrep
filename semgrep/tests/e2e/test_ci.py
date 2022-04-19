@@ -9,9 +9,9 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-from requests import Session
 
 from semgrep import __VERSION__
+from semgrep.app import app_session
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.cli import cli
@@ -159,7 +159,7 @@ def ci_mocks(base_commit, autofix):
 @pytest.mark.parametrize(
     "env",
     [
-        {},  # Local run with no env vars
+        {"SEMGREP_APP_TOKEN": "dummy"},  # Local run with no CI env vars
         {  # Github full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -274,7 +274,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
 
     with ci_mocks(base_commit, autofix):
         # Mock session.post
-        with mock.patch.object(Session, "post", post_mock):
+        with mock.patch.object(app_session, "post", post_mock):
             runner = CliRunner(
                 env={
                     **env,
@@ -364,7 +364,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
 
     with ci_mocks(base_commit, autofix):
         # Mock session.post
-        with mock.patch.object(Session, "post", post_mock):
+        with mock.patch.object(app_session, "post", post_mock):
             runner = CliRunner(
                 env={
                     SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),

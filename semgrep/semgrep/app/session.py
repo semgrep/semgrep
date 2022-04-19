@@ -69,8 +69,6 @@ class AppSession(requests.Session):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-
-        self.token = auth.get_token()
         self.user_agent = UserAgent()
 
         # retry after 4, 8, 16 seconds
@@ -84,6 +82,9 @@ class AppSession(requests.Session):
         )
         self.mount("https://", retry_adapter)
         self.mount("http://", retry_adapter)
+
+    def authenticate(self) -> None:
+        self.token = auth.get_token()
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 30)
