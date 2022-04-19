@@ -99,52 +99,6 @@
     {
       "check_id": "rules.dependency_aware.go-sca",
       "end": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      },
-      "extra": {
-        "dependency_match_only": true,
-        "dependency_matches": [
-          {
-            "dependency_pattern": {
-              "namespace": "gomod",
-              "package_name": "github.com/bad-lib",
-              "semver_range": "== 0.3.1"
-            },
-            "found_dependency": {
-              "allowed_hashes": {
-                "gomod": [
-                  "xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU"
-                ]
-              },
-              "name": "github.com/bad-lib",
-              "namespace": "gomod",
-              "resolved_url": [
-                "github.com/bad-lib"
-              ],
-              "version": "0.3.1"
-            },
-            "lockfile": "go.sum"
-          }
-        ],
-        "fingerprint": "322be9aa5aaeedf070e32bc5c825b878",
-        "is_ignored": false,
-        "lines": "",
-        "message": "oh no",
-        "metadata": {},
-        "severity": "WARNING"
-      },
-      "path": "targets/dependency_aware/monorepo/webapp1/experiment/go.sum",
-      "start": {
-        "col": 0,
-        "line": 0,
-        "offset": 0
-      }
-    },
-    {
-      "check_id": "rules.dependency_aware.go-sca",
-      "end": {
         "col": 7,
         "line": 2,
         "offset": 20
@@ -187,6 +141,52 @@
         "col": 2,
         "line": 2,
         "offset": 15
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.go-sca",
+      "end": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
+      },
+      "extra": {
+        "dependency_match_only": true,
+        "dependency_matches": [
+          {
+            "dependency_pattern": {
+              "namespace": "gomod",
+              "package_name": "github.com/bad-lib",
+              "semver_range": "== 0.3.1"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "gomod": [
+                  "xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU"
+                ]
+              },
+              "name": "github.com/bad-lib",
+              "namespace": "gomod",
+              "resolved_url": [
+                "github.com/bad-lib"
+              ],
+              "version": "0.3.1"
+            },
+            "lockfile": "go.sum"
+          }
+        ],
+        "fingerprint": "322be9aa5aaeedf070e32bc5c825b878",
+        "is_ignored": false,
+        "lines": "",
+        "message": "oh no",
+        "metadata": {},
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/monorepo/webapp1/experiment/go.sum",
+      "start": {
+        "col": 0,
+        "line": 0,
+        "offset": 0
       }
     }
   ]

@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "[ERROR] Semgrep Core \u2014 Pattern parse error\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nIn rule rules.invalid-rules.print: Invalid pattern for Python\n",
+      "message": "[ERROR] Pattern parse error in rule rules.invalid-rules.print:\n Invalid pattern for Python",
       "rule_id": "rules.invalid-rules.print",
       "spans": [
         {

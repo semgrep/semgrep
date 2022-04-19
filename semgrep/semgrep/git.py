@@ -41,9 +41,12 @@ class StatusCode:
     Renamed = "R"
     Modified = "M"
     Unmerged = "U"
+    TypeChanged = "T"  # changed between file / symlink / submodule
     Ignored = "!"
     Untracked = "?"
     Unstaged = " "  # but changed
+    Unknown = "X"
+    Broken = "B"
 
 
 class BaselineHandler:
@@ -183,6 +186,8 @@ class BaselineHandler:
             if code == StatusCode.Added:
                 added.append(path)
             if code == StatusCode.Modified:
+                modified.append(path)
+            if code == StatusCode.TypeChanged and not path.is_symlink():
                 modified.append(path)
             if code == StatusCode.Deleted:
                 removed.append(path)

@@ -173,7 +173,8 @@ class GithubMeta(GitMeta):
     """Gather metadata from GitHub Actions."""
 
     environment: str = field(default="github-actions", init=False)
-    MAX_FETCH_ATTEMPT_COUNT: int = field(default=6, init=False)
+    # the last attempt will be 4**10 == 1048576 commits
+    MAX_FETCH_ATTEMPT_COUNT: int = field(default=10, init=False)
 
     def glom_event(self, spec: TType) -> Any:
         return glom(self.event, spec, default=None)
@@ -235,8 +236,9 @@ class GithubMeta(GitMeta):
         assert self.head_ref is not None
         assert self.base_branch_tip is not None
 
-        fetch_depth: int = 4**attempt_count  # fetch 4, 16, 64, 256, 1024, ...
-        if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
+        # fetch 0, 4, 16, 64, 256, 1024, ...
+        fetch_depth = 4**attempt_count if attempt_count else 0
+        if attempt_count > self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
             fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
 
         logger.debug(
@@ -286,7 +288,7 @@ class GithubMeta(GitMeta):
                 output  # output is empty when unable to find branch-off point
                 and "Not a valid " not in output  # the error when a ref is missing
             ):
-                raise Exception("")
+                raise Exception(f"Unexpected git merge-base error message: ({output})")
 
             if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:
                 raise Exception(
