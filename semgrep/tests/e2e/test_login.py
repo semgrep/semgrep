@@ -31,7 +31,7 @@ def test_login(tmp_path):
             ["login"],
             input=fake_key,
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "semgrep login is an interactive command" in result.output
 
         # Login with env token
@@ -52,7 +52,7 @@ def test_login(tmp_path):
             ["login"],
             env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "API token already exists in" in result.output
 
         # Clear login
@@ -89,7 +89,7 @@ def test_login(tmp_path):
 
         # Run policy with bad token -> no associated deployment_id
         result = runner.invoke(cli, ["--config", "policy"])
-        assert result.exit_code == 1
+        assert result.exit_code == 7
         assert "Invalid API Key" in result.output
 
         with patch.object(Authentication, "get_deployment_id", return_value=1):
@@ -98,14 +98,14 @@ def test_login(tmp_path):
                 cli,
                 ["--config", "policy"],
             )
-            assert result.exit_code == 1
+            assert result.exit_code == 7
             assert "Need to set env var SEMGREP_REPO_NAME" in result.output
 
             # Run policy. Check that request is made to correct deployment + org/repo
             result = runner.invoke(
                 cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "org/repo"}
             )
-            assert result.exit_code == 1
+            assert result.exit_code == 7
             assert (
                 "https://semgrep.dev/api/agent/deployments/1/repos/org/repo/rules.yaml"
                 in result.output

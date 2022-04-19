@@ -10,8 +10,10 @@ from typing import Tuple
 import click
 
 from semgrep.commands.login import Authentication
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.constants import SEMGREP_URL
+from semgrep.error import FATAL_EXIT_CODE
 from semgrep.project import get_project_url
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames
@@ -86,6 +88,7 @@ def _get_test_code_for_config(
     "registry_id",
     help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
 )
+@handle_command_errors
 def publish(
     target: str, visibility: VisibilityState, registry_id: Optional[str]
 ) -> None:
@@ -102,16 +105,16 @@ def publish(
         )
         if len(config_filenames) == 0:
             click.echo(f"No valid Semgrep rules found in {target}", err=True)
-            sys.exit(1)
+            sys.exit(FATAL_EXIT_CODE)
         if len(config_filenames) != 1 and visibility == VisibilityState.PUBLIC:
             click.echo(
                 f"Only one public rule can be uploaded at a time: specify a single Semgrep rule",
                 err=True,
             )
-            sys.exit(1)
+            sys.exit(FATAL_EXIT_CODE)
         if visibility == VisibilityState.PUBLIC and registry_id is None:
             click.echo(f"--visibility=public requires --registry-id", err=True)
-            sys.exit(1)
+            sys.exit(FATAL_EXIT_CODE)
 
         click.echo(
             f'Found {len(config_filenames)} configs to publish with visibility "{visibility}"'
@@ -136,10 +139,10 @@ def publish(
             sys.exit(0)
         else:
             click.echo(f"{fail_count} rules failed to upload", err=True)
-            sys.exit(1)
+            sys.exit(FATAL_EXIT_CODE)
     else:
         click.echo("run `semgrep login` before using upload", err=True)
-        sys.exit(1)
+        sys.exit(FATAL_EXIT_CODE)
 
 
 def _upload_rule(
