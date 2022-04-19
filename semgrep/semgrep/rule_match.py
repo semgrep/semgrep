@@ -1,8 +1,8 @@
 import binascii
-import datetime
 import itertools
 import textwrap
 from collections import Counter
+from datetime import datetime
 from functools import total_ordering
 from pathlib import Path
 from typing import Any
@@ -231,7 +231,7 @@ class RuleMatch:
         commit_date here for legacy reasons.
         commit date of the head commit in epoch time
         """
-        commit_date_app_format = datetime.datetime.fromtimestamp(int(commit_date)).isoformat()
+        commit_date_app_format = datetime.fromtimestamp(int(commit_date)).isoformat()
 
         # Follow semgrep.dev severity conventions
         if self.severity.value == RuleSeverity.ERROR.value:
