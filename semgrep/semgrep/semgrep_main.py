@@ -14,6 +14,7 @@ from typing import Tuple
 from typing import Union
 
 from semgrep import __VERSION__
+from semgrep.app.metrics import metric_manager
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -27,7 +28,6 @@ from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.metric_manager import metric_manager
 from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler

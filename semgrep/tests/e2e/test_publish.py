@@ -4,8 +4,8 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
+from semgrep.app import auth
 from semgrep.cli import cli
-from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from tests.conftest import TESTS_PATH
 
@@ -34,13 +34,11 @@ def test_publish(tmp_path):
     assert result.output == "run `semgrep login` before using upload\n"
 
     # Patch Token Validation:
-    with patch.object(Authentication, "is_valid_token", return_value=True):
+    with patch.object(auth, "is_valid_token", return_value=True):
 
         # log back in
         result = runner.invoke(
-            cli,
-            ["login"],
-            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fakeapitoken"},
+            cli, ["login"], env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fakeapitoken"}
         )
         assert result.exit_code == 0
 

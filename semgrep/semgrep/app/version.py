@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Mapping
 from typing import Optional
 
+import requests
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
 from semgrep import __VERSION__
-from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.app import app_session
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
@@ -36,13 +37,7 @@ def _fetch_latest_version(
     url: str = VERSION_CHECK_URL, timeout: int = VERSION_CHECK_TIMEOUT
 ) -> Optional[JsonObject]:
     try:
-        import requests
-
-        resp = requests.get(
-            url,
-            headers={"User-Agent": SEMGREP_USER_AGENT},
-            timeout=timeout,
-        )
+        resp = app_session.get(url, timeout=timeout)
     except Exception as e:
         logger.debug(f"Fetching latest version failed to connect: {e}")
         return None

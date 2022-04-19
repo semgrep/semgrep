@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import click
 
-from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.app import app_session
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -23,7 +23,7 @@ logger = getLogger(__name__)
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
 
-class _MetricManager:
+class MetricManager:
     """
     To prevent sending unintended metrics, be sure that any data
     stored on this object is sanitized of anything that we don't
@@ -242,24 +242,25 @@ class _MetricManager:
 
         Will if is_enabled is True
         """
-        import requests
-
         logger.verbose(
             f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self._using_server}"
         )
 
-        if self.is_enabled():
-            metrics = self.as_dict()
-            headers = {"User-Agent": SEMGREP_USER_AGENT}
+        if not self.is_enabled():
+            return
 
-            try:
-                r = requests.post(
-                    METRICS_ENDPOINT, json=metrics, timeout=2, headers=headers
-                )
-                r.raise_for_status()
-                logger.debug("Sent pseudonymous metrics")
-            except Exception as e:
-                logger.debug(f"Failed to send pseudonymous metrics: {e}")
+        try:
+            r = app_session.post(
+                METRICS_ENDPOINT,
+                json=self.as_dict(),
+                # metrics ingestion shouldn't see auth tokens
+                headers={"Authorization": None},
+                timeout=2,
+            )
+            r.raise_for_status()
+            logger.debug("Sent pseudonymous metrics")
+        except Exception as e:
+            logger.debug(f"Failed to send pseudonymous metrics: {e}")
 
 
-metric_manager = _MetricManager()
+metric_manager = MetricManager()

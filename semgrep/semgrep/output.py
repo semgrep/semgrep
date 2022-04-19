@@ -16,7 +16,10 @@ from typing import Sequence
 from typing import Set
 from typing import Type
 
-from semgrep.commands.login import Authentication
+import requests
+
+from semgrep.app import app_session
+from semgrep.app.metrics import metric_manager
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -33,7 +36,6 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
-from semgrep.metric_manager import metric_manager
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -344,7 +346,7 @@ class OutputHandler:
                 and num_targets > 0
                 and num_rules > 0
                 and metric_manager.get_is_using_server()
-                and Authentication.get_token() is None
+                and app_session.token is None
             ):
                 suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
             else:
@@ -370,8 +372,6 @@ class OutputHandler:
                 fout.write(output)
 
     def _post_output(self, output_url: str, output: str) -> None:
-        import requests  # here for faster startup times
-
         logger.info(f"posting to {output_url}...")
         try:
             r = requests.post(output_url, data=output, timeout=10)

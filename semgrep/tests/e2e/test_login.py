@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
+from semgrep.app import auth
 from semgrep.cli import cli
-from semgrep.commands.login import Authentication
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
@@ -16,7 +16,7 @@ def test_login(tmp_path):
     fake_key = "key123"
 
     # Patch Token Validation:
-    with patch.object(Authentication, "is_valid_token", return_value=True):
+    with patch.object(auth, "is_valid_token", return_value=True):
         # Logout
         result = runner.invoke(
             cli,
@@ -35,11 +35,11 @@ def test_login(tmp_path):
         assert "semgrep login is an interactive command" in result.output
 
         # Login with env token
-        # with patch.object(Authentication, "is_a_tty", return_value=True):
+        # with patch.object(auth, "is_a_tty", return_value=True):
         result = runner.invoke(
             cli,
             ["login"],
-            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
+            env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
         print(result.output)
         assert result.exit_code == 0
@@ -50,7 +50,7 @@ def test_login(tmp_path):
         result = runner.invoke(
             cli,
             ["login"],
-            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
+            env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
         assert result.exit_code == 1
         assert "API token already exists in" in result.output
@@ -75,7 +75,7 @@ def test_login(tmp_path):
         result = runner.invoke(
             cli,
             ["login"],
-            env={Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
+            env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
         )
         assert result.exit_code == 0
         assert result.output.startswith("Saved login token")
@@ -92,7 +92,7 @@ def test_login(tmp_path):
         assert result.exit_code == 1
         assert "Invalid API Key" in result.output
 
-        with patch.object(Authentication, "get_deployment_id", return_value=1):
+        with patch.object(auth, "get_deployment_id", return_value=1):
             # Run policy without SEMGREP_REPO_NAME
             result = runner.invoke(
                 cli,

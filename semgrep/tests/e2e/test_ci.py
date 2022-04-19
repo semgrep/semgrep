@@ -12,12 +12,12 @@ from click.testing import CliRunner
 from requests import Session
 
 from semgrep import __VERSION__
+from semgrep.app import auth
+from semgrep.app.scans import ScanHandler
 from semgrep.cli import cli
-from semgrep.commands.login import Authentication
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from semgrep.meta import GitlabMeta
-from semgrep.semgrep_app import ScanHandler
 
 REPO_DIR_NAME = "project_name"
 AUTHOR_EMAIL = "test_environment@test.r2c.dev"
@@ -147,9 +147,7 @@ def ci_mocks(base_commit, autofix):
                 "_get_deployment_details",
                 mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
             ):
-                with mock.patch.object(
-                    Authentication, "is_valid_token", return_value=True
-                ):
+                with mock.patch.object(auth, "is_valid_token", return_value=True):
                     with mock.patch.object(
                         ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
                     ):
@@ -281,7 +279,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
                 env={
                     **env,
                     SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
                 }
             )
             result = runner.invoke(cli, ["ci"], env={})
@@ -344,7 +342,7 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
         runner = CliRunner(
             env={
                 SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
             }
         )
         result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
@@ -370,7 +368,7 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
             runner = CliRunner(
                 env={
                     SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
                 }
             )
             result = runner.invoke(cli, ["ci", "--dry-run"], env={})

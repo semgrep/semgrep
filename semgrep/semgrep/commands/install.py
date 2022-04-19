@@ -6,12 +6,10 @@ import sys
 from pathlib import Path
 
 import click
-import requests
 from tqdm import tqdm
 
-from semgrep.commands.login import Authentication
+from semgrep.app import app_session
 from semgrep.constants import SEMGREP_URL
-from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
@@ -49,12 +47,9 @@ def install_deep_semgrep() -> None:
             f"Overwriting DeepSemgrep binary already installed in {deep_semgrep_path}"
         )
 
-    token = Authentication.get_token()
-    if token is None:
+    if app_session.token is None:
         logger.info("run `semgrep login` before using `semgrep install`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
-
-    headers = {"User-Agent": SEMGREP_USER_AGENT, "Authorization": f"Bearer {token}"}
 
     if sys.platform.startswith("darwin"):
         platform = "osx"
@@ -66,12 +61,9 @@ def install_deep_semgrep() -> None:
             "Running on potentially unsupported platform. Installing linux compatible binary"
         )
 
-    with requests.get(
-        f"{SEMGREP_URL}/api/agent/deployments/deepbinary/{platform}",
-        headers=headers,
-        timeout=60,
-        stream=True,
-    ) as r:
+    url = f"{SEMGREP_URL}/api/agent/deployments/deepbinary/{platform}"
+
+    with app_session.get(url, timeout=60, stream=True) as r:
         if r.status_code == 401:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again."

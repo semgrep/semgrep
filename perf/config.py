@@ -9,10 +9,10 @@ from typing import Optional
 from typing import Type
 from urllib.parse import urlparse
 
+import requests
 from attrs import define
 from attrs import field
 from constants import SEMGREP_URL
-from constants import SEMGREP_USER_AGENT
 from ruamel.yaml import YAML
 
 
@@ -38,14 +38,10 @@ class RuleConfig:
     config_str: str = field(default="")
 
     def _fetch_rule_config_from_url(self, rule_config_url: str) -> Optional[str]:
-        import requests
-
         logger.info(f"Fetching config from '{rule_config_url}'")
         try:
             r = requests.get(
-                rule_config_url,
-                headers={"User-Agent": SEMGREP_USER_AGENT},
-                timeout=60,
+                rule_config_url, headers={"User-Agent": "perf.config"}, timeout=60
             )
             r.raise_for_status()
         except requests.Timeout:

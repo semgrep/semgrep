@@ -7,8 +7,8 @@ from unittest.mock import PropertyMock
 
 import pytest
 
+from semgrep.app.metrics import metric_manager
 from semgrep.config_resolver import Config
-from semgrep.metric_manager import metric_manager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.types import MetricsState
