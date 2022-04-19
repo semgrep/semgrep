@@ -130,7 +130,7 @@ let opt_param_arg (x : param option) : G.argument list =
   | None -> []
   | Some x -> [ param_arg x ]
 
-let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
+let from (opt_param : param option) (image_spec : image_spec) opt_alias :
     G.argument list =
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
@@ -146,7 +146,14 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
     | None -> []
     | Some (at, digest) -> [ G.ArgKwdOptional (("@", at), str_expr digest) ]
   in
-  let optional_params (* must be placed last *) = tag @ digest @ opt_param in
+  let alias =
+    match opt_alias with
+    | None -> []
+    | Some (as_, alias) -> [ G.ArgKwdOptional (("as", as_), str_expr alias) ]
+  in
+  let optional_params (* must be placed last *) =
+    opt_param @ tag @ digest @ alias
+  in
   name :: optional_params
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
