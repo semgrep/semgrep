@@ -54,7 +54,7 @@ let map_function_modifier (env : env) (x : CST.function_modifier) =
   | `Post tok -> (* "postfix" *) token env tok
   | `Prefix tok -> (* "prefix" *) token env tok
 
-let map_anon_choice_var_d3d1986 (env : env) (x : CST.anon_choice_var_d3d1986) =
+let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) =
   match x with
   | `Var tok -> (* "var" *) token env tok
   | `Let tok -> (* "let" *) token env tok
@@ -404,8 +404,7 @@ let map_equality_operator (env : env) (x : CST.equality_operator) =
   | `Eq_eq tok -> (* eq_eq_custom *) token env tok
   | `EQEQEQ tok -> (* "===" *) token env tok
 
-let map_anon_choice_open_ended_range_op_4de0035 (env : env)
-    (x : CST.anon_choice_open_ended_range_op_4de0035) =
+let map_range_operator (env : env) (x : CST.range_operator) =
   match x with
   | `Open_ended_range_op tok ->
       (* open_ended_range_operator_custom *) token env tok
@@ -562,10 +561,9 @@ let map_getter_specifier (env : env) ((v1, v2, v3) : CST.getter_specifier) =
   in
   todo env (v1, v2, v3)
 
-let map_anon_choice_avai_arg_450e260 (env : env)
-    (x : CST.anon_choice_avai_arg_450e260) =
+let map_availability_argument (env : env) (x : CST.availability_argument) =
   match x with
-  | `Avai_arg (v1, v2, v3) ->
+  | `Id_int_lit_rep_DOT_int_lit (v1, v2, v3) ->
       let v1 = map_identifier env v1 in
       let v2 = (* integer_literal *) token env v2 in
       let v3 =
@@ -688,48 +686,7 @@ and map_anon_LPAR_choice_simple_id_COLON_switch_pat_rep_COMMA_choice_simple_id_C
   in
   todo env (v1, v2, v3, v4, v5)
 
-and map_anon_choice_comp_getter_566f67d (env : env)
-    (x : CST.anon_choice_comp_getter_566f67d) =
-  match x with
-  | `Comp_getter (v1, v2, v3) ->
-      let v1 = Common.map (map_attribute env) v1 in
-      let v2 = map_getter_specifier env v2 in
-      let v3 =
-        match v3 with
-        | Some x -> map_function_body env x
-        | None -> todo env ()
-      in
-      todo env (v1, v2, v3)
-  | `Comp_setter (v1, v2, v3, v4) ->
-      let v1 = Common.map (map_attribute env) v1 in
-      let v2 = map_setter_specifier env v2 in
-      let v3 =
-        match v3 with
-        | Some (v1, v2, v3) ->
-            let v1 = (* "(" *) token env v1 in
-            let v2 = map_simple_identifier env v2 in
-            let v3 = (* ")" *) token env v3 in
-            todo env (v1, v2, v3)
-        | None -> todo env ()
-      in
-      let v4 =
-        match v4 with
-        | Some x -> map_function_body env x
-        | None -> todo env ()
-      in
-      todo env (v1, v2, v3, v4)
-  | `Comp_modify (v1, v2, v3) ->
-      let v1 = Common.map (map_attribute env) v1 in
-      let v2 = map_modify_specifier env v2 in
-      let v3 =
-        match v3 with
-        | Some x -> map_function_body env x
-        | None -> todo env ()
-      in
-      todo env (v1, v2, v3)
-
-and map_anon_choice_enum_type_params_396c460 (env : env)
-    (x : CST.anon_choice_enum_type_params_396c460) =
+and map_enum_entry_suffix (env : env) (x : CST.enum_entry_suffix) =
   match x with
   | `Enum_type_params (v1, v2, v3) ->
       let v1 = (* "(" *) token env v1 in
@@ -788,11 +745,7 @@ and map_anon_choice_equal_sign_exp_74a2b17 (env : env)
       let v1 = (* eq_custom *) token env v1 in
       let v2 = map_expression env v2 in
       todo env (v1, v2)
-  | `Comp_prop (v1, v2, v3) ->
-      let v1 = (* "{" *) token env v1 in
-      let v2 = map_anon_choice_opt_stmts_a5b6d26 env v2 in
-      let v3 = (* "}" *) token env v3 in
-      todo env (v1, v2, v3)
+  | `Comp_prop x -> map_computed_property env x
 
 and map_anon_choice_exp_129f951 (env : env) (x : CST.anon_choice_exp_129f951) =
   match x with
@@ -826,15 +779,64 @@ and map_anon_choice_is_type_9ebb9fc (env : env)
       let v3 = map_type_ env v3 in
       todo env (v1, v2, v3)
 
-and map_anon_choice_opt_stmts_a5b6d26 (env : env)
-    (x : CST.anon_choice_opt_stmts_a5b6d26) =
-  match x with
-  | `Opt_stmts opt -> (
-      match opt with
-      | Some x -> map_statements env x
-      | None -> todo env ())
-  | `Rep_choice_comp_getter xs ->
-      Common.map (map_anon_choice_comp_getter_566f67d env) xs
+and map_computed_getter (env : env) ((v1, v2, v3) : CST.computed_getter) =
+  let v1 = Common.map (map_attribute env) v1 in
+  let v2 = map_getter_specifier env v2 in
+  let v3 =
+    match v3 with
+    | Some x -> map_function_body env x
+    | None -> todo env ()
+  in
+  todo env (v1, v2, v3)
+
+and map_computed_modify (env : env) ((v1, v2, v3) : CST.computed_modify) =
+  let v1 = Common.map (map_attribute env) v1 in
+  let v2 = map_modify_specifier env v2 in
+  let v3 =
+    match v3 with
+    | Some x -> map_function_body env x
+    | None -> todo env ()
+  in
+  todo env (v1, v2, v3)
+
+and map_computed_property (env : env) ((v1, v2, v3) : CST.computed_property) =
+  let v1 = (* "{" *) token env v1 in
+  let v2 =
+    match v2 with
+    | `Opt_stmts opt -> (
+        match opt with
+        | Some x -> map_statements env x
+        | None -> todo env ())
+    | `Rep_choice_comp_getter xs ->
+        Common.map
+          (fun x ->
+            match x with
+            | `Comp_getter x -> map_computed_getter env x
+            | `Comp_setter x -> map_computed_setter env x
+            | `Comp_modify x -> map_computed_modify env x)
+          xs
+  in
+  let v3 = (* "}" *) token env v3 in
+  todo env (v1, v2, v3)
+
+and map_computed_setter (env : env) ((v1, v2, v3, v4) : CST.computed_setter) =
+  let v1 = Common.map (map_attribute env) v1 in
+  let v2 = map_setter_specifier env v2 in
+  let v3 =
+    match v3 with
+    | Some (v1, v2, v3) ->
+        let v1 = (* "(" *) token env v1 in
+        let v2 = map_simple_identifier env v2 in
+        let v3 = (* ")" *) token env v3 in
+        todo env (v1, v2, v3)
+    | None -> todo env ()
+  in
+  let v4 =
+    match v4 with
+    | Some x -> map_function_body env x
+    | None -> todo env ()
+  in
+  todo env (v1, v2, v3, v4)
 
 and map_anon_choice_simple_id_COLON_bind_pat_ff3f05b (env : env)
     (x : CST.anon_choice_simple_id_COLON_bind_pat_ff3f05b) =
@@ -1051,7 +1053,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       todo env (v1, v2, v3)
   | `Range_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = map_anon_choice_open_ended_range_op_4de0035 env v2 in
+      let v2 = map_range_operator env v2 in
       let v3 = map_expression env v3 in
       todo env (v1, v2, v3)
   | `Infix_exp (v1, v2, v3) ->
@@ -1104,8 +1106,8 @@ and map_binding_pattern (env : env) ((v1, v2) : CST.binding_pattern) =
         map_anon_LPAR_choice_simple_id_COLON_bind_pat_rep_COMMA_choice_simple_id_COLON_bind_pat_RPAR_opt_quest_b7197cf
           env x
     | `Choice_is_type x -> map_anon_choice_is_type_846e790 env x
-    | `Choice_var_non_bind_pat (v1, v2) ->
-        let v1 = map_anon_choice_var_d3d1986 env v1 in
+    | `Bind_pat_kind_non_bind_pat (v1, v2) ->
+        let v1 = map_binding_pattern_kind env v1 in
         let v2 = map_property_binding_pattern env v2 in
         todo env (v1, v2)
     | `Opt_user_type_dot_simple_id_opt_LPAR_choice_simple_id_COLON_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_bind_pat_with_expr_RPAR_opt_quest_opt_quest
@@ -1131,8 +1133,8 @@ and map_binding_pattern_with_expr (env : env)
         map_anon_LPAR_choice_simple_id_COLON_switch_pat_rep_COMMA_choice_simple_id_COLON_switch_pat_RPAR_opt_quest_ea305cb
           env x
     | `Choice_is_type x -> map_anon_choice_is_type_846e790 env x
-    | `Choice_var_non_bind_pat (v1, v2) ->
-        let v1 = map_anon_choice_var_d3d1986 env v1 in
+    | `Bind_pat_kind_non_bind_pat (v1, v2) ->
+        let v1 = map_binding_pattern_kind env v1 in
         let v2 = map_property_binding_pattern env v2 in
         todo env (v1, v2)
     | `Opt_user_type_dot_simple_id_opt_LPAR_choice_simple_id_COLON_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_bind_pat_with_expr_RPAR_opt_quest_opt_quest
@@ -1416,7 +1418,7 @@ and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.enum_entry) =
   let v4 = map_simple_identifier env v4 in
   let v5 =
     match v5 with
-    | Some x -> map_anon_choice_enum_type_params_396c460 env x
+    | Some x -> map_enum_entry_suffix env x
     | None -> todo env ()
   in
   let v6 =
@@ -1426,7 +1428,7 @@ and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.enum_entry) =
         let v2 = map_simple_identifier env v2 in
         let v3 =
           match v3 with
-          | Some x -> map_anon_choice_enum_type_params_396c460 env x
+          | Some x -> map_enum_entry_suffix env x
           | None -> todo env ()
         in
         todo env (v1, v2, v3))
@@ -1490,13 +1492,13 @@ and map_for_statement (env : env)
         map_anon_LPAR_choice_simple_id_COLON_bind_pat_rep_COMMA_choice_simple_id_COLON_bind_pat_RPAR_opt_quest_b7197cf
           env x
     | `Choice_is_type x -> map_anon_choice_is_type_846e790 env x
-    | `Opt_case_choice_var_non_bind_pat (v1, v2, v3) ->
+    | `Opt_case_bind_pat_kind_non_bind_pat (v1, v2, v3) ->
         let v1 =
           match v1 with
           | Some tok -> (* "case" *) token env tok
           | None -> todo env ()
         in
-        let v2 = map_anon_choice_var_d3d1986 env v2 in
+        let v2 = map_binding_pattern_kind env v2 in
         let v3 = map_property_binding_pattern env v3 in
         todo env (v1, v2, v3)
     | `Case_opt_user_type_dot_simple_id_opt_LPAR_choice_simple_id_COLON_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_bind_pat_with_expr_RPAR_opt_quest_opt_quest
@@ -1634,12 +1636,12 @@ and map_if_condition_sequence_item (env : env)
   | `Avai_cond (v1, v2, v3, v4, v5) ->
       let v1 = (* "#available" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
-      let v3 = map_anon_choice_avai_arg_450e260 env v3 in
+      let v3 = map_availability_argument env v3 in
       let v4 =
         Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
-            let v2 = map_anon_choice_avai_arg_450e260 env v2 in
+            let v2 = map_availability_argument env v2 in
             todo env (v1, v2))
           v4
       in
@@ -2594,7 +2596,7 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
       todo env (v1, v2)
 
 and map_subscript_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.subscript_declaration) =
+    ((v1, v2, v3, v4, v5, v6, v7) : CST.subscript_declaration) =
   let v1 =
     match v1 with
     | Some x -> map_modifiers env x
@@ -2620,10 +2622,8 @@ and map_subscript_declaration (env : env)
     | Some x -> map_type_constraints env x
     | None -> todo env ()
   in
-  let v7 = (* "{" *) token env v7 in
-  let v8 = map_anon_choice_opt_stmts_a5b6d26 env v8 in
-  let v9 = (* "}" *) token env v9 in
-  todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+  let v7 = map_computed_property env v7 in
+  todo env (v1, v2, v3, v4, v5, v6, v7)
 
 and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
   let v1 =
@@ -2965,7 +2965,7 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       let v5 = (* ")" *) token env v5 in
       todo env (v1, v2, v3, v4, v5)
   | `Open_start_range_exp (v1, v2) ->
-      let v1 = map_anon_choice_open_ended_range_op_4de0035 env v1 in
+      let v1 = map_range_operator env v1 in
       let v2 = map_expression env v2 in
       todo env (v1, v2)
   | `Open_end_range_exp (v1, v2) ->
