@@ -18,7 +18,7 @@
         "fingerprint": "3cdffed24a426435e1924e29dc4a7818",
         "is_ignored": false,
         "lines": "        SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK\n        == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
-        "message": "useless comparison operation `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug?",
+        "message": "useless comparison operation `0 == 0` or `0 != 0`; possible bug?",
         "metadata": {
           "shortlink": "https://sg.run/xyz1"
         },
@@ -29,6 +29,19 @@
               "col": 52,
               "line": 7,
               "offset": 158
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "0",
+              "svalue_end": {
+                "col": 48,
+                "line": 1,
+                "offset": 47
+              },
+              "svalue_start": {
+                "col": 47,
+                "line": 1,
+                "offset": 46
+              }
             },
             "start": {
               "col": 9,

@@ -124,7 +124,7 @@
         },
         "is_ignored": false,
         "lines": "    def create_user(self, email, password=\"\"):\n        \"\"\"\n        Creates and saves a Poster with the given email and password.\n        \"\"\"\n        if not email:\n            raise ValueError('Users must have an email address')\n\n        user = self.model(email=self.normalize_email(email))\n        user.set_password(password)\n        user.save(using=self._db)\n        return user",
-        "message": "'password' is using the empty string as its default and is being used to set\nthe password on 'user'. If you meant to set an unusable password, set\nthe default value to 'None' or call 'set_unusable_password()'.\n",
+        "message": "'password' is using the empty string as its default and is being used to set\nthe password on 'self.model(email=self.normalize_email(email))'. If you meant to set an unusable password, set\nthe default value to 'None' or call 'set_unusable_password()'.\n",
         "metadata": {
           "cwe": "CWE-521: Weak Password Requirements",
           "owasp": "A2: Broken Authentication",
@@ -156,6 +156,19 @@
               "col": 13,
               "line": 79,
               "offset": 2981
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "self.model(email self.normalize_email(email))",
+              "svalue_end": {
+                "col": 61,
+                "line": 78,
+                "offset": 2968
+              },
+              "svalue_start": {
+                "col": 16,
+                "line": 78,
+                "offset": 2923
+              }
             },
             "start": {
               "col": 9,
