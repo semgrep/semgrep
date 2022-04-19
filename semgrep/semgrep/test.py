@@ -289,6 +289,8 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
 
 
 def get_config_filenames(original_config: Path) -> List[Path]:
+    if original_config.is_file():
+        return [original_config]
     configs = list(original_config.rglob("*"))
     return [
         config
@@ -302,8 +304,13 @@ def get_config_filenames(original_config: Path) -> List[Path]:
 def get_config_test_filenames(
     original_config: Path, configs: List[Path], original_target: Path
 ) -> Dict[Path, List[Path]]:
-    original_is_file_not_directory = original_target.is_file()
-    if original_is_file_not_directory:
+    original_config_is_file_not_directory = original_config.is_file()
+    original_target_is_file_not_directory = original_target.is_file()
+
+    if original_config_is_file_not_directory and original_target_is_file_not_directory:
+        return {original_config: [original_target]}
+
+    if original_target_is_file_not_directory:
         targets = list(original_target.parent.rglob("*"))
     else:
         targets = list(original_target.rglob("*"))
@@ -312,7 +319,7 @@ def get_config_test_filenames(
         correct_suffix = is_config_test_suffix(target) or not is_config_suffix(target)
         return (
             (
-                original_is_file_not_directory
+                original_target_is_file_not_directory
                 or relatively_eq(original_target, target, original_config, config)
             )
             and target.is_file()
@@ -467,6 +474,8 @@ def test_main(
             raise Exception("only one config directory allowed for tests")
         config_path = Path(config[0])
     else:
+        if target_path.is_file():
+            raise Exception("--config is required when running a test on single file")
         config_path = target_path
 
     generate_test_results(

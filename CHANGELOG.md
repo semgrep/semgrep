@@ -4,6 +4,43 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- When running a baseline scan on a shallow-cloned git repository,
+  Semgrep still needs enough git history available
+  to reach the branch-off point between the baseline and current branch.
+  Previously, Semgrep would try to gradually fetch more and more commits
+  up to a thousand commits of history,
+  before giving up and just fetching all commits from the remote git server.
+  Now, Semgrep will keep trying smaller batches until up to a million commits.
+  This change should reduce runtimes on large baseline scans on very large repositories.
+
+### Fixed
+
+- Lockfiles scanning now respects .semgrepignore
+- When a baseline scan diff showed that a path changed a symlink a proper file,
+  Semgrep used incorrectly skip that path. This is now fixed.
+- Dockerfile support: handle image aliases correctly (#4881)
+
+## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
+
+### Added
+
+### Changed
+
+### Fixed
+
+- TS: Fixed matching of parameters with type annotations. E.g., it is now possible
+  to match `({ params }: Request) => { }` with `({$VAR} : $REQ) => {...}`. (#5004)
+
+### Added
+
+### Changed
+
+- Semgrep-core now logs the rule and file affected by a memory warning.
+
+### Fixed
+
 ### Added
 
 - Scala support is now officially GA
@@ -11,13 +48,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Type metavariables are now supported
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
+- Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
+- Bash/Dockerfile: Add support for named ellipses such as in
+  `echo $...ARGS` (#4887)
 
 ### Changed
 
 - Moved description of parse/internal errors to the "skipped" section of output
+- Since 0.77.0 semgrep-core logs a warning when a worker process is consuming above
+  400 MiB of memory. Now, it will also log an extra warning every time memory usage
+  doubles. Again, this is meant to help diagnosing OOM-related crashes.
 
 ### Fixed
 
+- Dockerfile: `lang.json` file not found error while building the docker image
 - Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
   allowing `metavariable-comparison` with integers (#4875)
 - Scala: unicode character literals now parse
@@ -27,6 +71,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - Generic mode rules work again
   - Semgrep will not fail on targets that contain no relevant lockfiles
+  - `package-lock.json` parsing now defaults to `dependencies` instead of `packages`,
+    and will not completely fail on dependencies with no version
+  - `yarn.lock` parsing has been rewritten to fix a bug where sometimes
+    large numbers of dependencies would be ignored
+- Go: parse multiline string literals
+- Handle utf-8 decoding errors without crashing (#5023)
 
 ## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
 
