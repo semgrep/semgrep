@@ -231,7 +231,7 @@ class RuleMatch:
         commit_date here for legacy reasons.
         commit date of the head commit in epoch time
         """
-        commit_date_app_format = str(datetime.datetime.fromtimestamp(int(commit_date)))
+        commit_date_app_format = datetime.datetime.fromtimestamp(int(commit_date)).isoformat()
 
         # Follow semgrep.dev severity conventions
         if self.severity.value == RuleSeverity.ERROR.value:
