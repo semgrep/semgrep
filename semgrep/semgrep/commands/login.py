@@ -60,7 +60,7 @@ def login() -> NoReturn:
             f"Error: semgrep login is an interactive command: run in an interactive terminal (or define {auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME})",
             err=True,
         )
-        sys.exit(1)
+        sys.exit(FATAL_EXIT_CODE)
 
     session_id, url = make_login_url()
     click.echo(

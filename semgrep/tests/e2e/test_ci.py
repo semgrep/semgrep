@@ -372,7 +372,9 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
                     auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
                 }
             )
-            result = runner.invoke(cli, ["ci", "--dry-run"], env={})
+            result = runner.invoke(
+                cli, ["ci", "--dry-run", "--disable-metrics"], env={}
+            )
 
             post_mock.assert_not_called()
             sanitized_output = (
