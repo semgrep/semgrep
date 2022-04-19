@@ -1,0 +1,9 @@
+Scanning 2 files.
+  Current version has 2 findings.
+
+Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
+
+Some files were skipped.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 2 files: 2 findings.

@@ -1,6 +1,3 @@
 Scanning 11 files.
-[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Semgrep Core — Pattern parse error
-An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
-
-In rule rules.syntax.eqeq-is-bad: Invalid pattern for Python
-[0m
+[31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Pattern parse error in rule rules.syntax.eqeq-is-bad:
+ Invalid pattern for Python[0m

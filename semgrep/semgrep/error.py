@@ -13,7 +13,6 @@ import attr  # TODO: update to next-gen API with @define; difficult cause these 
 
 import semgrep.output_from_core as core
 from semgrep.constants import Colors
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
@@ -138,20 +137,19 @@ class SemgrepCoreError(SemgrepError):
         """
         Generate error message exposed to user
         """
-        header = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}"
         if self.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
             if (
                 self.error_type == "Rule parse error"
                 or self.error_type == "Pattern parse error"
             ):
-                error_context = f"In rule {self.rule_id}"
+                error_context = f"in rule {self.rule_id}"
             else:
-                error_context = f"When running {self.rule_id} on {self.path}"
+                error_context = f"when running {self.rule_id} on {self.path}"
         else:
-            error_context = f"At line {self.path}:{self.start.line}"
+            error_context = f"at line {self.path}:{self.start.line}"
 
-        return f"{header}\n\n{error_context}: {self.message}\n"
+        return f"{self.error_type} {error_context}:\n {self.message}"
 
     @property
     def _stack_trace(self) -> str:

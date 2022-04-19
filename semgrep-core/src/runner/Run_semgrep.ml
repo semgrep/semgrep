@@ -293,7 +293,12 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
          let res, run_time =
            Common.with_time (fun () ->
                try
-                 Memory_limit.run_with_memory_limit
+                 let get_context () =
+                   match !Rule.last_matched_rule with
+                   | None -> file
+                   | Some rule_id -> spf "%s on %s" rule_id file
+                 in
+                 Memory_limit.run_with_memory_limit ~get_context
                    ~mem_limit_mb:config.max_memory_mb (fun () ->
                      (* we used to call timeout_function() here, but this
                       * is now done in Match_rules because we now
