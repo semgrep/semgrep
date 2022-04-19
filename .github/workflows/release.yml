@@ -304,7 +304,7 @@ jobs:
     runs-on: macos-10.15
     strategy:
       matrix:
-        python: ["3.9.11"]
+        python: ["3.9.12"]
     steps:
       - name: Setup Python
         uses: actions/setup-python@v1
