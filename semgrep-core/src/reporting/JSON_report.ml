@@ -107,7 +107,7 @@ let metavar_string_of_any any =
   |> List.sort Parse_info.compare_pos
   |> Common.map PI.str_of_info |> Matching_report.join_with_space_if_needed
 
-let get_propagated_value default_start metavar =
+let get_propagated_value default_start mvalue =
   let any_to_svalue_value any =
     match range_of_any_opt default_start any with
     | Some (start, end_) ->
@@ -119,7 +119,7 @@ let get_propagated_value default_start metavar =
           }
     | None -> None
   in
-  match metavar with
+  match mvalue with
   | E { e = N (Id (_, id_info)); _ } -> (
       match !(id_info.id_svalue) with
       | Some (Lit x) ->
@@ -133,7 +133,6 @@ let get_propagated_value default_start metavar =
 
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
-  pr2 (show_any any);
   match range_of_any_opt startp_of_match_range any with
   | None ->
       raise
