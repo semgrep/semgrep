@@ -288,7 +288,7 @@ class GithubMeta(GitMeta):
                 output  # output is empty when unable to find branch-off point
                 and "Not a valid " not in output  # the error when a ref is missing
             ):
-                raise Exception("")
+                raise Exception(f"Unexpected git merge-base error message: ({output})")
 
             if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:
                 raise Exception(
