@@ -6,10 +6,12 @@ from typing import Tuple
 
 import click
 
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import IN_DOCKER
 from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.error import FATAL_EXIT_CODE
 from semgrep.settings import SETTINGS
 from semgrep.verbose_logging import getLogger
 
@@ -26,6 +28,7 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
 
 
 @click.command()
+@handle_command_errors
 def login() -> None:
     """
     Obtain and save credentials for semgrep.dev
@@ -39,13 +42,13 @@ def login() -> None:
         click.echo(
             f"API token already exists in {SETTINGS.get_path_to_settings()}. To login with a different token logout use `semgrep logout`"
         )
-        sys.exit(1)
+        sys.exit(FATAL_EXIT_CODE)
 
     # If the token is provided as an environment variable, save it to the settings file.
     env_var_token = os.environ.get(Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
     if env_var_token is not None and len(env_var_token) > 0:
         if not save_token(env_var_token, echo_token=False):
-            sys.exit(1)
+            sys.exit(FATAL_EXIT_CODE)
         sys.exit(0)
 
     # If token doesn't already exist in the settings file or as an environment variable,
@@ -76,7 +79,7 @@ def login() -> None:
                 if save_token(as_json.get("token"), echo_token=True):
                     sys.exit(0)
                 else:
-                    sys.exit(1)
+                    sys.exit(FATAL_EXIT_CODE)
             elif r.status_code != 404:
                 click.echo(
                     f"Unexpected failure from {SEMGREP_URL}: status code {r.status_code}; please contact support@r2c.dev if this persists",
@@ -89,14 +92,14 @@ def login() -> None:
             f"Failed to login: please check your internet connection or contact support@r2c.dev",
             err=True,
         )
-        sys.exit(1)
+        sys.exit(FATAL_EXIT_CODE)
 
     else:
         click.echo(
             f"Error: semgrep login is an interactive command: run in an interactive terminal (or define {Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME})",
             err=True,
         )
-        sys.exit(1)
+        sys.exit(FATAL_EXIT_CODE)
 
 
 def save_token(login_token: Optional[str], echo_token: bool) -> bool:
@@ -115,6 +118,7 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
 
 
 @click.command()
+@handle_command_errors
 def logout() -> None:
     """
     Remove locally stored credentials to semgrep.dev

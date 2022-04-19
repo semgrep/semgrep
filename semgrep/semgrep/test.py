@@ -45,7 +45,7 @@ RULEID = "ruleid"
 TODOOK = "todook"
 OK = "ok"
 
-EXIT_FAILURE = 1
+EXIT_FAILURE = 2
 
 
 def _remove_ending_comments(rule: str) -> str:

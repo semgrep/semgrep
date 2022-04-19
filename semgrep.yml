@@ -77,6 +77,19 @@ rules:
     paths:
       include:
         - semgrep-core/src/*
+
+  - id: no-exit-code-1-in-semgrep
+    pattern: sys.exit(1)
+    fix: sys.exit(2)
+    message: >-
+      Exit code 1 is reserved for notifying users that blocking findings were found.
+      Please use a different exit code, or better yet, a SemgrepError exception.
+      For generic fatal errors, we use exit code 2.
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - semgrep/semgrep/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
