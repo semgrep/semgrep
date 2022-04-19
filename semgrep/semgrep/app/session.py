@@ -1,5 +1,6 @@
 import os
 from typing import Any
+from typing import Optional
 from typing import Set
 
 import requests
@@ -70,6 +71,7 @@ class AppSession(requests.Session):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.user_agent = UserAgent()
+        self.token: Optional[str] = None
 
         # retry after 4, 8, 16 seconds
         retry_adapter = requests.adapters.HTTPAdapter(
