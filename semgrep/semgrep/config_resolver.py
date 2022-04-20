@@ -14,11 +14,13 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
+import requests
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
-from urllib3.util.retry import Retry
 
-from semgrep.commands.login import Authentication
+from semgrep.app import app_session
+from semgrep.app import auth
+from semgrep.app.metrics import metric_manager
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -31,11 +33,9 @@ from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
 from semgrep.constants import SEMGREP_CDN_BASE_URL
 from semgrep.constants import SEMGREP_URL
-from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
-from semgrep.metric_manager import metric_manager
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptyYamlException
@@ -197,34 +197,7 @@ class ConfigPath:
         return config
 
     def _make_config_request(self) -> str:
-        import requests  # here for faster startup times
-
-        config_url = self._config_path
-
-        session = requests.Session()
-        retries = requests.adapters.HTTPAdapter(
-            max_retries=Retry(
-                total=3,
-                backoff_factor=4,
-                allowed_methods=["GET", "POST"],
-                status_forcelist=(413, 429, 500, 502, 503),
-            ),
-        )
-        session.mount("https://", retries)
-        headers = {
-            "User-Agent": SEMGREP_USER_AGENT,
-            **(self._extra_headers or {}),
-        }
-        for k, v in headers.items():
-            session.headers[k] = v
-
-        token = Authentication.get_token()
-        # For now c/p endpoint fails with auth so only add it for policy
-        if token and "api/agent/" in config_url:
-            logger.verbose("Using token")
-            session.headers["Authorization"] = f"Bearer {token}"
-
-        r = session.get(config_url, timeout=30)
+        r = app_session.get(self._config_path, headers=self._extra_headers)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
             yaml_types = [
@@ -238,11 +211,11 @@ class ConfigPath:
                 return r.content.decode("utf-8", errors="replace")
             else:
                 raise SemgrepError(
-                    f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
+                    f"unknown content-type: {content_type} returned by config url: {self._config_path}. Can not parse"
                 )
         else:
             raise SemgrepError(
-                f"bad status code: {r.status_code} returned by config url: {config_url}"
+                f"bad status code: {r.status_code} returned by config url: {self._config_path}"
             )
 
     def is_registry_url(self) -> bool:
@@ -565,7 +538,7 @@ def url_for_policy(config_str: str) -> str:
 
     Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
     """
-    deployment_id = Authentication.get_deployment_id()
+    deployment_id = auth.get_deployment_id()
 
     if deployment_id is None:
         raise SemgrepError(
@@ -599,7 +572,6 @@ def saved_snippet_to_url(snippet_id: str) -> str:
 
 
 def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
-    import requests  # here for faster startup times
     from packaging.version import Version
     import time
     import concurrent.futures
@@ -607,7 +579,6 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
 
     config_url_base = f"{SEMGREP_CDN_BASE_URL}/ruleset/{ruleset_name}"
     config_versions_url = f"{config_url_base}/versions"
-    headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     def get_latest_version(ruleset_name: str) -> Version:
         """
@@ -618,7 +589,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
             f"Retrieving versions file of {ruleset_name} at {config_versions_url}"
         )
         try:
-            r = requests.get(config_versions_url, headers=headers, timeout=20)
+            r = app_session.get(config_versions_url)
         except Exception as e:
             raise SemgrepError(
                 f"Failed to get available versions of {ruleset_name}: {str(e)}"
@@ -656,7 +627,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         """
         config_full_url = f"{config_url_base}/{version}"
         try:
-            r = requests.get(config_full_url, headers=headers, timeout=20)
+            r = app_session.get(config_full_url)
         except Exception as e:
             raise SemgrepError(
                 f"Failed to download config for {ruleset_name}/{version}: {str(e)}"
@@ -683,11 +654,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         """
         rule_url = f"{SEMGREP_CDN_BASE_URL}/public/rule/{rule_id}/{version}"
         try:
-            r = requests.get(
-                rule_url,
-                headers=headers,
-                timeout=20,
-            )
+            r = app_session.get(rule_url)
         except Exception as e:
             raise SemgrepError(
                 f"Failed to download rule {rule_id}/{version} from {rule_url}: {e}"
@@ -802,27 +769,3 @@ def get_config(
         )
 
     return config, errors
-
-
-def list_current_public_rulesets() -> List[JsonObject]:
-    import requests  # here for faster startup times
-
-    api_full_url = f"{SEMGREP_URL}/api/registry/ruleset"
-    headers = {"User-Agent": SEMGREP_USER_AGENT}
-    try:
-        r = requests.get(api_full_url, headers=headers, timeout=20)
-    except Exception:
-        raise SemgrepError(f"Failed to download list of public rulesets")
-
-    if not r.ok:
-        raise SemgrepError(
-            f"Bad status code: {r.status_code} returned by url: {api_full_url}"
-        )
-
-    logger.debug(f"Retrieved rulesets: {r.text}")
-    try:
-        ruleset_json = json.loads(r.text)
-    except json.decoder.JSONDecodeError as e:
-        raise SemgrepError(f"Failed to parse rulesets as valid json")
-
-    return ruleset_json  # type:ignore

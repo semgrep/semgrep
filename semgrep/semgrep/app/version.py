@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Mapping
 from typing import Optional
 
+import requests
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
 from semgrep import __VERSION__
-from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.app import app_session
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
@@ -36,13 +37,7 @@ def _fetch_latest_version(
     url: str = VERSION_CHECK_URL, timeout: int = VERSION_CHECK_TIMEOUT
 ) -> Optional[JsonObject]:
     try:
-        import requests
-
-        resp = requests.get(
-            url,
-            headers={"User-Agent": SEMGREP_USER_AGENT},
-            timeout=timeout,
-        )
+        resp = app_session.get(url, timeout=timeout)
     except Exception as e:
         logger.debug(f"Fetching latest version failed to connect: {e}")
         return None
@@ -121,6 +116,7 @@ def _get_latest_version(version_cache_path: Path) -> Optional[JsonObject]:
 
 
 def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:
+    logged_something = False
     banners = latest_version_object.get("banners", [])
     for b in banners:
         try:
@@ -135,6 +131,12 @@ def _show_banners(current_version: Version, latest_version_object: JsonObject) -
             not hide or current_version < hide
         ):
             logger.warning("\n" + b.get("message", ""))
+            logged_something = True
+
+    if logged_something and os.getenv("SEMGREP_ACTION"):
+        logger.warning(
+            "If you're using the returntocorp/semgrep-agent:v1 image, you will be automatically upgraded within 24 hours."
+        )
 
 
 def version_check(version_cache_path: Path = VERSION_CACHE_PATH) -> None:
