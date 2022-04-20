@@ -24,7 +24,7 @@ rules:
                       ...
               - pattern: self.$X == self.$X
       - pattern-not: 1 == 1
-    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    message: "useless comparison operation `$$X == $$X` or `$$X != $$X`; possible bug?"
     languages: [python]
     severity: ERROR
     metadata:

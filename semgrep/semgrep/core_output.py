@@ -267,9 +267,7 @@ class CoreOutput:
             # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
             for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
                 text = text.replace(metavariable, metavariables[metavariable])
-                text = text.replace(
-                    metavariable + ".value", propgated_values[metavariable]
-                )
+                text = text.replace("$" + metavariable, propgated_values[metavariable])
 
             return text
 
