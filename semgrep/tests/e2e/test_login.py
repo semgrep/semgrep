@@ -85,7 +85,9 @@ def test_login(tmp_path):
             cli,
             ["--config", "r/python.lang.correctness.useless-eqeq.useless-eqeq"],
         )
-        assert result.exit_code == 0
+        assert (
+            result.exit_code == 7
+        ), "registry should refuse to send rules to invalid token"
 
         # Run policy with bad token -> no associated deployment_id
         result = runner.invoke(cli, ["--config", "policy"])
