@@ -30,7 +30,7 @@
             }
           ],
           "message": {
-            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
+            "text": "useless comparison operation `$a + b == $a + b` or `$a + b != $a + b`; possible bug?"
           },
           "ruleId": "rules.eqeq-is-bad",
           "suppressions": [
@@ -66,7 +66,7 @@
                 "level": "error"
               },
               "fullDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "useless comparison operation `$$X == $$X` or `$$X != $$X`; possible bug?"
               },
               "id": "rules.eqeq-is-bad",
               "name": "rules.eqeq-is-bad",
@@ -75,7 +75,7 @@
                 "tags": []
               },
               "shortDescription": {
-                "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+                "text": "useless comparison operation `$$X == $$X` or `$$X != $$X`; possible bug?"
               }
             },
             {

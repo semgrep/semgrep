@@ -10,7 +10,7 @@ Findings:
 
 [36m[22m[24m  targets/basic/stupid.py [0m
      [1m[24mrules.eqeq-is-bad[0m
-        useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
+        useless comparison operation `$a + b == $a + b` or `$a + b != $a + b`; possible bug?
         Details: https://sg.run/xyz1
 
           3┆ return [1m[24ma + b == a + b[0m

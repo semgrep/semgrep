@@ -31,7 +31,7 @@
         "fingerprint": "123071e822a7095da3ea2931ea776062",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
-        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+        "message": "useless comparison operation `$a + b == $a + b` or `$a + b != $a + b`; possible bug?",
         "metadata": {
           "shortlink": "https://sg.run/xyz1"
         },
