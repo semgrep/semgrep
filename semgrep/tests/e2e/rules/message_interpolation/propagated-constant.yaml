@@ -1,0 +1,11 @@
+rules:
+  - id: test_rule_id
+    patterns:
+      - pattern-inside: |
+          class $CLASS(...):
+            ...
+      - pattern: |
+            $X == $X
+    severity: INFO
+    languages: [python]
+    message: equal comparison of $X ($$X) in $CLASS

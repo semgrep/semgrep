@@ -13,6 +13,10 @@ import pytest
             "rules/message_interpolation/pattern-inside.yaml",
             "message_interpolation/pattern_inside_complex.py",
         ),
+        (
+            "rules/message_interpolation/propagated-constant.yaml",
+            "message_interpolation/propagated_constant.py",
+        ),
         # pattern-not-inside is not currently interpolated. These tests make sure
         # something doesn't break accidentally.
         (

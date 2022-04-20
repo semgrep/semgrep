@@ -1,0 +1,140 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/message_interpolation/propagated_constant.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.message_interpolation.test_rule_id",
+      "end": {
+        "col": 21,
+        "line": 4,
+        "offset": 57
+      },
+      "extra": {
+        "fingerprint": "ae5309084192b861e962bf778e5f5fa8",
+        "is_ignored": false,
+        "lines": "       return x == 0",
+        "message": "equal comparison of x (0) in A",
+        "metadata": {},
+        "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 16,
+              "line": 4,
+              "offset": 52
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "0",
+              "svalue_end": {
+                "col": 13,
+                "line": 3,
+                "offset": 36
+              },
+              "svalue_start": {
+                "col": 12,
+                "line": 3,
+                "offset": 35
+              }
+            },
+            "start": {
+              "col": 15,
+              "line": 4,
+              "offset": 51
+            },
+            "unique_id": {
+              "sid": 1,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/message_interpolation/propagated_constant.py",
+      "start": {
+        "col": 15,
+        "line": 4,
+        "offset": 51
+      }
+    },
+    {
+      "check_id": "rules.message_interpolation.test_rule_id",
+      "end": {
+        "col": 21,
+        "line": 7,
+        "offset": 93
+      },
+      "extra": {
+        "fingerprint": "501352331eb6f6e931d78399f4bb4929",
+        "is_ignored": false,
+        "lines": "       return 0 == 0",
+        "message": "equal comparison of 0 (0) in A",
+        "metadata": {},
+        "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$X": {
+            "abstract_content": "0",
+            "end": {
+              "col": 16,
+              "line": 7,
+              "offset": 88
+            },
+            "start": {
+              "col": 15,
+              "line": 7,
+              "offset": 87
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "INFO"
+      },
+      "path": "targets/message_interpolation/propagated_constant.py",
+      "start": {
+        "col": 15,
+        "line": 7,
+        "offset": 87
+      }
+    }
+  ]
+}
