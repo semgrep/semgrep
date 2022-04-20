@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - Users can use the propagated value of a metavariable in messages via `$$X`
+## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
+
+### Added
+
+- Bash/Dockerfile: Add support for named ellipses such as in
+  `echo $...ARGS` (#4887)
+- Constant propagation for static constants in php (#5022)
 
 ### Changed
 
@@ -18,32 +25,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   before giving up and just fetching all commits from the remote git server.
   Now, Semgrep will keep trying smaller batches until up to a million commits.
   This change should reduce runtimes on large baseline scans on very large repositories.
+- Semgrep-core now logs the rule and file affected by a memory warning.
+- Improved error messages from semgrep-core (#5013)
+- Small changes to text output (#5008)
+- Various exit codes changed so that exit code 1 is only for blocking findings (#5039)
+- Subcommand is sent as part of user agent (#5051)
 
 ### Fixed
 
 - Lockfiles scanning now respects .semgrepignore
+- Workaround for git safe.directory change in github action (#5044)
 - When a baseline scan diff showed that a path changed a symlink a proper file,
   Semgrep used incorrectly skip that path. This is now fixed.
 - Dockerfile support: handle image aliases correctly (#4881)
-
-## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
-
-### Added
-
-### Changed
-
-### Fixed
-
 - TS: Fixed matching of parameters with type annotations. E.g., it is now possible
   to match `({ params }: Request) => { }` with `({$VAR} : $REQ) => {...}`. (#5004)
 
-### Added
-
-### Changed
-
-- Semgrep-core now logs the rule and file affected by a memory warning.
-
-### Fixed
+## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
 
 ### Added
 
@@ -53,8 +51,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
 - Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
-- Bash/Dockerfile: Add support for named ellipses such as in
-  `echo $...ARGS` (#4887)
 
 ### Changed
 

@@ -5,7 +5,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Type
 
-from semgrep import __VERSION__
 
 RULES_KEY = "rules"
 ID_KEY = "id"
@@ -30,11 +29,6 @@ USER_LOG_FILE = Path(os.environ.get("SEMGREP_LOG_FILE", USER_DATA_FOLDER / "last
 SETTINGS_FILE = "settings.yml"
 SEMGREP_SETTING_ENVVAR_NAME = "SEMGREP_SETTINGS_FILE"
 SEMGREP_SETTINGS_FILE = os.environ.get(SEMGREP_SETTING_ENVVAR_NAME)
-
-SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
-SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
-if SEMGREP_USER_AGENT_APPEND is not None:
-    SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
 
 SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
 
