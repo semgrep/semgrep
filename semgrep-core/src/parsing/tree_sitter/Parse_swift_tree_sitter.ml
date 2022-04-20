@@ -2988,9 +2988,10 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       map_prefix_unary_operator env v1 e
   | `As_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
+      (* TODO differentiate between the `as` kinds *)
       let v2 = map_as_operator env v2 in
       let v3 = map_type_ env v3 in
-      todo env (v1, v2, v3)
+      G.Cast (v3, v2, v1) |> G.e
   | `Sele_exp (v1, v2, v3, v4, v5) ->
       let v1 = (* "#selector" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -3008,11 +3009,15 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
   | `Open_start_range_exp (v1, v2) ->
       let v1 = map_range_operator env v1 in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      let op = (G.Range, v1) in
+      (* TODO differentiate between different range operators? Ruby currently
+       * does not. *)
+      G.opcall op [ G.L (G.Null v1) |> G.e; v2 ]
   | `Open_end_range_exp (v1, v2) ->
       let v1 = map_expression env v1 in
       let v2 = (* three_dot_operator_custom *) token env v2 in
-      todo env (v1, v2)
+      let op = (G.Range, v2) in
+      G.opcall op [ v1; G.L (G.Null v2) |> G.e ]
 
 and map_user_type (env : env) (x : CST.user_type) : G.type_ =
   match x with
