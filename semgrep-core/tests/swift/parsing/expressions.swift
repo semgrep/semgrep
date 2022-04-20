@@ -113,3 +113,65 @@ Thing<Int, String>.foo;
 // Open end range expressions:
 
 5...;
+
+// -----------------------------------------------------------------------------
+// Binary expressions:
+// -----------------------------------------------------------------------------
+
+// Multiplicative expressions:
+
+5 * 5;
+5 / 2;
+5 % 2;
+
+// Additive expressions:
+
+5 + 2;
+5 - 2;
+
+// Range expressions:
+
+1...5;
+1..<5;
+
+// Infix expressions:
+
+5 /. 5;
+
+// Nil coalescing expressions:
+
+nil ?? nil;
+
+// Check expressions:
+
+5 is Int;
+
+// Equality expressions:
+
+5 != 5;
+5 !== 5;
+5 == 5;
+5 === 5;
+
+// Comparison expressions:
+
+5 < 5;
+5 > 5;
+5 <= 5;
+5 >= 5;
+
+// Conjunction expressions:
+
+true && false;
+
+// Disjunction expressions:
+
+true || false;
+
+// Bitwise expression:
+
+5 & 5;
+5 | 5;
+5 ^ 5;
+5 << 1;
+5 >> 1;
