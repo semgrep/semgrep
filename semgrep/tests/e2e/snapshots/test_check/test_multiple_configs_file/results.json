@@ -21,47 +21,6 @@
   },
   "results": [
     {
-      "check_id": "rules.javascript-basic-eqeq-bad",
-      "end": {
-        "col": 19,
-        "line": 3,
-        "offset": 67
-      },
-      "extra": {
-        "fingerprint": "b46b83300e1255f8f0eac92fa495042a",
-        "is_ignored": false,
-        "lines": "console.log(x == x)",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 14,
-              "line": 3,
-              "offset": 62
-            },
-            "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 61
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/basic/stupid.js",
-      "start": {
-        "col": 13,
-        "line": 3,
-        "offset": 61
-      }
-    },
-    {
       "check_id": "rules.eqeq-is-bad",
       "end": {
         "col": 26,
@@ -102,6 +61,47 @@
         "col": 12,
         "line": 3,
         "offset": 55
+      }
+    },
+    {
+      "check_id": "rules.javascript-basic-eqeq-bad",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 67
+      },
+      "extra": {
+        "fingerprint": "b46b83300e1255f8f0eac92fa495042a",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 62
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 61
+            },
+            "unique_id": {
+              "sid": 1,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/stupid.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 61
       }
     }
   ]

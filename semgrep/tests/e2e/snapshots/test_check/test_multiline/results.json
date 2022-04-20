@@ -18,7 +18,7 @@
         "fingerprint": "3cdffed24a426435e1924e29dc4a7818",
         "is_ignored": false,
         "lines": "        SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK\n        == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
-        "message": "useless comparison operation `$SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == $SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `$SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != $SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug?",
+        "message": "useless comparison operation `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug?",
         "metadata": {
           "shortlink": "https://sg.run/xyz1"
         },
