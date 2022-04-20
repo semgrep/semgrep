@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Users can use the propagated value of a metavariable in messages via `$$X`
+
 ### Changed
 
 - When running a baseline scan on a shallow-cloned git repository,
