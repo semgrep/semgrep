@@ -14,7 +14,10 @@ from typing import Tuple
 import click
 
 import semgrep.semgrep_main
-from semgrep.commands.login import Authentication
+from semgrep.app import app_session
+from semgrep.app import auth
+from semgrep.app.metrics import metric_manager
+from semgrep.app.scans import ScanHandler
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
@@ -28,12 +31,10 @@ from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
-from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
-from semgrep.semgrep_app import ScanHandler
 from semgrep.types import MetricsState
 from semgrep.util import set_flags
 from semgrep.verbose_logging import getLogger
@@ -222,28 +223,27 @@ def ci(
     metric_manager.configure(metrics, metrics_legacy)
     scan_handler = None
 
-    token = Authentication.get_token()
-    if not token and not config:
+    if not app_session.token and not config:
         # Not logged in and no explicit config
         logger.info("run `semgrep login` before using `semgrep ci` or set `--config`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
-    elif not token and config:
+    elif not app_session.token and config:
         # Not logged in but has explicit config
         logger.info(f"Running `semgrep ci` without API token but with configs {config}")
-    elif token and config:
+    elif app_session.token and config:
         # Logged in but has explicit config
         logger.info(
             "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure rules to run."
         )
         sys.exit(FATAL_EXIT_CODE)
     else:
-        assert token  # Must be defined here
-        if not Authentication.is_valid_token(token):
+        assert app_session.token  # Must be defined here
+        if not auth.is_valid_token(app_session.token):
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
-        scan_handler = ScanHandler(token, dry_run)
+        scan_handler = ScanHandler(dry_run)
 
     output_format = OutputFormat.TEXT
     if json:
@@ -438,5 +438,10 @@ def ci(
     else:
         logger.info("No findings so exiting with code 0")
         exit_code = 0
+
+    if enable_version_check:
+        from semgrep.app.version import version_check
+
+        version_check()
 
     sys.exit(exit_code)

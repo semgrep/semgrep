@@ -4,10 +4,10 @@ from typing import Any
 from typing import Callable
 
 from semgrep import __VERSION__
+from semgrep.app.metrics import metric_manager
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.metric_manager import metric_manager
 from semgrep.verbose_logging import getLogger
 
 

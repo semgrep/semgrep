@@ -18,8 +18,8 @@ from click_option_group import optgroup
 
 from semgrep import __VERSION__
 from semgrep import bytesize
+from semgrep.app.registry import list_current_public_rulesets
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.config_resolver import list_current_public_rulesets
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
@@ -692,7 +692,7 @@ def scan(
     if version:
         print(__VERSION__)
         if enable_version_check:
-            from semgrep.version import version_check
+            from semgrep.app.version import version_check
 
             version_check()
         return None
@@ -715,7 +715,7 @@ def scan(
     from semgrep.constants import DEFAULT_CONFIG_FILE
     from semgrep.dump_ast import dump_parsed_ast
     from semgrep.error import SemgrepError
-    from semgrep.metric_manager import metric_manager
+    from semgrep.app.metrics import metric_manager
     from semgrep.output import OutputHandler
     from semgrep.output import OutputSettings
     from semgrep.project import get_project_url
@@ -913,7 +913,7 @@ def scan(
             return filtered_matches_by_rule, semgrep_errors, filtered_rules, all_targets
 
     if enable_version_check:
-        from semgrep.version import version_check
+        from semgrep.app.version import version_check
 
         version_check()
     return None
