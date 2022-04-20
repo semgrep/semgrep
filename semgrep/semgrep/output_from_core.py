@@ -518,32 +518,34 @@ class Position:
 class SvalueValue:
     """Original type: svalue_value = { ... }"""
 
-    svalue_start: Position
-    svalue_end: Position
     svalue_abstract_content: str
+    svalue_start: Optional[Position] = None
+    svalue_end: Optional[Position] = None
 
     @classmethod
     def from_json(cls, x: Any) -> "SvalueValue":
         if isinstance(x, dict):
             return cls(
-                svalue_start=Position.from_json(x["svalue_start"])
-                if "svalue_start" in x
-                else _atd_missing_json_field("SvalueValue", "svalue_start"),
-                svalue_end=Position.from_json(x["svalue_end"])
-                if "svalue_end" in x
-                else _atd_missing_json_field("SvalueValue", "svalue_end"),
                 svalue_abstract_content=_atd_read_string(x["svalue_abstract_content"])
                 if "svalue_abstract_content" in x
                 else _atd_missing_json_field("SvalueValue", "svalue_abstract_content"),
+                svalue_start=Position.from_json(x["svalue_start"])
+                if "svalue_start" in x
+                else None,
+                svalue_end=Position.from_json(x["svalue_end"])
+                if "svalue_end" in x
+                else None,
             )
         else:
             _atd_bad_json("SvalueValue", x)
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
-        res["svalue_start"] = (lambda x: x.to_json())(self.svalue_start)
-        res["svalue_end"] = (lambda x: x.to_json())(self.svalue_end)
         res["svalue_abstract_content"] = _atd_write_string(self.svalue_abstract_content)
+        if self.svalue_start is not None:
+            res["svalue_start"] = (lambda x: x.to_json())(self.svalue_start)
+        if self.svalue_end is not None:
+            res["svalue_end"] = (lambda x: x.to_json())(self.svalue_end)
         return res
 
     @classmethod

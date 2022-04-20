@@ -113,11 +113,17 @@ let get_propagated_value default_start mvalue =
     | Some (start, end_) ->
         Some
           {
-            ST.svalue_start = start;
-            svalue_end = end_;
+            ST.svalue_start = Some start;
+            svalue_end = Some end_;
             svalue_abstract_content = metavar_string_of_any any;
           }
-    | None -> None
+    | None ->
+        Some
+          {
+            ST.svalue_start = None;
+            svalue_end = None;
+            svalue_abstract_content = metavar_string_of_any any;
+          }
   in
   match mvalue with
   | E { e = N (Id (_, id_info)); _ } -> (

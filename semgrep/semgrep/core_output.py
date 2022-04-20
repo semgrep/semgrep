@@ -259,43 +259,59 @@ class CoreOutput:
         For now assumes that all matches encapsulated by this object are from the same rulee
         """
 
-        def interpolate(text: str, metavariables: Dict[str, str]) -> str:
+        def interpolate(
+            text: str, metavariables: Dict[str, str], propgated_values: Dict[str, str]
+        ) -> str:
             """Interpolates a string with the metavariables contained in it, returning a new string"""
 
             # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
             for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
                 text = text.replace(metavariable, metavariables[metavariable])
+                text = text.replace(
+                    metavariable + ".value", propgated_values[metavariable]
+                )
 
             return text
 
-        def read_metavariables(match: CoreMatch) -> Dict[str, str]:
-            result = {}
+        def read_metavariables(
+            match: CoreMatch,
+        ) -> Tuple[Dict[str, str], Dict[str, str]]:
+            matched_values = {}
+            propagated_values = {}
 
             # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
             with open(match.path, errors="replace") as fd:
                 for metavariable, metavariable_data in match.metavars.items():
                     # Offsets are start inclusive and end exclusive
-
-                    # Use propagated value
-                    if metavariable_data.propagated_value:
-                        m = metavariable_data.propagated_value
-                        start_offset = m.svalue_start.offset
-                        end_offset = m.svalue_end.offset
-                    else:
-                        start_offset = metavariable_data.start.offset
-                        end_offset = metavariable_data.end.offset
+                    start_offset = metavariable_data.start.offset
+                    end_offset = metavariable_data.end.offset
                     length = end_offset - start_offset
 
                     fd.seek(start_offset)
-                    result[metavariable] = fd.read(length)
+                    matched_value = fd.read(length)
 
-            return result
+                    # Use propagated value
+                    if metavariable_data.propagated_value:
+                        propagated_value = (
+                            metavariable_data.propagated_value.svalue_abstract_content
+                        )
+                    else:
+                        propagated_value = matched_value
+
+                    matched_values[metavariable] = matched_value
+                    propagated_values[metavariable] = propagated_value
+
+            return matched_values, propagated_values
 
         def convert_to_rule_match(match: CoreMatch) -> RuleMatch:
             rule = match.rule
-            metavariables = read_metavariables(match)
-            message = interpolate(rule.message, metavariables)
-            fix = interpolate(rule.fix, metavariables) if rule.fix else None
+            matched_values, propagated_values = read_metavariables(match)
+            message = interpolate(rule.message, matched_values, propagated_values)
+            fix = (
+                interpolate(rule.fix, matched_values, propagated_values)
+                if rule.fix
+                else None
+            )
 
             return RuleMatch(
                 rule._id,

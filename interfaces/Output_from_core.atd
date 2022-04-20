@@ -109,8 +109,8 @@ type metavar_value
 
 type svalue_value
   <python decorator="dataclass(frozen=True)"> = {
-  svalue_start: position;
-  svalue_end: position;
+  ?svalue_start: position option;
+  ?svalue_end: position option;
   svalue_abstract_content: string; (* value? *)
 }
 
