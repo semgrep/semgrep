@@ -23,7 +23,7 @@
         "file": "targets/basic/stupid.py",
         "start_line": 3
       },
-      "message": "useless comparison operation `$a + b == $a + b` or `$a + b != $a + b`; possible bug?",
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep"
