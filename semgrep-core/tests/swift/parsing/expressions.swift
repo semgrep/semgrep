@@ -91,3 +91,25 @@ Thing<Int, String>.foo;
 // Custom operators
 /!5;
 /!<5;
+
+// As expressions:
+
+"5" as Int;
+"5" as? Int;
+"5" as! Int;
+
+// Selector expressions:
+
+// TODO handle selector expressions
+// #selector(5);
+// #selector(getter: 4);
+// #selector(setter: 4);
+
+// Open start range expressions:
+
+...5;
+..<5;
+
+// Open end range expressions:
+
+5...;
