@@ -35,10 +35,11 @@ COPY --chown=user interfaces/ /semgrep/interfaces/
 # we need this lang/ subdirectory to generate Lang.ml. In theory the data
 # should be in interfaces/ but Python does not like symlinks when making
 # packages, so interfaces/lang/ is actually a symlink towards
-# semgrep/semgrep/lang. Note that the 'git submodule --depth 1' below
-# would actually checkout this directory, but it's better to be explicit here
-# about all the things we need to compile semgrep-core.
-COPY --chown=user semgrep/semgrep/lang /semgrep/semgrep/semgrep/lang
+# semgrep/semgrep/lang.
+# Note that the 'git submodule --depth 1' below
+# would actually checkout semgrep/semgrep/lang directory,
+# needed to compile 'semgrep-core' and to run 'semgrep'.
+COPY --chown=user semgrep /semgrep/semgrep/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
@@ -62,7 +63,7 @@ RUN git clean -dfX && \
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
-# We change container, bringing only the 'semgrep-core' binary with us.
+# We change container, bringing the 'semgrep-core' binary and 'semgrep/semgrep' code with us.
 #
 
 FROM python:3.10-alpine
@@ -73,13 +74,13 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
      PIP_NO_CACHE_DIR=true \
      SEMGREP_IN_DOCKER=1 \
      SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
-     SEMGREP_USER_AGENT_APPEND="(Docker)" \
+     SEMGREP_USER_AGENT_APPEND="Docker" \
      PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
-COPY semgrep /semgrep
+COPY --from=build-semgrep-core /semgrep/semgrep /semgrep
 
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \

@@ -11,37 +11,21 @@ from typing import Tuple
 
 import click
 import requests
-from urllib3.util.retry import Retry
 
+from semgrep.app import app_session
 from semgrep.constants import SEMGREP_URL
-from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
+
 logger = getLogger(__name__)
 
 
-# 4, 8, 16 seconds
-RETRYING_ADAPTER = requests.adapters.HTTPAdapter(
-    max_retries=Retry(
-        total=3,
-        backoff_factor=4,
-        allowed_methods=["GET", "POST"],
-        status_forcelist=(413, 429, 500, 502, 503),
-    ),
-)
-
-
 class ScanHandler:
-    def __init__(self, token: str, dry_run: bool) -> None:
-        session = requests.Session()
-        session.mount("https://", RETRYING_ADAPTER)
-        session.headers["User-Agent"] = SEMGREP_USER_AGENT
-        session.headers["Authorization"] = f"Bearer {token}"
-        self.session = session
+    def __init__(self, dry_run: bool) -> None:
         self.deployment_id, self.deployment_name = self._get_deployment_details()
 
         self.scan_id = None
@@ -64,11 +48,8 @@ class ScanHandler:
         Returns None if api_token is invalid/doesn't have associated deployment
         """
         url = f"{SEMGREP_URL}/api/agent/deployments/current"
-        logger.debug(f"Retrieveing deployment details from {url}")
-        r = self.session.get(
-            url,
-            timeout=10,
-        )
+        logger.debug(f"Retrieving deployment details from {url}")
+        r = app_session.get(url)
 
         if r.ok:
             data = r.json()
@@ -94,10 +75,9 @@ class ScanHandler:
             )
             return
 
-        response = self.session.post(
+        response = app_session.post(
             f"{SEMGREP_URL}/api/agent/deployments/{self.deployment_id}/scans",
             json={"meta": meta},
-            timeout=30,
         )
 
         if response.status_code == 404:
@@ -138,13 +118,12 @@ class ScanHandler:
             logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
             return
 
-        response = self.session.post(
+        response = app_session.post(
             f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/error",
             json={
                 "exit_code": exit_code,
                 "stderr": "",
             },
-            timeout=30,
         )
 
         try:
@@ -223,10 +202,8 @@ class ScanHandler:
             logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
-        response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings",
-            json=findings,
-            timeout=30,
+        response = app_session.post(
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings", json=findings
         )
         try:
             response.raise_for_status()
@@ -239,10 +216,8 @@ class ScanHandler:
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
-        response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/ignores",
-            json=ignores,
-            timeout=30,
+        response = app_session.post(
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/ignores", json=ignores
         )
         try:
             response.raise_for_status()
@@ -250,10 +225,8 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         # mark as complete
-        response = self.session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/complete",
-            json=complete,
-            timeout=30,
+        response = app_session.post(
+            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/complete", json=complete
         )
 
         try:

@@ -678,7 +678,7 @@ class SkipReason:
         return json.dumps(self.to_json(), **kw)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RuleId:
     """Original type: rule_id"""
 
@@ -1021,31 +1021,32 @@ class Location:
 class Match:
     """Original type: match_ = { ... }"""
 
+    rule_id: RuleId
     location: Location
     extra: MatchExtra
-    rule_id: Optional[RuleId] = None
 
     @classmethod
     def from_json(cls, x: Any) -> "Match":
         if isinstance(x, dict):
             return cls(
+                rule_id=RuleId.from_json(x["rule_id"])
+                if "rule_id" in x
+                else _atd_missing_json_field("Match", "rule_id"),
                 location=Location.from_json(x["location"])
                 if "location" in x
                 else _atd_missing_json_field("Match", "location"),
                 extra=MatchExtra.from_json(x["extra"])
                 if "extra" in x
                 else _atd_missing_json_field("Match", "extra"),
-                rule_id=RuleId.from_json(x["rule_id"]) if "rule_id" in x else None,
             )
         else:
             _atd_bad_json("Match", x)
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
+        res["rule_id"] = (lambda x: x.to_json())(self.rule_id)
         res["location"] = (lambda x: x.to_json())(self.location)
         res["extra"] = (lambda x: x.to_json())(self.extra)
-        if self.rule_id is not None:
-            res["rule_id"] = (lambda x: x.to_json())(self.rule_id)
         return res
 
     @classmethod

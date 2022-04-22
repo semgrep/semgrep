@@ -5,7 +5,6 @@ Findings:
      [1m[24mrules.cli_test.basic.basic-test[0m
         Basic test
 
-
           2┆ print([1m[x.xxx == 1[0m)
 
 ============================[ summary ]============================

@@ -53,12 +53,12 @@ type match_results
 
 type match_
   <python decorator="dataclass(frozen=True)"> = {
-  ?rule_id: rule_id option;
+  rule_id: rule_id;
   location: location;
   extra: match_extra;
 }
 
-type rule_id = string
+type rule_id <python decorator="dataclass(frozen=True)"> = string
 
 type match_extra
   <python decorator="dataclass(frozen=True)"> = {

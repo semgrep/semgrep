@@ -399,6 +399,8 @@ and argument e =
 and special = function
   | This -> G.This
   | Eval -> G.Eval
+  | Self -> G.Self
+  | Parent -> G.Parent
 
 and foreach_pattern v =
   let v = expr v in

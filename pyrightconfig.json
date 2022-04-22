@@ -1,0 +1,15 @@
+{
+  "exclude": [
+    "**/site-packages/**",
+    ".vscode/*.py",
+    "**/.venv/**",
+    "**/.tox/**",
+    "**/build/**",
+    "perf/bench/**",
+    "semgrep/tests/e2e/targets/**",
+    "semgrep/tests/e2e/snapshots/**",
+    "semgrep/tests/e2e/rules/syntax/**",
+    "semgrep/semgrep/external/**",
+    "semgrep-core/**/tests/**"
+  ]
+}

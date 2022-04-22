@@ -252,31 +252,33 @@ let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
   let heredoc_start = token env v2 (* heredoc_start *) in
   TODO (start_, heredoc_start)
 
-let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
-    string_fragment =
-  let dollar_tok = token env v1 (* "$" *) in
-  let var_name =
-    match v2 with
-    | `Orig_simple_var_name tok ->
-        (* pattern \w+ *)
-        Simple_variable_name (str env tok)
-    | `Choice_STAR x -> special_variable_name env x
-    | `BANG tok -> Special_variable_name (str env tok (* "!" *))
-    | `HASH tok -> Special_variable_name (str env tok (* "#" *))
-  in
-  let name_s, name_tok = variable_name_wrap var_name in
-  let loc = (dollar_tok, name_tok) in
-  match env.extra with
-  | Pattern -> (
-      (* Interpret $X as either "metavariable $X" or "expand X" *)
-      match var_name with
-      | Simple_variable_name (name_s, name_tok)
-        when Metavariable.is_metavar_name ("$" ^ name_s) ->
-          let mv_s = "$" ^ name_s in
-          let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
-          Frag_semgrep_metavar (mv_s, mv_tok)
-      | _ -> Expansion (loc, Simple_expansion (loc, var_name)))
-  | Program -> Expansion (loc, Simple_expansion (loc, var_name))
+let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
+  match x with
+  | `DOLLAR_choice_orig_simple_var_name (v1, v2) -> (
+      let dollar_tok = token env v1 (* "$" *) in
+      let var_name =
+        match v2 with
+        | `Orig_simple_var_name tok ->
+            (* pattern \w+ *)
+            Simple_variable_name (str env tok)
+        | `Choice_STAR x -> special_variable_name env x
+        | `BANG tok -> Special_variable_name (str env tok (* "!" *))
+        | `HASH tok -> Special_variable_name (str env tok (* "#" *))
+      in
+      let name_s, name_tok = variable_name_wrap var_name in
+      let loc = (dollar_tok, name_tok) in
+      match env.extra with
+      | Pattern -> (
+          (* Interpret $X as either "metavariable $X" or "expand X" *)
+          match var_name with
+          | Simple_variable_name (name_s, name_tok)
+            when Metavariable.is_metavar_name ("$" ^ name_s) ->
+              let mv_s = "$" ^ name_s in
+              let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
+              Frag_semgrep_metavar (mv_s, mv_tok)
+          | _ -> Expansion (loc, Simple_expansion (loc, var_name)))
+      | Program -> Expansion (loc, Simple_expansion (loc, var_name)))
+  | `Semg_named_ellips tok -> Frag_semgrep_named_ellipsis (str env tok)
 
 let rec prim_exp_or_special_char (env : env)
     (x : CST.anon_choice_prim_exp_65e2c2e) : expression =

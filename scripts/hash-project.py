@@ -6,7 +6,7 @@ E.g.
 """
 from sys import argv
 
-from semgrep.metric_manager import metric_manager
+from semgrep.app.metrics import metric_manager
 
 metric_manager.set_project_hash(argv[1])
 print(metric_manager._project_hash)

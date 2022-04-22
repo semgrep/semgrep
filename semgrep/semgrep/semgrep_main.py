@@ -14,6 +14,7 @@ from typing import Tuple
 from typing import Union
 
 from semgrep import __VERSION__
+from semgrep.app.metrics import metric_manager
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -27,7 +28,6 @@ from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.metric_manager import metric_manager
 from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
@@ -173,7 +173,7 @@ def run_rules(
             else top_level_target_rooted[-1]
         )
         langs = [l for r in dependency_aware_rules for l in r.languages]
-        dep_trie = make_dependency_trie(top_level_target, langs)
+        dep_trie = make_dependency_trie(top_level_target, langs, target_manager)
 
         for rule in dependency_aware_rules:
             (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(

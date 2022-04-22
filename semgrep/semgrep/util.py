@@ -85,7 +85,7 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     # Setup file logging
     # USER_LOG_FILE dir must exist
     USER_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    file_handler = logging.FileHandler(USER_LOG_FILE)
+    file_handler = logging.FileHandler(USER_LOG_FILE, "w")
     file_formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
@@ -129,7 +129,7 @@ def partition_set(
 
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
-    sys.exit(1)
+    sys.exit(2)
 
 
 def with_color(

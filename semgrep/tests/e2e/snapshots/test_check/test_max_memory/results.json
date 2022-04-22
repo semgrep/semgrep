@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "[WARN] Semgrep Core \u2014 Out of memory\nAn error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep\n\nAt line targets/equivalence/open_redirect.py:1: Exceeded memory limit\n",
+      "message": "[WARN] Out of memory at line targets/equivalence/open_redirect.py:1:\n Exceeded memory limit",
       "path": "targets/equivalence/open_redirect.py",
       "type": "Out of memory"
     }

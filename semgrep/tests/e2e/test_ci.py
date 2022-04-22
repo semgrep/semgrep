@@ -9,15 +9,16 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-from requests import Session
 
 from semgrep import __VERSION__
+from semgrep.app import app_session
+from semgrep.app import auth
+from semgrep.app.scans import ScanHandler
 from semgrep.cli import cli
-from semgrep.commands.login import Authentication
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from semgrep.meta import GitlabMeta
-from semgrep.semgrep_app import ScanHandler
+from semgrep.meta import GitMeta
 
 REPO_DIR_NAME = "project_name"
 AUTHOR_EMAIL = "test_environment@test.r2c.dev"
@@ -147,9 +148,7 @@ def ci_mocks(base_commit, autofix):
                 "_get_deployment_details",
                 mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
             ):
-                with mock.patch.object(
-                    Authentication, "is_valid_token", return_value=True
-                ):
+                with mock.patch.object(auth, "is_valid_token", return_value=True):
                     with mock.patch.object(
                         ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
                     ):
@@ -161,7 +160,7 @@ def ci_mocks(base_commit, autofix):
 @pytest.mark.parametrize(
     "env",
     [
-        {},  # Local run with no env vars
+        {"SEMGREP_APP_TOKEN": "dummy"},  # Local run with no CI env vars
         {  # Github full scan
             "CI": "true",
             "GITHUB_ACTIONS": "true",
@@ -276,12 +275,12 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
 
     with ci_mocks(base_commit, autofix):
         # Mock session.post
-        with mock.patch.object(Session, "post", post_mock):
+        with mock.patch.object(app_session, "post", post_mock):
             runner = CliRunner(
                 env={
                     **env,
                     SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
                 }
             )
             result = runner.invoke(cli, ["ci"], env={})
@@ -344,7 +343,7 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
         runner = CliRunner(
             env={
                 SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
             }
         )
         result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
@@ -366,14 +365,16 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
 
     with ci_mocks(base_commit, autofix):
         # Mock session.post
-        with mock.patch.object(Session, "post", post_mock):
+        with mock.patch.object(app_session, "post", post_mock):
             runner = CliRunner(
                 env={
                     SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    Authentication.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
                 }
             )
-            result = runner.invoke(cli, ["ci", "--dry-run"], env={})
+            result = runner.invoke(
+                cli, ["ci", "--dry-run", "--disable-metrics"], env={}
+            )
 
             post_mock.assert_not_called()
             sanitized_output = (
@@ -397,3 +398,134 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
                 sanitized_output,
             )
             snapshot.assert_match(sanitized_output, "output.txt")
+
+
+@pytest.mark.kinda_slow
+def test_fail_auth(tmp_path):
+    """
+    Test that failure to authenticate does not have exit code 0 or 1
+    """
+    with mock.patch.object(auth, "is_valid_token", return_value=False):
+        runner = CliRunner(
+            env={
+                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            }
+        )
+        result = runner.invoke(cli, ["ci"], env={})
+        assert result.exit_code == 13
+
+    with mock.patch.object(auth, "is_valid_token", side_effect=Exception):
+        runner = CliRunner(
+            env={
+                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            }
+        )
+        result = runner.invoke(cli, ["ci"], env={})
+        assert result.exit_code == 2
+
+
+@pytest.mark.kinda_slow
+def test_fail_start_scan(tmp_path):
+    """
+    Test that failing to start scan does not have exit code 0 or 1
+    """
+    with mock.patch.object(auth, "is_valid_token", return_value=True):
+        with mock.patch.object(
+            ScanHandler,
+            "_get_deployment_details",
+            mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
+        ):
+            with mock.patch.object(
+                ScanHandler,
+                "start_scan",
+                side_effect=Exception("Timeout"),
+            ):
+                runner = CliRunner(
+                    env={
+                        SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                        auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                    }
+                )
+                result = runner.invoke(cli, ["ci"], env={})
+                assert result.exit_code == 2
+
+
+@pytest.mark.kinda_slow
+def test_bad_config(tmp_path):
+    """
+    Test that bad rules has exit code > 1
+    """
+    file_content = dedent(
+        """
+        rules:
+        - id: eqeq-bad
+          message: "useless comparison"
+          languages: [python]
+          severity: ERROR
+        """
+    ).lstrip()
+
+    with mock.patch.object(auth, "is_valid_token", return_value=True):
+        with mock.patch.object(
+            ScanHandler,
+            "_get_deployment_details",
+            mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
+        ):
+            with mock.patch.object(
+                ConfigPath, "_make_config_request", mock.Mock(return_value=file_content)
+            ):
+                with mock.patch.object(
+                    app_session, "post", mock.MagicMock(return_value=mock.MagicMock())
+                ):
+                    runner = CliRunner(
+                        env={
+                            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                        }
+                    )
+                    result = runner.invoke(cli, ["ci"], env={})
+                    assert "Invalid rule schema" in result.stdout
+                    assert result.exit_code == 7
+
+
+@pytest.mark.kinda_slow
+def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit):
+    """
+    Test failure to send findings has exit code > 1
+    """
+    repo_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    with ci_mocks(base_commit, False):
+        with mock.patch.object(
+            app_session, "post", mock.MagicMock(return_value=mock.MagicMock())
+        ):
+            with mock.patch.object(
+                ScanHandler, "report_findings", side_effect=Exception
+            ):
+                runner = CliRunner(
+                    env={
+                        SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                        auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                    }
+                )
+                result = runner.invoke(cli, ["ci"], env={})
+                assert result.exit_code == 2
+
+
+@pytest.mark.kinda_slow
+def test_git_failure(tmp_path, git_tmp_path_with_commit):
+    """
+    Test failure from using git has exit code > 1
+    """
+    with mock.patch.object(auth, "is_valid_token", return_value=True):
+        with mock.patch.object(GitMeta, "to_dict", side_effect=Exception):
+            runner = CliRunner(
+                env={
+                    SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+                }
+            )
+            result = runner.invoke(cli, ["ci"], env={})
+            assert result.exit_code == 2
