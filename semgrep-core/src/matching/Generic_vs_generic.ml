@@ -38,7 +38,6 @@ module Env = Metavariable_capture
 open Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
 let hook_find_possible_parents = ref None
 
 (*****************************************************************************)
@@ -427,7 +426,7 @@ let rec m_name a b =
       let new_qualifier =
         match List.rev dotted with
         | [] -> raise Impossible
-        | _x :: xs -> List.rev xs |> List.map (fun id -> (id, None))
+        | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
       in
       m_name a
         (B.IdQualified
@@ -533,9 +532,20 @@ and m_ident_and_empty_id_info a1 b1 =
  *)
 and m_id_info a b =
   match (a, b) with
-  | ( { G.id_resolved = _a1; id_type = _a2; id_svalue = _a3; id_hidden = _a4 },
-      { B.id_resolved = _b1; id_type = _b2; id_svalue = _b3; id_hidden = _b4 } )
-    ->
+  | ( {
+        G.id_resolved = _a1;
+        id_type = _a2;
+        id_svalue = _a3;
+        id_hidden = _a4;
+        id_info_id = _a5;
+      },
+      {
+        B.id_resolved = _b1;
+        id_type = _b2;
+        id_svalue = _b3;
+        id_hidden = _b4;
+        id_info_id = _b5;
+      } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
        * but doing import flask in a source file means every reference
        * to flask.xxx will be tagged with a ImportedEntity, but
@@ -647,7 +657,7 @@ and m_expr a b =
           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
-      let full = (names |> List.map fst) @ [ alabel ] in
+      let full = (names |> Common.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -670,12 +680,11 @@ and m_expr a b =
     when MV.is_metavar_name str ->
       fail ()
   (* metavar: *)
-  (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
-   * info; instead the Id should match Call(IdSpecial _, _)
+  (* Matching a generic Id metavariable to an IdSpecial will fail as it is
+   * missing the token info; instead the Id should match Call(IdSpecial _, _)
    *)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
-  | G.N (G.Id ((str, _), _)), B.IdSpecial (B.New, _)
     when MV.is_metavar_name str ->
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
@@ -771,7 +780,10 @@ and m_expr a b =
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
+  | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
+      m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
   | G.Call _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+  | G.New _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -1049,7 +1061,6 @@ and m_special a b =
   | G.Typeof, B.Typeof -> return ()
   | G.Instanceof, B.Instanceof -> return ()
   | G.Sizeof, B.Sizeof -> return ()
-  | G.New, B.New -> return ()
   | G.Defined, B.Defined -> return ()
   | G.ConcatString a, B.ConcatString b -> m_concat_string_kind a b
   | G.InterpolatedElement, B.InterpolatedElement -> return ()
@@ -1069,7 +1080,6 @@ and m_special a b =
   | G.Typeof, _
   | G.Instanceof, _
   | G.Sizeof, _
-  | G.New, _
   | G.ConcatString _, _
   | G.Spread, _
   | G.Op _, _
@@ -1185,8 +1195,10 @@ and m_compatible_type typed_mvar t e =
           envf typed_mvar (MV.E e)
       | _ -> fail ())
 
-and type_of_expr e =
+(* returns a type option and an ident that can be used to query LSP *)
+and type_of_expr e : (G.ident * G.type_ option) option =
   match e.B.e with
+  | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
@@ -1208,6 +1220,7 @@ and type_of_expr e =
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
       | Some _ -> None
       | None -> None)
+  | B.ParenExpr (_, e, _) -> type_of_expr e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)
@@ -1218,7 +1231,7 @@ and m_xml a b =
   | ( { G.xml_kind = a1; xml_attrs = a2; xml_body = a3 },
       { B.xml_kind = b1; xml_attrs = b2; xml_body = b3 } ) ->
       m_xml_kind a1 b1 >>= fun () ->
-      m_attrs a2 b2 >>= fun () -> m_bodies a3 b3
+      m_attrs a2 b2 >>= fun () -> m_xml_bodies a3 b3
 
 and m_xml_kind a b =
   match (a, b) with
@@ -1260,11 +1273,17 @@ and m_attrs a b =
     ~then_:(m_list_in_any_order ~less_is_ok:true m_xml_attr a b)
     ~else_:(m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_attr a b)
 
-and m_bodies a b =
+and m_xml_bodies a b =
   match (a, b) with
   (* dots: *)
   | [ XmlText ("...", _) ], _ -> return ()
-  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_body a1 b1
+  (* dots: metavars:
+   * less: we should be more general and use
+   * m_list_with_dots_and_metavar_ellipsis() at some point
+   *)
+  | [ XmlText (s, tok) ], _ when MV.is_metavar_ellipsis s ->
+      envf (s, tok) (MV.Xmls b)
+  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_xml_body a1 b1
   (* TODO: handle metavar matching a complex Xml elt or even list of elts *)
   | [ XmlText (s, _) ], [ _b ] when MV.is_metavar_name s -> fail ()
   (* TODO: should we impose $...X here to match a list of children? *)
@@ -1275,7 +1294,7 @@ and m_list__m_body a b =
   match a with
   (* less-is-ok: it's ok to have an empty body in the pattern *)
   | [] -> return ()
-  | _ -> m_list m_body a b
+  | _ -> m_list m_xml_body a b
 
 and m_xml_attr a b =
   match (a, b) with
@@ -1294,7 +1313,7 @@ and m_xml_attr_value a b =
   (* less: deep? *)
   m_expr a b
 
-and m_body a b =
+and m_xml_body a b =
   match (a, b) with
   (* dots: the "..." is actually intercepted now in m_bodies *)
   | G.XmlText a1, B.XmlText b1 ->
@@ -1374,7 +1393,8 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with Not_found -> fail ())
+        with
+        | Not_found -> fail ())
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_argument xa xb >>= fun () -> m_list__m_argument aas bbs
@@ -1408,11 +1428,15 @@ and m_arguments_concat a b =
       m_arguments_concat (G.Arg (G.L (G.String ("...", a)) |> G.e) :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs -> (
-      (* exception: for concat strings, don't have ellipsis match   *)
+      (* exception: for concat strings, don't have ellipsis/metavars match   *)
       (* string literals since string literals are implicitly not   *)
-      (* interpolated, and ellipsis implicitly is                   *)
+      (* interpolated, and ellipsis/metavars implicitly are                  *)
       match (xa, xb) with
       | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
+          fail ()
+      | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
+          G.Arg { e = G.L (G.String _); _ } )
+        when MV.is_metavar_name s ->
           fail ()
       | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _
@@ -1633,8 +1657,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
           in
           let tout =
             m_list__m_argument
-              (List.map G.arg avars_dots)
-              (List.map B.arg bs') tin
+              (Common.map G.arg avars_dots)
+              (Common.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten
@@ -1755,7 +1779,6 @@ and m_attribute a b =
       fail ()
 
 and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
-
 and m_other_attribute_operator = m_other_xxx
 
 (*****************************************************************************)
@@ -2228,7 +2251,6 @@ and m_case a b =
       fail ()
 
 and m_other_stmt_operator = m_other_xxx
-
 and m_other_stmt_with_stmt_operator = m_other_xxx
 
 (*****************************************************************************)
@@ -2245,7 +2267,8 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with H.NotAnExpr -> envf (str, tok) (MV.P b2))
+      with
+      | H.NotAnExpr -> envf (str, tok) (MV.P b2))
   (* dots: *)
   | G.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2606,7 +2629,8 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
-      with Not_found -> fail ())
+      with
+      | Not_found -> fail ())
   (* the general case *)
   (* This applies to definitions where the field name is a metavariable,
    * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
@@ -2944,6 +2968,7 @@ and m_any a b =
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
   | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
   | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
+  | G.Xmls a1, B.Xmls b1 -> m_list m_xml_body a1 b1
   | G.Anys a1, B.Anys b1 -> m_list m_any a1 b1
   (* boilerplate *)
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
@@ -2998,6 +3023,7 @@ and m_any a b =
   | G.Partial _, _
   | G.Args _, _
   | G.Params _, _
+  | G.Xmls _, _
   | G.ForOrIfComp _, _
   | G.Anys _, _
   | G.Str _, _ ->

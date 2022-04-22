@@ -27,6 +27,8 @@ T = TypeVar("T")
 
 global FORCE_COLOR
 FORCE_COLOR = False
+global FORCE_NO_COLOR
+FORCE_NO_COLOR = False
 
 global VERBOSITY
 VERBOSITY = logging.INFO
@@ -83,7 +85,7 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     # Setup file logging
     # USER_LOG_FILE dir must exist
     USER_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    file_handler = logging.FileHandler(USER_LOG_FILE)
+    file_handler = logging.FileHandler(USER_LOG_FILE, "w")
     file_formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
@@ -100,6 +102,13 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
     global FORCE_COLOR
     if force_color or os.environ.get("SEMGREP_FORCE_COLOR") is not None:
         FORCE_COLOR = True
+
+    global FORCE_NO_COLOR
+    if (
+        os.environ.get("NO_COLOR") is not None  # https://no-color.org/
+        or os.environ.get("SEMGREP_FORCE_NO_COLOR") is not None
+    ):
+        FORCE_NO_COLOR = True
 
 
 def partition(
@@ -120,7 +129,7 @@ def partition_set(
 
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
-    sys.exit(1)
+    sys.exit(2)
 
 
 def with_color(
@@ -136,6 +145,11 @@ def with_color(
     Use ANSI color names or 8 bit colors (24-bit is not well supported by terminals)
     In click bold always switches colors to their bright variant (if there is one)
     """
+    if FORCE_NO_COLOR and not FORCE_COLOR:
+        # for 'no color' there is a global env var (https://no-color.org/)
+        # while the env var to 'force color' is semgrep-specific
+        # so we let the more specific setting override the broader one
+        return text
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
     return click.style(
@@ -176,7 +190,7 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     """
     if not os.path.isfile(path):
         return None
-    with open(path, mode="r") as fd:
+    with open(path) as fd:
         contents = fd.read()
         words = contents.split()
     # Find all of the individual words that contain the search_term
@@ -212,7 +226,7 @@ def format_bytes(num: float) -> str:
         if abs(num) < 1024.0:
             return "%3d%sB" % (num, unit)
         num /= 1024.0
-    return "%.1f%sB" % (num, "Y")
+    return "{:.1f}{}B".format(num, "Y")
 
 
 def truncate(file_name: str, col_lim: int) -> str:

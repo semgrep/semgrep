@@ -25,6 +25,7 @@
         "offset": 96
       },
       "extra": {
+        "fingerprint": "dce9654204375612ebde83d55c295f4a",
         "is_ignored": false,
         "lines": "    open(path)",
         "message": "Unsafe open from request data",
@@ -65,6 +66,7 @@
         "offset": 262
       },
       "extra": {
+        "fingerprint": "2dc27f71ab5cf9450fcbd204f1e71640",
         "is_ignored": false,
         "lines": "    open(z)",
         "message": "Unsafe open from request data",

@@ -15,6 +15,7 @@
         "offset": 151
       },
       "extra": {
+        "fingerprint": "133da75f2a725d8766223ceff876a0bd",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"
@@ -47,6 +48,7 @@
         "offset": 234
       },
       "extra": {
+        "fingerprint": "4b194ecbc37743c39a6c6739a9069daf",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"

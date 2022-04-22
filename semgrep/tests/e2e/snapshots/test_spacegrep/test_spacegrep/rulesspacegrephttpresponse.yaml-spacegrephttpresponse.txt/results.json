@@ -15,6 +15,7 @@
         "offset": 169
       },
       "extra": {
+        "fingerprint": "458b3cf2561e811914d2ff318adfe94e",
         "is_ignored": false,
         "lines": "Content-Type: text/html",
         "message": "Detected text/html",

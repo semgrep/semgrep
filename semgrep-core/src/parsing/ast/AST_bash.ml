@@ -30,9 +30,7 @@ type tok = Parse_info.t [@@deriving show]
    single tok.
 *)
 type loc = Loc.t
-
 type 'a wrap = 'a * tok [@@deriving show]
-
 type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (*****************************************************************************)
@@ -114,7 +112,6 @@ type pipeline_bar = Bar | Bar_ampersand
    run in the foreground i.e. synchronously: ';' or '\n' or ';;'
 *)
 type fg_op = Fg_newline | Fg_semi | Fg_semisemi
-
 type unary_control_operator = Foreground of fg_op | (* & *) Background
 
 type write_kind =
@@ -191,8 +188,7 @@ and command =
   | For_loop_c_style of
       (* TODO: represent the loop header: for (( ... )); *)
       loc * blist
-  | Select
-      (* same syntax as For_loop *) of
+  | Select (* same syntax as For_loop *) of
       loc
       * (* select *) tok
       * (* loop variable *)
@@ -336,7 +332,6 @@ and case_clause_terminator =
   | Try_next of (* ;;& *) tok
 
 and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
-
 and else_ = loc * (* else *) tok * blist
 
 (* Declarations and optionally some assignments. Covers things like
@@ -414,6 +409,7 @@ and string_fragment =
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
   | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
+  | Frag_semgrep_named_ellipsis of (* $...X *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -430,7 +426,6 @@ and complex_expansion =
   | Complex_expansion_TODO of loc
 
 and eq_op = EQTILDE of (* "=~" *) tok | EQEQ of (* "==" *) tok
-
 and right_eq_operand = Literal of loc * expression | Regexp of string wrap
 
 and test_expression =
@@ -460,9 +455,7 @@ let bracket (loc : loc) x : 'a bracket =
   (start, x, end_)
 
 let wrap_loc (_, tok) : loc = (tok, tok)
-
 let bracket_loc (start_tok, _, end_tok) : loc = (start_tok, end_tok)
-
 let todo_loc (TODO loc) = loc
 
 let command_loc = function
@@ -530,9 +523,7 @@ let else_loc (x : else_) =
   loc
 
 let assignment_loc (x : assignment) = x.loc
-
 let assignment_list_loc (x : assignment list) = Loc.of_list assignment_loc x
-
 let declaration_loc (x : declaration) = x.loc
 
 let expression_loc = function
@@ -556,6 +547,7 @@ let string_fragment_loc = function
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
   | Frag_semgrep_metavar x -> wrap_loc x
+  | Frag_semgrep_named_ellipsis x -> wrap_loc x
 
 let expansion_loc = function
   | Simple_expansion (loc, _) -> loc
@@ -568,7 +560,6 @@ let variable_name_wrap = function
       x
 
 let variable_name_tok x = variable_name_wrap x |> snd
-
 let variable_name_loc x = variable_name_wrap x |> wrap_loc
 
 let complex_expansion_loc = function
@@ -638,7 +629,7 @@ let concat_blists (x : blist list) : blist =
 
 let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
     cmd_redir =
-  let all_locs = cmd_r.loc :: List.map redirect_loc redirects in
+  let all_locs = cmd_r.loc :: Common.map redirect_loc redirects in
   let loc = Loc.of_list (fun loc -> loc) all_locs in
   { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
 

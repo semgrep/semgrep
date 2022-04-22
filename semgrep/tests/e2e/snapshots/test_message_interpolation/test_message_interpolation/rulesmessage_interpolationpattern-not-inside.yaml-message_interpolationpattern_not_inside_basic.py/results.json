@@ -15,6 +15,7 @@
         "offset": 107
       },
       "extra": {
+        "fingerprint": "b193791e139690e58d075dc97da6d845",
         "is_ignored": false,
         "lines": "def D():\n    print(\"asdf\")",
         "message": "method D is not inside $CLASS",

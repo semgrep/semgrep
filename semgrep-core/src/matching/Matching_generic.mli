@@ -37,15 +37,10 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
 (* monadic combinators *)
 val ( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-
 val ( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout
-
 val ( >!> ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
-
 val return : unit -> tin -> tout
-
 val fail : unit -> tin -> tout
-
 val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
 (* Shortcut for >>=. Since OCaml 4.08, you can define those "extended-let" *)
@@ -77,7 +72,6 @@ val check_and_add_metavar_binding :
 
 (* helpers *)
 val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
-
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
 
 (* [all_splits xs] returns all possible pairs [(ls, rs)] such that [ls@rs]
@@ -86,7 +80,6 @@ val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
    * e.g.
    *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
 val all_splits : 'a list -> ('a list * 'a list) list
-
 val lazy_rest_of_list : 'a Lazy.t -> 'a
 
 type regexp = Re.re
@@ -103,9 +96,7 @@ val m_option_ellipsis_ok :
   AST_generic.expr matcher -> AST_generic.expr option matcher
 
 val m_option_none_can_match_some : 'a matcher -> 'a option matcher
-
 val m_list : 'a matcher -> 'a list matcher
-
 val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*
@@ -160,30 +151,19 @@ val m_comb_1toN : ('a -> 'a list -> tin -> tout) -> 'a comb_matcher
 
 (* use = *)
 val m_eq : 'a matcher
-
 val m_bool : bool matcher
-
 val m_int : int matcher
-
 val m_string : string matcher
-
 val filepath_is_prefix : string -> string -> bool
-
 val m_filepath_prefix : string matcher
 
 val m_string_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
 
 val m_ellipsis_or_metavar_or_string : string AST_generic.wrap matcher
-
 val m_info : Parse_info.t matcher
-
 val m_tok : Parse_info.t matcher
-
 val m_wrap : 'a matcher -> 'a AST_generic.wrap matcher
-
 val m_bracket : 'a matcher -> 'a AST_generic.bracket matcher
-
 val m_tuple3 : 'a matcher -> 'b matcher -> 'c matcher -> ('a * 'b * 'c) matcher
-
 val m_other_xxx : 'a matcher

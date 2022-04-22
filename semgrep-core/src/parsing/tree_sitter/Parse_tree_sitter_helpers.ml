@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module PI = Parse_info
@@ -59,12 +60,13 @@ let line_col_to_pos file =
         done;
         charpos := !charpos + String.length s + 1
       done
-    with End_of_file ->
-      (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
-       * because an ident on the last line would get
-       * the last charpos.
-       *)
-      ()
+    with
+    | End_of_file ->
+        (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
+         * because an ident on the last line would get
+         * the last charpos.
+         *)
+        ()
   in
   full_charpos_to_pos_aux ();
   close_in chan;
@@ -78,7 +80,8 @@ let token env (tok : Tree_sitter_run.Token.t) =
   let line = start.Tree_sitter_run.Loc.row + 1 in
   let column = start.Tree_sitter_run.Loc.column in
   let charpos =
-    try Hashtbl.find h (line, column) with Not_found -> -1
+    try Hashtbl.find h (line, column) with
+    | Not_found -> -1
     (* TODO? more strict? raise exn? *)
   in
   let file = env.file in
@@ -104,18 +107,18 @@ let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
     let column = pos.Tree_sitter_run.Loc.column in
-    try (Hashtbl.find h (line, column), line, column)
-    with Not_found ->
-      failwith (spf "could not find line:%d x col:%d in %s" line column file)
+    try (Hashtbl.find h (line, column), line, column) with
+    | Not_found ->
+        failwith (spf "could not find line:%d x col:%d in %s" line column file)
   in
   let charpos2 =
     let pos = loc.Tree_sitter_run.Loc.end_ in
     (* Parse_info is 1-line based and 0-column based, like Emacs *)
     let line = pos.Tree_sitter_run.Loc.row + 1 in
     let column = pos.Tree_sitter_run.Loc.column in
-    try Hashtbl.find h (line, column)
-    with Not_found ->
-      failwith (spf "could not find line:%d x col:%d in %s" line column file)
+    try Hashtbl.find h (line, column) with
+    | Not_found ->
+        failwith (spf "could not find line:%d x col:%d in %s" line column file)
   in
   (* Range.t is inclusive, so we need -1 to remove the char at the pos *)
   let charpos2 = charpos2 - 1 in

@@ -20,7 +20,6 @@ let print_pair name vof a b =
     (vof b |> OCaml.string_of_v ~max_depth)
 
 let print_literal_pair = print_pair "literal" Meta_AST.vof_literal
-
 let print_type_pair = print_pair "type" Meta_AST.vof_type_
 
 let print_arithmetic_operator_pair =
@@ -33,9 +32,6 @@ let print_class_definition_pair =
   print_pair "class_definition" Meta_AST.vof_class_definition
 
 let print_definition_pair = print_pair "definition" Meta_AST.vof_definition
-
 let print_directive_pair = print_pair "directive" Meta_AST.vof_directive
-
 let print_expr_pair = print_pair "expr" Meta_AST.vof_expr
-
 let print_stmt_pair = print_pair "stmt" Meta_AST.vof_stmt

@@ -28,6 +28,7 @@
         "offset": 69
       },
       "extra": {
+        "fingerprint": "8735ac8726dd28e6a74ad74af5944d16",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
@@ -68,6 +69,7 @@
         "offset": 67
       },
       "extra": {
+        "fingerprint": "0758199335d6deea1ba8e1719f967977",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",

@@ -25,6 +25,7 @@
         "offset": 41
       },
       "extra": {
+        "fingerprint": "2564d44f86634eb5654387dfd797e2f7",
         "is_ignored": false,
         "lines": "metavariable_comparison_test_strip('100')",
         "message": "Metavariable regex test",

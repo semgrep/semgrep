@@ -16,7 +16,10 @@ from typing import Sequence
 from typing import Set
 from typing import Type
 
-from semgrep.commands.login import Authentication
+import requests
+
+from semgrep.app import app_session
+from semgrep.app.metrics import metric_manager
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -33,7 +36,6 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
-from semgrep.metric_manager import metric_manager
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -41,7 +43,8 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
-from semgrep.target_manager import IgnoreLog
+from semgrep.target_manager import FileTargetingLog
+from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
 from semgrep.util import partition
 from semgrep.util import terminal_wrap
@@ -248,19 +251,14 @@ class OutputHandler:
             ):
                 logger.error(with_color(Colors.red, str(error)))
 
-    def _final_raise(self, ex: Optional[Exception], error_stats: Optional[str]) -> None:
+    def _final_raise(self, ex: Optional[Exception]) -> None:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
             if ex.level == Level.ERROR:
                 raise ex
-            else:
-                message = f"{error_stats}; run with --verbose for details"
-                if not self.settings.strict:
-                    message += " or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
-                logger.info(terminal_wrap(message))
-                if self.settings.strict:
-                    raise ex
+            elif self.settings.strict:
+                raise ex
         else:
             raise ex
 
@@ -270,14 +268,14 @@ class OutputHandler:
         *,
         all_targets: Set[Path],
         filtered_rules: List[Rule],
-        ignore_log: Optional[IgnoreLog] = None,
+        ignore_log: Optional[FileTargetingLog] = None,
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
-        self.rule_matches += [
+        self.rule_matches = [
             match
             for matches_of_one_rule in rule_matches_by_rule.values()
             for match in matches_of_one_rule
@@ -285,12 +283,40 @@ class OutputHandler:
         self.profiler = profiler
         self.all_targets = all_targets
         self.filtered_rules = filtered_rules
+
         if ignore_log:
             self.ignore_log = ignore_log
+        else:
+            # ignore log was not created, so the run failed before it even started
+            # create a fake log to track the errors
+            self.ignore_log = FileTargetingLog(TargetManager(["."]))
+
         if profiling_data:
             self.profiling_data = profiling_data
         if severities:
             self.severities = severities
+
+        final_error = None
+        any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
+
+        if self.final_error:
+            final_error = self.final_error
+        elif any_findings_not_ignored and self.settings.error_on_findings:
+            # This exception won't be visible to the user, we're just
+            # using this to return a specific error code
+            final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
+        elif self.semgrep_structured_errors:
+            # Assumption: only the semgrep core errors pertain to files; if there are other
+            # errors, they didn't affect the whether files were analyzed, but were a different
+            # kind of error (for example, baseline commit not found)
+            semgrep_core_errors = [
+                cast(SemgrepCoreError, err)
+                for err in self.semgrep_structured_errors
+                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
+            ]
+            paths = {err.path for err in semgrep_core_errors}
+            final_error = self.semgrep_structured_errors[-1]
+            self.ignore_log.failed_to_analyze.update(paths)
 
         if self.has_output:
             output = self._build_output()
@@ -305,54 +331,35 @@ class OutputHandler:
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
                         ) from ex
 
-            if self.filtered_rules:
-                fingerprint_matches, regular_matches = partition(
-                    lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
-                )
-                num_findings = len(regular_matches)
-                num_fingerprint_findings = len(fingerprint_matches)
-                num_targets = len(self.all_targets)
-                num_rules = len(self.filtered_rules)
+        if self.filtered_rules:
+            fingerprint_matches, regular_matches = partition(
+                lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
+            )
+            num_findings = len(regular_matches)
+            num_fingerprint_findings = len(fingerprint_matches)
+            num_targets = len(self.all_targets)
+            num_rules = len(self.filtered_rules)
 
-                ignores_line = str(ignore_log or "No ignore information available")
-                if (
-                    num_findings == 0
-                    and num_targets > 0
-                    and num_rules > 0
-                    and metric_manager.get_is_using_server()
-                    and Authentication.get_token() is None
-                ):
-                    suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
-                else:
-                    suggestion_line = ""
-                stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
-                auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
-                if ignore_log is not None:
-                    logger.verbose(ignore_log.verbose_output())
-                output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
-                output_text += "\n" + auto_line if num_fingerprint_findings else ""
-                logger.info(output_text)
+            ignores_line = str(ignore_log or "No ignore information available")
+            if (
+                num_findings == 0
+                and num_targets > 0
+                and num_rules > 0
+                and metric_manager.get_is_using_server()
+                and app_session.token is None
+            ):
+                suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
+            else:
+                suggestion_line = ""
+            stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+            auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
+            if ignore_log is not None:
+                logger.verbose(ignore_log.verbose_output())
+            output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
+            output_text += "\n" + auto_line if num_fingerprint_findings else ""
+            logger.info(output_text)
 
-        final_error = None
-        error_stats = None
-        any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
-        if self.final_error:
-            final_error = self.final_error
-        elif any_findings_not_ignored and self.settings.error_on_findings:
-            # This exception won't be visible to the user, we're just
-            # using this to return a specific error code
-            final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
-        elif self.semgrep_structured_errors:
-            # Assumption: only the semgrep core errors pertain to files
-            semgrep_core_errors = [
-                cast(SemgrepCoreError, err)
-                for err in self.semgrep_structured_errors
-                if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
-            ]
-            paths = set(err.path for err in semgrep_core_errors)
-            error_stats = f"found problems analyzing {unit_str(len(paths), 'file')}"
-            final_error = self.semgrep_structured_errors[-1]
-        self._final_raise(final_error, error_stats)
+        self._final_raise(final_error)
 
     def _save_output(self, destination: str, output: str) -> None:
         if is_url(destination):
@@ -365,8 +372,6 @@ class OutputHandler:
                 fout.write(output)
 
     def _post_output(self, output_url: str, output: str) -> None:
-        import requests  # here for faster startup times
-
         logger.info(f"posting to {output_url}...")
         try:
             r = requests.post(output_url, data=output, timeout=10)

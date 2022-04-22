@@ -15,6 +15,7 @@
         "offset": 7
       },
       "extra": {
+        "fingerprint": "8e5a82406b8572cbd604463e426661f4",
         "fix": "one",
         "is_ignored": false,
         "lines": "one\ntwo",
@@ -38,6 +39,7 @@
         "offset": 18
       },
       "extra": {
+        "fingerprint": "61879a39cf14d9e5197692baf5cec91a",
         "fix": "four",
         "is_ignored": false,
         "lines": "three\nfour",

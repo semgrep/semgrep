@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module J = JSON
@@ -31,7 +32,9 @@ let expr_at_range s file =
 let synthesize_patterns s file =
   let config = Config_semgrep.default_config in
   let options = Synthesizer.synthesize_patterns config s file in
-  let json_opts = J.Object (List.map (fun (k, v) -> (k, J.String v)) options) in
+  let json_opts =
+    J.Object (Common.map (fun (k, v) -> (k, J.String v)) options)
+  in
   let s = J.string_of_json json_opts in
   pr s
   [@@action]

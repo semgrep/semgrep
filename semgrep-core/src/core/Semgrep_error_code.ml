@@ -37,14 +37,26 @@ and error_kind =
 type severity = Error | Warning
 
 let g_errors = ref []
-
 let options () = []
+
+let please_file_issue_text =
+  "An error occurred while invoking the Semgrep engine. Please help us fix \
+   this by creating an issue at https://github.com/returntocorp/semgrep"
 
 (****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
 
 let mk_error ?(rule_id = None) loc msg err =
+  let msg =
+    match err with
+    | MatchingError
+    | AstBuilderError
+    | FatalError
+    | TooManyMatches ->
+        Printf.sprintf "%s\n\n%s" please_file_issue_text msg
+    | _ -> msg
+  in
   { rule_id; loc; typ = err; msg; details = None; yaml_path = None }
 
 let mk_error_tok ?(rule_id = None) tok msg err =
@@ -214,7 +226,7 @@ let (expected_error_lines_of_files :
       (Common.filename * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) test_files ->
   test_files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          Common.cat file |> Common.index_list_1
          |> Common.map_filter (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
@@ -232,7 +244,7 @@ let (expected_error_lines_of_files :
 let compare_actual_to_expected actual_errors expected_error_lines =
   let actual_error_lines =
     actual_errors
-    |> List.map (fun err ->
+    |> Common.map (fun err ->
            let loc = err.loc in
            (loc.PI.file, loc.PI.line))
   in

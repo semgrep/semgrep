@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
     snapshot.assert_match(
@@ -20,7 +21,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
     # writing.
     # This tempfile will be deleted when the with context closes.
     with tempfile.NamedTemporaryFile(dir=Path("targets")) as tf:
-        with open(Path("targets") / "autofix/autofix.py", "r") as fin:
+        with open(Path("targets") / "autofix/autofix.py") as fin:
             tf.write(fin.read().encode("utf-8"))
         tf.flush()  # Make sure file has been copied.
         tf.seek(
@@ -38,6 +39,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
         )
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize("dryrun", [True, False], ids=["dryrun", "not-dryrun"])
 @pytest.mark.parametrize(
     "rule,target",
@@ -62,6 +64,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot, dryrun):
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
     ],
 )
+@pytest.mark.kinda_slow
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
@@ -74,7 +77,7 @@ def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # writing.
     # This tempfile will be deleted when the with context closes.
     with tempfile.NamedTemporaryFile(dir=Path("targets")) as tf:
-        with open(Path("targets") / target, "r") as fin:
+        with open(Path("targets") / target) as fin:
             tf.write(fin.read().encode("utf-8"))
         tf.flush()  # Make sure file has been copied.
         tf.seek(

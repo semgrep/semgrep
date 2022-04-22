@@ -57,22 +57,19 @@ let empty_env (lang : Lang.t) : env =
 exception Fixme of fixme_kind * G.any
 
 let sgrep_construct any_generic = raise (Fixme (Sgrep_construct, any_generic))
-
 let todo any_generic = raise (Fixme (ToDo, any_generic))
-
 let impossible any_generic = raise (Fixme (Impossible, any_generic))
 
 let locate opt_tok s =
   let opt_loc =
-    try Option.map Parse_info.string_of_info opt_tok
-    with Parse_info.NoTokenLocation _ -> None
+    try Option.map Parse_info.string_of_info opt_tok with
+    | Parse_info.NoTokenLocation _ -> None
   in
   match opt_loc with
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
 let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
-
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 
 let log_fixme kind gany =
@@ -147,13 +144,9 @@ let lval_of_base base = { base; offset = NoOffset }
  * a gensym to each.
  *)
 let label_of_label _env lbl = (lbl, -1)
-
 let lookup_label _env lbl = (lbl, -1)
-
 let mk_e e eorig = { e; eorig }
-
 let mk_i i iorig = { i; iorig }
-
 let mk_s s = { s }
 
 let mk_unit tok eorig =
@@ -183,9 +176,7 @@ let add_call env tok eorig ~void mk_call =
     mk_e (Fetch lval) NoOrig
 
 let add_stmt env st = Common.push st env.stmts
-
 let add_stmts env xs = xs |> List.iter (add_stmt env)
-
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
 let ident_of_entity_opt ent =
@@ -313,7 +304,8 @@ and pattern_assign_statements env ?(eorig = NoOrig) exp pat =
   try
     let lval, ss = pattern env pat in
     [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ] @ ss
-  with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+  with
+  | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 (*****************************************************************************)
 (* Assign *)
@@ -329,11 +321,12 @@ and assign env lhs tok rhs_exp e_gen =
         let lval = lval env lhs in
         add_instr env (mk_i (Assign (lval, rhs_exp)) eorig);
         mk_e (Fetch lval) (SameAs lhs)
-      with Fixme (kind, any_generic) ->
-        (* lval translation failed, we use a fresh lval instead *)
-        let fixme_lval = fresh_lval ~str:"_FIXME" env tok in
-        add_instr env (mk_i (Assign (fixme_lval, rhs_exp)) eorig);
-        fixme_exp kind any_generic (related_exp e_gen))
+      with
+      | Fixme (kind, any_generic) ->
+          (* lval translation failed, we use a fresh lval instead *)
+          let fixme_lval = fresh_lval ~str:"_FIXME" env tok in
+          add_instr env (mk_i (Assign (fixme_lval, rhs_exp)) eorig);
+          fixme_exp kind any_generic (related_exp e_gen))
   | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
       (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
@@ -478,6 +471,13 @@ and expr_aux env ?(void = false) e_gen =
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
+  | G.New (tok, ty, args) ->
+      (* TODO: lift up New in IL like we did in AST_generic *)
+      let special = (New, tok) in
+      let arg = G.ArgType ty in
+      let args = arguments env args in
+      add_call env tok eorig ~void (fun res ->
+          CallSpecial (res, special, argument env arg :: args))
   | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
       let tok = snd spec in
       let special = call_special env spec in
@@ -525,7 +525,7 @@ and expr_aux env ?(void = false) e_gen =
                  ());
           expr env last)
   | G.Container (kind, xs) ->
-      let xs = bracket_keep (List.map (expr env)) xs in
+      let xs = bracket_keep (Common.map (expr env)) xs in
       let kind = composite_kind kind in
       mk_e (Composite (kind, xs)) eorig
   | G.Comprehension _ -> todo (G.E e_gen)
@@ -610,7 +610,7 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Fetch tmp) NoOrig
   | G.Constructor (cname, (tok1, esorig, tok2)) ->
       let cname = var_of_name cname in
-      let es = esorig |> List.map (fun eiorig -> expr env eiorig) in
+      let es = esorig |> Common.map (fun eiorig -> expr env eiorig) in
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml _ -> todo (G.E e_gen)
@@ -635,7 +635,7 @@ and expr_aux env ?(void = false) e_gen =
   | G.OtherExpr ((str, tok), xs) ->
       let es =
         xs
-        |> List.map (fun x ->
+        |> Common.map (fun x ->
                match x with
                | G.E e1orig -> expr env e1orig
                | __else__ -> fixme_exp ToDo x (related_tok tok))
@@ -646,9 +646,8 @@ and expr_aux env ?(void = false) e_gen =
       fixme_exp ToDo (G.E e_gen) (related_tok tok) ~partial
 
 and expr env ?void e_gen =
-  try expr_aux env ?void e_gen
-  with Fixme (kind, any_generic) ->
-    fixme_exp kind any_generic (related_exp e_gen)
+  try expr_aux env ?void e_gen with
+  | Fixme (kind, any_generic) -> fixme_exp kind any_generic (related_exp e_gen)
 
 and expr_opt env = function
   | None ->
@@ -686,7 +685,6 @@ and call_special _env (x, tok) =
     | G.Typeof -> Typeof
     | G.Instanceof -> Instanceof
     | G.Sizeof -> Sizeof
-    | G.New -> New
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
     | G.EncodedString _
@@ -705,7 +703,7 @@ and composite_kind = function
   | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> G.unbracket |> List.map (argument env)
+and arguments env xs = xs |> G.unbracket |> Common.map (argument env)
 
 and argument env arg =
   match arg with
@@ -714,6 +712,7 @@ and argument env arg =
   | G.ArgKwdOptional (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
+  | G.ArgType { t = TyExpr e; _ } -> expr env e
   | _ ->
       let any = G.Ar arg in
       fixme_exp ToDo any (Related any)
@@ -722,7 +721,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
   let fields =
     origfields
-    |> List.map (function
+    |> Common.map (function
          | G.F
              {
                s =
@@ -802,7 +801,7 @@ and expr_with_pre_stmts_opt env eopt =
 
 and for_var_or_expr_list env xs =
   xs
-  |> List.map (function
+  |> Common.map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -872,11 +871,11 @@ and stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.S st)))) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> G.unbracket |> List.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> G.unbracket |> Common.map (stmt env) |> List.flatten
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
-      let st2 = List.map (stmt env) (st2 |> Option.to_list) |> List.flatten in
+      let st2 = List.concat_map (stmt env) (st2 |> Option.to_list) in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
       let ss, translate_cases =
@@ -1187,8 +1186,8 @@ and cases_and_bodies_to_stmts env tok break_label translate_cases = function
       (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
 
 and stmt env st =
-  try stmt_aux env st
-  with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+  try stmt_aux env st with
+  | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 and function_body env fbody = stmt env (H.funcbody_to_stmt fbody)
 

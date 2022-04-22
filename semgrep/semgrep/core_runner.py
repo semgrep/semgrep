@@ -23,6 +23,7 @@ from attr import frozen
 from ruamel.yaml import YAML
 from tqdm import tqdm
 
+import semgrep.output_from_core as core
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -38,7 +39,6 @@ from semgrep.error import with_color
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
@@ -47,6 +47,7 @@ from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
 from semgrep.util import is_quiet
+from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -78,7 +79,13 @@ def setrlimits_preexec_fn() -> None:
             hard_limit / 3
         ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
         int(hard_limit / 4),
-        5120000,  # Magic number that seems to work for most cases
+        old_soft_limit * 100,
+        old_soft_limit * 10,
+        old_soft_limit * 5,
+        1000000000,
+        512000000,
+        51200000,
+        5120000,  # Magic numbers that seems to work for most cases
         old_soft_limit,
     ]
 
@@ -88,10 +95,12 @@ def setrlimits_preexec_fn() -> None:
         try:
             logger.info(f"Trying to set soft limit to {soft_limit}")
             resource.setrlimit(resource.RLIMIT_STACK, (soft_limit, hard_limit))
-            logger.info(f"Set stack limit to {soft_limit}, {hard_limit}")
+            logger.info(f"Successfully set stack limit to {soft_limit}, {hard_limit}")
             return
         except Exception as e:
-            logger.info(f"Failed to set stack limit to {soft_limit}, {hard_limit}")
+            logger.info(
+                f"Failed to set stack limit to {soft_limit}, {hard_limit}. Trying again."
+            )
             logger.verbose(str(e))
 
     logger.info("Failed to change stack limits")
@@ -103,7 +112,7 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 
 def uniq_error_id(
     error: SemgrepCoreError,
-) -> Tuple[int, Path, CoreLocation, CoreLocation, str]:
+) -> Tuple[int, Path, core.Position, core.Position, str]:
     return (error.code, error.path, error.start, error.end, error.message)
 
 
@@ -166,7 +175,7 @@ class StreamingSemgrepCore:
 
             # read returns empty when EOF
             if not line_bytes:
-                self._stdout = b"".join(stdout_lines).decode("utf-8")
+                self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
                 break
 
             if line_bytes == b".\n":
@@ -201,7 +210,7 @@ class StreamingSemgrepCore:
                 self._stderr = "".join(stderr_lines)
                 break
 
-            line = line_bytes.decode("utf-8")
+            line = line_bytes.decode("utf-8", "replace")
             stderr_lines.append(line)
 
     async def _stream_subprocess(self) -> int:
@@ -247,7 +256,6 @@ class StreamingSemgrepCore:
             )
 
         rc = asyncio.run(self._stream_subprocess())
-
         if self._progress_bar:
             self._progress_bar.close()
 
@@ -264,7 +272,7 @@ class Task:
 class Plan(List[Task]):
     @property
     def rule_count(self) -> int:
-        return len(set(rule for task in self for rule in task.rule_ids))
+        return len({rule for task in self for rule in task.rule_ids})
 
     @property
     def file_count(self) -> int:
@@ -595,7 +603,22 @@ class CoreRunner:
                 else:
                     raise SemgrepError("deep mode needs a single target (root) dir")
 
-                cmd = [SemgrepCore.deep_path()] + [
+                deep_path = SemgrepCore.deep_path()
+                if deep_path is None:
+                    raise SemgrepError(
+                        "Could not run deep analysis: DeepSemgrep not installed. Run `semgrep install-deep-semgrep`"
+                    )
+
+                logger.info(f"Using DeepSemgrep installed in {deep_path}")
+                version = sub_check_output(
+                    [deep_path, "--version"],
+                    timeout=10,
+                    encoding="utf-8",
+                    stderr=subprocess.DEVNULL,
+                ).rstrip()
+                logger.info(f"DeepSemgrep Version Info: ({version})")
+
+                cmd = [deep_path] + [
                     "--json",
                     "--rules",
                     rule_file.name,
@@ -616,7 +639,6 @@ class CoreRunner:
             stderr: Optional[int] = subprocess.PIPE
             if is_debug():
                 cmd += ["--debug"]
-                stderr = None
 
             if dump_command_for_core:
                 print(" ".join(cmd))

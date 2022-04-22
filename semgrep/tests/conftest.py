@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from shutil import copytree
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -63,6 +64,7 @@ def _clean_output_json(output_json: str) -> str:
             p = r.get("path")
             if p and "/tmp" in p:
                 del r["path"]
+                del r["extra"]["fingerprint"]  # the fingerprint contains the path too
 
     paths = output.get("paths", {})
     if paths.get("scanned"):
@@ -118,6 +120,7 @@ def _run_semgrep(
     fail_on_nonzero: bool = True,
     settings_file: Optional[str] = None,
     force_color: Optional[bool] = None,
+    assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -180,7 +183,13 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        *options,
+        (Path("targets") / target_name if assume_targets_dir else Path(target_name)),
+    ]
     # join here so that one can easily copy-paste the command
     str_cmd = " ".join(str(c) for c in cmd)
     print(f"current directory: {os.getcwd()}")
@@ -188,8 +197,7 @@ def _run_semgrep(
     output = subprocess.run(
         cmd,
         encoding="utf-8",
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
         env=env,
     )
 
@@ -231,6 +239,19 @@ def chdir(dirname=None):
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    monkeypatch.chdir(tmp_path)
+
+    yield _run_semgrep
+
+
+# Needed to test the project-depends-on rules
+# pathlib.glob (and semgrep by extension) do not traverse into symlinks
+# Lockfile targeting begins at the parent of the first semgrep target
+# which in this case is tmp_path, which normally contains only symlinks :/
+@pytest.fixture
+def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
+    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
+    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep

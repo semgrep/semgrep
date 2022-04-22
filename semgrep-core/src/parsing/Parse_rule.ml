@@ -82,9 +82,7 @@ let yaml_error_at_expr (e : G.expr) s =
   yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
-
 let error env t s = raise (R.InvalidRule (R.InvalidOther s, env.id, t))
-
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
@@ -107,11 +105,11 @@ let generic_to_json env (key : key) ast =
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
     | G.L (String (s, _)) -> J.String s
-    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> List.map aux)
+    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
           (xs
-          |> List.map (fun x ->
+          |> Common.map (fun x ->
                  match x.G.e with
                  | G.Container
                      (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
@@ -221,7 +219,7 @@ let parse_string_wrap_no_env (key : key) x =
 
 let parse_list_no_env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.map f xs
+  | G.Container (Array, (_, xs, _)) -> Common.map f xs
   | _ -> yaml_error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list_no_env (key : key) e =
@@ -247,7 +245,7 @@ let parse_string env (key : key) x = parse_string_wrap env key x |> fst
 
 let parse_list env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.map (f env) xs
+  | G.Container (Array, (_, xs, _)) -> Common.map (f env) xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
@@ -276,9 +274,8 @@ let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
   | G.L (String (s, _)) -> (
-      try int_of_string s
-      with Failure _ ->
-        error_at_key env key (spf "parse_int for %s" (fst key)))
+      try int_of_string s with
+      | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
       if float_of_int i = f then i else error_at_key env key "not an int"
@@ -322,10 +319,10 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try (s, SPcre.regexp s)
-  with Pcre.Error exn ->
-    raise
-      (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
+  try (s, SPcre.regexp s) with
+  | Pcre.Error exn ->
+      raise
+        (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
@@ -533,7 +530,6 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   (* These keys are handled in Python *)
   (* TODO really we should either remove these keys before sending
      the rules or handle them in OCaml, this is not good *)
-  | "r2c-internal-project-depends-on" -> R.PatFilteredInPythonTodo t
   | "r2c-internal-patterns-from" -> R.PatFilteredInPythonTodo t
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
@@ -625,9 +621,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarAnalysis (metavar, kind)
   | "metavariable-regex" ->
       let mv_regex_dict =
-        try yaml_to_dict env key value
-        with R.DuplicateYamlKey (msg, t) ->
-          error env t (msg ^ ". You should use multiple metavariable-regex")
+        try yaml_to_dict env key value with
+        | R.DuplicateYamlKey (msg, t) ->
+            error env t (msg ^ ". You should use multiple metavariable-regex")
       in
       let metavar, regexp =
         ( take mv_regex_dict env parse_string "metavariable",
@@ -674,7 +670,7 @@ let parse_languages ~id langs : Xlang.t =
   | xs -> (
       let languages =
         xs
-        |> List.map (function s, t ->
+        |> Common.map (function s, t ->
                (match Lang.lang_of_string_opt s with
                | None -> raise (R.InvalidRule (R.InvalidLanguage s, fst id, t))
                | Some l -> l))
@@ -844,11 +840,11 @@ let parse_generic ?(error_recovery = false) file ast =
     rules
     |> List.mapi (fun i rule ->
            if error_recovery then (
-             try Left (parse_one_rule t i rule)
-             with R.InvalidRule ((kind, ruleid, _) as err) ->
-               let s = Rule.string_of_invalid_rule_error_kind kind in
-               logger#warning "skipping rule %s, error = %s" ruleid s;
-               Right err)
+             try Left (parse_one_rule t i rule) with
+             | R.InvalidRule ((kind, ruleid, _) as err) ->
+                 let s = Rule.string_of_invalid_rule_error_kind kind in
+                 logger#warning "skipping rule %s, error = %s" ruleid s;
+                 Right err)
            else Left (parse_one_rule t i rule))
   in
   Common.partition_either (fun x -> x) xs

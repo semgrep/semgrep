@@ -35,21 +35,13 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 
 let fake = G.fake
-
 let fb = G.fake_bracket
-
 let id x = x
-
 let v_string = id
-
 let v_int = id
-
 let v_float = id
-
 let v_bool = id
-
 let v_list = List.map
-
 let v_option = Option.map
 
 let cases_to_lambda lb cases : G.function_definition =
@@ -82,21 +74,13 @@ let v_bracket _of_a (v1, v2, v3) =
   (v1, v2, v3)
 
 let v_ident v = v_wrap v_string v
-
 let v_op v = v_wrap v_string v
-
 let v_varid v = v_wrap v_string v
-
 let v_ident_or_wildcard v = v_ident v
-
 let v_varid_or_wildcard v = v_ident v
-
 let v_ident_or_this v = v_ident v
-
 let v_dotted_ident v = v_list v_ident v
-
 let v_qualified_ident v = v_dotted_ident v
-
 let v_selectors v = v_dotted_ident v
 
 let v_simple_ref = function
@@ -221,7 +205,6 @@ and v_encaps = function
       Right v1
 
 and todo_type msg anys = G.OtherType ((msg, fake msg), anys)
-
 and v_type_ x = v_type_kind x |> G.t
 
 and v_type_kind = function
@@ -315,7 +298,6 @@ and v_type_bounds { supertype = v_supertype; subtype = v_subtype } =
   (arg1, arg2)
 
 and v_ascription v = v_type_ v
-
 and todo_pattern msg any = G.OtherPat ((msg, fake msg), any)
 
 and v_pattern = function
@@ -373,6 +355,12 @@ and v_expr e : G.expr =
   match e with
   | Ellipsis v1 -> G.Ellipsis v1 |> G.e
   | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1) |> G.e
+  | DotAccessEllipsis (v1, v2) ->
+      let v1 = v_expr v1 in
+      G.DotAccessEllipsis (v1, v2) |> G.e
+  | TypedExpr (Name (Id (s, tok), []), v2, v3) when String.get s 0 = '$' ->
+      let v3 = v_type_ v3 in
+      G.TypedMetavar ((s, tok), v2, v3) |> G.e
   | L v1 -> (
       let v1 = v_literal v1 in
       match v1 with
@@ -428,10 +416,26 @@ and v_expr e : G.expr =
   | Lambda v1 ->
       let v1 = v_function_definition v1 in
       G.Lambda v1 |> G.e
-  | New (v1, v2) ->
+  | New (v1, v2) -> (
       let v1 = v_tok v1 and v2 = v_template_definition v2 in
-      let cl = G.AnonClass v2 |> G.e in
-      G.special (G.New, v1) [ cl ]
+      match v2 with
+      | {
+       cextends = [ (tp, args) ];
+       cparams = [];
+       cmixins = [];
+       cbody = _, [], _;
+       cimplements = [];
+       ckind = G.Object, _;
+      } ->
+          let args =
+            match args with
+            | None -> G.fake_bracket []
+            | Some args -> args
+          in
+          G.New (v1, tp, args) |> G.e
+      | _ ->
+          let cl = G.AnonClass v2 |> G.e in
+          G.Call (cl, fb []) |> G.e)
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
@@ -761,7 +765,7 @@ and v_variable_definitions
          | _ ->
              (* TODO: some patterns may have tparams? *)
              let ent =
-               G.{ name = EPattern (v_pattern pat); attrs; tparams = [] }
+               { G.name = EPattern (v_pattern pat); attrs; tparams = [] }
              in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef))
@@ -953,5 +957,4 @@ let v_any = function
 (*****************************************************************************)
 
 let program xs = v_program xs
-
 let any x = v_any x

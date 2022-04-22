@@ -23,7 +23,6 @@ module MV = Metavariable
 module RP = Report
 open Pattern_match
 module ST = Output_from_core_t (* atdgen definitions *)
-
 module SJ = Output_from_core_j (* JSON conversions *)
 
 (*****************************************************************************)
@@ -93,7 +92,8 @@ let range_of_any_opt startp_of_match_range any =
    *)
   | Ss []
   | Params []
-  | Args [] ->
+  | Args []
+  | Xmls [] ->
       Some empty_range
   | _ ->
       let ( let* ) = Common.( >>= ) in
@@ -118,7 +118,7 @@ let metavars startp_of_match_range (s, mval) =
             any |> V.ii_of_any
             |> List.filter PI.is_origintok
             |> List.sort Parse_info.compare_pos
-            |> List.map PI.str_of_info
+            |> Common.map PI.str_of_info
             |> Matching_report.join_with_space_if_needed;
           unique_id = unique_id any;
         } )
@@ -129,7 +129,7 @@ let match_to_match x =
     let startp, endp = position_range min_loc max_loc in
     Left
       ({
-         ST.rule_id = Some x.rule_id.id;
+         ST.rule_id = x.rule_id.id;
          location =
            {
              path = x.file;
@@ -140,20 +140,21 @@ let match_to_match x =
          extra =
            {
              message = Some x.rule_id.message;
-             metavars = x.env |> List.map (metavars startp);
+             metavars = x.env |> Common.map (metavars startp);
            };
        }
         : ST.match_)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
-  with Parse_info.NoTokenLocation s ->
-    let loc = Parse_info.first_loc_of_file x.file in
-    let s =
-      spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
-    in
-    let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
-    Right err
+  with
+  | Parse_info.NoTokenLocation s ->
+      let loc = Parse_info.first_loc_of_file x.file in
+      let s =
+        spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
+      in
+      let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
+      Right err
   [@@profiling]
 
 (* was in pfff/h_program-lang/R2c.ml becore *)
@@ -161,7 +162,8 @@ let hcache = Hashtbl.create 101
 
 let lines_of_file (file : Common.filename) : string array =
   Common.memoized hcache file (fun () ->
-      try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
+      try Common.cat file |> Array.of_list with
+      | _ -> [| "EMPTY FILE" |])
 
 let error_to_error err =
   let severity_of_severity = function
@@ -187,7 +189,9 @@ let error_to_error err =
         path = file;
         start = startp;
         end_ = endp;
-        lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
+        lines =
+          (try [ lines.(line - 1) ] with
+          | _ -> [ "NO LINE" ]);
       };
     message;
     details;
@@ -197,19 +201,19 @@ let error_to_error err =
 let json_time_of_profiling_data profiling_data =
   let json_time_of_rule_times rule_times =
     rule_times
-    |> List.map (fun { RP.rule_id; parse_time; match_time } ->
+    |> Common.map (fun { RP.rule_id; parse_time; match_time } ->
            { ST.rule_id; parse_time; match_time })
   in
   {
     ST.targets =
       profiling_data.RP.file_times
-      |> List.map (fun { RP.file = target; rule_times; run_time } ->
+      |> Common.map (fun { RP.file = target; rule_times; run_time } ->
              {
                ST.path = target;
                rule_times = json_time_of_rule_times rule_times;
                run_time;
              });
-    rules = List.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
+    rules = Common.map (fun rule -> fst rule.Rule.id) profiling_data.RP.rules;
     rules_parse_time = Some profiling_data.RP.rules_parse_time;
   }
 
@@ -227,7 +231,7 @@ let match_results_of_matches_and_errors files res =
   let count_ok = List.length files - count_errors in
   {
     ST.matches;
-    errors = errs |> List.map error_to_error;
+    errors = errs |> Common.map error_to_error;
     skipped_targets = res.RP.skipped_targets;
     skipped_rules =
       (match res.RP.skipped_rules with
@@ -235,7 +239,7 @@ let match_results_of_matches_and_errors files res =
       | xs ->
           Some
             (xs
-            |> List.map (fun (kind, rule_id, tk) ->
+            |> Common.map (fun (kind, rule_id, tk) ->
                    let loc = PI.unsafe_token_location_of_info tk in
                    {
                      ST.rule_id;

@@ -382,7 +382,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
                 from semgrep.error import InvalidRuleSchemaError
 
                 kv_pairs: List[Tuple[Node, Node]] = [t for t in node.value]
-                uniq_key_names: Set[str] = set(t[0].value for t in kv_pairs)
+                uniq_key_names: Set[str] = {t[0].value for t in kv_pairs}
                 # If the number of unique key names is less than the number
                 # of key-value nodes, then there's a duplicate key
                 if len(uniq_key_names) < len(kv_pairs):

@@ -21,6 +21,3 @@ val find_vulnerable_subpatterns :
 *)
 val regexp_may_be_vulnerable :
   ?dialect:Pfff_lang_regexp.Dialect.t -> string -> bool
-
-(* Exposed only for testing purposes *)
-val unquote : string -> string

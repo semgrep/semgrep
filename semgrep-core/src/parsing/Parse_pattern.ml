@@ -75,6 +75,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Solidity ->
         let res = Parse_solidity_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Swift ->
+        let res = Parse_swift_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Html ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors

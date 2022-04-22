@@ -64,19 +64,14 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * directly semgrep-core but instead use the semgrep Python wrapper.
  *)
 let env_debug = "SEMGREP_CORE_DEBUG"
-
 let env_profile = "SEMGREP_CORE_PROFILE"
-
 let env_extra = "SEMGREP_CORE_EXTRA"
-
 let log_config_file = ref "log_config.json"
-
 let log_to_file = ref None
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
 let test = ref false
-
 let debug = ref false
 
 (* related:
@@ -87,7 +82,6 @@ let debug = ref false
 
 (* try to continue processing files, even if one has a parse error with -e/f *)
 let error_recovery = ref false
-
 let profile = ref false
 
 (* report matching times per file *)
@@ -108,18 +102,13 @@ let pattern_file = ref ""
 
 (* -rules *)
 let rules_file = ref ""
-
 let equivalences_file = ref ""
 
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
-
 let output_format = ref Text
-
 let match_format = ref Matching_report.Normal
-
 let mvars = ref ([] : Metavariable.mvar list)
-
 let lsp = ref false
 
 (* ------------------------------------------------------------------------- *)
@@ -127,9 +116,7 @@ let lsp = ref false
 (* ------------------------------------------------------------------------- *)
 
 let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
-
 let timeout_threshold = ref 0
-
 let max_memory_mb = ref 0 (* in MiB *)
 
 (* arbitrary limit *)
@@ -200,19 +187,19 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
     | OCaml.VInt i -> J.Int i
-    | OCaml.VTuple xs -> J.Array (List.map aux xs)
-    | OCaml.VDict xs -> J.Object (List.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VTuple xs -> J.Array (Common.map aux xs)
+    | OCaml.VDict xs -> J.Object (Common.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ -> J.Object [ (s, J.Array (List.map aux xs)) ])
+        | _ -> J.Object [ (s, J.Array (Common.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
     | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
-    | OCaml.VList xs -> J.Array (List.map aux xs)
+    | OCaml.VList xs -> J.Array (Common.map aux xs)
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
@@ -268,7 +255,7 @@ let dump_v1_json file =
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
-    |> List.map (fun lang_str ->
+    |> Common.map (fun lang_str ->
            match Lang.lang_of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)

@@ -1,8 +1,54 @@
-test:
-	pipenv run pytest -v --tb=short tests/
-regenerate-tests:
-	pipenv run pytest tests/ --snapshot-update --ignore=tests/qa/test_public_repos.py
+PYTEST ?= pipenv run pytest -v --tb=short --durations=10
 
+.PHONY: default
+default:
+	$(MAKE) build
+	$(MAKE) test
+
+# Generate code. Needed at least when the interface changes.
+.PHONY: build
+build:
+	$(MAKE) -C semgrep build
+	$(MAKE) check
+
+# Typecheck and run all tests from quickest to slowest.
+.PHONY: test
+test:
+	$(MAKE) kinda-quick-tests
+	$(PYTEST) -n auto -m 'not quick and not kinda_slow' tests
+
+.PHONY: check
+check:
+	pre-commit run -a mypy
+	$(MAKE) check-markers
+
+# Check that all the test_* functions are categorized by duration.
+.PHONY: check-markers
+check-markers:
+	./tests/check-markers tests
+
+# Run only the tests marked as quick (@pytest.mark.quick)
+# We have also 'kinda_slow' and 'slow'. See 'tox.ini', section 'pytest'.
+#
+# '-n auto' parallelizes with too much overhead for the quick tests.
+#
+.PHONY: quick-tests
+quick-tests:
+	$(MAKE) check
+	$(PYTEST) -m quick tests
+
+.PHONY: kinda-quick-tests
+kinda-quick-tests:
+	$(MAKE) quick-tests
+	$(PYTEST) -n auto -m kinda_slow tests
+
+.PHONY:
+regenerate-tests:
+	pipenv run pytest -n auto \
+	  --snapshot-update --ignore=tests/qa/test_public_repos.py \
+	  tests
+
+.PHONY: setup
 setup:
 	pipenv install --dev
 
@@ -12,8 +58,3 @@ clean:
 	rm -rf .pytest_cache/ .benchmarks/
 	rm -f semgrep/bin/semgrep-core
 	rm -rf semgrep/__pycache__ semgrep/*/__pycache__
-
-.PHONY: check
-check:
-	pre-commit run -a mypy
-	#semgrep -pycheck .

@@ -15,17 +15,19 @@ from typing import Dict
 from typing import List
 from typing import NewType
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 from attrs import define
 from attrs import frozen
 
+import semgrep.output_from_core as core
 from semgrep.error import LegacySpan
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
+from semgrep.output_from_core import MetavarValue
+from semgrep.output_from_core import SkipReason
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
-from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
@@ -36,40 +38,9 @@ logger = getLogger(__name__)
 
 CoreErrorMessage = NewType("CoreErrorMessage", str)
 CoreErrorType = NewType("CoreErrorType", str)
-SkipReason = NewType("SkipReason", str)
 SkipDetails = NewType("SkipDetails", str)
 
 CoreRulesParseTime = NewType("CoreRulesParseTime", float)
-
-
-@frozen
-class MetavarValue:
-    start: CoreLocation
-    end: CoreLocation
-
-    @classmethod
-    def parse(cls, raw_json: JsonObject) -> "MetavarValue":
-        start = CoreLocation.parse(raw_json["start"])
-        end = CoreLocation.parse(raw_json["end"])
-        return cls(start, end)
-
-
-@frozen
-class CoreMetavars:
-    metavars: Dict[str, MetavarValue]
-
-    @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreMetavars":
-        metavars: Dict[str, MetavarValue] = {}
-        for key, value in raw_json.items():
-            metavars[key] = MetavarValue.parse(value)
-        return cls(metavars)
-
-    def get(self, key: str) -> MetavarValue:
-        return self.metavars[key]
-
-    def keys(self) -> List[str]:
-        return list(self.metavars.keys())
 
 
 @frozen
@@ -80,23 +51,20 @@ class CoreMatch:
 
     rule: Rule
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     extra: Dict[str, Any]
-    metavars: CoreMetavars
+    metavars: Dict[str, MetavarValue]
 
     @classmethod
-    def parse(cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject) -> "CoreMatch":
-        rule_id = rule_table[RuleId(raw_json["rule_id"])]
-        location = raw_json["location"]
-        path_str = location["path"]
-        assert isinstance(path_str, str)
-        path = Path(path_str)
-        start = CoreLocation.parse(location["start"])
-        end = CoreLocation.parse(location["end"])
-        extra = raw_json.get("extra", {})
-        metavars = CoreMetavars.parse(extra.get("metavars"))
-        return cls(rule_id, path, start, end, extra, metavars)
+    def make(cls, rule_table: Dict[str, Rule], match: core.Match) -> "CoreMatch":
+        rule = rule_table[match.rule_id.value]
+        path = Path(match.location.path)
+        start = match.location.start
+        end = match.location.end
+        extra = match.extra.to_json()
+        metavars = match.extra.metavars
+        return cls(rule, path, start, end, extra, metavars)
 
 
 @frozen
@@ -109,38 +77,35 @@ class CoreError:
     error_type: CoreErrorType
     rule_id: Optional[RuleId]
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     message: CoreErrorMessage
     level: Level
     spans: Optional[Tuple[LegacySpan, ...]]
     details: Optional[str]
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreError":
-        error_type = CoreErrorType(raw_json["error_type"])
-        raw_rule_id = raw_json.get("rule_id")
-        rule_id = RuleId(raw_rule_id) if raw_rule_id else None
-        location = raw_json["location"]
-        path = Path(location["path"])
-        start = CoreLocation.parse(location["start"])
-        end = CoreLocation.parse(location["end"])
-        _extra = raw_json.get("extra", {})
-        message = CoreErrorMessage(raw_json.get("message", "<no error message>"))
-        level_str = raw_json["severity"]
+    def make(cls, error: core.Error) -> "CoreError":
+        error_type = CoreErrorType(error.error_type)
+        rule_id = RuleId(error.rule_id.value) if error.rule_id else None
+        path = Path(error.location.path)
+        start = error.location.start
+        end = error.location.end
+        message = CoreErrorMessage(error.message)
+
+        # Hackily convert the level string to Semgrep expectations
+        level_str = error.severity.kind
         if level_str.upper() == "WARNING":
             level_str = "WARN"
+        if level_str.upper() == "ERROR_":
+            level_str = "ERROR"
         level = Level[level_str.upper()]
+        details = error.details
 
-        details = raw_json.get("details")
-
-        # TODO legacy support for live editor pattern parse highlighting
         spans = None
-        if "yaml_path" in raw_json:
-            yaml_path = tuple(raw_json["yaml_path"])
-            yaml_path = yaml_path[::-1]
+        if error.yaml_path:
+            yaml_path = tuple(error.yaml_path[::-1])
             spans = tuple([LegacySpan(start, end, yaml_path)])  # type: ignore
-
         return cls(
             error_type, rule_id, path, start, end, message, level, spans, details
         )
@@ -186,17 +151,17 @@ class CoreSkipped:
     details: SkipDetails
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreSkipped":
-        raw_rule_id = raw_json.get("rule_id")
-        rule_id = RuleId(raw_rule_id) if raw_rule_id else None
-        path = Path(raw_json["path"])
-        reason = SkipReason(raw_json["reason"])
-        details = SkipDetails(raw_json["details"])
-        if raw_rule_id:
-            rule_info = f"rule {raw_rule_id}"
+    def make(cls, skipped: core.SkippedTarget) -> "CoreSkipped":
+        rule_id = RuleId(skipped.rule_id.value) if skipped.rule_id else None
+        path = Path(skipped.path)
+        reason = skipped.reason
+        details = SkipDetails(skipped.details)
+
+        if rule_id:
+            rule_info = f"rule {rule_id}"
         else:
             rule_info = "all rules"
-        logger.verbose(f"skipped '{path}' [{rule_info}]: {reason}: {details}")
+        logger.verbose(f"skipped '{str(path)}' [{rule_info}]: {reason}: {details}")
         return cls(rule_id, path, reason, details)
 
 
@@ -207,12 +172,12 @@ class CoreRuleTiming:  # For a given target
     match_time: float
 
     @classmethod
-    def parse(
-        cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject
+    def make(
+        cls, rule_table: Dict[str, Rule], rule_time: core.RuleTimes
     ) -> "CoreRuleTiming":
-        rule = rule_table[RuleId(raw_json["rule_id"])]
-        parse_time = raw_json["parse_time"]
-        match_time = raw_json["match_time"]
+        rule = rule_table[rule_time.rule_id]
+        parse_time = rule_time.parse_time
+        match_time = rule_time.match_time
         return cls(rule, parse_time, match_time)
 
 
@@ -223,15 +188,15 @@ class CoreTargetTiming:
     run_time: float
 
     @classmethod
-    def parse(
-        cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject
+    def make(
+        cls, rule_table: Dict[str, Rule], target_time: core.TargetTime
     ) -> "CoreTargetTiming":
-        target = Path(raw_json["path"])
+        target = Path(target_time.path)
         per_rule_timings = [
-            CoreRuleTiming.parse(rule_table, timing)
-            for timing in raw_json["rule_times"]
+            CoreRuleTiming.make(rule_table, rule_time)
+            for rule_time in target_time.rule_times
         ]
-        run_time = raw_json["run_time"]
+        run_time = target_time.run_time
         return cls(target, per_rule_timings, run_time)
 
 
@@ -242,19 +207,19 @@ class CoreTiming:
     rules_parse_time: CoreRulesParseTime
 
     @classmethod
-    def parse(
-        cls, rule_table: Dict[RuleId, Rule], raw_json: JsonObject
+    def make(
+        cls, rule_table: Dict[str, Rule], time: Optional[core.Time]
     ) -> "CoreTiming":
-        if not raw_json:
+        if not time:
             return cls([], [], CoreRulesParseTime(0.0))
 
-        rules = [rule_table[RuleId(rule)] for rule in raw_json.get("rules", [])]
+        rules = [rule_table[rule] for rule in time.rules]
         target_timings = [
-            CoreTargetTiming.parse(rule_table, target)
-            for target in raw_json.get("targets", [])
+            CoreTargetTiming.make(rule_table, target) for target in time.targets
         ]
-        rules_parse_time = raw_json.get("rules_parse_time", 0.0)
-
+        rules_parse_time = CoreRulesParseTime(
+            time.rules_parse_time if time.rules_parse_time else 0.0
+        )
         return cls(rules, target_timings, rules_parse_time)
 
 
@@ -271,25 +236,18 @@ class CoreOutput:
 
     @classmethod
     def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
-        rule_table = {RuleId(rule.id): rule for rule in rules}
+        rule_table = {rule.id: rule for rule in rules}
 
-        parsed_errors = []
-        errors = raw_json["errors"]
-        for error in errors:
-            parsed_errors.append(CoreError.parse(error))
+        match_results = core.MatchResults.from_json(raw_json)
 
-        parsed_matches = []
-        matches = raw_json["matches"]
-        for match in matches:
-            parsed_matches.append(CoreMatch.parse(rule_table, match))
-
-        parsed_skipped = []
-        skipped = raw_json["skipped"]
-        for skip in skipped:
-            parsed_skipped.append(CoreSkipped.parse(skip))
-
-        timings = raw_json.get("time", {})
-        parsed_timings = CoreTiming.parse(rule_table, timings)
+        parsed_errors = [CoreError.make(error) for error in match_results.errors]
+        parsed_matches = [
+            CoreMatch.make(rule_table, match) for match in match_results.matches
+        ]
+        parsed_skipped = [
+            CoreSkipped.make(skip) for skip in match_results.skipped_targets
+        ]
+        parsed_timings = CoreTiming.make(rule_table, match_results.time)
 
         return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
 
@@ -315,8 +273,7 @@ class CoreOutput:
 
             # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
             with open(match.path, errors="replace") as fd:
-                for metavariable in match.metavars.keys():
-                    metavariable_data = match.metavars.get(metavariable)
+                for metavariable, metavariable_data in match.metavars.items():
                     # Offsets are start inclusive and end exclusive
                     start_offset = metavariable_data.start.offset
                     end_offset = metavariable_data.end.offset
@@ -347,20 +304,15 @@ class CoreOutput:
             )
 
         findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
+        seen_cli_unique_keys: Set[Tuple] = set()
         for match in self.matches:
             rule_match = convert_to_rule_match(match)
+            if rule_match.cli_unique_key in seen_cli_unique_keys:
+                continue
+            seen_cli_unique_keys.add(rule_match.cli_unique_key)
             findings[match.rule].add(rule_match)
 
         # Sort results so as to guarantee the same results across different
         # runs. Results may arrive in a different order due to parallelism
         # (-j option).
-        ordered_unique_findings: Dict[Rule, OrderedRuleMatchList] = {}
-        for rule, matches in findings.items():
-            unique_matches = {
-                # a dict keeps the last match of each key, so we iterate in reverse
-                match.cli_unique_key: match
-                for match in sorted(matches, reverse=True)
-            }
-            ordered_unique_findings[rule] = sorted(unique_matches.values())
-
-        return ordered_unique_findings
+        return {rule: sorted(matches) for rule, matches in findings.items()}

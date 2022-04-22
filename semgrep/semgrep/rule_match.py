@@ -2,6 +2,7 @@ import binascii
 import itertools
 import textwrap
 from collections import Counter
+from datetime import datetime
 from functools import total_ordering
 from pathlib import Path
 from typing import Any
@@ -15,54 +16,17 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import pymmh3
 from attrs import evolve
 from attrs import field
 from attrs import frozen
 
+import semgrep.output_from_core as core
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
-from semgrep.types import JsonObject
+from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
-
-
-@frozen(order=True)
-class CoreLocation:
-    """
-    parses:
-     {
-        "line": 5
-        "col": 6
-        "offset": 30
-     }
-    into an object
-    """
-
-    line: int
-    col: int
-    offset: int
-
-    def to_dict(self) -> JsonObject:
-        return {
-            "line": self.line,
-            "col": self.col,
-            "offset": self.offset,
-        }
-
-    @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreLocation":
-        line = raw_json.get("line")
-        col = raw_json.get("col")
-        offset = raw_json.get("offset")
-
-        # Please mypy
-        assert isinstance(line, int)
-        assert isinstance(col, int)
-        assert isinstance(offset, int)
-
-        return cls(line, col, offset)
 
 
 def rstrip(value: Optional[str]) -> Optional[str]:
@@ -84,8 +48,8 @@ class RuleMatch:
     severity: RuleSeverity
 
     path: Path = field(repr=str)
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
 
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
@@ -169,9 +133,13 @@ class RuleMatch:
         when `    5 == 5` is updated to `  5 == 5  # nosemgrep`,
         and thus CI systems don't retrigger notifications.
         """
-        code = "\n".join(self.lines)
+        lines = [*self.lines]
+        if len(lines) > 0:
+            lines[0] = NOSEM_INLINE_COMMENT_RE.sub("", lines[0])
+            lines[0] = lines[0].rstrip() + "\n"
+
+        code = "".join(lines)  # the lines end with newlines already
         code = textwrap.dedent(code)
-        code = NOSEM_INLINE_COMMENT_RE.sub("", code)
         code = code.strip()
         return code
 
@@ -186,7 +154,7 @@ class RuleMatch:
         """
         return (
             self.rule_id,
-            self.path,
+            str(self.path),
             self.start.offset,
             self.end.offset,
             self.message,
@@ -211,7 +179,11 @@ class RuleMatch:
 
         This key was originally implemented in and ported from semgrep-agent.
         """
-        return (self.rule_id, self.path, self.syntactic_context, self.index)
+        try:
+            path = self.path.relative_to(Path.cwd())
+        except ValueError:
+            path = self.path
+        return (self.rule_id, str(path), self.syntactic_context, self.index)
 
     @ordering_key.default
     def get_ordering_key(self) -> Tuple:
@@ -236,7 +208,7 @@ class RuleMatch:
         # Upon reviewing an old decision,
         # there's no good reason for us to use MurmurHash3 here,
         # but we need to keep consistent hashes so we cannot change this easily
-        hash_int = pymmh3.hash128(str(self.ci_unique_key))
+        hash_int = hash128(str(self.ci_unique_key))
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
@@ -246,6 +218,48 @@ class RuleMatch:
         A UUID representation of ci_unique_key.
         """
         return UUID(hex=self.syntactic_id)
+
+    @property
+    def is_blocking(self) -> bool:
+        """
+        Returns if this finding indicates it should block CI
+        """
+        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
+    def to_app_finding_format(self, commit_date: str) -> Dict[str, Any]:
+        """
+        commit_date here for legacy reasons.
+        commit date of the head commit in epoch time
+        """
+        commit_date_app_format = datetime.fromtimestamp(int(commit_date)).isoformat()
+
+        # Follow semgrep.dev severity conventions
+        if self.severity.value == RuleSeverity.ERROR.value:
+            app_severity = 2
+        elif self.severity.value == RuleSeverity.WARNING.value:
+            app_severity = 1
+        else:
+            app_severity = 0
+
+        ret = {
+            "check_id": self.rule_id,
+            "path": str(self.path),
+            "line": self.start.line,
+            "column": self.start.col,
+            "end_line": self.end.line,
+            "end_column": self.end.col,
+            "message": self.message,
+            "severity": app_severity,
+            "index": self.index,
+            "commit_date": commit_date_app_format,
+            "syntactic_id": self.syntactic_id,
+            "metadata": self.metadata,
+            "is_blocking": self.is_blocking,
+        }
+
+        if self.extra.get("fixed_lines"):
+            ret["fixed_lines"] = self.extra.get("fixed_lines")
+        return ret
 
     def __hash__(self) -> int:
         """
@@ -286,8 +300,8 @@ class RuleMatchSet(Set[RuleMatch]):
         The index lets us still notify when some code with findings is duplicated,
         even though we'd otherwise deduplicate the findings.
         """
-        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key])
         self._ci_key_counts[match.ci_unique_key] += 1
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         super().add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:

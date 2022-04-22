@@ -185,7 +185,10 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                     "fixed_lines"
                 ] = fixobj.fixed_lines  # Monkey patch in fixed lines
 
-    if len(modified_files):
-        logger.info(f"successfully modified {unit_str(len(modified_files), 'file')}.")
-    else:
-        logger.info(f"no files modified.")
+    if not dryrun:
+        if len(modified_files):
+            logger.info(
+                f"successfully modified {unit_str(len(modified_files), 'file')}."
+            )
+        else:
+            logger.info(f"no files modified.")

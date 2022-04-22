@@ -15,6 +15,7 @@
         "offset": 109
       },
       "extra": {
+        "fingerprint": "af6f45fadea8519a2d6f32290d736b56",
         "fix_regex": {
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
@@ -59,6 +60,7 @@
         "offset": 220
       },
       "extra": {
+        "fingerprint": "3451d8296c78502b4db338ff0cfdcedf",
         "fix_regex": {
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"

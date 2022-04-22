@@ -1,0 +1,3 @@
+for x in $...VARS; do
+  echo
+done

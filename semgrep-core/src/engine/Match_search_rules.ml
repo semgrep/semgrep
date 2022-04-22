@@ -26,9 +26,7 @@ module E = Semgrep_error_code
 module Resp = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
 let debug_timeout = ref false
-
 let debug_matches = ref false
 
 (*****************************************************************************)
@@ -167,22 +165,6 @@ let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
          Hashtbl.add h id m);
   h
 
-let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
- fun r range ->
-  let m = range.origin in
-  let rule_id = m.rule_id in
-  (* adjust the rule id *)
-  let rule_id =
-    {
-      rule_id with
-      Pattern_match.id = fst r.R.id;
-      message = r.R.message (* keep pattern_str which can be useful to debug *);
-    }
-  in
-  (* Need env to be the result of evaluate_formula, which propagates metavariables *)
-  (* rather than the original metavariables for the match                          *)
-  { m with rule_id; env = range.mvars }
-
 let error_with_rule_id rule_id (error : E.error) =
   { error with rule_id = Some rule_id }
 
@@ -229,7 +211,7 @@ let debug_semgrep config mini_rules file lang ast =
   (* process one mini rule at a time *)
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
-  |> List.map (fun mr ->
+  |> Common.map (fun mr ->
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
@@ -268,7 +250,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
       let (matches, errors), match_time =
         Common.with_time (fun () ->
             let mini_rules =
-              patterns |> List.map (mini_rule_of_pattern xlang)
+              patterns |> Common.map (mini_rule_of_pattern xlang)
             in
 
             if !debug_timeout || !debug_matches then
@@ -338,10 +320,10 @@ let (matches_of_matcher :
         let res, match_time =
           Common.with_time (fun () ->
               xpatterns
-              |> List.map (fun (xpat, id, pstr) ->
+              |> Common.map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
-                     |> List.map (fun ((loc1, loc2), env) ->
+                     |> Common.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = fake_rule_id (id, pstr) in
                             {
@@ -398,12 +380,12 @@ let spacegrep_matcher (doc, src) file pat =
       doc
   in
   matches
-  |> List.map (fun m ->
+  |> Common.map (fun m ->
          let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
          let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
          let env =
            m.Spacegrep.Match.named_captures
-           |> List.map (fun (s, capture) ->
+           |> Common.map (fun (s, capture) ->
                   let mvar = "$" ^ s in
                   let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
                   let loc = lexing_pos_to_loc file pos str in
@@ -457,7 +439,7 @@ let matches_of_spacegrep spacegreps file =
 let regexp_matcher big_str file (re_str, re) =
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
   subs |> Array.to_list
-  |> List.map (fun sub ->
+  |> Common.map (fun sub ->
          let matched_str = Pcre.get_substring sub 0 in
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
          let str = matched_str in
@@ -485,10 +467,11 @@ let regexp_matcher big_str file (re_str, re) =
                         let loc = { PI.str; charpos; file; line; column } in
                         let t = PI.mk_info_of_loc loc in
                         Some (spf "$%d" n, MV.Text (str, t))
-                      with Not_found ->
-                        logger#debug "not found %d substring of %s in %s" n
-                          re_str matched_str;
-                        None)
+                      with
+                      | Not_found ->
+                          logger#debug "not found %d substring of %s in %s" n
+                            re_str matched_str;
+                          None)
          in
          ((loc1, loc2), env))
 
@@ -524,10 +507,10 @@ let comby_matcher (m_all, source) file pat =
   let matches = m_all ~template:pat ~source () in
   (*Format.printf "%a@." CK.Match.pp_json_lines (None, matches);*)
   matches
-  |> List.map (fun { CK.Match.range; environment; matched } ->
+  |> Common.map (fun { CK.Match.range; environment; matched } ->
          let env =
            CK.Match.Environment.vars environment
-           |> List.map (fun s ->
+           |> Common.map (fun s ->
                   let mvar = "$" ^ s in
                   let str_opt = CK.Match.Environment.lookup environment s in
                   let range_opt =
@@ -615,7 +598,7 @@ let matches_of_xpatterns config file_and_more xpatterns =
    Find the metavariable value, convert it back to a string, and
    run it through an analyzer that returns true if there's a "match".
 *)
-let analyze_metavar env bindings mvar analyzer =
+let analyze_metavar env (bindings : MV.bindings) mvar analyzer =
   match List.assoc_opt mvar bindings with
   | None ->
       error env
@@ -624,10 +607,24 @@ let analyze_metavar env bindings mvar analyzer =
             check your rule"
            mvar);
       false
-  | Some mval -> (
-      match Eval_generic.text_of_binding mvar mval with
-      | None -> false
-      | Some data -> analyzer data)
+  | Some mvalue -> analyzer mvalue
+
+(*
+   Analyze the contents of a string literal bound to a metavariable.
+   The analyzer operates of the strings contents after best-effort
+   unescaping.
+   Return false if the bound value isn't a string literal.
+*)
+let analyze_string_metavar env bindings mvar (analyzer : string -> bool) =
+  analyze_metavar env bindings mvar (function
+    (* We don't use Eval_generic.text_of_binding on string literals because
+       it returns the quoted string but we want it unquoted. *)
+    | E { G.e = G.L (G.String (escaped, _tok)); _ } ->
+        escaped |> String_literal.approximate_unescape |> analyzer
+    | other_mval -> (
+        match Eval_generic.text_of_binding mvar other_mval with
+        | Some s -> analyzer s
+        | None -> false))
 
 let rec filter_ranges env xs cond =
   xs
@@ -676,7 +673,7 @@ let rec filter_ranges env xs cond =
              Eval_generic.eval_bool env e
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
-             analyze_metavar env bindings mvar Entropy.has_high_score
+             analyze_string_metavar env bindings mvar Entropy.has_high_score
          | R.CondAnalysis (mvar, CondReDoS) ->
              let bindings = r.mvars in
              let analyze re_str =
@@ -699,7 +696,7 @@ let rec filter_ranges env xs cond =
                      mvar re_str;
                    false
              in
-             analyze_metavar env bindings mvar analyze)
+             analyze_string_metavar env bindings mvar analyze)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in
@@ -783,6 +780,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       nested_formula_has_matches { env with file_and_more }
                         formula (Some r')))
           | Some xlang, MV.Text (content, _tok)
+          | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
               (* We re-parse the matched text as `xlang`. *)
               Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
@@ -846,7 +844,8 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
   | S.Leaf (xpat, inside) ->
       let id = xpat.R.pid in
       let match_results =
-        try Hashtbl.find_all env.pattern_matches id with Not_found -> []
+        try Hashtbl.find_all env.pattern_matches id with
+        | Not_found -> []
       in
       let kind =
         match inside with
@@ -855,9 +854,10 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
         | None -> RM.Plain
       in
       match_results
-      |> List.map RM.match_result_to_range
-      |> List.map (fun r -> { r with RM.kind })
-  | S.Or xs -> xs |> List.map (evaluate_formula env opt_context) |> List.flatten
+      |> Common.map RM.match_result_to_range
+      |> Common.map (fun r -> { r with RM.kind })
+  | S.Or xs ->
+      xs |> Common.map (evaluate_formula env opt_context) |> List.flatten
   | S.And
       {
         selector_opt;
@@ -881,7 +881,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
        *)
 
       (* let's start with the positive ranges *)
-      let posrs = List.map (evaluate_formula env opt_context) pos in
+      let posrs = Common.map (evaluate_formula env opt_context) pos in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -977,7 +977,7 @@ and run_selector_on_ranges env selector_opt ranges =
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
       res.matches
-      |> List.map RM.match_result_to_range
+      |> Common.map RM.match_result_to_range
       |> RM.intersect_ranges (fst env.config) !debug_matches ranges
 
 and apply_focus_on_ranges env focus ranges : RM.ranges =
@@ -1055,7 +1055,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
   {
     RP.matches =
       final_ranges
-      |> List.map (range_to_pattern_match_adjusted r)
+      |> Common.map (RM.range_to_pattern_match_adjusted r)
       (* dedup similar findings (we do that also in Match_patterns.ml,
        * but different mini-rules matches can now become the same match)
        *)
@@ -1065,7 +1065,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
                     hook str m.env m.tokens));
-    errors = res.errors |> List.map (error_with_rule_id rule_id);
+    errors = res.errors |> Common.map (error_with_rule_id rule_id);
     skipped_targets = res.skipped_targets;
     profiling = res.profiling;
   }

@@ -123,6 +123,7 @@ let pattern_from_diff f =
     try
       let file_ast = Parse_target.parse_program file in
       List.filter_map (function_from_range file_ast) f.In.diffs
-    with _ -> []
+    with
+    | _ -> []
   in
   { Out.url = f.In.url; filename = f.In.filename; funcnames = functions }

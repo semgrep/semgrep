@@ -15,6 +15,7 @@
         "offset": 2427
       },
       "extra": {
+        "fingerprint": "87458e7dda0be8854b28578ba7e81d1a",
         "fix_regex": {
           "regex": "(password.*)\"\"",
           "replacement": "\\1None"
@@ -116,6 +117,7 @@
         "offset": 3058
       },
       "extra": {
+        "fingerprint": "572ad9742dc375b5e25ab4e2b8073713",
         "fix_regex": {
           "regex": "(password.*)\"\"",
           "replacement": "\\1None"

@@ -12,7 +12,6 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (* A set of metavariables. Access cost is O(log n). *)
 module String_set = struct
   type t = string Set_.t
-
   type string_list = string list [@@deriving show]
 
   let pp fmt x = pp_string_list fmt (Set_.elements x)

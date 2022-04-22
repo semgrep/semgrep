@@ -14,6 +14,7 @@ from typing import Tuple
 from typing import Union
 
 from semgrep import __VERSION__
+from semgrep.app.metrics import metric_manager
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -27,7 +28,6 @@ from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.metric_manager import metric_manager
 from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
@@ -38,7 +38,7 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
-from semgrep.target_manager import IgnoreLog
+from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
 from semgrep.util import unit_str
@@ -90,10 +90,11 @@ def invoke_semgrep(
     if output_settings is None:
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
 
-    io_capture = StringIO()
+    StringIO()
     output_handler = OutputHandler(output_settings)
     (
         filtered_matches_by_rule,
+        _,
         _,
         _,
         filtered_rules,
@@ -135,6 +136,9 @@ def run_rules(
     dependency_aware_rules = [
         r for r in rest_of_the_rules if r.project_depends_on is not None
     ]
+    dependency_only_rules, rest_of_the_rules = partition(
+        lambda rule: not rule.should_run_on_semgrep_core, rest_of_the_rules
+    )
     filtered_rules = rest_of_the_rules
 
     (
@@ -158,16 +162,24 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     if len(dependency_aware_rules) > 0:
-        import semgrep.dependency_aware_rule as dep_aware_rule
+        from semgrep.dependency_aware_rule import run_dependency_aware_rule
+        from dependencyparser.find_lockfiles import make_dependency_trie
+
+        targets = [t.path for t in target_manager.targets]
+        top_level_target_rooted = list(targets[0].parents)
+        top_level_target: Path = (
+            targets[0]
+            if len(top_level_target_rooted) == 0
+            else top_level_target_rooted[-1]
+        )
+        langs = [l for r in dependency_aware_rules for l in r.languages]
+        dep_trie = make_dependency_trie(top_level_target, langs, target_manager)
 
         for rule in dependency_aware_rules:
-            (
-                dep_rule_matches,
-                dep_rule_errors,
-            ) = dep_aware_rule.run_dependency_aware_rule(
+            (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
                 rule_matches_by_rule.get(rule, []),
                 rule,
-                [t.path for t in target_manager.targets],
+                dep_trie,
             )
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -193,7 +205,7 @@ def remove_matches_in_baseline(
 
     for rule, matches in head_matches_by_rule.items():
         baseline_matches = {
-            match.ci_unique_key for match in baseline_matches_by_rule[rule]
+            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
         kept_matches_by_rule[rule] = [
             match for match in matches if match.ci_unique_key not in baseline_matches
@@ -235,8 +247,9 @@ def main(
     baseline_commit: Optional[str] = None,
 ) -> Tuple[
     RuleMatchMap,
+    List[SemgrepError],
     Set[Path],
-    IgnoreLog,
+    FileTargetingLog,
     List[Rule],
     ProfileManager,
     ProfilingData,
@@ -441,6 +454,7 @@ def main(
 
     return (
         filtered_matches_by_rule,
+        semgrep_errors,
         all_targets,
         target_manager.ignore_log,
         filtered_rules,

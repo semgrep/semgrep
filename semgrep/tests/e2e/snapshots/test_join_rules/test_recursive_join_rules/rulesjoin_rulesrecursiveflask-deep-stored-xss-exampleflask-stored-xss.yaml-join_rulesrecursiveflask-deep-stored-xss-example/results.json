@@ -13,6 +13,7 @@
         "offset": 46
       },
       "extra": {
+        "fingerprint": "e31a126e936c583e87f00f0200cf5839",
         "is_ignored": false,
         "lines": "<h2>{{ username }}</h2>",
         "message": "stored xss",

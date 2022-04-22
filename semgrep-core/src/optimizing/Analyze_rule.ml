@@ -84,11 +84,8 @@ and 'a disj = Or of 'a list [@@deriving show]
 
 (* can't filter a file if there's no specific identifier in the pattern *)
 exception GeneralPattern
-
 exception EmptyAnd
-
 exception EmptyOr
-
 exception CNF_exploded
 
 (*****************************************************************************)
@@ -224,8 +221,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
         (* If `ys = []`, we have `Or []` which is the same as `false`. Note that
          * the CNF is then `And [Or []]` rather than `And []` (the latter being
          * the same `true`). *)
-        (And [ Or [] ])
-        ys
+        (And [ Or [] ]) ys
 
 (*****************************************************************************)
 (* Step1: just collect strings, mvars, regexps *)
@@ -380,7 +376,8 @@ let or_step2 (Or xs) =
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,
      empty cases will be disregarded *)
-  try Some (Or (step1_to_step2 xs)) with GeneralPattern -> None
+  try Some (Or (step1_to_step2 xs)) with
+  | GeneralPattern -> None
 
 let and_step2 (And xs) =
   let ys = xs |> List.filter_map or_step2 in
@@ -508,7 +505,8 @@ let regexp_prefilter_of_formula f =
           | EmptyAnd
           | EmptyOr ->
               true )
-  with GeneralPattern -> None
+  with
+  | GeneralPattern -> None
 
 let regexp_prefilter_of_taint_rule rule_tok taint_spec =
   (* We must be able to match some source _and_ some sink. *)

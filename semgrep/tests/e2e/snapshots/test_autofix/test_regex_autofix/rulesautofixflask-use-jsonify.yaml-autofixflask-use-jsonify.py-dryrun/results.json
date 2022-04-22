@@ -15,6 +15,7 @@
         "offset": 209
       },
       "extra": {
+        "fingerprint": "275fd838bfa9d897515da0838cd41a4d",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",
@@ -60,6 +61,7 @@
         "offset": 368
       },
       "extra": {
+        "fingerprint": "73011454236d2e6b89368703521f8f21",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",

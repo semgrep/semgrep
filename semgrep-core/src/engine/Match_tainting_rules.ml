@@ -18,6 +18,7 @@ module H = AST_generic_helpers
 module V = Visitor_AST
 module R = Rule
 module PM = Pattern_match
+module RM = Range_with_metavars
 module RP = Report
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -70,6 +71,12 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * to prevent duplicates.
  *)
 
+type debug_taint = {
+  sources : RM.ranges;
+  sanitizers : RM.ranges;
+  sinks : RM.ranges;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -78,9 +85,7 @@ module F2 = IL
 
 module DataflowY = Dataflow_core.Make (struct
   type node = F2.node
-
   type edge = F2.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
@@ -88,7 +93,7 @@ end)
 
 let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
 
-let any_in_ranges any rwms =
+let any_in_ranges rule any rwms =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
@@ -99,8 +104,8 @@ let any_in_ranges any rwms =
       []
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
-      List.filter (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms
-      |> List.map (fun rwm -> rwm.Range_with_metavars.origin)
+      List.filter (fun rwm -> Range.( $<=$ ) r rwm.RM.r) rwms
+      |> Common.map (RM.range_to_pattern_match_adjusted rule)
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
@@ -136,7 +141,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   let find_range_w_metas_santizers specs =
     specs
     |> List.concat_map (fun spec ->
-           List.map
+           Common.map
              (fun pf -> (spec.Rule.not_conflicting, pf))
              (range_w_metas_of_pformula config equivs file_and_more rule
                 spec.pformula))
@@ -150,39 +155,43 @@ let taint_config_of_rule default_config equivs file ast_and_errors
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
-    |> List.filter_map (fun (not_conflicting, rng) ->
+    |> List.filter_map (fun (not_conflicting, range) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if
                not
                  (List.exists
-                    (fun rng' ->
-                      rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                    (fun range' -> range'.RM.r = range.RM.r)
                     sinks_ranges
                  || List.exists
-                      (fun rng' ->
-                        rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                      (fun range' -> range'.RM.r = range.RM.r)
                       sources_ranges)
-             then Some rng
+             then Some range
              else None
-           else Some rng)
+           else Some range)
   in
-  {
-    Dataflow_tainting.filepath = file;
-    rule_id = fst rule.R.id;
-    is_source = (fun x -> any_in_ranges x sources_ranges);
-    is_sanitizer = (fun x -> any_in_ranges x sanitizers_ranges);
-    is_sink = (fun x -> any_in_ranges x sinks_ranges);
-    handle_findings;
-  }
+  ( {
+      Dataflow_tainting.filepath = file;
+      rule_id = fst rule.R.id;
+      is_source = (fun x -> any_in_ranges rule x sources_ranges);
+      is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
+      is_sink = (fun x -> any_in_ranges rule x sinks_ranges);
+      unify_mvars = config.taint_unify_mvars;
+      handle_findings;
+    },
+    {
+      sources = sources_ranges;
+      sanitizers = sanitizers_ranges;
+      sinks = sinks_ranges;
+    } )
 
 let pm_of_finding file finding =
   let open Dataflow_tainting in
   match finding with
-  | SrcToSink (_src, sink, src_sink_bindings) -> (
+  | SrcToSink { source = _; trace = _; sink; merged_env } -> (
       match sink with
-      | PM sink_pm -> Some { sink_pm with env = src_sink_bindings }
-      | Call (fun_call, _) -> (
+      | PM sink_pm -> Some { sink_pm with env = merged_env }
+      | Call (fun_call, _trace, _) -> (
           let code = G.E fun_call in
           match V.range_of_any_opt code with
           | None ->
@@ -197,7 +206,7 @@ let pm_of_finding file finding =
                   file;
                   range_loc;
                   tokens;
-                  env = src_sink_bindings;
+                  env = merged_env;
                 }))
   | SrcToReturn _
   (* TODO: We might want to report functions that let input taint
@@ -222,7 +231,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   let (ast, errors), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
-  let taint_config =
+  let taint_config, debug_taint =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
@@ -293,11 +302,13 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
            |> List.iter (fun (m : Pattern_match.t) ->
                   let str = Common.spf "with rule %s" m.rule_id.id in
                   match_hook str m.env m.tokens))
-    |> List.map (fun m -> { m with PM.rule_id = convert_rule_id rule.Rule.id })
+    |> Common.map (fun m ->
+           { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
-  {
-    RP.matches;
-    errors;
-    skipped_targets = [];
-    profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
-  }
+  ( {
+      RP.matches;
+      errors;
+      skipped_targets = [];
+      profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
+    },
+    debug_taint )

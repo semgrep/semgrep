@@ -15,6 +15,7 @@
         "offset": 8
       },
       "extra": {
+        "fingerprint": "82306a9c04e2c9f926e1b663037035cc",
         "is_ignored": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 1 foo",
@@ -72,6 +73,7 @@
         "offset": 8
       },
       "extra": {
+        "fingerprint": "2a2974a6d863cba8aef4bb5664b8352d",
         "is_ignored": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 2 foo",

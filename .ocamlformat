@@ -1,2 +1,5 @@
 profile = conventional
+
+# 'all' is now deprecated in ocamlformat >= 0.20.0. I don't understand why.
+# See https://github.com/ocaml-ppx/ocamlformat/issues/1882
 break-cases = all

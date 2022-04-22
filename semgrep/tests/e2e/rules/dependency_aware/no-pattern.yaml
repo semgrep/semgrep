@@ -1,0 +1,9 @@
+rules:
+  - id: no-pattern
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: bad-yarn-lib
+        version: "<= 1.0.0"
+    message: that's a bad lib
+    languages: [javascript]
+    severity: WARNING

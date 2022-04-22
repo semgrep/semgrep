@@ -1,10 +1,12 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 
-from attrs import frozen
+from semgrep.error import SemgrepError
+from semgrep.semgrep_types import Language
 
 KNOWN_HASH_ALGORITHMS: Set[str] = {
     "sha256",
@@ -15,7 +17,7 @@ KNOWN_HASH_ALGORITHMS: Set[str] = {
 }
 
 
-class PackageManagers(Enum):
+class PackageManagers(str, Enum):
     NPM = "npm"
     PYPI = "pypi"
     GEM = "gem"
@@ -24,7 +26,7 @@ class PackageManagers(Enum):
     MAVEN = "maven"
 
 
-@frozen(eq=True, order=True)
+@dataclass(eq=True, order=True, frozen=True)
 class LockfileDependency:
     name: str
     version: str
@@ -39,3 +41,36 @@ class LockfileDependency:
             assert (
                 k in KNOWN_HASH_ALGORITHMS
             ), f"unknown hash type {k} not in {KNOWN_HASH_ALGORITHMS}"
+
+
+def languages_to_namespaces(langs: List[Language]) -> Set[PackageManagers]:
+    LANGUAGE_TO_NAMESPACE = {
+        Language("python"): PackageManagers.PYPI,
+        Language("js"): PackageManagers.NPM,
+        Language("ts"): PackageManagers.NPM,
+        Language("ruby"): PackageManagers.GEM,
+        Language("go"): PackageManagers.GOMOD,
+        Language("rust"): PackageManagers.CARGO,
+        Language("java"): PackageManagers.MAVEN,
+    }
+    if Language("generic") in langs:
+        return set(LANGUAGE_TO_NAMESPACE.values())
+
+    namespaces = set()
+    for lang in langs:
+        if lang not in LANGUAGE_TO_NAMESPACE:
+            raise SemgrepError(
+                f"r2c-internal-project-depends-on does not support language {lang}"
+            )
+        namespaces.add(LANGUAGE_TO_NAMESPACE[lang])
+    return namespaces
+
+
+NAMESPACE_TO_LOCKFILES = {
+    PackageManagers.PYPI: {"Pipfile.lock"},
+    PackageManagers.NPM: {"package-lock.json", "yarn.lock"},
+    PackageManagers.GEM: {"Gemfile.lock"},
+    PackageManagers.GOMOD: {"go.sum"},
+    PackageManagers.CARGO: {"cargo.lock"},
+    PackageManagers.MAVEN: {"pom.xml"},
+}

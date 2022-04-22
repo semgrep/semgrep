@@ -15,6 +15,7 @@
         "offset": 14
       },
       "extra": {
+        "fingerprint": "203ac22c059ee65342538993bb54cfa8",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",

@@ -1,4 +1,5 @@
 (* Yoann Padioleau
+ * Iago Abal
  *
  * Copyright (C) 2019-2021 r2c
  *
@@ -51,9 +52,12 @@ module G = AST_generic
  * Note that we still want to be close to the original code so that
  * error reported on the IL can be mapped back to error on the original code
  * (source "maps"), or more importantly semantic information computed
- * on the IL (e.g., types, svalue) can be mapped back to the generic AST.
+ * on the IL (e.g., types, svalue, match range, taint) can be mapped back
+ * to the generic AST.
  * This is why you will see some 'eorig', 'iorig' fields below and the use of
  * refs such as svalue shared with the generic AST.
+ * TODO? alt: store just the range and id_info_id, so easy to propagate back
+ * info to generic AST or to return match ranges to semgrep.
  *
  * history:
  *  - cst_php.ml (was actually called ast_php.ml)
@@ -82,7 +86,6 @@ module G = AST_generic
 
 (* the classic *)
 type tok = G.tok [@@deriving show]
-
 type 'a wrap = 'a G.wrap [@@deriving show]
 
 (* useful mainly for empty containers *)
@@ -139,7 +142,6 @@ type orig = SameAs of G.expr | Related of G.any | NoOrig
 [@@deriving show { with_path = false }]
 
 let related_tok tok = Related (G.Tk tok)
-
 let related_exp exp_gen = Related (G.E exp_gen)
 
 let any_of_orig = function
@@ -247,12 +249,8 @@ and instr_kind =
 
 and call_special =
   | Eval
-  (* Note that in some languages (e.g., Python) some regular calls are
-   * actually New under the hood.
-   * The type_ argument is usually a name, but it can also be an name[] in
-   * Java/C++.
-   *)
-  | New (* TODO: lift up and add 'of type_ * argument list'? *)
+  (* TODO: lift up like in AST_generic *)
+  | New
   | Typeof
   | Instanceof
   | Sizeof
@@ -298,13 +296,16 @@ and stmt_kind =
   (* alt: do as in CIL and resolve that directly in 'Goto of stmt' *)
   | Goto of tok * label
   | Label of label
-  | Try of stmt list * (name * stmt list) list (* catches *) * stmt list (* finally *)
+  | Try of
+      stmt list
+      * (name * stmt list) list (* catches *)
+      * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
 
 and other_stmt =
-  (* everything except VarDef (which is transformed in a Set instr) *)
+  (* everything except VarDef (which is transformed in an Assign instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string
@@ -347,7 +348,6 @@ and node_kind =
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
  *)
 type edge = Direct
-
 type cfg = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)
@@ -363,6 +363,9 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*****************************************************************************)
 (* L/Rvalue helpers *)
 (*****************************************************************************)
+
+let ( let* ) = Option.bind
+
 let lval_of_instr_opt x =
   match x.i with
   | Assign (lval, _)
@@ -376,8 +379,7 @@ let lval_of_instr_opt x =
   | FixmeInstr _ -> None
 
 let lvar_of_instr_opt x =
-  let open Common in
-  lval_of_instr_opt x >>= fun lval ->
+  let* lval = lval_of_instr_opt x in
   match lval.base with
   | Var n -> Some n
   | VarSpecial _
@@ -401,7 +403,7 @@ let rec lvals_of_exp e =
   | Composite (_, (_, xs, _))
   | Operator (_, xs) ->
       lvals_of_exps xs
-  | Record ys -> lvals_of_exps (ys |> List.map snd)
+  | Record ys -> lvals_of_exps (ys |> Common.map snd)
   | FixmeExp (_, _, Some e) -> lvals_of_exp e
   | FixmeExp (_, _, None) -> []
 
@@ -418,7 +420,7 @@ and lvals_in_lval lval =
   in
   base_lvals @ offset_lvals
 
-and lvals_of_exps xs = xs |> List.map lvals_of_exp |> List.flatten
+and lvals_of_exps xs = xs |> Common.map lvals_of_exp |> List.flatten
 
 (** The lvals in the RHS of the instruction. *)
 let rlvals_of_instr x =
@@ -446,5 +448,4 @@ let rlvals_of_node = function
 (* Helpers *)
 (*****************************************************************************)
 let str_of_name name = fst name.ident
-
 let str_of_label ((n, _), _) = n

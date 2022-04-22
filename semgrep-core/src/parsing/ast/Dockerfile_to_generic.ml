@@ -51,6 +51,7 @@ let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
   G.Block (bracket loc stmts) |> G.s |> expr_of_stmt
 
 let string_expr s : G.expr = G.L (G.String s) |> G.e
+let int_expr i : G.expr = G.L (G.Int i) |> G.e
 
 let id_expr (x : string wrap) : G.expr =
   G.N (G.Id (x, G.empty_id_info ())) |> G.e
@@ -129,7 +130,7 @@ let opt_param_arg (x : param option) : G.argument list =
   | None -> []
   | Some x -> [ param_arg x ]
 
-let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
+let from (opt_param : param option) (image_spec : image_spec) opt_alias :
     G.argument list =
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
@@ -145,7 +146,14 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
     | None -> []
     | Some (at, digest) -> [ G.ArgKwdOptional (("@", at), str_expr digest) ]
   in
-  let optional_params (* must be placed last *) = tag @ digest @ opt_param in
+  let alias =
+    match opt_alias with
+    | None -> []
+    | Some (as_, alias) -> [ G.ArgKwdOptional (("as", as_), str_expr alias) ]
+  in
+  let optional_params (* must be placed last *) =
+    opt_param @ tag @ digest @ alias
+  in
   name :: optional_params
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
@@ -207,10 +215,19 @@ let array_or_paths (x : array_or_paths) : G.expr list =
   | Array (_loc, ar) -> [ string_array ar ]
   | Paths (_loc, paths) -> Common.map str_or_ellipsis_expr paths
 
-let expose_port_expr (x : expose_port) : G.expr =
+let expose_port_expr (x : expose_port) : G.expr list =
   match x with
-  | Expose_semgrep_ellipsis tok -> ellipsis_expr tok
-  | Expose_element x -> string_fragment_expr x
+  | Expose_semgrep_ellipsis tok -> [ ellipsis_expr tok ]
+  | Expose_port (port_tok, None) -> [ int_expr port_tok ]
+  | Expose_port (port_tok, Some protocol_tok) ->
+      [
+        G.Container
+          ( G.Tuple,
+            PI.unsafe_fake_bracket
+              [ int_expr port_tok; string_expr protocol_tok ] )
+        |> G.e;
+      ]
+  | Expose_fragment x -> [ string_fragment_expr x ]
 
 let healthcheck env loc name (x : healthcheck) =
   match x with
@@ -230,7 +247,7 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Cmd (loc, name, x) -> cmd_instr_expr env loc name x
   | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
-      let args = Common.map expose_port_expr port_protos in
+      let args = List.concat_map expose_port_expr port_protos in
       call_exprs name loc args
   | Env (loc, name, pairs) -> call name loc (label_pairs pairs)
   | Add (loc, name, param, src, dst) ->

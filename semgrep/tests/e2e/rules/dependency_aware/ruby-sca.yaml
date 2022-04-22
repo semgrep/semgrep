@@ -1,11 +1,10 @@
 rules:
   - id: ruby-sca
-    patterns:
-      - pattern: bad()
-      - r2c-internal-project-depends-on:
-          - namespace: gem
-            package: parallel
-            version: "== 1.21.0"
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: gem
+        package: parallel
+        version: "== 1.21.0"
     message: oh no
     languages: [ruby]
     severity: WARNING

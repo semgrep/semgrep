@@ -2,9 +2,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from semgrep.semgrep_main import invoke_semgrep
 
 
+@pytest.mark.slow
 def test_api(capsys, run_semgrep_in_tmp):
     # Test that exposed python API works and prints out nothing to stderr or stdout
     output = invoke_semgrep(
@@ -27,8 +30,7 @@ def test_api(capsys, run_semgrep_in_tmp):
             "from semgrep.semgrep_main import invoke_semgrep; from pathlib import Path; invoke_semgrep(Path('rules/eqeq.yaml'),[Path('targets/bad/invalid_python.py'), Path('targets/basic/stupid.py')],)",
         ],
         encoding="utf-8",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert x.stdout == ""
     assert x.stderr == ""

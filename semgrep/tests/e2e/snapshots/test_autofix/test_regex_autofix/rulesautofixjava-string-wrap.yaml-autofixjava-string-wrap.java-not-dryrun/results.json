@@ -15,6 +15,7 @@
         "offset": 52
       },
       "extra": {
+        "fingerprint": "2ca56c3f0400f7e2b8f57fc113dcdce0",
         "fix": "wrap(\"a\")",
         "is_ignored": false,
         "lines": "        return \"a\" + \"b\";",
@@ -56,6 +57,7 @@
         "offset": 58
       },
       "extra": {
+        "fingerprint": "9af220ae02bffe7a9e310af3bb6caadf",
         "fix": "wrap(\"b\")",
         "is_ignored": false,
         "lines": "        return \"a\" + \"b\";",

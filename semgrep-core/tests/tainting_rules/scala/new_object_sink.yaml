@@ -1,0 +1,13 @@
+rules:
+  - id: tainted-obj
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern: new Example(...)
+    pattern-sources:
+      - patterns:
+          - pattern: arg
+    languages:
+      - scala
+    severity: WARNING
+    message: Match found

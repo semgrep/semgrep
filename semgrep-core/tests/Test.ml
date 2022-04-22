@@ -126,6 +126,9 @@ let language_exceptions = [
     ["deep_exprstmt";"dots_stmts"];
     (* good boy *)
     Lang.Php, [];
+
+    (* good boy, this feature has been deprecated *)
+    Lang.Scala, ["regexp_string"]
 ]
 
 (*****************************************************************************)
@@ -278,7 +281,7 @@ let tainting_test lang rules_file file =
         lazy_content = lazy (Common.read_file file);
         lazy_ast_and_errors = lazy (ast, []);
     } in
-    let res = Match_tainting_rules.check_rule rule
+    let res, _debug = Match_tainting_rules.check_rule rule
         (fun _ _ _ -> ())
         (Config_semgrep.default_config, equivs)
         taint_spec xtarget
@@ -336,6 +339,7 @@ let lang_parsing_tests =
     pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
     pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
     pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
+    pack_parsing_tests_for_lang Lang.Swift "swift" ".swift";
     pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
     pack_parsing_tests_for_lang Lang.Hack "hack" ".hack";
     (* here we have both a Pfff and tree-sitter parser *)
@@ -471,6 +475,12 @@ let lang_tainting_tests =
       let lang = Lang.Ts in
       tainting_tests_for_lang files lang
     );
+    pack_tests "tainting Scala" (
+      let dir = Filename.concat taint_tests_path "scala" in
+      let files = Common2.glob (spf "%s/*.scala" dir) in
+      let lang = Lang.Scala in
+      tainting_tests_for_lang files lang
+    );
   ]
 
 let eval_regression_tests = [
@@ -603,11 +613,11 @@ let maturity_tests =
     check_maturity Lang.Python "python" ".py" GA;
     check_maturity Lang.Ruby "ruby" ".rb" GA;
     check_maturity Lang.Ts "ts" ".ts" GA;
+    check_maturity Lang.Scala "scala" ".scala" GA;
 
     (* Beta *)
     check_maturity Lang.Hack "hack" ".hack" Beta;
     check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
-    check_maturity Lang.Scala "scala" ".scala" Beta;
     (* Terraform/HCL has too many NA, not worth it *)
 
     (* Experimental *)

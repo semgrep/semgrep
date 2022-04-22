@@ -32,20 +32,14 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let bool = id
-
 let string = id
 
 (* raise AST_generic.Error *)
 let error = AST_generic.error
-
 let fake = AST_generic.fake
-
 let fb = AST_generic.fake_bracket
 
 (*****************************************************************************)
@@ -59,11 +53,8 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let ident v = wrap string v
-
 let var v = wrap string v
-
 let qualified_ident v = list ident v
 
 let name_of_qualified_ident xs =
@@ -71,7 +62,6 @@ let name_of_qualified_ident xs =
   H.name_of_ids xs
 
 let name v = qualified_ident v
-
 let fixOp x = H.conv_incr x
 
 let binaryOp (x, t) =
@@ -280,16 +270,15 @@ and expr e : G.expr =
   | Class_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.FDynamic v2)
-  | New (t, v1, v2) ->
+  | New (v0, v1, v2) ->
       let v1 = expr v1 and v2 = list expr v2 in
-      G.Call (G.IdSpecial (G.New, t) |> G.e, fb (v1 :: v2 |> List.map G.arg))
-  | NewAnonClass (t, args, cdef) ->
+      let t = H.expr_to_type v1 in
+      G.New (v0, t, fb (v2 |> List.map G.arg))
+  | NewAnonClass (_tTODO, args, cdef) ->
       let _ent, cdef = class_def cdef in
       let args = list expr args in
       let anon_class = G.AnonClass cdef |> G.e in
-      G.Call
-        ( G.IdSpecial (G.New, t) |> G.e,
-          fb (anon_class :: args |> List.map G.arg) )
+      G.Call (anon_class, fb (args |> List.map G.arg))
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Call
@@ -410,6 +399,8 @@ and argument e =
 and special = function
   | This -> G.This
   | Eval -> G.Eval
+  | Self -> G.Self
+  | Parent -> G.Parent
 
 and foreach_pattern v =
   let v = expr v in

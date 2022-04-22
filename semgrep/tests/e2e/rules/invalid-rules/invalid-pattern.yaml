@@ -1,0 +1,11 @@
+rules:
+- id: eqeq
+  pattern: $X == $X
+  message: Useless comparison
+  languages: [py]
+  severity: WARNING
+- id: print 
+  pattern: print..);
+  message: Using print
+  languages: [py]
+  severity: WARNING

@@ -14,7 +14,6 @@
  *)
 open Common
 open OCaml (* map_of_string, ... *)
-
 open AST_generic
 module G = AST_generic
 module B = AST_generic_v1_t
@@ -41,7 +40,6 @@ exception NoInterpolatedElement
 (* Helpers *)
 (*****************************************************************************)
 let map_id x = x
-
 let map_of_ref f x = f !x
 
 let error any =
@@ -75,7 +73,6 @@ let map_bracket of_a (v1, v2, v3) =
   (v1, v2, v3)
 
 let map_ident (v : ident) : B.ident = map_wrap map_of_string v
-
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
 let rec _map_qualifier = function
@@ -121,6 +118,7 @@ and map_id_info x =
    id_type = v_id_type;
    id_svalue = v3;
    id_hidden = _not_available_in_v1;
+   id_info_id = _IGNORED;
   } ->
       let v3 = map_of_ref (map_of_option map_svalue) v3 in
       let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
@@ -235,6 +233,7 @@ and map_expr x : B.expr =
   | Call (v1, v2) ->
       let v1 = map_expr v1 and v2 = map_arguments v2 in
       `Call (v1, v2)
+  | New (_v0, _v1, _v2) -> failwith "TODO"
   | Assign (v1, v2, v3) ->
       let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
       `Assign (v1, v2, v3)
@@ -391,7 +390,6 @@ and map_special x =
   | Typeof -> `Typeof
   | Instanceof -> `Instanceof
   | Sizeof -> `Sizeof
-  | New -> `New
   | Spread -> `Spread
   | HashSplat -> `HashSplat
   | NextArrayIndex -> `NextArrayIndex
@@ -732,7 +730,6 @@ and map_stmt x : B.stmt =
   { B.s = skind; s_id = x.s_id }
 
 and map_condition _x = failwith "TODO"
-
 and map_other_stmt_with_stmt_operator _x = "TODO"
 
 and map_label_ident = function
@@ -989,7 +986,6 @@ and map_function_definition
   { B.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
 
 and map_function_body x = map_stmt (H.funcbody_to_stmt x)
-
 and map_parameters v = map_of_list map_parameter v
 
 and map_parameter = function
@@ -1157,11 +1153,11 @@ and map_alias (v1, v2) =
   (v1, v2)
 
 and map_item x = map_stmt x
-
 and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Xmls _
   | ForOrIfComp _
   | Tp _
   | Ta _ ->

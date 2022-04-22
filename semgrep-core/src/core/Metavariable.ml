@@ -66,6 +66,7 @@ type mvalue =
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
   | Params of AST_generic.parameter list
+  | Xmls of AST_generic.xml_body list
   (* Text below is used to match the content of a string or atom, without the
    * enclosing quotes. For a string this can actually be empty.
    * TODO? use a separate 'Atom of string wrap' for atoms? This could be useful
@@ -93,6 +94,7 @@ let mvalue_to_any = function
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | Params x -> G.Params x
+  | Xmls x -> G.Xmls x
   | T x -> G.T x
   | P x -> G.P x
   | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
@@ -111,6 +113,7 @@ let program_of_mvalue : mvalue -> G.program option =
   | Ss stmts -> Some stmts
   | Params _
   | Args _
+  | Xmls _
   | T _
   | P _
   | Text _ ->
@@ -125,7 +128,6 @@ let range_of_mvalue mval =
   Some (tok_start.file, Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
-
 let str_of_mval x = show_mvalue x
 
 (* note that the mvalue acts as the value of the metavar and also
@@ -174,7 +176,7 @@ let is_metavar_name s =
   | "$_SESSION"
   | "$_REQUEST"
   | "$_ENV"
-  (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
+    (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false
   | _ -> s =~ metavar_regexp_string
@@ -183,19 +185,15 @@ let is_metavar_name s =
  * $X... but this leads to parsing conflicts in Javascript.
  *)
 let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
-
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
   let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
-
   let equal_bindings = AST_utils.with_structural_equal equal_bindings
 end
 
 module Referential = struct
   let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
-
   let equal_bindings = AST_utils.with_referential_equal equal_bindings
-
   let hash_bindings = hash_bindings
 end

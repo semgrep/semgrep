@@ -15,6 +15,7 @@
         "offset": 498
       },
       "extra": {
+        "fingerprint": "49b619d2e8e200914c096de0b00bc265",
         "fix_regex": {
           "regex": "DefaultHttpClient\\(",
           "replacement": "SystemDefaultHttpClient("

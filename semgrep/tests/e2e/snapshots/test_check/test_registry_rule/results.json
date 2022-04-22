@@ -30,6 +30,7 @@
         "offset": 67
       },
       "extra": {
+        "fingerprint": "d2f7a218c01c0da875d98a9fa419d465",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "Detected a useless comparison operation `x == x` or `x != x`. This operation is always true. If testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
@@ -78,6 +79,7 @@
         "offset": 69
       },
       "extra": {
+        "fingerprint": "1baec25f6b19a8b99027bf265d1219dd",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "This expression is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`, or `cmath.isnan(a + b)` if the number is complex.",

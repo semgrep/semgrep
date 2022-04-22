@@ -5,9 +5,7 @@
 open Printf
 
 let entropy_threshold = 64.
-
 let density_threshold = 0.6
-
 let low_entropy_strings = [ ""; "a"; "ab"; "!@"; "change"; "1234" ]
 
 let high_entropy_strings =
@@ -52,6 +50,8 @@ let low_score_strings =
     "password123";
     "someReallyLongComplicatedObjectiveCMethodName";
     "{$variable.someProperty}";
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
     (* grey zone *)
     "ringerringerringerringerringerringerringerringerringerringerringer";
     "Many hands make light work.";
@@ -117,7 +117,7 @@ let test_information_density () =
 
 let get_entropies strings =
   strings
-  |> List.map (fun s ->
+  |> Common.map (fun s ->
          print_info s;
          (s, Entropy.entropy s))
 
@@ -143,7 +143,7 @@ let test_high_entropy () =
 
 let get_densities strings =
   strings
-  |> List.map (fun s ->
+  |> Common.map (fun s ->
          print_info s;
          (s, Entropy.information_density s))
 
@@ -170,7 +170,7 @@ let test_high_density () =
 
 let get_scores strings =
   strings
-  |> List.map (fun s ->
+  |> Common.map (fun s ->
          print_info s;
          (s, Entropy.score s))
 

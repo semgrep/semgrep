@@ -11,12 +11,12 @@ from typing import Tuple
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
+import semgrep.output_from_core as core
 from semgrep.constants import Colors
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.rule_match import CoreLocation
+from semgrep.types import RuleId
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -33,6 +33,8 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 # MATCH_MAX_MEMORY_EXIT_CODE = 10
 # LEXICAL_ERROR_EXIT_CODE = 11
 # TOO_MANY_MATCHES_EXIT_CODE = 12
+INVALID_API_KEY_EXIT_CODE = 13
+SCAN_FAIL_EXIT_CODE = 14
 
 
 class Level(Enum):
@@ -87,8 +89,8 @@ class SemgrepError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class LegacySpan:
-    config_start: CoreLocation
-    config_end: CoreLocation
+    config_start: core.Position
+    config_end: core.Position
     config_path: Tuple[str]
 
 
@@ -97,10 +99,10 @@ class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
     error_type: str
-    rule_id: Optional[str]
+    rule_id: Optional[RuleId]
     path: Path
-    start: CoreLocation
-    end: CoreLocation
+    start: core.Position
+    end: core.Position
     message: str
     spans: Optional[Tuple[LegacySpan, ...]]
     details: Optional[str]
@@ -118,7 +120,7 @@ class SemgrepCoreError(SemgrepError):
             base["path"] = str(self.path)
 
         if self.spans:
-            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
+            base["spans"] = tuple(attr.asdict(s) for s in self.spans)
 
         return base
 
@@ -136,20 +138,19 @@ class SemgrepCoreError(SemgrepError):
         """
         Generate error message exposed to user
         """
-        header = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}"
         if self.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
             if (
                 self.error_type == "Rule parse error"
                 or self.error_type == "Pattern parse error"
             ):
-                error_context = f"In rule {self.rule_id}"
+                error_context = f"in rule {self.rule_id}"
             else:
-                error_context = f"When running {self.rule_id} on {self.path}"
+                error_context = f"when running {self.rule_id} on {self.path}"
         else:
-            error_context = f"At line {self.path}:{self.start.line}"
+            error_context = f"at line {self.path}:{self.start.line}"
 
-        return f"{header}\n\n{error_context}: {self.message}\n"
+        return f"{self.error_type} {error_context}:\n {self.message}"
 
     @property
     def _stack_trace(self) -> str:
@@ -180,8 +181,6 @@ class SemgrepInternalError(Exception):
 
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
-
-    pass
 
 
 @attr.s(auto_attribs=True, frozen=True)

@@ -4,9 +4,7 @@ module H = AST_generic_helpers
 
 module DataflowX = Dataflow_core.Make (struct
   type node = IL.node
-
   type edge = IL.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
@@ -31,6 +29,7 @@ let test_dfg_tainting file =
                  is_source = (fun _ -> []);
                  is_sink = (fun _ -> []);
                  is_sanitizer = (fun _ -> []);
+                 unify_mvars = false;
                  handle_findings = (fun _ _ _ -> ());
                }
              in

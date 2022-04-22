@@ -9,11 +9,9 @@ type value =
   | AST of string
 
 type env
-
 type code = AST_generic.expr
 
 exception NotHandled of code
-
 exception NotInEnv of Metavariable.mvar
 
 (* raise NotHandled if the code is outside the subset of expressions allowed

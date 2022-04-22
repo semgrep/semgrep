@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2020-2021 r2c
+ * Copyright (C) 2020-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -27,6 +27,8 @@ let error_report = false
 (*****************************************************************************)
 (* The goal of this module is to resolve names, a.k.a naming or
  * scope resolution, and to do it in a generic way on the generic AST.
+ * update: this module is also (ab)used to propagate type information
+ * used in semgrep for matching typed metavariables.
  *
  * In a compiler you often have those phases:
  *  - lexing
@@ -190,7 +192,6 @@ let add_ident_global_scope (s, _) resolved scopes =
 
 (* for JS 'var' *)
 let _add_ident_function_scope _id _resolved _scopes = raise Todo
-
 let untyped_ent name = { entname = name; enttype = None }
 
 (* see also lookup_scope_opt below taking as a parameter the environment *)
@@ -304,6 +305,52 @@ let error tok s =
   else logger#trace "%s at %s" s (Parse_info.string_of_info tok)
 
 (*****************************************************************************)
+(* Typing Helpers *)
+(*****************************************************************************)
+
+(* should use TyBuiltin instead? *)
+let make_type type_string tok =
+  Some (TyN (Id ((type_string, tok), empty_id_info ())) |> AST_generic.t)
+
+(* This is only one part of the code to handle typed metavariables. Here
+ * the goal is to help is setting the id_info.id_type for a few
+ * identifiers in VarDef or Assign. Then, Generic_vs_generic.m_compatible_type
+ * can leverage the info.
+ *)
+let get_resolved_type lang (vinit, vtype) =
+  match vtype with
+  | Some _ -> vtype
+  | None -> (
+      (* Should never be reached by languages where the type is in the declaration *)
+      (* e.g. Java, C *)
+      let string_str =
+        match lang with
+        | Lang.Go -> "str"
+        | Lang.Js
+        | Lang.Ts ->
+            "string"
+        | _ -> "string"
+      in
+      (* Currently these vary between languages *)
+      (* Alternative is to define a TyInt, TyBool, etc in the generic AST *)
+      (* so this is more portable across languages *)
+      match vinit with
+      | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
+      | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
+      | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
+      | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
+      | Some { e = L (String (_, tok)); _ } -> make_type string_str tok
+      | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
+          make_type "regexp" tok
+      | Some { e = L (Unit tok); _ } -> make_type "unit" tok
+      | Some { e = L (Null tok); _ } -> make_type "null" tok
+      | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
+      (* alt: lookup id in env to get its type, which would be cleaner *)
+      | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
+      | Some { e = New (_, tp, (_, _, _)); _ } -> Some tp
+      | _ -> None)
+
+(*****************************************************************************)
 (* Other Helpers *)
 (*****************************************************************************)
 let is_resolvable_name_ctx env lang =
@@ -317,7 +364,8 @@ let is_resolvable_name_ctx env lang =
       | Lang.Java
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
-      | Lang.Ts ->
+      | Lang.Ts
+      | Lang.Php ->
           true
       | _ -> false)
 
@@ -333,7 +381,8 @@ let resolved_name_kind env lang =
       | Lang.Java
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
-      | Lang.Ts ->
+      | Lang.Ts
+      | Lang.Php ->
           EnclosedVar
       | _ -> raise Impossible)
 
@@ -353,7 +402,7 @@ let declare_var env lang id id_info ~explicit vinit vtype =
   (* for the type, we use the (optional) type in vtype, or, if we can infer
    * the type of the expression vinit (literal or id), we use that as a type
    * useful when the type is not given, e.g. in Go: `var x = 2` *)
-  let resolved_type = Typing.get_resolved_type lang (vinit, vtype) in
+  let resolved_type = get_resolved_type lang (vinit, vtype) in
   let name_kind, add_ident_to_its_scope =
     (* In JS/TS an assignment to a variable that has not been
      * previously declared will implicitly create a property on
@@ -415,8 +464,12 @@ let resolve lang prog =
            * construct
            * todo? should add those somewhere instead of in_lvalue detection? *)
             when is_resolvable_name_ctx env lang ->
-              (* Need to visit expressions first so that type is populated, e.g.
-               * if we do var a = 3, then var b = a, we want to propagate the type of a. *)
+              (* Need to visit expressions first so that the id_type of
+               * an id gets populated, e.g.
+               * if we do var a = 3, then var b = a, we want to propagate the
+               * type of a.
+               * alt: do the lookup type in resolved_type
+               *)
               k x;
               declare_var env lang id id_info ~explicit:true vinit vtype
           | { name = EN (Id (id, id_info)); _ }, FuncDef _
@@ -694,7 +747,8 @@ let resolve lang prog =
                     let s, tok = id in
                     error tok (spf "could not find '%s' in environment" s));
               recurse := false
-          | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
+          | DotAccess
+              ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
             -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.

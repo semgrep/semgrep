@@ -9,9 +9,12 @@ from typing import Tuple
 
 import click
 
-from semgrep.commands.login import Authentication
+from semgrep.app import app_session
+from semgrep.app import auth
+from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.constants import SEMGREP_URL
+from semgrep.error import FATAL_EXIT_CODE
 from semgrep.project import get_project_url
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames
@@ -19,10 +22,9 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-SEMGREP_REGISTRY_BASE_URL = SEMGREP_URL
-SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_BASE_URL}api/registry/rule"
-SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}r/"
-SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}s/"
+SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_URL}/api/registry/rule"
+SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_URL}/r/"
+SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_URL}/s/"
 
 
 class VisibilityState(str, Enum):
@@ -87,65 +89,61 @@ def _get_test_code_for_config(
     "registry_id",
     help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
 )
+@handle_command_errors
 def publish(
     target: str, visibility: VisibilityState, registry_id: Optional[str]
 ) -> None:
     """
-    If logged in, uploads a rule to the Semgrep Registry with the specified visibility.
+    Upload rule to semgrep.dev
 
-    Public rules need registry_id to specify where in the public registry they should live.
+    Must be logged in to use; see `semgrep login`
     """
-    saved_login_token = Authentication.get_token()
-    fail_count = 0
-    if saved_login_token:
-        config_filenames, config_test_filenames = _get_test_code_for_config(
-            Path(target)
-        )
-        if len(config_filenames) == 0:
-            click.echo(f"No valid Semgrep rules found in {target}", err=True)
-            sys.exit(1)
-        if len(config_filenames) != 1 and visibility == VisibilityState.PUBLIC:
-            click.echo(
-                f"Only one public rule can be uploaded at a time: specify a single Semgrep rule",
-                err=True,
-            )
-            sys.exit(1)
-        if visibility == VisibilityState.PUBLIC and registry_id is None:
-            click.echo(f"--visibility=public requires --registry-id", err=True)
-            sys.exit(1)
-
-        click.echo(
-            f'Found {len(config_filenames)} configs to publish with visibility "{visibility}"'
-        )
-
-        for config_filename in config_filenames:
-            test_cases = config_test_filenames.get(config_filename, [])
-            click.echo(
-                f"--> Uploading {config_filename} (test cases: {[str(t) for t in test_cases]})"
-            )
-            first_test_case = test_cases[0] if len(test_cases) >= 1 else None
-
-            if not _upload_rule(
-                config_filename,
-                saved_login_token,
-                visibility,
-                first_test_case,
-                registry_id,
-            ):
-                fail_count += 1
-        if fail_count == 0:
-            sys.exit(0)
-        else:
-            click.echo(f"{fail_count} rules failed to upload", err=True)
-            sys.exit(1)
-    else:
+    if not app_session.token:
         click.echo("run `semgrep login` before using upload", err=True)
-        sys.exit(1)
+        sys.exit(FATAL_EXIT_CODE)
+
+    fail_count = 0
+    config_filenames, config_test_filenames = _get_test_code_for_config(Path(target))
+    if len(config_filenames) == 0:
+        click.echo(f"No valid Semgrep rules found in {target}", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+    if len(config_filenames) != 1 and visibility == VisibilityState.PUBLIC:
+        click.echo(
+            f"Only one public rule can be uploaded at a time: specify a single Semgrep rule",
+            err=True,
+        )
+        sys.exit(FATAL_EXIT_CODE)
+    if visibility == VisibilityState.PUBLIC and registry_id is None:
+        click.echo(f"--visibility=public requires --registry-id", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+
+    click.echo(
+        f'Found {len(config_filenames)} configs to publish with visibility "{visibility}"'
+    )
+
+    for config_filename in config_filenames:
+        test_cases = config_test_filenames.get(config_filename, [])
+        click.echo(
+            f"--> Uploading {config_filename} (test cases: {[str(t) for t in test_cases]})"
+        )
+        first_test_case = test_cases[0] if len(test_cases) >= 1 else None
+
+        if not _upload_rule(
+            config_filename,
+            visibility,
+            first_test_case,
+            registry_id,
+        ):
+            fail_count += 1
+    if fail_count == 0:
+        sys.exit(0)
+    else:
+        click.echo(f"{fail_count} rules failed to upload", err=True)
+        sys.exit(FATAL_EXIT_CODE)
 
 
 def _upload_rule(
     rule_file: Path,
-    token: str,
     visibility: VisibilityState,
     test_code_file: Optional[Path],
     registry_id: Optional[str],
@@ -179,14 +177,8 @@ def _upload_rule(
     rule = rules[0]
 
     # add metadata about the origin of the rule
-    rule.metadata[
-        "rule-origin-note"
-    ] = f"published from {rule_file} in {get_project_url()}"
-
-    import requests
-
-    session = requests.Session()
-    session.headers["Authorization"] = f"Bearer {token}"
+    origin_note = f"published from {rule_file} in {get_project_url()}"
+    rule.metadata["rule-origin-note"] = origin_note
 
     request_json = {
         "definition": {"rules": [rule._raw]},
@@ -194,12 +186,11 @@ def _upload_rule(
         # below should always be defined if passed validation
         "language": rule.languages[0] if len(rule.languages) >= 1 else None,
         # TODO backend can infer deployment ID from token; shouldn't need this
-        "deployment_id": Authentication.get_deployment_id(),
+        "deployment_id": auth.get_deployment_id(),
         "test_target": test_code_file.read_text() if test_code_file else None,
         "registry_check_id": registry_id,
     }
-
-    response = session.post(SEMGREP_REGISTRY_UPLOAD_URL, json=request_json, timeout=30)
+    response = app_session.post(SEMGREP_REGISTRY_UPLOAD_URL, json=request_json)
 
     if not response.ok:
         click.echo(

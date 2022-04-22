@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 
 open Common
@@ -29,7 +30,6 @@ open Range (* for the $..$ range operators *)
 
 (* Returns range of tokens in AST. *)
 let range_of_ast ast = Range.range_of_tokens (V.ii_of_any ast)
-
 let any_to_str ast = OCaml.string_of_v (Meta_AST.vof_any ast)
 
 (*****************************************************************************)
@@ -37,7 +37,6 @@ let any_to_str ast = OCaml.string_of_v (Meta_AST.vof_any ast)
 (*****************************************************************************)
 
 exception Found of G.any
-
 exception FoundExpr of G.expr
 
 let expr_at_range r1 ast =
@@ -66,7 +65,8 @@ let expr_at_range r1 ast =
   try
     visitor (G.Pr ast);
     None
-  with FoundExpr e -> Some e
+  with
+  | FoundExpr e -> Some e
 
 let function_at_range r1 ast =
   let find_function_name_in_entity { G.name; _ } =
@@ -104,7 +104,8 @@ let function_at_range r1 ast =
   try
     visitor (G.Pr ast);
     None
-  with Found a -> Some a
+  with
+  | Found a -> Some a
 
 let any_at_range_first r1 ast =
   (* This could probably be implemented more efficiently ... but should be
@@ -135,7 +136,8 @@ let any_at_range_first r1 ast =
     match expr_at_range r1 ast with
     | None -> None
     | Some e -> Some (G.E e)
-  with Found a -> Some a
+  with
+  | Found a -> Some a
 
 let any_to_stmt (any : G.any) : G.stmt =
   match any with
@@ -149,7 +151,7 @@ let join_anys (anys : AST_generic.any list) : AST_generic.any option =
   match anys with
   | [] -> None
   | [ xs ] -> Some xs
-  | G.S _ :: _ -> Some (G.Ss (List.map any_to_stmt anys))
+  | G.S _ :: _ -> Some (G.Ss (Common.map any_to_stmt anys))
   | _ ->
       failwith
         "Unable to handle ranges that contain multiple expressions. Range must \
@@ -157,7 +159,7 @@ let join_anys (anys : AST_generic.any list) : AST_generic.any option =
 
 let split_any (any : G.any) : G.any list =
   match any with
-  | G.Ss stmts -> List.map (fun s -> G.S s) stmts
+  | G.Ss stmts -> Common.map (fun s -> G.S s) stmts
   | x -> [ x ]
 
 let any_at_range_all r1 ast : AST_generic.any option =

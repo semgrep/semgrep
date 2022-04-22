@@ -30,7 +30,6 @@ let strict = true
 type env = (AST_bash.input_kind * shell_compatibility) H.env
 
 let token = H.token
-
 let str = H.str
 
 let concat_tokens first_tok other_toks : string wrap =
@@ -80,7 +79,8 @@ let classify_shell ((_open, ar, _close) : string_array) :
   let command =
     match ar with
     | Arr_string (_, [ String_content ("/usr/bin/env", _) ])
-      :: Arr_string (_loc, [ String_content (name, _) ]) :: _ ->
+      :: Arr_string (_loc, [ String_content (name, _) ])
+      :: _ ->
         Some name
     | Arr_string (_loc, [ String_content (path, _) ]) :: _ -> Some path
     | _ -> None
@@ -115,7 +115,8 @@ let find_nonblank (s : string) =
       | _ -> raise Exit
     done;
     None
-  with Exit -> Some !pos
+  with
+  | Exit -> Some !pos
 
 let remove_blank_prefix (x : string wrap) : string wrap =
   let s, tok = x in
@@ -153,7 +154,7 @@ let expansion (env : env) ((v1, v2) : CST.expansion) : string_fragment =
       | _ ->
           let loc = (dollar, wrap_tok name) in
           Expansion (loc, Expand_var name))
-  | `LCURL_pat_8713919_RCURL (v1, v2, v3) ->
+  | `LCURL_imm_tok_pat_8713919_RCURL (v1, v2, v3) ->
       let _open = token env v1 (* "{" *) in
       let var_or_mv = str env v2 (* pattern [^\}]+ *) in
       let name, _tok = var_or_mv in
@@ -179,19 +180,20 @@ let expose_port (env : env) (x : CST.expose_port) : expose_port =
   match x with
   | `Semg_ellips tok -> Expose_semgrep_ellipsis (token env tok (* "..." *))
   | `Pat_217c202_opt_choice_SLAS (v1, v2) ->
-      let port = token env v1 (* pattern \d+ *) in
+      let port_tok = token env v1 (* pattern \d+ *) in
       let protocol =
         match v2 with
         | Some x ->
-            [
-              (match x with
+            let tok =
+              match x with
               | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
-              | `SLAS_c773c8d tok -> token env tok (* "/udp" *));
-            ]
-        | None -> []
+              | `SLAS_c773c8d tok -> token env tok (* "/udp" *)
+            in
+            Some (PI.str_of_info tok, tok)
+        | None -> None
       in
-      let tok = PI.combine_infos port protocol in
-      Expose_element (String_content (PI.str_of_info tok, tok))
+      let port_num = port_tok |> PI.str_of_info |> int_of_string_opt in
+      Expose_port ((port_num, port_tok), protocol)
 
 let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
   let colon = token env v1 (* ":" *) in
@@ -207,7 +209,7 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * str =
                  match x with
                  | `Imm_tok_pat_bcfc287 tok ->
                      String_content (str env tok (* pattern [^@\s\$]+ *))
-                 | `Expa x -> expansion env x)
+                 | `Imme_expa x -> expansion env x)
         in
         let loc = Loc.of_list string_fragment_loc fragments in
         (loc, fragments)
@@ -228,7 +230,7 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * str =
                  match x with
                  | `Imm_tok_pat_d2727a0 tok ->
                      String_content (str env tok (* pattern [a-zA-Z0-9:]+ *))
-                 | `Expa x -> expansion env x)
+                 | `Imme_expa x -> expansion env x)
         in
         let loc = Loc.of_list string_fragment_loc fragments in
         (loc, fragments)
@@ -245,35 +247,53 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
     xs
     |> Common.map (fun x ->
            match x with
-           | `Pat_2b37705 tok ->
+           | `Imm_tok_pat_2b37705 tok ->
                String_content (str env tok (* pattern [^@:\s\$]+ *))
-           | `Expa x -> expansion env x)
+           | `Imme_expa x -> expansion env x)
   in
   let fragments = first_fragment :: fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
-let image_alias (env : env) (xs : CST.image_alias) : str =
-  let fragments =
+let image_alias (env : env) ((x, xs) : CST.image_alias) : str =
+  let first_fragment =
+    match x with
+    | `Pat_9a14b5c tok -> String_content (str env tok)
+    | `Expa x -> expansion env x
+  in
+  let other_fragments =
     xs
     |> Common.map (fun x ->
            match x with
-           | `Pat_9a14b5c tok ->
+           | `Imm_tok_pat_9a14b5c tok ->
                String_content (str env tok (* pattern [-a-zA-Z0-9_]+ *))
-           | `Expa x -> expansion env x)
+           | `Imme_expa x -> expansion env x)
   in
+  let fragments = first_fragment :: other_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
-let user_name_or_group (env : env) (xs : CST.user_name_or_group) : str =
-  let fragments =
-    xs
-    |> Common.map (fun x ->
-           match x with
-           | `Pat_660c06c tok ->
-               String_content (str env tok (* pattern [a-z][-a-z0-9_]* *))
-           | `Expa x -> expansion env x)
+let immediate_user_name_or_group_fragment (env : env)
+    (x : CST.immediate_user_name_or_group_fragment) : string_fragment =
+  match x with
+  | `Imm_tok_pat_b295287 tok ->
+      String_content (str env tok (* pattern [a-z][-a-z0-9_]* *))
+  | `Imme_expa x -> expansion env x
+
+let immediate_user_name_or_group (env : env)
+    (xs : CST.immediate_user_name_or_group) : str =
+  let fragments = Common.map (immediate_user_name_or_group_fragment env) xs in
+  let loc = Loc.of_list string_fragment_loc fragments in
+  (loc, fragments)
+
+let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) : str =
+  let head =
+    match x with
+    | `Pat_b295287 tok -> String_content (str env tok)
+    | `Expa x -> expansion env x
   in
+  let tail = Common.map (immediate_user_name_or_group_fragment env) xs in
+  let fragments = head :: tail in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -285,7 +305,7 @@ let unquoted_string (env : env) (xs : CST.unquoted_string) : str =
         | `Imm_tok_pat_24a1611 tok ->
             String_content (str env tok (* pattern "[^\\s\\n\\\"\\\\\\$]+" *))
         | `BSLASHSPACE tok -> String_content (str env tok (* "\\ " *))
-        | `Expa x -> expansion env x)
+        | `Imme_expa x -> expansion env x)
       xs
   in
   let loc = Loc.of_list string_fragment_loc fragments in
@@ -301,9 +321,9 @@ let path0 (env : env) ((v1, v2) : CST.path) : string_fragment list =
     Common.map
       (fun x ->
         match x with
-        | `Pat_0c7fc22 tok ->
+        | `Imm_tok_pat_0c7fc22 tok ->
             String_content (str env tok (* pattern [^\s\$]+ *))
-        | `Expa x -> expansion env x)
+        | `Imme_expa x -> expansion env x)
       v2
   in
   first_fragment :: more_fragments |> simplify_fragments
@@ -320,16 +340,22 @@ let path_or_ellipsis (env : env) (x : CST.path) : str_or_ellipsis =
       let loc = Loc.of_list string_fragment_loc fragments in
       Str_str (loc, fragments)
 
-let stopsignal_value (env : env) (xs : CST.stopsignal_value) : str =
-  let fragments =
+let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) : str =
+  let first_fragment =
+    match x with
+    | `Pat_441cd81 tok -> String_content (str env tok)
+    | `Expa x -> expansion env x
+  in
+  let other_fragments =
     Common.map
       (fun x ->
         match x with
-        | `Pat_441cd81 tok ->
+        | `Imm_tok_pat_441cd81 tok ->
             String_content (str env tok (* pattern [A-Z0-9]+ *))
-        | `Expa x -> expansion env x)
+        | `Imme_expa x -> expansion env x)
       xs
   in
+  let fragments = first_fragment :: other_fragments in
   let loc = Loc.of_list string_fragment_loc fragments in
   (loc, fragments)
 
@@ -346,7 +372,7 @@ let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
         | `Esc_seq tok ->
             let s = str env tok (* escape_sequence *) in
             String_content s
-        | `Expa x -> expansion env x)
+        | `Imme_expa x -> expansion env x)
       v2
   in
   let close = str env v3 (* "\"" *) in
@@ -555,15 +581,14 @@ let comment_line (env : env)
      line locations. *)
   PI.tok_add_s "\n" tok
 
-let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
+let shell_command (env : env) (x : CST.shell_command) =
   match x with
-  | `Str_array x ->
-      let loc, ar = string_array env x in
-      Argv (loc, ar)
-  | `Shell_cmd (v1, v2, v3) -> (
+  | `Semg_ellips tok -> Command_semgrep_ellipsis (token env tok)
+  | `Rep_comm_line_shell_frag_rep_requ_line_cont_rep_comm_line_shell_frag
+      (v1, v2, v3) -> (
       (* Stitch back the fragments together, then parse using the correct
          shell language. *)
-      let _comment_lines = List.map (comment_line env) v1 in
+      let _comment_lines = Common.map (comment_line env) v1 in
       let first_frag = shell_fragment env v2 in
       let more_frags =
         v3
@@ -604,6 +629,13 @@ let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
           | Bash None -> Other_shell_command (Sh, raw_shell_code))
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
+
+let argv_or_shell (env : env) (x : CST.anon_choice_str_array_878ad0b) =
+  match x with
+  | `Str_array x ->
+      let loc, ar = string_array env x in
+      Argv (loc, ar)
+  | `Shell_cmd x -> shell_command env x
 
 let runlike_instruction (env : env) name cmd =
   let name = str env name (* RUN, CMD, ... *) in
@@ -663,7 +695,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
               (fun x ->
                 match x with
                 | `Expose_port x -> expose_port env x
-                | `Expa x -> Expose_element (expansion env x))
+                | `Expa x -> Expose_fragment (expansion env x))
               v2
           in
           let _, end_ = Loc.of_list expose_port_loc port_protos in
@@ -749,7 +781,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             match v3 with
             | Some (v1, v2) ->
                 let colon = token env v1 (* ":" *) in
-                let group = user_name_or_group env v2 in
+                let group = immediate_user_name_or_group env v2 in
                 (Some (colon, group), str_loc group |> snd)
             | None -> (None, end_)
           in

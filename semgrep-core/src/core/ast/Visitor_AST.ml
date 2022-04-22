@@ -84,6 +84,7 @@ let default_visitor =
           id_type = v_id_type;
           id_svalue = _IGNORED;
           id_hidden = _IGNORED2;
+          id_info_id = _IGNORED3;
         } =
           x
         in
@@ -191,6 +192,7 @@ let (mk_visitor :
         id_type = v_id_type;
         id_svalue = v_id_svalue;
         id_hidden = v_id_hidden;
+        id_info_id = _IGNORED;
       } =
         x
       in
@@ -325,6 +327,10 @@ let (mk_visitor :
           ()
       | Call (v1, v2) ->
           let v1 = v_expr v1 and v2 = v_arguments v2 in
+          ()
+      | New (v0, v1, v2) ->
+          v_tok v0;
+          let v1 = v_type_ v1 and v2 = v_arguments v2 in
           ()
       | Assign (v1, v2, v3) ->
           let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_expr v3 in
@@ -490,7 +496,6 @@ let (mk_visitor :
     | Typeof -> ()
     | Instanceof -> ()
     | Sizeof -> ()
-    | New -> ()
     | Spread -> ()
     | HashSplat -> ()
     | NextArrayIndex -> ()
@@ -1263,6 +1268,7 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Xmls v1 -> v_list v_xml_body v1
     | ForOrIfComp v1 -> v_for_or_if_comp v1
     | Tp v1 -> v_type_parameter v1
     | Ta v1 -> v_type_argument v1
@@ -1368,8 +1374,7 @@ let extract_info_visitor recursor =
 (*e: function [[Lib_AST.extract_info_visitor]] *)
 
 (*s: function [[Lib_AST.ii_of_any]] *)
-let ii_of_any any =
-  extract_info_visitor (fun visitor -> visitor any)
+let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
   [@@profiling]
 
 (*e: function [[Lib_AST.ii_of_any]] *)

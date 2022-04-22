@@ -1,0 +1,14 @@
+rules:
+- id: unused-metavariable
+  patterns:
+    - pattern: |
+        var $UTIL = require("something_or_other");
+        ...
+        $UTIL.$FUNC(...)
+    # ruleid: semgrep-metacheck-builtin
+    - metavariable-regex:
+        metavariable: $METHOD
+        regex: (a|b|c)
+  message: Bad method call
+  languages: [js]
+  severity: WARNING

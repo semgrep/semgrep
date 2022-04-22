@@ -4,15 +4,192 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
+
 ### Added
 
-- Semgrep can now output findings in GitLab's SAST report and secret scanning report formats
-  with `--gitlab-sast` and `--gitlab-secrets`.
-- Terraform: basic support for constant propagation of locals (#1147)
+- Bash/Dockerfile: Add support for named ellipses such as in
+  `echo $...ARGS` (#4887)
+- Constant propagation for static constants in php (#5022)
 
 ### Changed
 
-- Semgrep should now be more tolerant to rules using futur extensions by
+- When running a baseline scan on a shallow-cloned git repository,
+  Semgrep still needs enough git history available
+  to reach the branch-off point between the baseline and current branch.
+  Previously, Semgrep would try to gradually fetch more and more commits
+  up to a thousand commits of history,
+  before giving up and just fetching all commits from the remote git server.
+  Now, Semgrep will keep trying smaller batches until up to a million commits.
+  This change should reduce runtimes on large baseline scans on very large repositories.
+- Semgrep-core now logs the rule and file affected by a memory warning.
+- Improved error messages from semgrep-core (#5013)
+- Small changes to text output (#5008)
+- Various exit codes changed so that exit code 1 is only for blocking findings (#5039)
+- Subcommand is sent as part of user agent (#5051)
+
+### Fixed
+
+- Lockfiles scanning now respects .semgrepignore
+- Workaround for git safe.directory change in github action (#5044)
+- When a baseline scan diff showed that a path changed a symlink a proper file,
+  Semgrep used incorrectly skip that path. This is now fixed.
+- Dockerfile support: handle image aliases correctly (#4881)
+- TS: Fixed matching of parameters with type annotations. E.g., it is now possible
+  to match `({ params }: Request) => { }` with `({$VAR} : $REQ) => {...}`. (#5004)
+
+## [0.88.0](https://github.com/returntocorp/semgrep/releases/tag/v0.88.0) - 2022-04-13
+
+### Added
+
+- Scala support is now officially GA
+  - Ellipsis method chaining is now supported
+  - Type metavariables are now supported
+- Ruby: Add basic support for lambdas in patterns. You can now write patterns
+  of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
+- Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
+
+### Changed
+
+- Moved description of parse/internal errors to the "skipped" section of output
+- Since 0.77.0 semgrep-core logs a warning when a worker process is consuming above
+  400 MiB of memory. Now, it will also log an extra warning every time memory usage
+  doubles. Again, this is meant to help diagnosing OOM-related crashes.
+
+### Fixed
+
+- Dockerfile: `lang.json` file not found error while building the docker image
+- Dockerfile: `EXPOSE 12345` will now parse `12345` as an int instead of a string,
+  allowing `metavariable-comparison` with integers (#4875)
+- Scala: unicode character literals now parse
+- Scala: multiple annotated type parameters now parse (`def f[@an A, @an B](x : A, y : B) = ...`)
+- Ruby: Allow 'unless' used as keyword argument or hash key (#4948)
+- Ruby: Fix regexp matching in the presence of escape characters (#4999)
+- `r2c-internal-project-depends-on`:
+  - Generic mode rules work again
+  - Semgrep will not fail on targets that contain no relevant lockfiles
+  - `package-lock.json` parsing now defaults to `dependencies` instead of `packages`,
+    and will not completely fail on dependencies with no version
+  - `yarn.lock` parsing has been rewritten to fix a bug where sometimes
+    large numbers of dependencies would be ignored
+- Go: parse multiline string literals
+- Handle utf-8 decoding errors without crashing (#5023)
+
+## [0.87.0](https://github.com/returntocorp/semgrep/releases/tag/v0.87.0) - 2022-04-07
+
+### Added
+
+- New `focus-metavariable` operator that lets you focus (or "zoom in") the match
+  on the code region delimited by a metavariable. This operator is useful for
+  narrowing down the code matched by a rule, to focus on what really matters. (#4453)
+- `semgrep ci` uses "GITHUB_SERVER_URL" to generate urls if it is available
+- You can now set `NO_COLOR=1` to force-disable colored output
+
+### Changed
+
+- taint-mode: We no longer force the unification of metavariables between
+  sources and sinks by default. It is not clear that this is the most natural
+  behavior; and we realized that, in fact, it was confusing even for experienced
+  Semgrep users. Instead, each set of metavariables is now considered independent.
+  The metavariables available to the rule message are all metavariables bound by
+  `pattern-sinks`, plus the subset of metavariables bound by `pattern-sources`
+  that do not collide with the ones bound by `pattern-sinks`. We do not expect
+  this change to break many taint rules because source-sink metavariable
+  unification had a bug (see #4464) that prevented metavariables bound by a
+  `pattern-inside` to be unified, thus limiting the usefulness of the feature.
+  Nonetheless, it is still possible to force metavariable unification by setting
+  `taint_unify_mvars: true` in the rule's `options`.
+- `r2c-internal-project-depends-on`: this is now a rule key, and not part of the pattern language.
+  The `depends-on-either` key can be used analgously to `pattern-either`
+- `r2c-internal-project-depends-on`: each rule with this key will now distinguish between
+  _reachable_ and _unreachable_ findings. A _reachable_ finding is one with both a dependency match
+  and a pattern match: a vulnerable dependency was found and the vulnerable part of the dependency
+  (according to the patterns in the rule) is used somewhere in code. An _unreachable_ finding
+  is one with only a dependency match. Reachable findings are reported as coming from the
+  code that was pattern matched. Unreachable findings are reported as coming from the lockfile
+  that was dependency matched. Both kinds of findings specify their kind, along with all matched
+  dependencies, in the `extra` field of semgrep's JSON output, using the `dependency_match_only`
+  and `dependency_matches` fields, respectively.
+- `r2c-internal-project-depends-on`: a finding will only be considered reachable if the file
+  containing the pattern match actually depends on the dependencies in the lockfile containing the
+  dependency match. A file depends on a lockfile if it is the nearest lockfile going up the
+  directory tree.
+- The returntocorp/semgrep Docker image no longer sets `semgrep` as the entrypoint.
+  This means that `semgrep` is no longer prepended automatically to any command you run in the image.
+  This makes it possible to use the image in CI executors that run provisioning commands within the image.
+
+### Fixed
+
+- `-` is now parsed as a valid identifier in Scala
+- `new $OBJECT(...)` will now work properly as a taint sink (#4858)
+- JS/TS: `...{$X}...` will no longer match `str`
+- taint-mode: Metavariables bound by a `pattern-inside` are now available to the
+  rule message. (#4464)
+- parsing: fail fast on in semgrep-core if rules fail to validate (broken since 0.86.5)
+- Setting either `SEMGREP_URL` or `SEMGREP_APP_URL`
+  now updates the URL used both for Semgrep App communication,
+  and for fetching Semgrep Registry rules.
+- The pre-commit hook exposed from semgrep's repository no longer fails
+  when trying to install with recent setuptools versions.
+
+## [0.86.5](https://github.com/returntocorp/semgrep/releases/tag/v0.86.5) - 2022-03-28
+
+## Changed
+
+- Set minimum urllib3 version
+
+## [0.86.4](https://github.com/returntocorp/semgrep/releases/tag/v0.86.4) - 2022-03-25
+
+### Changed
+
+- Increase rule fetch timeout from 20s to 30s
+
+## [0.86.3](https://github.com/returntocorp/semgrep/releases/tag/v0.86.3) - 2022-03-25
+
+### Fixed
+
+- Network timeouts during rule download are now less likely.
+
+## [0.86.2](https://github.com/returntocorp/semgrep/releases/tag/v0.86.2) - 2022-03-24
+
+### Fixed
+
+- Some finding fingerprints were not matching what semgrep-agent would return.
+
+## [0.86.1](https://github.com/returntocorp/semgrep/releases/tag/v0.86.1) - 2022-03-24
+
+### Fixed
+
+- The fingerprint of findings ignored with `# nosemgrep` is supposed to be the same
+  as if the ignore comment wasn't there.
+  This has previously only worked for single-line findings, including in `semgrep-agent`.
+  Now the fingerprint is consistent as expected for multiline findings as well.
+
+### Changed
+
+- `--timeout-threshold` default set to 3 instead of 0
+
+## [0.86.0](https://github.com/returntocorp/semgrep/releases/tag/v0.86.0) - 2022-03-24
+
+### Added
+
+- Semgrep can now output findings in GitLab's SAST report and secret scanning
+  report formats with `--gitlab-sast` and `--gitlab-secrets`.
+- JSON output now includes a fingerprint of each finding.
+  This fingerprint remains consistent when matching code is just moved around
+  or reindented.
+- Go: use latest tree-sitter-go with support for Go 1.18 generics (#4823)
+- Terraform: basic support for constant propagation of locals (#1147)
+  and variables (#4816)
+- HTML: you can now use metavariable ellipsis inside <script> (#4841)
+  (e.g., `<script>$...JS</script>`)
+- A `semgrep ci` subcommand that auto-detects settings from your CI environment
+  and can upload findings to Semgrep App when logged in.
+
+### Changed
+
+- SARIF output will include matching code snippet (#4812)
+- semgrep-core should now be more tolerant to rules using futur extensions by
   skipping those rules instead of just crashing (#4835)
 - Removed `tests` from published python wheel
 - Findings are now considered identical between baseline and current scans
@@ -20,23 +197,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Two findings are now identical after whitespace changes such as re-indentation
   - Two findings are now identical after a nosemgrep comment is added
   - Findings are now different if the same code triggered them on different lines
+- Docker image now runs as root to allow the docker image to be used in CI/CD pipelines
+- Support XDG Base directory specification (#4818)
 
 ### Fixed
 
+- Entropy analysis: strings made of repeated characters such as
+  `'xxxxxxxxxxxxxx'` are no longer reported has having high entropy (#4833)
 - Symlinks found in directories are skipped from being scanned again.
   This is a fix for a regression introduced in 0.85.0.
+- HTML: multiline raw text tokens now contain the newline characters (#4855)
+- Go: fix unicode parsing bugs (#4725) by switching to latest tree-sitter-go
+- Constant propagation: A conditional expression where both alternatives are
+  constant will also be considered constant (#4301)
+- Constant propagation now recognizes operators `++` and `--` as side-effectful
+  (#4667)
 
 ## [0.85.0](https://github.com/returntocorp/semgrep/releases/tag/v0.85.0) - 2022-03-16
 
 ### Added
 
 - C#: use latest tree-sitter-c-sharp with support for most C# 10.0 features
-- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>) (#4078)
-- Scala: The data-flow engine can now handle expression blocks. This used to
-  cause some false negatives during taint analysis, which will now be reported.
-- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]` (#4770).
-- When scanning multiple languages,
-  Semgrep will now print a table of how many rules and files are used for each language.
+- HTML: support for metavariables on tags (e.g., `<$TAG>...</$TAG>`) (#4078)
+- Scala: The data-flow engine can now handle expression blocks.
+  This used to cause some false negatives during taint analysis,
+  which will now be reported.
+- Dockerfile: allow e.g. `CMD ...` to match both `CMD ls` and `CMD ["ls"]`
+  (#4770).
+- When scanning multiple languages, Semgrep will now print a table of how
+  many rules and files are used for each language.
 
 ### Fixed
 
