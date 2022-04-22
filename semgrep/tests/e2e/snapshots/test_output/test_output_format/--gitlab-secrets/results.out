@@ -33,7 +33,10 @@
       ],
       "scanner": {
         "id": "semgrep",
-        "name": "Semgrep"
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
       },
       "severity": "High"
     }
