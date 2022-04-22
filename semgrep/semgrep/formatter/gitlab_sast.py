@@ -57,7 +57,7 @@ class GitlabSastFormatter(BaseFormatter):
             # Semgrep is designed to be a low-FP tool by design.
             # Does hard-coding confidence make sense here?
             "confidence": "High",
-            "scanner": {"id": "semgrep", "name": "Semgrep"},
+            "scanner": {"id": "semgrep", "name": "Semgrep", "vendor": {"name": "Semgrep"}},
             "location": {
                 "file": str(rule_match.path),
                 # Gitlab only uses line identifiers
