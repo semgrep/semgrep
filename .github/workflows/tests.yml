@@ -25,12 +25,14 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: true
+
       - id: docker-meta
         uses: docker/metadata-action@v3
         with:
           images: ghcr.io/${{ github.repository }}
           flavor: latest=false
           tags: type=sha,format=long
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -63,7 +65,7 @@ jobs:
     name: test semgrep-core
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - name: Test semgrep-core
@@ -85,7 +87,7 @@ jobs:
     name: benchmark semgrep-core
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       # TODO: move this to a stable host for more reliable results.
@@ -106,7 +108,7 @@ jobs:
     name: test semgrep cli
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - run: pytest
@@ -115,7 +117,7 @@ jobs:
     name: run semgrep on public repos
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - uses: actions/cache@v2
@@ -136,7 +138,7 @@ jobs:
     name: semgrep dummy benchmarks
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - name: Test dummy benchmarks on latest
@@ -153,7 +155,7 @@ jobs:
     name: semgrep benchmark tests
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - name: Run 0.82.0 Timing Benchmark
