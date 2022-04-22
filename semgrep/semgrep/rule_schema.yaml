@@ -152,11 +152,37 @@ definitions:
                     type: string
             as:
               type: string
+          additionalProperties: false
+      rules:
+        type: array
+        items:
+          type: object
+          required:
+            - id
+            - languages
+          oneOf:
+            - required:
+                - pattern
+            - required:
+                - patterns
+          properties:
+            id:
+              type: string
+            languages:
+              type: array
+              items:
+                - type: string
+            pattern:
+              type: string
+            patterns:
+              $ref: "#/definitions/patterns-content"
+          additionalProperties: false
       on:
         type: array
         items:
           type: string
       additionalProperties: false
+    additionalProperties: false
   # This a generic version of metavariable-regex and metavariable-pattern.
   # It is meant to allow a variety of built-in analyzers, each with a
   # name and its own options. For example, this is used for the entropy
