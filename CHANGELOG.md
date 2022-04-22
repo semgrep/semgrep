@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
+
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
 ### Added
@@ -47,7 +51,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - Type metavariables are now supported
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
-- Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 - Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
 
 ### Changed
