@@ -23,6 +23,7 @@ FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b3
 RUN apk add --no-cache pcre-dev python3 &&\
      pip install --no-cache-dir pipenv==2021.11.23
 
+USER user
 WORKDIR /semgrep
 
 COPY semgrep-core/ ./
