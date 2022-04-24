@@ -24,11 +24,12 @@ USER root
 RUN apk add --no-cache pcre-dev python3 &&\
      pip install --no-cache-dir pipenv==2021.11.23
 
+USER user
 WORKDIR /semgrep
 
-COPY semgrep-core/ ./
+COPY semgrep-core/ ./semgrep-core
 # some .atd files in semgrep-core are symlinks to files in interfaces/
-COPY interfaces/ ./
+COPY interfaces/ ./interfaces
 # we need this lang/ subdirectory to generate Lang.ml. In theory the data
 # should be in interfaces/ but Python does not like symlinks when making
 # packages, so interfaces/lang/ is actually a symlink towards
@@ -36,20 +37,20 @@ COPY interfaces/ ./
 # Note that the 'git submodule --depth 1' below
 # would actually checkout semgrep/semgrep/lang directory,
 # needed to compile 'semgrep-core' and to run 'semgrep'.
-COPY semgrep ./
-COPY scripts ./
+COPY semgrep/ ./semgrep
+COPY scripts/ ./scripts
 
 #coupling: if you add dependencies above, you probably also need to update:
 #  - scripts/install-alpine-semgrep-core
 #  - the setup target in Makefile
 RUN eval "$(opam env)" && \
-     ./scripts/install-tree-sitter-runtime && \
+     scripts/install-tree-sitter-runtime && \
      opam install --deps-only -y semgrep-core/src/pfff/ && \
      opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core && \
      opam install --deps-only -y semgrep-core/ && \
      make -C semgrep-core/ all &&\
      # Sanity checks
-     ./semgrep-core/_build/install/default/bin/semgrep-core -version
+     semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
 # We change container, bringing the 'semgrep-core' binary with us.
