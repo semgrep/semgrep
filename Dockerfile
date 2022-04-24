@@ -17,13 +17,13 @@
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as build-semgrep-core
+USER user
 
 # for ocaml-pcre now used in semgrep-core
 # TODO: update root image to include python 3.9
 RUN apk add --no-cache pcre-dev python3 &&\
      pip install --no-cache-dir pipenv==2021.11.23
 
-USER user
 WORKDIR /semgrep
 
 COPY semgrep-core/ ./
