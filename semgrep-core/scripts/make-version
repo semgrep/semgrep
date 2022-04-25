@@ -4,7 +4,11 @@
 #
 set -eu
 
-version=$(git describe --always --dirty --tags --long)
+version=$SEMGREP_VERSION
+
+if [[ -z "$version" ]]; then
+  version=$(git describe --always --dirty --tags --long)
+fi
 
 if [[ -z "$version" ]]; then
   echo "Failed to obtain version string." >&2

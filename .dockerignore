@@ -1,13 +1,9 @@
-# dune
-_build
 # starting from dune 2.8.2, those are actually not generated anymore
 .merlin
 
 # bisect_ppx
 _coverage
 *.coverage
-
-semgrep_core/sgrep.install
 
 # pad's stuff (but better to put in ~pad/config/commons/gitignore)
 /top.ml
@@ -161,15 +157,9 @@ TAGS
 /semgrep/pyproject.toml
 /scripts/oncall-email/today.json
 /scripts/oncall-email/yesterday.json
-/semgrep/semgrep/bin/semgrep-core
 
-# Do not check in compiled binaries
-semgrep/semgrep/bin/semgrep-core
 
-# Ignore bench files
-perf/bench
-!perf/bench/dogfood
-!perf/bench/gitlab
-!perf/bench/dummy
-
-.git
+.git/
+semgrep/semgrep/bin/
+semgrep-core/_build/
+perf/bench/
