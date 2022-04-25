@@ -139,6 +139,18 @@ install_requires = [
     "setuptools",
 ]
 
+tests_require = [
+    "appdirs",
+    "mypy",
+    "pytest",
+    "pytest-snapshot",
+    "pytest-xdist",
+    "types-all",
+    "types-setuptools",
+    "types-colorama",
+    "types-jsonschema",
+]
+
 setuptools.setup(
     name="semgrep",
     version=__VERSION__,
@@ -147,6 +159,7 @@ setuptools.setup(
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,
+    extras_require={"tests": tests_require},
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",

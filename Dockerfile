@@ -76,7 +76,7 @@ COPY semgrep ./
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \
      apk add --no-cache --virtual=.run-deps bash git git-lfs openssh && \
-     SEMGREP_SKIP_BIN=true pip install /semgrep && \
+     SEMGREP_SKIP_BIN=true pip install /semgrep[tests] && \
      semgrep --version && \
      apk del .build-deps && \
      mkdir -p /tmp/.cache
