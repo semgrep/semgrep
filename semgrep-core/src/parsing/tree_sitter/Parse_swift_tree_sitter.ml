@@ -1495,7 +1495,7 @@ and map_expr_hack_at_ternary_call (env : env)
     ((v1, v2) : CST.expr_hack_at_ternary_call) =
   let v1 = map_expression env v1 in
   let v2 = map_expr_hack_at_ternary_call_suffix env v2 in
-  todo env (v1, v2)
+  G.Call (v1, v2) |> G.e
 
 and map_expr_hack_at_ternary_call_suffix (env : env)
     (x : CST.expr_hack_at_ternary_call_suffix) =
@@ -2745,7 +2745,7 @@ and map_ternary_expression (env : env)
     | `Exp x -> map_expression env x
     | `Expr_hack_at_tern_call x -> map_expr_hack_at_ternary_call env x
   in
-  todo env (v1, v2, v3, v4, v5)
+  G.Conditional (v1, v3, v5) |> G.e
 
 and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
   let v1 = (* "throw" *) token env v1 in
