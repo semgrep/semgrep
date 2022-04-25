@@ -53,7 +53,7 @@ RUN eval "$(opam env)" && \
      opam install --deps-only -y semgrep-core/ && \
      make -C semgrep-core/ all &&\
      mkdir /semgrep/bin &&\
-     mv /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /semgrep/bin/semgrep-core &&\
+     mv /semgrep/semgrep-core/_build/default/src/cli/Main.exe /semgrep/bin/semgrep-core &&\
      # Cleanup for easier caching
      rm -rf /semgrep/semgrep-core/_build ~/.opam &&\
      # Sanity checks
