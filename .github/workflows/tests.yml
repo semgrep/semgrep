@@ -20,19 +20,6 @@ jobs:
     name: Build Docker image
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          submodules: true
-
-      - id: docker-meta
-        uses: docker/metadata-action@v3
-        with:
-          images: ghcr.io/${{ github.repository }}
-          flavor: latest=false
-          tags: type=raw,value=sha-${{ github.event.pull_request.head.sha }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -51,14 +38,37 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Build and push
+      - id: docker-meta-cli
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/${{ github.repository }}/cli
+          flavor: latest=false
+          tags: type=raw,value=sha-${{ github.event.pull_request.head.sha }}
+
+      - name: Build and push semgrep/cli
         uses: docker/build-push-action@v2
         with:
-          context: .
           build-args: SEMGREP_VERSION=dev
           push: true
-          tags: ${{ steps.docker-meta.outputs.tags }}
-          labels: ${{ steps.docker-meta.outputs.labels }}
+          tags: ${{ steps.docker-meta-cli.outputs.tags }}
+          labels: ${{ steps.docker-meta-cli.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+
+      - id: docker-meta-core
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/${{ github.repository }}/core
+          flavor: latest=false
+          tags: type=raw,value=sha-${{ github.event.pull_request.head.sha }}
+
+      - name: Build and push semgrep/core
+        uses: docker/build-push-action@v2
+        with:
+          build-args: SEMGREP_VERSION=dev
+          push: true
+          tags: ${{ steps.docker-meta-core.outputs.tags }}
+          labels: ${{ steps.docker-meta-core.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
@@ -66,7 +76,7 @@ jobs:
     name: test semgrep-core
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}/core:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - name: Test semgrep-core
@@ -88,7 +98,7 @@ jobs:
     name: benchmark semgrep-core
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}/core:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       # TODO: move this to a stable host for more reliable results.
@@ -109,7 +119,7 @@ jobs:
     name: test semgrep cli
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - run: pytest
@@ -118,7 +128,7 @@ jobs:
     name: run semgrep on public repos
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - uses: actions/cache@v2
@@ -139,7 +149,7 @@ jobs:
     name: semgrep dummy benchmarks
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
       - name: Test dummy benchmarks on latest
@@ -156,21 +166,9 @@ jobs:
     name: semgrep benchmark tests
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.event.pull_request.head.sha }}
+      image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
     needs: [build]
     steps:
-      - name: Run 0.82.0 Timing Benchmark
-        run: |
-          pip install semgrep==0.82.0
-          semgrep --version
-          python3 -m semgrep --version
-          export PATH=/github/home/.local/bin:$PATH
-
-          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.json --no-time
-          jq . semgrep/baseline_timing1.json
-          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.json --no-time
-          jq . semgrep/baseline_timing2.json
-          pip uninstall -y semgrep
       - name: Get timing for latest semgrep
         run: |
           cd semgrep
@@ -182,6 +180,17 @@ jobs:
           pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json --save-findings-to findings.json
           jq . timing2.json
           jq . findings.json
+      - name: Run 0.82.0 Timing Benchmark
+        run: |
+          pip install semgrep==0.82.0
+          semgrep --version
+          python3 -m semgrep --version
+          export PATH=/github/home/.local/bin:$PATH
+
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.json --no-time
+          jq . semgrep/baseline_timing1.json
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.json --no-time
+          jq . semgrep/baseline_timing2.json
       - name: Compare timing infos
         run: |
           perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}

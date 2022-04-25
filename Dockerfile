@@ -16,7 +16,7 @@
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
-FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as build-semgrep-core
+FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as semgrep-core
 
 
 # for ocaml-pcre now used in semgrep-core
@@ -52,12 +52,10 @@ RUN eval "$(opam env)" && \
      opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core && \
      opam install --deps-only -y semgrep-core/ && \
      make -C semgrep-core/ all &&\
-     mkdir /semgrep/bin &&\
-     mv /semgrep/semgrep-core/_build/default/src/cli/Main.exe /semgrep/bin/semgrep-core &&\
      # Cleanup for easier caching
-     rm -rf /semgrep/semgrep-core/_build ~/.opam &&\
+     opam clean && \
      # Sanity checks
-     /semgrep/bin/semgrep-core -version
+     /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
 #
 # We change container, bringing the 'semgrep-core' binary with us.
@@ -87,7 +85,7 @@ RUN chmod +x /entrypoint.sh
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
-COPY --from=build-semgrep-core /semgrep/bin/semgrep-core /usr/local/bin/semgrep-core
+COPY --from=semgrep-core /semgrep/semgrep-core/_build/default/src/cli/Main.exe /usr/local/bin/semgrep-core
 
 WORKDIR /src
 ENV SEMGREP_IN_DOCKER=1 \
