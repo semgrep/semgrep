@@ -25,9 +25,9 @@ RUN apk add --no-cache pcre-dev python3 &&\
 
 WORKDIR /semgrep
 
-COPY semgrep-core/ ./semgrep-core
+COPY --chown=user semgrep-core/ ./semgrep-core
 # some .atd files in semgrep-core are symlinks to files in interfaces/
-COPY interfaces/ ./interfaces
+COPY --chown=user interfaces/ ./interfaces
 # we need this lang/ subdirectory to generate Lang.ml. In theory the data
 # should be in interfaces/ but Python does not like symlinks when making
 # packages, so interfaces/lang/ is actually a symlink towards
@@ -35,8 +35,8 @@ COPY interfaces/ ./interfaces
 # Note that the 'git submodule --depth 1' below
 # would actually checkout semgrep/semgrep/lang directory,
 # needed to compile 'semgrep-core' and to run 'semgrep'.
-COPY semgrep/ ./semgrep
-COPY scripts/ ./scripts
+COPY --chown=user semgrep/ ./semgrep
+COPY --chown=user scripts/ ./scripts
 
 #coupling: if you add dependencies above, you probably also need to update:
 #  - scripts/install-alpine-semgrep-core
