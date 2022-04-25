@@ -464,6 +464,15 @@ and expr_as_stmt = function
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
+      | G.Call ({ G.e = G.N (G.Id (("require_relative", t), _)); _ }, args)
+      | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
+      | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
+          match args with
+          | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _ ->
+              G.DirectiveStmt
+                { G.d = G.ImportAll (t, G.FileName str, t); G.d_attrs = [] }
+              |> G.s
+          | _ -> G.exprstmt e)
       | _ -> G.exprstmt e)
 
 and stmt st =
