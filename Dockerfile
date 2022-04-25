@@ -52,8 +52,11 @@ RUN eval "$(opam env)" && \
      opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core && \
      opam install --deps-only -y semgrep-core/ && \
      make -C semgrep-core/ all &&\
+     mv /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core &&\
+     # Cleanup for easier caching
+     rm -rf /semgrep/semgrep-core/_build ~/.opam &&\
      # Sanity checks
-     semgrep-core/_build/install/default/bin/semgrep-core -version
+     /usr/local/bin/semgrep-core -version
 
 #
 # We change container, bringing the 'semgrep-core' binary with us.
@@ -67,8 +70,6 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
      PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
-COPY --from=build-semgrep-core \
-     /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 COPY semgrep ./
 
 # hadolint ignore=DL3013
@@ -84,6 +85,8 @@ RUN chmod +x /entrypoint.sh
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
+
+COPY --from=build-semgrep-core /usr/local/bin/semgrep-core /usr/local/bin/semgrep-core
 
 WORKDIR /src
 ENV SEMGREP_IN_DOCKER=1 \
