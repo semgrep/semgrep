@@ -450,30 +450,39 @@ and literal x =
       in
       f [] [] (List.rev xs)
 
+and expr_special_cases e =
+  let e = expr e in
+  match e.G.e with
+  (* a single name on its own line is probably an hidden fun call,
+   * unless it's a metavariable
+   *)
+  | G.N (G.Id ((s, _), _)) ->
+      if AST_generic_.is_metavar_name s then G.E e
+      else
+        let call = G.Call (e, fb []) |> G.e in
+        G.E call
+  | G.Call ({ G.e = G.N (G.Id (("require_relative", t), _)); _ }, args)
+  | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
+  | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
+      match args with
+      | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _ ->
+          let s =
+            G.DirectiveStmt
+              { G.d = G.ImportAll (t, G.FileName str, t); G.d_attrs = [] }
+            |> G.s
+          in
+          G.S s
+      | _ -> G.E e)
+  | _ -> G.E e
+
 and expr_as_stmt = function
   | S x -> stmt x
   | D x -> definition x
   | e -> (
-      let e = expr e in
-      match e.G.e with
-      (* a single name on its own line is probably an hidden fun call,
-       * unless it's a metavariable
-       *)
-      | G.N (G.Id ((s, _), _)) ->
-          if AST_generic_.is_metavar_name s then G.exprstmt e
-          else
-            let call = G.Call (e, fb []) |> G.e in
-            G.exprstmt call
-      | G.Call ({ G.e = G.N (G.Id (("require_relative", t), _)); _ }, args)
-      | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
-      | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
-          match args with
-          | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _ ->
-              G.DirectiveStmt
-                { G.d = G.ImportAll (t, G.FileName str, t); G.d_attrs = [] }
-              |> G.s
-          | _ -> G.exprstmt e)
-      | _ -> G.exprstmt e)
+      match expr_special_cases e with
+      | G.S s -> s
+      | G.E e -> G.exprstmt e
+      | _ -> raise Impossible)
 
 and stmt st =
   match st with
@@ -786,7 +795,7 @@ let any x =
       match x with
       | S x -> G.S (stmt x)
       | D x -> G.S (definition x)
-      | _ -> G.E (expr x))
+      | e -> expr_special_cases e)
   | S2 x -> G.S (stmt x)
   | Ss xs -> G.Ss (list_stmts xs)
   | Pr xs -> G.Ss (list_stmts xs)
