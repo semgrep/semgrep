@@ -465,7 +465,8 @@ and expr_special_cases e =
   | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
   | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
       match args with
-      | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _ ->
+      | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _
+      | _, [ G.Arg { G.e = G.N (G.Id (str, _)); _ } ], _ ->
           let s =
             G.DirectiveStmt
               { G.d = G.ImportAll (t, G.FileName str, t); G.d_attrs = [] }
