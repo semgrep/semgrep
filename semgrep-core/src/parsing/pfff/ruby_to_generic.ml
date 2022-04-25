@@ -451,16 +451,10 @@ and literal x =
       f [] [] (List.rev xs)
 
 and expr_special_cases e =
-  let e = expr e in
+  (* Code parsed as expressions in Ruby that we want to represent
+     in some other way *)
   match e.G.e with
-  (* a single name on its own line is probably an hidden fun call,
-   * unless it's a metavariable
-   *)
-  | G.N (G.Id ((s, _), _)) ->
-      if AST_generic_.is_metavar_name s then G.E e
-      else
-        let call = G.Call (e, fb []) |> G.e in
-        G.E call
+  (* Function calls like `require $X` are really directives *)
   | G.Call ({ G.e = G.N (G.Id (("require_relative", t), _)); _ }, args)
   | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
   | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
@@ -480,10 +474,21 @@ and expr_as_stmt = function
   | S x -> stmt x
   | D x -> definition x
   | e -> (
-      match expr_special_cases e with
-      | G.S s -> s
-      | G.E e -> G.exprstmt e
-      | _ -> raise Impossible)
+      let e = expr e in
+      match e.G.e with
+      (* targets only: a single name on its own line is probably an hidden fun call,
+         * unless it's a metavariable
+      *)
+      | G.N (G.Id ((s, _), _)) ->
+          if AST_generic_.is_metavar_name s then G.exprstmt e
+          else
+            let call = G.Call (e, fb []) |> G.e in
+            G.exprstmt call
+      | _ -> (
+          match expr_special_cases e with
+          | G.S s -> s
+          | G.E e -> G.exprstmt e
+          | _ -> raise Impossible))
 
 and stmt st =
   match st with
@@ -796,7 +801,7 @@ let any x =
       match x with
       | S x -> G.S (stmt x)
       | D x -> G.S (definition x)
-      | e -> expr_special_cases e)
+      | e -> expr_special_cases (expr e))
   | S2 x -> G.S (stmt x)
   | Ss xs -> G.Ss (list_stmts xs)
   | Pr xs -> G.Ss (list_stmts xs)
