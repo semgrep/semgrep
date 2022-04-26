@@ -8,6 +8,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 
+### Fixed
+
+- Parenthesis in autofixed OCaml code will no longer leave dangling closing-paren (#5087)
+
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
 ### Added
