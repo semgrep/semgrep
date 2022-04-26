@@ -175,3 +175,125 @@ true || false;
 5 ^ 5;
 5 << 1;
 5 >> 1;
+
+// -----------------------------------------------------------------------------
+// Ternary expressions:
+// -----------------------------------------------------------------------------
+
+true ? 5 : 7;
+
+// Handled separately in the grammar
+true ? 5 : foo();
+
+// -----------------------------------------------------------------------------
+// Primary expressions:
+// -----------------------------------------------------------------------------
+
+// Tuple expressions
+
+(1, 2);
+(thing: 1, other: 2);
+
+// Basic literals
+
+42;
+4_2;
+
+0x5f;
+0X5F;
+
+0o40;
+0O21;
+
+0b10;
+0B10;
+
+3.4;
+3e5;
+3E+54;
+3e-2;
+
+true;
+false;
+
+"foo\t\u{1F600}\(5 + 3)";
+""" "asdf
+"
+"""
+
+// TODO raw string literal
+
+nil;
+
+// Lambda literals
+
+// TODO support captures
+// TODO figure out if { x in } is legal
+({ x });
+({ x in x });
+({});
+
+// TODO Special literals
+// TODO Playground literals
+
+// Array literals
+
+[1, 2, 3];
+[1,];
+// Empty collections require an explicit type
+([] as [Int]);
+
+// Dictionary literals
+
+[1: 2, 3: 4];
+[1: 2,];
+// Empty collections require an explicit type
+([:] as [Int : Int]);
+
+// Self expressions
+
+self
+
+// Super expressions
+
+super
+
+// Try expressions
+
+try (5 + foo());
+try! true && false;
+try? bar();
+try x ? y : z;
+
+// Await expressions
+
+await 5;
+await foo();
+await x ? y : z;
+
+// TODO Referenceable operators
+// TODO Key path expressions
+// TODO Key path string expressions
+
+// Unbounded range expressions
+
+(...);
+
+// -----------------------------------------------------------------------------
+// Assignment:
+// -----------------------------------------------------------------------------
+
+foo += 5;
+foo.bar -= 5;
+foo() *= 5;
+(foo, bar) /= 5;
+self %= 5;
+foo = 5;
+
+// Immediate question mark ?
+
+foo?.bar;
+
+// aysnc ?
+
+async

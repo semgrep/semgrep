@@ -90,12 +90,12 @@ let map_as_quest_custom (env : env) (tok : CST.as_quest_custom) =
 
 let map_assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   match x with
-  | `PLUSEQ tok -> (* "+=" *) token env tok
-  | `DASHEQ tok -> (* "-=" *) token env tok
-  | `STAREQ tok -> (* "*=" *) token env tok
-  | `SLASHEQ tok -> (* "/=" *) token env tok
-  | `PERCEQ tok -> (* "%=" *) token env tok
-  | `EQ tok -> (* "=" *) token env tok
+  | `PLUSEQ tok -> (Some G.Plus, (* "+=" *) token env tok)
+  | `DASHEQ tok -> (Some G.Minus, (* "-=" *) token env tok)
+  | `STAREQ tok -> (Some G.Mult, (* "*=" *) token env tok)
+  | `SLASHEQ tok -> (Some G.Div, (* "/=" *) token env tok)
+  | `PERCEQ tok -> (Some G.Mod, (* "%=" *) token env tok)
+  | `EQ tok -> (None, (* "=" *) token env tok)
 
 let map_ownership_modifier (env : env) (x : CST.ownership_modifier) =
   match x with
@@ -429,12 +429,12 @@ let map_range_operator (env : env) (x : CST.range_operator) =
 
 let map_str_escaped_char (env : env) (x : CST.str_escaped_char) =
   match x with
-  | `Esca_id tok -> (* pattern "\\\\[0\\\\tnr\"'\\n]" *) token env tok
+  | `Esca_id tok -> (* pattern "\\\\[0\\\\tnr\"'\\n]" *) str env tok
   | `Uni_char_lit (v1, v2, v3) ->
-      let v1 = (* "\\" *) token env v1 in
-      let v2 = (* "u" *) token env v2 in
-      let v3 = (* pattern \{[0-9a-fA-F]+\} *) token env v3 in
-      todo env (v1, v2, v3)
+      let s1, t1 = (* "\\" *) str env v1 in
+      let s2, t2 = (* "u" *) str env v2 in
+      let s3, t3 = (* pattern \{[0-9a-fA-F]+\} *) str env v3 in
+      (String.concat "" [ s1; s2; s3 ], PI.combine_infos t1 [ t2; t3 ])
 
 let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
     (e : G.expr) =
@@ -565,14 +565,14 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
 let map_multi_line_string_content (env : env)
     (x : CST.multi_line_string_content) =
   match x with
-  | `Multi_line_str_text tok -> (* pattern "[^\\\\\"]+" *) token env tok
+  | `Multi_line_str_text tok -> (* pattern "[^\\\\\"]+" *) str env tok
   | `Str_esca_char x -> map_str_escaped_char env x
-  | `DQUOT tok -> (* "\"" *) token env tok
+  | `DQUOT tok -> (* "\"" *) str env tok
 
 let map_line_string_content (env : env) (x : CST.line_string_content) =
   match x with
   | `Line_str_text tok -> (* pattern "[^\\\\\"]+" *) str env tok
-  | `Str_esca_char x -> map_str_escaped_char env x |> todo env
+  | `Str_esca_char x -> map_str_escaped_char env x
 
 let map_getter_effects (env : env) (xs : CST.getter_effects) =
   Common.map
@@ -1078,11 +1078,14 @@ and map_attribute (env : env) (x : CST.attribute) =
  * represented as G.Call expressions. *)
 and map_basic_literal (env : env) (x : CST.basic_literal) : G.expr =
   match x with
-  | `Int_lit tok -> G.L (map_integer_literal env tok) |> G.e
-  | `Hex_lit tok -> (* hex_literal *) token env tok |> todo env
-  | `Oct_lit tok -> (* oct_literal *) token env tok |> todo env
-  | `Bin_lit tok -> (* bin_literal *) token env tok |> todo env
-  | `Real_lit tok -> (* real_literal *) token env tok |> todo env
+  | `Int_lit tok
+  | `Hex_lit tok
+  | `Oct_lit tok
+  | `Bin_lit tok ->
+      G.L (map_integer_literal env tok) |> G.e
+  | `Real_lit tok ->
+      let s, t = str env tok in
+      G.L (G.Float (float_of_string_opt s, t)) |> G.e
   | `Bool_lit x -> G.L (map_boolean_literal env x) |> G.e
   | `Str_lit x -> map_string_literal env x
   | `Nil tok -> G.L (G.Null ((* "nil" *) token env tok)) |> G.e
@@ -1355,7 +1358,7 @@ and map_constructor_value_arguments (env : env)
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
-    | Some x -> map_interpolation_contents env x
+    | Some x -> map_arguments env x
     | None -> []
   in
   let v3 = (* ")" *) token env v3 in
@@ -1423,11 +1426,13 @@ and map_direct_or_indirect_binding (env : env)
 and map_directly_assignable_expression (env : env)
     (x : CST.directly_assignable_expression) =
   match x with
-  | `Simple_id x -> map_simple_identifier env x
-  | `Navi_exp x -> map_navigation_expression env x |> todo env
-  | `Call_exp x -> map_call_expression env x |> todo env
+  | `Simple_id x ->
+      let id = map_simple_identifier env x in
+      G.N (H2.name_of_id id) |> G.e
+  | `Navi_exp x -> map_navigation_expression env x
+  | `Call_exp x -> map_call_expression env x
   | `Tuple_exp x -> map_tuple_expression env x
-  | `Self_exp tok -> (* "self" *) token env tok |> todo env
+  | `Self_exp tok -> map_self_expression env tok
 
 and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
   let v1 = (* "do" *) token env v1 in
@@ -1495,7 +1500,7 @@ and map_expr_hack_at_ternary_call (env : env)
     ((v1, v2) : CST.expr_hack_at_ternary_call) =
   let v1 = map_expression env v1 in
   let v2 = map_expr_hack_at_ternary_call_suffix env v2 in
-  todo env (v1, v2)
+  G.Call (v1, v2) |> G.e
 
 and map_expr_hack_at_ternary_call_suffix (env : env)
     (x : CST.expr_hack_at_ternary_call_suffix) =
@@ -1510,16 +1515,24 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Bin_exp x -> map_binary_expression env x
   | `Tern_exp x -> map_ternary_expression env x
   | `Prim_exp x -> map_primary_expression env x
-  | `Assign (v1, v2, v3) ->
+  | `Assign (v1, v2, v3) -> (
       let v1 = map_directly_assignable_expression env v1 in
-      let v2 = map_assignment_and_operator env v2 in
+      let op, optok = map_assignment_and_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      match op with
+      | None -> G.Assign (v1, optok, v3) |> G.e
+      | Some op -> G.AssignOp (v1, (op, optok), v3) |> G.e)
   | `Exp_imme_quest (v1, v2) ->
       let v1 = map_expression env v1 in
       let v2 = (* "?" *) token env v2 in
-      todo env (v1, v2)
-  | `Async tok -> (* "async" *) token env tok |> todo env
+      (* This is how optional chaining is parsed. It looks like the fact that
+       * it's an optional chain is just discarded when analyzing JS, so this
+       * should be fine for now. *)
+      v1
+  | `Async tok ->
+      (* In this context, async is just a normal identifier *)
+      let id = str env tok in
+      G.N (H2.name_of_id id) |> G.e
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) : CST.for_statement) =
@@ -1762,10 +1775,32 @@ and map_interpolation (env : env) ((v1, v2, v3) : CST.interpolation) =
   let v1 = (* "\\(" *) token env v1 in
   let v2 = map_interpolation_contents env v2 in
   let v3 = (* ")" *) token env v3 in
-  todo env (v1, v2, v3)
+  v2
 
 and map_interpolation_contents (env : env)
-    ((v1, v2) : CST.interpolation_contents) : G.argument list =
+    ((v1, v2) : CST.interpolation_contents) : G.expr =
+  let v1 = map_value_argument env v1 in
+  let v2 =
+    List.concat_map
+      (fun (v1, v2) ->
+        let _comma = (* "," *) token env v1 in
+        map_value_argument env v2)
+      v2
+  in
+  (* The grammar allows for multiple arguments in an interpolation, but Swift
+   * actually only allows one. So, ignore the rest.
+   *
+   * TODO should the grammar be updated to more closely match Swift here? *)
+  match v1 with
+  | [ G.Arg e ] -> e
+  (* I (nmote) believe that the only other valid argument configuration would be
+   * something like "\(_: 2)", which there is no real reason to use, and Swift
+   * won't allow the others at all. *)
+  | _ ->
+      G.OtherExpr (("UnknownInterpolation", PI.unsafe_fake_info ""), []) |> G.e
+
+and map_arguments (env : env) ((v1, v2) : CST.interpolation_contents) :
+    G.argument list =
   let v1 = map_value_argument env v1 in
   let v2 =
     List.concat_map
@@ -1793,7 +1828,7 @@ and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
       let v1 = (* "[" *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_interpolation_contents env x
+        | Some x -> map_arguments env x
         | None -> todo env ()
       in
       let v3 = (* "]" *) token env v3 in
@@ -2328,9 +2363,9 @@ and map_possibly_implicitly_unwrapped_type (env : env)
 
 and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
   match x with
-  | `Tuple_exp x -> map_tuple_expression env x |> todo env
+  | `Tuple_exp x -> map_tuple_expression env x
   | `Basic_lit x -> map_basic_literal env x
-  | `Lambda_lit x -> map_lambda_literal env x |> todo env
+  | `Lambda_lit x -> map_lambda_literal env x
   | `Spec_lit x -> map_special_literal env x |> todo env
   | `Play_lit (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -2405,16 +2440,19 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       in
       let v4 = (* "]" *) token env v4 in
       G.Container (G.Dict, (v1, v2, v4)) |> G.e
-  | `Self_exp tok -> (* "self" *) token env tok |> todo env
-  | `Super_exp v1 -> (* "super" *) token env v1 |> todo env
+  | `Self_exp tok -> map_self_expression env tok
+  | `Super_exp v1 -> G.IdSpecial (G.Super, (* "super" *) token env v1) |> G.e
   | `Try_exp (v1, v2) ->
       let v1 = map_try_operator env v1 in
       let v2 = map_anon_choice_exp_129f951 env v2 in
-      todo env (v1, v2)
+      (* This is not like a try statement in most languages.
+       * https://docs.swift.org/swift-book/LanguageGuide/ErrorHandling.html *)
+      (* TODO differentiate between the try kinds? *)
+      G.OtherExpr (("Try", v1), [ G.E v2 ]) |> G.e
   | `Await_exp (v1, v2) ->
       let v1 = (* "await" *) token env v1 in
       let v2 = map_anon_choice_exp_129f951 env v2 in
-      todo env (v1, v2)
+      G.Await (v1, v2) |> G.e
   | `Refe_op x -> map_referenceable_operator env x |> todo env
   | `Key_path_exp (v1, v2, v3) ->
       let v1 = (* "\\" *) token env v1 in
@@ -2447,7 +2485,12 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       let v4 = (* ")" *) token env v4 in
       todo env (v1, v2, v3, v4)
   | `Three_dot_op tok ->
-      (* three_dot_operator_custom *) token env tok |> todo env
+      let tok = (* three_dot_operator_custom *) token env tok in
+      let op = (G.Range, tok) in
+      G.opcall op [ G.L (G.Null tok) |> G.e; G.L (G.Null tok) |> G.e ]
+
+and map_self_expression (env : env) tok =
+  G.IdSpecial (G.Self, (* "self" *) token env tok) |> G.e
 
 and map_property_binding_pattern (env : env) (x : CST.property_binding_pattern)
     =
@@ -2622,10 +2665,11 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
             match x with
             | `Line_str_content x ->
                 Common.Left3 (map_line_string_content env x)
-            | `Interp x -> map_interpolation env x |> todo env)
+            | `Interp x -> Common.Middle3 (map_interpolation env x))
           v2
       in
       let v3 = (* "\"" *) token env v3 in
+      (* TODO combine multiple Line_str_content entries into a single string? *)
       G.interpolated (v1, v2, v3)
   | `Multi_line_str_lit (v1, v2, v3) ->
       let v1 = (* "\"\"\"" *) token env v1 in
@@ -2633,12 +2677,15 @@ and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
         Common.map
           (fun x ->
             match x with
-            | `Multi_line_str_content x -> map_multi_line_string_content env x
-            | `Interp x -> map_interpolation env x)
+            | `Multi_line_str_content x ->
+                Common.Left3 (map_multi_line_string_content env x)
+            | `Interp x -> Common.Middle3 (map_interpolation env x))
           v2
       in
       let v3 = (* "\"\"\"" *) token env v3 in
-      todo env (v1, v2, v3)
+      (* TODO combine multiple Multi_line_str_content entries into a single
+       * string? *)
+      G.interpolated (v1, v2, v3)
   | `Raw_str_lit (v1, v2) ->
       let v1 =
         Common.map
@@ -2745,7 +2792,7 @@ and map_ternary_expression (env : env)
     | `Exp x -> map_expression env x
     | `Expr_hack_at_tern_call x -> map_expr_hack_at_ternary_call env x
   in
-  todo env (v1, v2, v3, v4, v5)
+  G.Conditional (v1, v3, v5) |> G.e
 
 and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
   let v1 = (* "throw" *) token env v1 in
@@ -2753,15 +2800,16 @@ and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
   todo env (v1, v2)
 
 and map_tuple_expression (env : env)
-    ((v1, v2, v3, v4, v5) : CST.tuple_expression) =
+    ((v1, v2, v3, v4, v5) : CST.tuple_expression) : G.expr =
   let v1 = (* "(" *) token env v1 in
+  (* TODO handle labels *)
   let v2 =
     match v2 with
     | Some (v1, v2) ->
         let v1 = map_simple_identifier env v1 in
         let v2 = (* ":" *) token env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        ()
+    | None -> ()
   in
   let v3 = map_expression env v3 in
   let v4 =
@@ -2773,15 +2821,15 @@ and map_tuple_expression (env : env)
           | Some (v1, v2) ->
               let v1 = map_simple_identifier env v1 in
               let v2 = (* ":" *) token env v2 in
-              todo env (v1, v2)
-          | None -> todo env ()
+              ()
+          | None -> ()
         in
         let v3 = map_expression env v3 in
-        todo env (v1, v2, v3))
+        v3)
       v4
   in
   let v5 = (* ")" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  G.Container (G.Tuple, (v1, v3 :: v4, v5)) |> G.e
 
 and map_tuple_type (env : env) ((v1, v2, v3) : CST.tuple_type) =
   let v1 = (* "(" *) token env v1 in
@@ -3099,7 +3147,7 @@ and map_value_arguments (env : env) (v1 : CST.value_arguments) : G.arguments =
       let v1 = (* "[" *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_interpolation_contents env x
+        | Some x -> map_arguments env x
         | None -> []
       in
       let v3 = (* "]" *) token env v3 in
