@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Users can access the propagated value of a metavariable in the JSON output
   in the extra field
+- Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
