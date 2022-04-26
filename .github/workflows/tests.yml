@@ -25,14 +25,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
       - id: docker-meta-cli
         uses: docker/metadata-action@v3
         with:
@@ -48,8 +40,8 @@ jobs:
           push: true
           tags: ${{ steps.docker-meta-cli.outputs.tags }}
           labels: ${{ steps.docker-meta-cli.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
       # next, we push the semgrep-core build stage as well
       # so that core tests that depend on opam can run in a Docker image too
@@ -73,7 +65,7 @@ jobs:
           push: true
           tags: ${{ steps.docker-meta-core.outputs.tags }}
           labels: ${{ steps.docker-meta-core.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-from: type=gha,src=/tmp/.buildx-cache
 
   test-core:
     name: test semgrep-core
