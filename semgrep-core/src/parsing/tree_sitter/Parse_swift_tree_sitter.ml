@@ -27,6 +27,11 @@ let str = H.str
 let blank (env : env) () = failwith "not implemented"
 let todo (env : env) _ = failwith "not implemented"
 
+(* There are several places where Swift expects a type but the generic AST
+ * expects an expression. *)
+let expr_of_type type_ =
+  G.OtherExpr (("TypeExpr", PI.unsafe_fake_info ""), [ G.T type_ ]) |> G.e
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -42,11 +47,15 @@ let map_where_keyword (env : env) (tok : CST.where_keyword) =
 
 let map_bitwise_binary_operator (env : env) (x : CST.bitwise_binary_operator) =
   match x with
-  | `AMP tok -> (* "&" *) token env tok
-  | `BAR tok -> (* "|" *) token env tok
-  | `HAT tok -> (* "^" *) token env tok
-  | `LTLT tok -> (* "<<" *) token env tok
-  | `GTGT tok -> (* ">>" *) token env tok
+  | `AMP tok -> (G.BitAnd, (* "&" *) token env tok)
+  | `BAR tok -> (G.BitOr, (* "|" *) token env tok)
+  | `HAT tok -> (G.BitXor, (* "^" *) token env tok)
+  | `LTLT tok -> (G.LSL, (* "<<" *) token env tok)
+  | `GTGT tok ->
+      (* Swift uses an arithmetic right shift:
+       * https://docs.swift.org/swift-book/LanguageGuide/AdvancedOperators.html#ID36
+       * *)
+      (G.ASR, (* ">>" *) token env tok)
 
 let map_function_modifier (env : env) (x : CST.function_modifier) =
   match x with
@@ -139,11 +148,12 @@ let map_bang (env : env) (tok : CST.bang) = (* bang *) token env tok
 let map_oct_literal (env : env) (tok : CST.oct_literal) =
   (* oct_literal *) token env tok
 
-let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) =
+let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) :
+    G.operator * G.tok =
   match x with
-  | `STAR tok -> (* "*" *) token env tok
-  | `SLASH tok -> (* "/" *) token env tok
-  | `PERC tok -> (* "%" *) token env tok
+  | `STAR tok -> (G.Mult, (* "*" *) token env tok)
+  | `SLASH tok -> (G.Div, (* "/" *) token env tok)
+  | `PERC tok -> (G.Mod, (* "%" *) token env tok)
 
 let map_bin_literal (env : env) (tok : CST.bin_literal) =
   (* bin_literal *) token env tok
@@ -164,8 +174,12 @@ let map_raw_str_continuing_indicator (env : env)
 
 let map_boolean_literal (env : env) (x : CST.boolean_literal) =
   match x with
-  | `True tok -> (* "true" *) token env tok
-  | `False tok -> (* "false" *) token env tok
+  | `True tok ->
+      let tok = (* "true" *) token env tok in
+      G.Bool (true, tok)
+  | `False tok ->
+      let tok = (* "false" *) token env tok in
+      G.Bool (false, tok)
 
 let map_as_custom (env : env) (tok : CST.as_custom) =
   (* as_custom *) token env tok
@@ -351,12 +365,15 @@ let map_constructor_function_decl (env : env)
   in
   todo env (v1, v2)
 
-let map_additive_operator (env : env) (x : CST.additive_operator) =
+let map_additive_operator (env : env) (x : CST.additive_operator) :
+    G.operator * G.tok =
   match x with
-  | `Plus_then_ws tok -> (* plus_then_ws *) token env tok
-  | `Minus_then_ws tok -> (* minus_then_ws *) token env tok
-  | `PLUS tok -> (* "+" *) token env tok
-  | `DASH tok -> (* "-" *) token env tok
+  | `Plus_then_ws tok
+  | `PLUS tok ->
+      (G.Plus, (* "+" *) token env tok)
+  | `Minus_then_ws tok
+  | `DASH tok ->
+      (G.Minus, (* "-" *) token env tok)
 
 let map_non_local_scope_modifier (env : env) (x : CST.non_local_scope_modifier)
     =
@@ -399,10 +416,10 @@ let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
 
 let map_equality_operator (env : env) (x : CST.equality_operator) =
   match x with
-  | `BANGEQ tok -> (* "!=" *) token env tok
-  | `BANGEQEQ tok -> (* "!==" *) token env tok
-  | `Eq_eq tok -> (* eq_eq_custom *) token env tok
-  | `EQEQEQ tok -> (* "===" *) token env tok
+  | `BANGEQ tok -> (G.NotEq, (* "!=" *) token env tok)
+  | `BANGEQEQ tok -> (G.NotPhysEq, (* "!==" *) token env tok)
+  | `Eq_eq tok -> (G.Eq, (* eq_eq_custom *) token env tok)
+  | `EQEQEQ tok -> (G.PhysEq, (* "===" *) token env tok)
 
 let map_range_operator (env : env) (x : CST.range_operator) =
   match x with
@@ -537,9 +554,9 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
   match x with
   | `Custom_op x -> map_custom_operator env x |> todo env
   | `Comp_op x -> map_comparison_operator env x |> todo env
-  | `Addi_op x -> map_additive_operator env x
-  | `Mult_op x -> map_multiplicative_operator env x
-  | `Equa_op x -> map_equality_operator env x
+  | `Addi_op x -> map_additive_operator env x |> todo env
+  | `Mult_op x -> map_multiplicative_operator env x |> todo env
+  | `Equa_op x -> map_equality_operator env x |> todo env
   | `PLUSPLUS tok -> (* "++" *) token env tok
   | `DASHDASH tok -> (* "--" *) token env tok
   | `Bang tok -> (* bang *) token env tok
@@ -1066,9 +1083,9 @@ and map_basic_literal (env : env) (x : CST.basic_literal) : G.expr =
   | `Oct_lit tok -> (* oct_literal *) token env tok |> todo env
   | `Bin_lit tok -> (* bin_literal *) token env tok |> todo env
   | `Real_lit tok -> (* real_literal *) token env tok |> todo env
-  | `Bool_lit x -> map_boolean_literal env x |> todo env
+  | `Bool_lit x -> G.L (map_boolean_literal env x) |> G.e
   | `Str_lit x -> map_string_literal env x
-  | `Nil tok -> (* "nil" *) token env tok |> todo env
+  | `Nil tok -> G.L (G.Null ((* "nil" *) token env tok)) |> G.e
 
 and map_binary_expression (env : env) (x : CST.binary_expression) =
   match x with
@@ -1076,37 +1093,39 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = map_expression env v1 in
       let v2 = map_multiplicative_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall v2 [ v1; v3 ]
   | `Addi_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_additive_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall v2 [ v1; v3 ]
   | `Range_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_range_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall (G.Range, v2) [ v1; v3 ]
   | `Infix_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_custom_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call
+        (G.N (H2.name_of_id v2) |> G.e, G.fake_bracket [ G.Arg v1; G.Arg v3 ])
+      |> G.e
   | `Nil_coal_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* nil_coalescing_operator_custom *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall (G.Nullish, v2) [ v1; v3 ]
   | `Check_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "is" *) token env v2 in
       let v3 = map_type_ env v3 in
-      todo env (v1, v2, v3)
+      G.special (G.Instanceof, v2) [ v1; expr_of_type v3 ]
   | `Equa_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_equality_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall v2 [ v1; v3 ]
   | `Comp_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_comparison_operator env v2 in
@@ -1116,17 +1135,17 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = map_expression env v1 in
       let v2 = (* conjunction_operator_custom *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall (G.And, v2) [ v1; v3 ]
   | `Disj_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* disjunction_operator_custom *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall (G.Or, v2) [ v1; v3 ]
   | `Bitw_oper (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_bitwise_binary_operator env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      G.opcall v2 [ v1; v3 ]
 
 and map_binding_pattern (env : env) ((v1, v2) : CST.binding_pattern) =
   let v1 =
@@ -2208,7 +2227,7 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
          * It's quite clear that a type can appear in this position, but the
          * generic AST expects an expression. *)
         let type_ = map_navigable_type_expression env x in
-        G.OtherExpr (("TypeExpr", PI.unsafe_fake_info ""), [ G.T type_ ]) |> G.e
+        expr_of_type type_
     | `Exp x -> map_expression env x
   in
   let dot, suffix = map_navigation_suffix env v2 in
