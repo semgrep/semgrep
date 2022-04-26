@@ -7,3 +7,11 @@ minversion = "7.0"
 testpaths = [
     "tests",
 ]
+markers = [
+    "quick: test takes less than 100 ms",
+    "kinda_slow: test takes up to 2s",
+    "slow: test takes more than 2s",
+]
+addopts = [
+    "--deselect=tests/qa"
+]

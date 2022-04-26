@@ -126,7 +126,12 @@ jobs:
         working-directory: /semgrep
     needs: [build]
     steps:
-      - run: pytest
+      - run: |
+          # tests should simulate CI environment iff they need one
+          unset CI
+          unset "${!GITHUB_@}"
+
+          pytest
 
   test-on-public-repos:
     name: run semgrep on public repos
