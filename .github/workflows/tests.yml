@@ -51,6 +51,13 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
 
+      # next, we push the semgrep-core build stage as well
+      # so that core tests that depend on opam can run in a Docker image too
+
+      # we push this second because it's faster:
+      # the first docker build stage can build core and cli in parallel,
+      # and this build-and-push job will be fully cached here anyway
+
       - id: docker-meta-core
         uses: docker/metadata-action@v3
         with:
@@ -73,6 +80,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/core:sha-${{ github.event.pull_request.head.sha }}
+    defaults:
+      run:
+        working-directory: /semgrep
     needs: [build]
     steps:
       - name: Test semgrep-core
@@ -95,6 +105,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/core:sha-${{ github.event.pull_request.head.sha }}
+    defaults:
+      run:
+        working-directory: /semgrep
     needs: [build]
     steps:
       # TODO: move this to a stable host for more reliable results.
@@ -116,6 +129,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
+    defaults:
+      run:
+        working-directory: /semgrep
     needs: [build]
     steps:
       - run: pytest
@@ -125,6 +141,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
+    defaults:
+      run:
+        working-directory: /semgrep
     needs: [build]
     steps:
       - uses: actions/cache@v2
@@ -135,7 +154,6 @@ jobs:
         run: mkdir -p ~/.cache/semgrep-cache
       - run: touch ~/.cache/semgrep-cache/ok
       - name: Test semgrep
-        working-directory: semgrep
         run: PATH=/github/home/.local/bin:$PATH pytest -n auto -vv --tb=short --durations=0 tests/qa/test_public_repos.py
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
@@ -146,10 +164,12 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
+    defaults:
+      run:
+        working-directory: /semgrep
     needs: [build]
     steps:
       - name: Test dummy benchmarks on latest
-        working-directory: semgrep
         run: |
           semgrep --version
           python -m semgrep --version
@@ -163,6 +183,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
+    defaults:
+      run:
+        working-directory: /semgrep
     needs: [build]
     steps:
       - name: Get timing for latest semgrep
