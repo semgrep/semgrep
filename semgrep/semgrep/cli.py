@@ -26,8 +26,11 @@ def cli(ctx: click.Context) -> None:
     To get started quickly, run `semgrep scan --config auto`
     """
     app_session.authenticate()
-    if ctx.invoked_subcommand:
-        app_session.user_agent.tags.add(f"command/{ctx.invoked_subcommand}")
+    app_session.user_agent.tags.add(
+        f"command/{ctx.invoked_subcommand}"
+        if ctx.invoked_subcommand in ctx.command.commands  # type: ignore
+        else "command/unset"
+    )
 
     workspace = os.getenv("GITHUB_WORKSPACE")
     if workspace:
