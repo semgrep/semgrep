@@ -36,9 +36,9 @@ from ..conftest import TESTS_PATH
         ),
     ],
 )
-def test_dependency_aware_rules(run_semgrep_in_tmp_no_symlink, snapshot, rule, target):
+def test_dependency_aware_rules(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp_no_symlink(rule, target_name=target)[0],
+        run_semgrep_in_tmp(rule, target_name=target)[0],
         "results.json",
     )
 

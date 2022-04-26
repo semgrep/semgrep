@@ -135,8 +135,8 @@ jobs:
 
           pytest
 
-  test-on-public-repos:
-    name: run semgrep on public repos
+  test-qa:
+    name: run QA test suite
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/cli:sha-${{ github.event.pull_request.head.sha }}
@@ -149,11 +149,11 @@ jobs:
         with:
           path: ~/.cache/semgrep-cache
           key: semgrep-repo-cache-test
-      - name: create cache dir if not exists
-        run: mkdir -p ~/.cache/semgrep-cache
-      - run: touch ~/.cache/semgrep-cache/ok
+      - run: |
+          mkdir -p ~/.cache/semgrep-cache
+          touch ~/.cache/semgrep-cache/ok
       - name: Test semgrep
-        run: PATH=/github/home/.local/bin:$PATH pytest -n auto -vv --tb=short --durations=0 tests/qa/test_public_repos.py
+        run: pytest -n auto -vv --tb=short --durations=0 tests/qa
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
