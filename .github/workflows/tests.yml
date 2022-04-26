@@ -60,6 +60,7 @@ jobs:
       - name: Build and push semgrep/core
         uses: docker/build-push-action@v2
         with:
+          target: semgrep-core
           context: ${{ github.event.pull_request.head.repo.clone_url }}#${{ github.event.pull_request.head.sha }}
           build-args: SEMGREP_VERSION=dev
           push: true
