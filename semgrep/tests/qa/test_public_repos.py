@@ -14,8 +14,8 @@ import pytest
 
 from ..conftest import chdir
 from ..conftest import TESTS_PATH
-from ..public_repos import ALL_LANGUAGES
-from ..public_repos import ALL_REPOS
+from .public_repos import ALL_LANGUAGES
+from .public_repos import ALL_REPOS
 
 # Some improbable string that was implanted in test targets [how?] [why?].
 #
