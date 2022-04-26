@@ -124,6 +124,7 @@ jobs:
     defaults:
       run:
         working-directory: /semgrep
+        shell: bash
     needs: [build]
     steps:
       - run: |
@@ -132,7 +133,6 @@ jobs:
           unset "${!GITHUB_@}"
 
           pytest
-        shell: bash
 
   test-on-public-repos:
     name: run semgrep on public repos
