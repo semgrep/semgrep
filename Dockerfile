@@ -41,8 +41,6 @@ COPY --chown=user interfaces/ ./interfaces
 COPY --chown=user semgrep/ ./semgrep
 COPY --chown=user scripts/ ./scripts
 
-ARG SEMGREP_VERSION
-
 #coupling: if you add dependencies above, you probably also need to update:
 #  - scripts/install-alpine-semgrep-core
 #  - the setup target in Makefile

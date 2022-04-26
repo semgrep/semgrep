@@ -36,7 +36,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ${{ github.event.pull_request.head.repo.clone_url }}#${{ github.event.pull_request.head.sha }}
-          build-args: SEMGREP_VERSION=dev
           push: true
           tags: ${{ steps.docker-meta-cli.outputs.tags }}
           labels: ${{ steps.docker-meta-cli.outputs.labels }}
@@ -62,7 +61,6 @@ jobs:
         with:
           target: semgrep-core
           context: ${{ github.event.pull_request.head.repo.clone_url }}#${{ github.event.pull_request.head.sha }}
-          build-args: SEMGREP_VERSION=dev
           push: true
           tags: ${{ steps.docker-meta-core.outputs.tags }}
           labels: ${{ steps.docker-meta-core.outputs.labels }}

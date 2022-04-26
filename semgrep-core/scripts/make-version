@@ -4,15 +4,10 @@
 #
 set -eu
 
-if [[ -n "${SEMGREP_VERSION-}" ]]; then
-  version=${SEMGREP_VERSION-}
-else
-  version=$(git describe --always --dirty --tags --long)
-fi
+version=$(git describe --always --dirty --tags --long)
 
 if [[ -z "$version" ]]; then
-  echo "Failed to obtain version string." >&2
-  exit 1
+  version="dev"
 fi
 
 cat <<EOF
