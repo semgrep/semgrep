@@ -30,7 +30,6 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
   "dune" {>= "2.7.0" }
   "atdgen"
-  "atdpy" {= "2.5.0"}
   "yojson"
   "yaml"
   "ppx_deriving"
