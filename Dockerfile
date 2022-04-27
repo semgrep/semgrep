@@ -18,60 +18,52 @@
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as semgrep-core
 
+ENV OPAMYES=true
+WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
+COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
+RUN scripts/install-tree-sitter-lib
 
-# for ocaml-pcre now used in semgrep-core
-# TODO: update root image to include python 3.9
-USER root
-RUN apk add --no-cache pcre-dev python3 &&\
-     pip install --no-cache-dir pipenv==2021.11.23
-USER user
+WORKDIR /semgrep/semgrep-core/src/pfff
+COPY --chown=user semgrep-core/src/pfff/*.opam .
+RUN --mount=type=cache,target=~/.opam eval $(opam env) && opam install --deps-only .
+
+WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core/
+COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam .
+RUN --mount=type=cache,target=~/.opam eval $(opam env) && opam install --deps-only .
+
+WORKDIR /semgrep/semgrep-core
+COPY --chown=user semgrep-core/*.opam .
+RUN --mount=type=cache,target=~/.opam eval $(opam env) && opam install --deps-only .
 
 WORKDIR /semgrep
-
 COPY --chown=user semgrep-core/ ./semgrep-core
-# some .atd files in semgrep-core are symlinks to files in interfaces/
 COPY --chown=user interfaces/ ./interfaces
-# we need this lang/ subdirectory to generate Lang.ml. In theory the data
-# should be in interfaces/ but Python does not like symlinks when making
-# packages, so interfaces/lang/ is actually a symlink towards
-# semgrep/semgrep/lang.
-# Note that the 'git submodule --depth 1' below
-# would actually checkout semgrep/semgrep/lang directory,
-# needed to compile 'semgrep-core' and to run 'semgrep'.
-COPY --chown=user semgrep/ ./semgrep
-COPY --chown=user scripts/ ./scripts
+COPY --chown=user semgrep/semgrep/lang ./semgrep/semgrep/lang
+ENV DUNE_CACHE_ROOT=~/.dune
+# can cache across github actions after once is merged: https://github.com/docker/setup-buildx-action/pull/138
+RUN --mount=type=cache,target=~/.dune eval $(opam env) && dune build --cache=enabled
 
-#coupling: if you add dependencies above, you probably also need to update:
-#  - scripts/install-alpine-semgrep-core
-#  - the setup target in Makefile
-RUN eval "$(opam env)" && \
-     scripts/install-tree-sitter-runtime && \
-     opam install --deps-only -y semgrep-core/src/pfff/ && \
-     opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core && \
-     opam install --deps-only -y semgrep-core/ && \
-     make -C semgrep-core/ all &&\
-     # Cleanup for easier caching
-     opam clean && \
-     # Sanity checks
-     /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
+RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
 #
 # We change container, bringing the 'semgrep-core' binary with us.
 #
 
-FROM python:3.10-alpine
+FROM python:3.10-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
-     PIP_NO_CACHE_DIR=true \
      PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
 COPY semgrep ./
 
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base && \
-     apk add --no-cache --virtual=.run-deps bash git git-lfs openssh && \
+RUN --mount=type=cache,target=/var/cache/apk \
+     --mount=type=cache,target=~/.cache/pip \
+     apk update && \
+     apk add --virtual=.build-deps build-base && \
+     apk add --virtual=.run-deps bash git git-lfs openssh && \
      SEMGREP_SKIP_BIN=true pip install '/semgrep[tests]' && \
      semgrep --version && \
      apk del .build-deps && \
