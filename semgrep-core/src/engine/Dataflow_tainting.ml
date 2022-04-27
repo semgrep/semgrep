@@ -19,6 +19,7 @@ module F = IL
 module D = Dataflow_core
 module VarMap = Dataflow_core.VarMap
 module PM = Pattern_match
+module LV = IL_lvalue_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -497,7 +498,7 @@ let (transfer :
     match node.F.n with
     | NInstr x -> (
         let taint = check_tainted_instr env x in
-        match (Taint.is_empty taint, IL.lvar_of_instr_opt x) with
+        match (Taint.is_empty taint, LV.lvar_of_instr_opt x) with
         | true, Some var -> VarMap.remove (str_of_name var) in'
         | false, Some var ->
             let taint =
