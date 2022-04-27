@@ -1,9 +1,11 @@
 """
-This file encapsulates classes necessary in parsing semgrep-core json output into a typed object
+This file encapsulates classes necessary in parsing semgrep-core
+json output into a typed object
 
-The objects in this class should expose functionality that returns objects that the rest of the codebase
-interacts with (e.g. the rest of the codebase should be interacting with RuleMatch objects instead of CoreMatch
-and SemgrepCoreError instead of CoreError objects).
+The objects in this class should expose functionality that returns
+objects that the rest of the codebase interacts with (e.g. the rest of
+the codebase should be interacting with RuleMatch objects instead of
+CoreMatch and SemgrepCoreError instead of CoreError objects).
 
 The precise type of the response from semgrep-core is specified in
 Semgrep_core_response.atd, currently at:
@@ -13,7 +15,6 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import NewType
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -26,7 +27,6 @@ from semgrep.error import LegacySpan
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.output_from_core import MetavarValue
-from semgrep.output_from_core import SkipReason
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -35,12 +35,6 @@ from semgrep.types import RuleId
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-CoreErrorMessage = NewType("CoreErrorMessage", str)
-CoreErrorType = NewType("CoreErrorType", str)
-SkipDetails = NewType("SkipDetails", str)
-
-CoreRulesParseTime = NewType("CoreRulesParseTime", float)
 
 
 @frozen
@@ -74,24 +68,24 @@ class CoreError:
     and handles conversion into SemgrepCoreError class that rest of codebase understands.
     """
 
-    error_type: CoreErrorType
+    error_type: str
     rule_id: Optional[RuleId]
     path: Path
     start: core.Position
     end: core.Position
-    message: CoreErrorMessage
+    message: str
     level: Level
     spans: Optional[Tuple[LegacySpan, ...]]
     details: Optional[str]
 
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
-        error_type = CoreErrorType(error.error_type)
+        error_type = error.error_type
         rule_id = RuleId(error.rule_id.value) if error.rule_id else None
         path = Path(error.location.path)
         start = error.location.start
         end = error.location.end
-        message = CoreErrorMessage(error.message)
+        message = error.message
 
         # Hackily convert the level string to Semgrep expectations
         level_str = error.severity.kind
@@ -114,16 +108,14 @@ class CoreError:
         """
         Return if this error is a match timeout
         """
-        return self.error_type == CoreErrorType("Timeout")
+        return self.error_type == "Timeout"
 
     def to_semgrep_error(self) -> SemgrepCoreError:
         reported_rule_id = self.rule_id
 
         # TODO benchmarking code relies on error code value right now
         # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-        if self.error_type == CoreErrorType(
-            "Syntax error"
-        ) or self.error_type == CoreErrorType("Lexical error"):
+        if self.error_type == "Syntax error" or self.error_type == "Lexical error":
             code = 3
             reported_rule_id = None  # Rule id not important for parse errors
         else:
@@ -144,28 +136,6 @@ class CoreError:
 
 
 @frozen
-class CoreSkipped:
-    rule_id: Optional[RuleId]
-    path: Path
-    reason: SkipReason
-    details: SkipDetails
-
-    @classmethod
-    def make(cls, skipped: core.SkippedTarget) -> "CoreSkipped":
-        rule_id = RuleId(skipped.rule_id.value) if skipped.rule_id else None
-        path = Path(skipped.path)
-        reason = skipped.reason
-        details = SkipDetails(skipped.details)
-
-        if rule_id:
-            rule_info = f"rule {rule_id}"
-        else:
-            rule_info = "all rules"
-        logger.verbose(f"skipped '{str(path)}' [{rule_info}]: {reason}: {details}")
-        return cls(rule_id, path, reason, details)
-
-
-@frozen
 class CoreRuleTiming:  # For a given target
     rule: Rule
     parse_time: float
@@ -175,7 +145,7 @@ class CoreRuleTiming:  # For a given target
     def make(
         cls, rule_table: Dict[str, Rule], rule_time: core.RuleTimes
     ) -> "CoreRuleTiming":
-        rule = rule_table[rule_time.rule_id]
+        rule = rule_table[rule_time.rule_id.value]
         parse_time = rule_time.parse_time
         match_time = rule_time.match_time
         return cls(rule, parse_time, match_time)
@@ -204,22 +174,20 @@ class CoreTargetTiming:
 class CoreTiming:
     rules: List[Rule]
     target_timings: List[CoreTargetTiming]
-    rules_parse_time: CoreRulesParseTime
+    rules_parse_time: float
 
     @classmethod
     def make(
         cls, rule_table: Dict[str, Rule], time: Optional[core.Time]
     ) -> "CoreTiming":
         if not time:
-            return cls([], [], CoreRulesParseTime(0.0))
+            return cls([], [], 0.0)
 
         rules = [rule_table[rule] for rule in time.rules]
         target_timings = [
             CoreTargetTiming.make(rule_table, target) for target in time.targets
         ]
-        rules_parse_time = CoreRulesParseTime(
-            time.rules_parse_time if time.rules_parse_time else 0.0
-        )
+        rules_parse_time = time.rules_parse_time if time.rules_parse_time else 0.0
         return cls(rules, target_timings, rules_parse_time)
 
 
@@ -231,7 +199,7 @@ class CoreOutput:
 
     matches: List[CoreMatch]
     errors: List[CoreError]
-    skipped: List[CoreSkipped]
+    skipped: List[core.SkippedTarget]
     timing: CoreTiming
 
     @classmethod
@@ -244,9 +212,16 @@ class CoreOutput:
         parsed_matches = [
             CoreMatch.make(rule_table, match) for match in match_results.matches
         ]
-        parsed_skipped = [
-            CoreSkipped.make(skip) for skip in match_results.skipped_targets
-        ]
+        for skip in match_results.skipped_targets:
+            if skip.rule_id:
+                rule_info = f"rule {skip.rule_id}"
+            else:
+                rule_info = "all rules"
+            logger.verbose(
+                f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+            )
+
+        parsed_skipped = match_results.skipped_targets
         parsed_timings = CoreTiming.make(rule_table, match_results.time)
 
         return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)

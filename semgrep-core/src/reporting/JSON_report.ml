@@ -165,6 +165,9 @@ let lines_of_file (file : Common.filename) : string array =
       try Common.cat file |> Array.of_list with
       | _ -> [| "EMPTY FILE" |])
 
+(* TODO: Semgrep_error_code should be defined in Output_from_core.atd
+ * directly, so we don't need those conversions
+ *)
 let error_to_error err =
   let severity_of_severity = function
     | E.Error -> SJ.Error
