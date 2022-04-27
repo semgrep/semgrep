@@ -44,11 +44,12 @@ WORKDIR /semgrep/semgrep-core
 ENV DUNE_CACHE_ROOT=/home/user/.dune
 # can cache across github actions after once is merged: https://github.com/docker/setup-buildx-action/pull/138
 RUN --mount=type=cache,target=/var/cache/apk \
-     --mount=type=cache,target=~/.cache/pip \
+     --mount=type=cache,target=/root/.cache/pip \
+     --mount=type=cache,target=/home/user/.cache/pipenv \
      --mount=type=cache,target=/home/user/.dune \
      sudo apk update && \
      sudo apk add pcre-dev python3 && \
-     pip --user install pipenv==2022.4.21 && \
+     sudo pip install pipenv==2022.4.21 && \
      sudo chown user $DUNE_CACHE_ROOT && \
      eval $(opam env) && \
      ./scripts/make-version > ./src/cli/version.ml \
@@ -72,7 +73,7 @@ COPY semgrep ./
 
 # hadolint ignore=DL3013
 RUN --mount=type=cache,target=/var/cache/apk \
-     --mount=type=cache,target=~/.cache/pip \
+     --mount=type=cache,target=/root/.cache/pip \
      apk update && \
      apk add --virtual=.build-deps build-base && \
      apk add --virtual=.run-deps bash git git-lfs openssh && \
