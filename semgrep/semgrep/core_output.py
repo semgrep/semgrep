@@ -168,7 +168,7 @@ class CoreRuleTiming:  # For a given target
     def make(
         cls, rule_table: Dict[str, Rule], rule_time: core.RuleTimes
     ) -> "CoreRuleTiming":
-        rule = rule_table[rule_time.rule_id]
+        rule = rule_table[rule_time.rule_id.value]
         parse_time = rule_time.parse_time
         match_time = rule_time.match_time
         return cls(rule, parse_time, match_time)

@@ -228,7 +228,7 @@ type target_time
 
 type rule_times
   <python decorator="dataclass(frozen=True)"> = {
-  rule_id: string;
+  rule_id: rule_id;
 
   parse_time: float;
 
