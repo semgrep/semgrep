@@ -245,10 +245,6 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/godropbox", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/trapperkeeper", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/lodash/lodash", "languages": ALL_LANGUAGES},
-    {
-        "repo": "https://github.com/home-assistant/home-assistant",
-        "languages": ALL_LANGUAGES,
-    },
     {"repo": "https://github.com/0c34/govwa", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bittip", "languages": ALL_LANGUAGES},
     {
@@ -274,6 +270,13 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
+    xfail_repo(
+        {
+            "repo": "https://github.com/home-assistant/home-assistant",
+            "languages": ALL_LANGUAGES,
+        },
+        reason="https://github.com/returntocorp/semgrep/issues/5092",
+    ),
     xfail_repo(
         {"repo": "https://github.com/zulip/zulip", "languages": ["javascript"]},
         reason="static/js/blueslip.ts: `name` was unexpected",
