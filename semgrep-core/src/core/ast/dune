@@ -48,7 +48,7 @@
   (action
     (no-infer
       (progn
-        (run pip install)
+        (run pipenv install)
         (run pipenv run python3 gen_lang.py)
       )
     )

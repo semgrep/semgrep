@@ -46,9 +46,9 @@ ENV DUNE_CACHE_ROOT=/home/user/.dune
 RUN --mount=type=cache,target=/var/cache/apk \
      --mount=type=cache,target=~/.cache/pip \
      --mount=type=cache,target=/home/user/.dune \
-     apk update && \
-     apk add pcre-dev python3 && \
-     pip install pipenv==2022.4.21 && \
+     sudo apk update && \
+     sudo apk add pcre-dev python3 && \
+     pip --user install pipenv==2022.4.21 && \
      sudo chown user $DUNE_CACHE_ROOT && \
      eval $(opam env) && \
      ./scripts/make-version > ./src/cli/version.ml \
