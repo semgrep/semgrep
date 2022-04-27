@@ -18,22 +18,32 @@
 # be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as semgrep-core
 
-ENV OPAMYES=true
+USER root
+RUN --mount=type=cache,target=/var/cache/apk \
+     --mount=type=cache,target=/root/.cache/pip \
+     apk update && \
+     apk add pcre-dev python3 && \
+     pip install pipenv==2022.4.21
+RUN --mount=type=cache,target=/home/user/.dune chown user /home/user/.dune
+USER user
+
+ENV OPAMYES=true DUNE_CACHE=true DUNE_CACHE_ROOT=/home/user/.dune
+
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
 RUN scripts/install-tree-sitter-lib
 
 WORKDIR /semgrep/semgrep-core/src/pfff
 COPY --chown=user semgrep-core/src/pfff/*.opam .
-RUN --mount=type=cache,target=~/.opam eval $(opam env) && opam install --deps-only .
+RUN --mount=type=cache,target=/home/user/.opam eval $(opam env) && opam install --deps-only .
 
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core/
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam .
-RUN --mount=type=cache,target=~/.opam eval $(opam env) && opam install --deps-only .
+RUN --mount=type=cache,target=/home/user/.opam eval $(opam env) && opam install --deps-only .
 
 WORKDIR /semgrep/semgrep-core
 COPY --chown=user semgrep-core/*.opam .
-RUN --mount=type=cache,target=~/.opam eval $(opam env) && opam install --deps-only .
+RUN --mount=type=cache,target=/home/user/.opam eval $(opam env) && opam install --deps-only .
 
 WORKDIR /semgrep
 COPY --chown=user semgrep-core/ ./semgrep-core
@@ -41,19 +51,12 @@ COPY --chown=user interfaces/ ./interfaces
 COPY --chown=user semgrep/semgrep/lang ./semgrep/semgrep/lang
 
 WORKDIR /semgrep/semgrep-core
-ENV DUNE_CACHE_ROOT=/home/user/.dune
-# can cache across github actions after once is merged: https://github.com/docker/setup-buildx-action/pull/138
-RUN --mount=type=cache,target=/var/cache/apk \
-     --mount=type=cache,target=/root/.cache/pip \
-     --mount=type=cache,target=/home/user/.cache/pipenv \
+# can cache across github actions once this is merged: https://github.com/docker/setup-buildx-action/pull/138
+RUN --mount=type=cache,target=/home/user/.cache/pipenv \
      --mount=type=cache,target=/home/user/.dune \
-     sudo apk update && \
-     sudo apk add pcre-dev python3 && \
-     sudo pip install pipenv==2022.4.21 && \
-     sudo chown user $DUNE_CACHE_ROOT && \
      eval $(opam env) && \
-     ./scripts/make-version > ./src/cli/version.ml \
-     && dune build --cache=enabled
+     ./scripts/make-version > ./src/cli/version.ml && \
+     dune build
 
 WORKDIR /semgrep
 RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
