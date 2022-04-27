@@ -4,7 +4,7 @@
 #
 set -eu
 
-version=$(git describe --always --dirty --tags --long || true)
+version=$(git describe --always --dirty --tags --long 2>/dev/null || true)
 
 if [[ -z "$version" ]]; then
   version="dev"
