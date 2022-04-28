@@ -13,7 +13,6 @@ from typing import Set
 from typing import Tuple
 
 from attrs import define
-from attrs import frozen
 
 import semgrep.output_from_core as core
 from semgrep.error import LegacySpan
@@ -28,75 +27,42 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-@frozen
-class CoreError:
-    """
-    Encapsulates error object returned by semgrep-core
-    and handles conversion into SemgrepCoreError class that rest of codebase understands.
-    """
+def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
+    reported_rule_id = err.rule_id
 
-    error_type: str
-    rule_id: Optional[core.RuleId]
-    location: core.Location
-    message: str
-    details: Optional[str]
-    severity: core.Severity
-    yaml_path: Optional[List[str]]
+    # Hackily convert the level string to Semgrep expectations
+    level_str = err.severity.kind
+    if level_str.upper() == "WARNING":
+        level_str = "WARN"
+    if level_str.upper() == "ERROR_":
+        level_str = "ERROR"
+    level = Level[level_str.upper()]
 
-    @classmethod
-    def make(cls, error: core.Error) -> "CoreError":
-        error_type = error.error_type
-        rule_id = error.rule_id
-        location = error.location
-        message = error.message
-        details = error.details
-        severity = error.severity
-        yaml_path = error.yaml_path
+    spans: Optional[Tuple[LegacySpan, ...]] = None
+    if err.yaml_path:
+        yaml_path = tuple(err.yaml_path[::-1])
+        spans = tuple([LegacySpan(err.location.start, err.location.end, yaml_path)])  # type: ignore
 
-        return cls(error_type, rule_id, location, message, details, severity, yaml_path)
+    # TODO benchmarking code relies on error code value right now
+    # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
+    if err.error_type == "Syntax error" or err.error_type == "Lexical error":
+        code = 3
+        reported_rule_id = None  # Rule id not important for parse errors
+    else:
+        code = 2
 
-    def is_timeout(self) -> bool:
-        """
-        Return if this error is a match timeout
-        """
-        return self.error_type == "Timeout"
-
-    def to_semgrep_error(self) -> SemgrepCoreError:
-        reported_rule_id = self.rule_id
-
-        # Hackily convert the level string to Semgrep expectations
-        level_str = self.severity.kind
-        if level_str.upper() == "WARNING":
-            level_str = "WARN"
-        if level_str.upper() == "ERROR_":
-            level_str = "ERROR"
-        level = Level[level_str.upper()]
-
-        spans: Optional[Tuple[LegacySpan, ...]] = None
-        if self.yaml_path:
-            yaml_path = tuple(self.yaml_path[::-1])
-            spans = tuple([LegacySpan(self.location.start, self.location.end, yaml_path)])  # type: ignore
-
-        # TODO benchmarking code relies on error code value right now
-        # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-        if self.error_type == "Syntax error" or self.error_type == "Lexical error":
-            code = 3
-            reported_rule_id = None  # Rule id not important for parse errors
-        else:
-            code = 2
-
-        return SemgrepCoreError(
-            code,
-            level,
-            self.error_type,
-            reported_rule_id,
-            Path(self.location.path),
-            self.location.start,
-            self.location.end,
-            self.message,
-            spans,
-            self.details,
-        )
+    return SemgrepCoreError(
+        code,
+        level,
+        err.error_type,
+        reported_rule_id,
+        Path(err.location.path),
+        err.location.start,
+        err.location.end,
+        err.message,
+        spans,
+        err.details,
+    )
 
 
 @define
@@ -106,7 +72,7 @@ class CoreOutput:
     """
 
     matches: List[core.Match]
-    errors: List[CoreError]
+    errors: List[core.Error]
     skipped: List[core.SkippedTarget]
     timing: Optional[core.Time]
 
@@ -115,8 +81,6 @@ class CoreOutput:
 
         match_results = core.MatchResults.from_json(raw_json)
 
-        parsed_errors = [CoreError.make(error) for error in match_results.errors]
-        matches = match_results.matches
         for skip in match_results.skipped_targets:
             if skip.rule_id:
                 rule_info = f"rule {skip.rule_id}"
@@ -126,10 +90,12 @@ class CoreOutput:
                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
             )
 
+        errors = match_results.errors
+        matches = match_results.matches
         skipped = match_results.skipped_targets
         timings = match_results.time
 
-        return cls(matches, parsed_errors, skipped, timings)
+        return cls(matches, errors, skipped, timings)
 
     def rule_matches(self, rules: List[Rule]) -> Dict[Rule, List[RuleMatch]]:
         """
