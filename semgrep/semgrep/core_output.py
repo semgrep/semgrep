@@ -147,7 +147,7 @@ class CoreTiming:
         if not time:
             return cls([], [], 0.0)
 
-        rules = [rule_table[rule] for rule in time.rules]
+        rules = [rule_table[rule.value] for rule in time.rules]
         target_timings = [target for target in time.targets]
         rules_parse_time = time.rules_parse_time if time.rules_parse_time else 0.0
         return cls(rules, target_timings, rules_parse_time)

@@ -459,7 +459,7 @@ class Time:
     """Original type: time = { ... }"""
 
     targets: List[TargetTime]
-    rules: List[str]
+    rules: List[RuleId]
     rules_parse_time: Optional[float] = None
 
     @classmethod
@@ -469,7 +469,7 @@ class Time:
                 targets=_atd_read_list(TargetTime.from_json)(x["targets"])
                 if "targets" in x
                 else _atd_missing_json_field("Time", "targets"),
-                rules=_atd_read_list(_atd_read_string)(x["rules"])
+                rules=_atd_read_list(RuleId.from_json)(x["rules"])
                 if "rules" in x
                 else _atd_missing_json_field("Time", "rules"),
                 rules_parse_time=_atd_read_float(x["rules_parse_time"])
@@ -482,7 +482,7 @@ class Time:
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
         res["targets"] = _atd_write_list(lambda x: x.to_json())(self.targets)
-        res["rules"] = _atd_write_list(_atd_write_string)(self.rules)
+        res["rules"] = _atd_write_list(lambda x: x.to_json())(self.rules)
         if self.rules_parse_time is not None:
             res["rules_parse_time"] = _atd_write_float(self.rules_parse_time)
         return res
