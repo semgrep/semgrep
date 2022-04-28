@@ -12,8 +12,6 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
-from attrs import define
-
 import semgrep.output_from_core as core
 from semgrep.error import LegacySpan
 from semgrep.error import Level
@@ -65,103 +63,87 @@ def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
     )
 
 
-@define
-class CoreOutput:
+def parse_core_output(raw_json: JsonObject) -> core.MatchResults:
+    match_results = core.MatchResults.from_json(raw_json)
+
+    for skip in match_results.skipped_targets:
+        if skip.rule_id:
+            rule_info = f"rule {skip.rule_id}"
+        else:
+            rule_info = "all rules"
+        logger.verbose(
+            f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+        )
+    return match_results
+
+
+def core_matches_to_rule_matches(
+    rules: List[Rule], res: core.MatchResults
+) -> Dict[Rule, List[RuleMatch]]:
     """
-    Parses output of semgrep-core
+    Convert core_match objects into RuleMatch objects that the rest of the codebase
+    interacts with.
+
+    For now assumes that all matches encapsulated by this object are from the same rulee
     """
+    rule_table = {rule.id: rule for rule in rules}
 
-    matches: List[core.Match]
-    errors: List[core.Error]
-    skipped: List[core.SkippedTarget]
-    timing: Optional[core.Time]
+    def interpolate(text: str, metavariables: Dict[str, str]) -> str:
+        """Interpolates a string with the metavariables contained in it, returning a new string"""
 
-    @classmethod
-    def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
+        # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
+        for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
+            text = text.replace(metavariable, metavariables[metavariable])
 
-        match_results = core.MatchResults.from_json(raw_json)
+        return text
 
-        for skip in match_results.skipped_targets:
-            if skip.rule_id:
-                rule_info = f"rule {skip.rule_id}"
-            else:
-                rule_info = "all rules"
-            logger.verbose(
-                f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-            )
+    def read_metavariables(match: core.Match) -> Dict[str, str]:
+        result = {}
 
-        errors = match_results.errors
-        matches = match_results.matches
-        skipped = match_results.skipped_targets
-        timings = match_results.time
+        # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
+        with open(match.location.path, errors="replace") as fd:
+            for metavariable, metavariable_data in match.extra.metavars.items():
+                # Offsets are start inclusive and end exclusive
+                start_offset = metavariable_data.start.offset
+                end_offset = metavariable_data.end.offset
+                length = end_offset - start_offset
 
-        return cls(matches, errors, skipped, timings)
+                fd.seek(start_offset)
+                result[metavariable] = fd.read(length)
 
-    def rule_matches(self, rules: List[Rule]) -> Dict[Rule, List[RuleMatch]]:
-        """
-        Convert core_match objects into RuleMatch objects that the rest of the codebase
-        interacts with.
+        return result
 
-        For now assumes that all matches encapsulated by this object are from the same rulee
-        """
-        rule_table = {rule.id: rule for rule in rules}
+    def convert_to_rule_match(match: core.Match) -> RuleMatch:
+        rule = rule_table[match.rule_id.value]
+        metavariables = read_metavariables(match)
+        message = interpolate(rule.message, metavariables)
+        fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
-        def interpolate(text: str, metavariables: Dict[str, str]) -> str:
-            """Interpolates a string with the metavariables contained in it, returning a new string"""
+        return RuleMatch(
+            match.rule_id.value,
+            message=message,
+            metadata=rule.metadata,
+            severity=rule.severity,
+            fix=fix,
+            fix_regex=rule.fix_regex,
+            path=Path(match.location.path),
+            start=match.location.start,
+            end=match.location.end,
+            extra=match.extra.to_json(),
+        )
 
-            # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
-            for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
-                text = text.replace(metavariable, metavariables[metavariable])
+    # TODO: Dict[core.RuleId, RuleMatchSet]
+    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
+    seen_cli_unique_keys: Set[Tuple] = set()
+    for match in res.matches:
+        rule = rule_table[match.rule_id.value]
+        rule_match = convert_to_rule_match(match)
+        if rule_match.cli_unique_key in seen_cli_unique_keys:
+            continue
+        seen_cli_unique_keys.add(rule_match.cli_unique_key)
+        findings[rule].add(rule_match)
 
-            return text
-
-        def read_metavariables(match: core.Match) -> Dict[str, str]:
-            result = {}
-
-            # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
-            with open(match.location.path, errors="replace") as fd:
-                for metavariable, metavariable_data in match.extra.metavars.items():
-                    # Offsets are start inclusive and end exclusive
-                    start_offset = metavariable_data.start.offset
-                    end_offset = metavariable_data.end.offset
-                    length = end_offset - start_offset
-
-                    fd.seek(start_offset)
-                    result[metavariable] = fd.read(length)
-
-            return result
-
-        def convert_to_rule_match(match: core.Match) -> RuleMatch:
-            rule = rule_table[match.rule_id.value]
-            metavariables = read_metavariables(match)
-            message = interpolate(rule.message, metavariables)
-            fix = interpolate(rule.fix, metavariables) if rule.fix else None
-
-            return RuleMatch(
-                match.rule_id.value,
-                message=message,
-                metadata=rule.metadata,
-                severity=rule.severity,
-                fix=fix,
-                fix_regex=rule.fix_regex,
-                path=Path(match.location.path),
-                start=match.location.start,
-                end=match.location.end,
-                extra=match.extra.to_json(),
-            )
-
-        # TODO: Dict[core.RuleId, RuleMatchSet]
-        findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
-        seen_cli_unique_keys: Set[Tuple] = set()
-        for match in self.matches:
-            rule = rule_table[match.rule_id.value]
-            rule_match = convert_to_rule_match(match)
-            if rule_match.cli_unique_key in seen_cli_unique_keys:
-                continue
-            seen_cli_unique_keys.add(rule_match.cli_unique_key)
-            findings[rule].add(rule_match)
-
-        # Sort results so as to guarantee the same results across different
-        # runs. Results may arrive in a different order due to parallelism
-        # (-j option).
-        return {rule: sorted(matches) for rule, matches in findings.items()}
+    # Sort results so as to guarantee the same results across different
+    # runs. Results may arrive in a different order due to parallelism
+    # (-j option).
+    return {rule: sorted(matches) for rule, matches in findings.items()}

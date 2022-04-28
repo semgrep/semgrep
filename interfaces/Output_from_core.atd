@@ -48,6 +48,7 @@ type match_results
   (* skipped_rules was introduced  in semgrep 0.86 *)
   ?skipped_rules: skipped_rule list option;
   stats: stats;
+  (* TODO: rename timing? *)
   ?time: time option;
 }
 
