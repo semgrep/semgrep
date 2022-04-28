@@ -42,7 +42,7 @@ class CoreMatch:
     Encapsulates finding returned by semgrep-core
     """
 
-    rule: Rule
+    rule: core.RuleId
     path: Path
     start: core.Position
     end: core.Position
@@ -50,8 +50,8 @@ class CoreMatch:
     metavars: Dict[str, MetavarValue]
 
     @classmethod
-    def make(cls, rule_table: Dict[str, Rule], match: core.Match) -> "CoreMatch":
-        rule = rule_table[match.rule_id.value]
+    def make(cls, match: core.Match) -> "CoreMatch":
+        rule = match.rule_id
         path = Path(match.location.path)
         start = match.location.start
         end = match.location.end
@@ -147,14 +147,11 @@ class CoreOutput:
 
     @classmethod
     def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
-        rule_table = {rule.id: rule for rule in rules}
 
         match_results = core.MatchResults.from_json(raw_json)
 
         parsed_errors = [CoreError.make(error) for error in match_results.errors]
-        parsed_matches = [
-            CoreMatch.make(rule_table, match) for match in match_results.matches
-        ]
+        parsed_matches = [CoreMatch.make(match) for match in match_results.matches]
         for skip in match_results.skipped_targets:
             if skip.rule_id:
                 rule_info = f"rule {skip.rule_id}"
@@ -176,6 +173,7 @@ class CoreOutput:
 
         For now assumes that all matches encapsulated by this object are from the same rulee
         """
+        rule_table = {rule.id: rule for rule in rules}
 
         def interpolate(text: str, metavariables: Dict[str, str]) -> str:
             """Interpolates a string with the metavariables contained in it, returning a new string"""
@@ -203,13 +201,13 @@ class CoreOutput:
             return result
 
         def convert_to_rule_match(match: CoreMatch) -> RuleMatch:
-            rule = match.rule
+            rule = rule_table[match.rule.value]
             metavariables = read_metavariables(match)
             message = interpolate(rule.message, metavariables)
             fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
             return RuleMatch(
-                rule._id,
+                match.rule.value,
                 message=message,
                 metadata=rule.metadata,
                 severity=rule.severity,
@@ -221,14 +219,16 @@ class CoreOutput:
                 extra=match.extra,
             )
 
+        # TODO: Dict[core.RuleId, RuleMatchSet]
         findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
         seen_cli_unique_keys: Set[Tuple] = set()
         for match in self.matches:
+            rule = rule_table[match.rule.value]
             rule_match = convert_to_rule_match(match)
             if rule_match.cli_unique_key in seen_cli_unique_keys:
                 continue
             seen_cli_unique_keys.add(rule_match.cli_unique_key)
-            findings[match.rule].add(rule_match)
+            findings[rule].add(rule_match)
 
         # Sort results so as to guarantee the same results across different
         # runs. Results may arrive in a different order due to parallelism
