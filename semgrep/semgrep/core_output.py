@@ -3,8 +3,7 @@ This file encapsulates classes necessary in parsing semgrep-core
 json output into a typed object
 
 The precise type of the response from semgrep-core is specified in
-Semgrep_core_response.atd, currently at:
-https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core-response/Semgrep_core_response.atd
+https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
 from pathlib import Path
 from typing import Dict
@@ -41,9 +40,8 @@ class CoreError:
     location: core.Location
     message: str
     details: Optional[str]
-    # derived from core.Error fields
-    level: Level
-    spans: Optional[Tuple[LegacySpan, ...]]
+    severity: core.Severity
+    yaml_path: Optional[List[str]]
 
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
@@ -52,20 +50,10 @@ class CoreError:
         location = error.location
         message = error.message
         details = error.details
+        severity = error.severity
+        yaml_path = error.yaml_path
 
-        # Hackily convert the level string to Semgrep expectations
-        level_str = error.severity.kind
-        if level_str.upper() == "WARNING":
-            level_str = "WARN"
-        if level_str.upper() == "ERROR_":
-            level_str = "ERROR"
-        level = Level[level_str.upper()]
-
-        spans = None
-        if error.yaml_path:
-            yaml_path = tuple(error.yaml_path[::-1])
-            spans = tuple([LegacySpan(location.start, location.end, yaml_path)])  # type: ignore
-        return cls(error_type, rule_id, location, message, details, level, spans)
+        return cls(error_type, rule_id, location, message, details, severity, yaml_path)
 
     def is_timeout(self) -> bool:
         """
@@ -75,6 +63,19 @@ class CoreError:
 
     def to_semgrep_error(self) -> SemgrepCoreError:
         reported_rule_id = self.rule_id
+
+        # Hackily convert the level string to Semgrep expectations
+        level_str = self.severity.kind
+        if level_str.upper() == "WARNING":
+            level_str = "WARN"
+        if level_str.upper() == "ERROR_":
+            level_str = "ERROR"
+        level = Level[level_str.upper()]
+
+        spans: Optional[Tuple[LegacySpan, ...]] = None
+        if self.yaml_path:
+            yaml_path = tuple(self.yaml_path[::-1])
+            spans = tuple([LegacySpan(self.location.start, self.location.end, yaml_path)])  # type: ignore
 
         # TODO benchmarking code relies on error code value right now
         # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
@@ -86,14 +87,14 @@ class CoreError:
 
         return SemgrepCoreError(
             code,
-            self.level,
+            level,
             self.error_type,
             reported_rule_id,
             Path(self.location.path),
             self.location.start,
             self.location.end,
             self.message,
-            self.spans,
+            spans,
             self.details,
         )
 
