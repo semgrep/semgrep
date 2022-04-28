@@ -135,25 +135,9 @@ class CoreError:
 
 
 @frozen
-class CoreTargetTiming:
-    target: Path
-    per_rule_timings: List[core.RuleTimes]
-    run_time: float
-
-    @classmethod
-    def make(
-        cls, rule_table: Dict[str, Rule], target_time: core.TargetTime
-    ) -> "CoreTargetTiming":
-        target = Path(target_time.path)
-        per_rule_timings = [rule_time for rule_time in target_time.rule_times]
-        run_time = target_time.run_time
-        return cls(target, per_rule_timings, run_time)
-
-
-@frozen
 class CoreTiming:
     rules: List[Rule]
-    target_timings: List[CoreTargetTiming]
+    target_timings: List[core.TargetTime]
     rules_parse_time: float
 
     @classmethod
@@ -164,9 +148,7 @@ class CoreTiming:
             return cls([], [], 0.0)
 
         rules = [rule_table[rule] for rule in time.rules]
-        target_timings = [
-            CoreTargetTiming.make(rule_table, target) for target in time.targets
-        ]
+        target_timings = [target for target in time.targets]
         rules_parse_time = time.rules_parse_time if time.rules_parse_time else 0.0
         return cls(rules, target_timings, rules_parse_time)
 
