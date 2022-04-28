@@ -38,22 +38,20 @@ class CoreError:
 
     error_type: str
     rule_id: Optional[core.RuleId]
-    path: Path
-    start: core.Position
-    end: core.Position
+    location: core.Location
     message: str
+    details: Optional[str]
+    # derived from core.Error fields
     level: Level
     spans: Optional[Tuple[LegacySpan, ...]]
-    details: Optional[str]
 
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
         error_type = error.error_type
         rule_id = error.rule_id
-        path = Path(error.location.path)
-        start = error.location.start
-        end = error.location.end
+        location = error.location
         message = error.message
+        details = error.details
 
         # Hackily convert the level string to Semgrep expectations
         level_str = error.severity.kind
@@ -62,15 +60,12 @@ class CoreError:
         if level_str.upper() == "ERROR_":
             level_str = "ERROR"
         level = Level[level_str.upper()]
-        details = error.details
 
         spans = None
         if error.yaml_path:
             yaml_path = tuple(error.yaml_path[::-1])
-            spans = tuple([LegacySpan(start, end, yaml_path)])  # type: ignore
-        return cls(
-            error_type, rule_id, path, start, end, message, level, spans, details
-        )
+            spans = tuple([LegacySpan(location.start, location.end, yaml_path)])  # type: ignore
+        return cls(error_type, rule_id, location, message, details, level, spans)
 
     def is_timeout(self) -> bool:
         """
@@ -94,9 +89,9 @@ class CoreError:
             self.level,
             self.error_type,
             reported_rule_id,
-            self.path,
-            self.start,
-            self.end,
+            Path(self.location.path),
+            self.location.start,
+            self.location.end,
             self.message,
             self.spans,
             self.details,
