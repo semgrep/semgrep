@@ -134,25 +134,6 @@ class CoreError:
         )
 
 
-@frozen
-class CoreTiming:
-    rules: List[core.RuleId]
-    target_timings: List[core.TargetTime]
-    rules_parse_time: Optional[float]
-
-    @classmethod
-    def make(
-        cls, rule_table: Dict[str, Rule], time: Optional[core.Time]
-    ) -> "CoreTiming":
-        if not time:
-            return cls([], [], 0.0)
-
-        rules = time.rules
-        target_timings = time.targets
-        rules_parse_time = time.rules_parse_time
-        return cls(rules, target_timings, rules_parse_time)
-
-
 @define
 class CoreOutput:
     """
@@ -162,7 +143,7 @@ class CoreOutput:
     matches: List[CoreMatch]
     errors: List[CoreError]
     skipped: List[core.SkippedTarget]
-    timing: CoreTiming
+    timing: Optional[core.Time]
 
     @classmethod
     def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
@@ -183,10 +164,10 @@ class CoreOutput:
                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
             )
 
-        parsed_skipped = match_results.skipped_targets
-        parsed_timings = CoreTiming.make(rule_table, match_results.time)
+        skipped = match_results.skipped_targets
+        timings = match_results.time
 
-        return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
+        return cls(parsed_matches, parsed_errors, skipped, timings)
 
     def rule_matches(self, rules: List[Rule]) -> Dict[Rule, List[RuleMatch]]:
         """

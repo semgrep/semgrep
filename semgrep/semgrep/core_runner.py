@@ -29,7 +29,6 @@ from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
 from semgrep.core_output import CoreOutput
-from semgrep.core_output import CoreTiming
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -465,15 +464,15 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: CoreTiming,
+        timing: core.Time,
     ) -> None:
-        targets = [Path(t.path) for t in timing.target_timings]
+        targets = [Path(t.path) for t in timing.targets]
 
         profiling_data.init_empty(timing.rules, targets)
         if timing.rules_parse_time:
             profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
-        for t in timing.target_timings:
+        for t in timing.targets:
             rule_timings = {
                 rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
             }
@@ -655,7 +654,7 @@ class CoreRunner:
             )
             core_output = CoreOutput.parse(rules, output_json)
 
-            if "time" in output_json:
+            if ("time" in output_json) and core_output.timing:
                 self._add_match_times(profiling_data, core_output.timing)
 
             # end with tempfile.NamedTemporaryFile(...) ...
