@@ -384,7 +384,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = CoreOutput.parse(rules, output_json)
+                parsed_output = CoreOutput.parse(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -653,7 +653,7 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(rules, output_json)
+            core_output = CoreOutput.parse(output_json)
 
             if ("time" in output_json) and core_output.timing:
                 self._add_match_times(profiling_data, core_output.timing)
@@ -757,7 +757,7 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(metachecks, output_json)
+            core_output = CoreOutput.parse(output_json)
 
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors

@@ -77,7 +77,7 @@ class CoreOutput:
     timing: Optional[core.Time]
 
     @classmethod
-    def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
+    def parse(cls, raw_json: JsonObject) -> "CoreOutput":
 
         match_results = core.MatchResults.from_json(raw_json)
 
