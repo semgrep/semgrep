@@ -68,7 +68,7 @@ class CoreError:
     """
 
     error_type: str
-    rule_id: Optional[str]  # TODO: Optional[core.RuleId]
+    rule_id: Optional[core.RuleId]
     path: Path
     start: core.Position
     end: core.Position
@@ -80,8 +80,7 @@ class CoreError:
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
         error_type = error.error_type
-        # TODO: core.RuleId(...)
-        rule_id = error.rule_id.value if error.rule_id else None
+        rule_id = error.rule_id
         path = Path(error.location.path)
         start = error.location.start
         end = error.location.end
