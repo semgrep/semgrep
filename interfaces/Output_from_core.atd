@@ -211,7 +211,7 @@ type time
 
   (* List of rules received by core *)
   (* Needs to be separate to include rules read but not run on any target *)
-  rules: string list;
+  rules: rule_id list;
   ?rules_parse_time: float option; (* not used in spacegrep *)
 }
 
