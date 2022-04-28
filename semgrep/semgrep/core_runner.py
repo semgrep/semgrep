@@ -662,14 +662,15 @@ class CoreRunner:
             parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
             for err in core_output.errors:
                 if err.is_timeout():
-                    assert err.path is not None
+                    assert err.location.path is not None
 
-                    file_timeouts[err.path] += 1
+                    file_timeouts[Path(err.location.path)] += 1
                     if (
                         self._timeout_threshold != 0
-                        and file_timeouts[err.path] >= self._timeout_threshold
+                        and file_timeouts[Path(err.location.path)]
+                        >= self._timeout_threshold
                     ):
-                        max_timeout_files.add(err.path)
+                        max_timeout_files.add(Path(err.location.path))
             errors.extend(parsed_errors)
 
         os.remove(rule_file_name)
