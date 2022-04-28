@@ -29,7 +29,8 @@ from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
 from semgrep.core_output import core_error_to_semgrep_error
-from semgrep.core_output import CoreOutput
+from semgrep.core_output import core_matches_to_rule_matches
+from semgrep.core_output import parse_core_output
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -384,7 +385,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = CoreOutput.parse(rules, output_json)
+                parsed_output = parse_core_output(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -653,13 +654,13 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(rules, output_json)
+            core_output = parse_core_output(output_json)
 
-            if ("time" in output_json) and core_output.timing:
-                self._add_match_times(profiling_data, core_output.timing)
+            if ("time" in output_json) and core_output.time:
+                self._add_match_times(profiling_data, core_output.time)
 
             # end with tempfile.NamedTemporaryFile(...) ...
-            outputs = core_output.rule_matches(rules)
+            outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
                 if err.error_type == "Timeout":
@@ -757,7 +758,7 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(metachecks, output_json)
+            core_output = parse_core_output(output_json)
 
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors
