@@ -476,7 +476,7 @@ class CoreRunner:
 
         for t in timing.target_timings:
             rule_timings = {
-                rt.rule.id2: Times(rt.parse_time, rt.match_time)
+                rt.rule_id: Times(rt.parse_time, rt.match_time)
                 for rt in t.per_rule_timings
             }
             profiling_data.set_file_times(t.target, rule_timings, t.run_time)
