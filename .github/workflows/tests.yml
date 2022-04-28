@@ -84,7 +84,7 @@ jobs:
 
   test-spacegrep:
     name: test spacegrep
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
     container:
       image: ghcr.io/${{ github.repository }}/core:sha-${{ github.event.pull_request.head.sha }}
     defaults:

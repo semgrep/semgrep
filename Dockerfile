@@ -27,27 +27,25 @@ RUN --mount=type=cache,target=/var/cache/apk \
 USER user
 
 ENV OPAMYES=true DUNE_CACHE=enabled DUNE_CACHE_ROOT=/home/user/.dune
+
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
-RUN --mount=type=cache,target=./downloads,uid=1000 scripts/install-tree-sitter-lib
+RUN --mount=type=cache,target=./downloads,uid=1000 \
+     --mount=type=cache,target=/home/user/.dune,uid=1000 \
+     scripts/install-tree-sitter-lib
 
 WORKDIR /semgrep/semgrep-core/src/pfff
 COPY --chown=user semgrep-core/src/pfff/*.opam .
-RUN --mount=type=cache,target=/home/user/.opam/download-cache,uid=1000 \
-     --mount=type=cache,target=/home/user/.opam/4.12.0/.opam-switch/packages,uid=1000 \
-     opam install --deps-only .
-
-WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core/
+WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/*.opam .
-RUN --mount=type=cache,target=/home/user/.opam/download-cache,uid=1000 \
-     --mount=type=cache,target=/home/user/.opam/4.12.0/.opam-switch/packages,uid=1000 \
-     opam install --deps-only .
-
 WORKDIR /semgrep/semgrep-core
 COPY --chown=user semgrep-core/*.opam .
+
 RUN --mount=type=cache,target=/home/user/.opam/download-cache,uid=1000 \
      --mount=type=cache,target=/home/user/.opam/4.12.0/.opam-switch/packages,uid=1000 \
-     opam install --deps-only .
+     --mount=type=cache,target=/home/user/.opam/4.12.0/.opam-switch/sources,uid=1000 \
+     --mount=type=cache,target=/home/user/.dune,uid=1000 \
+     opam install --deps-only /semgrep/semgrep-core/src/pfff /semgrep/semgrep-core/src/ocaml-tree-sitter-core /semgrep/semgrep-core
 
 WORKDIR /semgrep
 COPY --chown=user semgrep-core/ ./semgrep-core
@@ -59,6 +57,8 @@ WORKDIR /semgrep/semgrep-core
 RUN ./scripts/make-version > ./src/cli/version.ml
 RUN --mount=type=cache,target=/home/user/.cache/pipenv,uid=1000 \
      --mount=type=cache,target=/home/user/.local/share/virtualenvs,uid=1000 \
+     --mount=type=cache,target=/home/user/.opam/4.12.0/.opam-switch/packages,uid=1000 \
+     --mount=type=cache,target=/home/user/.opam/4.12.0/.opam-switch/sources,uid=1000 \
      --mount=type=cache,target=/home/user/.dune,uid=1000 \
      opam exec -- dune build
 
