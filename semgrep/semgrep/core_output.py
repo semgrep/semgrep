@@ -136,9 +136,9 @@ class CoreError:
 
 @frozen
 class CoreTiming:
-    rules: List[Rule]
+    rules: List[core.RuleId]
     target_timings: List[core.TargetTime]
-    rules_parse_time: float
+    rules_parse_time: Optional[float]
 
     @classmethod
     def make(
@@ -147,9 +147,9 @@ class CoreTiming:
         if not time:
             return cls([], [], 0.0)
 
-        rules = [rule_table[rule.value] for rule in time.rules]
-        target_timings = [target for target in time.targets]
-        rules_parse_time = time.rules_parse_time if time.rules_parse_time else 0.0
+        rules = time.rules
+        target_timings = time.targets
+        rules_parse_time = time.rules_parse_time
         return cls(rules, target_timings, rules_parse_time)
 
 

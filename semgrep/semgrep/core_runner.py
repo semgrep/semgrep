@@ -467,12 +467,11 @@ class CoreRunner:
         profiling_data: ProfilingData,
         timing: CoreTiming,
     ) -> None:
-        rules = timing.rules
-        ruleids = [r.id2 for r in rules]
         targets = [Path(t.path) for t in timing.target_timings]
 
-        profiling_data.init_empty(ruleids, targets)
-        profiling_data.set_rules_parse_time(timing.rules_parse_time)
+        profiling_data.init_empty(timing.rules, targets)
+        if timing.rules_parse_time:
+            profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
         for t in timing.target_timings:
             rule_timings = {
