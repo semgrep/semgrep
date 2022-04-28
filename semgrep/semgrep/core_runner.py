@@ -30,7 +30,6 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import CoreTiming
-from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -509,7 +508,7 @@ class CoreRunner:
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
         target_info: Dict[
-            Tuple[Path, Language], List[RuleId]
+            Tuple[Path, Language], List[str]  # TODO: List[core.RuleId]
         ] = collections.defaultdict(list)
 
         for rule in rules:
@@ -518,7 +517,7 @@ class CoreRunner:
 
                 for target in targets:
                     all_targets.add(target)
-                    target_info[target, language].append(RuleId(rule.id))
+                    target_info[target, language].append(rule.id)  # TODO: core.RuleId
 
         return Plan(
             [

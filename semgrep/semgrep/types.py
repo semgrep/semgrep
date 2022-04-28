@@ -4,14 +4,11 @@ from pathlib import Path
 from typing import Any
 from typing import FrozenSet
 from typing import Mapping
-from typing import NewType
 
 from attrs import field
 from attrs import frozen
 
 JsonObject = Mapping[str, Any]
-
-RuleId = NewType("RuleId", str)
 
 Targets = FrozenSet[Path]
 
