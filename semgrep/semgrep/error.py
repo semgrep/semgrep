@@ -16,7 +16,6 @@ from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.types import RuleId
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -99,7 +98,7 @@ class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
     error_type: str
-    rule_id: Optional[RuleId]
+    rule_id: Optional[str]  # TODO: Optional[RuleId]
     path: Path
     start: core.Position
     end: core.Position

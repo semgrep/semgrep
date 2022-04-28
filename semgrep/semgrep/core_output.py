@@ -31,7 +31,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
 from semgrep.types import JsonObject
-from semgrep.types import RuleId
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -69,7 +68,7 @@ class CoreError:
     """
 
     error_type: str
-    rule_id: Optional[RuleId]
+    rule_id: Optional[str]  # TODO: Optional[core.RuleId]
     path: Path
     start: core.Position
     end: core.Position
@@ -81,7 +80,8 @@ class CoreError:
     @classmethod
     def make(cls, error: core.Error) -> "CoreError":
         error_type = error.error_type
-        rule_id = RuleId(error.rule_id.value) if error.rule_id else None
+        # TODO: core.RuleId(...)
+        rule_id = error.rule_id.value if error.rule_id else None
         path = Path(error.location.path)
         start = error.location.start
         end = error.location.end
