@@ -28,6 +28,7 @@ from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
+from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import CoreOutput
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
@@ -393,7 +394,7 @@ class CoreRunner:
                         core_stdout,
                         core_stderr,
                     )
-                raise errors[0].to_semgrep_error()
+                raise core_error_to_semgrep_error(errors[0])
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -659,9 +660,9 @@ class CoreRunner:
 
             # end with tempfile.NamedTemporaryFile(...) ...
             outputs = core_output.rule_matches(rules)
-            parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
+            parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if err.is_timeout():
+                if err.error_type == "Timeout":
                     assert err.location.path is not None
 
                     file_timeouts[Path(err.location.path)] += 1
@@ -758,6 +759,8 @@ class CoreRunner:
             )
             core_output = CoreOutput.parse(metachecks, output_json)
 
-            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
+            parsed_errors += [
+                core_error_to_semgrep_error(e) for e in core_output.errors
+            ]
 
         return dedup_errors(parsed_errors)
