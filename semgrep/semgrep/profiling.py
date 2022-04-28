@@ -4,11 +4,12 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 
+import semgrep.output_from_core as core
 from semgrep.rule import Rule
 
 
 class Semgrep_run(NamedTuple):
-    rule: Rule
+    rule: core.RuleId
     target: Path
 
 
@@ -24,12 +25,12 @@ class ProfilingData:
         self._file_run_time: Dict[Path, float] = {}
         self._match_time_matrix: Dict[Semgrep_run, Times] = {}
 
-        self._rule_match_times: Dict[Rule, float] = {}
-        self._rule_bytes_scanned: Dict[Rule, int] = {}
+        self._rule_match_times: Dict[core.RuleId, float] = {}
+        self._rule_bytes_scanned: Dict[core.RuleId, int] = {}
         self._file_match_times: Dict[Path, float] = {}
         self._file_num_times_scanned: Dict[Path, int] = {}
 
-    def init_empty(self, rules: List[Rule], targets: List[Path]) -> None:
+    def init_empty(self, rules: List[core.RuleId], targets: List[Path]) -> None:
         self._rules_parse_time = 0.0
         self._file_parse_time = {target: 0.0 for target in targets}
         self._file_run_time = {target: 0.0 for target in targets}
@@ -47,7 +48,7 @@ class ProfilingData:
 
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix.get(
-            Semgrep_run(rule=rule, target=target),
+            Semgrep_run(rule=rule.id2, target=target),
             Times(parse_time=0.0, match_time=0.0),
         )
 
@@ -68,13 +69,13 @@ class ProfilingData:
 
         Return None if RULE has no timing information saved
         """
-        return self._rule_match_times.get(rule)
+        return self._rule_match_times.get(rule.id2)
 
     def get_rule_bytes_scanned(self, rule: Rule) -> int:
         """
         Return total number of bytes scanned by a given rule
         """
-        return self._rule_bytes_scanned.get(rule, 0)
+        return self._rule_bytes_scanned.get(rule.id2, 0)
 
     def get_file_match_time(self, target: Path) -> Optional[float]:
         """
@@ -103,7 +104,7 @@ class ProfilingData:
         return self._file_num_times_scanned.get(target, 0)
 
     def set_file_times(
-        self, target: Path, times: Dict[Rule, Times], run_time: float
+        self, target: Path, times: Dict[core.RuleId, Times], run_time: float
     ) -> None:
         num_bytes = target.stat().st_size
 
