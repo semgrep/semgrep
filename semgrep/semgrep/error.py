@@ -16,7 +16,6 @@ from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.types import RuleId
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -99,7 +98,7 @@ class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
     error_type: str
-    rule_id: Optional[RuleId]
+    rule_id: Optional[core.RuleId]
     path: Path
     start: core.Position
     end: core.Position
@@ -110,7 +109,7 @@ class SemgrepCoreError(SemgrepError):
     def to_dict_base(self) -> Dict[str, Any]:
         base: Dict[str, Any] = {"type": self.error_type, "message": str(self)}
         if self.rule_id:
-            base["rule_id"] = self.rule_id
+            base["rule_id"] = self.rule_id.value
 
         # For rule errors path is a temp file so for now will just be confusing to add
         if (
@@ -144,9 +143,9 @@ class SemgrepCoreError(SemgrepError):
                 self.error_type == "Rule parse error"
                 or self.error_type == "Pattern parse error"
             ):
-                error_context = f"in rule {self.rule_id}"
+                error_context = f"in rule {self.rule_id.value}"
             else:
-                error_context = f"when running {self.rule_id} on {self.path}"
+                error_context = f"when running {self.rule_id.value} on {self.path}"
         else:
             error_context = f"at line {self.path}:{self.start.line}"
 
