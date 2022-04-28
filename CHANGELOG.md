@@ -4,11 +4,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.90.0](https://github.com/returntocorp/semgrep/releases/tag/v0.90.0) - 2022-04-26
+
 ### Added
 
 - Users can access the propagated value of a metavariable in the JSON output
   in the extra field
 - Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
+- Added vendor.name field in gitlab sast output (#5077)
+
+### Fixed
+
+- Keep only latest run logs in last.log file (#5070)
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 

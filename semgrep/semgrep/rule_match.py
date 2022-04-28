@@ -43,7 +43,7 @@ class RuleMatch:
     TODO: Rename this class to Finding?
     """
 
-    rule_id: str
+    rule_id: str  # TODO: core.RuleId
     message: str = field(repr=False)
     severity: RuleSeverity
 

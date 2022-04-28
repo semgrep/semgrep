@@ -28,9 +28,9 @@ from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
-from semgrep.core_output import CoreOutput
-from semgrep.core_output import CoreTiming
-from semgrep.core_output import RuleId
+from semgrep.core_output import core_error_to_semgrep_error
+from semgrep.core_output import core_matches_to_rule_matches
+from semgrep.core_output import parse_core_output
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -385,7 +385,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = CoreOutput.parse(rules, output_json)
+                parsed_output = parse_core_output(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -395,7 +395,7 @@ class CoreRunner:
                         core_stdout,
                         core_stderr,
                     )
-                raise errors[0].to_semgrep_error()
+                raise core_error_to_semgrep_error(errors[0])
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -466,20 +466,19 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: CoreTiming,
+        timing: core.Time,
     ) -> None:
-        rules = timing.rules
-        targets = [t.target for t in timing.target_timings]
+        targets = [Path(t.path) for t in timing.targets]
 
-        profiling_data.init_empty(rules, targets)
-        profiling_data.set_rules_parse_time(timing.rules_parse_time)
+        profiling_data.init_empty(timing.rules, targets)
+        if timing.rules_parse_time:
+            profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
-        for t in timing.target_timings:
+        for t in timing.targets:
             rule_timings = {
-                rt.rule: Times(rt.parse_time, rt.match_time)
-                for rt in t.per_rule_timings
+                rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
             }
-            profiling_data.set_file_times(t.target, rule_timings, t.run_time)
+            profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
 
     def get_files_for_language(
         self, language: Language, rule: Rule, target_manager: TargetManager
@@ -509,7 +508,7 @@ class CoreRunner:
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
         target_info: Dict[
-            Tuple[Path, Language], List[RuleId]
+            Tuple[Path, Language], List[str]  # TODO: List[core.RuleId]
         ] = collections.defaultdict(list)
 
         for rule in rules:
@@ -518,7 +517,7 @@ class CoreRunner:
 
                 for target in targets:
                     all_targets.add(target)
-                    target_info[target, language].append(RuleId(rule.id))
+                    target_info[target, language].append(rule.id)  # TODO: core.RuleId
 
         return Plan(
             [
@@ -655,24 +654,25 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(rules, output_json)
+            core_output = parse_core_output(output_json)
 
-            if "time" in output_json:
-                self._add_match_times(profiling_data, core_output.timing)
+            if ("time" in output_json) and core_output.time:
+                self._add_match_times(profiling_data, core_output.time)
 
             # end with tempfile.NamedTemporaryFile(...) ...
-            outputs = core_output.rule_matches(rules)
-            parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
+            outputs = core_matches_to_rule_matches(rules, core_output)
+            parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if err.is_timeout():
-                    assert err.path is not None
+                if err.error_type == "Timeout":
+                    assert err.location.path is not None
 
-                    file_timeouts[err.path] += 1
+                    file_timeouts[Path(err.location.path)] += 1
                     if (
                         self._timeout_threshold != 0
-                        and file_timeouts[err.path] >= self._timeout_threshold
+                        and file_timeouts[Path(err.location.path)]
+                        >= self._timeout_threshold
                     ):
-                        max_timeout_files.add(err.path)
+                        max_timeout_files.add(Path(err.location.path))
             errors.extend(parsed_errors)
 
         os.remove(rule_file_name)
@@ -758,8 +758,10 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(metachecks, output_json)
+            core_output = parse_core_output(output_json)
 
-            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
+            parsed_errors += [
+                core_error_to_semgrep_error(e) for e in core_output.errors
+            ]
 
         return dedup_errors(parsed_errors)

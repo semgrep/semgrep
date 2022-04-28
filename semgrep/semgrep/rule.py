@@ -10,6 +10,7 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
+import semgrep.output_from_core as core
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -127,8 +128,12 @@ class Rule:
         return self._excludes
 
     @property
-    def id(self) -> str:
+    def id(self) -> str:  # TODO: return a core.RuleId
         return self._id
+
+    @property
+    def id2(self) -> core.RuleId:  # TODO: merge with id
+        return core.RuleId(self._id)
 
     @property
     def message(self) -> str:

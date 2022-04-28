@@ -3,6 +3,7 @@ module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* TODO: we should define this in Output_from_core.atd *)
 type error = {
   rule_id : Rule.rule_id option;
   typ : error_kind;

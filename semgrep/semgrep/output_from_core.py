@@ -354,10 +354,31 @@ class UniqueId:
 
 
 @dataclass(frozen=True)
+class RuleId:
+    """Original type: rule_id"""
+
+    value: str
+
+    @classmethod
+    def from_json(cls, x: Any) -> "RuleId":
+        return cls(_atd_read_string(x))
+
+    def to_json(self) -> Any:
+        return _atd_write_string(self.value)
+
+    @classmethod
+    def from_json_string(cls, x: str) -> "RuleId":
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
 class RuleTimes:
     """Original type: rule_times = { ... }"""
 
-    rule_id: str
+    rule_id: RuleId
     parse_time: float
     match_time: float
 
@@ -365,7 +386,7 @@ class RuleTimes:
     def from_json(cls, x: Any) -> "RuleTimes":
         if isinstance(x, dict):
             return cls(
-                rule_id=_atd_read_string(x["rule_id"])
+                rule_id=RuleId.from_json(x["rule_id"])
                 if "rule_id" in x
                 else _atd_missing_json_field("RuleTimes", "rule_id"),
                 parse_time=_atd_read_float(x["parse_time"])
@@ -380,7 +401,7 @@ class RuleTimes:
 
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
-        res["rule_id"] = _atd_write_string(self.rule_id)
+        res["rule_id"] = (lambda x: x.to_json())(self.rule_id)
         res["parse_time"] = _atd_write_float(self.parse_time)
         res["match_time"] = _atd_write_float(self.match_time)
         return res
@@ -438,7 +459,7 @@ class Time:
     """Original type: time = { ... }"""
 
     targets: List[TargetTime]
-    rules: List[str]
+    rules: List[RuleId]
     rules_parse_time: Optional[float] = None
 
     @classmethod
@@ -448,7 +469,7 @@ class Time:
                 targets=_atd_read_list(TargetTime.from_json)(x["targets"])
                 if "targets" in x
                 else _atd_missing_json_field("Time", "targets"),
-                rules=_atd_read_list(_atd_read_string)(x["rules"])
+                rules=_atd_read_list(RuleId.from_json)(x["rules"])
                 if "rules" in x
                 else _atd_missing_json_field("Time", "rules"),
                 rules_parse_time=_atd_read_float(x["rules_parse_time"])
@@ -461,7 +482,7 @@ class Time:
     def to_json(self) -> Any:
         res: Dict[str, Any] = {}
         res["targets"] = _atd_write_list(lambda x: x.to_json())(self.targets)
-        res["rules"] = _atd_write_list(_atd_write_string)(self.rules)
+        res["rules"] = _atd_write_list(lambda x: x.to_json())(self.rules)
         if self.rules_parse_time is not None:
             res["rules_parse_time"] = _atd_write_float(self.rules_parse_time)
         return res
@@ -754,27 +775,6 @@ class SkipReason:
 
     @classmethod
     def from_json_string(cls, x: str) -> "SkipReason":
-        return cls.from_json(json.loads(x))
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass(frozen=True)
-class RuleId:
-    """Original type: rule_id"""
-
-    value: str
-
-    @classmethod
-    def from_json(cls, x: Any) -> "RuleId":
-        return cls(_atd_read_string(x))
-
-    def to_json(self) -> Any:
-        return _atd_write_string(self.value)
-
-    @classmethod
-    def from_json_string(cls, x: str) -> "RuleId":
         return cls.from_json(json.loads(x))
 
     def to_json_string(self, **kw: Any) -> str:

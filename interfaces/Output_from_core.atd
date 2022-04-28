@@ -48,6 +48,7 @@ type match_results
   (* skipped_rules was introduced  in semgrep 0.86 *)
   ?skipped_rules: skipped_rule list option;
   stats: stats;
+  (* TODO: rename timing? *)
   ?time: time option;
 }
 
@@ -147,6 +148,7 @@ type unique_id_type
 type error
   <python decorator="dataclass(frozen=True)"> = {
   ?rule_id: rule_id option;
+  (* TODO: use a variant. Define Semgrep_error_code.error_kind here *)
   error_type: string;
   severity: severity;
   location: location;
@@ -218,7 +220,7 @@ type time
 
   (* List of rules received by core *)
   (* Needs to be separate to include rules read but not run on any target *)
-  rules: string list;
+  rules: rule_id list;
   ?rules_parse_time: float option; (* not used in spacegrep *)
 }
 
@@ -235,7 +237,7 @@ type target_time
 
 type rule_times
   <python decorator="dataclass(frozen=True)"> = {
-  rule_id: string;
+  rule_id: rule_id;
 
   parse_time: float;
 

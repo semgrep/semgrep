@@ -18,6 +18,7 @@ module G = AST_generic
 module F = IL
 module D = Dataflow_core
 module VarMap = Dataflow_core.VarMap
+module LV = IL_lvalue_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -461,7 +462,7 @@ let transfer :
         | ___else___ -> (
             (* In any other case, assume non-constant.
              * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
-            let lvar_opt = IL.lvar_of_instr_opt instr in
+            let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
             | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp'))
@@ -537,7 +538,7 @@ let update_svalue (flow : F.cfg) mapping =
          let node = flow.graph#nodes#assoc ni in
 
          (* Update RHS svalue according to the input env. *)
-         rlvals_of_node node.n
+         LV.rlvals_of_node node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
                   match
