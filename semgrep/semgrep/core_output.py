@@ -42,7 +42,7 @@ class CoreMatch:
     Encapsulates finding returned by semgrep-core
     """
 
-    rule: Rule
+    rule: core.RuleId
     path: Path
     start: core.Position
     end: core.Position
@@ -50,8 +50,8 @@ class CoreMatch:
     metavars: Dict[str, MetavarValue]
 
     @classmethod
-    def make(cls, rule_table: Dict[str, Rule], match: core.Match) -> "CoreMatch":
-        rule = rule_table[match.rule_id.value]
+    def make(cls, match: core.Match) -> "CoreMatch":
+        rule = match.rule_id
         path = Path(match.location.path)
         start = match.location.start
         end = match.location.end
@@ -134,62 +134,6 @@ class CoreError:
         )
 
 
-@frozen
-class CoreRuleTiming:  # For a given target
-    rule: Rule
-    parse_time: float
-    match_time: float
-
-    @classmethod
-    def make(
-        cls, rule_table: Dict[str, Rule], rule_time: core.RuleTimes
-    ) -> "CoreRuleTiming":
-        rule = rule_table[rule_time.rule_id.value]
-        parse_time = rule_time.parse_time
-        match_time = rule_time.match_time
-        return cls(rule, parse_time, match_time)
-
-
-@frozen
-class CoreTargetTiming:
-    target: Path
-    per_rule_timings: List[CoreRuleTiming]
-    run_time: float
-
-    @classmethod
-    def make(
-        cls, rule_table: Dict[str, Rule], target_time: core.TargetTime
-    ) -> "CoreTargetTiming":
-        target = Path(target_time.path)
-        per_rule_timings = [
-            CoreRuleTiming.make(rule_table, rule_time)
-            for rule_time in target_time.rule_times
-        ]
-        run_time = target_time.run_time
-        return cls(target, per_rule_timings, run_time)
-
-
-@frozen
-class CoreTiming:
-    rules: List[Rule]
-    target_timings: List[CoreTargetTiming]
-    rules_parse_time: float
-
-    @classmethod
-    def make(
-        cls, rule_table: Dict[str, Rule], time: Optional[core.Time]
-    ) -> "CoreTiming":
-        if not time:
-            return cls([], [], 0.0)
-
-        rules = [rule_table[rule] for rule in time.rules]
-        target_timings = [
-            CoreTargetTiming.make(rule_table, target) for target in time.targets
-        ]
-        rules_parse_time = time.rules_parse_time if time.rules_parse_time else 0.0
-        return cls(rules, target_timings, rules_parse_time)
-
-
 @define
 class CoreOutput:
     """
@@ -199,18 +143,15 @@ class CoreOutput:
     matches: List[CoreMatch]
     errors: List[CoreError]
     skipped: List[core.SkippedTarget]
-    timing: CoreTiming
+    timing: Optional[core.Time]
 
     @classmethod
     def parse(cls, rules: List[Rule], raw_json: JsonObject) -> "CoreOutput":
-        rule_table = {rule.id: rule for rule in rules}
 
         match_results = core.MatchResults.from_json(raw_json)
 
         parsed_errors = [CoreError.make(error) for error in match_results.errors]
-        parsed_matches = [
-            CoreMatch.make(rule_table, match) for match in match_results.matches
-        ]
+        parsed_matches = [CoreMatch.make(match) for match in match_results.matches]
         for skip in match_results.skipped_targets:
             if skip.rule_id:
                 rule_info = f"rule {skip.rule_id}"
@@ -220,10 +161,10 @@ class CoreOutput:
                 f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
             )
 
-        parsed_skipped = match_results.skipped_targets
-        parsed_timings = CoreTiming.make(rule_table, match_results.time)
+        skipped = match_results.skipped_targets
+        timings = match_results.time
 
-        return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
+        return cls(parsed_matches, parsed_errors, skipped, timings)
 
     def rule_matches(self, rules: List[Rule]) -> Dict[Rule, List[RuleMatch]]:
         """
@@ -232,6 +173,7 @@ class CoreOutput:
 
         For now assumes that all matches encapsulated by this object are from the same rulee
         """
+        rule_table = {rule.id: rule for rule in rules}
 
         def interpolate(text: str, metavariables: Dict[str, str]) -> str:
             """Interpolates a string with the metavariables contained in it, returning a new string"""
@@ -259,13 +201,13 @@ class CoreOutput:
             return result
 
         def convert_to_rule_match(match: CoreMatch) -> RuleMatch:
-            rule = match.rule
+            rule = rule_table[match.rule.value]
             metavariables = read_metavariables(match)
             message = interpolate(rule.message, metavariables)
             fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
             return RuleMatch(
-                rule._id,
+                match.rule.value,
                 message=message,
                 metadata=rule.metadata,
                 severity=rule.severity,
@@ -277,14 +219,16 @@ class CoreOutput:
                 extra=match.extra,
             )
 
+        # TODO: Dict[core.RuleId, RuleMatchSet]
         findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
         seen_cli_unique_keys: Set[Tuple] = set()
         for match in self.matches:
+            rule = rule_table[match.rule.value]
             rule_match = convert_to_rule_match(match)
             if rule_match.cli_unique_key in seen_cli_unique_keys:
                 continue
             seen_cli_unique_keys.add(rule_match.cli_unique_key)
-            findings[match.rule].add(rule_match)
+            findings[rule].add(rule_match)
 
         # Sort results so as to guarantee the same results across different
         # runs. Results may arrive in a different order due to parallelism

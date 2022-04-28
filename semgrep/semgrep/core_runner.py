@@ -29,7 +29,6 @@ from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
 from semgrep.core_output import CoreOutput
-from semgrep.core_output import CoreTiming
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -465,21 +464,19 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: CoreTiming,
+        timing: core.Time,
     ) -> None:
-        rules = timing.rules
-        ruleids = [r.id2 for r in rules]
-        targets = [t.target for t in timing.target_timings]
+        targets = [Path(t.path) for t in timing.targets]
 
-        profiling_data.init_empty(ruleids, targets)
-        profiling_data.set_rules_parse_time(timing.rules_parse_time)
+        profiling_data.init_empty(timing.rules, targets)
+        if timing.rules_parse_time:
+            profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
-        for t in timing.target_timings:
+        for t in timing.targets:
             rule_timings = {
-                rt.rule.id2: Times(rt.parse_time, rt.match_time)
-                for rt in t.per_rule_timings
+                rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
             }
-            profiling_data.set_file_times(t.target, rule_timings, t.run_time)
+            profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
 
     def get_files_for_language(
         self, language: Language, rule: Rule, target_manager: TargetManager
@@ -657,7 +654,7 @@ class CoreRunner:
             )
             core_output = CoreOutput.parse(rules, output_json)
 
-            if "time" in output_json:
+            if ("time" in output_json) and core_output.timing:
                 self._add_match_times(profiling_data, core_output.timing)
 
             # end with tempfile.NamedTemporaryFile(...) ...
