@@ -979,7 +979,6 @@ class Location:
     path: str
     start: Position
     end: Position
-    lines: List[str]
 
     @classmethod
     def from_json(cls, x: Any) -> "Location":
@@ -994,9 +993,6 @@ class Location:
                 end=Position.from_json(x["end"])
                 if "end" in x
                 else _atd_missing_json_field("Location", "end"),
-                lines=_atd_read_list(_atd_read_string)(x["lines"])
-                if "lines" in x
-                else _atd_missing_json_field("Location", "lines"),
             )
         else:
             _atd_bad_json("Location", x)
@@ -1006,7 +1002,6 @@ class Location:
         res["path"] = _atd_write_string(self.path)
         res["start"] = (lambda x: x.to_json())(self.start)
         res["end"] = (lambda x: x.to_json())(self.end)
-        res["lines"] = _atd_write_list(_atd_write_string)(self.lines)
         return res
 
     @classmethod
