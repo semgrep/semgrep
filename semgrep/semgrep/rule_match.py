@@ -47,9 +47,7 @@ class RuleMatch:
     message: str = field(repr=False)
     severity: RuleSeverity
 
-    path: Path = field(repr=str)
-    start: core.Position
-    end: core.Position
+    location: core.Location
 
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
@@ -73,6 +71,18 @@ class RuleMatch:
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
 
+    @property
+    def path(self) -> Path:
+        return Path(self.location.path)
+
+    @property
+    def start(self) -> core.Position:
+        return self.location.start
+
+    @property
+    def end(self) -> core.Position:
+        return self.location.end
+
     @lines.default
     def get_lines(self) -> List[str]:
         """
@@ -85,15 +95,15 @@ class RuleMatch:
         """
         # Start and end line are one-indexed, but the subsequent slice call is
         # inclusive for start and exclusive for end, so only subtract from start
-        start_line = self.start.line - 1
-        end_line = self.end.line
+        start_line = self.location.start.line - 1
+        end_line = self.location.end.line
 
         if start_line == -1 and end_line == 0:
             # Completely empty file
             return []
 
         # buffering=1 turns on line-level reads
-        with self.path.open(buffering=1, errors="replace") as fd:
+        with Path(self.location.path).open(buffering=1, errors="replace") as fd:
             result = list(itertools.islice(fd, start_line, end_line))
 
         return result
@@ -108,15 +118,15 @@ class RuleMatch:
         IT feels like a lot of duplication. Feel free to improve.
         """
         # see comments in '_get_lines' method
-        start_line = self.start.line - 2
+        start_line = self.location.start.line - 2
         end_line = start_line + 1
-        is_empty_file = self.end.line <= 0
+        is_empty_file = self.location.end.line <= 0
 
         if start_line < 0 or is_empty_file:
             # no previous line
             return ""
 
-        with self.path.open(buffering=1, errors="replace") as fd:
+        with Path(self.location.path).open(buffering=1, errors="replace") as fd:
             res = list(itertools.islice(fd, start_line, end_line))
 
         if res:
@@ -154,9 +164,9 @@ class RuleMatch:
         """
         return (
             self.rule_id,
-            str(self.path),
-            self.start.offset,
-            self.end.offset,
+            str(self.location.path),
+            self.location.start.offset,
+            self.location.end.offset,
             self.message,
         )
 
@@ -180,9 +190,9 @@ class RuleMatch:
         This key was originally implemented in and ported from semgrep-agent.
         """
         try:
-            path = self.path.relative_to(Path.cwd())
+            path = Path(self.location.path).relative_to(Path.cwd())
         except ValueError:
-            path = self.path
+            path = Path(self.location.path)
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
     @ordering_key.default
@@ -196,7 +206,13 @@ class RuleMatch:
         The message field is included to ensure a consistent ordering
         when two findings match with different metavariables on the same code.
         """
-        return (self.path, self.start, self.end, self.rule_id, self.message)
+        return (
+            self.location.path,
+            self.location.start,
+            self.location.end,
+            self.rule_id,
+            self.message,
+        )
 
     @syntactic_id.default
     def get_syntactic_id(self) -> str:
@@ -243,11 +259,11 @@ class RuleMatch:
 
         ret = {
             "check_id": self.rule_id,
-            "path": str(self.path),
-            "line": self.start.line,
-            "column": self.start.col,
-            "end_line": self.end.line,
-            "end_column": self.end.col,
+            "path": str(self.location.path),
+            "line": self.location.start.line,
+            "column": self.location.start.col,
+            "end_line": self.location.end.line,
+            "end_column": self.location.end.col,
             "message": self.message,
             "severity": app_severity,
             "index": self.index,

@@ -24,9 +24,11 @@ def test_rule_match_attributes():
             rule_id="long.rule.id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("relative/path/to/foo.py"),
-            start=core.Position(3, 1, 24),
-            end=core.Position(3, 15, 38),
+            location=core.Location(
+                path="relative/path/to/foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
+            ),
         )
     assert match.lines == ["    5 == 5 # nosem\n"], "wrong line was read from file"
     assert (
@@ -55,17 +57,21 @@ def test_rule_match_sorting():
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(3, 1, 24),
-            end=core.Position(3, 15, 38),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
+            ),
         )
         line4 = RuleMatch(
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(4, 1, 36),
-            end=core.Position(4, 15, 50),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(4, 1, 36),
+                end=core.Position(4, 15, 50),
+            ),
         )
     # fmt: off
     assert (
@@ -88,9 +94,11 @@ def test_rule_match_hashing():
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(3, 1, 24),
-            end=core.Position(3, 15, 38),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
+            ),
         )
     assert {match, match} == {match}, "matches must deduplicate when added to a set"
 
@@ -111,9 +119,11 @@ def test_rule_match_is_nosemgrep_agnostic():
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(3, 1, 28),
-            end=core.Position(5, 2, 48),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 28),
+                end=core.Position(5, 2, 48),
+            ),
         )
     file_content = dedent(
         """
@@ -129,9 +139,11 @@ def test_rule_match_is_nosemgrep_agnostic():
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(3, 1, 28),
-            end=core.Position(5, 2, 72),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 28),
+                end=core.Position(5, 2, 72),
+            ),
         )
     file_content = dedent(
         """
@@ -148,9 +160,11 @@ def test_rule_match_is_nosemgrep_agnostic():
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(4, 1, 55),
-            end=core.Position(6, 2, 75),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(4, 1, 55),
+                end=core.Position(6, 2, 75),
+            ),
         )
     assert (
         match_1.ci_unique_key == match_2.ci_unique_key
@@ -177,33 +191,41 @@ def test_rule_match_set_indexes():
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(3, 1, 24),
-            end=core.Position(3, 15, 38),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
+            ),
         )
         line4 = RuleMatch(
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(4, 1, 36),
-            end=core.Position(4, 15, 50),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(4, 1, 36),
+                end=core.Position(4, 15, 50),
+            ),
         )
         line5 = RuleMatch(
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(5, 1, 48),
-            end=core.Position(5, 15, 62),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(5, 1, 48),
+                end=core.Position(5, 15, 62),
+            ),
         )
         line6 = RuleMatch(
             rule_id="rule_id",
             message="message",
             severity=RuleSeverity.ERROR,
-            path=Path("foo.py"),
-            start=core.Position(6, 1, 60),
-            end=core.Position(6, 15, 74),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(6, 1, 60),
+                end=core.Position(6, 15, 74),
+            ),
         )
         matches = RuleMatchSet()
         matches.update(
