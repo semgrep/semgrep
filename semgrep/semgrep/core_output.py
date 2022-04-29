@@ -6,7 +6,6 @@ The precise type of the response from semgrep-core is specified in
 https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
 from dataclasses import replace
-from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -110,16 +109,13 @@ def core_matches_to_rule_matches(
         fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
         return RuleMatch(
-            match.rule_id.value,
+            match=match,
+            extra=match.extra.to_json(),
             message=message,
             metadata=rule.metadata,
             severity=rule.severity,
             fix=fix,
             fix_regex=rule.fix_regex,
-            path=Path(match.location.path),
-            start=match.location.start,
-            end=match.location.end,
-            extra=match.extra.to_json(),
         )
 
     # TODO: Dict[core.RuleId, RuleMatchSet]
