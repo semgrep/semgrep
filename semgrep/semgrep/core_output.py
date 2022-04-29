@@ -5,6 +5,7 @@ json output into a typed object
 The precise type of the response from semgrep-core is specified in
 https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -50,16 +51,7 @@ def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
         code = 2
 
     return SemgrepCoreError(
-        code,
-        level,
-        err.error_type,
-        reported_rule_id,
-        Path(err.location.path),
-        err.location.start,
-        err.location.end,
-        err.message,
-        spans,
-        err.details,
+        code, level, reported_rule_id, spans, replace(err, rule_id=reported_rule_id)
     )
 
 

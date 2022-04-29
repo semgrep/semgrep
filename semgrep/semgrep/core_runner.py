@@ -106,6 +106,8 @@ def setrlimits_preexec_fn() -> None:
     logger.info("Failed to change stack limits")
 
 
+# This is used only to dedup errors from validate_configs(). For dedupping errors
+# from _invoke_semgrep(), see output.py and the management of self.error_set
 def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
     return list({uniq_error_id(e): e for e in errors}.values())
 
@@ -113,7 +115,13 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 def uniq_error_id(
     error: SemgrepCoreError,
 ) -> Tuple[int, Path, core.Position, core.Position, str]:
-    return (error.code, error.path, error.start, error.end, error.message)
+    return (
+        error.code,
+        Path(error.core.location.path),
+        error.core.location.start,
+        error.core.location.end,
+        error.core.message,
+    )
 
 
 class StreamingSemgrepCore:

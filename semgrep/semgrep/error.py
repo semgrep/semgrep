@@ -1,5 +1,6 @@
 import inspect
 import sys
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,9 @@ from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
 from semgrep.util import with_color
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
@@ -93,30 +97,25 @@ class LegacySpan:
     config_path: Tuple[str]
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
-    error_type: str
     rule_id: Optional[core.RuleId]
-    path: Path
-    start: core.Position
-    end: core.Position
-    message: str
     spans: Optional[Tuple[LegacySpan, ...]]
-    details: Optional[str]
+    core: core.Error
 
     def to_dict_base(self) -> Dict[str, Any]:
-        base: Dict[str, Any] = {"type": self.error_type, "message": str(self)}
+        base: Dict[str, Any] = {"type": self.core.error_type, "message": str(self)}
         if self.rule_id:
             base["rule_id"] = self.rule_id.value
 
         # For rule errors path is a temp file so for now will just be confusing to add
         if (
-            self.error_type != "Rule parse error"
-            and self.error_type != "Pattern parse error"
+            self.core.error_type != "Rule parse error"
+            and self.core.error_type != "Pattern parse error"
         ):
-            base["path"] = str(self.path)
+            base["path"] = str(self.core.location.path)
 
         if self.spans:
             base["spans"] = tuple(attr.asdict(s) for s in self.spans)
@@ -127,10 +126,10 @@ class SemgrepCoreError(SemgrepError):
         """
         Return if this error is a match timeout
         """
-        return self.error_type == "Timeout"
+        return self.core.error_type == "Timeout"
 
     def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self.error_type}"
+        return f"{type(self).__name__}: {self.core.error_type}"
 
     @property
     def _error_message(self) -> str:
@@ -140,24 +139,28 @@ class SemgrepCoreError(SemgrepError):
         if self.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
             if (
-                self.error_type == "Rule parse error"
-                or self.error_type == "Pattern parse error"
+                self.core.error_type == "Rule parse error"
+                or self.core.error_type == "Pattern parse error"
             ):
                 error_context = f"in rule {self.rule_id.value}"
             else:
-                error_context = f"when running {self.rule_id.value} on {self.path}"
+                error_context = (
+                    f"when running {self.rule_id.value} on {self.core.location.path}"
+                )
         else:
-            error_context = f"at line {self.path}:{self.start.line}"
+            error_context = (
+                f"at line {self.core.location.path}:{self.core.location.start.line}"
+            )
 
-        return f"{self.error_type} {error_context}:\n {self.message}"
+        return f"{self.core.error_type} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:
         """
         Returns stack trace if error_type is Fatal error else returns empty strings
         """
-        if self.error_type == "Fatal error":
-            error_trace = self.details or "<no stack trace returned>"
+        if self.core.error_type == "Fatal error":
+            error_trace = self.core.details or "<no stack trace returned>"
             return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
             return ""
@@ -172,6 +175,25 @@ class SemgrepCoreError(SemgrepError):
         )
 
         return f"{level_tag} " + self._error_message + self._stack_trace
+
+    # TODO: I didn't manage to get core.Error to be hashable because it contains lists or
+    # objects (e.g., Error_) which are not hashable
+    def __hash__(self) -> int:
+        x = hash(
+            (
+                self.code,
+                self.level,
+                self.rule_id,
+                self.core.error_type,
+                self.core.location.path,
+                self.core.location.start,
+                self.core.location.end,
+                self.core.message,
+                self.core.details,
+            )
+        )
+        # logger.info(f"HASH for {self} = {x}")
+        return x
 
 
 class SemgrepInternalError(Exception):
