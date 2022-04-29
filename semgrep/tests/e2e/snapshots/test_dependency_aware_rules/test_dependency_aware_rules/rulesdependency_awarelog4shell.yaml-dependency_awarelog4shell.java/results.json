@@ -46,6 +46,19 @@
               "line": 33,
               "offset": 1035
             },
+            "propagated_value": {
+              "svalue_abstract_content": "req.getParameter(\"uname\")",
+              "svalue_end": {
+                "col": 52,
+                "line": 19,
+                "offset": 562
+              },
+              "svalue_start": {
+                "col": 27,
+                "line": 19,
+                "offset": 537
+              }
+            },
             "start": {
               "col": 26,
               "line": 33,
@@ -62,6 +75,19 @@
               "col": 19,
               "line": 33,
               "offset": 1020
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "LogManager.getLogger(com.example.log4shell.log4j.class)",
+              "svalue_end": {
+                "col": 84,
+                "line": 32,
+                "offset": 1000
+              },
+              "svalue_start": {
+                "col": 29,
+                "line": 32,
+                "offset": 945
+              }
             },
             "start": {
               "col": 13,

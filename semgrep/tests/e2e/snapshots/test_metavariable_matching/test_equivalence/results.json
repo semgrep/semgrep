@@ -38,6 +38,19 @@
               "line": 4,
               "offset": 95
             },
+            "propagated_value": {
+              "svalue_abstract_content": "request.get(\"unsafe\")",
+              "svalue_end": {
+                "col": 33,
+                "line": 3,
+                "offset": 81
+              },
+              "svalue_start": {
+                "col": 12,
+                "line": 3,
+                "offset": 60
+              }
+            },
             "start": {
               "col": 10,
               "line": 4,

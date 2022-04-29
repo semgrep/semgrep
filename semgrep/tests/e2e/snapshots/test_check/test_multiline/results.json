@@ -30,6 +30,19 @@
               "line": 7,
               "offset": 158
             },
+            "propagated_value": {
+              "svalue_abstract_content": "0",
+              "svalue_end": {
+                "col": 48,
+                "line": 1,
+                "offset": 47
+              },
+              "svalue_start": {
+                "col": 47,
+                "line": 1,
+                "offset": 46
+              }
+            },
             "start": {
               "col": 9,
               "line": 7,
