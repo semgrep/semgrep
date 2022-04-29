@@ -15,6 +15,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - YAML parsing is more tolerant of `{}` appearing when it expects a scalar,
   allowing extensions of YAML that use `{}` to be parsed (#4849)
+- Turn off optimization that trades off memory for performance because
+  the effect is minor (with current parameters)
 
 ### Fixed
 
