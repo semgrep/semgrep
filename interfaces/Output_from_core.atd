@@ -26,7 +26,6 @@ type location
   path: string (* source file *);
   start: position;
   end <ocaml name="end_">: position;
-  lines: string list;
 }
 
 type position

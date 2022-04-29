@@ -130,13 +130,7 @@ let match_to_match x =
     Left
       ({
          ST.rule_id = x.rule_id.id;
-         location =
-           {
-             path = x.file;
-             start = startp;
-             end_ = endp;
-             lines = [] (* ?? spacegrep? *);
-           };
+         location = { path = x.file; start = startp; end_ = endp };
          extra =
            {
              message = Some x.rule_id.message;
@@ -157,14 +151,6 @@ let match_to_match x =
       Right err
   [@@profiling]
 
-(* was in pfff/h_program-lang/R2c.ml becore *)
-let hcache = Hashtbl.create 101
-
-let lines_of_file (file : Common.filename) : string array =
-  Common.memoized hcache file (fun () ->
-      try Common.cat file |> Array.of_list with
-      | _ -> [| "EMPTY FILE" |])
-
 (* TODO: Semgrep_error_code should be defined in Output_from_core.atd
  * directly, so we don't need those conversions
  *)
@@ -174,9 +160,7 @@ let error_to_error err =
     | E.Warning -> SJ.Warning
   in
   let file = err.E.loc.PI.file in
-  let lines = lines_of_file file in
   let startp, endp = position_range err.E.loc err.E.loc in
-  let line = err.E.loc.PI.line in
   let rule_id = err.E.rule_id in
   let error_type = E.string_of_error_kind err.E.typ in
   let severity = severity_of_severity (E.severity_of_error err.E.typ) in
@@ -187,15 +171,7 @@ let error_to_error err =
     ST.error_type;
     rule_id;
     severity;
-    location =
-      {
-        path = file;
-        start = startp;
-        end_ = endp;
-        lines =
-          (try [ lines.(line - 1) ] with
-          | _ -> [ "NO LINE" ]);
-      };
+    location = { path = file; start = startp; end_ = endp };
     message;
     details;
     yaml_path;
