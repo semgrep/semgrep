@@ -21,7 +21,7 @@ def test_rule_match_attributes():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         match = RuleMatch(
-            rule_id="long.rule.id",
+            rule_id_=core.RuleId("long.rule.id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -54,7 +54,7 @@ def test_rule_match_sorting():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         line3 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -64,7 +64,7 @@ def test_rule_match_sorting():
             ),
         )
         line4 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -91,7 +91,7 @@ def test_rule_match_hashing():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         match = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -116,7 +116,7 @@ def test_rule_match_is_nosemgrep_agnostic():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         match_1 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -136,7 +136,7 @@ def test_rule_match_is_nosemgrep_agnostic():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         match_2 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -157,7 +157,7 @@ def test_rule_match_is_nosemgrep_agnostic():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         match_3 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -188,7 +188,7 @@ def test_rule_match_set_indexes():
     ).lstrip()
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         line3 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -198,7 +198,7 @@ def test_rule_match_set_indexes():
             ),
         )
         line4 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -208,7 +208,7 @@ def test_rule_match_set_indexes():
             ),
         )
         line5 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(
@@ -218,7 +218,7 @@ def test_rule_match_set_indexes():
             ),
         )
         line6 = RuleMatch(
-            rule_id="rule_id",
+            rule_id_=core.RuleId("rule_id"),
             message="message",
             severity=RuleSeverity.ERROR,
             location=core.Location(

@@ -43,11 +43,11 @@ class RuleMatch:
     TODO: Rename this class to Finding?
     """
 
-    rule_id: str  # TODO: core.RuleId
+    rule_id_: core.RuleId
+    location: core.Location
+
     message: str = field(repr=False)
     severity: RuleSeverity
-
-    location: core.Location
 
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
@@ -70,6 +70,10 @@ class RuleMatch:
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
+
+    @property
+    def rule_id(self) -> str:
+        return self.rule_id_.value
 
     @property
     def path(self) -> Path:

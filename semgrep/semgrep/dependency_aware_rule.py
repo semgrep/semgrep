@@ -109,12 +109,12 @@ def run_dependency_aware_rule(
             matches = matches_remaining
             if not reachable:
                 dependency_only_match = RuleMatch(
-                    rule_id=rule.id,
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
                     fix=None,
                     fix_regex=None,
+                    rule_id_=core.RuleId(rule.id),
                     location=core.Location(
                         path=str(lockfile_path),
                         start=core.Position(0, 0, 0),

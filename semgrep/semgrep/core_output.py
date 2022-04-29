@@ -109,14 +109,14 @@ def core_matches_to_rule_matches(
         fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
         return RuleMatch(
-            match.rule_id.value,
+            rule_id_=match.rule_id,
+            location=match.location,
+            extra=match.extra.to_json(),
             message=message,
             metadata=rule.metadata,
             severity=rule.severity,
             fix=fix,
             fix_regex=rule.fix_regex,
-            location=match.location,
-            extra=match.extra.to_json(),
         )
 
     # TODO: Dict[core.RuleId, RuleMatchSet]

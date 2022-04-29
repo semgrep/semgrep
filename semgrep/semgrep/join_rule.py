@@ -535,7 +535,7 @@ def run_join_rule(
 
     rule_matches = [
         RuleMatch(
-            rule_id=join_rule.get("id", match.get("check_id", "[empty]")),
+            rule_id_=join_rule.get("id", match.get("check_id", "[empty]")),
             message=join_rule.get(
                 "message", match.get("extra", {}).get("message", "[empty]")
             ),
