@@ -109,8 +109,7 @@ def core_matches_to_rule_matches(
         fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
         return RuleMatch(
-            rule_id_=match.rule_id,
-            location=match.location,
+            match=match,
             extra=match.extra.to_json(),
             message=message,
             metadata=rule.metadata,

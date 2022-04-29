@@ -114,11 +114,16 @@ def run_dependency_aware_rule(
                     severity=rule.severity,
                     fix=None,
                     fix_regex=None,
-                    rule_id_=core.RuleId(rule.id),
-                    location=core.Location(
-                        path=str(lockfile_path),
-                        start=core.Position(0, 0, 0),
-                        end=core.Position(0, 0, 0),
+                    match=core.Match(
+                        rule_id=core.RuleId(rule.id),
+                        location=core.Location(
+                            path=str(lockfile_path),
+                            start=core.Position(0, 0, 0),
+                            end=core.Position(0, 0, 0),
+                        ),
+                        # TODO: we need to define the fields below in
+                        # Output_from_core.atd so we can reuse core.MatchExtra
+                        extra=core.MatchExtra(metavars={}),
                     ),
                     extra={
                         "dependency_match_only": True,
