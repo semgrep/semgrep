@@ -220,6 +220,7 @@ def remove_matches_in_baseline(
 
 def main(
     *,
+    core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     deep: bool = False,
     output_handler: OutputHandler,
@@ -342,6 +343,7 @@ def main(
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
+        core_opts_str=core_opts_str,
     )
 
     logger.verbose("Rules:")
