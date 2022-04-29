@@ -535,7 +535,6 @@ def run_join_rule(
 
     rule_matches = [
         RuleMatch(
-            rule_id=join_rule.get("id", match.get("check_id", "[empty]")),
             message=join_rule.get(
                 "message", match.get("extra", {}).get("message", "[empty]")
             ),
@@ -547,9 +546,18 @@ def run_join_rule(
                     "severity", match.get("severity", RuleSeverity.INFO.value)
                 )
             ),
-            path=Path(match.get("path", "[empty]")),
-            start=core.Position.from_json(match["start"]),
-            end=core.Position.from_json(match["end"]),
+            match=core.Match(
+                rule_id=core.RuleId(
+                    join_rule.get("id", match.get("check_id", "[empty]"))
+                ),
+                location=core.Location(
+                    path=match.get("path", "[empty]"),
+                    start=core.Position.from_json(match["start"]),
+                    end=core.Position.from_json(match["end"]),
+                ),
+                # TODO? extra=core.MatchExtra.from_json(match.get("extra", {})),
+                extra=core.MatchExtra(metavars={}),
+            ),
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,

@@ -43,15 +43,14 @@ class RuleMatch:
     TODO: Rename this class to Finding?
     """
 
-    rule_id: str  # TODO: core.RuleId
+    match: core.Match
+
     message: str = field(repr=False)
     severity: RuleSeverity
 
-    path: Path = field(repr=str)
-    start: core.Position
-    end: core.Position
-
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
+    # TODO: redundant with core.extra but we do some monkey patching on
+    # this extra field which prevents to use directly core.extra (immutable)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
 
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
@@ -72,6 +71,22 @@ class RuleMatch:
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
+
+    @property
+    def rule_id(self) -> str:
+        return self.match.rule_id.value
+
+    @property
+    def path(self) -> Path:
+        return Path(self.match.location.path)
+
+    @property
+    def start(self) -> core.Position:
+        return self.match.location.start
+
+    @property
+    def end(self) -> core.Position:
+        return self.match.location.end
 
     @lines.default
     def get_lines(self) -> List[str]:
@@ -196,7 +211,13 @@ class RuleMatch:
         The message field is included to ensure a consistent ordering
         when two findings match with different metavariables on the same code.
         """
-        return (self.path, self.start, self.end, self.rule_id, self.message)
+        return (
+            self.path,
+            self.start,
+            self.end,
+            self.rule_id,
+            self.message,
+        )
 
     @syntactic_id.default
     def get_syntactic_id(self) -> str:
