@@ -102,6 +102,12 @@ let range_of_any_opt startp_of_match_range any =
       Some (startp, endp)
 
 let metavar_string_of_any any =
+  (* TODO: metavar_string_of_any is used in get_propagated_value
+      to get the string for propagated values. Not all propagated
+      values will have origintoks. For example, in
+          x = 1; y = x + 1; ...
+     we have y = 2 but there is no source location for 2.
+     Handle such cases *)
   any |> V.ii_of_any
   |> List.filter PI.is_origintok
   |> List.sort Parse_info.compare_pos
