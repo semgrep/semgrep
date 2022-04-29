@@ -330,6 +330,12 @@ _scan_options = [
             skipped. If set to 0 will not have limit. Defaults to 3.
         """,
     ),
+    optgroup.option(
+        "--core-opts",
+        hidden=True,
+        type=str,
+        help="Flags to pass semgrep-core when executing",
+    ),
     optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
@@ -616,6 +622,7 @@ def scan(
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
+    core_opts: Optional[str],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
     debugging_json: bool,
@@ -841,6 +848,7 @@ def scan(
                         max_memory=max_memory,
                         timeout_threshold=timeout_threshold,
                         optimizations=optimizations,
+                        core_opts_str=core_opts,
                     ).validate_configs(config)
 
                 config_errors = list(chain(config_errors, metacheck_errors))
@@ -869,6 +877,7 @@ def scan(
                     profiling_data,
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
+                    core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     deep=deep,
                     output_handler=output_handler,

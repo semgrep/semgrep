@@ -173,6 +173,7 @@ def ci(
     audit_on: Sequence[str],
     autofix: bool,
     baseline_commit: Optional[str],
+    core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
     dry_run: bool,
@@ -325,6 +326,7 @@ def ci(
                 profiling_data,
                 shown_severities,
             ) = semgrep.semgrep_main.main(
+                core_opts_str=core_opts,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,
