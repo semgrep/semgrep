@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Users can access the propagated value of a metavariable in the JSON output
+  in the extra field
 - Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 - Added vendor.name field in gitlab sast output (#5077)
 

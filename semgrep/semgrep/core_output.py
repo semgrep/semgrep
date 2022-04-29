@@ -97,6 +97,8 @@ def core_matches_to_rule_matches(
                 end_offset = metavariable_data.end.offset
                 length = end_offset - start_offset
 
+                # TODO Also save the propagated value
+
                 fd.seek(start_offset)
                 result[metavariable] = fd.read(length)
 

@@ -157,6 +157,19 @@
               "line": 79,
               "offset": 2981
             },
+            "propagated_value": {
+              "svalue_abstract_content": "self.model(email self.normalize_email(email))",
+              "svalue_end": {
+                "col": 61,
+                "line": 78,
+                "offset": 2968
+              },
+              "svalue_start": {
+                "col": 16,
+                "line": 78,
+                "offset": 2923
+              }
+            },
             "start": {
               "col": 9,
               "line": 79,
