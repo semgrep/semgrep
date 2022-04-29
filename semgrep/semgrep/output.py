@@ -204,10 +204,14 @@ class OutputHandler:
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
 
-                if not err.rule_id:
-                    timeout_errors[err.path].append("<unknown rule_id>")
+                if not err.core.rule_id:
+                    timeout_errors[Path(err.core.location.path)].append(
+                        "<unknown rule_id>"
+                    )
                 else:
-                    timeout_errors[err.path].append(err.rule_id.value)
+                    timeout_errors[Path(err.core.location.path)].append(
+                        err.core.rule_id.value
+                    )
             else:
                 self._handle_semgrep_error(err)
 
@@ -314,7 +318,7 @@ class OutputHandler:
                 for err in self.semgrep_structured_errors
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
-            paths = {err.path for err in semgrep_core_errors}
+            paths = {Path(err.core.location.path) for err in semgrep_core_errors}
             final_error = self.semgrep_structured_errors[-1]
             self.ignore_log.failed_to_analyze.update(paths)
 

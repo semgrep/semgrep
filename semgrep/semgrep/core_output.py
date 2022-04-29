@@ -5,6 +5,7 @@ json output into a typed object
 The precise type of the response from semgrep-core is specified in
 https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -26,7 +27,7 @@ logger = getLogger(__name__)
 
 
 def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
-    reported_rule_id = err.rule_id
+    final_rule_id = err.rule_id
 
     # Hackily convert the level string to Semgrep expectations
     level_str = err.severity.kind
@@ -45,22 +46,11 @@ def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
     if err.error_type == "Syntax error" or err.error_type == "Lexical error":
         code = 3
-        reported_rule_id = None  # Rule id not important for parse errors
+        final_rule_id = None  # Rule id not important for parse errors
     else:
         code = 2
 
-    return SemgrepCoreError(
-        code,
-        level,
-        err.error_type,
-        reported_rule_id,
-        Path(err.location.path),
-        err.location.start,
-        err.location.end,
-        err.message,
-        spans,
-        err.details,
-    )
+    return SemgrepCoreError(code, level, spans, replace(err, rule_id=final_rule_id))
 
 
 def parse_core_output(raw_json: JsonObject) -> core.MatchResults:
