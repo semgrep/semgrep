@@ -3,6 +3,7 @@ import collections
 import json
 import os
 import resource
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -347,12 +348,14 @@ class CoreRunner:
         max_memory: int,
         timeout_threshold: int,
         optimizations: str,
+        core_opts_str: Optional[str],
     ):
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._optimizations = optimizations
+        self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
         self,
@@ -588,6 +591,13 @@ class CoreRunner:
                 str(self._max_memory),
                 "-json_time",
             ]
+
+            if self._core_opts:
+                logger.info(
+                    f"Running with user defined core options: {self._core_opts}"
+                )
+                cmd.extend(self._core_opts)
+
             if self._optimizations != "none":
                 cmd.append("-fast")
 
@@ -638,6 +648,9 @@ class CoreRunner:
             stderr: Optional[int] = subprocess.PIPE
             if is_debug():
                 cmd += ["--debug"]
+
+            logger.debug("Running semgrep-core with command:")
+            logger.debug(" ".join(cmd))
 
             if dump_command_for_core:
                 print(" ".join(cmd))
