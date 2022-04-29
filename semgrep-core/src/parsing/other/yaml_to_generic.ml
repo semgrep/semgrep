@@ -324,6 +324,13 @@ let parse (env : env) : G.expr list =
       match first_node with
       | E.Scalar { anchor; tag; value; _ }, pos ->
           make_node scalar anchor (tag, pos, value) env
+      | E.Mapping_start _, start_pos ->
+          let _mappings, end_pos = read_mappings [] in
+          ( G.OtherExpr
+              ( ("Mapping", mk_tok start_pos "" env),
+                [ G.Str ("", mk_tok end_pos "" env) ] )
+            |> G.e,
+            end_pos )
       | v, pos -> error "Expected a valid scalar, got" v pos env
     in
     let value, pos2 = read_node () in

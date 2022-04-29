@@ -11,6 +11,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 - Added vendor.name field in gitlab sast output (#5077)
 
+### Changed
+
+- YAML parsing is more tolerant of `{}` appearing when it expects a scalar,
+  allowing extensions of YAML that use `{}` to be parsed (#4849)
+
 ### Fixed
 
 - Keep only latest run logs in last.log file (#5070)
