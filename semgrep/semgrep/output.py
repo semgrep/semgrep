@@ -204,13 +204,13 @@ class OutputHandler:
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
 
-                if not err.rule_id:
+                if not err.core.rule_id:
                     timeout_errors[Path(err.core.location.path)].append(
                         "<unknown rule_id>"
                     )
                 else:
                     timeout_errors[Path(err.core.location.path)].append(
-                        err.rule_id.value
+                        err.core.rule_id.value
                     )
             else:
                 self._handle_semgrep_error(err)

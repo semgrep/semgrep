@@ -101,14 +101,13 @@ class LegacySpan:
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
-    rule_id: Optional[core.RuleId]
     spans: Optional[Tuple[LegacySpan, ...]]
     core: core.Error
 
     def to_dict_base(self) -> Dict[str, Any]:
         base: Dict[str, Any] = {"type": self.core.error_type, "message": str(self)}
-        if self.rule_id:
-            base["rule_id"] = self.rule_id.value
+        if self.core.rule_id:
+            base["rule_id"] = self.core.rule_id.value
 
         # For rule errors path is a temp file so for now will just be confusing to add
         if (
@@ -136,17 +135,15 @@ class SemgrepCoreError(SemgrepError):
         """
         Generate error message exposed to user
         """
-        if self.rule_id:
+        if self.core.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
             if (
                 self.core.error_type == "Rule parse error"
                 or self.core.error_type == "Pattern parse error"
             ):
-                error_context = f"in rule {self.rule_id.value}"
+                error_context = f"in rule {self.core.rule_id.value}"
             else:
-                error_context = (
-                    f"when running {self.rule_id.value} on {self.core.location.path}"
-                )
+                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
         else:
             error_context = (
                 f"at line {self.core.location.path}:{self.core.location.start.line}"
@@ -179,11 +176,11 @@ class SemgrepCoreError(SemgrepError):
     # TODO: I didn't manage to get core.Error to be hashable because it contains lists or
     # objects (e.g., Error_) which are not hashable
     def __hash__(self) -> int:
-        x = hash(
+        return hash(
             (
                 self.code,
                 self.level,
-                self.rule_id,
+                self.core.rule_id,
                 self.core.error_type,
                 self.core.location.path,
                 self.core.location.start,
@@ -192,8 +189,6 @@ class SemgrepCoreError(SemgrepError):
                 self.core.details,
             )
         )
-        # logger.info(f"HASH for {self} = {x}")
-        return x
 
 
 class SemgrepInternalError(Exception):
