@@ -1,7 +1,12 @@
 open Common
 
 (*****************************************************************************)
-(* Semgrep Unit tests *)
+(* Purpose *)
+(*****************************************************************************)
+(* Unit tests exercising just the semgrep patterns part *)
+
+(*****************************************************************************)
+(* Simple tests defined inline *)
 (*****************************************************************************)
 (* TODO:
  *  - we could add unit tests for the range returned by match_sts_sts
