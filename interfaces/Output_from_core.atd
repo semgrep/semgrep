@@ -1,6 +1,8 @@
 (*
    Type definitions for semgrep-core's JSON output, meant for the
    python wrapper, 'semgrep'.
+   This file now contains also type definitions for semgrep's JSON output,
+   meant for the Semgrep playground and App backend.
 
    This file is translated into OCaml modules by atdgen:
    - Xxx_t: type definitions
@@ -21,13 +23,6 @@
 (* Location *)
 (*****************************************************************************)
 
-type location
-  <python decorator="dataclass(frozen=True)"> = {
-  path: string (* source file *);
-  start: position;
-  end <ocaml name="end_">: position;
-}
-
 type position
   <python decorator="dataclass(frozen=True, order=True)"> = {
   line: int; (* starts from 1 *)
@@ -35,21 +30,19 @@ type position
   offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
 
+(* a.k.a range *)
+type location
+  <python decorator="dataclass(frozen=True)"> = {
+  path: string (* source file *);
+  start: position;
+  end <ocaml name="end_">: position;
+}
+
 (*****************************************************************************)
-(* Match results *)
+(* Match result *)
 (*****************************************************************************)
 
-type match_results
-  <python decorator="dataclass(frozen=True)"> = {
-  matches: match_ list;
-  errors: error list;
-  skipped_targets <json name="skipped">: skipped_target list;
-  (* skipped_rules was introduced  in semgrep 0.86 *)
-  ?skipped_rules: skipped_rule list option;
-  stats: stats;
-  (* TODO: rename timing? *)
-  ?time: time option;
-}
+type rule_id <python decorator="dataclass(frozen=True)"> = string
 
 type match_
   <python decorator="dataclass(frozen=True)"> = {
@@ -57,8 +50,6 @@ type match_
   location: location;
   extra: match_extra;
 }
-
-type rule_id <python decorator="dataclass(frozen=True)"> = string
 
 type match_extra
   <python decorator="dataclass(frozen=True)"> = {
@@ -170,7 +161,6 @@ type stats
   errorfiles: int;
 }
 
-
 (*****************************************************************************)
 (* Skipping information *)
 (*****************************************************************************)
@@ -226,10 +216,8 @@ type time
 type target_time
   <python decorator="dataclass(frozen=True)"> = {
   path: string;
-
   (* parse and match time for each rule on target *)
   rule_times: rule_times list;
-
   (* run time for all rules on target *)
   run_time: float;
 }
@@ -237,15 +225,10 @@ type target_time
 type rule_times
   <python decorator="dataclass(frozen=True)"> = {
   rule_id: rule_id;
-
   parse_time: float;
-
   match_time: float;
 }
 
-(*****************************************************************************)
-(* TODO incremental findings *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
@@ -260,3 +243,23 @@ type cve_result
 
 type cve_results
   <python decorator="dataclass(frozen=True)"> = cve_result list
+
+(*****************************************************************************)
+(* Semgrep-core final output  *)
+(*****************************************************************************)
+
+type match_results
+  <python decorator="dataclass(frozen=True)"> = {
+  matches: match_ list;
+  errors: error list;
+  skipped_targets <json name="skipped">: skipped_target list;
+  (* skipped_rules was introduced  in semgrep 0.86 *)
+  ?skipped_rules: skipped_rule list option;
+  stats: stats;
+  (* TODO: rename timing? *)
+  ?time: time option;
+}
+
+(*****************************************************************************)
+(* Semgrep CLI final output  *)
+(*****************************************************************************)
