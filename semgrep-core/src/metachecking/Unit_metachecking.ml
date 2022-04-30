@@ -37,7 +37,7 @@ let metachecker_checks_tests =
     (let dir = Filename.concat tests_path "OTHER/errors" in
      let files = Common2.glob (spf "%s/*.yaml" dir) in
      files
-     |> List.map (fun file ->
+     |> Common.map (fun file ->
             ( Filename.basename file,
               fun () ->
                 E.g_errors := [];

@@ -23,7 +23,7 @@ let tests_path = "../../../tests"
 
 let parsing_tests_for_lang files lang =
   files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
              let { Parse_target.errors = errs; _ } =
@@ -31,11 +31,12 @@ let parsing_tests_for_lang files lang =
                  file
              in
              if errs <> [] then
-               failwith (String.concat ";" (List.map E.string_of_error errs)) ))
+               failwith (String.concat ";" (Common.map E.string_of_error errs))
+         ))
 
 let partial_parsing_tests_for_lang files lang =
   files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
              let { Parse_target.errors = errs; _ } =
@@ -101,7 +102,7 @@ let parsing_error_tests =
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" dir) in
      tests
-     |> List.map (fun file ->
+     |> Common.map (fun file ->
             ( Filename.basename file,
               fun () ->
                 try

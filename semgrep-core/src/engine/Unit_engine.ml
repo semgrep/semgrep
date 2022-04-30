@@ -155,7 +155,7 @@ let maturity_tests =
        in
        let features = Common2.minus_set features exns in
        features
-       |> List.map (fun base ->
+       |> Common.map (fun base ->
               ( base,
                 fun () ->
                   let path = Filename.concat dir (base ^ ext) in
@@ -232,7 +232,7 @@ let sgrep_file_of_target file =
 *)
 let regression_tests_for_lang ~with_caching files lang =
   files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
              let sgrep_file = sgrep_file_of_target file in
@@ -426,7 +426,7 @@ let filter_irrelevant_rules_tests =
             | _ -> true (* TODO include .test.yaml*))
      in
      target_files
-     |> List.map (fun target_file -> test_irrelevant_rule_file target_file))
+     |> Common.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
 (* Tainting tests *)
@@ -462,7 +462,7 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches =
     taint_rules
-    |> List.map (fun (rule, taint_spec) ->
+    |> Common.map (fun (rule, taint_spec) ->
            let equivs = [] in
            let xtarget =
              {
@@ -483,7 +483,7 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches
-    |> List.map (fun m ->
+    |> Common.map (fun m ->
            {
              rule_id = Some m.P.rule_id.id;
              E.typ = SemgrepMatchFound m.P.rule_id.id;
@@ -498,7 +498,7 @@ let tainting_test lang rules_file file =
 
 let tainting_tests_for_lang files lang =
   files
-  |> List.map (fun file ->
+  |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
              let rules_file =
