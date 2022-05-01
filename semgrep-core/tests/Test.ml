@@ -36,6 +36,7 @@ let any_gen_of_string str =
 
 let tests = List.flatten [
   Unit_parsing.tests;
+  Unit_reporting.tests;
 
   Unit_entropy.tests;
   Unit_ReDoS.tests;

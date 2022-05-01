@@ -263,3 +263,24 @@ type match_results
 (*****************************************************************************)
 (* Semgrep CLI final output  *)
 (*****************************************************************************)
+
+type json <ocaml module="Yojson.Safe" t="t"> = abstract
+
+(* TODO: try to make it as close to error as possible, use inherit *)
+type final_error = {
+  code: int;
+  (* TODO: use a variant *)
+  level: string;
+  message: string; (* contains error location *)
+  path: string;
+  (* TODO: use a variant *)
+  type_ <json name="type">: string;
+}
+
+type final_match = json
+
+type final_result = {
+    errors: final_error list;
+    paths: json;
+    results: final_match list;
+}
