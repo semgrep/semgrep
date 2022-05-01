@@ -69,7 +69,8 @@ let sort_extra (extra : match_extra) =
 
 let sort_match_list (matches : match_ list) : match_ list =
   let matches =
-    Common.map (fun x -> { x with extra = sort_extra x.extra }) matches
+    matches
+    |> Common.map (fun (x : match_) -> { x with extra = sort_extra x.extra })
   in
   List.stable_sort compare_match matches
 

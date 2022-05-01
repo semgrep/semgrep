@@ -261,12 +261,15 @@ type match_results
 }
 
 (*****************************************************************************)
-(* Semgrep CLI final output  *)
+(* Semgrep CLI final output *)
 (*****************************************************************************)
+(* Note that the generated code for those types is not yet used in output.py
+ * but at least those types serve as a spec.
+ *)
 
 type json <ocaml module="Yojson.Safe" t="t"> = abstract
 
-(* TODO: try to make it as close to error as possible, use inherit *)
+(* TODO: try to make it as close as possible to 'error' above *)
 type final_error = {
   code: int;
   (* TODO: use a variant *)
@@ -277,10 +280,37 @@ type final_error = {
   type_ <json name="type">: string;
 }
 
-type final_match = json
+(* TODO: try to make it as close as possible to 'match_extra' above *)
+type final_extra = {
+  inherit match_extra;
+  (* added by the CLI (see formatter/json.py) *)
+  fingerprint: string;
+  lines: string;
+  message: string;
+  metadata: json;
+  (* TODO: use a variant *)
+  severity: string;
+  ?fix: string option;
+  ?fix_regex: string option;
+  ?is_ignored: bool option;
+}
+
+(* TODO: try to make it as close as possible to 'match_' above *)
+type final_match = {
+  check_id: rule_id;
+  inherit location;
+  extra: final_extra;
+}
 
 type final_result = {
     errors: final_error list;
-    paths: json;
     results: final_match list;
+
+    (* TODO: see output.py
+       paths: (scanned:, ?skipped:, ?_comment:)
+       ?stats: (targets:, loc:, profiler:)
+       ?time: ()
+       (* only in TEXT *)
+       ?color_output, per_finding_max_lines_limit, per_line_max_chars_limit
+     *)
 }
