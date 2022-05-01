@@ -17,6 +17,7 @@ module Out = Output_from_core_j
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
+let e2e_path = "../../../../semgrep/tests/e2e/snapshots/"
 
 (*****************************************************************************)
 (* Semgrep-core output *)
@@ -48,11 +49,39 @@ let semgrep_cli_output =
       * semgrep -l py -e 'foo($X)' /tmp/dir1 where dir1 contained
       * a simple foo.py and bad.py files
       *)
-     let files = Common2.glob (spf "%s/*.json" dir) in
+     let files =
+       Common2.glob (spf "%s/*.json" dir)
+       @ (Common2.files_of_dir_or_files "json" [ e2e_path ]
+         |> Common.exclude (fun file ->
+                (* just toplevel 'scanned:' and 'skipped:', no match 'results:' *)
+                file =~ ".*test_semgrepignore_ignore_log_json_report"
+                (* empty JSON (because of timeout probably) *)
+                || file =~ ".*/test_spacegrep_timeout/"
+                (* weird JSON, results but not match results *)
+                || file =~ ".*/test_cli_test/"
+                (* missing offset *)
+                || file =~ ".*/test_max_target_bytes/"
+                || file =~ ".*/test_equivalence/"
+                (* missing offset and extra debug: field *)
+                || file =~ ".*/test_debugging_json/"
+                (* different API *)
+                || file =~ ".*/test_dump_ast/"
+                (* different JSON, for findings API *)
+                || file =~ ".*/test_ci/"
+                (* too long filename exn in alcotest, and no fingerprint *)
+                || file =~ ".*/test_join_rules/"
+                (* no fingerprint *)
+                || file =~ ".*/test_subshell_input"
+                || file =~ ".*/test_multi_subshell_input"
+                || file =~ ".*/test_stdin_input"
+                || file =~ ".*/test_file_not_relative_to_base_path/"
+                || false))
+     in
      files
      |> Common.map (fun file ->
             ( file,
               fun () ->
+                pr2 (spf "processing %s" file);
                 let s = Common.read_file file in
                 let _res = Out.final_result_of_string s in
                 () )))
