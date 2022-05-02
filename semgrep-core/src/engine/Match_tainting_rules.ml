@@ -98,9 +98,10 @@ let any_in_ranges rule any rwms =
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
   | None ->
-      logger#debug
-        "Cannot compute range, there are no real tokens in this AST: %s"
-        (G.show_any any);
+      if any <> G.Anys [] then
+        logger#info
+          "Cannot compute range, there are no real tokens in this AST: %s"
+          (G.show_any any);
       []
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
