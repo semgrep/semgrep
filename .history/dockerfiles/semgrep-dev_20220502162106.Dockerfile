@@ -20,8 +20,8 @@ FROM returntocorp/semgrep:develop
 RUN apk add --no-cache \
   bash \
   curl \
-  jq 
-  
+  jq \
+
 RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing \
   pre-commit
 # Let the user know how their container was built
