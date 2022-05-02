@@ -7,7 +7,6 @@ from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
-from typing import IO
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
@@ -166,12 +165,8 @@ class OutputHandler:
     def __init__(
         self,
         output_settings: OutputSettings,
-        stderr: IO = sys.stderr,
-        stdout: IO = sys.stdout,
     ):
         self.settings = output_settings
-        self.stderr = stderr
-        self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
         self.all_targets: Set[Path] = set()
@@ -329,7 +324,7 @@ class OutputHandler:
             else:
                 if output:
                     try:
-                        print(output, file=self.stdout)
+                        print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
@@ -418,7 +413,7 @@ class OutputHandler:
             extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
-                self.settings.output_destination is None and self.stdout.isatty(),
+                self.settings.output_destination is None and sys.stdout.isatty(),
             )
             extra[
                 "per_finding_max_lines_limit"
