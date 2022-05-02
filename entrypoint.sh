@@ -11,11 +11,11 @@ if [[ "$*" =~ "--config" || "$*" == "--help" || "$1" == "publish" || "$1" == "ci
   #    so we don't assume user meant to call semgrep in those cases.
   #
   # 2) if a known subcommand is used, we also assume the user meant to call semgrep.
-  echo "======= DEPRECATION WARNING ======="
-  echo "The returntocorp/semgrep Docker image's custom entrypoint will be removed by June 2022."
-  echo "Please update your command to explicitly call semgrep."
-  echo "Change from:  docker run returntocorp/semgrep $*"
-  echo "Change to:    docker run returntocorp/semgrep semgrep $*"
+  >&2 echo "======= DEPRECATION WARNING ======="
+  >&2 echo "The returntocorp/semgrep Docker image's custom entrypoint will be removed by June 2022."
+  >&2 echo "Please update your command to explicitly call semgrep."
+  >&2 echo "Change from:  docker run returntocorp/semgrep $*"
+  >&2 echo "Change to:    docker run returntocorp/semgrep semgrep $*"
   exec semgrep "$@"
 fi
 
