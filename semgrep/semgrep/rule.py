@@ -62,7 +62,7 @@ class Rule:
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):
             rule_languages.add(LANGUAGE.resolve("typescript"))
-            self._raw["languages"] = [str(l) for l in rule_languages]
+            self._raw["languages"] = sorted(str(l) for l in rule_languages)
 
         self._languages = sorted(rule_languages)
 
