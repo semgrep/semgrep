@@ -51,7 +51,7 @@ let semgrep_cli_output =
       *)
      let files =
        Common2.glob (spf "%s/*.json" dir)
-       @ (Common2.files_of_dir_or_files "json" [ e2e_path ]
+       @ (Common.files_of_dir_or_files_no_vcs_nofilter "json" [ e2e_path ]
          |> Common.exclude (fun file ->
                 (* just toplevel 'scanned:' and 'skipped:', no match 'results:' *)
                 file =~ ".*test_semgrepignore_ignore_log_json_report"
