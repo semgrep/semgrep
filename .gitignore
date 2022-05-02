@@ -173,4 +173,4 @@ perf/bench
 !perf/bench/dummy
 
 # Ignore .history
-# /.history/
+/.history/
