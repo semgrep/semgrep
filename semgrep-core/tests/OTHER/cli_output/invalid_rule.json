@@ -1,0 +1,41 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "Additional properties are not allowed ('pattern-not' was unexpected)",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "config_end": null,
+          "config_path": null,
+          "config_start": null,
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 1,
+            "line": 10
+          },
+          "file": "rules/invalid-rules/invalid-pattern-child.yaml",
+          "source_hash": "7c72c8bfb793db2ffae1865a64f5da5fc44cbad7307eecef6c4a75cb3362a044",
+          "start": {
+            "col": 9,
+            "line": 7
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": []
+}

@@ -1,0 +1,246 @@
+{
+  "matches": [
+    {
+      "rule_id": "-e/-f",
+      "location": {
+        "path": "tests/python/constprop_dataflow.py",
+        "start": {
+          "line": 4,
+          "col": 5,
+          "offset": 42
+        },
+        "end": {
+          "line": 4,
+          "col": 11,
+          "offset": 48
+        }
+      },
+      "extra": {
+        "message": "",
+        "metavars": {
+          "$X": {
+            "start": {
+              "line": 4,
+              "col": 9,
+              "offset": 46
+            },
+            "end": {
+              "line": 4,
+              "col": 10,
+              "offset": 47
+            },
+            "abstract_content": "x",
+            "propagated_value": {
+              "svalue_start": {
+                "line": 2,
+                "col": 9,
+                "offset": 21
+              },
+              "svalue_end": {
+                "line": 2,
+                "col": 12,
+                "offset": 24
+              },
+              "svalue_abstract_content": "\"x\""
+            },
+            "unique_id": {
+              "type": "id",
+              "sid": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "rule_id": "-e/-f",
+      "location": {
+        "path": "tests/python/constprop_dataflow.py",
+        "start": {
+          "line": 7,
+          "col": 5,
+          "offset": 78
+        },
+        "end": {
+          "line": 7,
+          "col": 11,
+          "offset": 84
+        }
+      },
+      "extra": {
+        "message": "",
+        "metavars": {
+          "$X": {
+            "start": {
+              "line": 7,
+              "col": 9,
+              "offset": 82
+            },
+            "end": {
+              "line": 7,
+              "col": 10,
+              "offset": 83
+            },
+            "abstract_content": "y",
+            "propagated_value": {
+              "svalue_start": {
+                "line": 5,
+                "col": 9,
+                "offset": 57
+              },
+              "svalue_end": {
+                "line": 5,
+                "col": 12,
+                "offset": 60
+              },
+              "svalue_abstract_content": "\"y\""
+            },
+            "unique_id": {
+              "type": "id",
+              "sid": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "rule_id": "-e/-f",
+      "location": {
+        "path": "tests/python/metavar_typed.py",
+        "start": {
+          "line": 4,
+          "col": 3,
+          "offset": 38
+        },
+        "end": {
+          "line": 4,
+          "col": 11,
+          "offset": 46
+        }
+      },
+      "extra": {
+        "message": "",
+        "metavars": {
+          "$X": {
+            "start": {
+              "line": 4,
+              "col": 7,
+              "offset": 42
+            },
+            "end": {
+              "line": 4,
+              "col": 10,
+              "offset": 45
+            },
+            "abstract_content": "1.0",
+            "unique_id": {
+              "type": "AST",
+              "md5sum": "95910070194b2a59c2f4defcc8d9e96b"
+            }
+          }
+        }
+      }
+    },
+    {
+      "rule_id": "-e/-f",
+      "location": {
+        "path": "tests/python/metavar_typed.py",
+        "start": {
+          "line": 5,
+          "col": 3,
+          "offset": 49
+        },
+        "end": {
+          "line": 5,
+          "col": 10,
+          "offset": 56
+        }
+      },
+      "extra": {
+        "message": "",
+        "metavars": {
+          "$X": {
+            "start": {
+              "line": 5,
+              "col": 7,
+              "offset": 53
+            },
+            "end": {
+              "line": 5,
+              "col": 9,
+              "offset": 55
+            },
+            "abstract_content": "\"\"",
+            "unique_id": {
+              "type": "AST",
+              "md5sum": "7fe950488534dee15f975d43cbe17c38"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "errors": [
+    {
+      "error_type": "Syntax error",
+      "severity": "warning",
+      "location": {
+        "path": "tests/OTHER/parsing_errors/foo.py",
+        "start": {
+          "line": 1,
+          "col": 4,
+          "offset": 3
+        },
+        "end": {
+          "line": 1,
+          "col": 7,
+          "offset": 6
+        }
+      },
+      "message": "` \n\n` was unexpected"
+    },
+    {
+      "error_type": "Lexical error",
+      "severity": "warning",
+      "location": {
+        "path": "tests/OTHER/parsing_errors/unbalanced_brace.py",
+        "start": {
+          "line": 4,
+          "col": 1,
+          "offset": 7
+        },
+        "end": {
+          "line": 4,
+          "col": 2,
+          "offset": 8
+        }
+      },
+      "message": "Lexer_python.top_mode: empty stack"
+    }
+  ],
+  "skipped": [
+    {
+      "path": "tests/OTHER/parsing_errors/err.ts",
+      "reason": "wrong_language",
+      "details": "target file doesn't look like language Python"
+    },
+    {
+      "path": "tests/OTHER/parsing_errors/foo.c",
+      "reason": "wrong_language",
+      "details": "target file doesn't look like language Python"
+    },
+    {
+      "path": "tests/python/ac_matching_dots.sgrep",
+      "reason": "wrong_language",
+      "details": "target file doesn't look like language Python"
+    },
+    {
+      "path": "tests/python/visitor_def.sgrep",
+      "reason": "wrong_language",
+      "details": "target file doesn't look like language Python"
+    }
+  ],
+  "stats": {
+    "okfiles": 158,
+    "errorfiles": 2
+  }
+}

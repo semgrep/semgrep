@@ -10,7 +10,7 @@ open Output_from_core_t
 
 let compare_position (a : position) b = Int.compare a.offset b.offset
 
-let compare_location (a : location) b =
+let compare_location (a : location) (b : location) =
   let c = String.compare a.path b.path in
   if c <> 0 then c
   else
@@ -69,7 +69,8 @@ let sort_extra (extra : match_extra) =
 
 let sort_match_list (matches : match_ list) : match_ list =
   let matches =
-    Common.map (fun x -> { x with extra = sort_extra x.extra }) matches
+    matches
+    |> Common.map (fun (x : match_) -> { x with extra = sort_extra x.extra })
   in
   List.stable_sort compare_match matches
 

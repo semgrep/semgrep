@@ -1,0 +1,14 @@
+{
+  "config_missing_tests": [],
+  "config_with_errors": [],
+  "results": {
+    "rules/cli_test/language/yaml_language.yaml": {
+      "checks": {
+        "yaml-language": {
+          "matches": "<masked in tests>",
+          "passed": true
+        }
+      }
+    }
+  }
+}
