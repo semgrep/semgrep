@@ -58,14 +58,8 @@ class AppSession(requests.Session):
     >>> from semgrep.app import app_session
     >>> app_session.get(url)
 
-    Disable custom user agent for a request:
-    >>> app_session.get(url, headers={"User-Agent": None}))
-
     Disable timeout for a request:
     >>> app_session.get(url, timeout=None)
-
-    Disable authentication for a request:
-    >>> app_session.get(url, headers={"Authorization": None})
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

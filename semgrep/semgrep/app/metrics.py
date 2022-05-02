@@ -10,6 +10,7 @@ from typing import Sequence
 from urllib.parse import urlparse
 
 import click
+import requests
 
 from semgrep.app import app_session
 from semgrep.profiling import ProfilingData
@@ -250,11 +251,10 @@ class MetricManager:
             return
 
         try:
-            r = app_session.post(
+            r = requests.post(
                 METRICS_ENDPOINT,
                 json=self.as_dict(),
-                # metrics ingestion shouldn't see auth tokens
-                headers={"Authorization": None},
+                headers={"User-Agent": app_session.user_agent},
                 timeout=2,
             )
             r.raise_for_status()
