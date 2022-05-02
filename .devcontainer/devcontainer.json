@@ -6,15 +6,7 @@
     // "workspaceFolder": "/semgrep",
 	"build": {
 		"dockerfile": "../dockerfiles/semgrep-dev.Dockerfile",
-		"context": "..",
-		// "args": { 
-		// 	// Update 'VARIANT' to pick a Python version: 3, 3.10, 3.9, 3.8, 3.7, 3.6
-		// 	// Append -bullseye or -buster to pin to an OS version.
-		// 	// Use -bullseye variants on local on arm64/Apple Silicon.
-		// 	"VARIANT": "3.10",
-		// 	// Options
-		// 	"NODE_VERSION": "none"
-		// }
+		"context": ".."
 	},
     "onCreateCommand": "pip uninstall -y semgrep && pip install --editable ${containerWorkspaceFolder}/semgrep" ],
     "updateContentCommand": "git submodule update --init --recursive",
@@ -40,7 +32,7 @@
 	"extensions": [
 		"ms-python.python",
 		"ms-python.vscode-pylance"
-	],
+	]
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
