@@ -36,15 +36,15 @@
  (deps    Config_semgrep.atd)
  (action  (run atdgen -t %{deps})))
 
-(rule
- (targets Output_from_core_j.ml Output_from_core_j.mli)
- (deps    Output_from_core.atd)
- (action  (run atdgen -j -j-std %{deps})))
-
-(rule
- (targets Output_from_core_t.ml Output_from_core_t.mli)
- (deps    Output_from_core.atd)
- (action  (run atdgen -t %{deps})))
+;(rule
+; (targets Output_from_core_j.ml Output_from_core_j.mli)
+; (deps    Output_from_core.atd)
+; (action  (run atdgen -j -j-std %{deps})))
+;
+;(rule
+; (targets Output_from_core_t.ml Output_from_core_t.mli)
+; (deps    Output_from_core.atd)
+; (action  (run atdgen -t %{deps})))
 
 (rule
  (targets Input_to_core_j.ml Input_to_core_j.mli)
