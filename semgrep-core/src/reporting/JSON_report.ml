@@ -175,7 +175,7 @@ let match_to_match x =
              metavars = x.env |> Common.map (metavars startp);
            };
        }
-        : ST.match_)
+        : ST.core_match)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
