@@ -1,3 +1,4 @@
+import dataclasses
 import pathlib
 import sys
 from collections import defaultdict
@@ -17,6 +18,7 @@ from typing import Type
 
 import requests
 
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.app import app_session
 from semgrep.app.metrics import metric_manager
 from semgrep.constants import Colors
@@ -84,18 +86,17 @@ def _build_time_target_json(
     target: Path,
     num_bytes: int,
     profiling_data: ProfilingData,
-) -> Dict[str, Any]:
-    target_json: Dict[str, Any] = {}
+) -> v1.CliTargetTimes:
     path_str = get_path_str(target)
-
-    target_json["path"] = path_str
-    target_json["num_bytes"] = num_bytes
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
-    target_json["parse_times"] = [timing.parse_time for timing in timings]
-    target_json["match_times"] = [timing.match_time for timing in timings]
-    target_json["run_time"] = profiling_data.get_file_run_time(target)
 
-    return target_json
+    return v1.CliTargetTimes(
+        path=path_str,
+        num_bytes=num_bytes,
+        parse_times=[timing.parse_time for timing in timings],
+        match_times=[timing.match_time for timing in timings],
+        run_time=profiling_data.get_file_run_time(target) or 0.0,
+    )
 
 
 # coupling: if you change the JSON schema below, you probably need to
@@ -107,7 +108,7 @@ def _build_time_json(
     targets: Set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
     profiler: Optional[ProfileManager],
-) -> Dict[str, Any]:
+) -> v1.CliTiming:
     """Convert match times to a json-ready format.
 
     Match times are obtained for each pair (rule, target) by running
@@ -116,19 +117,19 @@ def _build_time_json(
     the target file will become negligible once we run many rules on the
     same AST.
     """
-    time_info: Dict[str, Any] = {}
-    # this list of all rules names is given here so they don't have to be
-    # repeated for each target in the 'targets' field, saving space.
-    time_info["rules"] = [{"id": rule.id} for rule in rules]
-    time_info["rules_parse_time"] = profiling_data.get_rules_parse_time()
-    time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
-    time_info["targets"] = [
-        _build_time_target_json(rules, target, num_bytes, profiling_data)
-        for target, num_bytes in zip(targets, target_bytes)
-    ]
-    time_info["total_bytes"] = sum(n for n in target_bytes)
-    return time_info
+    return v1.CliTiming(
+        # this list of all rules names is given here so they don't have to be
+        # repeated for each target in the 'targets' field, saving space.
+        rules=[v1.RuleIdDict(id=v1.RuleId(rule.id)) for rule in rules],
+        rules_parse_time=profiling_data.get_rules_parse_time(),
+        profiling_times=profiler.dump_stats() if profiler else {},
+        targets=[
+            _build_time_target_json(rules, target, num_bytes, profiling_data)
+            for target, num_bytes in zip(targets, target_bytes)
+        ],
+        total_bytes=sum(n for n in target_bytes),
+    )
 
 
 # WARNING: this class is unofficially part of our external API. It can be passed
@@ -383,15 +384,18 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
+        # CliOutputExtra members
+        cli_paths = v1.CliPaths(
+            scanned=[str(path) for path in sorted(self.all_targets)],
+            _comment=None,
+            skipped=None,
+        )
+        cli_timing: Optional[v1.CliTiming] = None
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
-        # - But the JSON formatter uses it to store additional data to directly output
-        extra: Dict[str, Any] = {
-            "paths": {
-                "scanned": [str(path) for path in sorted(self.all_targets)],
-            }
-        }
+        # You should use CliOutputExtra for better type checking
+        extra: Dict[str, Any] = {}
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
@@ -399,18 +403,28 @@ class OutputHandler:
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
         if self.settings.output_time or self.settings.verbose_errors:
-            extra["time"] = _build_time_json(
+            cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
                 self.profiling_data,
                 self.profiler,
             )
         if self.settings.verbose_errors:
-            extra["paths"]["skipped"] = sorted(
+            # TODO: use CliSkippedTarget directly in ignore_log or in yield_json_objects at least
+            skipped = sorted(
                 self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
+            cli_paths = dataclasses.replace(
+                cli_paths,
+                skipped=[
+                    v1.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    for x in skipped
+                ],
+            )
         else:
-            extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
+            cli_paths = dataclasses.replace(
+                cli_paths, _comment="<add --verbose for a list of skipped paths>"
+            )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),
@@ -427,6 +441,7 @@ class OutputHandler:
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
+            v1.CliOutputExtra(paths=cli_paths, time=cli_timing),
             extra,
             self.severities,
         )
