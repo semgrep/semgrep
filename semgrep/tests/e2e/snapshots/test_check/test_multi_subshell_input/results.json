@@ -16,6 +16,7 @@
         "offset": 5
       },
       "extra": {
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "b + a",
         "message": "a",
@@ -23,6 +24,7 @@
         "metavars": {},
         "severity": "ERROR"
       },
+      "path": "/tmp/masked/path",
       "start": {
         "col": 5,
         "line": 1,
@@ -37,6 +39,7 @@
         "offset": 1
       },
       "extra": {
+        "fingerprint": "0x42",
         "is_ignored": false,
         "lines": "a",
         "message": "a",
@@ -44,6 +47,7 @@
         "metavars": {},
         "severity": "ERROR"
       },
+      "path": "/tmp/masked/path",
       "start": {
         "col": 1,
         "line": 1,
