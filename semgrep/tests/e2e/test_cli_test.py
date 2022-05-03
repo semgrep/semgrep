@@ -31,7 +31,7 @@ def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         _mask_floats(results),
-        "results.json",
+        "results.txt",
     )
 
 
@@ -47,7 +47,7 @@ def test_cli_test_time(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         _mask_floats(results),
-        "results.json",
+        "results.txt",
     )
 
 
@@ -90,7 +90,7 @@ def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         results,
-        "results.json",
+        "results.txt",
     )
 
 
@@ -119,7 +119,7 @@ def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
     )
     snapshot.assert_match(
         results,
-        "results.json",
+        "results.txt",
     )
 
 
@@ -135,5 +135,5 @@ def test_parse_errors(run_semgrep_in_tmp, snapshot):
     )
     snapshot.assert_match(
         errors,
-        "errors.json",
+        "errors.txt",
     )
