@@ -36,15 +36,15 @@
  (deps    Config_semgrep.atd)
  (action  (run atdgen -t %{deps})))
 
-(rule
- (targets Output_from_core_j.ml Output_from_core_j.mli)
- (deps    Output_from_core.atd)
- (action  (run atdgen -j -j-std %{deps})))
-
-(rule
- (targets Output_from_core_t.ml Output_from_core_t.mli)
- (deps    Output_from_core.atd)
- (action  (run atdgen -t %{deps})))
+;(rule
+; (targets Output_from_core_j.ml Output_from_core_j.mli)
+; (deps    Output_from_core.atd)
+; (action  (run atdgen -j -j-std %{deps})))
+;
+;(rule
+; (targets Output_from_core_t.ml Output_from_core_t.mli)
+; (deps    Output_from_core.atd)
+; (action  (run atdgen -t %{deps})))
 
 (rule
  (targets Input_to_core_j.ml Input_to_core_j.mli)
@@ -58,10 +58,10 @@
 
 ; this is just used in Unit_reporting.ml
 (rule
- (targets Semgrep_scan_output_j.ml Semgrep_scan_output_j.mli)
- (deps    Semgrep_scan_output.atd)
+ (targets Semgrep_scan_output_v1_j.ml Semgrep_scan_output_v1_j.mli)
+ (deps    Semgrep_scan_output_v1.atd)
  (action  (run atdgen -j -j-std %{deps})))
 (rule
- (targets Semgrep_scan_output_t.ml Semgrep_scan_output_t.mli)
- (deps    Semgrep_scan_output.atd)
+ (targets Semgrep_scan_output_v1_t.ml Semgrep_scan_output_v1_t.mli)
+ (deps    Semgrep_scan_output_v1.atd)
  (action  (run atdgen -t %{deps})))
