@@ -1,3 +1,4 @@
+import dataclasses
 import pathlib
 import sys
 from collections import defaultdict
@@ -383,16 +384,18 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
+        # CliOutputExtra members
+        cli_paths = v1.CliPaths(
+            scanned=[str(path) for path in sorted(self.all_targets)],
+            _comment=None,
+            skipped=None,
+        )
+        cli_timing: Optional[v1.CliTiming] = None
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
-        # - But the JSON formatter uses it to store additional data to directly output
-        extra: Dict[str, Any] = {
-            "paths": {
-                "scanned": [str(path) for path in sorted(self.all_targets)],
-            }
-        }
-        cli_paths: v1.CliPaths = v1.CliPaths(scanned=[], _comment=None, skipped=None)
+        # You should use CliOutputExtra for better type checking
+        extra: Dict[str, Any] = {}
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
@@ -400,18 +403,28 @@ class OutputHandler:
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
         if self.settings.output_time or self.settings.verbose_errors:
-            extra["time"] = _build_time_json(
+            cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
                 self.profiling_data,
                 self.profiler,
-            ).to_json()
+            )
         if self.settings.verbose_errors:
-            extra["paths"]["skipped"] = sorted(
+            # TODO: use CliSkippedTarget directly in ignore_log or in yield_json_objects at least
+            skipped = sorted(
                 self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
+            cli_paths = dataclasses.replace(
+                cli_paths,
+                skipped=[
+                    v1.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    for x in skipped
+                ],
+            )
         else:
-            extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
+            cli_paths = dataclasses.replace(
+                cli_paths, _comment="<add --verbose for a list of skipped paths>"
+            )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),
@@ -423,13 +436,12 @@ class OutputHandler:
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
 
-        cli_output_extra: v1.CliOutputExtra = v1.CliOutputExtra(paths=cli_paths)
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
-            cli_output_extra,
+            v1.CliOutputExtra(paths=cli_paths, time=cli_timing),
             extra,
             self.severities,
         )
