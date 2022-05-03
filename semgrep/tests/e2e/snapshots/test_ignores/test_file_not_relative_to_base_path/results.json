@@ -23,6 +23,7 @@
         "metavars": {},
         "severity": "ERROR"
       },
+      "path": "/tmp/masked/path",
       "start": {
         "col": 1,
         "line": 1,

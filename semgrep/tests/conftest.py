@@ -63,7 +63,7 @@ def _clean_output_json(output_json: str) -> str:
         for r in results:
             p = r.get("path")
             if p and "/tmp" in p:
-                del r["path"]
+                r["path"] = "/tmp/masked/path"
                 # the fingerprint contains the path too
                 r["extra"]["fingerprint"] = "0x42"
 
