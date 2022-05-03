@@ -168,6 +168,9 @@ let map_semicolon (env : env) (x : CST.semicolon) =
   | `Auto_semi tok -> (* automatic_semicolon *) token env tok
   | `SEMI tok -> (* ";" *) token env tok
 
+let map_empty_block (env : env) semi =
+  Ast_php.Block (Parse_info.fake_bracket semi [])
+
 let map_namespace_name_as_prefix (env : env) (x : CST.namespace_name_as_prefix)
     =
   match x with
@@ -944,7 +947,7 @@ and map_compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
   let v1 = (* "{" *) token env v1 in
   let v2 = Common.map (map_statement env) v2 in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  Ast_php.Block (v1, v2, v3)
 
 and map_const_declaration (env : env) (x : CST.const_declaration) =
   map_const_declaration_ env x
@@ -1380,7 +1383,7 @@ and map_method_declaration (env : env)
   let v4 =
     match v4 with
     | `Comp_stmt x -> map_compound_statement env x
-    | `Choice_auto_semi x -> map_semicolon env x
+    | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
   in
   todo env (v1, v2, v3, v4)
 
@@ -1546,7 +1549,7 @@ and map_sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression)
 
 and map_statement (env : env) (x : CST.statement) =
   match x with
-  | `Empty_stmt tok -> (* ";" *) token env tok
+  | `Empty_stmt tok -> (* ";" *) map_empty_block env (token env tok)
   | `Comp_stmt x -> map_compound_statement env x
   | `Named_label_stmt x -> map_named_label_statement env x
   | `Exp_stmt (v1, v2) ->
@@ -1631,7 +1634,7 @@ and map_statement (env : env) (x : CST.statement) =
       let v8 = (* ")" *) token env v8 in
       let v9 =
         match v9 with
-        | `Choice_auto_semi x -> map_semicolon env x
+        | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
         | `Choice_empty_stmt x -> map_statement env x
         | `COLON_rep_choice_empty_stmt_pat_1d5f5b3_choice_auto_semi
             (v1, v2, v3, v4) ->
@@ -1655,7 +1658,7 @@ and map_statement (env : env) (x : CST.statement) =
       let v6 = (* ")" *) token env v6 in
       let v7 =
         match v7 with
-        | `Choice_auto_semi x -> map_semicolon env x
+        | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
         | `Choice_empty_stmt x -> map_statement env x
         | `Colon_blk_pat_25e0188_choice_auto_semi (v1, v2, v3) ->
             let v1 = map_colon_block env v1 in
@@ -1732,7 +1735,7 @@ and map_statement (env : env) (x : CST.statement) =
             in
             let v4 = map_semicolon env v4 in
             todo env (v1, v2, v3, v4)
-        | `Choice_auto_semi x -> map_semicolon env x
+        | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
       in
       todo env (v1, v2, v3, v4, v5)
   | `Echo_stmt (v1, v2, v3) ->
@@ -2121,21 +2124,21 @@ and map_variadic_unpacking (env : env) ((v1, v2) : CST.variadic_unpacking) =
   let v2 = map_expression env v2 in
   todo env (v1, v2)
 
-let map_program (env : env) ((v1, v2) : CST.program) =
+let map_program (env : env) ((v1, v2) : CST.program) : Ast_php.program =
   let v1 =
     match v1 with
-    | Some x -> map_text env x
-    | None -> todo env ()
+    | Some x -> Some (map_text env x)
+    | None -> None
   in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
         let v1 = (* pattern <\?([pP][hH][pP]|=)? *) token env v1 in
         let v2 = Common.map (map_statement env) v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        v2
+    | None -> []
   in
-  todo env (v1, v2)
+  v2
 
 (*****************************************************************************)
 (* Entry point *)
