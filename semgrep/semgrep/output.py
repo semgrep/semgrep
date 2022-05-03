@@ -17,6 +17,7 @@ from typing import Type
 
 import requests
 
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.app import app_session
 from semgrep.app.metrics import metric_manager
 from semgrep.constants import Colors
@@ -84,18 +85,17 @@ def _build_time_target_json(
     target: Path,
     num_bytes: int,
     profiling_data: ProfilingData,
-) -> Dict[str, Any]:
-    target_json: Dict[str, Any] = {}
+) -> v1.CliTargetTimes:
     path_str = get_path_str(target)
-
-    target_json["path"] = path_str
-    target_json["num_bytes"] = num_bytes
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
-    target_json["parse_times"] = [timing.parse_time for timing in timings]
-    target_json["match_times"] = [timing.match_time for timing in timings]
-    target_json["run_time"] = profiling_data.get_file_run_time(target)
 
-    return target_json
+    return v1.CliTargetTimes(
+        path=path_str,
+        num_bytes=num_bytes,
+        parse_times=[timing.parse_time for timing in timings],
+        match_times=[timing.match_time for timing in timings],
+        run_time=profiling_data.get_file_run_time(target) or 0.0,
+    )
 
 
 # coupling: if you change the JSON schema below, you probably need to
@@ -124,7 +124,7 @@ def _build_time_json(
     time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
-        _build_time_target_json(rules, target, num_bytes, profiling_data)
+        _build_time_target_json(rules, target, num_bytes, profiling_data).to_json()
         for target, num_bytes in zip(targets, target_bytes)
     ]
     time_info["total_bytes"] = sum(n for n in target_bytes)
