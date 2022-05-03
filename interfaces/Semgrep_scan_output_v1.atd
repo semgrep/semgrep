@@ -64,19 +64,19 @@ type location
 }
 
 (*****************************************************************************)
-(* Match result *)
+(* Core Match result *)
 (*****************************************************************************)
 
 type rule_id <python decorator="dataclass(frozen=True)"> = string
 
-type match_
+type core_match
   <python decorator="dataclass(frozen=True)"> = {
   rule_id: rule_id;
   location: location;
-  extra: match_extra;
+  extra: core_match_extra;
 }
 
-type match_extra
+type core_match_extra
   <python decorator="dataclass(frozen=True)"> = {
   ?message: string option; (* rule.message (?) *)
 
@@ -160,30 +160,30 @@ type unique_id_type
 ]
 
 (*****************************************************************************)
-(* Errors *)
+(* Core Errors *)
 (*****************************************************************************)
 
 (* See Semgrep_error_code.ml *)
-type error
+type core_error
   <python decorator="dataclass(frozen=True)"> = {
   ?rule_id: rule_id option;
   (* TODO: use a variant. Define Semgrep_error_code.error_kind here *)
   error_type: string;
-  severity: severity;
+  severity: core_severity;
   location: location;
   message: string;
   ?details: string option;
   ?yaml_path: string list option;
 }
 
-type severity
+type core_severity
   <python decorator="dataclass(frozen=True)"> = [
   | Error <json name="error">
   | Warning <json name="warning">
 ] <ocaml repr="classic">
 
 
-type stats
+type core_stats
   <python decorator="dataclass(frozen=True)"> = {
   okfiles: int;
   errorfiles: int;
@@ -228,10 +228,10 @@ type skipped_rule
 }
 
 (*****************************************************************************)
-(* Profiling information *)
+(* Core Profiling information *)
 (*****************************************************************************)
 
-type time
+type core_timing
   <python decorator="dataclass(frozen=True)"> = {
   targets: target_time list;
 
@@ -275,25 +275,25 @@ type cve_results
 (* Semgrep-core final output  *)
 (*****************************************************************************)
 
-type match_results
+type core_match_results
   <python decorator="dataclass(frozen=True)"> = {
-  matches: match_ list;
-  errors: error list;
+  matches: core_match list;
+  errors: core_error list;
   skipped_targets <json name="skipped">: skipped_target list;
   (* skipped_rules was introduced  in semgrep 0.86 *)
   ?skipped_rules: skipped_rule list option;
-  stats: stats;
+  stats: core_stats;
   (* TODO: rename timing? *)
-  ?time: time option;
+  ?time: core_timing option;
 }
 
 
 (*****************************************************************************)
-(* Errors (called SemgrepError in error.py) *)
+(* CLI Errors (called SemgrepError in error.py) *)
 (*****************************************************************************)
 
 (* TODO: try to make it as close as possible to 'error' above *)
-type final_error = {
+type cli_error = {
   code: int;
   (* TODO: use a variant *)
   level: string;
@@ -316,14 +316,14 @@ type final_error = {
 (*****************************************************************************)
 
 (* TODO: try to make it as close as possible to 'match_' above *)
-type final_match = {
+type cli_match = {
   check_id: rule_id;
   inherit location;
-  extra: final_extra;
+  extra: cli_match_extra;
 }
 
 (* TODO: try to make it as close as possible to 'match_extra' above *)
-type final_extra = {
+type cli_match_extra = {
   (* TODO: inherit match_extra; but need ?metavars because of dependency_aware code *)
   (* added by the CLI (see formatter/json.py) *)
   fingerprint: string;
@@ -356,9 +356,9 @@ type fix_regex = {
  * in output.py but at least those types serve as a spec.
  *)
 
-type final_result = {
-    errors: final_error list;
-    results: final_match list;
+type cli_output = {
+    errors: cli_error list;
+    results: cli_match list;
 
     (* TODO: see output.py
        paths: (scanned:, ?skipped:, ?_comment:)
