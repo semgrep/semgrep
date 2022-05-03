@@ -107,7 +107,7 @@ def _build_time_json(
     targets: Set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
     profiler: Optional[ProfileManager],
-) -> Dict[str, Any]:
+) -> v1.CliTiming:
     """Convert match times to a json-ready format.
 
     Match times are obtained for each pair (rule, target) by running
@@ -116,19 +116,19 @@ def _build_time_json(
     the target file will become negligible once we run many rules on the
     same AST.
     """
-    time_info: Dict[str, Any] = {}
-    # this list of all rules names is given here so they don't have to be
-    # repeated for each target in the 'targets' field, saving space.
-    time_info["rules"] = [{"id": rule.id} for rule in rules]
-    time_info["rules_parse_time"] = profiling_data.get_rules_parse_time()
-    time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
-    time_info["targets"] = [
-        _build_time_target_json(rules, target, num_bytes, profiling_data).to_json()
-        for target, num_bytes in zip(targets, target_bytes)
-    ]
-    time_info["total_bytes"] = sum(n for n in target_bytes)
-    return time_info
+    return v1.CliTiming(
+        # this list of all rules names is given here so they don't have to be
+        # repeated for each target in the 'targets' field, saving space.
+        rules=[v1.RuleIdDict(id=v1.RuleId(rule.id)) for rule in rules],
+        rules_parse_time=profiling_data.get_rules_parse_time(),
+        profiling_times=profiler.dump_stats() if profiler else {},
+        targets=[
+            _build_time_target_json(rules, target, num_bytes, profiling_data)
+            for target, num_bytes in zip(targets, target_bytes)
+        ],
+        total_bytes=sum(n for n in target_bytes),
+    )
 
 
 # WARNING: this class is unofficially part of our external API. It can be passed
@@ -404,7 +404,7 @@ class OutputHandler:
                 self.all_targets,
                 self.profiling_data,
                 self.profiler,
-            )
+            ).to_json()
         if self.settings.verbose_errors:
             extra["paths"]["skipped"] = sorted(
                 self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
