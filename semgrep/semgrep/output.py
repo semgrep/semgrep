@@ -392,6 +392,7 @@ class OutputHandler:
                 "scanned": [str(path) for path in sorted(self.all_targets)],
             }
         }
+        cli_paths: v1.CliPaths = v1.CliPaths(scanned=[], _comment=None, skipped=None)
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
@@ -422,11 +423,13 @@ class OutputHandler:
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
 
+        cli_output_extra: v1.CliOutputExtra = v1.CliOutputExtra(paths=cli_paths)
         # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
+            cli_output_extra,
             extra,
             self.severities,
         )

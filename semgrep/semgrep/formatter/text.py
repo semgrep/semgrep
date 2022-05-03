@@ -14,6 +14,7 @@ from typing import Sequence
 import click
 import colorama
 
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
@@ -391,6 +392,7 @@ class TextFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: v1.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         output = self._build_text_output(
@@ -402,7 +404,7 @@ class TextFormatter(BaseFormatter):
 
         timing_output = (
             self._build_summary(
-                extra.get("time", {}),
+                extra.get("time", {}),  # TODO: cli_output_extra.time
                 semgrep_structured_errors,
                 extra.get("color_output", False),
             )
