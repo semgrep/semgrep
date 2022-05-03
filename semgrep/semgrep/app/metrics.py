@@ -2,6 +2,7 @@ import hashlib
 import os
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Mapping
@@ -254,7 +255,9 @@ class MetricManager:
                 METRICS_ENDPOINT,
                 json=self.as_dict(),
                 # metrics ingestion shouldn't see auth tokens
-                headers={"Authorization": None},
+                # TODO: weird, we get a mypy error only in CI, and only
+                # after I've enabled submodules for pre-commit
+                headers=cast(Dict[str, str], {"Authorization": None}),
                 timeout=2,
             )
             r.raise_for_status()

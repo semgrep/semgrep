@@ -23,14 +23,14 @@ def test_rule_match_attributes():
         match = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("long.rule.id"),
                 location=core.Location(
                     path="relative/path/to/foo.py",
                     start=core.Position(3, 1, 24),
                     end=core.Position(3, 15, 38),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
     assert match.lines == ["    5 == 5 # nosem\n"], "wrong line was read from file"
@@ -59,27 +59,27 @@ def test_rule_match_sorting():
         line3 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(3, 1, 24),
                     end=core.Position(3, 15, 38),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
         line4 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(4, 1, 36),
                     end=core.Position(4, 15, 50),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
     # fmt: off
@@ -102,14 +102,14 @@ def test_rule_match_hashing():
         match = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(3, 1, 24),
                     end=core.Position(3, 15, 38),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
     assert {match, match} == {match}, "matches must deduplicate when added to a set"
@@ -130,14 +130,14 @@ def test_rule_match_is_nosemgrep_agnostic():
         match_1 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(3, 1, 28),
                     end=core.Position(5, 2, 48),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
     file_content = dedent(
@@ -153,14 +153,14 @@ def test_rule_match_is_nosemgrep_agnostic():
         match_2 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(3, 1, 28),
                     end=core.Position(5, 2, 72),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
     file_content = dedent(
@@ -177,14 +177,14 @@ def test_rule_match_is_nosemgrep_agnostic():
         match_3 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(4, 1, 55),
                     end=core.Position(6, 2, 75),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
     assert (
@@ -211,53 +211,53 @@ def test_rule_match_set_indexes():
         line3 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(3, 1, 24),
                     end=core.Position(3, 15, 38),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
         line4 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(4, 1, 36),
                     end=core.Position(4, 15, 50),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
         line5 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(5, 1, 48),
                     end=core.Position(5, 15, 62),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
         line6 = RuleMatch(
             message="message",
             severity=RuleSeverity.ERROR,
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId("rule_id"),
                 location=core.Location(
                     path="foo.py",
                     start=core.Position(6, 1, 60),
                     end=core.Position(6, 15, 74),
                 ),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
         )
         matches = RuleMatchSet()

@@ -25,7 +25,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
+def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     final_rule_id = err.rule_id
 
     # Hackily convert the level string to Semgrep expectations
@@ -52,8 +52,8 @@ def core_error_to_semgrep_error(err: core.Error) -> SemgrepCoreError:
     return SemgrepCoreError(code, level, spans, replace(err, rule_id=final_rule_id))
 
 
-def parse_core_output(raw_json: JsonObject) -> core.MatchResults:
-    match_results = core.MatchResults.from_json(raw_json)
+def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
+    match_results = core.CoreMatchResults.from_json(raw_json)
 
     for skip in match_results.skipped_targets:
         if skip.rule_id:
@@ -67,7 +67,7 @@ def parse_core_output(raw_json: JsonObject) -> core.MatchResults:
 
 
 def core_matches_to_rule_matches(
-    rules: List[Rule], res: core.MatchResults
+    rules: List[Rule], res: core.CoreMatchResults
 ) -> Dict[Rule, List[RuleMatch]]:
     """
     Convert core_match objects into RuleMatch objects that the rest of the codebase
@@ -86,7 +86,7 @@ def core_matches_to_rule_matches(
 
         return text
 
-    def read_metavariables(match: core.Match) -> Dict[str, str]:
+    def read_metavariables(match: core.CoreMatch) -> Dict[str, str]:
         result = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
@@ -104,7 +104,7 @@ def core_matches_to_rule_matches(
 
         return result
 
-    def convert_to_rule_match(match: core.Match) -> RuleMatch:
+    def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
         rule = rule_table[match.rule_id.value]
         metavariables = read_metavariables(match)
         message = interpolate(rule.message, metavariables)

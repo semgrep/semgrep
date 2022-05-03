@@ -102,7 +102,7 @@ class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
     spans: Optional[Tuple[LegacySpan, ...]]
-    core: core.Error
+    core: core.CoreError
 
     def to_dict_base(self) -> Dict[str, Any]:
         base: Dict[str, Any] = {"type": self.core.error_type, "message": str(self)}
