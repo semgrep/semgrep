@@ -422,6 +422,7 @@ class OutputHandler:
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
 
+        # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
