@@ -1,9 +1,22 @@
-(* Type definitions for Semgrep CLI JSON output (for the 'scan' default command).
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Type definitions for Semgrep CLI JSON output.
  *
- * This file contains also the type definitions for semgrep-core's JSON output,
- * meant for the semgrep Python wrapper.
+ * This specifies for now only the JSON format of the 'scan' (default) command.
+ *
+ * This file has the _v1 suffix to explicitely represent the
+ * version of this JSON format. If you need to extend this file, please
+ * be careful because you may break consumers of this format (e.g., the
+ * Semgrep playground or Semgrep App backend). See
+ * https://atd.readthedocs.io/en/latest/atdgen-tutorial.html?highlight=json#smooth-protocol-upgrades
+ * for more information on how to smoothly extend the types in this file.
+ *
+ * This file currentlly contains also the type definitions for semgrep-core's
+ * JSON output, meant for the semgrep Python wrapper.
  * TODO: when ATD gets a module system, we can split this file in
- * different files, but for now it's simpler to have everything in one file.
+ * different files (e.g., in Output_from_core.atd), but for now it's simpler
+ * to have everything in one file.
  *
  * This file is translated into OCaml modules by atdgen:
  *  - Xxx_t: type definitions
@@ -11,13 +24,19 @@
  *  Look for the corresponding Xxx_t.mli, Xxx_j.mli, etc.
  *  under dune's _build folder (where Xxx is Output_from_core).
  *
- * Those types were originally inferred from JSON_report.ml for use
- * by spacegrep when it was separate from semgrep-core. It's now also used
- * in JSON_report.ml.
+ * This file is also translated in Python modules by atdpy,
+ * in jsonschema/openapi spec by atdcat, and in Typescript modules by
+ * atdts.
  *
- *  There are other very important form of outputs which are not specified here:
+ * history:
+ *  - the types in this file were originally inferred from JSON_report.ml for
+ *    use by spacegrep when it was separate from semgrep-core. It's now also used
+ *    in JSON_report.ml
+ *
+ * There are other very important form of outputs which are not specified here:
  *  - the schema for the generic AST dump is in AST_generic_v1.atd
- *  - The parsing stats have its own Parsing_stats.atd
+ *  - The parsing stats of semgrep-core -parsing_stats -json have its own
+ *    Parsing_stats.atd
  *)
 
 (*****************************************************************************)
@@ -28,7 +47,6 @@ type json <ocaml module="Yojson.Safe" t="t"> = abstract
 (*****************************************************************************)
 (* Location *)
 (*****************************************************************************)
-
 type position
   <python decorator="dataclass(frozen=True, order=True)"> = {
   line: int; (* starts from 1 *)
@@ -145,7 +163,7 @@ type unique_id_type
 (* Errors *)
 (*****************************************************************************)
 
-(* See Semgrep_error_code *)
+(* See Semgrep_error_code.ml *)
 type error
   <python decorator="dataclass(frozen=True)"> = {
   ?rule_id: rule_id option;
@@ -157,7 +175,6 @@ type error
   ?details: string option;
   ?yaml_path: string list option;
 }
-
 
 type severity
   <python decorator="dataclass(frozen=True)"> = [
@@ -240,7 +257,6 @@ type rule_times
   match_time: float;
 }
 
-
 (*****************************************************************************)
 (* Synthesizing from diffs (see locate_patched_functions in Synthesizing.mli) *)
 (*****************************************************************************)
@@ -316,9 +332,12 @@ type final_extra = {
   metadata: json;
   (* TODO: use a variant *)
   severity: string;
+
   ?fix: string option;
   ?fix_regex: fix_regex option;
+
   ?is_ignored: bool option;
+
   (* added by dependency_aware code *)
   ?dependency_match_only: bool option;
   ?dependency_matches: json option;
