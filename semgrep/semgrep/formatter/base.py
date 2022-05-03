@@ -6,6 +6,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -18,13 +19,18 @@ class BaseFormatter(abc.ABC):
         rules: FrozenSet[Rule],
         rule_matches: Sequence[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: v1.CliOutputExtra,
         extra: Mapping[str, Any],
         shown_severities: Collection[RuleSeverity],
     ) -> str:
         filtered_rules = (r for r in rules if r.severity in shown_severities)
         filtered_matches = (m for m in rule_matches if m.severity in shown_severities)
         return self.format(
-            filtered_rules, filtered_matches, semgrep_structured_errors, extra
+            filtered_rules,
+            filtered_matches,
+            semgrep_structured_errors,
+            cli_output_extra,
+            extra,
         )
 
     @abc.abstractmethod
@@ -33,6 +39,7 @@ class BaseFormatter(abc.ABC):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: v1.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         raise NotImplementedError

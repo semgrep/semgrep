@@ -4,6 +4,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -48,6 +49,7 @@ class JsonFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: v1.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         output_dict = {
@@ -55,6 +57,7 @@ class JsonFormatter(BaseFormatter):
                 self._rule_match_to_json(rule_match) for rule_match in rule_matches
             ],
             "errors": [error.to_dict() for error in semgrep_structured_errors],
+            **(cli_output_extra.to_json()),
             **extra,
         }
         # Sort keys for predictable output. This helps with snapshot tests, etc.

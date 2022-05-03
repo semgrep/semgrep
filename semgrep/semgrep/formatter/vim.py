@@ -3,6 +3,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -32,6 +33,7 @@ class VimFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: v1.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         return "\n".join(":".join(self._get_parts(rm)) for rm in rule_matches)
