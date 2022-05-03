@@ -546,7 +546,7 @@ def run_join_rule(
                     "severity", match.get("severity", RuleSeverity.INFO.value)
                 )
             ),
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId(
                     join_rule.get("id", match.get("check_id", "[empty]"))
                 ),
@@ -556,7 +556,7 @@ def run_join_rule(
                     end=core.Position.from_json(match["end"]),
                 ),
                 # TODO? extra=core.MatchExtra.from_json(match.get("extra", {})),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars={}),
             ),
             extra=match.get("extra", {}),
             fix=None,
