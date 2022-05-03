@@ -13,8 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
-- `semgrep ci` prints out all findings by default instead of hiding nonblocking
-  findings (#5116)
+- `semgrep ci` prints out all findings instead of hiding nonblocking findings (#5116)
 
 ## [0.90.0](https://github.com/returntocorp/semgrep/releases/tag/v0.90.0) - 2022-04-26
 
