@@ -477,7 +477,7 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: core.Time,
+        timing: core.CoreTiming,
     ) -> None:
         targets = [Path(t.path) for t in timing.targets]
 

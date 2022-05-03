@@ -43,7 +43,7 @@ class RuleMatch:
     TODO: Rename this class to Finding?
     """
 
-    match: core.Match
+    match: core.CoreMatch
 
     message: str = field(repr=False)
     severity: RuleSeverity
