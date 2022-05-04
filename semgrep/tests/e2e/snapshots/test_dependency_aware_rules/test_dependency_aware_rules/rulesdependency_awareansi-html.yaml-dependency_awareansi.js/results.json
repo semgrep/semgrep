@@ -52,6 +52,7 @@
             "ts"
           ]
         },
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/dependency_aware/yarn.lock",

@@ -123,7 +123,7 @@ def run_dependency_aware_rule(
                         ),
                         # TODO: we need to define the fields below in
                         # Output_from_core.atd so we can reuse core.MatchExtra
-                        extra=core.CoreMatchExtra(metavars={}),
+                        extra=core.CoreMatchExtra(metavars=core.Metavars({})),
                     ),
                     extra={
                         "dependency_match_only": True,
