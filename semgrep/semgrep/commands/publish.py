@@ -1,7 +1,7 @@
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -23,6 +23,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_URL}/api/registry/rule"
+NEW_SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_URL}/api/registry/user_rule_pack"
 SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_URL}/r/"
 SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_URL}/s/"
 
@@ -70,6 +71,91 @@ def _get_test_code_for_config(
         config_filenames = [target]
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
     return config_filenames, config_test_filenames
+
+
+@click.command()
+@click.argument("target", nargs=1, type=click.Path(allow_dash=True))
+@click.option(
+    "--visibility",
+    "visibility",
+    default="org_private",
+    type=VISIBILITY_STATE,
+    help="Sets visibility of the uploaded rules."
+    " If 'org_private', rules will be private to your org (default)"
+    " If 'unlisted', rules will be listed in your org, but not listed to non-org members"
+    " If 'public', rules will be published to the Semgrep Registry (requires --registry-id)",
+)
+@click.option(
+    "--ruleset_name",
+    "ruleset_name",
+    type=str,
+    help="Mandatory. Sets the name of the uploaded ruleset.",
+)
+@click.option(
+    "--registry-id",
+    "registry_id",
+    help="If --visibility is set to public, this is the path the rule will have in the registry (example: python.flask.my-new-rule",
+)
+@handle_command_errors
+def publishmany(
+    target: str, visibility: VisibilityState, ruleset_name: str, registry_id: Optional[str],
+) -> None:
+    """
+    Upload rule to semgrep.dev
+
+    Must be logged in to use; see `semgrep login`
+    """
+    if not app_session.token:
+        click.echo("run `semgrep login` before using upload", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+    if not ruleset_name:
+        click.echo(f"--ruleset_name is a mandatory argument", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+
+    fail_count = 0
+    config_filenames, config_test_filenames = _get_test_code_for_config(Path(target))
+    if len(config_filenames) == 0:
+        click.echo(f"No valid Semgrep rules found in {target}", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+    if len(config_filenames) != 1 and visibility == VisibilityState.PUBLIC:
+        click.echo(
+            f"Only one public rule can be uploaded at a time: specify a single Semgrep rule",
+            err=True,
+        )
+        sys.exit(FATAL_EXIT_CODE)
+    if visibility == VisibilityState.PUBLIC and registry_id is None:
+        click.echo(f"--visibility=public requires --registry-id", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+
+    click.echo(
+        f'Found {len(config_filenames)} configs to publish with visibility "{visibility}"'
+    )
+    rules_to_upload = []
+    for config_filename in config_filenames:
+        test_cases = config_test_filenames.get(config_filename, [])
+        click.echo(
+            f"--> Preparing {config_filename} (test cases: {[str(t) for t in test_cases]})"
+        )
+        first_test_case = test_cases[0] if len(test_cases) >= 1 else None
+        prepped_rule = _prep_rule(
+            config_filename,
+            visibility,
+            first_test_case,
+            registry_id,
+        )
+        if not prepped_rule:
+            fail_count += 1
+            continue
+        rules_to_upload.append(prepped_rule)
+    if fail_count > 0:
+        click.echo(f"{fail_count} rules failed to upload", err=True)
+        sys.exit(FATAL_EXIT_CODE)
+
+    if _upload_rules(rules_to_upload, visibility, ruleset_name):
+        sys.exit(0)
+    else:
+        click.echo(f"rules failed to upload", err=True)
+        sys.exit(FATAL_EXIT_CODE)
 
 
 @click.command()
@@ -215,4 +301,74 @@ def _upload_rule(
                 f"    Published {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['path']}"
             )
 
+    return True
+
+
+def _prep_rule(
+    rule_file: Path,
+    visibility: VisibilityState,
+    test_code_file: Optional[Path],
+    registry_id: Optional[str],
+) -> Optional[dict]:
+    config, errors = get_config(None, None, [str(rule_file)], project_url=None)
+
+    if errors:
+        click.echo(
+            f"    Invalid rule definition: {str(rule_file)} is invalid: {errors}",
+            err=True,
+        )
+        return None
+
+    rules = config.get_rules(True)
+    if len(rules) != 1:
+        click.echo(
+            "    Rule contains more than one rule: only yaml files with a single can be published",
+            err=True,
+        )
+        return None
+
+    rule = rules[0]
+
+    # add metadata about the origin of the rule
+    origin_note = f"published from {rule_file} in {get_project_url()}"
+    rule.metadata["rule-origin-note"] = origin_note
+
+    request_json = {
+        "definition": {"rules": [rule._raw]},
+        "visibility": visibility,
+        # below should always be defined if passed validation
+        "language": rule.languages[0] if len(rule.languages) >= 1 else None,
+        "deployment_id": auth.get_deployment_id(),
+        "test_target": test_code_file.read_text() if test_code_file else None,
+        "registry_check_id": registry_id,
+    }
+
+    return request_json
+
+
+def _upload_rules(
+    rules: List[dict],
+    visibility: VisibilityState,
+    ruleset_name: Optional[str]
+) -> bool:
+    response = app_session.post(NEW_SEMGREP_REGISTRY_UPLOAD_URL, json={
+        "ruleset": {
+            "name": ruleset_name,
+            "deployment_id": auth.get_deployment_id(),
+            "visibility": visibility
+        },
+        "rules": rules
+    })
+
+    if not response.ok:
+        click.echo(
+            f"    Failed to upload rules with status_code {response.status_code}",
+            err=True,
+        )
+        click.echo(response.text, err=True)
+        return False
+    else:
+        click.echo(
+            f"    Published {visibility} rule successfully"
+        )
     return True
