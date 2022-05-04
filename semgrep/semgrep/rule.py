@@ -11,6 +11,7 @@ from typing import Set
 from typing import Union
 
 import semgrep.output_from_core as core
+from dependencyparser.models import PackageManagers
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -159,7 +160,7 @@ class Rule:
         return self._mode
 
     @property
-    def project_depends_on(self) -> Optional[List[Dict[str, str]]]:
+    def project_depends_on(self) -> List[Dict[str, str]]:
         if "r2c-internal-project-depends-on" in self._raw:
             depends_on = self._raw["r2c-internal-project-depends-on"]
             if "depends-on-either" in depends_on:
@@ -168,7 +169,18 @@ class Rule:
             else:
                 return [depends_on]
         else:
-            return None
+            return []
+
+    @property
+    def namespaces(self) -> Set[PackageManagers]:
+        if "r2c-internal-project-depends-on" in self._raw:
+            depends_on = self._raw["r2c-internal-project-depends-on"]
+            if "depends-on-either" in depends_on:
+                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                return {PackageManagers(d["namespace"]) for d in dependencies}
+            else:
+                return {depends_on["namespace"]}
+        return set()
 
     @property
     def languages(self) -> List[Language]:

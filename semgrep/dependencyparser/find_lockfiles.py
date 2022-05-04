@@ -6,13 +6,11 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
-from dependencyparser.models import languages_to_namespaces
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import NAMESPACE_TO_LOCKFILES
 from dependencyparser.models import PackageManagers
 from dependencyparser.parse_lockfile import LOCKFILE_PARSERS
 from dependencyparser.parse_lockfile import parse_lockfile_str
-from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 
 TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()
@@ -93,11 +91,11 @@ class DependencyTrie:
 
 
 def make_dependency_trie(
-    target: Path, langs: List[Language], target_manager: TargetManager
+    target: Path, namespaces: List[PackageManagers], target_manager: TargetManager
 ) -> DependencyTrie:
     dep_trie = DependencyTrie()
     # Triple for loop, but the outer two are (basically) constant time and guaranteed to be almost instant
-    for namespace in languages_to_namespaces(langs):
+    for namespace in namespaces:
         for lockfile_type in NAMESPACE_TO_LOCKFILES[namespace]:
             lockfiles: Iterable[Path] = target.glob("**/" + lockfile_type)
             lockfiles = (

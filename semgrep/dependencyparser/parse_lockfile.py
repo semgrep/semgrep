@@ -149,7 +149,9 @@ def parse_Pipfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
                     version,
                     PackageManagers.PYPI,
                     resolved_url=None,
-                    allowed_hashes=extract_pipfile_hashes(dep_blob["hashes"]),
+                    allowed_hashes=extract_pipfile_hashes(dep_blob["hashes"])
+                    if "hashes" in dep_blob
+                    else {},
                 )
 
     as_json = json.loads(lockfile_text)
@@ -212,6 +214,9 @@ def parse_Go_sum_str(lockfile_text: str) -> Generator[LockfileDependency, None, 
         )
 
     lines = lockfile_text.split("\n")
+    if len(lines[-1].split()) != 3:
+        # Sometimes the last line will contain a carriage return character
+        lines = lines[:-1]
     yield from (parse_dep(dep) for dep in lines)
 
 
@@ -220,13 +225,16 @@ def parse_Cargo_str(lockfile_text: str) -> Generator[LockfileDependency, None, N
         lines = s.split("\n")[1:]
         dep = lines[0].split("=")[1].strip()[1:-1]
         version = lines[1].split("=")[1].strip()[1:-1]
-        hash = lines[3].split("=")[1].strip()[1:-1]
+        if len(lines) >= 3 and lines[3].startswith("checksum"):
+            hash = {"sha256": [lines[3].split("=")[1].strip()[1:-1]]}
+        else:
+            hash = {}
         return LockfileDependency(
             dep,
             version,
             PackageManagers.CARGO,
             resolved_url=None,
-            allowed_hashes={"sha256": [hash]},
+            allowed_hashes=hash,
         )
 
     deps = lockfile_text.split("[[package]]")[1:]
@@ -279,6 +287,8 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
     root = ET.fromstring(manifest_text)
     deps = root.find(f"{NAMESPACE}dependencies")
     if deps is None:
+        deps = root.find(f"{NAMESPACE}DependencyManagement")
+    if deps is None:
         raise SemgrepError("No dependencies in pom.xml?")
     properties = root.find(f"{NAMESPACE}properties")
     for dep in deps:
@@ -304,7 +314,14 @@ def parse_lockfile_str(
     # coupling with the github action, which decides to send files with these names back to us
     filepath = filepath_for_reference.name.lower()
     if filepath in LOCKFILE_PARSERS:
-        return LOCKFILE_PARSERS[filepath](lockfile_text)
+        try:
+            yield from LOCKFILE_PARSERS[filepath](lockfile_text)
+        # Such a general except clause is suspect, but the parsing error could be any number of
+        # python errors, since our parsers are just using stdlib string processing functions
+        # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
+        except Exception as e:
+            logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
+            yield from []
     else:
         raise SemgrepError(
             f"don't know how to parse this filename: {filepath_for_reference}"
