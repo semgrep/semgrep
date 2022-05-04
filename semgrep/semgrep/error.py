@@ -15,7 +15,7 @@ from typing import Tuple
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker

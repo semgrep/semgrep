@@ -14,7 +14,7 @@ from typing import Sequence
 import click
 import colorama
 
-import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
