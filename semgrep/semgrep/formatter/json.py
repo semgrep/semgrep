@@ -56,7 +56,9 @@ class JsonFormatter(BaseFormatter):
             "results": [
                 self._rule_match_to_json(rule_match) for rule_match in rule_matches
             ],
-            "errors": [error.to_dict() for error in semgrep_structured_errors],
+            "errors": [
+                error.to_CliError().to_json() for error in semgrep_structured_errors
+            ],
             **(cli_output_extra.to_json()),
             **extra,
         }

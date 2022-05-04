@@ -1,9 +1,11 @@
+import dataclasses
 import inspect
 import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -13,6 +15,7 @@ from typing import Tuple
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
 import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
 from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
@@ -63,20 +66,20 @@ class SemgrepError(Exception):
 
         super().__init__(*args)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": self.__class__.__name__,
-            "code": self.code,
-            "level": self.level.name.lower(),
-            **self.to_dict_base(),
-        }
+    def to_CliError(self) -> v1.CliError:
+        err = v1.CliError(
+            code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
+        )
+        return self.adjust_CliError(err)
 
-    def to_dict_base(self) -> Dict[str, Any]:
+    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
-        All values returned must be JSON serializable.
         """
-        return {"message": str(self)}
+        return dataclasses.replace(base, message=str(self))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return cast(Dict[str, Any], self.to_CliError().to_json())
 
     # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
@@ -104,20 +107,23 @@ class SemgrepCoreError(SemgrepError):
     spans: Optional[Tuple[LegacySpan, ...]]
     core: core.CoreError
 
-    def to_dict_base(self) -> Dict[str, Any]:
-        base: Dict[str, Any] = {"type": self.core.error_type, "message": str(self)}
+    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+        base = dataclasses.replace(base, type_=self.core.error_type, message=str(self))
         if self.core.rule_id:
-            base["rule_id"] = self.core.rule_id.value
+            base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
         # For rule errors path is a temp file so for now will just be confusing to add
         if (
             self.core.error_type != "Rule parse error"
             and self.core.error_type != "Pattern parse error"
         ):
-            base["path"] = str(self.core.location.path)
+            base = dataclasses.replace(base, path=str(self.core.location.path))
 
         if self.spans:
-            base["spans"] = tuple(attr.asdict(s) for s in self.spans)
+            base = dataclasses.replace(
+                base,
+                spans=v1.RawJson(v1._Identity([attr.asdict(s) for s in self.spans])),
+            )
 
         return base
 
@@ -261,16 +267,17 @@ class ErrorWithSpan(SemgrepError):
         if not hasattr(self, "level"):
             raise ValueError("Inheritors of SemgrepError must define a level")
 
-    def to_dict_base(self) -> Dict[str, Any]:
-        base = dict(
+    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+        base = dataclasses.replace(
+            base,
             short_msg=self.short_msg,
             long_msg=self.long_msg,
             level=self.level.name.lower(),
-            spans=[attr.asdict(s) for s in self.spans],
+            spans=v1.RawJson(v1._Identity([attr.asdict(s) for s in self.spans])),
         )
         # otherwise, we end up with `help: null` in JSON
         if self.help:
-            base["help"] = self.help
+            base = dataclasses.replace(base, help=self.help)
         return base
 
     @staticmethod
