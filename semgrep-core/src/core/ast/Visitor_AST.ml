@@ -1455,5 +1455,10 @@ let range_of_any_opt any =
   match any with
   | G.E e when Option.is_some e.e_range -> e.e_range
   | G.S s when Option.is_some s.s_range -> s.s_range
+  | G.Tk tok -> (
+      match Parse_info.token_location_of_info tok with
+      | Ok tok_loc -> Some (tok_loc, tok_loc)
+      | Error _ -> None)
+  | G.Anys [] -> None
   | _ -> extract_ranges (fun visitor -> visitor any)
   [@@profiling]
