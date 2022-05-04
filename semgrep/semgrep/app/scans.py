@@ -164,7 +164,8 @@ class ScanHandler:
             "token": os.getenv("GITHUB_TOKEN"),
             "gitlab_token": os.getenv("GITLAB_TOKEN"),
             "findings": [
-                match.to_app_finding_format(commit_date) for match in new_matches
+                match.to_app_finding_format(commit_date).to_json()
+                for match in new_matches
             ],
             "searched_paths": [str(t) for t in targets],
             "rule_ids": rule_ids,
@@ -172,7 +173,8 @@ class ScanHandler:
         }
         ignores = {
             "findings": [
-                match.to_app_finding_format(commit_date) for match in new_ignored
+                match.to_app_finding_format(commit_date).to_json()
+                for match in new_ignored
             ],
         }
         complete = {
