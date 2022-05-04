@@ -480,6 +480,21 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
 
+let add_tainted_var in_ var taint =
+  let taint =
+    let var_tok = snd var.ident in
+    if Parse_info.is_fake var_tok then taint
+    else
+      taint
+      |> Taint.map (fun t -> { t with rev_trace = var_tok :: t.rev_trace })
+  in
+  VarMap.update (str_of_name var)
+    (function
+      | None -> Some taint
+      (* THINK: Why can't we just replace the existing taint? *)
+      | Some taint' -> Some (Taint.union taint taint'))
+    in_
+
 let (transfer :
       config ->
       fun_env ->
@@ -500,22 +515,19 @@ let (transfer :
         let taint = check_tainted_instr env x in
         match (Taint.is_empty taint, LV.lvar_of_instr_opt x) with
         | true, Some var -> VarMap.remove (str_of_name var) in'
-        | false, Some var ->
-            let taint =
-              let var_tok = snd var.ident in
-              if Parse_info.is_fake var_tok then taint
-              else
-                taint
-                |> Taint.map (fun t ->
-                       { t with rev_trace = var_tok :: t.rev_trace })
-            in
-            VarMap.update (str_of_name var)
-              (function
-                | None -> Some taint
-                (* THINK: Why can't we just replace the existing taint? *)
-                | Some taint' -> Some (Taint.union taint taint'))
-              in'
-        | _, None -> in')
+        | false, Some var -> add_tainted_var in' var taint
+        | false, None -> (
+            match x.i with
+            (* Method call `var.f(args)` that returns void, we conservatively
+               * assume that it may be updating `var`; e.g. we may be updating
+               * a string buffer. So if `args` are tainted, so it is `var`. *)
+            | Call
+                ( None,
+                  { e = Fetch { base = Var var; offset = Dot _fld; _ }; _ },
+                  _args ) ->
+                add_tainted_var in' var taint
+            | _ -> in')
+        | true, None -> in')
     | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
         let taint = check_tainted_return env tok e in

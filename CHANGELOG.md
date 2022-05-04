@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- Taint analysis now assumes that void methods may update the callee object, so
+  if the arguments are tainted, the callee will also be tainted. This e.g. makes
+  a Java `HashMap` become tainted when you `put` in it tainted data. This can be
+  avoided by declaring a sanitizer.
+
 ## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
 
 ### Added
