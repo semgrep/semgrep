@@ -556,7 +556,7 @@ def run_join_rule(
                     end=core.Position.from_json(match["end"]),
                 ),
                 # TODO? extra=core.MatchExtra.from_json(match.get("extra", {})),
-                extra=core.CoreMatchExtra(metavars={}),
+                extra=core.CoreMatchExtra(metavars=core.Metavars({})),
             ),
             extra=match.get("extra", {}),
             fix=None,

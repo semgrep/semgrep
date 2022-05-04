@@ -19,30 +19,32 @@ def to_json(x: Any) -> Any:
 
 class JsonFormatter(BaseFormatter):
     @staticmethod
-    def _rule_match_to_json(rule_match: RuleMatch) -> Mapping[str, Any]:
-        extra = rule_match.extra
-        extra["message"] = rule_match.message
-        extra["metadata"] = rule_match.metadata
-        extra["severity"] = rule_match.severity.value
-        extra["fingerprint"] = rule_match.syntactic_id
-
-        # 'lines' already contains '\n' at the end of each line
-        extra["lines"] = "".join(rule_match.lines).rstrip()
+    def _rule_match_to_CliMatch(rule_match: RuleMatch) -> v1.CliMatch:
+        # TODO: extra = rule_match.extra
+        extra = v1.CliMatchExtra(
+            message=rule_match.message,
+            metadata=v1.RawJson(v1._Identity(rule_match.metadata)),
+            severity=rule_match.severity.value,
+            fingerprint=rule_match.syntactic_id,
+            # 'lines' already contains '\n' at the end of each line
+            lines="".join(rule_match.lines).rstrip(),
+            metavars=rule_match.match.extra.metavars,
+        )
 
         if rule_match.fix:
-            extra["fix"] = rule_match.fix
+            extra.fix = rule_match.fix
         if rule_match.fix_regex:
-            extra["fix_regex"] = rule_match.fix_regex
+            extra.fix_regex = v1.RawJson(v1._Identity(rule_match.fix_regex))
         if rule_match.is_ignored is not None:
-            extra["is_ignored"] = rule_match.is_ignored
+            extra.is_ignored = rule_match.is_ignored
 
-        return {
-            "check_id": rule_match.rule_id,
-            "path": str(rule_match.path),
-            "start": rule_match.start.to_json(),
-            "end": rule_match.end.to_json(),
-            "extra": extra,
-        }
+        return v1.CliMatch(
+            check_id=v1.RuleId(rule_match.rule_id),
+            path=str(rule_match.path),
+            start=rule_match.start,
+            end=rule_match.end,
+            extra=extra,
+        )
 
     def format(
         self,
@@ -54,7 +56,8 @@ class JsonFormatter(BaseFormatter):
     ) -> str:
         output_dict = {
             "results": [
-                self._rule_match_to_json(rule_match) for rule_match in rule_matches
+                self._rule_match_to_CliMatch(rule_match).to_json()
+                for rule_match in rule_matches
             ],
             "errors": [
                 error.to_CliError().to_json() for error in semgrep_structured_errors

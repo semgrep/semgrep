@@ -91,7 +91,7 @@ def core_matches_to_rule_matches(
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
         with open(match.location.path, errors="replace") as fd:
-            for metavariable, metavariable_data in match.extra.metavars.items():
+            for metavariable, metavariable_data in match.extra.metavars.value.items():
                 # Offsets are start inclusive and end exclusive
                 start_offset = metavariable_data.start.offset
                 end_offset = metavariable_data.end.offset
