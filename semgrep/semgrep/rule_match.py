@@ -45,19 +45,30 @@ class RuleMatch:
 
     match: core.CoreMatch
 
+    # fields from the rule
     message: str = field(repr=False)
     severity: RuleSeverity
-
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
+
+    # Do not use this extra field! This prevents from having typed JSON output
+    # TODO: instead of extra, we should use the more explicit fields:
+    #  fixed_lines: Optional[Any] = field(default=None)
+    #  dependency_match_only: Optional[bool] = field(default=None)
+    #  dependency_matches: Optional[Any] = field(default=None)
+    # but then this would require to remove the @frozen from this class
+    # because autofix and dependency_aware and join_rule are actually monkey patching
+    # this frozen class.
     # TODO: redundant with core.extra but we do some monkey patching on
     # this extra field which prevents to use directly core.extra (immutable)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
 
+    # fields derived from the rule
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
     fix_regex: Optional[Dict[str, Any]] = None
 
+    # ???
     index: int = 0
 
     # None means we didn't check; ignore status is unknown
@@ -72,6 +83,7 @@ class RuleMatch:
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
 
+    # TODO: return a v1.RuleId
     @property
     def rule_id(self) -> str:
         return self.match.rule_id.value
