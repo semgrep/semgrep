@@ -98,8 +98,12 @@ let any_in_ranges rule any rwms =
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
   | None ->
+      (* IL.any_of_orig will return `G.Anys []` for `NoOrig`, and there is
+       * no point in issuing this warning in that case.
+       * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
+       * first place? *)
       if any <> G.Anys [] then
-        logger#info
+        logger#warning
           "Cannot compute range, there are no real tokens in this AST: %s"
           (G.show_any any);
       []
