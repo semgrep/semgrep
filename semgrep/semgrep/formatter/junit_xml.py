@@ -4,7 +4,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
-import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep.error import SemgrepError
 from semgrep.external.junit_xml import TestCase  # type: ignore[attr-defined]
 from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]

@@ -4,7 +4,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
-import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep import __VERSION__
 from semgrep.constants import RuleSeverity
 from semgrep.error import Level

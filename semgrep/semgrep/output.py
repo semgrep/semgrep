@@ -18,7 +18,7 @@ from typing import Type
 
 import requests
 
-import semgrep.semgrep_interfaces.semgrep_scan_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep.app import app_session
 from semgrep.app.metrics import metric_manager
 from semgrep.constants import Colors
