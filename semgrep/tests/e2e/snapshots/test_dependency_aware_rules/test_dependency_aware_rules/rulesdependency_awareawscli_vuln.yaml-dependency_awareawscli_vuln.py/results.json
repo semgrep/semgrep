@@ -135,6 +135,7 @@
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING"
       },
       "path": "targets/dependency_aware/Pipfile.lock",
@@ -364,6 +365,7 @@
         "lines": "",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING"
       },
       "path": "targets/dependency_aware/Pipfile.lock",

@@ -50,6 +50,14 @@ class RuleMatch:
     severity: RuleSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
 
+    # Do not use this extra field! This prevents from having typed JSON output
+    # TODO: instead of extra, we should use the more explicit fields:
+    #  fixed_lines: Optional[Any] = field(default=None)
+    #  dependency_match_only: Optional[bool] = field(default=None)
+    #  dependency_matches: Optional[Any] = field(default=None)
+    # but then this would require to remove the @frozen from this class
+    # because autofix and dependency_aware and join_rule are actually monkey patching
+    # this frozen class.
     # TODO: redundant with core.extra but we do some monkey patching on
     # this extra field which prevents to use directly core.extra (immutable)
     extra: Dict[str, Any] = field(repr=False, factory=dict)

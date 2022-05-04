@@ -20,7 +20,6 @@ def to_json(x: Any) -> Any:
 class JsonFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_CliMatch(rule_match: RuleMatch) -> v1.CliMatch:
-        # TODO: extra = rule_match.extra
         extra = v1.CliMatchExtra(
             message=rule_match.message,
             metadata=v1.RawJson(v1._Identity(rule_match.metadata)),
@@ -31,6 +30,11 @@ class JsonFormatter(BaseFormatter):
             metavars=rule_match.match.extra.metavars,
         )
 
+        if rule_match.extra.get("dependency_matches"):
+            extra.dependency_matches = v1.RawJson(
+                v1._Identity(rule_match.extra.get("dependency_matches"))
+            )
+            extra.dependency_match_only = rule_match.extra.get("dependency_match_only")
         if rule_match.fix:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
