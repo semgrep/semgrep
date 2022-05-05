@@ -38,7 +38,7 @@ class JsonFormatter(BaseFormatter):
         if rule_match.fix:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
-            extra.fix_regex = v1.RawJson(v1._Identity(rule_match.fix_regex))
+            extra.fix_regex = rule_match.fix_regex
         if rule_match.is_ignored is not None:
             extra.is_ignored = rule_match.is_ignored
 
