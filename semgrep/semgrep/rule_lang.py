@@ -26,6 +26,7 @@ from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
@@ -80,6 +81,7 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
+# TODO: use v1.PositionBis directly
 @frozen(repr=False)
 class Position:
     """
@@ -92,6 +94,9 @@ class Position:
 
     line: int
     col: int
+
+    def to_PositionBis(self) -> v1.PositionBis:
+        return v1.PositionBis(line=self.line, col=self.col)
 
     def next_line(self) -> "Position":
         return evolve(self, line=self.line + 1)
@@ -106,6 +111,7 @@ class Position:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
+# TODO: use v1.ErrorSpan directly
 @frozen(repr=False)
 class Span:
     """
@@ -117,14 +123,43 @@ class Span:
     end: Position
     source_hash: SourceFileHash
     file: Optional[str]
+
+    # ???
     context_start: Optional[Position] = None
     context_end: Optional[Position] = None
+
     # The path to the pattern in the yaml rule
     # and an adjusted start/end within just the pattern
     # Used to report playground parse errors in the simpler editor
-    config_path: Optional[Tuple[Any, ...]] = None
+    config_path: Optional[List[str]] = None
     config_start: Optional[Position] = None
     config_end: Optional[Position] = None
+
+    def to_ErrorSpan(self) -> v1.ErrorSpan:
+        config_start = None
+        if self.config_start:
+            config_start = self.config_start.to_PositionBis()
+        config_end = None
+        if self.config_end:
+            config_end = self.config_end.to_PositionBis()
+        context_start = None
+        if self.context_start:
+            context_start = self.context_start.to_PositionBis()
+        context_end = None
+        if self.context_end:
+            context_end = self.context_end.to_PositionBis()
+
+        return v1.ErrorSpan(
+            config_start=config_start,
+            config_end=config_end,
+            config_path=self.config_path,
+            context_start=context_start,
+            context_end=context_end,
+            file=self.file,
+            start=self.start.to_PositionBis(),
+            end=self.end.to_PositionBis(),
+            source_hash=self.source_hash,
+        )
 
     @classmethod
     def from_node(
@@ -148,7 +183,8 @@ class Span:
         s: str,
         line: int,
         col: int,
-        path: List[Dict[str, Union[int, str]]],
+        # path: List[Dict[str, Union[int, str]]], # TODO
+        path: List[str],
         filename: Optional[str] = None,
     ) -> "Span":
         src_hash = SourceTracker.add_source(s)
@@ -162,7 +198,7 @@ class Span:
             end=end,
             file=filename,
             source_hash=src_hash,
-            config_path=tuple(path),
+            config_path=path,
             config_start=Position(0, 1),
             config_end=Position(row_diff - 1, col_diff + 1),
         )

@@ -38,7 +38,7 @@ class JsonFormatter(BaseFormatter):
         if rule_match.fix:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
-            extra.fix_regex = v1.RawJson(v1._Identity(rule_match.fix_regex))
+            extra.fix_regex = rule_match.fix_regex
         if rule_match.is_ignored is not None:
             extra.is_ignored = rule_match.is_ignored
 
@@ -58,16 +58,15 @@ class JsonFormatter(BaseFormatter):
         cli_output_extra: v1.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
-        output_dict = {
-            "results": [
-                self._rule_match_to_CliMatch(rule_match).to_json()
-                for rule_match in rule_matches
+        # Note that extra is not used here! Every part of the JSON output should
+        # be specified in Semgrep_output_v1.atd and be part of CliOutputExtra
+        output = v1.CliOutput(
+            results=[
+                self._rule_match_to_CliMatch(rule_match) for rule_match in rule_matches
             ],
-            "errors": [
-                error.to_CliError().to_json() for error in semgrep_structured_errors
-            ],
-            **(cli_output_extra.to_json()),
-            **extra,
-        }
+            errors=[error.to_CliError() for error in semgrep_structured_errors],
+            paths=cli_output_extra.paths,
+            time=cli_output_extra.time,
+        )
         # Sort keys for predictable output. This helps with snapshot tests, etc.
-        return json.dumps(output_dict, sort_keys=True, default=to_json)
+        return json.dumps(output.to_json(), sort_keys=True, default=to_json)
