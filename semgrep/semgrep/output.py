@@ -336,7 +336,6 @@ class OutputHandler:
                 lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
             )
             num_findings = len(regular_matches)
-            num_fingerprint_findings = len(fingerprint_matches)
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
 
@@ -352,11 +351,9 @@ class OutputHandler:
             else:
                 suggestion_line = ""
             stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
-            auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
             output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
-            output_text += "\n" + auto_line if num_fingerprint_findings else ""
             logger.info(output_text)
 
         self._final_raise(final_error)
