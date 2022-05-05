@@ -14,7 +14,6 @@ from typing import Tuple
 
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
-from semgrep.error import LegacySpan
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -38,10 +37,20 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         level_str = "ERROR"
     level = Level[level_str.upper()]
 
-    spans: Optional[Tuple[LegacySpan, ...]] = None
+    spans: Optional[List[v1.ErrorSpan]] = None
     if err.yaml_path:
-        yaml_path = tuple(err.yaml_path[::-1])
-        spans = tuple([LegacySpan(err.location.start, err.location.end, yaml_path)])  # type: ignore
+        yaml_path = err.yaml_path[::-1]
+        spans = [
+            v1.ErrorSpan(
+                config_start=v1.PositionBis(
+                    line=err.location.start.line, col=err.location.start.col
+                ),
+                config_end=v1.PositionBis(
+                    line=err.location.end.line, col=err.location.end.col
+                ),
+                config_path=yaml_path,
+            )
+        ]
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
