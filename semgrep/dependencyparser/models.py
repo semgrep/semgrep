@@ -42,10 +42,10 @@ class LockfileDependency:
 
 
 NAMESPACE_TO_LOCKFILES = {
-    PackageManagers.PYPI: {"Pipfile.lock"},
-    PackageManagers.NPM: {"package-lock.json", "yarn.lock"},
-    PackageManagers.GEM: {"Gemfile.lock"},
-    PackageManagers.GOMOD: {"go.sum"},
-    PackageManagers.CARGO: {"cargo.lock"},
-    PackageManagers.MAVEN: {"pom.xml"},
+    PackageManagers.PYPI: ["Pipfile.lock"],
+    PackageManagers.NPM: ["package-lock.json", "yarn.lock"],
+    PackageManagers.GEM: ["Gemfile.lock"],
+    PackageManagers.GOMOD: ["go.sum"],
+    PackageManagers.CARGO: ["cargo.lock"],
+    PackageManagers.MAVEN: ["pom.xml"],
 }

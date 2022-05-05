@@ -97,14 +97,17 @@ def make_dependency_trie(
     # Triple for loop, but the outer two are (basically) constant time and guaranteed to be almost instant
     for namespace in namespaces:
         for lockfile_type in NAMESPACE_TO_LOCKFILES[namespace]:
+            # glob produces a set, which we turn into a sorted list for consistent results
             lockfiles: Iterable[Path] = target.glob("**/" + lockfile_type)
             lockfiles = (
                 target_manager.file_ignore.filter_paths(candidates=lockfiles).kept
                 if target_manager.file_ignore
                 else lockfiles
             )
-            for lockfile in lockfiles:
+            # We need to sort lockfiles, because the iterating over a set,
+            # which could be produced by filter_paths, is non-deterministic
+            # and the order here affects the order of the added dependency-only matches
+            for lockfile in sorted(lockfiles):
                 deps = list(parse_lockfile_str(lockfile.read_text(), lockfile))
                 dep_trie.insert(lockfile, deps, namespace)
-
     return dep_trie

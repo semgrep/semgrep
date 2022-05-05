@@ -287,10 +287,7 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
     root = ET.fromstring(manifest_text)
     deps = root.find(f"{NAMESPACE}dependencies")
     if deps is None:
-        deps = root.find(f"{NAMESPACE}DependencyManagement")
-        if deps is None:
-            raise SemgrepError("No dependencies in pom.xml?")
-        deps = deps.find(f"{NAMESPACE}dependencies")
+        raise SemgrepError("No dependencies in pom.xml?")
     properties = root.find(f"{NAMESPACE}properties")
     for dep in deps:
         dep_opt = parse_dep(properties, dep)
