@@ -13,9 +13,10 @@ from typing import Set
 from typing import Tuple
 
 import semgrep.output_from_core as core
-from semgrep.error import LegacySpan
+import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
+from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -36,10 +37,20 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         level_str = "ERROR"
     level = Level[level_str.upper()]
 
-    spans: Optional[Tuple[LegacySpan, ...]] = None
+    spans: Optional[List[v1.ErrorSpan]] = None
     if err.yaml_path:
-        yaml_path = tuple(err.yaml_path[::-1])
-        spans = tuple([LegacySpan(err.location.start, err.location.end, yaml_path)])  # type: ignore
+        yaml_path = err.yaml_path[::-1]
+        spans = [
+            v1.ErrorSpan(
+                config_start=v1.PositionBis(
+                    line=err.location.start.line, col=err.location.start.col
+                ),
+                config_end=v1.PositionBis(
+                    line=err.location.end.line, col=err.location.end.col
+                ),
+                config_path=yaml_path,
+            )
+        ]
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
@@ -109,6 +120,27 @@ def core_matches_to_rule_matches(
         metavariables = read_metavariables(match)
         message = interpolate(rule.message, metavariables)
         fix = interpolate(rule.fix, metavariables) if rule.fix else None
+        fix_regex = None
+
+        # this validation for fix_regex code was in autofix.py before
+        # TODO: this validation should be done in rule.py when parsing the rule
+        if rule.fix_regex:
+            regex = rule.fix_regex.get("regex")
+            replacement = rule.fix_regex.get("replacement")
+            count = rule.fix_regex.get("count")
+            if not regex or not replacement:
+                raise SemgrepError(
+                    "'regex' and 'replacement' values required when using 'fix-regex'"
+                )
+            if count:
+                try:
+                    count = int(count)
+                except ValueError:
+                    raise SemgrepError(
+                        "optional 'count' value must be an integer when using 'fix-regex'"
+                    )
+
+            fix_regex = v1.FixRegex(regex=regex, replacement=replacement, count=count)
 
         return RuleMatch(
             match=match,
@@ -117,7 +149,7 @@ def core_matches_to_rule_matches(
             metadata=rule.metadata,
             severity=rule.severity,
             fix=fix,
-            fix_regex=rule.fix_regex,
+            fix_regex=fix_regex,
         )
 
     # TODO: Dict[core.RuleId, RuleMatchSet]

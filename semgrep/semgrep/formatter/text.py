@@ -374,7 +374,7 @@ class TextFormatter(BaseFormatter):
                 yield f"{autofix_tag} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{autofix_tag} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False

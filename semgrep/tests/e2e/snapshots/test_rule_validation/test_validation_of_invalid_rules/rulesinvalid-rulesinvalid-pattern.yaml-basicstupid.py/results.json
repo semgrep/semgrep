@@ -9,8 +9,7 @@
         {
           "config_end": {
             "col": 21,
-            "line": 9,
-            "offset": 180
+            "line": 9
           },
           "config_path": [
             "rules",
@@ -19,8 +18,7 @@
           ],
           "config_start": {
             "col": 12,
-            "line": 9,
-            "offset": 171
+            "line": 9
           }
         }
       ],
