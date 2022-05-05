@@ -93,18 +93,11 @@ class SemgrepError(Exception):
         return cls(**data)
 
 
-@attr.s(auto_attribs=True, frozen=True)
-class LegacySpan:
-    config_start: core.Position
-    config_end: core.Position
-    config_path: Tuple[str]
-
-
 @dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
-    spans: Optional[Tuple[LegacySpan, ...]]
+    spans: Optional[List[v1.ErrorSpan]]
     core: core.CoreError
 
     def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
@@ -120,10 +113,7 @@ class SemgrepCoreError(SemgrepError):
             base = dataclasses.replace(base, path=str(self.core.location.path))
 
         if self.spans:
-            base = dataclasses.replace(
-                base,
-                spans=v1.RawJson(v1._Identity([attr.asdict(s) for s in self.spans])),
-            )
+            base = dataclasses.replace(base, spans=self.spans)
 
         return base
 
@@ -273,7 +263,7 @@ class ErrorWithSpan(SemgrepError):
             short_msg=self.short_msg,
             long_msg=self.long_msg,
             level=self.level.name.lower(),
-            spans=v1.RawJson(v1._Identity([attr.asdict(s) for s in self.spans])),
+            spans=[s.to_ErrorSpan() for s in self.spans],
         )
         # otherwise, we end up with `help: null` in JSON
         if self.help:
