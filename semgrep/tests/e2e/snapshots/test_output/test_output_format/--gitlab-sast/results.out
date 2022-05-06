@@ -1,6 +1,6 @@
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-  "version": "0.42",
+  "version": "2.0",
   "vulnerabilities": [
     {
       "category": "sast",
