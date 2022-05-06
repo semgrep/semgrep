@@ -558,11 +558,15 @@ let check_tainted_instr env instr : Taint.t * var_env =
         let args_taint, var_envs =
           Common.map (check_expr env) args |> List.split
         in
-        let var_env' = List.fold_left union_env VarMap.empty var_envs in
+        logger#flash "!!!!!!!!!!!!!!";
+        let var_env' = List.fold_left union_env env.var_env var_envs in
+        logger#flash "var_env' %s" (_show_env var_env');
         let e_taint, var_env_e = check_expr { env with var_env = var_env' } e in
-        let var_env' =
-          List.fold_left union_env VarMap.empty (var_env_e :: var_envs)
-        in
+        (* logger#flash "env.var_env %s" (_show_env env.var_env); *)
+        (* let e_taint, var_env_e = check_expr env e in *)
+        logger#flash "var_env_e %s" (_show_env var_env_e);
+        logger#flash "!!!!!!!!!!!!!!";
+        let var_env' = union_env var_env_e var_env' in
         match check_function_signature env e args_taint with
         | Some call_taint -> (call_taint, var_env')
         | None ->
