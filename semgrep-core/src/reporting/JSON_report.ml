@@ -101,6 +101,48 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = position_range min_loc max_loc in
       Some (startp, endp)
 
+let metavar_string_of_any any =
+  (* TODO: metavar_string_of_any is used in get_propagated_value
+      to get the string for propagated values. Not all propagated
+      values will have origintoks. For example, in
+          x = 1; y = x + 1; ...
+     we have y = 2 but there is no source location for 2.
+     Handle such cases *)
+  any |> V.ii_of_any
+  |> List.filter PI.is_origintok
+  |> List.sort Parse_info.compare_pos
+  |> Common.map PI.str_of_info |> Matching_report.join_with_space_if_needed
+
+let get_propagated_value default_start mvalue =
+  let any_to_svalue_value any =
+    match range_of_any_opt default_start any with
+    | Some (start, end_) ->
+        Some
+          {
+            ST.svalue_start = Some start;
+            svalue_end = Some end_;
+            svalue_abstract_content = metavar_string_of_any any;
+          }
+    | None ->
+        Some
+          {
+            ST.svalue_start = None;
+            svalue_end = None;
+            svalue_abstract_content = metavar_string_of_any any;
+          }
+  in
+  match mvalue with
+  | E { e = N (Id (_, id_info)); _ } -> (
+      match !(id_info.id_svalue) with
+      | Some (Lit x) ->
+          let any = E (L x |> e) in
+          any_to_svalue_value any
+      | Some (Sym x) -> any_to_svalue_value (E x)
+      | Some (Cst _) -> None
+      | Some NotCst -> None
+      | None -> None)
+  | _ -> None
+
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
   match range_of_any_opt startp_of_match_range any with
@@ -114,12 +156,8 @@ let metavars startp_of_match_range (s, mval) =
         {
           ST.start = startp;
           end_ = endp;
-          abstract_content =
-            any |> V.ii_of_any
-            |> List.filter PI.is_origintok
-            |> List.sort Parse_info.compare_pos
-            |> Common.map PI.str_of_info
-            |> Matching_report.join_with_space_if_needed;
+          abstract_content = metavar_string_of_any any;
+          propagated_value = get_propagated_value startp_of_match_range any;
           unique_id = unique_id any;
         } )
 
@@ -130,20 +168,14 @@ let match_to_match x =
     Left
       ({
          ST.rule_id = x.rule_id.id;
-         location =
-           {
-             path = x.file;
-             start = startp;
-             end_ = endp;
-             lines = [] (* ?? spacegrep? *);
-           };
+         location = { path = x.file; start = startp; end_ = endp };
          extra =
            {
              message = Some x.rule_id.message;
              metavars = x.env |> Common.map (metavars startp);
            };
        }
-        : ST.match_)
+        : ST.core_match)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -157,23 +189,16 @@ let match_to_match x =
       Right err
   [@@profiling]
 
-(* was in pfff/h_program-lang/R2c.ml becore *)
-let hcache = Hashtbl.create 101
-
-let lines_of_file (file : Common.filename) : string array =
-  Common.memoized hcache file (fun () ->
-      try Common.cat file |> Array.of_list with
-      | _ -> [| "EMPTY FILE" |])
-
+(* TODO: Semgrep_error_code should be defined in Output_from_core.atd
+ * directly, so we don't need those conversions
+ *)
 let error_to_error err =
   let severity_of_severity = function
     | E.Error -> SJ.Error
     | E.Warning -> SJ.Warning
   in
   let file = err.E.loc.PI.file in
-  let lines = lines_of_file file in
   let startp, endp = position_range err.E.loc err.E.loc in
-  let line = err.E.loc.PI.line in
   let rule_id = err.E.rule_id in
   let error_type = E.string_of_error_kind err.E.typ in
   let severity = severity_of_severity (E.severity_of_error err.E.typ) in
@@ -184,15 +209,7 @@ let error_to_error err =
     ST.error_type;
     rule_id;
     severity;
-    location =
-      {
-        path = file;
-        start = startp;
-        end_ = endp;
-        lines =
-          (try [ lines.(line - 1) ] with
-          | _ -> [ "NO LINE" ]);
-      };
+    location = { path = file; start = startp; end_ = endp };
     message;
     details;
     yaml_path;

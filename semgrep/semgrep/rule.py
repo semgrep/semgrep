@@ -10,6 +10,7 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
+import semgrep.output_from_core as core
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -61,7 +62,7 @@ class Rule:
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):
             rule_languages.add(LANGUAGE.resolve("typescript"))
-            self._raw["languages"] = [str(l) for l in rule_languages]
+            self._raw["languages"] = sorted(str(l) for l in rule_languages)
 
         self._languages = sorted(rule_languages)
 
@@ -127,8 +128,12 @@ class Rule:
         return self._excludes
 
     @property
-    def id(self) -> str:
+    def id(self) -> str:  # TODO: return a core.RuleId
         return self._id
+
+    @property
+    def id2(self) -> core.RuleId:  # TODO: merge with id
+        return core.RuleId(self._id)
 
     @property
     def message(self) -> str:
@@ -181,6 +186,8 @@ class Rule:
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
 
+    # TODO: use v1.FixRegex and do the validation currently done
+    # in core_output.convert_to_rule_match() here
     @property
     def fix_regex(self) -> Optional[Dict[str, Any]]:
         return self._raw.get("fix-regex")

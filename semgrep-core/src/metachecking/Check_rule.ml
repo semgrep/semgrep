@@ -260,7 +260,7 @@ let check_files mk_config fparser input =
   | Json ->
       let res = { RP.empty_final_result with errors } in
       let json = JSON_report.match_results_of_matches_and_errors [] res in
-      pr (SJ.string_of_match_results json)
+      pr (SJ.string_of_core_match_results json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

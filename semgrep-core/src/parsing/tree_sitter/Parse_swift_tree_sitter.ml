@@ -15,16 +15,10 @@ module H2 = AST_generic_helpers
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
 
-(* Disable warning against unused value declarations. *)
-(* TODO Figure out whether we need the unused functions and either use them or
- * remove them, then remove this. *)
-[@@@warning "-32"]
-
 type env = unit H.env
 
 let token = H.token
 let str = H.str
-let blank (env : env) () = failwith "not implemented"
 let todo (env : env) _ = failwith "not implemented"
 
 (* There are several places where Swift expects a type but the generic AST
@@ -36,14 +30,6 @@ let expr_of_type type_ =
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-swift/Boilerplate.ml *)
-
-let map_semi (env : env) (tok : CST.semi) = (* semi *) token env tok
-
-let map_real_literal (env : env) (tok : CST.real_literal) =
-  (* real_literal *) token env tok
-
-let map_where_keyword (env : env) (tok : CST.where_keyword) =
-  (* where_keyword *) token env tok
 
 let map_bitwise_binary_operator (env : env) (x : CST.bitwise_binary_operator) =
   match x with
@@ -75,19 +61,6 @@ let map_comparison_operator (env : env) (x : CST.comparison_operator) =
   | `LTEQ tok -> (G.LtE, (* "<=" *) token env tok)
   | `GTEQ tok -> (G.GtE, (* ">=" *) token env tok)
 
-let map_raw_str_part (env : env) (tok : CST.raw_str_part) =
-  (* raw_str_part *) token env tok
-
-let map_raw_str_interpolation_start (env : env)
-    (tok : CST.raw_str_interpolation_start) =
-  (* pattern \\#*\( *) token env tok
-
-let map_rethrows_keyword (env : env) (tok : CST.rethrows_keyword) =
-  (* rethrows_keyword *) token env tok
-
-let map_as_quest_custom (env : env) (tok : CST.as_quest_custom) =
-  (* as_quest_custom *) token env tok
-
 let map_assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   match x with
   | `PLUSEQ tok -> (Some G.Plus, (* "+=" *) token env tok)
@@ -104,9 +77,6 @@ let map_ownership_modifier (env : env) (x : CST.ownership_modifier) =
   | `Unow_e455cde tok -> (* "unowned(safe)" *) token env tok
   | `Unow_8fda70e tok -> (* "unowned(unsafe)" *) token env tok
 
-let map_pat_f630af3 (env : env) (tok : CST.pat_f630af3) =
-  (* pattern [^\r\n]* *) token env tok
-
 let map_import_kind (env : env) (x : CST.import_kind) =
   match x with
   | `Typeas tok -> (* "typealias" *) token env tok
@@ -118,23 +88,6 @@ let map_import_kind (env : env) (x : CST.import_kind) =
   | `Var tok -> (* "var" *) token env tok
   | `Func tok -> (* "func" *) token env tok
 
-let map_open_ended_range_operator_custom (env : env)
-    (tok : CST.open_ended_range_operator_custom) =
-  (* open_ended_range_operator_custom *) token env tok
-
-let map_throws_keyword (env : env) (tok : CST.throws_keyword) =
-  (* throws_keyword *) token env tok
-
-let map_raw_str_end_part (env : env) (tok : CST.raw_str_end_part) =
-  (* raw_str_end_part *) token env tok
-
-let map_eq_eq_custom (env : env) (tok : CST.eq_eq_custom) =
-  (* eq_eq_custom *) token env tok
-
-let map_three_dot_operator_custom (env : env)
-    (tok : CST.three_dot_operator_custom) =
-  (* three_dot_operator_custom *) token env tok
-
 let map_optionally_valueful_control_keyword (env : env)
     (x : CST.optionally_valueful_control_keyword) =
   match x with
@@ -143,11 +96,6 @@ let map_optionally_valueful_control_keyword (env : env)
   | `Brk tok -> (* "break" *) token env tok
   | `Yield tok -> (* "yield" *) token env tok
 
-let map_bang (env : env) (tok : CST.bang) = (* bang *) token env tok
-
-let map_oct_literal (env : env) (tok : CST.oct_literal) =
-  (* oct_literal *) token env tok
-
 let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) :
     G.operator * G.tok =
   match x with
@@ -155,22 +103,9 @@ let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) :
   | `SLASH tok -> (G.Div, (* "/" *) token env tok)
   | `PERC tok -> (G.Mod, (* "%" *) token env tok)
 
-let map_bin_literal (env : env) (tok : CST.bin_literal) =
-  (* bin_literal *) token env tok
-
 let map_inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
   match x with
   | `Final tok -> (* "final" *) token env tok
-
-let map_tok_choice_pat_3425898 (env : env) (tok : CST.tok_choice_pat_3425898) =
-  (* tok_choice_pat_3425898 *) token env tok
-
-let map_pat_888b548 (env : env) (tok : CST.pat_888b548) =
-  (* pattern \{[0-9a-fA-F]+\} *) token env tok
-
-let map_raw_str_continuing_indicator (env : env)
-    (tok : CST.raw_str_continuing_indicator) =
-  (* raw_str_continuing_indicator *) token env tok
 
 let map_boolean_literal (env : env) (x : CST.boolean_literal) =
   match x with
@@ -180,9 +115,6 @@ let map_boolean_literal (env : env) (x : CST.boolean_literal) =
   | `False tok ->
       let tok = (* "false" *) token env tok in
       G.Bool (false, tok)
-
-let map_as_custom (env : env) (tok : CST.as_custom) =
-  (* as_custom *) token env tok
 
 let map_member_modifier (env : env) (x : CST.member_modifier) =
   match x with
@@ -195,31 +127,6 @@ let map_try_operator (env : env) (x : CST.try_operator) =
   | `Try tok -> (* "try" *) token env tok
   | `TryB tok -> (* "try!" *) token env tok
   | `TryQ tok -> (* "try?" *) token env tok
-
-let map_async_modifier (env : env) (tok : CST.async_modifier) =
-  (* async_modifier *) token env tok
-
-let map_conjunction_operator_custom (env : env)
-    (tok : CST.conjunction_operator_custom) =
-  (* conjunction_operator_custom *) token env tok
-
-let map_async_keyword_custom (env : env) (tok : CST.async_keyword_custom) =
-  (* async_keyword_custom *) token env tok
-
-let map_plus_then_ws (env : env) (tok : CST.plus_then_ws) =
-  (* plus_then_ws *) token env tok
-
-let map_multi_line_str_text (env : env) (tok : CST.multi_line_str_text) =
-  (* pattern "[^\\\\\"]+" *) token env tok
-
-let map_line_str_text (env : env) (tok : CST.line_str_text) =
-  (* pattern "[^\\\\\"]+" *) token env tok
-
-let map_catch_keyword (env : env) (tok : CST.catch_keyword) =
-  (* catch_keyword *) token env tok
-
-let map_pat_9d0cc04 (env : env) (tok : CST.pat_9d0cc04) =
-  (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) token env tok
 
 let map_special_literal (env : env) (x : CST.special_literal) =
   match x with
@@ -235,23 +142,10 @@ let map_integer_literal (env : env) (tok : CST.integer_literal) : G.literal =
   let s, t = str env tok in
   G.Int (int_of_string_opt s, t)
 
-let map_nil_coalescing_operator_custom (env : env)
-    (tok : CST.nil_coalescing_operator_custom) =
-  (* nil_coalescing_operator_custom *) token env tok
-
-let map_tok_dollar_pat_9d0cc04 (env : env) (tok : CST.tok_dollar_pat_9d0cc04) =
-  (* tok_dollar_pat_9d0cc04 *) token env tok
-
-let map_escaped_identifier (env : env) (tok : CST.escaped_identifier) =
-  (* pattern "\\\\[0\\\\tnr\"'\\n]" *) token env tok
-
 let map_mutation_modifier (env : env) (x : CST.mutation_modifier) =
   match x with
   | `Muta tok -> (* "mutating" *) token env tok
   | `Nonm tok -> (* "nonmutating" *) token env tok
-
-let map_hex_literal (env : env) (tok : CST.hex_literal) =
-  (* hex_literal *) token env tok
 
 let map_property_modifier (env : env) (x : CST.property_modifier) =
   match x with
@@ -260,49 +154,11 @@ let map_property_modifier (env : env) (x : CST.property_modifier) =
   | `Opt tok -> (* "optional" *) token env tok
   | `Class tok -> (* "class" *) token env tok
 
-let map_statement_label (env : env) (tok : CST.statement_label) =
-  (* statement_label *) token env tok
-
-let map_minus_then_ws (env : env) (tok : CST.minus_then_ws) =
-  (* minus_then_ws *) token env tok
-
-let map_dot_custom (env : env) (tok : CST.dot_custom) =
-  (* dot_custom *) token env tok
-
-let map_as_bang_custom (env : env) (tok : CST.as_bang_custom) =
-  (* as_bang_custom *) token env tok
-
-let map_else_ (env : env) (tok : CST.else_) = (* else *) token env tok
-
-let map_disjunction_operator_custom (env : env)
-    (tok : CST.disjunction_operator_custom) =
-  (* disjunction_operator_custom *) token env tok
-
 let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
   match x with
   | `Inout tok -> (* "inout" *) token env tok
   | `ATes tok -> (* "@escaping" *) token env tok
   | `ATau tok -> (* "@autoclosure" *) token env tok
-
-let map_arrow_operator_custom (env : env) (tok : CST.arrow_operator_custom) =
-  (* arrow_operator_custom *) token env tok
-
-let map_pat_c332828 (env : env) (tok : CST.pat_c332828) =
-  (* pattern \$[0-9]+ *) token env tok
-
-let map_default_keyword (env : env) (tok : CST.default_keyword) =
-  (* default_keyword *) token env tok
-
-let map_eq_custom (env : env) (tok : CST.eq_custom) =
-  (* eq_custom *) token env tok
-
-let map_pat_97d645c (env : env) (tok : CST.pat_97d645c) =
-  (* pattern `[^\r\n` ]*` *) token env tok
-
-let map_shebang_line (env : env) ((v1, v2) : CST.shebang_line) =
-  let v1 = (* "#!" *) token env v1 in
-  let v2 = (* pattern [^\r\n]* *) token env v2 in
-  todo env (v1, v2)
 
 let map_throws (env : env) (x : CST.throws) =
   match x with

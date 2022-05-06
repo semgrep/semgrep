@@ -14,6 +14,7 @@ from typing import Sequence
 import click
 import colorama
 
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
@@ -168,30 +169,30 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _build_summary(
-        time_data: Mapping[str, Any],
+        time_data: out.CliTiming,
         error_output: Sequence[SemgrepError],
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
         col_lim = 50
 
-        targets = time_data["targets"]
+        targets = time_data.targets
 
         # Compute summary timings
-        rule_parsing_time = time_data["rules_parse_time"]
+        rule_parsing_time = time_data.rules_parse_time
         rule_match_timings = {
-            rule["id"]: sum(
-                t["match_times"][i] for t in targets if t["match_times"][i] >= 0
+            rule.id.value: sum(
+                t.match_times[i] for t in targets if t.match_times[i] >= 0
             )
-            for i, rule in enumerate(time_data["rules"])
+            for i, rule in enumerate(time_data.rules)
         }
         file_parsing_time = sum(
-            sum(t for t in target["parse_times"] if t >= 0) for target in targets
+            sum(t for t in target.parse_times if t >= 0) for target in targets
         )
         file_timings = {
-            target["path"]: (
-                sum(t for t in target["parse_times"] if t >= 0),
-                target["run_time"],
+            target.path: (
+                sum(t for t in target.parse_times if t >= 0),
+                target.run_time,
             )
             for target in targets
         }
@@ -206,7 +207,9 @@ class TextFormatter(BaseFormatter):
             for err in error_output
             if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
         ]
-        errors = {(err.path, err.error_type) for err in semgrep_core_errors}
+        errors = {
+            (err.core.location.path, err.core.error_type) for err in semgrep_core_errors
+        }
 
         error_types = {k: len(list(v)) for k, v in groupby(errors, lambda x: x[1])}
         num_errors = len(errors)
@@ -228,8 +231,8 @@ class TextFormatter(BaseFormatter):
         ext_info = sorted(
             (
                 (
-                    lang_of_path(target["path"]),
-                    (target["num_bytes"], target["run_time"]),
+                    lang_of_path(target.path),
+                    (target.num_bytes, target.run_time),
                 )
                 for target in targets
             ),
@@ -241,15 +244,15 @@ class TextFormatter(BaseFormatter):
         lang_bytes: Mapping[str, int] = {
             lang: sum(info[1][0] for info in lang_info[lang]) for lang in langs
         }
-        lang_times: Mapping[str, int] = {
+        lang_times: Mapping[str, float] = {
             lang: sum(info[1][1] for info in lang_info[lang]) for lang in langs
         }
 
         # Output semgrep summary
-        total_time = time_data["profiling_times"].get("total_time", 0.0)
-        config_time = time_data["profiling_times"].get("config_time", 0.0)
-        core_time = time_data["profiling_times"].get("core_time", 0.0)
-        time_data["profiling_times"].get("ignores_time", 0.0)
+        total_time = time_data.profiling_times.get("total_time", 0.0)
+        config_time = time_data.profiling_times.get("config_time", 0.0)
+        core_time = time_data.profiling_times.get("core_time", 0.0)
+        # time_data.profiling_times.get("ignores_time", 0.0)
 
         yield f"\n============================[ summary ]============================"
 
@@ -371,7 +374,7 @@ class TextFormatter(BaseFormatter):
                 yield f"{autofix_tag} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{autofix_tag} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False
@@ -389,6 +392,7 @@ class TextFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         output = self._build_text_output(
@@ -400,11 +404,11 @@ class TextFormatter(BaseFormatter):
 
         timing_output = (
             self._build_summary(
-                extra.get("time", {}),
+                cli_output_extra.time,
                 semgrep_structured_errors,
                 extra.get("color_output", False),
             )
-            if "time" in extra
+            if cli_output_extra.time
             else iter([])
         )
 

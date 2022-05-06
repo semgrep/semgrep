@@ -9,8 +9,7 @@
         {
           "config_end": {
             "col": 24,
-            "line": 4,
-            "offset": 73
+            "line": 4
           },
           "config_path": [
             "rules",
@@ -21,8 +20,7 @@
           ],
           "config_start": {
             "col": 14,
-            "line": 4,
-            "offset": 63
+            "line": 4
           }
         }
       ],
@@ -33,5 +31,6 @@
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []
   },
-  "results": []
+  "results": [],
+  "version": "0.42"
 }

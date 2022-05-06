@@ -3,6 +3,7 @@ import collections
 import json
 import os
 import resource
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -28,9 +29,9 @@ from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import USER_DATA_FOLDER
-from semgrep.core_output import CoreOutput
-from semgrep.core_output import CoreTiming
-from semgrep.core_output import RuleId
+from semgrep.core_output import core_error_to_semgrep_error
+from semgrep.core_output import core_matches_to_rule_matches
+from semgrep.core_output import parse_core_output
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -106,6 +107,8 @@ def setrlimits_preexec_fn() -> None:
     logger.info("Failed to change stack limits")
 
 
+# This is used only to dedup errors from validate_configs(). For dedupping errors
+# from _invoke_semgrep(), see output.py and the management of self.error_set
 def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
     return list({uniq_error_id(e): e for e in errors}.values())
 
@@ -113,7 +116,13 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
 def uniq_error_id(
     error: SemgrepCoreError,
 ) -> Tuple[int, Path, core.Position, core.Position, str]:
-    return (error.code, error.path, error.start, error.end, error.message)
+    return (
+        error.code,
+        Path(error.core.location.path),
+        error.core.location.start,
+        error.core.location.end,
+        error.core.message,
+    )
 
 
 class StreamingSemgrepCore:
@@ -347,12 +356,14 @@ class CoreRunner:
         max_memory: int,
         timeout_threshold: int,
         optimizations: str,
+        core_opts_str: Optional[str],
     ):
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
         self._optimizations = optimizations
+        self._core_opts = shlex.split(core_opts_str) if core_opts_str else []
 
     def _extract_core_output(
         self,
@@ -385,7 +396,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = CoreOutput.parse(rules, output_json)
+                parsed_output = parse_core_output(output_json)
                 errors = parsed_output.errors
                 if len(errors) < 1:
                     self._fail(
@@ -395,7 +406,7 @@ class CoreRunner:
                         core_stdout,
                         core_stderr,
                     )
-                raise errors[0].to_semgrep_error()
+                raise core_error_to_semgrep_error(errors[0])
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -466,20 +477,19 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: CoreTiming,
+        timing: core.CoreTiming,
     ) -> None:
-        rules = timing.rules
-        targets = [t.target for t in timing.target_timings]
+        targets = [Path(t.path) for t in timing.targets]
 
-        profiling_data.init_empty(rules, targets)
-        profiling_data.set_rules_parse_time(timing.rules_parse_time)
+        profiling_data.init_empty(timing.rules, targets)
+        if timing.rules_parse_time:
+            profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
-        for t in timing.target_timings:
+        for t in timing.targets:
             rule_timings = {
-                rt.rule: Times(rt.parse_time, rt.match_time)
-                for rt in t.per_rule_timings
+                rt.rule_id: Times(rt.parse_time, rt.match_time) for rt in t.rule_times
             }
-            profiling_data.set_file_times(t.target, rule_timings, t.run_time)
+            profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
 
     def get_files_for_language(
         self, language: Language, rule: Rule, target_manager: TargetManager
@@ -509,7 +519,7 @@ class CoreRunner:
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
         target_info: Dict[
-            Tuple[Path, Language], List[RuleId]
+            Tuple[Path, Language], List[str]  # TODO: List[core.RuleId]
         ] = collections.defaultdict(list)
 
         for rule in rules:
@@ -518,7 +528,7 @@ class CoreRunner:
 
                 for target in targets:
                     all_targets.add(target)
-                    target_info[target, language].append(RuleId(rule.id))
+                    target_info[target, language].append(rule.id)  # TODO: core.RuleId
 
         return Plan(
             [
@@ -589,6 +599,13 @@ class CoreRunner:
                 str(self._max_memory),
                 "-json_time",
             ]
+
+            if self._core_opts:
+                logger.info(
+                    f"Running with user defined core options: {self._core_opts}"
+                )
+                cmd.extend(self._core_opts)
+
             if self._optimizations != "none":
                 cmd.append("-fast")
 
@@ -640,6 +657,9 @@ class CoreRunner:
             if is_debug():
                 cmd += ["--debug"]
 
+            logger.debug("Running semgrep-core with command:")
+            logger.debug(" ".join(cmd))
+
             if dump_command_for_core:
                 print(" ".join(cmd))
                 sys.exit(0)
@@ -655,24 +675,25 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(rules, output_json)
+            core_output = parse_core_output(output_json)
 
-            if "time" in output_json:
-                self._add_match_times(profiling_data, core_output.timing)
+            if ("time" in output_json) and core_output.time:
+                self._add_match_times(profiling_data, core_output.time)
 
             # end with tempfile.NamedTemporaryFile(...) ...
-            outputs = core_output.rule_matches(rules)
-            parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
+            outputs = core_matches_to_rule_matches(rules, core_output)
+            parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if err.is_timeout():
-                    assert err.path is not None
+                if err.error_type == "Timeout":
+                    assert err.location.path is not None
 
-                    file_timeouts[err.path] += 1
+                    file_timeouts[Path(err.location.path)] += 1
                     if (
                         self._timeout_threshold != 0
-                        and file_timeouts[err.path] >= self._timeout_threshold
+                        and file_timeouts[Path(err.location.path)]
+                        >= self._timeout_threshold
                     ):
-                        max_timeout_files.add(err.path)
+                        max_timeout_files.add(Path(err.location.path))
             errors.extend(parsed_errors)
 
         os.remove(rule_file_name)
@@ -758,8 +779,10 @@ class CoreRunner:
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = CoreOutput.parse(metachecks, output_json)
+            core_output = parse_core_output(output_json)
 
-            parsed_errors += [e.to_semgrep_error() for e in core_output.errors]
+            parsed_errors += [
+                core_error_to_semgrep_error(e) for e in core_output.errors
+            ]
 
         return dedup_errors(parsed_errors)
