@@ -231,14 +231,12 @@ and option_expr_to_ctor_arguments v =
 
 and expr e =
   (match e with
-  | ParenExpr (l, e, r) -> begin
+  | ParenExpr (l, e, r) -> (
       let e = expr e in
       match e.G.e with
       (* replace fake brackets with real one *)
       | G.Container (G.Tuple, (_, xs, _)) -> G.Container (G.Tuple, (l, xs, r))
-      | _kind ->
-        G.ParenExpr (l, e, r)
-      end
+      | _kind -> G.ParenExpr (l, e, r))
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
       let v2 = tok v2 in
