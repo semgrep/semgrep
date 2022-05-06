@@ -57,6 +57,9 @@ def _clean_output_json(output_json: str) -> str:
     for path in MASKED_KEYS:
         mark_masked(output, path)
 
+    if output.get("version"):
+        output["version"] = "0.42"
+
     # Remove temp file paths
     results = output.get("results")
     if isinstance(results, Sequence):

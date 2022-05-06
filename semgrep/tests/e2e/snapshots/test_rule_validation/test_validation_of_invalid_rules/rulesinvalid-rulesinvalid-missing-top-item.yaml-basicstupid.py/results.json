@@ -35,5 +35,6 @@
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []
   },
-  "results": []
+  "results": [],
+  "version": "0.91.0"
 }
