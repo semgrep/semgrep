@@ -47,7 +47,7 @@ def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
 
 # similar to _clean_output_json in conftest.py
 def _clean_output_json(output):
-    """Make semgrep's output deterministic and nicer to read."""
+    """Make semgrep's output deterministic."""
     if output.get("version"):
         output["version"] = "0.42"
 
