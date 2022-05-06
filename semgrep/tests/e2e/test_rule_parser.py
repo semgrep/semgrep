@@ -45,6 +45,13 @@ def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
+# similar to _clean_output_json in conftest.py
+def _clean_output_json(output):
+    """Make semgrep's output deterministic and nicer to read."""
+    if output.get("version"):
+        output["version"] = "0.42"
+
+
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
@@ -54,6 +61,7 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
     json_output = json.loads(excinfo.value.stdout)
     # Something went wrong, so there had better be an error, and we asked for JSON so there had better be some output...
     assert json_output["errors"] != []
+    _clean_output_json(json_output)
 
     with pytest.raises(CalledProcessError) as excinfo_in_color:
         run_semgrep_in_tmp(
@@ -78,6 +86,7 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(options=["-e", "#include<asdf><<>>><$X>", "-l", "c"])
     json_output = json.loads(excinfo.value.stdout)
+    _clean_output_json(json_output)
     snapshot.assert_match(
         json.dumps(json_output, indent=2, sort_keys=True), "error.json"
     )
