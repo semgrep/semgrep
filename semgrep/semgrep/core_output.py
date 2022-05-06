@@ -13,7 +13,7 @@ from typing import Set
 from typing import Tuple
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -37,15 +37,15 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         level_str = "ERROR"
     level = Level[level_str.upper()]
 
-    spans: Optional[List[v1.ErrorSpan]] = None
+    spans: Optional[List[out.ErrorSpan]] = None
     if err.yaml_path:
         yaml_path = err.yaml_path[::-1]
         spans = [
-            v1.ErrorSpan(
-                config_start=v1.PositionBis(
+            out.ErrorSpan(
+                config_start=out.PositionBis(
                     line=err.location.start.line, col=err.location.start.col
                 ),
-                config_end=v1.PositionBis(
+                config_end=out.PositionBis(
                     line=err.location.end.line, col=err.location.end.col
                 ),
                 config_path=yaml_path,
@@ -140,7 +140,7 @@ def core_matches_to_rule_matches(
                         "optional 'count' value must be an integer when using 'fix-regex'"
                     )
 
-            fix_regex = v1.FixRegex(regex=regex, replacement=replacement, count=count)
+            fix_regex = out.FixRegex(regex=regex, replacement=replacement, count=count)
 
         return RuleMatch(
             match=match,

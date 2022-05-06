@@ -26,7 +26,7 @@ from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
 
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`
@@ -81,7 +81,7 @@ class SourceTracker:
         return SourceFileHash(hashlib.sha256(contents).hexdigest())
 
 
-# TODO: use v1.PositionBis directly
+# TODO: use out.PositionBis directly
 @frozen(repr=False)
 class Position:
     """
@@ -95,8 +95,8 @@ class Position:
     line: int
     col: int
 
-    def to_PositionBis(self) -> v1.PositionBis:
-        return v1.PositionBis(line=self.line, col=self.col)
+    def to_PositionBis(self) -> out.PositionBis:
+        return out.PositionBis(line=self.line, col=self.col)
 
     def next_line(self) -> "Position":
         return evolve(self, line=self.line + 1)
@@ -111,7 +111,7 @@ class Position:
         return f"<{self.__class__.__name__} line={self.line} col={self.col}>"
 
 
-# TODO: use v1.ErrorSpan directly
+# TODO: use out.ErrorSpan directly
 @frozen(repr=False)
 class Span:
     """
@@ -135,7 +135,7 @@ class Span:
     config_start: Optional[Position] = None
     config_end: Optional[Position] = None
 
-    def to_ErrorSpan(self) -> v1.ErrorSpan:
+    def to_ErrorSpan(self) -> out.ErrorSpan:
         config_start = None
         if self.config_start:
             config_start = self.config_start.to_PositionBis()
@@ -149,7 +149,7 @@ class Span:
         if self.context_end:
             context_end = self.context_end.to_PositionBis()
 
-        return v1.ErrorSpan(
+        return out.ErrorSpan(
             config_start=config_start,
             config_end=config_end,
             config_path=self.config_path,
