@@ -15,7 +15,7 @@ from typing import Tuple
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
@@ -66,13 +66,13 @@ class SemgrepError(Exception):
 
         super().__init__(*args)
 
-    def to_CliError(self) -> v1.CliError:
-        err = v1.CliError(
+    def to_CliError(self) -> out.CliError:
+        err = out.CliError(
             code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
         )
         return self.adjust_CliError(err)
 
-    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
         """
@@ -97,10 +97,10 @@ class SemgrepError(Exception):
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
-    spans: Optional[List[v1.ErrorSpan]]
+    spans: Optional[List[out.ErrorSpan]]
     core: core.CoreError
 
-    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(base, type_=self.core.error_type, message=str(self))
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
@@ -257,7 +257,7 @@ class ErrorWithSpan(SemgrepError):
         if not hasattr(self, "level"):
             raise ValueError("Inheritors of SemgrepError must define a level")
 
-    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(
             base,
             short_msg=self.short_msg,
