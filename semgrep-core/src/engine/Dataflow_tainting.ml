@@ -385,7 +385,10 @@ let check_tainted_var env (var : IL.name) : Taint.t * var_env =
   in
   let var_env' =
     List.fold_left
-      (fun ve strid -> add_taint_to_strid_in_env ve strid taint)
+      (fun ve strid ->
+        logger#flash "propa: var %s: %s -> %s" (str_of_name var)
+          (show_taint_set taint) strid;
+        add_taint_to_strid_in_env ve strid taint)
       env.var_env propa_froms
   in
   let taint_exp, taint_var =
@@ -394,12 +397,14 @@ let check_tainted_var env (var : IL.name) : Taint.t * var_env =
         let t =
           VarMap.find_opt strid var_env' |> Option.value ~default:Taint.empty
         in
+        logger#flash "propa: var %s (%f) <- %s (%s)" (str_of_name var) m strid
+          (show_taint_set t);
         if m < 0.9 then (Taint.union t t1, t2)
         else (Taint.union t t1, Taint.union t t2))
       (Taint.empty, Taint.empty) propa_tos
   in
   let var_env' =
-    add_taint_to_var_in_env env.var_env var
+    add_taint_to_var_in_env var_env' var
       (Taint.union taint_var (add_taint ~curr:taint_var_env taint_sources_mut))
   in
   let taint = Taint.union taint_exp taint in
@@ -544,13 +549,17 @@ let check_function_signature env fun_exp args_taint =
  * makes more sense given that an instruction may have side-effects.
  * It Also makes simpler to handle sanitization by side-effect. *)
 let check_tainted_instr env instr : Taint.t * var_env =
-  let check_expr = check_tainted_expr env in
+  let check_expr env1 = check_tainted_expr env1 in
   let check_instr = function
-    | Assign (_, e) -> check_expr e
+    | Assign (_, e) -> check_expr env e
     | AssignAnon _ -> (Taint.empty, env.var_env) (* TODO *)
     | Call (_, e, args) -> (
-        let e_taint, var_env_e = check_expr e in
-        let args_taint, var_envs = Common.map check_expr args |> List.split in
+        (* TODO: fold *)
+        let args_taint, var_envs =
+          Common.map (check_expr env) args |> List.split
+        in
+        let var_env' = List.fold_left union_env VarMap.empty var_envs in
+        let e_taint, var_env_e = check_expr { env with var_env = var_env' } e in
         let var_env' =
           List.fold_left union_env VarMap.empty (var_env_e :: var_envs)
         in
@@ -562,7 +571,7 @@ let check_tainted_instr env instr : Taint.t * var_env =
             ( List.fold_left Taint.union Taint.empty args_taint
               |> Taint.union e_taint,
               var_env' ))
-    | CallSpecial (_, _, args) -> union_map_taint_var_env check_expr args
+    | CallSpecial (_, _, args) -> union_map_taint_var_env (check_expr env) args
     | FixmeInstr _ -> (Taint.empty, env.var_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in

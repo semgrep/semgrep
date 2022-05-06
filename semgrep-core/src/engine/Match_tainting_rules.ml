@@ -221,12 +221,12 @@ let taint_config_of_rule default_config equivs file ast_and_errors
            in
            rs
            |> List.filter_map (fun rwm ->
-                  let* _mvar_from, mval_from =
+                  let* mvar_from, mval_from =
                     List.find_opt
                       (fun (mvar, _mval) -> MV.equal_mvar from mvar)
                       rwm.RM.mvars
                   in
-                  let* _mvar_to, mval_to =
+                  let* mvar_to, mval_to =
                     List.find_opt
                       (fun (mvar, _mval) -> MV.equal_mvar to_ mvar)
                       rwm.RM.mvars
@@ -250,9 +250,9 @@ let taint_config_of_rule default_config equivs file ast_and_errors
                       in
                       let rto = Range.range_of_token_locations rlto1 rlto2 in
                       let strid =
-                        Common.spf "propa:%d:%d:%d:%d:%d:%d" floc.charpos
-                          tloc.charpos rfrom.Range.start rfrom.Range.end_
-                          rto.Range.start rto.Range.end_
+                        Common.spf "propa:%s:%d:%s:%d:%d:%d:%d:%d" mvar_from
+                          floc.charpos mvar_to tloc.charpos rfrom.Range.start
+                          rfrom.Range.end_ rto.Range.start rto.Range.end_
                       in
                       Some (rfrom, rto, strid)))
   in
