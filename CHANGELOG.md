@@ -4,6 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- The JSON output of `semgrep scan` is now fully specified using
+  ATD (https://atd.readthedocs.io/) and jsonschema (https://json-schema.org/).
+  See the semgrep-interfaces submodule under interfaces/
+  (e.g., interfaces/semgrep-interfaces/Semgrep_output_v0.atd for the ATD spec)
+- The JSON output of `semgrep scan` now contains a "version": field with the
+  version of Semgrep used to generate the match results.
+
 ## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
 
 ### Added
