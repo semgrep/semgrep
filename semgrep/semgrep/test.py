@@ -424,20 +424,29 @@ def generate_test_results(
         with tarfile.open(SAVE_TEST_OUTPUT_TAR, "w:gz") as tar:
             tar.add(SAVE_TEST_OUTPUT_JSON)
 
-    all_tests_passed: bool = True
+    num_tests = 0
+    num_tests_passed = 0
     check_output_lines: str = ""
     for _filename, rr in results_output.items():
         for check_id, check_results in sorted(rr["checks"].items()):
+            num_tests += 1
             if not check_results["passed"]:
-                all_tests_passed = False
                 check_output_lines += _generate_check_output_line(
                     check_id, check_results
                 )
+            else:
+                num_tests_passed += 1
 
-    if all_tests_passed:
-        print("✓ All tests passed!")
+    if num_tests == 0:
+        print(
+            "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
+        )
+    elif num_tests == num_tests_passed:
+        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed ")
     else:
-        print("The following unit tests did not pass:")
+        print(
+            f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
+        )
         print(BREAK_LINE)
         print(check_output_lines)
 
