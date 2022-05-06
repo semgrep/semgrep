@@ -21,7 +21,7 @@ from attrs import field
 from attrs import frozen
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
@@ -67,7 +67,7 @@ class RuleMatch:
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
-    fix_regex: Optional[v1.FixRegex] = None
+    fix_regex: Optional[out.FixRegex] = None
 
     # ???
     index: int = 0
@@ -84,7 +84,7 @@ class RuleMatch:
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
 
-    # TODO: return a v1.RuleId
+    # TODO: return a out.RuleId
     @property
     def rule_id(self) -> str:
         return self.match.rule_id.value
@@ -260,7 +260,7 @@ class RuleMatch:
         """
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
-    def to_app_finding_format(self, commit_date: str) -> v1.Finding:
+    def to_app_finding_format(self, commit_date: str) -> out.Finding:
         """
         commit_date here for legacy reasons.
         commit date of the head commit in epoch time
@@ -275,8 +275,8 @@ class RuleMatch:
         else:
             app_severity = 0
 
-        ret = v1.Finding(
-            check_id=v1.RuleId(self.rule_id),
+        ret = out.Finding(
+            check_id=out.RuleId(self.rule_id),
             path=str(self.path),
             line=self.start.line,
             column=self.start.col,
@@ -287,7 +287,7 @@ class RuleMatch:
             index=self.index,
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
-            metadata=v1.RawJson(v1._Identity(self.metadata)),
+            metadata=out.RawJson(out._Identity(self.metadata)),
             is_blocking=self.is_blocking,
         )
 

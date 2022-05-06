@@ -6,7 +6,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -19,7 +19,7 @@ class BaseFormatter(abc.ABC):
         rules: FrozenSet[Rule],
         rule_matches: Sequence[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
-        cli_output_extra: v1.CliOutputExtra,
+        cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         shown_severities: Collection[RuleSeverity],
     ) -> str:
@@ -39,7 +39,7 @@ class BaseFormatter(abc.ABC):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
-        cli_output_extra: v1.CliOutputExtra,
+        cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         raise NotImplementedError
