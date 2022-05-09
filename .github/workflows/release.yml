@@ -308,7 +308,7 @@ jobs:
         id: python-setup
         with:
           # Pin to python 3.9 for pipgrip issues: see https://github.com/returntocorp/semgrep/issues/4213
-          python-version: '3.9.x'
+          python-version: "3.9.x"
       - name: Brew update
         run: brew update
       - name: Install brew pipgrip
