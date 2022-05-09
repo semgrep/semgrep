@@ -477,7 +477,7 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: core.Time,
+        timing: core.CoreTiming,
     ) -> None:
         targets = [Path(t.path) for t in timing.targets]
 
@@ -684,7 +684,7 @@ class CoreRunner:
             outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if err.error_type == "Timeout":
+                if isinstance(err.error_type.value, core.Timeout):
                     assert err.location.path is not None
 
                     file_timeouts[Path(err.location.path)] += 1

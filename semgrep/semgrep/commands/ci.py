@@ -399,7 +399,7 @@ def ci(
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 
     output_handler.output(
-        blocking_matches_by_rule,
+        {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
         all_targets=all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
@@ -407,14 +407,13 @@ def ci(
         profiling_data=profiling_data,
         severities=shown_severities,
     )
+
     logger.info(
         f"Ran {len(blocking_rules)} blocking rules, {len(nonblocking_rules)} audit rules, and {len(cai_rules)} internal rules used for rule recommendations."
     )
-    if num_nonblocking_findings:
-        logger.info(
-            f"{num_nonblocking_findings} findings were from rules in audit rule board. These non-blocking findings are not displayed."
-        )
-
+    logger.info(
+        f"Found {num_blocking_findings} findings from blocking rules and {num_nonblocking_findings} findings from non-blocking rules"
+    )
     if scan_handler:
         logger.info("Reporting findings to semgrep.dev ...")
         scan_handler.report_findings(

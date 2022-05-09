@@ -98,6 +98,7 @@ repos:
           - --remove-duplicate-keys
           - --remove-all-unused-imports
           - --ignore-init-module-imports
+          - --exclude=/semgrep/semgrep/output_from_core.py
 
   - repo: https://github.com/returntocorp/semgrep
     rev: "0.86.5-tmp-fix-pre-commit"

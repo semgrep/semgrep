@@ -4,6 +4,7 @@ module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
 module E = Semgrep_error_code
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -293,8 +294,7 @@ let regression_tests_for_lang ~with_caching files lang =
                      let minii_loc =
                        Parse_info.unsafe_token_location_of_info minii
                      in
-                     E.error "test pattern" minii_loc ""
-                       (E.SemgrepMatchFound ""))
+                     E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
                    (Config_semgrep.default_config, equiv)
                    [ rule ] (file, lang, ast)
                  |> ignore;
@@ -486,7 +486,7 @@ let tainting_test lang rules_file file =
     |> Common.map (fun m ->
            {
              rule_id = Some m.P.rule_id.id;
-             E.typ = SemgrepMatchFound m.P.rule_id.id;
+             E.typ = Out.SemgrepMatchFound;
              loc = fst m.range_loc;
              msg = m.P.rule_id.message;
              details = None;

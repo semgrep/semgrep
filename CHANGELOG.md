@@ -4,6 +4,31 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- The JSON output of `semgrep scan` is now fully specified using
+  ATD (https://atd.readthedocs.io/) and jsonschema (https://json-schema.org/).
+  See the semgrep-interfaces submodule under interfaces/
+  (e.g., interfaces/semgrep-interfaces/Semgrep_output_v0.atd for the ATD spec)
+- The JSON output of `semgrep scan` now contains a "version": field with the
+  version of Semgrep used to generate the match results.
+
+### Fixed
+
+- OCaml: Parenthesis in autofixed code will no longer leave dangling closing-paren.
+  Thanks to Elliott Cable for his contribution (#5087)
+
+## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
+
+### Added
+
+- `--core-opts` flag to send options to semgrep-core. For internal use:
+  no guarantees made for semgrep-core options (#5111)
+
+### Changed
+
+- `semgrep ci` prints out all findings instead of hiding nonblocking findings (#5116)
+
 ## [0.90.0](https://github.com/returntocorp/semgrep/releases/tag/v0.90.0) - 2022-04-26
 
 ### Added

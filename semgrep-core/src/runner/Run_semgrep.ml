@@ -96,7 +96,7 @@ let timeout_function file timeout f =
   | Some res -> res
   | None ->
       let loc = PI.first_loc_of_file file in
-      let err = E.mk_error loc "" E.Timeout in
+      let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
 (*****************************************************************************)
@@ -213,7 +213,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
                   offending_rules cnt pat)
-               E.TooManyMatches
+               Out.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -339,10 +339,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                            (match exn with
                            | Match_rules.File_timeout ->
                                logger#info "Timeout on %s" file;
-                               E.Timeout
+                               Out.Timeout
                            | Out_of_memory ->
                                logger#info "OutOfMemory on %s" file;
-                               E.OutOfMemory
+                               Out.OutOfMemory
                            | _ -> raise Impossible);
                        ];
                      skipped_targets = [];
@@ -572,7 +572,7 @@ let semgrep_with_rules_and_formatted_output config =
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = Out.string_of_match_results res in
+      let s = Out.string_of_core_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
       match exn with
@@ -656,7 +656,7 @@ let semgrep_with_one_pattern config =
         semgrep_with_rules config (([ rule ], []), rules_parse_time)
       in
       let json = JSON_report.match_results_of_matches_and_errors files res in
-      let s = Out.string_of_match_results json in
+      let s = Out.string_of_core_match_results json in
       pr s
   | Text ->
       let minirule, _rules_parse_time =

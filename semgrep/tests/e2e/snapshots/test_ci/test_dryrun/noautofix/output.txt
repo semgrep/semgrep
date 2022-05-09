@@ -7,12 +7,37 @@ Fetching configuration from semgrep.dev
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
 
+Findings:
+
+  foo.py 
+     eqeq-bad
+        useless comparison
+
+          4┆ a == a
+          ⋮┆----------------------------------------
+          5┆ a == a
+          ⋮┆----------------------------------------
+          7┆ a == a
+          ⋮┆----------------------------------------
+         11┆ y == y
+          ⋮┆----------------------------------------
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ x == 2
+         15┆ x == 5
+          ⋮┆----------------------------------------
+     eqeq-four
+        useless comparison to 4
+
+         19┆ baz == 4
+
 Some files were skipped.
   Scan was limited to files tracked by git.
 
-Ran 4 rules on 1 file: 5 findings.
+Ran 4 rules on 1 file: 6 findings.
 Ran 2 blocking rules, 1 audit rules, and 1 internal rules used for rule recommendations.
-1 findings were from rules in audit rule board. These non-blocking findings are not displayed.
+Found 5 findings from blocking rules and 1 findings from non-blocking rules
 Reporting findings to semgrep.dev ...
 Would have sent findings blob: {
     "token": null,

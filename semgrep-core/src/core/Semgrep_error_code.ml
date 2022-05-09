@@ -1,40 +1,23 @@
 open Common
 module PI = Parse_info
+module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(* TODO: we should define this in Output_from_core.atd *)
+(* See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
+ * filter_maybe_parse_and_fatal_errors.
+ * less: we should define everything in Output_from_core.atd, not just typ:
+ *)
 type error = {
   rule_id : Rule.rule_id option;
-  typ : error_kind;
+  typ : Out.core_error_kind;
   loc : Parse_info.token_location;
   msg : string;
   details : string option;
   yaml_path : string list option;
 }
 
-and error_kind =
-  (* File parsing related errors.
-   * See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
-   * filter_maybe_parse_and_fatal_errors
-   *)
-  | LexicalError
-  | ParseError (* aka SyntaxError *)
-  | SpecifiedParseError
-  | AstBuilderError
-  (* pattern parsing related errors *)
-  | RuleParseError
-  | PatternParseError
-  | InvalidYaml
-  (* matching (semgrep) related *)
-  | MatchingError (* internal error, e.g., NoTokenLocation *)
-  | SemgrepMatchFound of string (* check_id *)
-  | TooManyMatches
-  (* other *)
-  | FatalError (* missing file, OCaml errors, etc. *)
-  | Timeout
-  | OutOfMemory
-
+(* TODO: define also in Output_from_core.atd *)
 type severity = Error | Warning
 
 let g_errors = ref []
@@ -51,10 +34,10 @@ let please_file_issue_text =
 let mk_error ?(rule_id = None) loc msg err =
   let msg =
     match err with
-    | MatchingError
-    | AstBuilderError
-    | FatalError
-    | TooManyMatches ->
+    | Out.MatchingError
+    | Out.AstBuilderError
+    | Out.FatalError
+    | Out.TooManyMatches ->
         Printf.sprintf "%s\n\n%s" please_file_issue_text msg
     | _ -> msg
   in
@@ -73,7 +56,7 @@ let error rule_id loc msg err =
 let exn_to_error ?(rule_id = None) file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) ->
-      mk_error_tok ~rule_id tok s LexicalError
+      mk_error_tok ~rule_id tok s Out.LexicalError
   | Parse_info.Parsing_error tok ->
       let msg =
         match tok with
@@ -81,15 +64,15 @@ let exn_to_error ?(rule_id = None) file exn =
             spf "`%s` was unexpected" str
         | _ -> "unknown reason"
       in
-      mk_error_tok tok msg ParseError
+      mk_error_tok tok msg Out.ParseError
   | Parse_info.Other_error (s, tok) ->
-      mk_error_tok ~rule_id tok s SpecifiedParseError
+      mk_error_tok ~rule_id tok s Out.SpecifiedParseError
   | Rule.InvalidRule
       (Rule.InvalidPattern (_pattern, xlang, _message, yaml_path), rule_id, pos)
     ->
       {
         rule_id = Some rule_id;
-        typ = PatternParseError;
+        typ = Out.PatternParseError;
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
@@ -99,22 +82,23 @@ let exn_to_error ?(rule_id = None) file exn =
       }
   | Rule.InvalidRule (kind, rule_id, pos) ->
       let str = Rule.string_of_invalid_rule_error_kind kind in
-      mk_error_tok ~rule_id:(Some rule_id) pos str RuleParseError
-  | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg InvalidYaml
-  | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok ~rule_id pos s InvalidYaml
+      mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError
+  | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg Out.InvalidYaml
+  | Rule.DuplicateYamlKey (s, pos) ->
+      mk_error_tok ~rule_id pos s Out.InvalidYaml
   | Common.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
-      mk_error ~rule_id loc msg Timeout
+      mk_error ~rule_id loc msg Out.Timeout
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error ~rule_id loc "Heap space exceeded" OutOfMemory
+      mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory
   | ExceededMemoryLimit msg ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error ~rule_id loc msg OutOfMemory
+      mk_error ~rule_id loc msg Out.OutOfMemory
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
@@ -122,7 +106,7 @@ let exn_to_error ?(rule_id = None) file exn =
       let loc = Parse_info.first_loc_of_file file in
       {
         rule_id;
-        typ = FatalError;
+        typ = Out.FatalError;
         loc;
         msg = Common.exn_to_s exn;
         details = Some trace;
@@ -132,26 +116,6 @@ let exn_to_error ?(rule_id = None) file exn =
 (*****************************************************************************)
 (* Pretty printers *)
 (*****************************************************************************)
-
-let string_of_error_kind = function
-  | LexicalError -> "Lexical error"
-  | ParseError -> "Syntax error"
-  | SpecifiedParseError -> "Other syntax error"
-  | AstBuilderError -> "AST builder error"
-  (* pattern parsing related errors *)
-  | RuleParseError -> "Rule parse error"
-  | PatternParseError -> "Pattern parse error"
-  | InvalidYaml -> "Invalid YAML"
-  (* semgrep *)
-  | SemgrepMatchFound check_id ->
-      (* TODO: please make the error message obvious to the user *)
-      spf "Semgrep match found by '%s'" check_id
-  | MatchingError -> "Internal matching error"
-  | TooManyMatches -> "Too many matches"
-  (* other *)
-  | FatalError -> "Fatal error"
-  | Timeout -> "Timeout"
-  | OutOfMemory -> "Out of memory"
 
 let source_of_string = function
   | "" -> "<input>"
@@ -167,24 +131,24 @@ let string_of_error err =
   spf "%s:%d:%d: %s: %s%s"
     (source_of_string pos.PI.file)
     pos.PI.line pos.PI.column
-    (string_of_error_kind err.typ)
+    (Out.string_of_core_error_kind err.typ)
     err.msg details
 
 let severity_of_error typ =
   match typ with
-  | SemgrepMatchFound _title -> Error
-  | MatchingError -> Warning
-  | TooManyMatches -> Warning
-  | LexicalError -> Warning
-  | ParseError -> Warning
-  | SpecifiedParseError -> Warning
-  | AstBuilderError -> Error
-  | RuleParseError -> Error
-  | PatternParseError -> Error
-  | InvalidYaml -> Warning
-  | FatalError -> Error
-  | Timeout -> Warning
-  | OutOfMemory -> Warning
+  | Out.SemgrepMatchFound -> Error
+  | Out.MatchingError -> Warning
+  | Out.TooManyMatches -> Warning
+  | Out.LexicalError -> Warning
+  | Out.ParseError -> Warning
+  | Out.SpecifiedParseError -> Warning
+  | Out.AstBuilderError -> Error
+  | Out.RuleParseError -> Error
+  | Out.PatternParseError -> Error
+  | Out.InvalidYaml -> Warning
+  | Out.FatalError -> Error
+  | Out.Timeout -> Warning
+  | Out.OutOfMemory -> Warning
 
 (*****************************************************************************)
 (* Try with error *)
