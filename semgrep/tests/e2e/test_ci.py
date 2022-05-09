@@ -358,6 +358,28 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
+def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
+    repo_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    with ci_mocks(base_commit, autofix):
+        runner = CliRunner(
+            env={
+                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+            }
+        )
+        result = runner.invoke(cli, ["ci", "--config", "p/something", "--json"], env={})
+        sanitized_output = result.output.replace(
+            __VERSION__, "<sanitized semgrep_version>"
+        )
+        sanitized_output = re.sub(
+            r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+        )
+        snapshot.assert_match(sanitized_output, "output.txt")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
 
