@@ -97,7 +97,6 @@ def make_dependency_trie(
     # Triple for loop, but the outer two are (basically) constant time and guaranteed to be almost instant
     for namespace in namespaces:
         for lockfile_type in NAMESPACE_TO_LOCKFILES[namespace]:
-            # glob produces a set, which we turn into a sorted list for consistent results
             lockfiles: Iterable[Path] = target.glob("**/" + lockfile_type)
             lockfiles = (
                 target_manager.file_ignore.filter_paths(candidates=lockfiles).kept
