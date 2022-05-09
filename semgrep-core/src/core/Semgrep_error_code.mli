@@ -1,33 +1,11 @@
 type error = {
   rule_id : Rule.rule_id option;
-  typ : error_kind;
+  typ : Output_from_core_t.core_error_kind;
   loc : Parse_info.token_location;
   msg : string;
   details : string option;
   yaml_path : string list option;
 }
-
-and error_kind =
-  (* File parsing related errors.
-   * See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
-   * filter_maybe_parse_and_fatal_errors
-   *)
-  | LexicalError
-  | ParseError (* aka SyntaxError *)
-  | SpecifiedParseError
-  | AstBuilderError
-  (* pattern parsing related errors *)
-  | RuleParseError
-  | PatternParseError
-  | InvalidYaml
-  (* matching (semgrep) related *)
-  | MatchingError (* internal error, e.g., NoTokenLocation *)
-  | SemgrepMatchFound of string (* check_id TODO: what is this for? *)
-  | TooManyMatches
-  (* other *)
-  | FatalError (* missing file, OCaml errors, etc. *)
-  | Timeout
-  | OutOfMemory
 
 type severity = Error | Warning
 
@@ -42,11 +20,15 @@ val mk_error :
   ?rule_id:Rule.rule_id option ->
   Parse_info.token_location ->
   string ->
-  error_kind ->
+  Output_from_core_t.core_error_kind ->
   error
 
 val error :
-  Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> unit
+  Rule.rule_id ->
+  Parse_info.token_location ->
+  string ->
+  Output_from_core_t.core_error_kind ->
+  unit
 
 val exn_to_error :
   ?rule_id:Rule.rule_id option -> Common.filename -> exn -> error
@@ -69,8 +51,7 @@ val try_with_print_exn_and_exit_fast : Common.filename -> (unit -> unit) -> unit
 (*****************************************************************************)
 
 val string_of_error : error -> string
-val string_of_error_kind : error_kind -> string
-val severity_of_error : error_kind -> severity
+val severity_of_error : Output_from_core_t.core_error_kind -> severity
 
 (*****************************************************************************)
 (* Helpers for unit testing *)

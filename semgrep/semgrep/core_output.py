@@ -54,7 +54,9 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if err.error_type == "Syntax error" or err.error_type == "Lexical error":
+    if isinstance(err.error_type.value, core.ParseError) or isinstance(
+        err.error_type.value, core.LexicalError
+    ):
         code = 3
         final_rule_id = None  # Rule id not important for parse errors
     else:

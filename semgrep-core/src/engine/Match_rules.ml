@@ -18,6 +18,7 @@ module R = Rule
 module RP = Report
 module Resp = Output_from_core_t
 module E = Semgrep_error_code
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -136,7 +137,8 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                          RP.matches = [];
                          errors =
                            [
-                             E.mk_error ~rule_id:(Some rule_id) loc "" E.Timeout;
+                             E.mk_error ~rule_id:(Some rule_id) loc ""
+                               Out.Timeout;
                            ];
                          skipped_targets = [];
                          profiling = RP.empty_rule_profiling r;
