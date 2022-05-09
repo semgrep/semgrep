@@ -62,6 +62,11 @@ let _str = H.str
 let todo (env : env) _ = failwith "not implemented"
 let map_name (env : env) tok : A.name = [ _str env tok ]
 
+let map_ref_expr (env : env) tok expr : A.expr =
+  match tok with
+  | Some tok -> (* "&" *) A.Ref (token env tok, expr)
+  | None -> expr
+
 let map_primitive_type (env : env) (x : CST.primitive_type) : A.hint_type =
   match x with
   | `Array tok -> (* "array" *) HintArray (token env tok)
@@ -133,8 +138,9 @@ let map_named_label_statement (env : env) ((v1, v2) : CST.named_label_statement)
 
 let map_variable_name (env : env) ((v1, v2) : CST.variable_name) =
   let v1 = (* "$" *) token env v1 in
-  (* TODO add $ *)
-  [ _str env v2 ]
+  let v2str, v2tok = _str env v2 in
+  let combined = Parse_info.combine_infos v1 [ v2tok ] in
+  [ ("$" ^ v2str, combined) ]
 
 let map_namespace_aliasing_clause (env : env)
     ((v1, v2) : CST.namespace_aliasing_clause) =
@@ -1143,13 +1149,9 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
         | `List_lit x -> map_list_literal env x
       in
       let v2 = (* "=" *) token env v2 in
-      let v3 =
-        match v3 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
-      in
       let v4 = map_expression env v4 in
-      todo env (v1, v2, v3, v4)
+      let v4 = map_ref_expr env v3 v4 in
+      A.Assign (v1, v2, v4)
   | `Yield_exp (v1, v2) ->
       let v1 = (* "yield" *) token env v1 in
       let v2 =
