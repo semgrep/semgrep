@@ -306,6 +306,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
+          # Pin to python 3.9 for pipgrip issues: see https://github.com/returntocorp/semgrep/issues/4213
           python-version: '3.9.*'
       - name: Get Python Version
         id: python-version
