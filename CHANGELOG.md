@@ -13,6 +13,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - The JSON output of `semgrep scan` now contains a "version": field with the
   version of Semgrep used to generate the match results.
 
+### Fixed
+
+- OCaml: Parenthesis in autofixed code will no longer leave dangling closing-paren.
+  Thanks to Elliott Cable for his contribution (#5087)
+
 ## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
 
 ### Added
@@ -43,10 +48,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Keep only latest run logs in last.log file (#5070)
-
-### Fixed
-
-- Parenthesis in autofixed OCaml code will no longer leave dangling closing-paren (#5087)
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
