@@ -11,15 +11,19 @@ jobs:
   homebrew-core-pr-test:
     name: Update on Homebrew-Core
     runs-on: macos-10.15
-    strategy:
-      matrix:
-        python: ["3.9.12"]
     steps:
       - name: Setup Python
         uses: actions/setup-python@v1
-        with:
-          # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
-          python-version: ${{ matrix.python }}
+      - name: Get Python Version
+        id: python-version
+        run: |
+          # Input: Python 3.10.1
+          # Output: 3.10.1
+          # sed -n: only print match
+          # [Pp]ython : consume initial output up to first digit
+          # [0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*: match a pattern of three groups of one or more digits and dots, using basic RE
+          PYTHON_VERSION=$(python --version 2>&1 | sed -n 's|[Pp]ython \([0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*\)*$|\1|p')
+          echo ::set-output name=python_version::"$PYTHON_VERSION"
       - name: Brew update
         run: brew update
       - name: Install brew pipgrip
@@ -29,7 +33,7 @@ jobs:
       - name: Point homebrew pipgrip to pip pipgrip
         # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
         # this tricks it into using our 3.9 pipgrip
-        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/${{ matrix.python }}/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
+        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln "/Users/runner/hostedtoolcache/Python/${{ steps.python-version.outputs.python_version }}/x64/bin/pipgrip" /usr/local/opt/pipgrip/bin/pipgrip
       # - uses: dawidd6/action-homebrew-bump-formula@v3
       #   with:
       #     token: ${{ secrets.HOMEBREW_PR_TOKEN }}
