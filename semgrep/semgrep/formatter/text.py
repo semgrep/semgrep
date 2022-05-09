@@ -208,7 +208,8 @@ class TextFormatter(BaseFormatter):
             if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
         ]
         errors = {
-            (err.core.location.path, err.core.error_type) for err in semgrep_core_errors
+            (err.core.location.path, err.core.error_type.kind)
+            for err in semgrep_core_errors
         }
 
         error_types = {k: len(list(v)) for k, v in groupby(errors, lambda x: x[1])}

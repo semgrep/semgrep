@@ -96,7 +96,7 @@ let timeout_function file timeout f =
   | Some res -> res
   | None ->
       let loc = PI.first_loc_of_file file in
-      let err = E.mk_error loc "" E.Timeout in
+      let err = E.mk_error loc "" Out.Timeout in
       Common.push err E.g_errors
 
 (*****************************************************************************)
@@ -213,7 +213,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
                   offending_rules cnt pat)
-               E.TooManyMatches
+               Out.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -339,10 +339,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                            (match exn with
                            | Match_rules.File_timeout ->
                                logger#info "Timeout on %s" file;
-                               E.Timeout
+                               Out.Timeout
                            | Out_of_memory ->
                                logger#info "OutOfMemory on %s" file;
-                               E.OutOfMemory
+                               Out.OutOfMemory
                            | _ -> raise Impossible);
                        ];
                      skipped_targets = [];

@@ -85,13 +85,6 @@ class SemgrepError(Exception):
     def semgrep_error_type(self) -> str:
         return type(self).__name__
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":
-        """
-        Instantiates class from dict representation
-        """
-        return cls(**data)
-
 
 @dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
@@ -101,15 +94,16 @@ class SemgrepCoreError(SemgrepError):
     core: core.CoreError
 
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
-        base = dataclasses.replace(base, type_=self.core.error_type, message=str(self))
+        base = dataclasses.replace(
+            base, type_=self.core.error_type.to_json(), message=str(self)
+        )
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
         # For rule errors path is a temp file so for now will just be confusing to add
-        if (
-            self.core.error_type != "Rule parse error"
-            and self.core.error_type != "Pattern parse error"
-        ):
+        if not isinstance(
+            self.core.error_type.value, core.RuleParseError
+        ) and not isinstance(self.core.error_type.value, core.PatternParseError):
             base = dataclasses.replace(base, path=str(self.core.location.path))
 
         if self.spans:
@@ -121,10 +115,10 @@ class SemgrepCoreError(SemgrepError):
         """
         Return if this error is a match timeout
         """
-        return self.core.error_type == "Timeout"
+        return isinstance(self.core.error_type.value, core.Timeout)
 
     def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self.core.error_type}"
+        return f"{type(self).__name__}: {self.core.error_type.to_json()}"
 
     @property
     def _error_message(self) -> str:
@@ -133,10 +127,9 @@ class SemgrepCoreError(SemgrepError):
         """
         if self.core.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
-            if (
-                self.core.error_type == "Rule parse error"
-                or self.core.error_type == "Pattern parse error"
-            ):
+            if isinstance(
+                self.core.error_type.value, core.RuleParseError
+            ) or isinstance(self.core.error_type.value, core.PatternParseError):
                 error_context = f"in rule {self.core.rule_id.value}"
             else:
                 error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
@@ -145,14 +138,16 @@ class SemgrepCoreError(SemgrepError):
                 f"at line {self.core.location.path}:{self.core.location.start.line}"
             )
 
-        return f"{self.core.error_type} {error_context}:\n {self.core.message}"
+        return (
+            f"{self.core.error_type.to_json()} {error_context}:\n {self.core.message}"
+        )
 
     @property
     def _stack_trace(self) -> str:
         """
         Returns stack trace if error_type is Fatal error else returns empty strings
         """
-        if self.core.error_type == "Fatal error":
+        if isinstance(self.core.error_type.value, core.FatalError):
             error_trace = self.core.details or "<no stack trace returned>"
             return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
@@ -177,7 +172,7 @@ class SemgrepCoreError(SemgrepError):
                 self.code,
                 self.level,
                 self.core.rule_id,
-                self.core.error_type,
+                self.core.error_type.kind,
                 self.core.location.path,
                 self.core.location.start,
                 self.core.location.end,
