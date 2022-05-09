@@ -28,6 +28,7 @@ import pytest
         ),
         ("rules/autofix/java-string-wrap.yaml", "autofix/java-string-wrap.java"),
         ("rules/autofix/two-autofixes.yaml", "autofix/two-autofixes.txt"),
+        ("rules/autofix/ocaml_paren_expr.yaml", "autofix/ocaml_paren_expr.ml"),
     ],
 )
 @pytest.mark.kinda_slow
