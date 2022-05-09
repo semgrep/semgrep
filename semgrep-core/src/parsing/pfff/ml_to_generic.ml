@@ -236,6 +236,12 @@ and expr e =
       match e.G.e with
       (* replace fake brackets with real one *)
       | G.Container (G.Tuple, (_, xs, _)) -> G.Container (G.Tuple, (l, xs, r))
+      (* actually, always keep the ParenExpr for now, so that autofix does not
+       * have dangling parenthesis
+       * TODO: this may prevent some matching in generic_vs_generic.
+       * Maybe we should have a pre-phase that set the e_range correctly and
+       * remove the extra ParenExpr.
+       *)
       | _kind -> G.ParenExpr (l, e, r))
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
