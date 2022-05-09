@@ -305,11 +305,14 @@ jobs:
     steps:
       - name: Setup Python
         uses: actions/setup-python@v1
+        with:
+          python-version: '3.9.*'
       - name: Get Python Version
         id: python-version
         run: |
-          # Input: Python 3.10.1
-          # Output: 3.10.1
+          # older versions of python pass the version output on stderr, redirect this to stdout
+          # Input: Python 3.9.12
+          # Output: 3.9.12
           # sed -n: only print match
           # [Pp]ython : consume initial output up to first digit
           # [0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*: match a pattern of three groups of one or more digits and dots, using basic RE
