@@ -26,6 +26,21 @@ let todo (env : env) _ = failwith "not implemented"
 let expr_of_type type_ =
   G.OtherExpr (("TypeExpr", PI.unsafe_fake_info ""), [ G.T type_ ]) |> G.e
 
+(* Semicolons are associated in the CST with the following statement rather than
+ * the previous statement. The grammar is slightly more brief this way, but it
+ * leads to a strange CST structure. We might consider updating the grammar to
+ * make this unnecessary. *)
+let associate_statement_semis (fst_stmt : 'a) (stmts : ('b * 'a) list)
+    (last_semi : 'b option) : ('a * 'b option) list =
+  let rec f = function
+    | [] -> ([], last_semi)
+    | (prev_semi, stmt) :: tl ->
+        let lst, semi = f tl in
+        ((stmt, semi) :: lst, Some prev_semi)
+  in
+  let lst, semi = f stmts in
+  (fst_stmt, semi) :: lst
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -653,12 +668,6 @@ and map_anon_choice_equal_sign_exp_74a2b17 (env : env)
       todo env (v1, v2)
   | `Comp_prop x -> map_computed_property env x
 
-and map_anon_choice_exp_129f951 (env : env) (x : CST.anon_choice_exp_129f951) =
-  match x with
-  | `Exp x -> map_expression env x
-  | `Call_exp x -> map_call_expression env x
-  | `Tern_exp x -> map_ternary_expression env x
-
 and map_anon_choice_is_type_846e790 (env : env)
     (x : CST.anon_choice_is_type_846e790) =
   match x with
@@ -993,7 +1002,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
   | `Conj_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* conjunction_operator_custom *) token env v2 in
-      let v3 = map_expression env v3 in
+      let v3 = map_anon_choice_exp_764291a env v3 in
       G.opcall (G.And, v2) [ v1; v3 ]
   | `Disj_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1091,7 +1100,7 @@ and map_call_expression (env : env) ((v1, v2) : CST.call_expression) : G.expr =
 
 and map_call_suffix (env : env) (v1 : CST.call_suffix) : G.arguments =
   match v1 with
-  | `Value_args x -> map_expr_hack_at_ternary_call_suffix env x
+  | `Value_args x -> map_expr_hack_at_ternary_binary_call_suffix env x
   | `Lambda_lit_rep_simple_id_COLON_lambda_lit (v1, v2) ->
       (* When one or more lambda literals are provided after (or instead of)
        * parenthesized arguments to a function call, they are the final
@@ -1351,16 +1360,6 @@ and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.enum_entry) =
     | None -> todo env ()
   in
   todo env (v1, v2, v3, v4, v5, v6, v7)
-
-and map_expr_hack_at_ternary_call (env : env)
-    ((v1, v2) : CST.expr_hack_at_ternary_call) =
-  let v1 = map_expression env v1 in
-  let v2 = map_expr_hack_at_ternary_call_suffix env v2 in
-  G.Call (v1, v2) |> G.e
-
-and map_expr_hack_at_ternary_call_suffix (env : env)
-    (x : CST.expr_hack_at_ternary_call_suffix) =
-  map_value_arguments env x
 
 and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
@@ -2300,14 +2299,25 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
   | `Super_exp v1 -> G.IdSpecial (G.Super, (* "super" *) token env v1) |> G.e
   | `Try_exp (v1, v2) ->
       let v1 = map_try_operator env v1 in
-      let v2 = map_anon_choice_exp_129f951 env v2 in
+      let v2 =
+        match v2 with
+        | `Exp x -> map_expression env x
+        | `Bin_exp x -> map_binary_expression env x
+        | `Call_exp x -> map_call_expression env x
+        | `Tern_exp x -> map_ternary_expression env x
+      in
       (* This is not like a try statement in most languages.
        * https://docs.swift.org/swift-book/LanguageGuide/ErrorHandling.html *)
       (* TODO differentiate between the try kinds? *)
       G.OtherExpr (("Try", v1), [ G.E v2 ]) |> G.e
   | `Await_exp (v1, v2) ->
       let v1 = (* "await" *) token env v1 in
-      let v2 = map_anon_choice_exp_129f951 env v2 in
+      let v2 =
+        match v2 with
+        | `Exp x -> map_expression env x
+        | `Call_exp x -> map_call_expression env x
+        | `Tern_exp x -> map_ternary_expression env x
+      in
       G.Await (v1, v2) |> G.e
   | `Refe_op x -> map_referenceable_operator env x |> todo env
   | `Key_path_exp (v1, v2, v3) ->
@@ -2492,21 +2502,6 @@ and map_simple_user_type (env : env) (x : CST.simple_user_type) :
       | Some x -> (v1, Some (map_type_arguments env x))
       | None -> (v1, None))
 
-(* Semicolons are associated in the CST with the following statement rather than
- * the previous statement. The grammar is slightly more brief this way, but it
- * leads to a strange CST structure. We might consider updating the grammar to
- * make this unnecessary. *)
-and associate_statement_semis (fst_stmt : 'a) (stmts : ('b * 'a) list)
-    (last_semi : 'b option) : ('a * 'b option) list =
-  let rec f = function
-    | [] -> ([], last_semi)
-    | (prev_semi, stmt) :: tl ->
-        let lst, semi = f stmts in
-        ((stmt, semi) :: lst, Some prev_semi)
-  in
-  let lst, semi = f stmts in
-  (fst_stmt, semi) :: lst
-
 and map_statements (env : env) ((v1, v2, v3) : CST.statements) =
   let stmts = associate_statement_semis v1 v2 v3 in
   Common.map (fun (stmt, semi) -> map_local_statement env stmt semi) stmts
@@ -2637,17 +2632,25 @@ and map_switch_statement (env : env)
   let v5 = (* "}" *) token env v5 in
   todo env (v1, v2, v3, v4, v5)
 
+and map_anon_choice_exp_764291a (env : env) (x : CST.anon_choice_exp_764291a) =
+  match x with
+  | `Exp x -> map_expression env x
+  | `Expr_hack_at_tern_bin_call (v1, v2) ->
+      let v1 = map_expression env v1 in
+      let v2 = map_expr_hack_at_ternary_binary_call_suffix env v2 in
+      G.Call (v1, v2) |> G.e
+
+and map_expr_hack_at_ternary_binary_call_suffix (env : env)
+    (x : CST.expr_hack_at_ternary_binary_call_suffix) =
+  map_value_arguments env x
+
 and map_ternary_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.ternary_expression) =
   let v1 = map_expression env v1 in
   let v2 = (* "?" *) token env v2 in
   let v3 = map_expression env v3 in
   let v4 = (* ":" *) token env v4 in
-  let v5 =
-    match v5 with
-    | `Exp x -> map_expression env x
-    | `Expr_hack_at_tern_call x -> map_expr_hack_at_ternary_call env x
-  in
+  let v5 = map_anon_choice_exp_764291a env v5 in
   G.Conditional (v1, v3, v5) |> G.e
 
 and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
@@ -3064,17 +3067,28 @@ let map_global_declaration (env : env) (x : CST.global_declaration) =
   | `Asso_decl x -> map_associatedtype_declaration env x
 
 let map_top_level_statement (env : env) (x : CST.top_level_statement)
-    (semi : CST.semi) =
+    (semi : CST.semi option) =
   match x with
   | `Exp x ->
       let expr = map_expression env x in
-      let semi = token env semi in
+      let semi =
+        match semi with
+        | Some tok -> token env tok
+        | None -> G.sc
+      in
       G.ExprStmt (expr, semi) |> G.s
   | `Global_decl x -> map_global_declaration env x
   | `Labe_stmt x -> map_labeled_statement env x
   | `Throw_stmt x -> map_throw_statement env x |> todo env
 
-let map_source_file (env : env) ((_shebang, stmts) : CST.source_file) : G.any =
+let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
+    =
+  let stmts =
+    match program with
+    | None -> []
+    | Some (fst_stmt, stmts, last_semi) ->
+        associate_statement_semis fst_stmt stmts last_semi
+  in
   let stmts =
     Common.map (fun (stmt, semi) -> map_top_level_statement env stmt semi) stmts
   in
