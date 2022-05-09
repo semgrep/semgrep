@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Setup Python
         uses: actions/setup-python@v1
+        with:
+          python-version: '3.9.*'
       - name: Get Python Version
         id: python-version
         run: |
