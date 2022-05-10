@@ -104,12 +104,14 @@ let map_import_kind (env : env) (x : CST.import_kind) =
   | `Func tok -> (* "func" *) token env tok
 
 let map_optionally_valueful_control_keyword (env : env)
-    (x : CST.optionally_valueful_control_keyword) =
+    (x : CST.optionally_valueful_control_keyword) (expr : G.expr option) semi =
   match x with
-  | `Ret tok -> (* "return" *) token env tok
-  | `Cont tok -> (* "continue" *) token env tok
-  | `Brk tok -> (* "break" *) token env tok
-  | `Yield tok -> (* "yield" *) token env tok
+  | `Ret tok ->
+      let tok = (* "return" *) token env tok in
+      G.Return (tok, expr, semi) |> G.s
+  | `Cont tok -> (* "continue" *) token env tok |> todo env
+  | `Brk tok -> (* "break" *) token env tok |> todo env
+  | `Yield tok -> (* "yield" *) token env tok |> todo env
 
 let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) :
     G.operator * G.tok =
@@ -384,10 +386,10 @@ let map_identifier (env : env) ((v1, v2) : CST.identifier) =
       (fun (v1, v2) ->
         let v1 = (* dot_custom *) token env v1 in
         let v2 = map_simple_identifier env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
-  todo env (v1, v2)
+  v1 :: v2
 
 let map_navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) :
     G.tok * G.field_name =
@@ -466,7 +468,7 @@ let map_non_constructor_function_decl (env : env)
     | `Refe_op x -> map_referenceable_operator env x |> todo env
     | `Bitw_bin_op x -> map_bitwise_binary_operator env x |> todo env
   in
-  todo env (v1, v2)
+  v2
 
 let map_getter_specifier (env : env) ((v1, v2, v3) : CST.getter_specifier) =
   let v1 =
@@ -660,12 +662,12 @@ and map_enum_entry_suffix (env : env) (x : CST.enum_entry_suffix) =
       todo env (v1, v2)
 
 and map_anon_choice_equal_sign_exp_74a2b17 (env : env)
-    (x : CST.anon_choice_equal_sign_exp_74a2b17) =
+    (x : CST.anon_choice_equal_sign_exp_74a2b17) : G.expr =
   match x with
   | `Equal_sign_exp (v1, v2) ->
       let v1 = (* eq_custom *) token env v1 in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      v2
   | `Comp_prop x -> map_computed_property env x
 
 and map_anon_choice_is_type_846e790 (env : env)
@@ -1073,25 +1075,25 @@ and map_block (env : env) ((v1, v2, v3) : CST.block) =
   let v2 =
     match v2 with
     | Some x -> map_statements env x
-    | None -> todo env ()
+    | None -> []
   in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  G.Block (v1, v2, v3) |> G.s
 
 and map_bodyless_function_declaration (env : env)
-    ((v1, v2, v3) : CST.bodyless_function_declaration) =
+    ((v1, v2, v3) : CST.bodyless_function_declaration) body =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 =
     match v2 with
-    | Some tok -> (* "class" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "class" *) token env tok |> todo env
+    | None -> ()
   in
-  let v3 = map_modifierless_function_declaration_no_body env v3 in
-  todo env (v1, v2, v3)
+  let v3 = map_modifierless_function_declaration_no_body env v3 body in
+  v3
 
 and map_call_expression (env : env) ((v1, v2) : CST.call_expression) : G.expr =
   let v1 = map_expression env v1 in
@@ -1230,17 +1232,16 @@ and map_constructor_value_arguments (env : env)
   (v1, v2, v3)
 
 and map_control_transfer_statement (env : env)
-    (x : CST.control_transfer_statement) =
+    (x : CST.control_transfer_statement) semi =
   match x with
   | `Throw_stmt x -> map_throw_statement env x
   | `Opti_valu_cont_kw_opt_exp (v1, v2) ->
-      let v1 = map_optionally_valueful_control_keyword env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_expression env x
-        | None -> todo env ()
+        | Some x -> Some (map_expression env x)
+        | None -> None
       in
-      todo env (v1, v2)
+      map_optionally_valueful_control_keyword env v1 v2 semi
 
 and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
   let v1 =
@@ -1464,12 +1465,13 @@ and map_for_statement (env : env)
   let v10 = map_function_body env v10 in
   todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
 
-and map_function_body (env : env) (x : CST.function_body) = map_block env x
+and map_function_body (env : env) (x : CST.function_body) : G.function_body =
+  G.FBStmt (map_block env x)
 
 and map_function_declaration (env : env) ((v1, v2) : CST.function_declaration) =
-  let v1 = map_bodyless_function_declaration env v1 in
   let v2 = map_function_body env v2 in
-  todo env (v1, v2)
+  let v1 = map_bodyless_function_declaration env v1 v2 in
+  v1
 
 and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
   let v1 = map_tuple_type env v1 in
@@ -1488,25 +1490,24 @@ and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
   todo env (v1, v2, v3, v4, v5)
 
 and map_function_value_parameter (env : env)
-    ((v1, v2, v3) : CST.function_value_parameter) =
+    ((v1, v2, v3) : CST.function_value_parameter) : G.parameter =
   let v1 =
     match v1 with
-    | Some x -> map_attribute env x
-    | None -> todo env ()
+    | Some x -> map_attribute env x |> todo env
+    | None -> ()
   in
-  let v2 = map_parameter env v2 in
   let v3 =
     match v3 with
     | Some (v1, v2) ->
         let v1 = (* eq_custom *) token env v1 in
         let v2 = map_expression env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some v2
+    | None -> None
   in
-  todo env (v1, v2, v3)
+  map_parameter env v2 v3
 
 and map_function_value_parameters (env : env)
-    ((v1, v2, v3) : CST.function_value_parameters) =
+    ((v1, v2, v3) : CST.function_value_parameters) : G.parameters =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
@@ -1517,14 +1518,14 @@ and map_function_value_parameters (env : env)
             (fun (v1, v2) ->
               let v1 = (* "," *) token env v1 in
               let v2 = map_function_value_parameter env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
-        todo env (v1, v2)
-    | None -> todo env ()
+        v1 :: v2
+    | None -> []
   in
   let v3 = (* ")" *) token env v3 in
-  todo env (v1, v2, v3)
+  v2
 
 and map_guard_statement (env : env) ((v1, v2, v3, v4, v5) : CST.guard_statement)
     =
@@ -1592,17 +1593,21 @@ and map_import_declaration (env : env)
     ((v1, v2, v3, v4) : CST.import_declaration) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 = (* "import" *) token env v2 in
   let v3 =
     match v3 with
-    | Some x -> map_import_kind env x
-    | None -> todo env ()
+    (* TODO do something with the import kind? *)
+    | Some x -> ignore (map_import_kind env x)
+    | None -> ()
   in
   let v4 = map_identifier env v4 in
-  todo env (v1, v2, v3, v4)
+  (* TODO Use ImportFrom for `import foo.bar.baz`? *)
+  G.DirectiveStmt
+    (G.ImportAll (v2, G.DottedName v4, PI.unsafe_fake_info "") |> G.d)
+  |> G.s
 
 and map_inheritance_specifier (env : env) (x : CST.inheritance_specifier) =
   match x with
@@ -1867,18 +1872,18 @@ and map_local_declaration (env : env) (x : CST.local_declaration) =
 
 and map_local_statement (env : env) (x : CST.local_statement)
     (semi : CST.semi option) : G.stmt =
+  let semi =
+    match semi with
+    | Some semi -> token env semi
+    | None -> G.sc
+  in
   match x with
   | `Exp x ->
       let expr = map_expression env x in
-      let semi =
-        match semi with
-        | Some semi -> token env semi
-        | None -> G.sc
-      in
       G.ExprStmt (expr, semi) |> G.s
   | `Local_decl x -> map_local_declaration env x
   | `Labe_stmt x -> map_labeled_statement env x |> todo env
-  | `Cont_tran_stmt x -> map_control_transfer_statement env x
+  | `Cont_tran_stmt x -> map_control_transfer_statement env x semi
 
 and map_locally_permitted_modifiers (env : env)
     (xs : CST.locally_permitted_modifiers) =
@@ -1976,13 +1981,13 @@ and map_modifierless_class_declaration (env : env)
 
 and map_modifierless_function_declaration (env : env)
     ((v1, v2) : CST.modifierless_function_declaration) =
-  let v1 = map_modifierless_function_declaration_no_body env v1 in
   let v2 = map_function_body env v2 in
+  let v1 = map_modifierless_function_declaration_no_body env v1 v2 in
   todo env (v1, v2)
 
 and map_modifierless_function_declaration_no_body (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) :
-      CST.modifierless_function_declaration_no_body) =
+      CST.modifierless_function_declaration_no_body) (body : G.function_body) =
   let v1 =
     match v1 with
     | `Cons_func_decl x -> map_constructor_function_decl env x
@@ -1991,88 +1996,96 @@ and map_modifierless_function_declaration_no_body (env : env)
   let v2 =
     match v2 with
     | Some x -> map_type_parameters env x
-    | None -> todo env ()
+    | None -> []
   in
   let v3 = map_function_value_parameters env v3 in
   let v4 =
     match v4 with
-    | Some tok -> (* async_keyword_custom *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* async_keyword_custom *) token env tok |> todo env
+    | None -> ()
   in
   let v5 =
     match v5 with
-    | Some x -> map_throws env x
-    | None -> todo env ()
+    | Some x -> map_throws env x |> todo env
+    | None -> ()
   in
   let v6 =
     match v6 with
     | Some (v1, v2) ->
         let v1 = (* arrow_operator_custom *) token env v1 in
         let v2 = map_possibly_implicitly_unwrapped_type env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some v2
+    | None -> None
   in
   let v7 =
     match v7 with
-    | Some x -> map_type_constraints env x
-    | None -> todo env ()
+    | Some x -> map_type_constraints env x |> todo env
+    | None -> ()
   in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  let entity = G.basic_entity ~tparams:v2 v1 in
+  let definition_kind =
+    G.FuncDef
+      { fkind = (Function, snd v1); fparams = v3; frettype = v6; fbody = body }
+  in
+  G.DefStmt (entity, definition_kind) |> G.s
+
+and map_single_var_declaration (env : env) pat tannot tconstraints init : G.stmt
+    =
+  let pat = map_property_binding_pattern env pat in
+  (* TODO Desugar single-element tuples? *)
+  let pat =
+    let entity_name =
+      match pat with
+      (* Unwrap PatId into a regular name. map_property_binding_pattern has to
+       * return a pattern because it is recursive, and might need to compose its
+       * return value into larger patterns. So, we have to unwrap here. *)
+      | G.PatId (id, id_info) -> G.EN (G.Id (id, id_info))
+      | pattern -> G.EPattern pattern
+    in
+    { G.name = entity_name; attrs = []; tparams = [] }
+  in
+  let tannot =
+    match tannot with
+    | Some x -> Some (map_type_annotation env x)
+    | None -> None
+  in
+  let tconstraints =
+    match tconstraints with
+    | Some x -> map_type_constraints env x |> todo env
+    | None -> ()
+  in
+  let init =
+    match init with
+    | Some x -> Some (map_anon_choice_equal_sign_exp_74a2b17 env x)
+    | None -> None
+  in
+  G.DefStmt (pat, G.VarDef { vinit = init; vtype = tannot }) |> G.s
 
 and map_modifierless_property_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6) : CST.modifierless_property_declaration) =
+    ((v1, v2, v3, v4, v5, v6) : CST.modifierless_property_declaration) :
+    G.stmt list =
+  (* kind *)
   let v1 =
     match v1 with
     | `Opt_async_modi_let (v1, v2) ->
         let v1 =
           match v1 with
-          | Some tok -> (* async_modifier *) token env tok
-          | None -> todo env ()
+          | Some tok -> (* async_modifier *) token env tok |> todo env
+          | None -> ()
         in
         let v2 = (* "let" *) token env v2 in
-        todo env (v1, v2)
+        v2
     | `Var tok -> (* "var" *) token env tok
   in
-  let v2 = map_property_binding_pattern env v2 in
-  let v3 =
-    match v3 with
-    | Some x -> map_type_annotation env x
-    | None -> todo env ()
-  in
-  let v4 =
-    match v4 with
-    | Some x -> map_type_constraints env x
-    | None -> todo env ()
-  in
-  let v5 =
-    match v5 with
-    | Some x -> map_anon_choice_equal_sign_exp_74a2b17 env x
-    | None -> todo env ()
-  in
-  let v6 =
+  let stmt1 = map_single_var_declaration env v2 v3 v4 v5 in
+  let stmts =
     Common.map
       (fun (v1, v2, v3, v4, v5) ->
         let v1 = (* "," *) token env v1 in
-        let v2 = map_property_binding_pattern env v2 in
-        let v3 =
-          match v3 with
-          | Some x -> map_type_annotation env x
-          | None -> todo env ()
-        in
-        let v4 =
-          match v4 with
-          | Some x -> map_type_constraints env x
-          | None -> todo env ()
-        in
-        let v5 =
-          match v5 with
-          | Some x -> map_anon_choice_equal_sign_exp_74a2b17 env x
-          | None -> todo env ()
-        in
-        todo env (v1, v2, v3, v4, v5))
+        map_single_var_declaration env v2 v3 v4 v5)
       v6
   in
-  todo env (v1, v2, v3, v4, v5, v6)
+  stmt1 :: stmts
 
 and map_modifierless_typealias_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.modifierless_typealias_declaration) =
@@ -2081,11 +2094,13 @@ and map_modifierless_typealias_declaration (env : env)
   let v3 =
     match v3 with
     | Some x -> map_type_parameters env x
-    | None -> todo env ()
+    | None -> []
   in
   let v4 = (* eq_custom *) token env v4 in
   let v5 = map_type_ env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  G.DefStmt
+    (G.basic_entity ~tparams:v3 v2, G.TypeDef { G.tbody = G.AliasType v5 })
+  |> G.s
 
 and map_modifiers (env : env) (xs : CST.modifiers) =
   Common.map
@@ -2123,10 +2138,11 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
   let dot, suffix = map_navigation_suffix env v2 in
   G.DotAccess (v1, dot, suffix) |> G.e
 
-and map_non_binding_pattern (env : env) ((v1, v2) : CST.non_binding_pattern) =
+and map_non_binding_pattern (env : env) ((v1, v2) : CST.non_binding_pattern) :
+    G.pattern =
   let v1 =
     match v1 with
-    | `Wild_pat tok -> (* "_" *) token env tok
+    | `Wild_pat tok -> (* "_" *) token env tok |> todo env
     | `LPAR_choice_simple_id_COLON_non_bind_pat_rep_COMMA_choice_simple_id_COLON_non_bind_pat_RPAR_opt_quest
         (v1, v2, v3, v4, v5) ->
         let v1 = (* "(" *) token env v1 in
@@ -2138,35 +2154,38 @@ and map_non_binding_pattern (env : env) ((v1, v2) : CST.non_binding_pattern) =
               let v2 =
                 map_anon_choice_simple_id_COLON_prop_bind_pat_37a24c0 env v2
               in
-              todo env (v1, v2))
+              v2)
             v3
         in
         let v4 = (* ")" *) token env v4 in
         let v5 =
           match v5 with
-          | Some tok -> (* "?" *) token env tok
-          | None -> todo env ()
+          | Some tok -> (* "?" *) token env tok |> todo env
+          | None -> ()
         in
-        todo env (v1, v2, v3, v4, v5)
-    | `Choice_is_type x -> map_anon_choice_is_type_9ebb9fc env x
+        G.PatTuple (v1, v2 :: v3, v4)
+    | `Choice_is_type x -> map_anon_choice_is_type_9ebb9fc env x |> todo env
     | `Opt_user_type_dot_simple_id_opt_LPAR_choice_simple_id_COLON_non_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_non_bind_pat_with_expr_RPAR_opt_quest_opt_quest
         x ->
         map_anon_opt_user_type_dot_simple_id_opt_LPAR_choice_simple_id_COLON_non_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_non_bind_pat_with_expr_RPAR_opt_quest_opt_quest_4e01656
           env x
-    | `Simple_id x -> map_simple_identifier env x |> todo env
+    | `Simple_id x ->
+        let id = map_simple_identifier env x in
+        let id_info = G.empty_id_info () in
+        G.PatId (id, id_info)
   in
   let v2 =
     match v2 with
-    | Some tok -> (* "?" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "?" *) token env tok |> todo env
+    | None -> ()
   in
-  todo env (v1, v2)
+  v1
 
 and map_non_binding_pattern_with_expr (env : env)
     ((v1, v2) : CST.non_binding_pattern_with_expr) =
   let v1 =
     match v1 with
-    | `Wild_pat tok -> (* "_" *) token env tok
+    | `Wild_pat tok -> (* "_" *) token env tok |> todo env
     | `LPAR_choice_simple_id_COLON_non_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_non_bind_pat_with_expr_RPAR_opt_quest
         x ->
         map_anon_LPAR_choice_simple_id_COLON_non_bind_pat_with_expr_rep_COMMA_choice_simple_id_COLON_non_bind_pat_with_expr_RPAR_opt_quest_89a265e
@@ -2185,36 +2204,43 @@ and map_non_binding_pattern_with_expr (env : env)
   in
   todo env (v1, v2)
 
-and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter) =
+and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter) default
+    =
   let v1 =
+    (* If present, this is the externally-visible label for this parameter. In
+     * this context, the local name will be more relevant, so since we can
+     * currently only represent one in the AST, let's omit this one. *)
+    (* TODO include the externally-visible param label in the AST? *)
     match v1 with
-    | Some x -> map_simple_identifier env x
-    | None -> todo env ()
+    | Some x ->
+        let _ = map_simple_identifier env x in
+        ()
+    | None -> ()
   in
   let v2 = map_simple_identifier env v2 in
   let v3 = (* ":" *) token env v3 in
   let v4 =
     match v4 with
-    | Some x -> map_parameter_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_parameter_modifiers env x |> todo env
+    | None -> ()
   in
   let v5 = map_possibly_implicitly_unwrapped_type env v5 in
-  let v6 =
-    match v6 with
-    | Some tok -> (* three_dot_operator_custom *) token env tok
-    | None -> todo env ()
-  in
-  todo env (v1, v2, v3, v4, v5, v6)
+  let param = G.param_of_id ~pdefault:default ~ptype:(Some v5) v2 in
+  match v6 with
+  | Some tok ->
+      let dots = (* three_dot_operator_custom *) token env tok in
+      G.ParamRest (dots, param)
+  | None -> G.Param param
 
 and map_possibly_implicitly_unwrapped_type (env : env)
     ((v1, v2) : CST.possibly_implicitly_unwrapped_type) =
   let v1 = map_type_ env v1 in
   let v2 =
     match v2 with
-    | Some tok -> (* "!" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "!" *) token env tok |> todo env
+    | None -> ()
   in
-  todo env (v1, v2)
+  v1
 
 and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
   match x with
@@ -2359,17 +2385,17 @@ and map_self_expression (env : env) tok =
   G.IdSpecial (G.Self, (* "self" *) token env tok) |> G.e
 
 and map_property_binding_pattern (env : env) (x : CST.property_binding_pattern)
-    =
+    : G.pattern =
   map_non_binding_pattern env x
 
 and map_property_declaration (env : env) ((v1, v2) : CST.property_declaration) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 = map_modifierless_property_declaration env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_protocol_body (env : env) ((v1, v2, v3) : CST.protocol_body) =
   let v1 = (* "{" *) token env v1 in
@@ -2415,13 +2441,13 @@ and map_protocol_member_declaration (env : env)
     (x : CST.protocol_member_declaration) =
   match x with
   | `Body_func_decl_opt_func_body (v1, v2) ->
-      let v1 = map_bodyless_function_declaration env v1 in
       let v2 =
         match v2 with
         | Some x -> map_function_body env x
-        | None -> todo env ()
+        | None -> G.FBNothing
       in
-      todo env (v1, v2)
+      let v1 = map_bodyless_function_declaration env v1 v2 in
+      todo env v1
   | `Deinit_decl x -> map_deinit_declaration env x
   | `Prot_prop_decl (v1, v2, v3, v4, v5) ->
       let v1 =
@@ -2736,10 +2762,10 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       (* TODO include type modifiers *)
       v2
 
-and map_type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
+and map_type_annotation (env : env) ((v1, v2) : CST.type_annotation) : G.type_ =
   let v1 = (* ":" *) token env v1 in
   let v2 = map_possibly_implicitly_unwrapped_type env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_type_arguments (env : env) (x : CST.type_arguments) : G.type_arguments =
   match x with
@@ -2788,19 +2814,20 @@ and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   in
   todo env (v1, v2, v3)
 
-and map_type_level_declaration (env : env) (x : CST.type_level_declaration) =
+and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
+    G.stmt list =
   match x with
-  | `Import_decl x -> map_import_declaration env x
+  | `Import_decl x -> [ map_import_declaration env x ]
   | `Prop_decl x -> map_property_declaration env x
-  | `Typeas_decl x -> map_typealias_declaration env x
-  | `Func_decl x -> map_function_declaration env x
+  | `Typeas_decl x -> [ map_typealias_declaration env x ]
+  | `Func_decl x -> [ map_function_declaration env x ]
   | `Class_decl x -> map_class_declaration env x
   | `Prot_decl x -> map_protocol_declaration env x
-  | `Deinit_decl x -> map_deinit_declaration env x
-  | `Subs_decl x -> map_subscript_declaration env x
+  | `Deinit_decl x -> [ map_deinit_declaration env x ]
+  | `Subs_decl x -> [ map_subscript_declaration env x ]
   | `Op_decl x -> map_operator_declaration env x
   | `Prec_group_decl x -> map_precedence_group_declaration env x
-  | `Asso_decl x -> map_associatedtype_declaration env x
+  | `Asso_decl x -> [ map_associatedtype_declaration env x ]
 
 and map_type_modifiers (env : env) (x : CST.type_modifiers) =
   match x with
@@ -2809,8 +2836,8 @@ and map_type_modifiers (env : env) (x : CST.type_modifiers) =
 and map_type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
   let v1 =
     match v1 with
-    | Some x -> map_type_parameter_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_type_parameter_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 = map_simple_identifier env v2 in
   let v3 =
@@ -2818,10 +2845,10 @@ and map_type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
     | Some (v1, v2) ->
         let v1 = (* ":" *) token env v1 in
         let v2 = map_type_ env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        [ v2 ]
+    | None -> []
   in
-  todo env (v1, v2, v3)
+  G.tparam_of_id ~tp_bounds:v3 v2
 
 and map_type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers)
     =
@@ -2835,21 +2862,21 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_type_parameter env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
   let v4 = (* ">" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  v2 :: v3
 
 and map_typealias_declaration (env : env) ((v1, v2) : CST.typealias_declaration)
     =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 = map_modifierless_typealias_declaration env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_unannotated_type (env : env) (x : CST.unannotated_type) =
   match x with
@@ -3054,17 +3081,18 @@ and map_while_statement (env : env)
   let v6 = (* "}" *) token env v6 in
   todo env (v1, v2, v3, v4, v5, v6)
 
-let map_global_declaration (env : env) (x : CST.global_declaration) =
+let map_global_declaration (env : env) (x : CST.global_declaration) :
+    G.stmt list =
   match x with
-  | `Import_decl x -> map_import_declaration env x
+  | `Import_decl x -> [ map_import_declaration env x ]
   | `Prop_decl x -> map_property_declaration env x
-  | `Typeas_decl x -> map_typealias_declaration env x
-  | `Func_decl x -> map_function_declaration env x
+  | `Typeas_decl x -> [ map_typealias_declaration env x ]
+  | `Func_decl x -> [ map_function_declaration env x ]
   | `Class_decl x -> map_class_declaration env x
   | `Prot_decl x -> map_protocol_declaration env x
   | `Op_decl x -> map_operator_declaration env x
   | `Prec_group_decl x -> map_precedence_group_declaration env x
-  | `Asso_decl x -> map_associatedtype_declaration env x
+  | `Asso_decl x -> [ map_associatedtype_declaration env x ]
 
 let map_top_level_statement (env : env) (x : CST.top_level_statement)
     (semi : CST.semi option) =
@@ -3076,7 +3104,7 @@ let map_top_level_statement (env : env) (x : CST.top_level_statement)
         | Some tok -> token env tok
         | None -> G.sc
       in
-      G.ExprStmt (expr, semi) |> G.s
+      [ G.ExprStmt (expr, semi) |> G.s ]
   | `Global_decl x -> map_global_declaration env x
   | `Labe_stmt x -> map_labeled_statement env x
   | `Throw_stmt x -> map_throw_statement env x |> todo env
@@ -3090,7 +3118,9 @@ let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
         associate_statement_semis fst_stmt stmts last_semi
   in
   let stmts =
-    Common.map (fun (stmt, semi) -> map_top_level_statement env stmt semi) stmts
+    List.concat_map
+      (fun (stmt, semi) -> map_top_level_statement env stmt semi)
+      stmts
   in
   G.Pr stmts
 
