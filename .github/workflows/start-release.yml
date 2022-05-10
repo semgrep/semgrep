@@ -13,8 +13,7 @@ jobs:
       id: checkout
       with:
         submodules: "recursive"
-        # TODO: change to develop before deploying
-        ref: "spencer/cli-83-automate-release-git-actions"
+        ref: "develop"
     - name: Pull Tags
       id: pull-tags
       # We don't want a full heavyweight checkout with full history
@@ -39,10 +38,6 @@ jobs:
         RELEASE_BRANCH="release-${{ steps.next-version.outputs.next-version }}"
         git checkout -b ${RELEASE_BRANCH}
         echo ::set-output name=release-branch::${RELEASE_BRANCH}
-    - name: Debug
-      id: debug
-      #TODO: remove - supposed to check our error handling.
-      run: echo "foo" >> PRIVACY.md
     - name: Run `make release`
       id: make-release
       run: |
