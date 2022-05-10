@@ -70,11 +70,6 @@ bump() {
   update_setup_py
 }
 
-##### Interactive steps #####
-
-# echo -n "Enter a release ID of the form X.X.X for the semgrep release: "
-# read release
-
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
 
 case "$release" in
