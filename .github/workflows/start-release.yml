@@ -2,6 +2,15 @@ name: Trigger Release
 
 on:
   workflow_dispatch:
+    inputs:
+      bumpVersionFragment:
+        description: 'Version fragment to bump'     
+        required: true
+        default: 'feature' 
+        type: choice
+        options:
+        - "feature"
+        - "bug"
 
 jobs:
   release-setup:
@@ -13,7 +22,7 @@ jobs:
         id: checkout
         with:
           submodules: "recursive"
-          ref: "develop"
+          ref: "${{ github.event.repository.default_branch }}"
       - name: Pull Tags
         id: pull-tags
         # We don't want a full heavyweight checkout with full history
@@ -23,14 +32,14 @@ jobs:
       - name: Get latest version
         id: latest-version
         run: |
-          LATEST_TAG=$(git tag | sort -V | tail -n 1 | cut -c 2- )
+          LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
           echo ::set-output name=latest-version::${LATEST_TAG}
       - name: Bump release version
         id: next-version
-        uses: christian-draeger/increment-semantic-version@1.0.2
+        uses: christian-draeger/increment-semantic-version@9d04121fb4825e033aeeaaf6d42b44b8b4e81ac5
         with:
           current-version: "${{ steps.latest-version.outputs.latest-version }}"
-          version-fragment: "feature"
+          version-fragment: "${{ github.event.inputs.bumpVersionFragment }}"
       - name: Create release branch
         id: release-branch
         run: |
@@ -39,9 +48,9 @@ jobs:
           echo ::set-output name=release-branch::${RELEASE_BRANCH}
       - name: Run `make release`
         id: make-release
-        run: |
-          export SEMGREP_RELEASE_NEXT_VERSION=${{ steps.next-version.outputs.next-version }}
-          make release
+        env:
+          SEMGREP_RELEASE_NEXT_VERSION: ${{ steps.next-version.outputs.next-version }}
+        run: make release
       - name: Push release branch
         id: push-release-branch
         run: |
@@ -49,5 +58,5 @@ jobs:
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
           git add --all
-          git commit -m "bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
+          git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
           git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
