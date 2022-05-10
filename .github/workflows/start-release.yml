@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       bumpVersionFragment:
-        description: 'Version fragment to bump'     
+        description: "Version fragment to bump"
         required: true
-        default: 'feature' 
-        type: choice
+        default: "feature"
+        type: "choice"
         options:
-        - "feature"
-        - "bug"
+          - "feature"
+          - "bug"
 
 jobs:
   release-setup:
