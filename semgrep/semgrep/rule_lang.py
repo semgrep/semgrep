@@ -136,12 +136,6 @@ class Span:
     config_end: Optional[Position] = None
 
     def to_ErrorSpan(self) -> out.ErrorSpan:
-        config_start = None
-        if self.config_start:
-            config_start = self.config_start.to_PositionBis()
-        config_end = None
-        if self.config_end:
-            config_end = self.config_end.to_PositionBis()
         context_start = None
         if self.context_start:
             context_start = self.context_start.to_PositionBis()
@@ -150,12 +144,10 @@ class Span:
             context_end = self.context_end.to_PositionBis()
 
         return out.ErrorSpan(
-            config_start=config_start,
-            config_end=config_end,
             config_path=self.config_path,
             context_start=context_start,
             context_end=context_end,
-            file=self.file,
+            file=self.file if self.file else "<No file>",
             start=self.start.to_PositionBis(),
             end=self.end.to_PositionBis(),
             source_hash=self.source_hash,
@@ -176,32 +168,6 @@ class Span:
         lines = s.splitlines()
         end = Position(line=len(lines), col=len(lines[-1]))
         return Span(start=start, end=end, file=filename, source_hash=src_hash)
-
-    @classmethod
-    def from_string_token(
-        cls,
-        s: str,
-        line: int,
-        col: int,
-        # path: List[Dict[str, Union[int, str]]], # TODO
-        path: List[str],
-        filename: Optional[str] = None,
-    ) -> "Span":
-        src_hash = SourceTracker.add_source(s)
-        start = Position(line + 1, col + 1)  # 1-index instead of 0
-        lines = s.splitlines()
-        row_diff = len(lines)
-        col_diff = len(lines[-1])
-        end = Position(line=(row_diff + line - 1), col=(col_diff + col + 1))
-        return Span(
-            start=start,
-            end=end,
-            file=filename,
-            source_hash=src_hash,
-            config_path=path,
-            config_start=Position(0, 1),
-            config_end=Position(row_diff - 1, col_diff + 1),
-        )
 
     def fix(self) -> "Span":
         # some issues in ruamel lead to bad spans
