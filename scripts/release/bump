@@ -103,14 +103,6 @@ fi
 
 bump
 
-git status
-cat <<EOF
-The following files must have changes:
- $targets
-
-Please review the changes and commit them:
-- git status
-- git diff --cached $targets
-- git commit
-- git push
-EOF
+if $(git status -s | grep -v 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py'); then
+  exit 1
+fi
