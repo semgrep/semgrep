@@ -2,7 +2,7 @@ exclude: "^semgrep/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/test
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.2.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -40,19 +40,19 @@ repos:
         args: [--exclude=/semgrep/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.0.1
+    rev: v3.1.0
     hooks:
       - id: reorder-python-imports
         args: ["--application-directories=.:semgrep", --py37-plus]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v2.32.1
     hooks:
       - id: pyupgrade
         args: ["--py37-plus"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.942"
+    rev: "v0.950"
     hooks:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
@@ -101,7 +101,7 @@ repos:
           - --exclude=/semgrep/semgrep/output_from_core.py
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: "0.86.5-tmp-fix-pre-commit"
+    rev: "v0.91.0"
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -135,7 +135,7 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: "0.86.5-tmp-fix-pre-commit"
+    rev: "v0.91.0"
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
@@ -165,7 +165,7 @@ repos:
 
   # Reformat YAML, JSON, and Markdown files
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.6.1
+    rev: v2.6.2
     hooks:
       - id: prettier
         exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$"
