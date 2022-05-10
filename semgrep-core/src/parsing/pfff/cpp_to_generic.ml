@@ -958,6 +958,7 @@ and map_condition_clause env x : G.condition =
       OtherCond (("CondDecl", G.fake ""), [ G.Def (ent, G.VarDef vdef) ])
 
 and map_for_header env = function
+  | ForEllipsis v1 -> G.ForEllipsis v1
   | ForClassic (v1, v2, v3) ->
       let v1 = map_a_expr_or_vars env v1
       and v2 = map_of_option (map_expr env) v2

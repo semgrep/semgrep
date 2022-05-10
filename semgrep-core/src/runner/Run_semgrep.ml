@@ -273,6 +273,7 @@ let parse_equivalences equivalences_file =
 let parse_pattern lang_pattern str =
   try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str with
   | exn ->
+      logger#error "parse_pattern: exn = %s" (Common.exn_to_s exn);
       raise
         (Rule.InvalidRule
            ( Rule.InvalidPattern

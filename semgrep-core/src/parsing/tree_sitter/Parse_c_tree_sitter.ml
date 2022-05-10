@@ -1543,7 +1543,7 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       in
       let _v7 = token env v7 (* ")" *) in
       let v8 = statement env v8 in
-      For (v1, v3, v4, v6, v8)
+      For (v1, ForClassic (v3, v4, v6), v8)
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =

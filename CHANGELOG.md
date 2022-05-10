@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Thanks to Elliott Cable for his contribution (#5087)
 - When running the Semgrep Docker image, we now mark all directories as safe for use by Git,
   which prevents a crash when the current user does not own the source code directory.
+- C++: Ellipsis are now allowed in for loop header (#5164)
 
 ## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
 
@@ -57,7 +58,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Bash/Dockerfile: Add support for named ellipses such as in
   `echo $...ARGS` (#4887)
-- Constant propagation for static constants in php (#5022)
+- PHP: Constant propagation for static constants (#5022)
 
 ### Changed
 
