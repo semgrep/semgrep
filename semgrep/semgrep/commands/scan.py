@@ -42,6 +42,9 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
+
+
 def __get_cpu_count() -> int:
     try:
         return multiprocessing.cpu_count()
@@ -330,6 +333,12 @@ _scan_options = [
             skipped. If set to 0 will not have limit. Defaults to 3.
         """,
     ),
+    optgroup.option(
+        "--core-opts",
+        hidden=True,
+        type=str,
+        help="Flags to pass semgrep-core when executing",
+    ),
     optgroup.group("Display options"),
     optgroup.option(
         "--enable-nosem/--disable-nosem",
@@ -616,6 +625,7 @@ def scan(
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
+    core_opts: Optional[str],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
     debugging_json: bool,
@@ -669,7 +679,7 @@ def scan(
     verbose: bool,
     version: bool,
     vim: bool,
-) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
+) -> ScanReturn:
     """
     Run semgrep rules on files
 
@@ -812,6 +822,7 @@ def scan(
     # already deleted the temporary stdin file.
     with converted_pipe_targets(target_sequence) as target_sequence:
         output_handler = OutputHandler(output_settings)
+        return_data: ScanReturn = None
 
         if dump_ast:
             dump_parsed_ast(
@@ -841,6 +852,7 @@ def scan(
                         max_memory=max_memory,
                         timeout_threshold=timeout_threshold,
                         optimizations=optimizations,
+                        core_opts_str=core_opts,
                     ).validate_configs(config)
 
                 config_errors = list(chain(config_errors, metacheck_errors))
@@ -869,6 +881,7 @@ def scan(
                     profiling_data,
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
+                    core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     deep=deep,
                     output_handler=output_handler,
@@ -910,10 +923,16 @@ def scan(
                 severities=shown_severities,
             )
 
-            return filtered_matches_by_rule, semgrep_errors, filtered_rules, all_targets
+            return_data = (
+                filtered_matches_by_rule,
+                semgrep_errors,
+                filtered_rules,
+                all_targets,
+            )
 
     if enable_version_check:
         from semgrep.app.version import version_check
 
         version_check()
-    return None
+
+    return return_data

@@ -4,12 +4,49 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- The JSON output of `semgrep scan` is now fully specified using
+  ATD (https://atd.readthedocs.io/) and jsonschema (https://json-schema.org/).
+  See the semgrep-interfaces submodule under interfaces/
+  (e.g., interfaces/semgrep-interfaces/Semgrep_output_v0.atd for the ATD spec)
+- The JSON output of `semgrep scan` now contains a "version": field with the
+  version of Semgrep used to generate the match results.
+
+### Fixed
+
+- OCaml: Parenthesis in autofixed code will no longer leave dangling closing-paren.
+  Thanks to Elliott Cable for his contribution (#5087)
+- When running the Semgrep Docker image, we now mark all directories as safe for use by Git,
+  which prevents a crash when the current user does not own the source code directory.
+- C++: Ellipsis are now allowed in for loop header (#5164)
+
+## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
+
+### Added
+
+- `--core-opts` flag to send options to semgrep-core. For internal use:
+  no guarantees made for semgrep-core options (#5111)
+
+### Changed
+
+- `semgrep ci` prints out all findings instead of hiding nonblocking findings (#5116)
+
 ## [0.90.0](https://github.com/returntocorp/semgrep/releases/tag/v0.90.0) - 2022-04-26
 
 ### Added
 
+- Users can access the propagated value of a metavariable in the JSON output
+  in the extra field
 - Join mode now supports inline rules via the `rules:` key underneath the `join:` key.
 - Added vendor.name field in gitlab sast output (#5077)
+
+### Changed
+
+- YAML parsing is more tolerant of `{}` appearing when it expects a scalar,
+  allowing extensions of YAML that use `{}` to be parsed (#4849)
+- Turn off optimization that trades off memory for performance because
+  the effect is minor (with current parameters)
 
 ### Fixed
 
@@ -21,7 +58,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Bash/Dockerfile: Add support for named ellipses such as in
   `echo $...ARGS` (#4887)
-- Constant propagation for static constants in php (#5022)
+- PHP: Constant propagation for static constants (#5022)
 
 ### Changed
 

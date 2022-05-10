@@ -15,5 +15,6 @@
       "targets/equivalence/open_redirect.py"
     ]
   },
-  "results": []
+  "results": [],
+  "version": "0.42"
 }

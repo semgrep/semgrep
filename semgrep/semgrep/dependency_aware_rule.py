@@ -4,6 +4,7 @@ from typing import Generator
 from typing import List
 from typing import Tuple
 
+import semgrep.output_from_core as core
 from dependencyparser.find_lockfiles import DependencyTrie
 from dependencyparser.models import languages_to_namespaces
 from dependencyparser.models import LockfileDependency
@@ -11,7 +12,6 @@ from dependencyparser.models import PackageManagers
 from dependencyparser.package_restrictions import dependencies_range_match_any
 from dependencyparser.package_restrictions import ProjectDependsOnEntry
 from semgrep.error import SemgrepError
-from semgrep.output_from_core import Position
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
@@ -109,15 +109,22 @@ def run_dependency_aware_rule(
             matches = matches_remaining
             if not reachable:
                 dependency_only_match = RuleMatch(
-                    rule_id=rule.id,
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
-                    path=lockfile_path,
                     fix=None,
                     fix_regex=None,
-                    start=Position(0, 0, 0),
-                    end=Position(0, 0, 0),
+                    match=core.CoreMatch(
+                        rule_id=core.RuleId(rule.id),
+                        location=core.Location(
+                            path=str(lockfile_path),
+                            start=core.Position(0, 0, 0),
+                            end=core.Position(0, 0, 0),
+                        ),
+                        # TODO: we need to define the fields below in
+                        # Output_from_core.atd so we can reuse core.MatchExtra
+                        extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+                    ),
                     extra={
                         "dependency_match_only": True,
                         "dependency_matches": output_for_json,

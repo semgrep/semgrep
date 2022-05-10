@@ -418,6 +418,7 @@ let all_actions () =
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
+  @ Test_dataflow_tainting.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =
@@ -653,7 +654,12 @@ let main () =
       (* main entry *)
       (* --------------------------------------------------------- *)
       | roots ->
-          if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc ();
+          (* TODO: We used to tune the garbage collector but from profiling
+             we found that the effect was small. Meanwhile, the memory
+             consumption causes some machines to freeze. We may want to
+             tune these parameters in the future/do more testing, but
+             for now just turn it off *)
+          (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let config = { config with roots } in
           Run_semgrep.semgrep_dispatch config)
 

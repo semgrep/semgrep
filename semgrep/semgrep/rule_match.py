@@ -21,6 +21,7 @@ from attrs import field
 from attrs import frozen
 
 import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
@@ -43,22 +44,32 @@ class RuleMatch:
     TODO: Rename this class to Finding?
     """
 
-    rule_id: str
+    match: core.CoreMatch
+
+    # fields from the rule
     message: str = field(repr=False)
     severity: RuleSeverity
-
-    path: Path = field(repr=str)
-    start: core.Position
-    end: core.Position
-
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
+
+    # Do not use this extra field! This prevents from having typed JSON output
+    # TODO: instead of extra, we should use the more explicit fields:
+    #  fixed_lines: Optional[Any] = field(default=None)
+    #  dependency_match_only: Optional[bool] = field(default=None)
+    #  dependency_matches: Optional[Any] = field(default=None)
+    # but then this would require to remove the @frozen from this class
+    # because autofix and dependency_aware and join_rule are actually monkey patching
+    # this frozen class.
+    # TODO: redundant with core.extra but we do some monkey patching on
+    # this extra field which prevents to use directly core.extra (immutable)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
 
+    # fields derived from the rule
     # We call rstrip() for consistency with semgrep-core, which ignores whitespace
     # including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
-    fix_regex: Optional[Dict[str, Any]] = None
+    fix_regex: Optional[out.FixRegex] = None
 
+    # ???
     index: int = 0
 
     # None means we didn't check; ignore status is unknown
@@ -72,6 +83,23 @@ class RuleMatch:
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
+
+    # TODO: return a out.RuleId
+    @property
+    def rule_id(self) -> str:
+        return self.match.rule_id.value
+
+    @property
+    def path(self) -> Path:
+        return Path(self.match.location.path)
+
+    @property
+    def start(self) -> core.Position:
+        return self.match.location.start
+
+    @property
+    def end(self) -> core.Position:
+        return self.match.location.end
 
     @lines.default
     def get_lines(self) -> List[str]:
@@ -196,7 +224,13 @@ class RuleMatch:
         The message field is included to ensure a consistent ordering
         when two findings match with different metavariables on the same code.
         """
-        return (self.path, self.start, self.end, self.rule_id, self.message)
+        return (
+            self.path,
+            self.start,
+            self.end,
+            self.rule_id,
+            self.message,
+        )
 
     @syntactic_id.default
     def get_syntactic_id(self) -> str:
@@ -226,7 +260,7 @@ class RuleMatch:
         """
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
-    def to_app_finding_format(self, commit_date: str) -> Dict[str, Any]:
+    def to_app_finding_format(self, commit_date: str) -> out.Finding:
         """
         commit_date here for legacy reasons.
         commit date of the head commit in epoch time
@@ -241,24 +275,24 @@ class RuleMatch:
         else:
             app_severity = 0
 
-        ret = {
-            "check_id": self.rule_id,
-            "path": str(self.path),
-            "line": self.start.line,
-            "column": self.start.col,
-            "end_line": self.end.line,
-            "end_column": self.end.col,
-            "message": self.message,
-            "severity": app_severity,
-            "index": self.index,
-            "commit_date": commit_date_app_format,
-            "syntactic_id": self.syntactic_id,
-            "metadata": self.metadata,
-            "is_blocking": self.is_blocking,
-        }
+        ret = out.Finding(
+            check_id=out.RuleId(self.rule_id),
+            path=str(self.path),
+            line=self.start.line,
+            column=self.start.col,
+            end_line=self.end.line,
+            end_column=self.end.col,
+            message=self.message,
+            severity=app_severity,
+            index=self.index,
+            commit_date=commit_date_app_format,
+            syntactic_id=self.syntactic_id,
+            metadata=out.RawJson(out._Identity(self.metadata)),
+            is_blocking=self.is_blocking,
+        )
 
         if self.extra.get("fixed_lines"):
-            ret["fixed_lines"] = self.extra.get("fixed_lines")
+            ret.fixed_lines = self.extra.get("fixed_lines")
         return ret
 
     def __hash__(self) -> int:

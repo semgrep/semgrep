@@ -147,10 +147,10 @@ def test_timings(snapshot) -> None:
         profiling_data = ProfilingData()
 
         target_a_time = {
-            rule1: Times(match_time=0.2, parse_time=0.3),
+            rule1.id2: Times(match_time=0.2, parse_time=0.3),
         }
         target_b_time = {
-            rule2: Times(match_time=1.2, parse_time=0.2),
+            rule2.id2: Times(match_time=1.2, parse_time=0.2),
         }
         profiling_data.set_file_times(targets[0], target_a_time, 0.4)
         profiling_data.set_file_times(targets[1], target_b_time, 1.4)
