@@ -21,10 +21,6 @@ jobs:
       # checkout action only can get tags + full history, so do this separately.
       # Don't need tags in submodules.
       run: git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'
-    - name: Initial Debug
-      # TODO: remove before flight
-      run: |
-        git status
     - name: Get latest version
       id: latest-version
       run: |
@@ -47,11 +43,6 @@ jobs:
       # TODO: remove before flight
       run: |
         git status
-    - name: Set author
-      id: author
-      run: |
-        echo ::set-output name=name::`cat author_name.txt`
-        echo ::set-output name=email::`cat author_email.txt`
     - name: Run `make release`
       id: make-release
       run: |
