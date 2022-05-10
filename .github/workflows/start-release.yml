@@ -1,0 +1,49 @@
+name: Trigger Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-setup:
+    name: Setup Release Branch
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+      id: checkout
+      with:
+        submodules: "recursive"
+        ref: "develop"
+    - name: Pull Tags
+      id: pull-tags
+      # We don't want a full heavyweight checkout with full history
+      # checkout action only can get tags + full history, so do this separately.
+      # Don't need tags in submodules.
+      run: git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'
+    - name: Initial Debug
+      # TODO: remove before flight
+      run: |
+        git status
+    - name: Get latest version
+      id: latest-version
+      run: |
+        LATEST_TAG=$(git tag | sort -V | tail -n 1 | cut -c 2- )
+        echo $LATEST_TAG
+        echo ::set-output name=latest-version::${LATEST_TAG}
+    - name: Bump release version
+      id: next-version
+      uses: christian-draeger/increment-semantic-version@1.0.2
+      with:
+        current-version: "${{ steps.latest-version.outputs.latest-version }}"
+        version-fragment: 'feature'
+    - name: Create release branch
+      run: git checkout -b release-${{ steps.next-version.outputs.next-version }}
+    - name: Debug
+      # TODO: remove before flight
+      run: |
+        git status
+    - name: Run `make release`
+      run: |
+        export SEMGREP_RELEASE_NEXT_VERSION=${{ steps.next-version.outputs.next-version }}
+        echo $SEMGREP_RELEASE_NEXT_VERSION
+        make release
