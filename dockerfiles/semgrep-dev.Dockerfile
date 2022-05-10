@@ -22,10 +22,7 @@ RUN apk add --no-cache \
   curl \
   jq 
   
-# RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing \
-#   pre-commit
-
-RUN pip install pre-commit
+RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
