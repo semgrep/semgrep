@@ -103,6 +103,13 @@ fi
 
 bump
 
-if $(git status -s | grep -v 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py'); then
-  exit 1
+echo "foo" >> PRIVACY.md
+
+OUTPUT=$(git status -s | grep -v 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py')
+echo $OUTPUT
+
+if git status -s | grep -vq 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py'; then
+  error <<EOF
+The release branch contains unexpected changes, cancelling release.
+EOF
 fi
