@@ -50,4 +50,4 @@ jobs:
         git config user.email ${{ github.actor }}@users.noreply.github.com
         git add --all
         git commit -m "bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
-        # git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
+        git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
