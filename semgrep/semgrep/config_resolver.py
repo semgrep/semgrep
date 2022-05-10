@@ -54,7 +54,6 @@ logger = getLogger(__name__)
 SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
 OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
-AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
 RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 
@@ -105,21 +104,6 @@ class ConfigPath:
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
             self._config_path = saved_snippet_to_url(config_str)
-        elif config_str == AUTO_CONFIG_KEY:
-            logger.warning(
-                terminal_wrap(
-                    "Auto config uses Semgrep rules to scan your codebase and the Semgrep Registry"
-                    " to generate recommended rules based on your languages and frameworks."
-                ),
-            )
-            if self._project_url is not None:
-                self._extra_headers["X-Semgrep-Project"] = self._project_url
-                logger.warning(
-                    terminal_wrap(
-                        f"Looking up '{self._project_url}' in Registry to see if recommendations exist..."
-                    )
-                )
-            self._config_path = f"{SEMGREP_URL}/{AUTO_CONFIG_LOCATION}"
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = str(Path(config_str).expanduser())
