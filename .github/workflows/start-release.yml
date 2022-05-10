@@ -24,7 +24,6 @@ jobs:
       id: latest-version
       run: |
         LATEST_TAG=$(git tag | sort -V | tail -n 1 | cut -c 2- )
-        echo $LATEST_TAG
         echo ::set-output name=latest-version::${LATEST_TAG}
     - name: Bump release version
       id: next-version
@@ -42,7 +41,6 @@ jobs:
       id: make-release
       run: |
         export SEMGREP_RELEASE_NEXT_VERSION=${{ steps.next-version.outputs.next-version }}
-        echo $SEMGREP_RELEASE_NEXT_VERSION
         make release
     - name: Push release branch
       id: push-release-branch
