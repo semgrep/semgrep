@@ -2,10 +2,8 @@ import json
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 from textwrap import dedent
-from unittest import mock
 
 import pytest
 from click.testing import CliRunner
@@ -20,6 +18,8 @@ from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 
+pytestmark = pytest.mark.kinda_slow
+
 REPO_DIR_NAME = "project_name"
 AUTHOR_EMAIL = "test_environment@test.r2c.dev"
 AUTHOR_NAME = "Environment Test"
@@ -31,10 +31,9 @@ DEPLOYMENT_ID = 33
 
 
 @pytest.fixture
-def git_tmp_path_with_commit(monkeypatch, tmp_path):
+def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     """
-    Initialize a git repo at a temporary directory and add single
-    dummy commit
+    Initialize a git repo at a temp directory with one dummy commit.
     """
     repo_base = tmp_path / REPO_DIR_NAME
     repo_base.mkdir()
@@ -92,14 +91,15 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path):
         ["git", "rev-parse", "HEAD"], encoding="utf-8"
     ).strip()
 
+    mocker.patch.object(
+        GitlabMeta, "_fetch_branch_get_merge_base", return_value=base_commit
+    )
+
     yield (repo_base, base_commit, head_commit)
 
 
-import contextlib
-
-
-@contextlib.contextmanager
-def ci_mocks(base_commit, autofix):
+@pytest.fixture(autouse=True)
+def automocks(mocker):
     """
     Necessary patches to run `semgrep ci` tests
     """
@@ -135,29 +135,19 @@ def ci_mocks(base_commit, autofix):
         """
     ).lstrip()
 
-    with mock.patch.object(
-        GitlabMeta, "_fetch_branch_get_merge_base", return_value=base_commit
-    ):
-        # Mock rules
-        with mock.patch.object(
-            ConfigPath, "_make_config_request", mock.Mock(return_value=file_content)
-        ):
-            # Mock deployment_id
-            with mock.patch.object(
-                ScanHandler,
-                "_get_deployment_details",
-                mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
-            ):
-                with mock.patch.object(auth, "is_valid_token", return_value=True):
-                    with mock.patch.object(
-                        ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
-                    ):
-                        with mock.patch.object(AppSession, "post"):
-                            yield
+    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
+    )
+    mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
+    mocker.patch.object(AppSession, "post")
 
 
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
+@pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
+def autofix(request, mocker):
+    mocker.patch.object(ScanHandler, "autofix", request.param)
+
+
 @pytest.mark.parametrize(
     "env",
     [
@@ -233,17 +223,13 @@ def ci_mocks(base_commit, autofix):
         "gitlab-push",
     ],
 )
-@pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason="snapshotting mock call kwargs doesn't work on py3.7",
-)
-def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
+def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix, mocker):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
 
     # Set envvars that depend on commit hashes:
     if env.get("GITLAB_CI"):
         env["CI_COMMIT_SHA"] = head_commit
-    elif env.get("GITHUB_ACTIONS"):
+    if env.get("GITHUB_ACTIONS"):
         env["GITHUB_SHA"] = head_commit
 
         if env["GITHUB_EVENT_NAME"] == "pull_request":
@@ -271,208 +257,179 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
             event_path.write_text(json.dumps(event))
             env["GITHUB_EVENT_PATH"] = str(event_path)
 
-    # Return a different mock so post_mock only contains direct calls to session.post
-    post_mock = mock.MagicMock(return_value=mock.MagicMock())
+    runner = CliRunner(
+        env={
+            **env,
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
 
-    with ci_mocks(base_commit, autofix):
-        # Mock session.post
-        with mock.patch.object(AppSession, "post", post_mock):
-            runner = CliRunner(
-                env={
-                    **env,
-                    SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-                }
-            )
-            result = runner.invoke(cli, ["ci"], env={})
+    # Remove commit hashes from output
+    sanitized_output = (
+        result.output.replace(head_commit, "<sanitized head_commit>")
+        .replace(head_commit[:7], "<sanitized head_commit>")
+        .replace(base_commit, "<sanitized base_commit>")
+        .replace(__VERSION__, "<sanitized semgrep_version>")
+    )
+    sanitized_output = re.sub(
+        r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+    )
+    snapshot.assert_match(sanitized_output, "output.txt")
 
-            # Remove commit hashes from output
-            sanitized_output = (
-                result.output.replace(head_commit, "<sanitized head_commit>")
-                .replace(head_commit[:7], "<sanitized head_commit>")
-                .replace(base_commit, "<sanitized base_commit>")
-                .replace(__VERSION__, "<sanitized semgrep_version>")
-            )
-            sanitized_output = re.sub(
-                r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
-            )
-            snapshot.assert_match(sanitized_output, "output.txt")
+    post_calls = AppSession.post.call_args_list  # type: ignore
 
-            # Check correct metadata
-            meta_json = post_mock.mock_calls[0].kwargs["json"]
-            assert meta_json["meta"]["commit"] == head_commit
-            meta_json["meta"]["commit"] = "sanitized"
-            assert meta_json["meta"]["semgrep_version"] == __VERSION__
-            meta_json["meta"]["semgrep_version"] = "<sanitized version>"
+    # Check correct metadata
+    scan_create_json = post_calls[0].kwargs["json"]
+    meta_json = scan_create_json["meta"]
 
-            if env.get("GITLAB_CI"):
-                # If in a merge pipeline, base_sha is defined, otherwise is None
-                gitlab_base_sha = (
-                    base_commit
-                    if env.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
-                    else None
-                )
+    assert meta_json["commit"] == head_commit
+    meta_json["commit"] = "sanitized"
 
-                assert meta_json["meta"]["base_sha"] == gitlab_base_sha
-                meta_json["meta"]["base_sha"] = "sanitized"
+    assert meta_json["semgrep_version"] == __VERSION__
+    meta_json["semgrep_version"] = "<sanitized version>"
 
-            snapshot.assert_match(json.dumps(meta_json, indent=4), "meta.json")
+    if env.get("GITLAB_CI"):
+        # If in a merge pipeline, base_sha is defined, otherwise is None
+        gitlab_base_sha = (
+            base_commit if env.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME") else None
+        )
 
-            findings_json = post_mock.mock_calls[1].kwargs["json"]
-            for f in findings_json["findings"]:
-                assert f["commit_date"] is not None
-                f["commit_date"] = "sanitized"
-            snapshot.assert_match(json.dumps(findings_json, indent=4), "findings.json")
+        assert meta_json["base_sha"] == gitlab_base_sha
+        meta_json["base_sha"] = "sanitized"
 
-            ignores_json = post_mock.mock_calls[2].kwargs["json"]
-            for f in ignores_json["findings"]:
-                assert f["commit_date"] is not None
-                f["commit_date"] = "sanitized"
-            snapshot.assert_match(json.dumps(ignores_json, indent=4), "ignores.json")
+    snapshot.assert_match(json.dumps(scan_create_json, indent=4), "meta.json")
 
-            complete_json = post_mock.mock_calls[3].kwargs["json"]
-            complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
-            snapshot.assert_match(json.dumps(complete_json, indent=4), "complete.json")
+    findings_json = post_calls[1].kwargs["json"]
+    for f in findings_json["findings"]:
+        assert f["commit_date"] is not None
+        f["commit_date"] = "sanitized"
+    snapshot.assert_match(json.dumps(findings_json, indent=4), "findings.json")
+
+    ignores_json = post_calls[2].kwargs["json"]
+    for f in ignores_json["findings"]:
+        assert f["commit_date"] is not None
+        f["commit_date"] = "sanitized"
+    snapshot.assert_match(json.dumps(ignores_json, indent=4), "ignores.json")
+
+    complete_json = post_calls[3].kwargs["json"]
+    complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
+    snapshot.assert_match(json.dumps(complete_json, indent=4), "complete.json")
 
 
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
-    repo_base, base_commit, head_commit = git_tmp_path_with_commit
-
-    with ci_mocks(base_commit, autofix):
-        runner = CliRunner(
-            env={
-                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
-            }
-        )
-        result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
-        sanitized_output = result.output.replace(
-            __VERSION__, "<sanitized semgrep_version>"
-        )
-        sanitized_output = re.sub(
-            r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
-        )
-        snapshot.assert_match(sanitized_output, "output.txt")
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+        }
+    )
+    result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
+    sanitized_output = result.output.replace(__VERSION__, "<sanitized semgrep_version>")
+    sanitized_output = re.sub(
+        r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+    )
+    snapshot.assert_match(sanitized_output, "output.txt")
 
 
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
-    repo_base, base_commit, head_commit = git_tmp_path_with_commit
-
-    with ci_mocks(base_commit, autofix):
-        runner = CliRunner(
-            env={
-                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
-            }
-        )
-        result = runner.invoke(cli, ["ci", "--config", "p/something", "--json"], env={})
-        sanitized_output = result.output.replace(
-            __VERSION__, "<sanitized semgrep_version>"
-        )
-        sanitized_output = re.sub(
-            r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
-        )
-        snapshot.assert_match(sanitized_output, "output.txt")
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+        }
+    )
+    result = runner.invoke(cli, ["ci", "--config", "p/something", "--json"], env={})
+    sanitized_output = result.output.replace(__VERSION__, "<sanitized semgrep_version>")
+    sanitized_output = re.sub(
+        r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+    )
+    snapshot.assert_match(sanitized_output, "output.txt")
 
 
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize("autofix", [True, False], ids=["autofix", "noautofix"])
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     repo_base, base_commit, head_commit = git_tmp_path_with_commit
 
-    post_mock = mock.MagicMock(return_value=mock.MagicMock())
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci", "--dry-run", "--disable-metrics"], env={})
 
-    with ci_mocks(base_commit, autofix):
-        runner = CliRunner(
-            env={
-                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-            }
-        )
-        result = runner.invoke(cli, ["ci", "--dry-run", "--disable-metrics"], env={})
-
-        post_mock.assert_not_called()
-        sanitized_output = (
-            result.output.replace(head_commit, "<sanitized head_commit>")
-            .replace(head_commit[:7], "<sanitized head_commit>")
-            .replace(base_commit, "<sanitized base_commit>")
-            .replace(__VERSION__, "<sanitized semgrep_version>")
-        )
-        sanitized_output = re.sub(
-            r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
-        )
-        # Sanitize commit_date
-        sanitized_output = re.sub(
-            r"\"commit_date\": .*\"",
-            '"commit_date": <sanitized date>',
-            sanitized_output,
-        )
-        sanitized_output = re.sub(
-            r"\"total_time\": .*",
-            '"total_time": <sanitized date>',
-            sanitized_output,
-        )
-        snapshot.assert_match(sanitized_output, "output.txt")
+    AppSession.post.assert_not_called()  # type: ignore
+    sanitized_output = (
+        result.output.replace(head_commit, "<sanitized head_commit>")
+        .replace(head_commit[:7], "<sanitized head_commit>")
+        .replace(base_commit, "<sanitized base_commit>")
+        .replace(__VERSION__, "<sanitized semgrep_version>")
+    )
+    sanitized_output = re.sub(
+        r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+    )
+    # Sanitize commit_date
+    sanitized_output = re.sub(
+        r"\"commit_date\": .*\"",
+        '"commit_date": <sanitized date>',
+        sanitized_output,
+    )
+    sanitized_output = re.sub(
+        r"\"total_time\": .*",
+        '"total_time": <sanitized date>',
+        sanitized_output,
+    )
+    snapshot.assert_match(sanitized_output, "output.txt")
 
 
-@pytest.mark.kinda_slow
-def test_fail_auth(tmp_path):
+def test_fail_auth(tmp_path, mocker):
     """
     Test that failure to authenticate does not have exit code 0 or 1
     """
-    with mock.patch.object(auth, "is_valid_token", return_value=False):
-        runner = CliRunner(
-            env={
-                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-            }
-        )
-        result = runner.invoke(cli, ["ci"], env={})
-        assert result.exit_code == 13
+    mocker.patch("semgrep.app.auth.is_valid_token", return_value=False)
 
-    with mock.patch.object(auth, "is_valid_token", side_effect=Exception):
-        runner = CliRunner(
-            env={
-                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-            }
-        )
-        result = runner.invoke(cli, ["ci"], env={})
-        assert result.exit_code == 2
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
+    assert result.exit_code == 13
+
+    mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
+
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
+    assert result.exit_code == 2
 
 
-@pytest.mark.kinda_slow
-def test_fail_start_scan(tmp_path):
+def test_fail_start_scan(tmp_path, mocker):
     """
     Test that failing to start scan does not have exit code 0 or 1
     """
-    with mock.patch.object(auth, "is_valid_token", return_value=True):
-        with mock.patch.object(
-            ScanHandler,
-            "_get_deployment_details",
-            mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
-        ):
-            with mock.patch.object(
-                ScanHandler,
-                "start_scan",
-                side_effect=Exception("Timeout"),
-            ):
-                runner = CliRunner(
-                    env={
-                        SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                        auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-                    }
-                )
-                result = runner.invoke(cli, ["ci"], env={})
-                assert result.exit_code == 2
+    mocker.patch.object(
+        ScanHandler,
+        "start_scan",
+        side_effect=Exception("Timeout"),
+    )
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
+    assert result.exit_code == 2
 
 
-@pytest.mark.kinda_slow
-def test_bad_config(tmp_path):
+def test_bad_config(tmp_path, mocker):
     """
     Test that bad rules has exit code > 1
     """
@@ -485,66 +442,44 @@ def test_bad_config(tmp_path):
           severity: ERROR
         """
     ).lstrip()
+    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
 
-    with mock.patch.object(auth, "is_valid_token", return_value=True):
-        with mock.patch.object(
-            ScanHandler,
-            "_get_deployment_details",
-            mock.Mock(return_value=(DEPLOYMENT_ID, "org_name")),
-        ):
-            with mock.patch.object(
-                ConfigPath, "_make_config_request", mock.Mock(return_value=file_content)
-            ):
-                with mock.patch.object(
-                    AppSession, "post", mock.MagicMock(return_value=mock.MagicMock())
-                ):
-                    runner = CliRunner(
-                        env={
-                            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-                        }
-                    )
-                    result = runner.invoke(cli, ["ci"], env={})
-                    assert "Invalid rule schema" in result.stdout
-                    assert result.exit_code == 7
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
+    assert "Invalid rule schema" in result.stdout
+    assert result.exit_code == 7
 
 
-@pytest.mark.kinda_slow
-def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit):
+def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit, mocker):
     """
     Test failure to send findings has exit code > 1
     """
-    repo_base, base_commit, head_commit = git_tmp_path_with_commit
-
-    with ci_mocks(base_commit, False):
-        with mock.patch.object(
-            AppSession, "post", mock.MagicMock(return_value=mock.MagicMock())
-        ):
-            with mock.patch.object(
-                ScanHandler, "report_findings", side_effect=Exception
-            ):
-                runner = CliRunner(
-                    env={
-                        SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                        auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-                    }
-                )
-                result = runner.invoke(cli, ["ci"], env={})
-                assert result.exit_code == 2
+    mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
+    assert result.exit_code == 2
 
 
-@pytest.mark.kinda_slow
-def test_git_failure(tmp_path, git_tmp_path_with_commit):
+def test_git_failure(tmp_path, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
     """
-    with mock.patch.object(auth, "is_valid_token", return_value=True):
-        with mock.patch.object(GitMeta, "to_dict", side_effect=Exception):
-            runner = CliRunner(
-                env={
-                    SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-                }
-            )
-            result = runner.invoke(cli, ["ci"], env={})
-            assert result.exit_code == 2
+    mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
+    runner = CliRunner(
+        env={
+            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+        }
+    )
+    result = runner.invoke(cli, ["ci"], env={})
+    assert result.exit_code == 2
