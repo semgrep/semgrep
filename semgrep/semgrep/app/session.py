@@ -9,7 +9,6 @@ from attrs import define
 from attrs import field
 
 from semgrep import __VERSION__
-from semgrep.app import auth
 
 
 @define
@@ -17,7 +16,8 @@ class UserAgent:
     """
     Generates the user agent string we send to Semgrep App.
 
-    >>> from semgrep.app import app_session
+    >>> from semgrep.state import get_state
+    >>> app_session = get_state().app_session
     >>> str(app_session.user_agent)
     'semgrep/0.1.2'
     >>> app_session.user_agent.tags.add("testing")
@@ -55,7 +55,8 @@ class AppSession(requests.Session):
     - If a token is available, it is added to the request as an Authorization header
 
     Normal usage:
-    >>> from semgrep.app import app_session
+    >>> from semgrep.state import get_state
+    >>> app_session = get_state().app_session
     >>> app_session.get(url)
 
     Disable custom user agent for a request:
@@ -86,6 +87,8 @@ class AppSession(requests.Session):
         self.mount("http://", retry_adapter)
 
     def authenticate(self) -> None:
+        from semgrep.app import auth  # avoid circular import in semgrep.state
+
         self.token = auth.get_token()
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:

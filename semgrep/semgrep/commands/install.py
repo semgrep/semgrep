@@ -8,12 +8,12 @@ from pathlib import Path
 import click
 from tqdm import tqdm
 
-from semgrep.app import app_session
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
+from semgrep.state import get_state
 from semgrep.util import set_flags
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
@@ -33,6 +33,8 @@ def install_deep_semgrep() -> None:
     Must be logged in and have access to DeepSemgrep beta
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
+    app_session = get_state().app_session
+
     set_flags(verbose=False, debug=False, quiet=False, force_color=False)
 
     core_path = SemgrepCore.path()

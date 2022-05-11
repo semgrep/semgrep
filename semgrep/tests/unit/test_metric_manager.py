@@ -77,7 +77,7 @@ def test_rules_hash() -> None:
 
 
 @pytest.mark.quick
-def test_send() -> None:
+def test_send(semgrep_state) -> None:
     """
     Check that no network does not cause failures
     """

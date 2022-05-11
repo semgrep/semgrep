@@ -14,7 +14,6 @@ from typing import Tuple
 import click
 
 import semgrep.semgrep_main
-from semgrep.app import app_session
 from semgrep.app import auth
 from semgrep.app.metrics import metric_manager
 from semgrep.app.scans import ScanHandler
@@ -35,6 +34,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.state import get_state
 from semgrep.types import MetricsState
 from semgrep.util import set_flags
 from semgrep.verbose_logging import getLogger
@@ -218,6 +218,7 @@ def ci(
 
     Only displays findings that were marked as blocking.
     """
+    app_session = get_state().app_session
 
     set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
 

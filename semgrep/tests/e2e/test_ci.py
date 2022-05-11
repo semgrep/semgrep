@@ -11,9 +11,9 @@ import pytest
 from click.testing import CliRunner
 
 from semgrep import __VERSION__
-from semgrep.app import app_session
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
+from semgrep.app.session import AppSession
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
@@ -152,7 +152,8 @@ def ci_mocks(base_commit, autofix):
                     with mock.patch.object(
                         ScanHandler, "autofix", mock.PropertyMock(return_value=autofix)
                     ):
-                        yield
+                        with mock.patch.object(AppSession, "post"):
+                            yield
 
 
 @pytest.mark.kinda_slow
@@ -275,7 +276,7 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix):
 
     with ci_mocks(base_commit, autofix):
         # Mock session.post
-        with mock.patch.object(app_session, "post", post_mock):
+        with mock.patch.object(AppSession, "post", post_mock):
             runner = CliRunner(
                 env={
                     **env,
@@ -386,40 +387,36 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     post_mock = mock.MagicMock(return_value=mock.MagicMock())
 
     with ci_mocks(base_commit, autofix):
-        # Mock session.post
-        with mock.patch.object(app_session, "post", post_mock):
-            runner = CliRunner(
-                env={
-                    SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-                    auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
-                }
-            )
-            result = runner.invoke(
-                cli, ["ci", "--dry-run", "--disable-metrics"], env={}
-            )
+        runner = CliRunner(
+            env={
+                SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            }
+        )
+        result = runner.invoke(cli, ["ci", "--dry-run", "--disable-metrics"], env={})
 
-            post_mock.assert_not_called()
-            sanitized_output = (
-                result.output.replace(head_commit, "<sanitized head_commit>")
-                .replace(head_commit[:7], "<sanitized head_commit>")
-                .replace(base_commit, "<sanitized base_commit>")
-                .replace(__VERSION__, "<sanitized semgrep_version>")
-            )
-            sanitized_output = re.sub(
-                r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
-            )
-            # Sanitize commit_date
-            sanitized_output = re.sub(
-                r"\"commit_date\": .*\"",
-                '"commit_date": <sanitized date>',
-                sanitized_output,
-            )
-            sanitized_output = re.sub(
-                r"\"total_time\": .*",
-                '"total_time": <sanitized date>',
-                sanitized_output,
-            )
-            snapshot.assert_match(sanitized_output, "output.txt")
+        post_mock.assert_not_called()
+        sanitized_output = (
+            result.output.replace(head_commit, "<sanitized head_commit>")
+            .replace(head_commit[:7], "<sanitized head_commit>")
+            .replace(base_commit, "<sanitized base_commit>")
+            .replace(__VERSION__, "<sanitized semgrep_version>")
+        )
+        sanitized_output = re.sub(
+            r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
+        )
+        # Sanitize commit_date
+        sanitized_output = re.sub(
+            r"\"commit_date\": .*\"",
+            '"commit_date": <sanitized date>',
+            sanitized_output,
+        )
+        sanitized_output = re.sub(
+            r"\"total_time\": .*",
+            '"total_time": <sanitized date>',
+            sanitized_output,
+        )
+        snapshot.assert_match(sanitized_output, "output.txt")
 
 
 @pytest.mark.kinda_slow
@@ -499,7 +496,7 @@ def test_bad_config(tmp_path):
                 ConfigPath, "_make_config_request", mock.Mock(return_value=file_content)
             ):
                 with mock.patch.object(
-                    app_session, "post", mock.MagicMock(return_value=mock.MagicMock())
+                    AppSession, "post", mock.MagicMock(return_value=mock.MagicMock())
                 ):
                     runner = CliRunner(
                         env={
@@ -521,7 +518,7 @@ def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit):
 
     with ci_mocks(base_commit, False):
         with mock.patch.object(
-            app_session, "post", mock.MagicMock(return_value=mock.MagicMock())
+            AppSession, "post", mock.MagicMock(return_value=mock.MagicMock())
         ):
             with mock.patch.object(
                 ScanHandler, "report_findings", side_effect=Exception

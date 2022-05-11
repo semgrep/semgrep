@@ -12,10 +12,10 @@ from urllib.parse import urlparse
 
 import click
 
-from semgrep.app import app_session
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.state import get_state
 from semgrep.types import MetricsState
 from semgrep.verbose_logging import getLogger
 
@@ -243,6 +243,7 @@ class MetricManager:
 
         Will if is_enabled is True
         """
+        app_session = get_state().app_session
         logger.verbose(
             f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self._using_server}"
         )

@@ -18,7 +18,6 @@ import requests
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
-from semgrep.app import app_session
 from semgrep.app import auth
 from semgrep.app.metrics import metric_manager
 from semgrep.constants import CLI_RULE_ID
@@ -43,6 +42,7 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.state import get_state
 from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
@@ -197,6 +197,7 @@ class ConfigPath:
         return config
 
     def _make_config_request(self) -> str:
+        app_session = get_state().app_session
         r = app_session.get(self._config_path, headers=self._extra_headers)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
@@ -585,6 +586,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         Get the latest version of ruleset_name by getting all existing versions
         and returning max semver
         """
+        app_session = get_state().app_session
         logger.debug(
             f"Retrieving versions file of {ruleset_name} at {config_versions_url}"
         )
@@ -625,6 +627,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         """
         Returns json blop of given ruleset_name/version
         """
+        app_session = get_state().app_session
         config_full_url = f"{config_url_base}/{version}"
         try:
             r = app_session.get(config_full_url)
@@ -652,6 +655,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         """
         Returns yaml rule definition of rule_id/version
         """
+        app_session = get_state().app_session
         rule_url = f"{SEMGREP_CDN_BASE_URL}/public/rule/{rule_id}/{version}"
         try:
             r = app_session.get(rule_url)

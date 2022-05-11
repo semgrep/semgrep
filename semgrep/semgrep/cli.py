@@ -3,7 +3,6 @@ import subprocess
 
 import click
 
-from semgrep.app import app_session
 from semgrep.commands.ci import ci
 from semgrep.commands.install import install_deep_semgrep
 from semgrep.commands.login import login
@@ -13,6 +12,7 @@ from semgrep.commands.scan import scan
 from semgrep.constants import IN_DOCKER
 from semgrep.default_group import DefaultGroup
 from semgrep.git import GIT_SH_TIMEOUT
+from semgrep.state import SemgrepState
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -54,8 +54,10 @@ def cli(ctx: click.Context) -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
     """
-    app_session.authenticate()
-    app_session.user_agent.tags.add(
+    ctx.obj = state = SemgrepState()
+
+    state.app_session.authenticate()
+    state.app_session.user_agent.tags.add(
         f"command/{ctx.invoked_subcommand}"
         if ctx.invoked_subcommand in ctx.command.commands  # type: ignore
         else "command/unset"
