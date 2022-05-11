@@ -7,32 +7,37 @@ from unittest.mock import PropertyMock
 
 import pytest
 
-from semgrep.app.metrics import metric_manager
 from semgrep.config_resolver import Config
+from semgrep.metrics import Metrics
+from semgrep.metrics import MetricsState
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
-from semgrep.types import MetricsState
+
+
+@pytest.fixture
+def metrics() -> Metrics:
+    return Metrics()
 
 
 @pytest.mark.quick
-def test_configs_hash() -> None:
-    metric_manager.set_configs_hash(["p/r2c"])
-    old = metric_manager._configs_hash
-    metric_manager.set_configs_hash(["p/r2c"])
-    assert metric_manager._configs_hash == old
-    metric_manager.set_configs_hash(["not"])
-    assert metric_manager._configs_hash != old
+def test_configs_hash(metrics) -> None:
+    metrics.set_configs_hash(["p/r2c"])
+    old = metrics._configs_hash
+    metrics.set_configs_hash(["p/r2c"])
+    assert metrics._configs_hash == old
+    metrics.set_configs_hash(["not"])
+    assert metrics._configs_hash != old
 
-    metric_manager.set_configs_hash(["a", "b"])
-    old = metric_manager._configs_hash
-    metric_manager.set_configs_hash(["a", "b"])
-    assert metric_manager._configs_hash == old
-    metric_manager.set_configs_hash(["b", "a"])
-    assert metric_manager._configs_hash != old
+    metrics.set_configs_hash(["a", "b"])
+    old = metrics._configs_hash
+    metrics.set_configs_hash(["a", "b"])
+    assert metrics._configs_hash == old
+    metrics.set_configs_hash(["b", "a"])
+    assert metrics._configs_hash != old
 
 
 @pytest.mark.quick
-def test_rules_hash() -> None:
+def test_rules_hash(metrics) -> None:
     config1 = dedent(
         """
         rules:
@@ -63,21 +68,21 @@ def test_rules_hash() -> None:
         assert len(rules) == 3
         rule1, rule2, rule3 = rules
 
-    metric_manager.set_rules_hash([rule1])
-    old_hash = metric_manager._rules_hash
-    metric_manager.set_rules_hash([rule1])
-    assert old_hash == metric_manager._rules_hash
+    metrics.set_rules_hash([rule1])
+    old_hash = metrics._rules_hash
+    metrics.set_rules_hash([rule1])
+    assert old_hash == metrics._rules_hash
 
-    metric_manager.set_rules_hash(rules)
-    old_hash_2 = metric_manager._rules_hash
-    metric_manager.set_rules_hash(rules)
-    assert old_hash_2 == metric_manager._rules_hash
+    metrics.set_rules_hash(rules)
+    old_hash_2 = metrics._rules_hash
+    metrics.set_rules_hash(rules)
+    assert old_hash_2 == metrics._rules_hash
 
     assert old_hash != old_hash_2
 
 
 @pytest.mark.quick
-def test_send(semgrep_state) -> None:
+def test_send(metrics) -> None:
     """
     Check that no network does not cause failures
     """
@@ -97,12 +102,12 @@ def test_send(semgrep_state) -> None:
             timeout=2,
         )
 
-    metric_manager.configure(MetricsState.ON, None)
-    metric_manager.send()
+    metrics.configure(MetricsState.ON, None)
+    metrics.send()
 
 
 @pytest.mark.quick
-def test_timings(snapshot) -> None:
+def test_timings(metrics) -> None:
     config1 = dedent(
         """
         rules:
@@ -156,9 +161,9 @@ def test_timings(snapshot) -> None:
         profiling_data.set_file_times(targets[1], target_b_time, 1.4)
         profiling_data.set_rules_parse_time(0.09)
 
-        metric_manager.set_run_timings(profiling_data, targets, rules)
+        metrics.set_run_timings(profiling_data, targets, rules)
 
-    assert metric_manager._rule_stats == [
+    assert metrics._rule_stats == [
         {
             "ruleHash": "720c14cd416c021bc45d6db0689dd0eb54d1d062bf9f446f85dae0cb5d1438c0",
             "matchTime": 0.2,
@@ -175,7 +180,7 @@ def test_timings(snapshot) -> None:
             "bytesScanned": 0,
         },
     ]
-    assert metric_manager._file_stats == [
+    assert metrics._file_stats == [
         {
             "size": 1,
             "numTimesScanned": 1,
@@ -194,16 +199,12 @@ def test_timings(snapshot) -> None:
 
 
 @pytest.mark.quick
-def test_project_hash():
-    metric_manager.set_project_hash("https://foo.bar.com/org/project.git")
-    no_username_password = metric_manager._project_hash
-    metric_manager.set_project_hash(
-        "https://username:password@foo.bar.com/org/project.git"
-    )
-    with_username_password_1 = metric_manager._project_hash
-    metric_manager.set_project_hash(
-        "https://username1:password2@foo.bar.com/org/project.git"
-    )
-    with_username_password_2 = metric_manager._project_hash
+def test_project_hash(metrics):
+    metrics.set_project_hash("https://foo.bar.com/org/project.git")
+    no_username_password = metrics._project_hash
+    metrics.set_project_hash("https://username:password@foo.bar.com/org/project.git")
+    with_username_password_1 = metrics._project_hash
+    metrics.set_project_hash("https://username1:password2@foo.bar.com/org/project.git")
+    with_username_password_2 = metrics._project_hash
     assert no_username_password == with_username_password_1
     assert with_username_password_1 == with_username_password_2

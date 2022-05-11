@@ -12,7 +12,7 @@ from semgrep.commands.scan import scan
 from semgrep.constants import IN_DOCKER
 from semgrep.default_group import DefaultGroup
 from semgrep.git import GIT_SH_TIMEOUT
-from semgrep.state import SemgrepState
+from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -54,7 +54,7 @@ def cli(ctx: click.Context) -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
     """
-    ctx.obj = state = SemgrepState()
+    state = get_state()
 
     state.app_session.authenticate()
     state.app_session.user_agent.tags.add(

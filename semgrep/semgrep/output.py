@@ -19,7 +19,6 @@ from typing import Type
 import requests
 
 import semgrep.semgrep_interfaces.semgrep_output_v0 as out
-from semgrep.app.metrics import metric_manager
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -273,7 +272,7 @@ class OutputHandler:
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
     ) -> None:
-        app_session = get_state().app_session
+        state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
         self.rule_matches = [
@@ -345,8 +344,8 @@ class OutputHandler:
                 num_findings == 0
                 and num_targets > 0
                 and num_rules > 0
-                and metric_manager.get_is_using_server()
-                and app_session.token is None
+                and state.metrics.get_is_using_server()
+                and state.app_session.token is None
             ):
                 suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
             else:

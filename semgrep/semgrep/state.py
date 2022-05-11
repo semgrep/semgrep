@@ -1,8 +1,11 @@
+from typing import cast
+
 import click
 from attrs import Factory
 from attrs import frozen
 
 from semgrep.app.session import AppSession
+from semgrep.metrics import Metrics
 
 
 @frozen
@@ -14,17 +17,18 @@ class SemgrepState:
     """
 
     app_session: AppSession = Factory(AppSession)
+    metrics: Metrics = Factory(Metrics)
 
 
 def get_state() -> SemgrepState:
     """
     Get the current CLI invocation's global state.
     """
-    state = click.get_current_context().obj
+    ctx = click.get_current_context(silent=True)
+    if ctx is None:
+        # create a dummy context that will never be torn down
+        from semgrep.cli import cli  # avoiding circular import
 
-    if not isinstance(state, SemgrepState):
-        raise RuntimeError(
-            "Tried to access CLI state, but it hasn't been initialized yet."
-        )
+        ctx = click.Context(command=cli).scope().__enter__()
 
-    return state
+    return cast(SemgrepState, ctx.ensure_object(SemgrepState))

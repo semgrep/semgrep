@@ -1,5 +1,3 @@
-from enum import auto
-from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import FrozenSet
@@ -21,17 +19,3 @@ class FilteredFiles:
 
     kept: Targets
     removed: Targets = field(factory=frozenset)
-
-
-class MetricsState(Enum):
-    """
-    Configures metrics upload.
-
-    ON - Metrics always sent
-    OFF - Metrics never sent
-    AUTO - Metrics only sent if config is pulled from the server
-    """
-
-    ON = auto()
-    OFF = auto()
-    AUTO = auto()

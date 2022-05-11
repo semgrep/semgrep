@@ -14,12 +14,9 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import click
 import pytest
 
-from semgrep.cli import cli
 from semgrep.constants import OutputFormat
-from semgrep.state import SemgrepState
 
 TESTS_PATH = Path(__file__).parent
 
@@ -270,11 +267,3 @@ def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep
-
-
-@pytest.fixture(autouse=True)
-def semgrep_state():
-    """A fixture that sets a mock global Semgrep state."""
-    ctx = click.Context(command=cli, obj=SemgrepState())
-    with ctx.scope():
-        yield
