@@ -15,7 +15,8 @@ module H2 = AST_generic_helpers
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
 
-type env = unit H.env
+type context = Program | Pattern
+type env = context H.env
 
 let token = H.token
 let str = H.str
@@ -40,6 +41,11 @@ let associate_statement_semis (fst_stmt : 'a) (stmts : ('b * 'a) list)
   in
   let lst, semi = f stmts in
   (fst_stmt, semi) :: lst
+
+let in_pattern env =
+  match env.H.extra with
+  | Program -> false
+  | Pattern -> true
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -2150,8 +2156,10 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       todo env (v1, v2, v3, v4)
   | `Three_dot_op tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
-      let op = (G.Range, tok) in
-      G.opcall op [ G.L (G.Null tok) |> G.e; G.L (G.Null tok) |> G.e ]
+      if in_pattern env then G.Ellipsis tok |> G.e
+      else
+        let op = (G.Range, tok) in
+        G.opcall op [ G.L (G.Null tok) |> G.e; G.L (G.Null tok) |> G.e ]
 
 and map_self_expression (env : env) tok =
   G.IdSpecial (G.Self, (* "self" *) token env tok) |> G.e
@@ -2896,7 +2904,7 @@ let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_swift.Parse.file file)
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       match map_source_file env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -2906,7 +2914,7 @@ let parse_pattern str =
     (fun () -> Tree_sitter_swift.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
       match map_source_file env cst with
       | G.Pr [ x ] -> G.S x
       | G.Pr xs -> G.Ss xs
