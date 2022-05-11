@@ -58,6 +58,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Keep only latest run logs in last.log file (#5070)
+- r2c-internal-project-depends-on:
+  - Lockfiles that fail to parse will not crash semgrep
+  - cargo.lock and Pipfile.lock dependencies that don't specify hashes now parse
+  - go.sum files with a trailing newline now parse
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
