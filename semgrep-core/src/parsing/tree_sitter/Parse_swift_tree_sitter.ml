@@ -1183,31 +1183,36 @@ and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.enum_entry) =
 
 and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
-  | `Simple_id x ->
-      let id = map_simple_identifier env x in
-      G.N (H2.name_of_id id) |> G.e
-  | `Un_exp x -> map_unary_expression env x
-  | `Bin_exp x -> map_binary_expression env x
-  | `Tern_exp x -> map_ternary_expression env x
-  | `Prim_exp x -> map_primary_expression env x
-  | `Assign (v1, v2, v3) -> (
-      let v1 = map_directly_assignable_expression env v1 in
-      let op, optok = map_assignment_and_operator env v2 in
-      let v3 = map_expression env v3 in
-      match op with
-      | None -> G.Assign (v1, optok, v3) |> G.e
-      | Some op -> G.AssignOp (v1, (op, optok), v3) |> G.e)
-  | `Exp_imme_quest (v1, v2) ->
-      let v1 = map_expression env v1 in
-      let v2 = (* "?" *) token env v2 in
-      (* This is how optional chaining is parsed. It looks like the fact that
-       * it's an optional chain is just discarded when analyzing JS, so this
-       * should be fine for now. *)
-      v1
-  | `Async tok ->
-      (* In this context, async is just a normal identifier *)
-      let id = str env tok in
-      G.N (H2.name_of_id id) |> G.e
+  | `Choice_simple_id x -> (
+      match x with
+      | `Simple_id x ->
+          let id = map_simple_identifier env x in
+          G.N (H2.name_of_id id) |> G.e
+      | `Un_exp x -> map_unary_expression env x
+      | `Bin_exp x -> map_binary_expression env x
+      | `Tern_exp x -> map_ternary_expression env x
+      | `Prim_exp x -> map_primary_expression env x
+      | `Assign (v1, v2, v3) -> (
+          let v1 = map_directly_assignable_expression env v1 in
+          let op, optok = map_assignment_and_operator env v2 in
+          let v3 = map_expression env v3 in
+          match op with
+          | None -> G.Assign (v1, optok, v3) |> G.e
+          | Some op -> G.AssignOp (v1, (op, optok), v3) |> G.e)
+      | `Exp_imme_quest (v1, v2) ->
+          let v1 = map_expression env v1 in
+          let v2 = (* "?" *) token env v2 in
+          (* This is how optional chaining is parsed. It looks like the fact that
+           * it's an optional chain is just discarded when analyzing JS, so this
+           * should be fine for now. *)
+          v1
+      | `Async tok ->
+          (* In this context, async is just a normal identifier *)
+          let id = str env tok in
+          G.N (H2.name_of_id id) |> G.e)
+  | `Semg_ellips tok ->
+      let tok = (* three_dot_operator_custom *) token env tok in
+      G.Ellipsis tok |> G.e
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =
