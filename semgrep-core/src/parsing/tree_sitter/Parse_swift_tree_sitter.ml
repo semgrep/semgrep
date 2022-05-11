@@ -2714,7 +2714,19 @@ and map_tuple_expression (env : env)
       v4
   in
   let v5 = (* ")" *) token env v5 in
-  G.Container (G.Tuple, (v1, v3 :: v4, v5)) |> G.e
+  let exprs = v3 :: v4 in
+  match exprs with
+  (* The grammar doesn't differentiate, but according to the Swift spec:
+   *
+   * "A single expression inside parentheses is a parenthesized expression."
+   *
+   * https://docs.swift.org/swift-book/ReferenceManual/Expressions.html#ID552
+   *
+   * See also
+   * https://docs.swift.org/swift-book/ReferenceManual/Expressions.html#ID395
+   *)
+  | [ e ] -> e
+  | _ -> G.Container (G.Tuple, (v1, exprs, v5)) |> G.e
 
 and map_tuple_type (env : env) ((v1, v2, v3) : CST.tuple_type) =
   let v1 = (* "(" *) token env v1 in
