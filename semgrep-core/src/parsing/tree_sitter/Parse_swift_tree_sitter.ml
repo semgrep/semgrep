@@ -604,15 +604,6 @@ and map_enum_entry_suffix (env : env) (x : CST.enum_entry_suffix) =
       let v2 = map_expression env v2 in
       todo env (v1, v2)
 
-and map_anon_choice_equal_sign_exp_74a2b17 (env : env)
-    (x : CST.anon_choice_equal_sign_exp_74a2b17) : G.expr =
-  match x with
-  | `Equal_sign_exp (v1, v2) ->
-      let v1 = (* eq_custom *) token env v1 in
-      let v2 = map_expression env v2 in
-      v2
-  | `Comp_prop x -> map_computed_property env x
-
 and map_type_casting_pattern (env : env) (x : CST.type_casting_pattern) =
   match x with
   | `Is_type (v1, v2) ->
@@ -722,8 +713,7 @@ and map_associatedtype_declaration (env : env)
   in
   todo env (v1, v2, v3, v4, v5, v6)
 
-and map_anon_choice_bound_id_COLON_exp_9957b83 (env : env)
-    (x : CST.anon_choice_bound_id_COLON_exp_9957b83) =
+and map_attribute_argument (env : env) (x : CST.attribute_argument) =
   match x with
   | `Simple_id_COLON_exp (v1, v2, v3) ->
       let v1 = map_bound_identifier env v1 in
@@ -761,12 +751,12 @@ and map_attribute (env : env) (x : CST.attribute) =
         match v3 with
         | Some (v1, v2, v3, v4) ->
             let v1 = (* "(" *) token env v1 in
-            let v2 = map_anon_choice_bound_id_COLON_exp_9957b83 env v2 in
+            let v2 = map_attribute_argument env v2 in
             let v3 =
               Common.map
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
-                  let v2 = map_anon_choice_bound_id_COLON_exp_9957b83 env v2 in
+                  let v2 = map_attribute_argument env v2 in
                   todo env (v1, v2))
                 v3
             in
@@ -839,7 +829,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
   | `Conj_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* conjunction_operator_custom *) token env v2 in
-      let v3 = map_anon_choice_exp_764291a env v3 in
+      let v3 = map_expr_hack_at_ternary_binary_suffix env v3 in
       G.opcall (G.And, v2) [ v1; v3 ]
   | `Disj_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1807,8 +1797,9 @@ and map_modifierless_function_declaration_no_body (env : env)
   in
   G.DefStmt (entity, definition_kind) |> G.s
 
-and map_single_var_declaration (env : env) pat tannot tconstraints init : G.stmt
-    =
+and map_single_modifierless_property_declaration (env : env)
+    ((pat, tannot, tconstraints, init) :
+      CST.single_modifierless_property_declaration) : G.stmt =
   let pat = map_no_expr_pattern_already_bound env pat in
   (* TODO Desugar single-element tuples? *)
   let pat =
@@ -1834,23 +1825,31 @@ and map_single_var_declaration (env : env) pat tannot tconstraints init : G.stmt
   in
   let init =
     match init with
-    | Some x -> Some (map_anon_choice_equal_sign_exp_74a2b17 env x)
+    | Some x ->
+        let x =
+          match x with
+          | `Equal_sign_exp (v1, v2) ->
+              let v1 = (* eq_custom *) token env v1 in
+              let v2 = map_expression env v2 in
+              v2
+          | `Comp_prop x -> map_computed_property env x
+        in
+        Some x
     | None -> None
   in
   G.DefStmt (pat, G.VarDef { vinit = init; vtype = tannot }) |> G.s
 
 and map_modifierless_property_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6) : CST.modifierless_property_declaration) :
-    G.stmt list =
+    ((v1, v2, v3) : CST.modifierless_property_declaration) : G.stmt list =
   (* kind *)
   let v1 = map_possibly_async_binding_pattern_kind env v1 in
-  let stmt1 = map_single_var_declaration env v2 v3 v4 v5 in
+  let stmt1 = map_single_modifierless_property_declaration env v2 in
   let stmts =
     Common.map
-      (fun (v1, v2, v3, v4, v5) ->
+      (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
-        map_single_var_declaration env v2 v3 v4 v5)
-      v6
+        map_single_modifierless_property_declaration env v2)
+      v3
   in
   stmt1 :: stmts
 
@@ -2439,7 +2438,8 @@ and map_switch_statement (env : env)
   let v5 = (* "}" *) token env v5 in
   todo env (v1, v2, v3, v4, v5)
 
-and map_anon_choice_exp_764291a (env : env) (x : CST.anon_choice_exp_764291a) =
+and map_expr_hack_at_ternary_binary_suffix (env : env)
+    (x : CST.expr_hack_at_ternary_binary_suffix) =
   match x with
   | `Exp x -> map_expression env x
   | `Expr_hack_at_tern_bin_call (v1, v2) ->
@@ -2457,7 +2457,7 @@ and map_ternary_expression (env : env)
   let v2 = (* "?" *) token env v2 in
   let v3 = map_expression env v3 in
   let v4 = (* ":" *) token env v4 in
-  let v5 = map_anon_choice_exp_764291a env v5 in
+  let v5 = map_expr_hack_at_ternary_binary_suffix env v5 in
   G.Conditional (v1, v3, v5) |> G.e
 
 and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
