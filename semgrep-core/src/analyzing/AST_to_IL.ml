@@ -358,7 +358,7 @@ and assign env lhs tok rhs_exp e_gen =
       add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
       let record_pairs : (ident * exp) list =
         fields
-        |> List.map (function
+        |> Common.map (function
              | G.F
                  {
                    s =
