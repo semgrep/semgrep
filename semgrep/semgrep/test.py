@@ -348,6 +348,7 @@ def generate_test_results(
     config: Path,
     strict: bool,
     json_output: bool,
+    deep: bool,
     save_test_output_tar: bool = True,
     optimizations: str = "none",
 ) -> None:
@@ -360,6 +361,7 @@ def generate_test_results(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
+        deep=deep,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
@@ -463,6 +465,7 @@ def test_main(
     json: bool,
     save_test_output_tar: bool,
     optimizations: str,
+    deep: bool,
 ) -> None:
 
     if len(target) != 1:
@@ -483,6 +486,7 @@ def test_main(
         config=config_path,
         strict=strict,
         json_output=json,
+        deep=deep,
         save_test_output_tar=save_test_output_tar,
         optimizations=optimizations,
     )

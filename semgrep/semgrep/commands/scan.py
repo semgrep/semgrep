@@ -815,6 +815,7 @@ def scan(
             json=json,
             save_test_output_tar=save_test_output_tar,
             optimizations=optimizations,
+            deep=deep,
         )
 
     # The 'optional_stdin_target' context manager must remain before
