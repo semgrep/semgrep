@@ -69,6 +69,12 @@ let map_ref_expr (env : env) tok expr : A.expr =
 
 let map_empty_block (env : env) semi = A.Block (Parse_info.fake_bracket semi [])
 
+let rec chain_else_if (env : env) ifelses (else_ : A.stmt) : A.stmt =
+  match ifelses with
+  | [] -> else_
+  | (tok, expr, stmt) :: tail ->
+      A.If (tok, expr, stmt, chain_else_if env tail else_)
+
 let map_primitive_type (env : env) (x : CST.primitive_type) : A.hint_type =
   match x with
   | `Array tok -> (* "array" *) HintArray (token env tok)
@@ -1027,24 +1033,24 @@ and map_dynamic_variable_name (env : env) (x : CST.dynamic_variable_name) =
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) =
   let v1 = (* pattern [eE][lL][sS][eE] *) token env v1 in
   let v2 = map_statement env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_else_clause_2 (env : env) ((v1, v2) : CST.else_clause_2) =
   let v1 = (* pattern [eE][lL][sS][eE] *) token env v1 in
   let v2 = map_colon_block env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_else_if_clause (env : env) ((v1, v2, v3) : CST.else_if_clause) =
   let v1 = (* pattern [eE][lL][sS][eE][iI][fF] *) token env v1 in
   let v2 = map_parenthesized_expression env v2 in
   let v3 = map_statement env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_else_if_clause_2 (env : env) ((v1, v2, v3) : CST.else_if_clause_2) =
   let v1 = (* pattern [eE][lL][sS][eE][iI][fF] *) token env v1 in
   let v2 = map_parenthesized_expression env v2 in
   let v3 = map_colon_block env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_enum_declaration_list (env : env)
     ((v1, v2, v3) : CST.enum_declaration_list) =
@@ -1582,9 +1588,9 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 =
               match v3 with
               | Some x -> map_else_clause env x
-              | None -> todo env ()
+              | None -> map_empty_block env Parse_info.unsafe_sc
             in
-            todo env (v1, v2, v3)
+            (v1, v2, v3)
         | `Colon_blk_rep_else_if_clause_2_opt_else_clause_2_pat_b10beb6_choice_auto_semi
             (v1, v2, v3, v4, v5) ->
             let v1 = map_colon_block env v1 in
@@ -1592,13 +1598,15 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 =
               match v3 with
               | Some x -> map_else_clause_2 env x
-              | None -> todo env ()
+              | None -> map_empty_block env Parse_info.unsafe_sc
             in
             let v4 = (* pattern [eE][nN][dD][iI][fF] *) token env v4 in
             let v5 = map_semicolon env v5 in
-            todo env (v1, v2, v3, v4, v5)
+            (v1, v2, v3)
       in
-      todo env (v1, v2, v3)
+      let stmt, elseifs, else_ = v3 in
+      let else_ = chain_else_if env elseifs else_ in
+      If (v1, v2, stmt, else_)
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = (* pattern [sS][wW][iI][tT][cC][hH] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in
