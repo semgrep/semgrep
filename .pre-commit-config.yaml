@@ -33,6 +33,18 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 
+  - repo: https://github.com/myint/autoflake
+    rev: v1.4
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --remove-all-unused-imports
+          - --ignore-init-module-imports
+          - --exclude=/semgrep/semgrep/output_from_core.py
+
   - repo: https://github.com/psf/black
     rev: 22.3.0
     hooks:
@@ -87,18 +99,6 @@ repos:
       - id: flake8
         additional_dependencies: ["flake8-bugbear==22.1.11"]
         args: ["--select=B,E9,F4,F63,F7,F82"]
-
-  - repo: https://github.com/myint/autoflake
-    rev: v1.4
-    hooks:
-      - id: autoflake
-        args:
-          - --in-place
-          - --remove-unused-variables
-          - --remove-duplicate-keys
-          - --remove-all-unused-imports
-          - --ignore-init-module-imports
-          - --exclude=/semgrep/semgrep/output_from_core.py
 
   - repo: https://github.com/returntocorp/semgrep
     rev: "v0.91.0"
