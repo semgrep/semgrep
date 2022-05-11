@@ -351,6 +351,42 @@ and assign env lhs tok rhs_exp e_gen =
       mk_e
         (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
         (related_exp lhs)
+  | G.Record (tok1, fields, tok2) ->
+      (* {x1: v1, ..., xN: vN} = RHS *)
+      let tmp = fresh_var env tok2 in
+      let tmp_lval = lval_of_base (Var tmp) in
+      add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
+      let record_pairs : (ident * exp) list =
+        fields
+        |> Common.map (function
+             | G.F
+                 {
+                   s =
+                     G.DefStmt
+                       ( { name = EN (G.Id (id1, ii1)); _ },
+                         G.FieldDefColon
+                           { vinit = Some { e = G.N (G.Id (id2, ii2)); _ }; _ }
+                       );
+                   _;
+                 } ->
+                 let tok = snd id1 in
+                 let fldi = var_of_id_info id1 ii1 in
+                 let vari = var_of_id_info id2 ii2 in
+                 let vari_lval = lval_of_base (Var vari) in
+                 let ei =
+                   mk_e
+                     (Fetch { base = Var tmp; offset = Dot fldi })
+                     (related_tok tok)
+                 in
+                 add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
+                 (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
+             | _ ->
+                 let xi = ("__FIXME_AST_to_IL__", tok1) in
+                 let ei = fixme_exp ToDo (G.Tk tok1) (related_tok tok1) in
+                 (xi, ei))
+      in
+      (* {x1: E1, ..., xN: En} *)
+      mk_e (Record record_pairs) (related_exp lhs)
   | _ ->
       add_instr env (fixme_instr ToDo (G.E e_gen) (related_exp e_gen));
       fixme_exp ToDo (G.E e_gen) (related_exp lhs)
