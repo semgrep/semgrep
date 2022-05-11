@@ -18,6 +18,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   not recognized by the taint engine. Now, `focus-metavariable` can be used to
   precisely specify that a function parameter is a source of taint, and the taint
   engine will handle this as expected.
+- taint-mode: Add basic support for object destructuring in languages such as
+  Javascript. For example, given `let {x} = E`, Semgrep will now infer that `x`
+  is tainted if `E` is tainted.
 
 ### Fixed
 
