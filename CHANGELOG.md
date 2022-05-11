@@ -26,6 +26,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - When running the Semgrep Docker image, we now mark all directories as safe for use by Git,
   which prevents a crash when the current user does not own the source code directory.
 - C++: Ellipsis are now allowed in for loop header (#5164)
+- Java: typed metavariables now leverages the type of foreach variables (#5181)
 
 ## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
 
