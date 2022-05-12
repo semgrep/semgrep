@@ -161,13 +161,13 @@ class FileTargetingLog:
             )
         if self.failed_to_analyze:
             skip_fragments.append(
-                f"{len(self.failed_to_analyze)} files not analyzed due to a parsing or internal Semgrep error"
+                f"{len(self.failed_to_analyze)} files only partially analyzed due to a parsing or internal Semgrep error"
             )
 
         if not limited_fragments and not skip_fragments:
             return ""
 
-        message = "Some files were skipped."
+        message = "Some files were skipped or only partially analyzed."
         if limited_fragments:
             for fragment in limited_fragments:
                 message += f"\n  {fragment}"
