@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+- Kotlin: support for ellispis in class parameters, e.g.. `class Foo(...) {}` (#5180)
+
 ### Added
 
 - The JSON output of `semgrep scan` is now fully specified using
