@@ -632,6 +632,11 @@ let resolve lang prog =
                *)
               declare_var env lang id id_info ~explicit:true None None;
               k x
+          | PatTyped (PatId (id, id_info), ty) ->
+              declare_var env lang id id_info ~explicit:true None (Some ty)
+          (* do not recurse here, we don't want the PatId case above
+           * to overwrite the job done here
+           *)
           | OtherPat _
           (* This interacts badly with implicit JS/TS declarations. It causes
            * `foo` in `function f({ foo }) { ... }` to be resolved as a global
@@ -774,7 +779,10 @@ let resolve lang prog =
       V.ktype_ =
         (fun (k, _v) x ->
           if !(env.in_type) then k x
-          else Common.save_excursion env.in_type true (fun () -> k x));
+          else Common.save_excursion env.in_type true (fun () -> k x))
+        (* TODO: we should intercept also V.kstmt and especially
+         * create new blocks for For, If with complex init_condition.
+         *);
     }
   in
   let visitor = V.mk_visitor ~vardef_assign:false hooks in

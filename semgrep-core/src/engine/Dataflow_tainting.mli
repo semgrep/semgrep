@@ -80,7 +80,9 @@ type fun_env = (var, Pattern_match.Set.t) Hashtbl.t
   * tainted). This is used for a HACK to do some poor-man's intrafile
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
+val str_of_name : IL.name -> var
 val pm_of_dm : deep_match -> Pattern_match.t
+val taint_of_pms : Pattern_match.t list -> Taint.t
 
 val hook_function_taint_signature :
   (config -> AST_generic.expr -> finding list option) option ref

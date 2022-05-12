@@ -350,6 +350,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.Rust "rust" ".rs";
       pack_regression_tests_for_lang Lang.Yaml "yaml" ".yaml";
       pack_regression_tests_for_lang Lang.Scala "scala" ".scala";
+      pack_regression_tests_for_lang Lang.Swift "swift" ".swift";
       pack_regression_tests_for_lang Lang.Html "html" ".html";
       pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
       pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";

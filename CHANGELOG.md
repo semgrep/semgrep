@@ -12,6 +12,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   (e.g., interfaces/semgrep-interfaces/Semgrep_output_v0.atd for the ATD spec)
 - The JSON output of `semgrep scan` now contains a "version": field with the
   version of Semgrep used to generate the match results.
+- taint-mode: Previously, to declare a function parameteter as a taint source,
+  we had to rely on a trick that declared that _any_ occurence of the parameter
+  was a taint source. If the parameter was overwriten with safe data, this was
+  not recognized by the taint engine. Now, `focus-metavariable` can be used to
+  precisely specify that a function parameter is a source of taint, and the taint
+  engine will handle this as expected.
+- taint-mode: Add basic support for object destructuring in languages such as
+  Javascript. For example, given `let {x} = E`, Semgrep will now infer that `x`
+  is tainted if `E` is tainted.
 
 ### Fixed
 
@@ -20,6 +29,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - When running the Semgrep Docker image, we now mark all directories as safe for use by Git,
   which prevents a crash when the current user does not own the source code directory.
 - C++: Ellipsis are now allowed in for loop header (#5164)
+- Java: typed metavariables now leverages the type of foreach variables (#5181)
 
 ## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
 
@@ -51,6 +61,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Keep only latest run logs in last.log file (#5070)
+- r2c-internal-project-depends-on:
+  - Lockfiles that fail to parse will not crash semgrep
+  - cargo.lock and Pipfile.lock dependencies that don't specify hashes now parse
+  - go.sum files with a trailing newline now parse
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
