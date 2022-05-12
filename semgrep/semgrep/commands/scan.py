@@ -16,25 +16,37 @@ from click.shell_completion import CompletionItem
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
+import semgrep.config_resolver
+import semgrep.semgrep_main
+import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
+from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
+from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
+from semgrep.output import OutputHandler
+from semgrep.output import OutputSettings
+from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
-from semgrep.types import MetricsState
+from semgrep.state import get_state
+from semgrep.synthesize_patterns import synthesize
+from semgrep.target_manager import converted_pipe_targets
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -717,24 +729,10 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
-    # To keep version runtime fast, we defer non-version imports until here
-    import semgrep.semgrep_main
-    import semgrep.test
-    import semgrep.config_resolver
-    from semgrep.constants import OutputFormat
-    from semgrep.constants import DEFAULT_CONFIG_FILE
-    from semgrep.dump_ast import dump_parsed_ast
-    from semgrep.error import SemgrepError
-    from semgrep.app.metrics import metric_manager
-    from semgrep.output import OutputHandler
-    from semgrep.output import OutputSettings
-    from semgrep.project import get_project_url
-    from semgrep.synthesize_patterns import synthesize
-    from semgrep.target_manager import converted_pipe_targets
-
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
-    metric_manager.configure(metrics, metrics_legacy)
+    state = get_state()
+    state.metrics.configure(metrics, metrics_legacy)
 
     if include and exclude:
         logger.warning(

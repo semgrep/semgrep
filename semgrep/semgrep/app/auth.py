@@ -5,6 +5,7 @@ from typing import Optional
 
 from semgrep.constants import SEMGREP_URL
 from semgrep.settings import SETTINGS
+from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,7 @@ def is_valid_token(token: str) -> bool:
     """
     Returns true if token is valid
     """
-    from semgrep.app import app_session  # avoiding circular imports
-
+    app_session = get_state().app_session
     r = app_session.get(
         f"{SEMGREP_URL}/api/agent/deployments/current",
         headers={"Authorization": f"Bearer {token}"},
@@ -31,8 +31,7 @@ def get_deployment_id() -> Optional[int]:
 
     Returns None if api_token is invalid/doesn't have associated deployment
     """
-    from semgrep.app import app_session  # avoiding circular imports
-
+    app_session = get_state().app_session
     r = app_session.get(f"{SEMGREP_URL}/api/agent/deployments/current")
 
     if r.ok:

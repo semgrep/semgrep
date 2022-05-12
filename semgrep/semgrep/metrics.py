@@ -1,5 +1,7 @@
 import hashlib
 import os
+from enum import auto
+from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -12,11 +14,9 @@ from urllib.parse import urlparse
 
 import click
 
-from semgrep.app import app_session
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.types import MetricsState
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -24,7 +24,21 @@ logger = getLogger(__name__)
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
 
-class MetricManager:
+class MetricsState(Enum):
+    """
+    Configures metrics upload.
+
+    ON - Metrics always sent
+    OFF - Metrics never sent
+    AUTO - Metrics only sent if config is pulled from the server
+    """
+
+    ON = auto()
+    OFF = auto()
+    AUTO = auto()
+
+
+class Metrics:
     """
     To prevent sending unintended metrics, be sure that any data
     stored on this object is sanitized of anything that we don't
@@ -243,6 +257,9 @@ class MetricManager:
 
         Will if is_enabled is True
         """
+        from semgrep.state import get_state  # avoiding circular import
+
+        app_session = get_state().app_session
         logger.verbose(
             f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self._using_server}"
         )
@@ -264,6 +281,3 @@ class MetricManager:
             logger.debug("Sent pseudonymous metrics")
         except Exception as e:
             logger.debug(f"Failed to send pseudonymous metrics: {e}")
-
-
-metric_manager = MetricManager()

@@ -17,9 +17,7 @@ import requests
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
-from semgrep.app import app_session
 from semgrep.app import auth
-from semgrep.app.metrics import metric_manager
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -41,6 +39,7 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.state import get_state
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
@@ -83,11 +82,12 @@ class ConfigPath:
 
     def __init__(self, config_str: str, project_url: Optional[str]) -> None:
         """
-        Mutates MetricManager state!
+        Mutates Metrics state!
         Takes a user's inputted config_str and transforms it into the appropriate
         path, checking whether the config string is a registry url or not. If it
-        is, also set the appropriate MetricManager flag
+        is, also set the appropriate Metrics flag
         """
+        state = get_state()
         self._project_url = project_url
         self._origin = ConfigType.REGISTRY
 
@@ -121,7 +121,7 @@ class ConfigPath:
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
-            metric_manager.set_using_server_true()
+            state.metrics.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
@@ -191,6 +191,7 @@ class ConfigPath:
         return config
 
     def _make_config_request(self) -> str:
+        app_session = get_state().app_session
         r = app_session.get(self._config_path, headers=self._extra_headers)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")

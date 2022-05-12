@@ -4,10 +4,10 @@ from typing import Any
 from typing import Callable
 
 from semgrep import __VERSION__
-from semgrep.app.metrics import metric_manager
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 
@@ -31,22 +31,24 @@ def handle_command_errors(func: Callable) -> Callable:
         # than warning are handled twice
         logger = getLogger("semgrep")
         logger.propagate = False
-        metric_manager.set_version(__VERSION__)
+
+        metrics = get_state().metrics
+        metrics.set_version(__VERSION__)
 
         try:
             func(*args, **kwargs)
         # Catch custom exception, output the right message and exit
         except SemgrepError as e:
-            metric_manager.set_return_code(e.code)
+            metrics.set_return_code(e.code)
             sys.exit(e.code)
         except Exception as e:
             logger.exception(e)
-            metric_manager.set_return_code(FATAL_EXIT_CODE)
+            metrics.set_return_code(FATAL_EXIT_CODE)
             sys.exit(FATAL_EXIT_CODE)
         else:
-            metric_manager.set_return_code(OK_EXIT_CODE)
+            metrics.set_return_code(OK_EXIT_CODE)
             sys.exit(OK_EXIT_CODE)
         finally:
-            metric_manager.send()
+            metrics.send()
 
     return wrapper
