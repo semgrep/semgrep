@@ -7,6 +7,17 @@
       "rule_id": "rules.invalid-rules.print",
       "spans": [
         {
+          "end": {
+            "col": 21,
+            "line": 9,
+            "offset": 180
+          },
+          "file": "rules/invalid_rules/print",
+          "start": {
+            "col": 12,
+            "line": 9,
+            "offset": 171
+          },
           "config_end": {
             "col": 21,
             "line": 9

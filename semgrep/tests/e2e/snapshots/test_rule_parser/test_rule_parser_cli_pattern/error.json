@@ -6,7 +6,16 @@
       "message": "[ERROR] Pattern parse error in rule -:\n Invalid pattern for C",
       "rule_id": "-",
       "spans": [
-        {
+      {
+        "end": {
+          "col": 35,
+          "line": 3
+        },
+        "file": "-",
+        "start": {
+          "col": 12,
+          "line": 3
+        },
           "config_end": {
             "col": 35,
             "line": 3

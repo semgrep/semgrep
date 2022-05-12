@@ -7,6 +7,15 @@
       "rule_id": "rules.syntax.eqeq-is-bad",
       "spans": [
         {
+          "end": {
+            "col": 24,
+            "line": 4
+          },
+          "file": "rules/syntax/eqeq-is-bad",
+          "start": {
+            "col": 14,
+            "line": 4
+          },
           "config_end": {
             "col": 24,
             "line": 4
