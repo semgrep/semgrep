@@ -30,6 +30,29 @@ rules:
         - experiments/*
         - Check_*.ml
 
+  - id: use-pytest-mock
+    pattern: import unittest.mock
+    message: >-
+      Instead of importing unittest.mock,
+      use the pytest-mock plugin by requesting the `mocker` fixture.
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - tests/
+
+  - id: use-state-for-global-settings
+    pattern: global $VAR
+    message: |
+      Instead of setting global variables,
+      keep your variables around on the semgrep.state.SemgrepState class.
+      You'll then be able to access this anywhere with:
+
+      from semgrep.state import get_state
+      $VAR = get_state().$VAR
+    languages: [python]
+    severity: ERROR
+
   - id: not-using-our-pcre-wrappers
     patterns:
       - pattern-either:

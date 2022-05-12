@@ -45,9 +45,8 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
-from semgrep.util import is_debug
-from semgrep.util import is_quiet
 from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
@@ -251,11 +250,12 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
+        terminal = get_state().terminal
         if (
             sys.stderr.isatty()
             and self._total > 1
-            and not is_quiet()
-            and not is_debug()
+            and not terminal.is_quiet
+            and not terminal.is_debug
         ):
             # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
             self._progress_bar = tqdm(  # typing: ignore
@@ -654,7 +654,8 @@ class CoreRunner:
                 ]
 
             stderr: Optional[int] = subprocess.PIPE
-            if is_debug():
+            terminal = get_state().terminal
+            if terminal.is_debug:
                 cmd += ["--debug"]
 
             logger.debug("Running semgrep-core with command:")

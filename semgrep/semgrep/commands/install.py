@@ -14,7 +14,6 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
-from semgrep.util import set_flags
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
@@ -33,9 +32,8 @@ def install_deep_semgrep() -> None:
     Must be logged in and have access to DeepSemgrep beta
     Visit https://semgrep.dev/deep-semgrep-beta for more information
     """
-    app_session = get_state().app_session
-
-    set_flags(verbose=False, debug=False, quiet=False, force_color=False)
+    state = get_state()
+    state.terminal.configure(verbose=False, debug=False, quiet=False, force_color=False)
 
     core_path = SemgrepCore.path()
     if core_path is None:
@@ -51,7 +49,7 @@ def install_deep_semgrep() -> None:
             f"Overwriting DeepSemgrep binary already installed in {deep_semgrep_path}"
         )
 
-    if app_session.token is None:
+    if state.app_session.token is None:
         logger.info("run `semgrep login` before using `semgrep install`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
 
@@ -67,7 +65,7 @@ def install_deep_semgrep() -> None:
 
     url = f"{SEMGREP_URL}/api/agent/deployments/deepbinary/{platform}"
 
-    with app_session.get(url, timeout=60, stream=True) as r:
+    with state.app_session.get(url, timeout=60, stream=True) as r:
         if r.status_code == 401:
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again."

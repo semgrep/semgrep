@@ -35,7 +35,6 @@ from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
-from semgrep.util import set_flags
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -218,8 +217,9 @@ def ci(
     Only displays findings that were marked as blocking.
     """
     state = get_state()
-
-    set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
+    state.terminal.configure(
+        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+    )
 
     state.metrics.configure(metrics, metrics_legacy)
     scan_handler = None
