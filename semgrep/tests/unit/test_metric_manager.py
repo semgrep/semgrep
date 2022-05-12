@@ -1,9 +1,6 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
-from unittest.mock import MagicMock
-from unittest.mock import patch
-from unittest.mock import PropertyMock
 
 import pytest
 
@@ -107,7 +104,7 @@ def test_send(metrics) -> None:
 
 
 @pytest.mark.quick
-def test_timings(metrics) -> None:
+def test_timings(metrics, mocker) -> None:
     config1 = dedent(
         """
         rules:
@@ -139,29 +136,28 @@ def test_timings(metrics) -> None:
         rule1, rule2, rule3 = rules
 
     # Mock Path().stat().st_size
-    with patch.object(Path, "stat") as stat_mock:
-        m = MagicMock()
-        # Note this mock is a little fragile and assumes st_size is called twice
-        # once in set_file_times then once in set_run_timings and assumes that
-        # it will be called for target[0] then target[1] then target[0] then target[1]
-        type(m).st_size = PropertyMock(side_effect=[1, 2, 1, 2])
-        stat_mock.return_value = m
+    mock_stat_result = mocker.MagicMock()
+    type(mock_stat_result).st_size = mocker.PropertyMock(side_effect=[1, 2, 1, 2])
+    mocker.patch.object(Path, "stat", return_value=mock_stat_result)
+    # Note this mock is a little fragile and assumes st_size is called twice
+    # once in set_file_times then once in set_run_timings and assumes that
+    # it will be called for target[0] then target[1] then target[0] then target[1]
 
-        targets = [Path("a"), Path("b")]
+    targets = [Path("a"), Path("b")]
 
-        profiling_data = ProfilingData()
+    profiling_data = ProfilingData()
 
-        target_a_time = {
-            rule1.id2: Times(match_time=0.2, parse_time=0.3),
-        }
-        target_b_time = {
-            rule2.id2: Times(match_time=1.2, parse_time=0.2),
-        }
-        profiling_data.set_file_times(targets[0], target_a_time, 0.4)
-        profiling_data.set_file_times(targets[1], target_b_time, 1.4)
-        profiling_data.set_rules_parse_time(0.09)
+    target_a_time = {
+        rule1.id2: Times(match_time=0.2, parse_time=0.3),
+    }
+    target_b_time = {
+        rule2.id2: Times(match_time=1.2, parse_time=0.2),
+    }
+    profiling_data.set_file_times(targets[0], target_a_time, 0.4)
+    profiling_data.set_file_times(targets[1], target_b_time, 1.4)
+    profiling_data.set_rules_parse_time(0.09)
 
-        metrics.set_run_timings(profiling_data, targets, rules)
+    metrics.set_run_timings(profiling_data, targets, rules)
 
     assert metrics._rule_stats == [
         {
