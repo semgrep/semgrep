@@ -93,7 +93,7 @@ def test_login(tmp_path, mocker):
     assert result.exit_code == 7
     assert "Invalid API Key" in result.output
 
-    mocker.patch("semgrep.auth.get_deployment_id", return_value=1)
+    mocker.patch("semgrep.app.auth.get_deployment_id", return_value=1)
 
     # Run policy without SEMGREP_REPO_NAME
     result = runner.invoke(
