@@ -45,10 +45,9 @@ Files skipped:
    • [36m[22m[24mtargets/bad/invalid_python.py[0m
 
 
-Some files were skipped.
+Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
-  Scan skipped: 1 files not analyzed due to a parsing or internal Semgrep error
-  For a full list of skipped files, run semgrep with the --verbose flag.
+  Partial Scan: 1 files only partially analyzed due to a parsing or internal Semgrep error
 
 Ran 2 rules on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False
