@@ -11,7 +11,7 @@ from packaging.version import InvalidVersion
 from packaging.version import Version
 
 from semgrep import __VERSION__
-from semgrep.app import app_session
+from semgrep.state import get_state
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
@@ -36,6 +36,8 @@ VERSION_CACHE_PATH = Path(
 def _fetch_latest_version(
     url: str = VERSION_CHECK_URL, timeout: int = VERSION_CHECK_TIMEOUT
 ) -> Optional[JsonObject]:
+    app_session = get_state().app_session
+
     try:
         resp = app_session.get(url, timeout=timeout)
     except Exception as e:
