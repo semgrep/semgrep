@@ -173,7 +173,7 @@ class FileTargetingLog:
             for fragment in limited_fragments:
                 message += f"\n  {fragment}"
         if partial_fragments:
-            message += "\n  Partial Scan: " + ", ".join(partial_fragments)
+            message += "\n  Partially scanned: " + ", ".join(partial_fragments)
         if skip_fragments:
             message += "\n  Scan skipped: " + ", ".join(skip_fragments)
             message += "\n  For a full list of skipped files, run semgrep with the --verbose flag."
