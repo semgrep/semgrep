@@ -6,6 +6,7 @@ from attrs import frozen
 
 from semgrep.app.session import AppSession
 from semgrep.metrics import Metrics
+from semgrep.terminal import Terminal
 
 
 @frozen
@@ -18,6 +19,7 @@ class SemgrepState:
 
     app_session: AppSession = Factory(AppSession)
     metrics: Metrics = Factory(Metrics)
+    terminal: Terminal = Factory(Terminal)
 
 
 def get_state() -> SemgrepState:
