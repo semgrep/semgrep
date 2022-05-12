@@ -7,9 +7,6 @@
       "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "config_end": null,
-          "config_path": null,
-          "config_start": null,
           "end": {
             "col": 5,
             "line": 10

@@ -6,19 +6,10 @@
       "message": "[ERROR] Pattern parse error in rule -:\n Invalid pattern for C",
       "rule_id": "-",
       "spans": [
-      {
-        "end": {
-          "col": 35,
-          "line": 3
-        },
-        "file": "-",
-        "start": {
-          "col": 12,
-          "line": 3
-        },
+        {
           "config_end": {
-            "col": 35,
-            "line": 3
+            "col": 24,
+            "line": 0
           },
           "config_path": [
             "rules",
@@ -26,6 +17,15 @@
             "pattern"
           ],
           "config_start": {
+            "col": 1,
+            "line": 0
+          },
+          "end": {
+            "col": 35,
+            "line": 3
+          },
+          "file": "/tmp/tmphshwn7mw.yaml",
+          "start": {
             "col": 12,
             "line": 3
           }

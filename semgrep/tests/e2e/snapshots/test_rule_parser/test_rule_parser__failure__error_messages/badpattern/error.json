@@ -7,18 +7,9 @@
       "rule_id": "rules.syntax.eqeq-is-bad",
       "spans": [
         {
-          "end": {
-            "col": 24,
-            "line": 4
-          },
-          "file": "rules/syntax/eqeq-is-bad",
-          "start": {
-            "col": 14,
-            "line": 4
-          },
           "config_end": {
-            "col": 24,
-            "line": 4
+            "col": 11,
+            "line": 0
           },
           "config_path": [
             "rules",
@@ -28,6 +19,15 @@
             "pattern"
           ],
           "config_start": {
+            "col": 1,
+            "line": 0
+          },
+          "end": {
+            "col": 24,
+            "line": 4
+          },
+          "file": "/tmp/tmpgvlmgi7g.yaml",
+          "start": {
             "col": 14,
             "line": 4
           }
