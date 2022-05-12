@@ -74,7 +74,6 @@ jobs:
           # check if the branch already has a pull request open
           DATA="{\"base\":\"${TARGET}\", \"head\":\"${SOURCE}\"}";
           RESPONSE=$(curl -sSL -H "${AUTH_HEADER}" -H "${HEADER}" -X GET --data "${DATA}" $URL);
-          echo "${RESPONSE}"
           PR=$(echo "${RESPONSE}" | jq --raw-output '.[] | .head.ref');
 
           # GitHub REST API doesn't allow you to pass a template, so here we go
