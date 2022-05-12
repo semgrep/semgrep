@@ -41,6 +41,18 @@ rules:
       include:
         - tests/
 
+  - id: use-state-for-global-settings
+    pattern: global $VAR
+    message: |
+      Instead of setting global variables,
+      keep your variables around on the semgrep.state.SemgrepState class.
+      You'll then be able to access this anywhere with:
+
+      from semgrep.state import get_state
+      $VAR = get_state().$VAR
+    languages: [python]
+    severity: ERROR
+
   - id: not-using-our-pcre-wrappers
     patterns:
       - pattern-either:

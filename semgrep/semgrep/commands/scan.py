@@ -757,12 +757,11 @@ def scan(
 
     output_time = time_flag or json_time
 
-    # set the flags
-    semgrep.util.set_flags(
+    state.terminal.configure(
         verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
     )
 
-    # Note this must be after the call to `set_flags` so that verbosity is respected
+    # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
     # change cwd if using docker
