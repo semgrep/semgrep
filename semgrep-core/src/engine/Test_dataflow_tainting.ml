@@ -13,6 +13,17 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
 end)
 
+let pr2_ranges file rwms =
+  rwms
+  |> List.iter (fun rwm ->
+         let code_text = Range.content_at_range file rwm.RM.r in
+         let line_str =
+           let pm = rwm.RM.origin in
+           let loc1, _ = pm.Pattern_match.range_loc in
+           string_of_int loc1.Parse_info.line
+         in
+         Common.pr2 (code_text ^ " @l." ^ line_str))
+
 let test_tainting lang file ast rule taint_spec def =
   let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
   let flow = CFG_build.cfg_of_stmts xs in
@@ -25,16 +36,13 @@ let test_tainting lang file ast rule taint_spec def =
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";
-  debug_taint.sources
-  |> List.iter (fun rwm -> Common.pr2 (Range.content_at_range file rwm.RM.r));
+  pr2_ranges file debug_taint.sources;
   Common.pr2 "\nSanitizers";
   Common.pr2 "----------";
-  debug_taint.sanitizers
-  |> List.iter (fun rwm -> Common.pr2 (Range.content_at_range file rwm.RM.r));
+  pr2_ranges file debug_taint.sanitizers;
   Common.pr2 "\nSinks";
   Common.pr2 "-----";
-  debug_taint.sinks
-  |> List.iter (fun rwm -> Common.pr2 (Range.content_at_range file rwm.RM.r));
+  pr2_ranges file debug_taint.sinks;
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let mapping = Dataflow_tainting.fixpoint config flow in
