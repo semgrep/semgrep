@@ -49,7 +49,8 @@ module Taint : Set.S with type elt = taint
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
-  is_source : AST_generic.any -> (Pattern_match.t * Rule.taint_source) list;
+  is_source :
+    AST_generic.any -> (Pattern_match.t * float * Rule.taint_source) list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
   is_sink : AST_generic.any -> (Pattern_match.t * Rule.taint_sink) list;

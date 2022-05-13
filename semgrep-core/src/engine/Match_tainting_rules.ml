@@ -122,6 +122,26 @@ let any_in_ranges2 rule any rwms =
       |> Common.map (fun (r, x) ->
              (RM.range_to_pattern_match_adjusted rule r, x))
 
+let any_in_ranges3 rule any rwms =
+  (* This is potentially slow. We may need to store range position in
+   * the AST at some point. *)
+  match Visitor_AST.range_of_any_opt any with
+  | None ->
+      logger#debug
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (G.show_any any);
+      []
+  | Some (tok1, tok2) ->
+      let r = Range.range_of_token_locations tok1 tok2 in
+      List.filter (fun (rwm, _) -> Range.( $<=$ ) r rwm.RM.r) rwms
+      |> Common.map (fun (rwm, x) ->
+             let r1 = rwm.RM.r in
+             let m =
+               (float_of_int @@ (r.Range.end_ - r.Range.start + 1))
+               /. (float_of_int @@ (r1.Range.end_ - r1.Range.start + 1))
+             in
+             (RM.range_to_pattern_match_adjusted rule rwm, m, x))
+
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
   Match_search_rules.matches_of_formula (config, equivs) rule_id file_and_more
@@ -199,7 +219,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   ( {
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
-      is_source = (fun x -> any_in_ranges2 rule x sources_ranges);
+      is_source = (fun x -> any_in_ranges3 rule x sources_ranges);
       is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
       is_sink = (fun x -> any_in_ranges2 rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
