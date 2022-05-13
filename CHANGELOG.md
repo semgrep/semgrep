@@ -4,7 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
 - Kotlin: support for ellispis in class parameters, e.g.. `class Foo(...) {}` (#5180)
+
+## [0.92.0](https://github.com/returntocorp/semgrep/releases/tag/v0.92.0) - 2022-05-11
 
 ### Added
 
@@ -20,6 +24,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   not recognized by the taint engine. Now, `focus-metavariable` can be used to
   precisely specify that a function parameter is a source of taint, and the taint
   engine will handle this as expected.
+- taint-mode: Add basic support for object destructuring in languages such as
+  Javascript. For example, given `let {x} = E`, Semgrep will now infer that `x`
+  is tainted if `E` is tainted.
 
 ### Fixed
 
@@ -60,6 +67,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Keep only latest run logs in last.log file (#5070)
+- r2c-internal-project-depends-on:
+  - Lockfiles that fail to parse will not crash semgrep
+  - cargo.lock and Pipfile.lock dependencies that don't specify hashes now parse
+  - go.sum files with a trailing newline now parse
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 

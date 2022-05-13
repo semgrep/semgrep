@@ -12,11 +12,11 @@ from typing import Tuple
 import click
 import requests
 
-from semgrep.app import app_session
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.state import get_state
 from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
@@ -47,6 +47,7 @@ class ScanHandler:
 
         Returns None if api_token is invalid/doesn't have associated deployment
         """
+        app_session = get_state().app_session
         url = f"{SEMGREP_URL}/api/agent/deployments/current"
         logger.debug(f"Retrieving deployment details from {url}")
         r = app_session.get(url)
@@ -66,6 +67,7 @@ class ScanHandler:
 
         returns ignored list
         """
+        app_session = get_state().app_session
         logger.debug("Starting scan")
         if self.dry_run:
             repo_name = meta["repository"]
@@ -114,6 +116,7 @@ class ScanHandler:
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
         """
+        app_session = get_state().app_session
         if self.dry_run:
             logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
             return
@@ -143,6 +146,7 @@ class ScanHandler:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
+        app_session = get_state().app_session
         all_ids = [r.id for r in rules]
         cai_ids, rule_ids = partition(
             lambda r_id: "r2c-internal-cai" in r_id,
