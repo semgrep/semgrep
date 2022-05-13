@@ -7,14 +7,14 @@ type trace = AST_generic.tok list [@@deriving show]
 (** A match that spans multiple functions (aka "deep").
   * E.g. Call('foo(a)', PM('sink(x)')) is an indirect match for 'sink(x)'
   * through the function call 'foo(a)'. *)
-type deep_match =
-  | PM of Pattern_match.t  (** A direct match.  *)
-  | Call of AST_generic.expr * trace * deep_match
+type 'a deep_match =
+  | PM of Pattern_match.t * 'a  (** A direct match.  *)
+  | Call of AST_generic.expr * trace * 'a deep_match
       (** An indirect match through a function call. *)
 [@@deriving show]
 
-type source = deep_match [@@deriving show]
-type sink = deep_match [@@deriving show]
+type source = Rule.taint_source deep_match [@@deriving show]
+type sink = Rule.taint_sink deep_match [@@deriving show]
 type arg_pos = int [@@deriving show]
 
 type source_to_sink = {
@@ -49,10 +49,10 @@ module Taint : Set.S with type elt = taint
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
-  is_source : AST_generic.any -> Pattern_match.t list;
+  is_source : AST_generic.any -> (Pattern_match.t * Rule.taint_source) list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
-  is_sink : AST_generic.any -> Pattern_match.t list;
+  is_sink : AST_generic.any -> (Pattern_match.t * Rule.taint_sink) list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)
   is_sanitizer : AST_generic.any -> Pattern_match.t list;
@@ -75,12 +75,12 @@ type mapping = Taint.t Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
-type fun_env = (var, Pattern_match.Set.t) Hashtbl.t
+type fun_env = (var, Taint.t) Hashtbl.t
 (** Set of functions known to act as taint sources (their output is
   * tainted). This is used for a HACK to do some poor-man's intrafile
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
-val pm_of_dm : deep_match -> Pattern_match.t
+val pm_of_dm : 'a deep_match -> Pattern_match.t * 'a
 
 val hook_function_taint_signature :
   (config -> AST_generic.expr -> finding list option) option ref

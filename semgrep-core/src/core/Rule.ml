@@ -223,10 +223,25 @@ type sanitizer_spec = {
 }
 [@@deriving show]
 
+type taint_source = {
+  formula : pformula;
+  label : string;
+  requires : string list;
+  requires_not : string list;
+}
+[@@deriving show]
+
+type taint_sink = {
+  formula : pformula;
+  requires : string list;
+  requires_not : string list;
+}
+[@@deriving show]
+
 type taint_spec = {
-  sources : pformula list;
+  sources : taint_source list;
   sanitizers : sanitizer_spec list;
-  sinks : pformula list;
+  sinks : taint_sink list;
 }
 [@@deriving show]
 

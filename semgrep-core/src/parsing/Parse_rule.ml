@@ -700,6 +700,23 @@ let parse_severity ~id (s, t) =
 (* Sub parsers taint *)
 (*****************************************************************************)
 
+let parse_source env (key : key) (value : G.expr) : Rule.taint_source =
+  let source_dict = yaml_to_dict env key value in
+  let label =
+    take_opt source_dict env parse_string "label"
+    |> Option.value ~default:"__SOURCE"
+  in
+  let requires =
+    take_opt source_dict env parse_string_list "requires"
+    |> Option.value ~default:[]
+  in
+  let requires_not =
+    take_opt source_dict env parse_string_list "requires-not"
+    |> Option.value ~default:[]
+  in
+  let formula = parse_formula env source_dict in
+  { formula; label; requires; requires_not }
+
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
   let not_conflicting =
@@ -708,6 +725,19 @@ let parse_sanitizer env (key : key) (value : G.expr) =
   in
   let pformula = parse_formula env sanitizer_dict in
   { R.not_conflicting; pformula }
+
+let parse_sink env (key : key) (value : G.expr) : Rule.taint_sink =
+  let sink_dict = yaml_to_dict env key value in
+  let requires =
+    take_opt sink_dict env parse_string_list "requires"
+    |> Option.value ~default:[]
+  in
+  let requires_not =
+    take_opt sink_dict env parse_string_list "requires-not"
+    |> Option.value ~default:[]
+  in
+  let formula = parse_formula env sink_dict in
+  { formula; requires; requires_not }
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -720,20 +750,17 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       let formula = parse_formula env rule_dict in
       R.Search formula
   | Some ("taint", _) ->
-      let parse_sub_formula env name pattern =
-        parse_formula env (yaml_to_dict env name pattern)
-      in
       let parse_specs parse_spec env key x =
         parse_list env key
           (fun env -> parse_spec env (fst key ^ "list item", snd key))
           x
       in
       let sources, sanitizers_opt, sinks =
-        ( take rule_dict env (parse_specs parse_sub_formula) "pattern-sources",
+        ( take rule_dict env (parse_specs parse_source) "pattern-sources",
           take_opt rule_dict env
             (parse_specs parse_sanitizer)
             "pattern-sanitizers",
-          take rule_dict env (parse_specs parse_sub_formula) "pattern-sinks" )
+          take rule_dict env (parse_specs parse_sink) "pattern-sinks" )
       in
       R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
   | Some key ->

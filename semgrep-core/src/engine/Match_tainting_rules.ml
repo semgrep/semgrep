@@ -107,6 +107,21 @@ let any_in_ranges rule any rwms =
       List.filter (fun rwm -> Range.( $<=$ ) r rwm.RM.r) rwms
       |> Common.map (RM.range_to_pattern_match_adjusted rule)
 
+let any_in_ranges2 rule any rwms =
+  (* This is potentially slow. We may need to store range position in
+   * the AST at some point. *)
+  match Visitor_AST.range_of_any_opt any with
+  | None ->
+      logger#debug
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (G.show_any any);
+      []
+  | Some (tok1, tok2) ->
+      let r = Range.range_of_token_locations tok1 tok2 in
+      List.filter (fun (rwm, _) -> Range.( $<=$ ) r rwm.RM.r) rwms
+      |> Common.map (fun (r, x) ->
+             (RM.range_to_pattern_match_adjusted rule r, x))
+
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
   Match_search_rules.matches_of_formula (config, equivs) rule_id file_and_more
@@ -131,12 +146,23 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       lazy_ast_and_errors;
     }
   in
-  let find_range_w_metas pfs =
+  let find_range_w_metas_src srcs =
     (* TODO: Make an Or formula and run a single query. *)
     (* if perf is a problem, we could build an interval set here *)
-    pfs
-    |> List.concat_map
-         (range_w_metas_of_pformula config equivs file_and_more rule)
+    srcs
+    |> List.concat_map (fun (src : Rule.taint_source) ->
+           range_w_metas_of_pformula config equivs file_and_more rule
+             src.formula
+           |> List.map (fun x -> (x, src)))
+  in
+  let find_range_w_metas_sink sinks =
+    (* TODO: Make an Or formula and run a single query. *)
+    (* if perf is a problem, we could build an interval set here *)
+    sinks
+    |> List.concat_map (fun (sink : Rule.taint_sink) ->
+           range_w_metas_of_pformula config equivs file_and_more rule
+             sink.formula
+           |> List.map (fun x -> (x, sink)))
   in
   let find_range_w_metas_santizers specs =
     specs
@@ -146,8 +172,8 @@ let taint_config_of_rule default_config equivs file ast_and_errors
              (range_w_metas_of_pformula config equivs file_and_more rule
                 spec.pformula))
   in
-  let sources_ranges = find_range_w_metas spec.sources
-  and sinks_ranges = find_range_w_metas spec.sinks in
+  let sources_ranges = find_range_w_metas_src spec.sources
+  and sinks_ranges = find_range_w_metas_sink spec.sinks in
   let sanitizers_ranges =
     find_range_w_metas_santizers spec.sanitizers
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
@@ -161,10 +187,10 @@ let taint_config_of_rule default_config equivs file ast_and_errors
              if
                not
                  (List.exists
-                    (fun range' -> range'.RM.r = range.RM.r)
+                    (fun (range', _) -> range'.RM.r = range.RM.r)
                     sinks_ranges
                  || List.exists
-                      (fun range' -> range'.RM.r = range.RM.r)
+                      (fun (range', _) -> range'.RM.r = range.RM.r)
                       sources_ranges)
              then Some range
              else None
@@ -173,16 +199,16 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   ( {
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
-      is_source = (fun x -> any_in_ranges rule x sources_ranges);
+      is_source = (fun x -> any_in_ranges2 rule x sources_ranges);
       is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
-      is_sink = (fun x -> any_in_ranges rule x sinks_ranges);
+      is_sink = (fun x -> any_in_ranges2 rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;
     },
     {
-      sources = sources_ranges;
+      sources = sources_ranges |> List.map fst;
       sanitizers = sanitizers_ranges;
-      sinks = sinks_ranges;
+      sinks = sinks_ranges |> List.map fst;
     } )
 
 let pm_of_finding file finding =
@@ -190,7 +216,7 @@ let pm_of_finding file finding =
   match finding with
   | SrcToSink { source = _; trace = _; sink; merged_env } -> (
       match sink with
-      | PM sink_pm -> Some { sink_pm with env = merged_env }
+      | PM (sink_pm, _) -> Some { sink_pm with env = merged_env }
       | Call (fun_call, _trace, _) -> (
           let code = G.E fun_call in
           match V.range_of_any_opt code with
@@ -202,7 +228,7 @@ let pm_of_finding file finding =
               let tokens = lazy (V.ii_of_any code) in
               Some
                 {
-                  PM.rule_id = (pm_of_dm sink).rule_id;
+                  PM.rule_id = (fst @@ pm_of_dm sink).rule_id;
                   file;
                   range_loc;
                   tokens;
