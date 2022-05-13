@@ -806,27 +806,33 @@ and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
       v1)
     xs
 
-and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter)
-    : G.parameter =
-  let v1 = modifiers_opt env v1 in
-  (* 'val' or 'var' *)
-  let v2 =
-    match v2 with
-    | Some x -> [ KeywordAttr (anon_choice_val_2833752 env x) ]
-    | None -> []
-  in
-  let v3 = simple_identifier env v3 in
-  let _v4 = token env v4 (* ":" *) in
-  let v5 = type_ env v5 in
-  let v6 =
-    match v6 with
-    | Some (v1, v2) ->
-        let _v1 = token env v1 (* "=" *) in
-        let v2 = expression env v2 in
-        Some v2
-    | None -> None
-  in
-  Param (G.param_of_id v3 ~pdefault:v6 ~ptype:(Some v5) ~pattrs:(v1 @ v2))
+and class_parameter (env : env) (x : CST.class_parameter) : G.parameter =
+  match x with
+  | `Opt_modifs_opt_choice_val_simple_id_COLON_type_opt_EQ_exp
+      (v1, v2, v3, v4, v5, v6) ->
+      let v1 = modifiers_opt env v1 in
+      (* 'val' or 'var' *)
+      let v2 =
+        match v2 with
+        | Some x -> [ KeywordAttr (anon_choice_val_2833752 env x) ]
+        | None -> []
+      in
+      let v3 = simple_identifier env v3 in
+      let _v4 = token env v4 (* ":" *) in
+      let v5 = type_ env v5 in
+      let v6 =
+        match v6 with
+        | Some (v1, v2) ->
+            let _v1 = token env v1 (* "=" *) in
+            let v2 = expression env v2 in
+            Some v2
+        | None -> None
+      in
+      Param (G.param_of_id v3 ~pdefault:v6 ~ptype:(Some v5) ~pattrs:(v1 @ v2))
+  | `Ellips v1 ->
+      (* "..." *)
+      let tk = token env v1 in
+      ParamEllipsis tk
 
 and class_parameters (env : env) ((v1, v2, v3) : CST.class_parameters) :
     parameters =
