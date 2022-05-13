@@ -1,0 +1,29 @@
+rules:
+  - id: test
+    message: Test
+    severity: INFO
+    languages: [py]
+    mode: taint
+    pattern-sources:
+      - label: closed
+        patterns:
+          - pattern: |
+              $FILE.close()
+          - focus-metavariable: $FILE
+      - label: closed-twice
+        requires: [closed]
+        patterns:
+          - pattern: $FILE.close()
+          - focus-metavariable: $FILE
+      - label: reopened
+        requires: [closed]
+        patterns:
+          - pattern: |
+              $FILE = open(...)
+          - focus-metavariable: $FILE
+    pattern-sinks:
+      - requires: [closed-twice]
+        requires-not: [reopened]
+        patterns:
+          - pattern: $FILE.close(...)
+          - focus-metavariable: $FILE
