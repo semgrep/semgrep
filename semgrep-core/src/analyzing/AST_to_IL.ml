@@ -677,14 +677,7 @@ and expr_aux env ?(void = false) e_gen =
   | G.DeepEllipsis _
   | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E e_gen)
-  | G.StmtExpr { s = G.Block (_, block, _); _ } -> (
-      (* See 'AST_generic.stmt_to_expr' *)
-      match List.rev block with
-      | { s = G.ExprStmt (e, _); _ } :: rev_sts ->
-          rev_sts |> List.rev |> List.concat_map (stmt env) |> add_stmts env;
-          expr env e
-      | __else__ -> todo (G.E e_gen))
-  | G.StmtExpr _st -> todo (G.E e_gen)
+  | G.StmtExpr st -> stmt_expr env ~e_gen st
   | G.OtherExpr ((str, tok), xs) ->
       let es =
         xs
@@ -795,6 +788,41 @@ and record env ((_tok, origfields, _) as record_def) =
          | G.F _ -> todo (G.E e_gen))
   in
   mk_e (Record fields) (SameAs e_gen)
+
+and stmt_expr env ?e_gen st =
+  let todo () =
+    match e_gen with
+    | None -> todo (G.E (G.e (G.StmtExpr st)))
+    | Some e_gen -> todo (G.E e_gen)
+  in
+  match st.G.s with
+  | G.ExprStmt (eorig, _) -> expr env eorig
+  | G.If (tok, cond, st1, opt_st2) ->
+      let ss, e' = cond_with_pre_stmts env cond in
+      let e1 = stmt_expr env st1 in
+      let e2 =
+        match opt_st2 with
+        | Some st2 -> stmt_expr env st2
+        | None -> fixme_exp ToDo (G.Tk tok) (Related (G.S st))
+      in
+      let fresh = fresh_lval env tok in
+      let a1 = mk_s (Instr (mk_i (Assign (fresh, e1)) (related_tok tok))) in
+      let a2 = mk_s (Instr (mk_i (Assign (fresh, e2)) (related_tok tok))) in
+      add_stmts env (ss @ [ mk_s (If (tok, e', [ a1 ], [ a2 ])) ]);
+      let eorig =
+        match e_gen with
+        | None -> related_exp (G.e (G.StmtExpr st))
+        | Some e_gen -> SameAs e_gen
+      in
+      mk_e (Fetch fresh) eorig
+  | G.Block (_, block, _) -> (
+      (* See 'AST_generic.stmt_to_expr' *)
+      match List.rev block with
+      | st :: rev_sts ->
+          rev_sts |> List.rev |> List.concat_map (stmt env) |> add_stmts env;
+          stmt_expr env st
+      | __else__ -> todo ())
+  | __else__ -> todo ()
 
 (*****************************************************************************)
 (* Exprs and instrs *)
@@ -914,9 +942,10 @@ and mk_switch_break_label env tok =
 
 and stmt_aux env st =
   match st.G.s with
-  | G.ExprStmt (e, _) ->
+  | G.ExprStmt (eorig, tok) ->
       (* optimize? pass context to expr when no need for return value? *)
-      let ss, _eIGNORE = expr_with_pre_stmts ~void:true env e in
+      let ss, e = expr_with_pre_stmts ~void:true env eorig in
+      mk_aux_var env tok e |> ignore;
       ss
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
