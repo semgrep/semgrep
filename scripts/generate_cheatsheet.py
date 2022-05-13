@@ -70,7 +70,6 @@ VERBOSE_SUBCATEGORY_NAME = {
     "stmt": "Statement",
     "stmts": "Statements",
     "call": "Function Call",
-    "eq": "Equality Constraints",
     "nested_stmts": "Nested Statements",
     "cond": "Conditionals",
     "arg": "Argument",
