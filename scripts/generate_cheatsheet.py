@@ -140,7 +140,6 @@ CHEATSHEET_ENTRIES = {
         # "field-order", TODO
         # "arg-order", TODO
         "constant_propagation",
-        "eq",
     ],
     "deep": ["exprstmt", "expr_operator"],
 }
@@ -164,7 +163,6 @@ GA_FEATURES = {
     "equivalence": [
         "naming_import",
         "constant_propagation",
-        "eq",
     ],
     "deep": ["expr_operator"],
 }
