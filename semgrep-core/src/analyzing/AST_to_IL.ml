@@ -798,12 +798,30 @@ and stmt_expr env ?e_gen st =
   match st.G.s with
   | G.ExprStmt (eorig, _) -> expr env eorig
   | G.If (tok, cond, st1, opt_st2) ->
+      (* if cond then e1 else e2
+       * -->
+       * if cond {
+       *   tmp = e1;
+       * }
+       * else {
+       *   tmp = e2;
+       * }
+       * tmp
+       *
+       * TODO: Look at RIL (used by Diamondblack Ruby) for insiration,
+       *       see https://www.cs.umd.edu/~mwh/papers/ril.pdf.
+       *)
       let ss, e' = cond_with_pre_stmts env cond in
       let e1 = stmt_expr env st1 in
       let e2 =
         match opt_st2 with
         | Some st2 -> stmt_expr env st2
-        | None -> fixme_exp ToDo (G.Tk tok) (Related (G.S st))
+        | None ->
+            (* Coming from OCaml-land we would not expect this to happen... but
+             * we got some Ruby examples from r2c's SR team where there is an `if`
+             * expression without an `else`... anyways, if it happens we translate
+             * what we can, and we fill-in the `else` with a "fixme" node. *)
+            fixme_exp ToDo (G.Tk tok) (Related (G.S st))
       in
       let fresh = fresh_lval env tok in
       let a1 = mk_s (Instr (mk_i (Assign (fresh, e1)) (related_tok tok))) in
