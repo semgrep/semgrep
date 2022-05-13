@@ -132,6 +132,8 @@ type config = {
   filepath : Common.filename;
   rule_id : string;
   is_source : G.any -> (PM.t * float * Rule.taint_source) list;
+  is_propa_from : AST_generic.any -> string list;
+  is_propa_to : AST_generic.any -> (string * float) list;
   is_sink : G.any -> (PM.t * Rule.taint_sink) list;
   is_sanitizer : G.any -> PM.t list;
   unify_mvars : bool;
@@ -327,6 +329,14 @@ let add_taint_to_var_in_env var_env var taint =
       | Some taint' -> Some (Taint.union taint taint'))
     var_env
 
+let add_taint_to_strid_in_env var_env strid taint =
+  VarMap.update strid
+    (function
+      | None -> Some taint
+      (* THINK: Why can't we just replace the existing taint? *)
+      | Some taint' -> Some (Taint.union taint taint'))
+    var_env
+
 (* Test whether a variable occurrence is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let check_tainted_var env (var : IL.name) : Taint.t * var_env =
@@ -340,6 +350,12 @@ let check_tainted_var env (var : IL.name) : Taint.t * var_env =
         env.config.is_sanitizer (G.Tk tok),
         env.config.is_sink (G.Tk tok) )
     else ([], [], [])
+  in
+  let propa_froms, propa_tos =
+    let _, tok = var.ident in
+    if Parse_info.is_origintok tok then
+      (env.config.is_propa_from (G.Tk tok), env.config.is_propa_to (G.Tk tok))
+    else ([], [])
   in
   logger#flash "check_var #sources = %d" (List.length source_pms);
   let src_reg, src_mut =
@@ -368,9 +384,25 @@ let check_tainted_var env (var : IL.name) : Taint.t * var_env =
     (* |> PM.Set.union (is_tainted_function_hook config ((G.Id (var.ident, var.id_info)))) *)
   in
   let var_env' =
-    add_taint_to_var_in_env env.var_env var
-      (add_taint ~curr:taint_var_env taint_sources_mut)
+    List.fold_left
+      (fun ve strid -> add_taint_to_strid_in_env ve strid taint)
+      env.var_env propa_froms
   in
+  let taint_exp, taint_var =
+    List.fold_left
+      (fun (t1, t2) (strid, m) ->
+        let t =
+          VarMap.find_opt strid var_env' |> Option.value ~default:Taint.empty
+        in
+        if m < 0.9 then (Taint.union t t1, t2)
+        else (Taint.union t t1, Taint.union t t2))
+      (Taint.empty, Taint.empty) propa_tos
+  in
+  let var_env' =
+    add_taint_to_var_in_env env.var_env var
+      (Taint.union taint_var (add_taint ~curr:taint_var_env taint_sources_mut))
+  in
+  let taint = Taint.union taint_exp taint in
   match sanitizer_pms with
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
   | _ :: _ -> (Taint.empty, env.var_env)

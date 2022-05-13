@@ -148,6 +148,39 @@ let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
     formula None
   |> snd
 
+let any_in_ranges_propa_from _rule any rwms =
+  (* This is potentially slow. We may need to store range position in
+   * the AST at some point. *)
+  match Visitor_AST.range_of_any_opt any with
+  | None ->
+      logger#debug
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (G.show_any any);
+      []
+  | Some (tok1, tok2) ->
+      let r = Range.range_of_token_locations tok1 tok2 in
+      List.filter (fun (r1, _, _) -> Range.( $<=$ ) r r1) rwms
+      |> Common.map (fun (_, _, strid) -> strid)
+
+let any_in_ranges_propa_to _rule any rwms =
+  (* This is potentially slow. We may need to store range position in
+   * the AST at some point. *)
+  match Visitor_AST.range_of_any_opt any with
+  | None ->
+      logger#debug
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (G.show_any any);
+      []
+  | Some (tok1, tok2) ->
+      let r = Range.range_of_token_locations tok1 tok2 in
+      List.filter (fun (_, r1, _) -> Range.( $<=$ ) r r1) rwms
+      |> Common.map (fun (_, r1, strid) ->
+             let m =
+               (float_of_int @@ (r.Range.end_ - r.Range.start + 1))
+               /. (float_of_int @@ (r1.Range.end_ - r1.Range.start + 1))
+             in
+             (strid, m))
+
 let lazy_force x = Lazy.force x [@@profiling]
 
 (*****************************************************************************)
@@ -175,6 +208,54 @@ let taint_config_of_rule default_config equivs file ast_and_errors
              src.formula
            |> List.map (fun x -> (x, src)))
   in
+  let find_range_w_metas_propa propa =
+    let ( let* ) = Option.bind in
+    let module MV = Metavariable in
+    propa
+    |> List.concat_map (fun (p : Rule.taint_propa) ->
+           let from, ftk = p.from in
+           let to_, ttk = p.to_ in
+           let rs =
+             range_w_metas_of_pformula config equivs file_and_more rule
+               p.formula
+           in
+           rs
+           |> List.filter_map (fun rwm ->
+                  let* _mvar_from, mval_from =
+                    List.find_opt
+                      (fun (mvar, _mval) -> MV.equal_mvar from mvar)
+                      rwm.RM.mvars
+                  in
+                  let* _mvar_to, mval_to =
+                    List.find_opt
+                      (fun (mvar, _mval) -> MV.equal_mvar to_ mvar)
+                      rwm.RM.mvars
+                  in
+                  let* rlfrom1, rlfrom2 =
+                    Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_from)
+                  in
+                  let* rlto1, rlto2 =
+                    Visitor_AST.range_of_any_opt (MV.mvalue_to_any mval_to)
+                  in
+                  match
+                    Parse_info.
+                      (token_location_of_info ftk, token_location_of_info ttk)
+                  with
+                  | Error _, _
+                  | _, Error _ ->
+                      None
+                  | Ok floc, Ok tloc ->
+                      let rfrom =
+                        Range.range_of_token_locations rlfrom1 rlfrom2
+                      in
+                      let rto = Range.range_of_token_locations rlto1 rlto2 in
+                      let strid =
+                        Common.spf "propa:%d:%d:%d:%d:%d:%d" floc.charpos
+                          tloc.charpos rfrom.Range.start rfrom.Range.end_
+                          rto.Range.start rto.Range.end_
+                      in
+                      Some (rfrom, rto, strid)))
+  in
   let find_range_w_metas_sink sinks =
     (* TODO: Make an Or formula and run a single query. *)
     (* if perf is a problem, we could build an interval set here *)
@@ -193,6 +274,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
                 spec.pformula))
   in
   let sources_ranges = find_range_w_metas_src spec.sources
+  and propa_ranges = find_range_w_metas_propa spec.propagators
   and sinks_ranges = find_range_w_metas_sink spec.sinks in
   let sanitizers_ranges =
     find_range_w_metas_santizers spec.sanitizers
@@ -220,6 +302,8 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_in_ranges3 rule x sources_ranges);
+      is_propa_from = (fun x -> any_in_ranges_propa_from rule x propa_ranges);
+      is_propa_to = (fun x -> any_in_ranges_propa_to rule x propa_ranges);
       is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
       is_sink = (fun x -> any_in_ranges2 rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;

@@ -717,6 +717,13 @@ let parse_source env (key : key) (value : G.expr) : Rule.taint_source =
   let formula = parse_formula env source_dict in
   { formula; label; requires; requires_not }
 
+let parse_propa env (key : key) (value : G.expr) : Rule.taint_propa =
+  let source_dict = yaml_to_dict env key value in
+  let from = take source_dict env parse_string_wrap "from" in
+  let to_ = take source_dict env parse_string_wrap "to" in
+  let formula = parse_formula env source_dict in
+  { formula; from; to_ }
+
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
   let not_conflicting =
@@ -755,14 +762,21 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
           (fun env -> parse_spec env (fst key ^ "list item", snd key))
           x
       in
-      let sources, sanitizers_opt, sinks =
+      let sources, propagators_opt, sanitizers_opt, sinks =
         ( take rule_dict env (parse_specs parse_source) "pattern-sources",
+          take_opt rule_dict env (parse_specs parse_propa) "pattern-propagators",
           take_opt rule_dict env
             (parse_specs parse_sanitizer)
             "pattern-sanitizers",
           take rule_dict env (parse_specs parse_sink) "pattern-sinks" )
       in
-      R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
+      R.Taint
+        {
+          sources;
+          propagators = optlist_to_list propagators_opt;
+          sanitizers = optlist_to_list sanitizers_opt;
+          sinks;
+        }
   | Some key ->
       error_at_key env key
         (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"

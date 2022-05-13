@@ -231,6 +231,13 @@ type taint_source = {
 }
 [@@deriving show]
 
+type taint_propa = {
+  formula : pformula;
+  from : MV.mvar wrap;
+  to_ : MV.mvar wrap;
+}
+[@@deriving show]
+
 type taint_sink = {
   formula : pformula;
   requires : string list;
@@ -240,6 +247,7 @@ type taint_sink = {
 
 type taint_spec = {
   sources : taint_source list;
+  propagators : taint_propa list;
   sanitizers : sanitizer_spec list;
   sinks : taint_sink list;
 }

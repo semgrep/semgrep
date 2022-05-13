@@ -53,6 +53,8 @@ type config = {
     AST_generic.any -> (Pattern_match.t * float * Rule.taint_source) list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
+  is_propa_from : AST_generic.any -> string list;
+  is_propa_to : AST_generic.any -> (string * float) list;
   is_sink : AST_generic.any -> (Pattern_match.t * Rule.taint_sink) list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)
