@@ -17,6 +17,9 @@
       "extra": {
         "fingerprint": "e02fb095085d554bebaa733bb863be24",
         "fix": "assert \"a\"",
+        "fixed_lines": [
+          "assert \"a\""
+        ],
         "is_ignored": false,
         "lines": "assert_eq(\n    True, \"a\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
@@ -59,6 +62,9 @@
       "extra": {
         "fingerprint": "313cb4216c39d1171f6858cea0d3fcc1",
         "fix": "assert \"b\"",
+        "fixed_lines": [
+          "assert \"b\""
+        ],
         "is_ignored": false,
         "lines": "assert_eq(\n    True, \"b\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
