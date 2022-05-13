@@ -36,6 +36,8 @@ class JsonFormatter(BaseFormatter):
                 out._Identity(rule_match.extra.get("dependency_matches"))
             )
             extra.dependency_match_only = rule_match.extra.get("dependency_match_only")
+        if rule_match.extra.get("fixed_lines"):
+            extra.fixed_lines = rule_match.extra.get("fixed_lines")
         if rule_match.fix:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
