@@ -39,16 +39,16 @@ let test_tainting lang file ast rule taint_spec def =
   Common.pr2 "--------";
   let mapping = Dataflow_tainting.fixpoint config flow in
   DataflowX.display_mapping flow mapping (fun taint ->
-      let open Dataflow_tainting in
       let show_taint t =
-        match t.orig with
-        | Src src ->
-            let tok1, tok2 = (pm_of_dm src).range_loc in
+        match t.Taint.orig with
+        | Taint.Src src ->
+            let tok1, tok2 = (Taint.pm_of_trace src).range_loc in
             let r = Range.range_of_token_locations tok1 tok2 in
             Range.content_at_range file r
-        | Arg i -> spf "arg %d" i
+        | Taint.Arg i -> spf "arg %d" i
       in
-      taint |> Taint.elements |> Common.map show_taint |> String.concat ", "
+      taint |> Taint.Taint_set.elements |> Common.map show_taint
+      |> String.concat ", "
       |> fun str -> "{ " ^ str ^ " }")
 
 let test_dfg_tainting rules_file file =

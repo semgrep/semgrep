@@ -1,51 +1,6 @@
 type var = Dataflow_core.var
 (** A string of the form "<source name>:<sid>". *)
 
-type trace = AST_generic.tok list [@@deriving show]
-(** A trace of tokens showing where the taint passed through. *)
-
-(** A match that spans multiple functions (aka "deep").
-  * E.g. Call('foo(a)', PM('sink(x)')) is an indirect match for 'sink(x)'
-  * through the function call 'foo(a)'. *)
-type deep_match =
-  | PM of Pattern_match.t  (** A direct match.  *)
-  | Call of AST_generic.expr * trace * deep_match
-      (** An indirect match through a function call. *)
-[@@deriving show]
-
-type source = deep_match [@@deriving show]
-type sink = deep_match [@@deriving show]
-type arg_pos = int [@@deriving show]
-
-type source_to_sink = {
-  source : source;
-  trace : trace;
-  sink : sink;
-  merged_env : Metavariable.bindings;
-}
-[@@deriving show]
-
-(** Function-level finding (not necessarily a Semgrep finding). These may
-  * depend on taint variables so they must be interpreted on a specific
-  * context. *)
-type finding =
-  | SrcToSink of source_to_sink
-  | SrcToReturn of source * trace * AST_generic.tok
-  | ArgToSink of arg_pos * trace * sink
-  | ArgToReturn of arg_pos * trace * AST_generic.tok
-[@@deriving show]
-
-type taint_orig =
-  | Src of source  (** An actual taint source (`pattern-sources:` match). *)
-  | Arg of arg_pos
-      (** A taint variable (potential taint coming through an argument). *)
-[@@deriving show]
-
-type taint = { orig : taint_orig; rev_trace : trace } [@@deriving show]
-
-module Taint : Set.S with type elt = taint
-(** A set of taint sources. *)
-
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
@@ -61,8 +16,8 @@ type config = {
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
-    finding list ->
-    Taint.t Dataflow_core.env ->
+    Taint.finding list ->
+    Taint.taints Dataflow_core.env ->
     unit;
       (** Callback to report findings. *)
 }
@@ -71,7 +26,7 @@ type config = {
   * For a source to taint a sink, the bindings of both source and sink must be
   * unifiable. See 'unify_meta_envs'. *)
 
-type mapping = Taint.t Dataflow_core.mapping
+type mapping = Taint.taints Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
@@ -81,15 +36,13 @@ type fun_env = (var, Pattern_match.Set.t) Hashtbl.t
   * interprocedural taint tracking. TO BE DEPRECATED. *)
 
 val str_of_name : IL.name -> var
-val pm_of_dm : deep_match -> Pattern_match.t
-val taint_of_pms : Pattern_match.t list -> Taint.t
 
 val hook_function_taint_signature :
-  (config -> AST_generic.expr -> finding list option) option ref
+  (config -> AST_generic.expr -> Taint.finding list option) option ref
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:Taint.t Dataflow_core.VarMap.t ->
+  ?in_env:Taint.taints Dataflow_core.VarMap.t ->
   ?name:var ->
   ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
   config ->

@@ -21,6 +21,7 @@ module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Report
+module T = Taint
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -193,12 +194,11 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     } )
 
 let pm_of_finding file finding =
-  let open Dataflow_tainting in
   match finding with
-  | SrcToSink { source = _; trace = _; sink; merged_env } -> (
+  | T.SrcToSink { source = _; tokens = _; sink; merged_env } -> (
       match sink with
-      | PM sink_pm -> Some { sink_pm with env = merged_env }
-      | Call (fun_call, _trace, _) -> (
+      | T.PM sink_pm -> Some { sink_pm with env = merged_env }
+      | T.Call (fun_call, _trace, _) -> (
           let code = G.E fun_call in
           match V.range_of_any_opt code with
           | None ->
@@ -209,17 +209,17 @@ let pm_of_finding file finding =
               let tokens = lazy (V.ii_of_any code) in
               Some
                 {
-                  PM.rule_id = (pm_of_dm sink).rule_id;
+                  PM.rule_id = (T.pm_of_trace sink).rule_id;
                   file;
                   range_loc;
                   tokens;
                   env = merged_env;
                 }))
-  | SrcToReturn _
+  | T.SrcToReturn _
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
-  | ArgToSink _
-  | ArgToReturn _ ->
+  | T.ArgToSink _
+  | T.ArgToReturn _ ->
       None
 
 let check_stmt ?in_env ?name lang fun_env taint_config def_body =
@@ -238,7 +238,7 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   in
   let add_to_env env id ii =
     let var = D.str_of_name (AST_to_IL.var_of_id_info id ii) in
-    let taint = taint_config.D.is_source (G.Tk (snd id)) |> D.taint_of_pms in
+    let taint = taint_config.D.is_source (G.Tk (snd id)) |> T.taints_of_pms in
     Dataflow_core.VarMap.add var taint env
   in
   let in_env =

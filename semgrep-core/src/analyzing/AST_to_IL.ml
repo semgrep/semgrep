@@ -352,7 +352,17 @@ and assign env lhs tok rhs_exp e_gen =
         (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
         (related_exp lhs)
   | G.Record (tok1, fields, tok2) ->
-      (* {x1: v1, ..., xN: vN} = RHS *)
+      (* The assignment
+       *
+       *     {x1: v1, ..., xN: vN} = RHS
+       *
+       * where `xi` are field names, and `vi` are variables, becomes
+       *
+       *     tmp = RHS
+       *     v1 = tmp.x1
+       *     ...
+       *     vN = tmp.xN
+       *)
       let tmp = fresh_var env tok2 in
       let tmp_lval = lval_of_base (Var tmp) in
       add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
@@ -380,10 +390,17 @@ and assign env lhs tok rhs_exp e_gen =
                  in
                  add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
                  (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
-             | _ ->
-                 let xi = ("__FIXME_AST_to_IL__", tok1) in
-                 let ei = fixme_exp ToDo (G.Tk tok1) (related_tok tok1) in
-                 (xi, ei))
+             | field ->
+                 (* If a field is not of the form `x1: v1` then we translate it as
+                  * `__FIXME_AST_to_IL__: FixmeExp ToDo`.
+                  *)
+                 let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
+                 let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
+                 let tmpi = fresh_var env tok2 in
+                 let tmpi_lval = lval_of_base (Var tmpi) in
+                 add_instr env
+                   (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
+                 (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field))))
       in
       (* {x1: E1, ..., xN: En} *)
       mk_e (Record record_pairs) (related_exp lhs)
