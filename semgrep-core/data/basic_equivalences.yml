@@ -1,3 +1,5 @@
+#DEPRECATED: this is actually not used anymore, the equivalence feature
+# has been deprecated.
 equivalences:
   # Basic equivalences
   - id: plus-commutative

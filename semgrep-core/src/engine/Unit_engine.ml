@@ -80,7 +80,6 @@ let ga_features =
       "deep_expr_operator";
       "dots_method_chaining";
       "equivalence_constant_propagation";
-      "equivalence_eq";
       "equivalence_naming_import";
       "metavar_anno";
       "metavar_key_value";
@@ -211,10 +210,6 @@ let maturity_tests =
 (* Language-specific tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-(* for the equivalences (TODO: could be removed) *)
-let data_path = "../../../data"
-
 let sgrep_file_of_target file =
   let d, b, _e = Common2.dbe_of_filename file in
   let candidate1 = Common2.filename_of_dbe (d, b, "sgrep") in
@@ -275,13 +270,16 @@ let regression_tests_for_lang ~with_caching files lang =
                  pattern_string = "test: no need for pattern string";
                }
              in
-             let equiv =
-               (* Python == is not the same than !(==) *)
-               if lang <> Lang.Python then
-                 Parse_equivalences.parse
-                   (Filename.concat data_path "basic_equivalences.yml")
-               else []
-             in
+             (* old: semgrep-core used to support user-defined
+              * equivalences, but the feature has been now deprecated.
+              *
+              * (* Python == is not the same than !(==) *)
+              * if lang <> Lang.Python then
+              *   Parse_equivalences.parse
+              *     (Filename.concat data_path "basic_equivalences.yml")
+              * else []
+              *)
+             let equiv = [] in
              Common.save_excursion Flag_semgrep.with_opt_cache with_caching
                (fun () ->
                  Match_patterns.check
