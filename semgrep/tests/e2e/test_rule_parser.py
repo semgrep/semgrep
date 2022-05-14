@@ -57,7 +57,8 @@ def _clean_output_json(output):
             if error.get("spans"):
                 for span in error.get("spans"):
                     if span.get("file"):
-                        span["file"] = "no file"
+                        file = span.get("file")
+                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
 
 
 @pytest.mark.kinda_slow

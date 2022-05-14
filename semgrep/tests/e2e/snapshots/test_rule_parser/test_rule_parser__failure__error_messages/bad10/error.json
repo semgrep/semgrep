@@ -19,7 +19,7 @@
             "col": 21,
             "line": 8
           },
-          "file": "no file",
+          "file": "rules/syntax/bad10.yaml",
           "source_hash": "9bf69aa52b0a57d7f67b6200f2434646c150331285aa0e3903c2a92d4dc9bbb3",
           "start": {
             "col": 20,
