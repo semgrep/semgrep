@@ -317,13 +317,18 @@ let rec stmt st =
   | DoWhile (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
       G.DoWhile (t, v1, v2)
-  | For (t, v1, v2, v3, v4) ->
-      let init = expr_or_vars v1
-      and v2 = option expr v2
-      and v3 = option expr v3
-      and v4 = stmt v4 in
-      let header = G.ForClassic (init, v2, v3) in
-      G.For (t, header, v4)
+  | For (t, header, st) ->
+      let header =
+        match header with
+        | ForClassic (v1, v2, v3) ->
+            let init = expr_or_vars v1 in
+            let v2 = option expr v2 in
+            let v3 = option expr v3 in
+            G.ForClassic (init, v2, v3)
+        | ForEllipsis v1 -> G.ForEllipsis v1
+      in
+      let st = stmt st in
+      G.For (t, header, st)
   | Return (t, v1) ->
       let v1 = option expr v1 in
       G.Return (t, v1, G.sc)

@@ -4,6 +4,7 @@ module R = Rule
 module MR = Mini_rule
 module P = Pattern_match
 module E = Semgrep_error_code
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -79,7 +80,6 @@ let ga_features =
       "deep_expr_operator";
       "dots_method_chaining";
       "equivalence_constant_propagation";
-      "equivalence_eq";
       "equivalence_naming_import";
       "metavar_anno";
       "metavar_key_value";
@@ -210,10 +210,6 @@ let maturity_tests =
 (* Language-specific tests *)
 (*****************************************************************************)
 
-(* ran from _build/default/tests/ hence the '..'s below *)
-(* for the equivalences (TODO: could be removed) *)
-let data_path = "../../../data"
-
 let sgrep_file_of_target file =
   let d, b, _e = Common2.dbe_of_filename file in
   let candidate1 = Common2.filename_of_dbe (d, b, "sgrep") in
@@ -274,13 +270,16 @@ let regression_tests_for_lang ~with_caching files lang =
                  pattern_string = "test: no need for pattern string";
                }
              in
-             let equiv =
-               (* Python == is not the same than !(==) *)
-               if lang <> Lang.Python then
-                 Parse_equivalences.parse
-                   (Filename.concat data_path "basic_equivalences.yml")
-               else []
-             in
+             (* old: semgrep-core used to support user-defined
+              * equivalences, but the feature has been now deprecated.
+              *
+              * (* Python == is not the same than !(==) *)
+              * if lang <> Lang.Python then
+              *   Parse_equivalences.parse
+              *     (Filename.concat data_path "basic_equivalences.yml")
+              * else []
+              *)
+             let equiv = [] in
              Common.save_excursion Flag_semgrep.with_opt_cache with_caching
                (fun () ->
                  Match_patterns.check
@@ -293,8 +292,7 @@ let regression_tests_for_lang ~with_caching files lang =
                      let minii_loc =
                        Parse_info.unsafe_token_location_of_info minii
                      in
-                     E.error "test pattern" minii_loc ""
-                       (E.SemgrepMatchFound ""))
+                     E.error "test pattern" minii_loc "" Out.SemgrepMatchFound)
                    (Config_semgrep.default_config, equiv)
                    [ rule ] (file, lang, ast)
                  |> ignore;
@@ -350,6 +348,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.Rust "rust" ".rs";
       pack_regression_tests_for_lang Lang.Yaml "yaml" ".yaml";
       pack_regression_tests_for_lang Lang.Scala "scala" ".scala";
+      pack_regression_tests_for_lang Lang.Swift "swift" ".swift";
       pack_regression_tests_for_lang Lang.Html "html" ".html";
       pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
       pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
@@ -486,7 +485,7 @@ let tainting_test lang rules_file file =
     |> Common.map (fun m ->
            {
              rule_id = Some m.P.rule_id.id;
-             E.typ = SemgrepMatchFound m.P.rule_id.id;
+             E.typ = Out.SemgrepMatchFound;
              loc = fst m.range_loc;
              msg = m.P.rule_id.message;
              details = None;

@@ -9,13 +9,13 @@ from typing import Tuple
 
 import click
 
-from semgrep.app import app_session
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.project import get_project_url
+from semgrep.state import get_state
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames
 from semgrep.verbose_logging import getLogger
@@ -98,6 +98,8 @@ def publish(
 
     Must be logged in to use; see `semgrep login`
     """
+    app_session = get_state().app_session
+
     if not app_session.token:
         click.echo("run `semgrep login` before using upload", err=True)
         sys.exit(FATAL_EXIT_CODE)
@@ -157,6 +159,7 @@ def _upload_rule(
         visibility: the visibility of the uploaded rule
         test_code_file: optional test case to attach with the rule
     """
+    app_session = get_state().app_session
     config, errors = get_config(None, None, [str(rule_file)], project_url=None)
 
     if errors:

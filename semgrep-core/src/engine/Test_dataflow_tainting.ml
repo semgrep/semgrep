@@ -13,6 +13,17 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
 end)
 
+let pr2_ranges file rwms =
+  rwms
+  |> List.iter (fun rwm ->
+         let code_text = Range.content_at_range file rwm.RM.r in
+         let line_str =
+           let pm = rwm.RM.origin in
+           let loc1, _ = pm.Pattern_match.range_loc in
+           string_of_int loc1.Parse_info.line
+         in
+         Common.pr2 (code_text ^ " @l." ^ line_str))
+
 let test_tainting lang file ast rule taint_spec def =
   let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
   let flow = CFG_build.cfg_of_stmts xs in
@@ -25,30 +36,27 @@ let test_tainting lang file ast rule taint_spec def =
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";
-  debug_taint.sources
-  |> List.iter (fun rwm -> Common.pr2 (Range.content_at_range file rwm.RM.r));
+  pr2_ranges file debug_taint.sources;
   Common.pr2 "\nSanitizers";
   Common.pr2 "----------";
-  debug_taint.sanitizers
-  |> List.iter (fun rwm -> Common.pr2 (Range.content_at_range file rwm.RM.r));
+  pr2_ranges file debug_taint.sanitizers;
   Common.pr2 "\nSinks";
   Common.pr2 "-----";
-  debug_taint.sinks
-  |> List.iter (fun rwm -> Common.pr2 (Range.content_at_range file rwm.RM.r));
+  pr2_ranges file debug_taint.sinks;
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let mapping = Dataflow_tainting.fixpoint config flow in
   DataflowX.display_mapping flow mapping (fun taint ->
-      let open Dataflow_tainting in
       let show_taint t =
-        match t.orig with
-        | Src src ->
-            let tok1, tok2 = (pm_of_dm src).range_loc in
+        match t.Taint.orig with
+        | Taint.Src src ->
+            let tok1, tok2 = (Taint.pm_of_trace src).range_loc in
             let r = Range.range_of_token_locations tok1 tok2 in
             Range.content_at_range file r
-        | Arg i -> spf "arg %d" i
+        | Taint.Arg i -> spf "arg %d" i
       in
-      taint |> Taint.elements |> Common.map show_taint |> String.concat ", "
+      taint |> Taint.Taint_set.elements |> Common.map show_taint
+      |> String.concat ", "
       |> fun str -> "{ " ^ str ^ " }")
 
 let test_dfg_tainting rules_file file =

@@ -1,0 +1,16 @@
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - python
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - patterns:
+        - pattern: |
+            def $FUNC($PARAM):
+              ...
+        - focus-metavariable: $PARAM
+    severity: ERROR

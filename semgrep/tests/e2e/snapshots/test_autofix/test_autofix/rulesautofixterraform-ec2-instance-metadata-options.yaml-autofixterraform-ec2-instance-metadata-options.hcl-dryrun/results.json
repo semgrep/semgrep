@@ -20,6 +20,16 @@
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
         },
+        "fixed_lines": [
+          "resource \"aws_instance\" \"example1\" {",
+          "  ami           = \"ami-005e54dee72cc1d01\"",
+          "  instance_type = \"t2.micro\"",
+          "",
+          "  metadata_options {",
+          "    http_tokens = \"required\"",
+          "  }",
+          "}"
+        ],
         "is_ignored": false,
         "lines": "resource \"aws_instance\" \"example1\" {\n  ami           = \"ami-005e54dee72cc1d01\"\n  instance_type = \"t2.micro\"\n}",
         "message": "EC2 instance does not set metadata options",
@@ -65,6 +75,16 @@
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
         },
+        "fixed_lines": [
+          "resource \"aws_instance\" \"example2\" {",
+          "  ami           = \"ami-005e54dee72cc1d02\"",
+          "  instance_type = \"t2.micro\"",
+          "",
+          "  metadata_options {",
+          "    http_tokens = \"required\"",
+          "  }",
+          "}"
+        ],
         "is_ignored": false,
         "lines": "resource \"aws_instance\" \"example2\" {\n  ami           = \"ami-005e54dee72cc1d02\"\n  instance_type = \"t2.micro\"\n}",
         "message": "EC2 instance does not set metadata options",
@@ -97,5 +117,6 @@
         "offset": 111
       }
     }
-  ]
+  ],
+  "version": "0.42"
 }

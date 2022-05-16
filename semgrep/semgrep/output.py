@@ -18,9 +18,7 @@ from typing import Type
 
 import requests
 
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
-from semgrep.app import app_session
-from semgrep.app.metrics import metric_manager
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -42,6 +40,7 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.state import get_state
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import FileTargetingLog
@@ -86,11 +85,11 @@ def _build_time_target_json(
     target: Path,
     num_bytes: int,
     profiling_data: ProfilingData,
-) -> v1.CliTargetTimes:
+) -> out.CliTargetTimes:
     path_str = get_path_str(target)
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
 
-    return v1.CliTargetTimes(
+    return out.CliTargetTimes(
         path=path_str,
         num_bytes=num_bytes,
         parse_times=[timing.parse_time for timing in timings],
@@ -108,7 +107,7 @@ def _build_time_json(
     targets: Set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
     profiler: Optional[ProfileManager],
-) -> v1.CliTiming:
+) -> out.CliTiming:
     """Convert match times to a json-ready format.
 
     Match times are obtained for each pair (rule, target) by running
@@ -118,10 +117,10 @@ def _build_time_json(
     same AST.
     """
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
-    return v1.CliTiming(
+    return out.CliTiming(
         # this list of all rules names is given here so they don't have to be
         # repeated for each target in the 'targets' field, saving space.
-        rules=[v1.RuleIdDict(id=v1.RuleId(rule.id)) for rule in rules],
+        rules=[out.RuleIdDict(id=out.RuleId(rule.id)) for rule in rules],
         rules_parse_time=profiling_data.get_rules_parse_time(),
         profiling_times=profiler.dump_stats() if profiler else {},
         targets=[
@@ -273,6 +272,7 @@ class OutputHandler:
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
     ) -> None:
+        state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
         self.rule_matches = [
@@ -344,8 +344,8 @@ class OutputHandler:
                 num_findings == 0
                 and num_targets > 0
                 and num_rules > 0
-                and metric_manager.get_is_using_server()
-                and app_session.token is None
+                and state.metrics.get_is_using_server()
+                and state.app_session.token is None
             ):
                 suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
             else:
@@ -382,12 +382,12 @@ class OutputHandler:
         self,
     ) -> str:
         # CliOutputExtra members
-        cli_paths = v1.CliPaths(
+        cli_paths = out.CliPaths(
             scanned=[str(path) for path in sorted(self.all_targets)],
             _comment=None,
             skipped=None,
         )
-        cli_timing: Optional[v1.CliTiming] = None
+        cli_timing: Optional[out.CliTiming] = None
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
@@ -414,7 +414,7 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths,
                 skipped=[
-                    v1.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    out.CliSkippedTarget(path=x["path"], reason=x["reason"])
                     for x in skipped
                 ],
             )
@@ -438,7 +438,7 @@ class OutputHandler:
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
-            v1.CliOutputExtra(paths=cli_paths, time=cli_timing),
+            out.CliOutputExtra(paths=cli_paths, time=cli_timing),
             extra,
             self.severities,
         )

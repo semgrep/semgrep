@@ -16,8 +16,8 @@ val taint_config_of_rule :
   Rule.rule ->
   Rule.taint_spec ->
   (Dataflow_tainting.var option ->
-  Dataflow_tainting.finding list ->
-  Dataflow_tainting.Taint.t Dataflow_core.env ->
+  Taint.finding list ->
+  Taint.taints Dataflow_core.env ->
   unit) ->
   Dataflow_tainting.config * debug_taint
 

@@ -14,7 +14,6 @@ from typing import Tuple
 from typing import Union
 
 from semgrep import __VERSION__
-from semgrep.app.metrics import metric_manager
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -38,6 +37,7 @@ from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
+from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import partition
@@ -172,8 +172,8 @@ def run_rules(
             if len(top_level_target_rooted) == 0
             else top_level_target_rooted[-1]
         )
-        langs = [l for r in dependency_aware_rules for l in r.languages]
-        dep_trie = make_dependency_trie(top_level_target, langs, target_manager)
+        namespaces = [ns for r in dependency_aware_rules for ns in r.namespaces]
+        dep_trie = make_dependency_trie(top_level_target, namespaces, target_manager)
 
         for rule in dependency_aware_rules:
             (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
@@ -432,24 +432,24 @@ def main(
 
     num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
     profiler.save("total_time", rule_start_time)
-    if metric_manager.is_enabled():
+
+    metrics = get_state().metrics
+    if metrics.is_enabled():
         error_types = list(e.semgrep_error_type() for e in semgrep_errors)
 
-        metric_manager.set_project_hash(project_url)
-        metric_manager.set_configs_hash(configs)
-        metric_manager.set_rules_hash(filtered_rules)
-        metric_manager.set_num_rules(len(filtered_rules))
-        metric_manager.set_num_targets(len(all_targets))
-        metric_manager.set_num_findings(num_findings)
-        metric_manager.set_num_ignored(num_ignored_by_nosem)
-        metric_manager.set_profiling_times(profiler.dump_stats())
+        metrics.set_project_hash(project_url)
+        metrics.set_configs_hash(configs)
+        metrics.set_rules_hash(filtered_rules)
+        metrics.set_num_rules(len(filtered_rules))
+        metrics.set_num_targets(len(all_targets))
+        metrics.set_num_findings(num_findings)
+        metrics.set_num_ignored(num_ignored_by_nosem)
+        metrics.set_profiling_times(profiler.dump_stats())
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
-        metric_manager.set_total_bytes_scanned(total_bytes_scanned)
-        metric_manager.set_errors(error_types)
-        metric_manager.set_rules_with_findings(filtered_matches_by_rule)
-        metric_manager.set_run_timings(
-            profiling_data, list(all_targets), filtered_rules
-        )
+        metrics.set_total_bytes_scanned(total_bytes_scanned)
+        metrics.set_errors(error_types)
+        metrics.set_rules_with_findings(filtered_matches_by_rule)
+        metrics.set_run_timings(profiling_data, list(all_targets), filtered_rules)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule, dryrun)

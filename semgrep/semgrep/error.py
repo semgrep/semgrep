@@ -15,7 +15,7 @@ from typing import Tuple
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
 import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
@@ -66,13 +66,13 @@ class SemgrepError(Exception):
 
         super().__init__(*args)
 
-    def to_CliError(self) -> v1.CliError:
-        err = v1.CliError(
+    def to_CliError(self) -> out.CliError:
+        err = out.CliError(
             code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
         )
         return self.adjust_CliError(err)
 
-    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
         """
@@ -85,31 +85,25 @@ class SemgrepError(Exception):
     def semgrep_error_type(self) -> str:
         return type(self).__name__
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":
-        """
-        Instantiates class from dict representation
-        """
-        return cls(**data)
-
 
 @dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
-    spans: Optional[List[v1.ErrorSpan]]
+    spans: Optional[List[out.ErrorSpan]]
     core: core.CoreError
 
-    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
-        base = dataclasses.replace(base, type_=self.core.error_type, message=str(self))
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
+        base = dataclasses.replace(
+            base, type_=self.core.error_type.to_json(), message=str(self)
+        )
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
         # For rule errors path is a temp file so for now will just be confusing to add
-        if (
-            self.core.error_type != "Rule parse error"
-            and self.core.error_type != "Pattern parse error"
-        ):
+        if not isinstance(
+            self.core.error_type.value, core.RuleParseError
+        ) and not isinstance(self.core.error_type.value, core.PatternParseError):
             base = dataclasses.replace(base, path=str(self.core.location.path))
 
         if self.spans:
@@ -121,10 +115,10 @@ class SemgrepCoreError(SemgrepError):
         """
         Return if this error is a match timeout
         """
-        return self.core.error_type == "Timeout"
+        return isinstance(self.core.error_type.value, core.Timeout)
 
     def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self.core.error_type}"
+        return f"{type(self).__name__}: {self.core.error_type.to_json()}"
 
     @property
     def _error_message(self) -> str:
@@ -133,10 +127,9 @@ class SemgrepCoreError(SemgrepError):
         """
         if self.core.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
-            if (
-                self.core.error_type == "Rule parse error"
-                or self.core.error_type == "Pattern parse error"
-            ):
+            if isinstance(
+                self.core.error_type.value, core.RuleParseError
+            ) or isinstance(self.core.error_type.value, core.PatternParseError):
                 error_context = f"in rule {self.core.rule_id.value}"
             else:
                 error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
@@ -145,14 +138,16 @@ class SemgrepCoreError(SemgrepError):
                 f"at line {self.core.location.path}:{self.core.location.start.line}"
             )
 
-        return f"{self.core.error_type} {error_context}:\n {self.core.message}"
+        return (
+            f"{self.core.error_type.to_json()} {error_context}:\n {self.core.message}"
+        )
 
     @property
     def _stack_trace(self) -> str:
         """
         Returns stack trace if error_type is Fatal error else returns empty strings
         """
-        if self.core.error_type == "Fatal error":
+        if isinstance(self.core.error_type.value, core.FatalError):
             error_trace = self.core.details or "<no stack trace returned>"
             return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
@@ -177,7 +172,7 @@ class SemgrepCoreError(SemgrepError):
                 self.code,
                 self.level,
                 self.core.rule_id,
-                self.core.error_type,
+                self.core.error_type.kind,
                 self.core.location.path,
                 self.core.location.start,
                 self.core.location.end,
@@ -257,7 +252,7 @@ class ErrorWithSpan(SemgrepError):
         if not hasattr(self, "level"):
             raise ValueError("Inheritors of SemgrepError must define a level")
 
-    def adjust_CliError(self, base: v1.CliError) -> v1.CliError:
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(
             base,
             short_msg=self.short_msg,

@@ -8,7 +8,6 @@ from typing import Tuple
 
 import click
 
-from semgrep.app import app_session
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import IN_DOCKER
@@ -16,6 +15,7 @@ from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.settings import SETTINGS
+from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -39,6 +39,7 @@ def login() -> NoReturn:
     If not defined and running in a TTY, prompts interactively.
     Once token is found, saves it to global settings file
     """
+    app_session = get_state().app_session
     saved_login_token = auth._read_token_from_settings_file()
     if saved_login_token:
         click.echo(

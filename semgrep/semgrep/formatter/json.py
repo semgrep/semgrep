@@ -4,7 +4,8 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
-import semgrep.semgrep_interfaces.semgrep_output_v1 as v1
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
+from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -19,10 +20,10 @@ def to_json(x: Any) -> Any:
 
 class JsonFormatter(BaseFormatter):
     @staticmethod
-    def _rule_match_to_CliMatch(rule_match: RuleMatch) -> v1.CliMatch:
-        extra = v1.CliMatchExtra(
+    def _rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
+        extra = out.CliMatchExtra(
             message=rule_match.message,
-            metadata=v1.RawJson(v1._Identity(rule_match.metadata)),
+            metadata=out.RawJson(out._Identity(rule_match.metadata)),
             severity=rule_match.severity.value,
             fingerprint=rule_match.syntactic_id,
             # 'lines' already contains '\n' at the end of each line
@@ -31,10 +32,12 @@ class JsonFormatter(BaseFormatter):
         )
 
         if rule_match.extra.get("dependency_matches"):
-            extra.dependency_matches = v1.RawJson(
-                v1._Identity(rule_match.extra.get("dependency_matches"))
+            extra.dependency_matches = out.RawJson(
+                out._Identity(rule_match.extra.get("dependency_matches"))
             )
             extra.dependency_match_only = rule_match.extra.get("dependency_match_only")
+        if rule_match.extra.get("fixed_lines"):
+            extra.fixed_lines = rule_match.extra.get("fixed_lines")
         if rule_match.fix:
             extra.fix = rule_match.fix
         if rule_match.fix_regex:
@@ -42,8 +45,8 @@ class JsonFormatter(BaseFormatter):
         if rule_match.is_ignored is not None:
             extra.is_ignored = rule_match.is_ignored
 
-        return v1.CliMatch(
-            check_id=v1.RuleId(rule_match.rule_id),
+        return out.CliMatch(
+            check_id=out.RuleId(rule_match.rule_id),
             path=str(rule_match.path),
             start=rule_match.start,
             end=rule_match.end,
@@ -55,12 +58,13 @@ class JsonFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
-        cli_output_extra: v1.CliOutputExtra,
+        cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         # Note that extra is not used here! Every part of the JSON output should
-        # be specified in Semgrep_output_v1.atd and be part of CliOutputExtra
-        output = v1.CliOutput(
+        # be specified in Semgrep_output_xxx.atd and be part of CliOutputExtra
+        output = out.CliOutput(
+            version=out.Semver(__VERSION__),
             results=[
                 self._rule_match_to_CliMatch(rule_match) for rule_match in rule_matches
             ],

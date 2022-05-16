@@ -51,6 +51,14 @@ def _mark_masked(obj, path_items):
                 _mark_masked(o, path_items[1:])
 
 
+def _clean_stdout(out):
+    """Make semgrep's output deterministic."""
+    json_output = json.loads(out)
+    if json_output.get("version"):
+        json_output["version"] = "0.42"
+    return json.dumps(json_output)
+
+
 def _clean_output_json(output_json: str) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     output = json.loads(output_json)
@@ -60,6 +68,9 @@ def _clean_output_json(output_json: str) -> str:
     # Remove temp file paths
     results = output.get("results")
     if isinstance(results, Sequence):
+        # for semgrep scan output
+        if output.get("version"):
+            output["version"] = "0.42"
         for r in results:
             p = r.get("path")
             if p and "/tmp" in p:

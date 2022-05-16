@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 
+module D = Dataflow_tainting
 module G = AST_generic
 module H = AST_generic_helpers
 module V = Visitor_AST
@@ -20,6 +21,7 @@ module R = Rule
 module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Report
+module T = Taint
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -119,6 +121,7 @@ let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   |> snd
 
 let lazy_force x = Lazy.force x [@@profiling]
+let ( let* ) = Option.bind
 
 (*****************************************************************************)
 (* Main entry points *)
@@ -191,12 +194,11 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     } )
 
 let pm_of_finding file finding =
-  let open Dataflow_tainting in
   match finding with
-  | SrcToSink { source = _; trace = _; sink; merged_env } -> (
+  | T.SrcToSink { source = _; tokens = _; sink; merged_env } -> (
       match sink with
-      | PM sink_pm -> Some { sink_pm with env = merged_env }
-      | Call (fun_call, _trace, _) -> (
+      | T.PM sink_pm -> Some { sink_pm with env = merged_env }
+      | T.Call (fun_call, _trace, _) -> (
           let code = G.E fun_call in
           match V.range_of_any_opt code with
           | None ->
@@ -207,18 +209,79 @@ let pm_of_finding file finding =
               let tokens = lazy (V.ii_of_any code) in
               Some
                 {
-                  PM.rule_id = (pm_of_dm sink).rule_id;
+                  PM.rule_id = (T.pm_of_trace sink).rule_id;
                   file;
                   range_loc;
                   tokens;
                   env = merged_env;
                 }))
-  | SrcToReturn _
+  | T.SrcToReturn _
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
-  | ArgToSink _
-  | ArgToReturn _ ->
+  | T.ArgToSink _
+  | T.ArgToReturn _ ->
       None
+
+let check_stmt ?in_env ?name lang fun_env taint_config def_body =
+  let xs = AST_to_IL.stmt lang def_body in
+  let flow = CFG_build.cfg_of_stmts xs in
+  let mapping =
+    Dataflow_tainting.fixpoint ?in_env ?name ~fun_env taint_config flow
+  in
+  ignore mapping
+
+let check_fundef lang fun_env taint_config opt_ent fdef =
+  let name =
+    let* ent = opt_ent in
+    let* name = AST_to_IL.name_of_entity ent in
+    Some (D.str_of_name name)
+  in
+  let add_to_env env id ii =
+    let var = D.str_of_name (AST_to_IL.var_of_id_info id ii) in
+    let taint = taint_config.D.is_source (G.Tk (snd id)) |> T.taints_of_pms in
+    Dataflow_core.VarMap.add var taint env
+  in
+  let in_env =
+    (* For each argument, check if it's a source and, if so, add it to the input
+     * environment. *)
+    List.fold_left
+      (fun env par ->
+        match par with
+        | G.Param { pname = Some id; pinfo; _ } -> add_to_env env id pinfo
+        (* JS: {arg} : type *)
+        | G.ParamPattern
+            (G.OtherPat
+              ( ("ExprToPattern", _),
+                [
+                  G.E
+                    { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
+                ] ))
+        (* JS: {arg} *)
+        | G.ParamPattern
+            (G.OtherPat
+              (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
+          ->
+            List.fold_left
+              (fun env field ->
+                match field with
+                | G.F
+                    {
+                      s =
+                        G.DefStmt
+                          ( _,
+                            G.FieldDefColon
+                              { vinit = Some { e = G.N (G.Id (id, ii)); _ }; _ }
+                          );
+                      _;
+                    } ->
+                    add_to_env env id ii
+                | _ -> env)
+              env fields
+        | _ -> env)
+      Dataflow_core.VarMap.empty fdef.G.fparams
+  in
+  check_stmt ?name ~in_env lang fun_env taint_config
+    (H.funcbody_to_stmt fdef.G.fbody)
 
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
@@ -249,20 +312,6 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
 
   let fun_env = Hashtbl.create 8 in
 
-  let check_stmt opt_name def_body =
-    let xs = AST_to_IL.stmt lang def_body in
-    let flow = CFG_build.cfg_of_stmts xs in
-
-    let mapping =
-      Dataflow_tainting.fixpoint ?name:opt_name ~fun_env taint_config flow
-    in
-    ignore mapping
-    (* TODO
-       logger#sdebug (DataflowY.mapping_to_str flow
-        (fun () -> "()") mapping);
-    *)
-  in
-
   let v =
     V.mk_visitor
       {
@@ -271,18 +320,13 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
           (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
-                let opt_name =
-                  AST_to_IL.name_of_entity ent
-                  |> Option.map (fun name ->
-                         Common.spf "%s:%d" (fst name.IL.ident) name.IL.sid)
-                in
-                check_stmt opt_name (H.funcbody_to_stmt fdef.G.fbody);
+                check_fundef lang fun_env taint_config (Some ent) fdef;
                 (* go into nested functions *)
                 k def
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
-            check_stmt None (H.funcbody_to_stmt def.G.fbody);
+            check_fundef lang fun_env taint_config None def;
             (* go into nested functions *)
             k def);
       }
@@ -294,7 +338,8 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
    * function declarations and we want to check this too. We simply
    * treat the program itself as an anonymous function. *)
   let (), match_time =
-    Common.with_time (fun () -> check_stmt None (G.stmt1 ast))
+    Common.with_time (fun () ->
+        check_stmt lang fun_env taint_config (G.stmt1 ast))
   in
 
   let matches =
