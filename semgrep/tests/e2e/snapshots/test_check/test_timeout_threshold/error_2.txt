@@ -47,7 +47,7 @@ Files skipped:
 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
-  Partial Scan: 1 files only partially analyzed due to a parsing or internal Semgrep error
+  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
 
 Ran 3 rules on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to AUTO and server usage is False
