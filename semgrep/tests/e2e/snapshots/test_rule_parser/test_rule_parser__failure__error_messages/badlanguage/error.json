@@ -7,9 +7,6 @@
       "short_msg": "invalid language: intercal",
       "spans": [
         {
-          "config_end": null,
-          "config_path": null,
-          "config_start": null,
           "context_end": {
             "col": 0,
             "line": 8

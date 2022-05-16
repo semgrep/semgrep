@@ -51,6 +51,15 @@ def _clean_output_json(output):
     if output.get("version"):
         output["version"] = "0.42"
 
+    # Necessary because some tests produce temp files
+    if output.get("errors"):
+        for error in output.get("errors"):
+            if error.get("spans"):
+                for span in error.get("spans"):
+                    if span.get("file"):
+                        file = span.get("file")
+                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
+
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
