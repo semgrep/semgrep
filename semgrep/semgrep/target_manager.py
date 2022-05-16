@@ -135,6 +135,7 @@ class FileTargetingLog:
     def __str__(self) -> str:
         limited_fragments = []
         skip_fragments = []
+        partial_fragments = []
 
         if self.target_manager.baseline_handler:
             limited_fragments.append(
@@ -160,17 +161,19 @@ class FileTargetingLog:
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
             )
         if self.failed_to_analyze:
-            skip_fragments.append(
-                f"{len(self.failed_to_analyze)} files not analyzed due to a parsing or internal Semgrep error"
+            partial_fragments.append(
+                f"{len(self.failed_to_analyze)} files only partially analyzed due to a parsing or internal Semgrep error"
             )
 
-        if not limited_fragments and not skip_fragments:
+        if not limited_fragments and not skip_fragments and not partial_fragments:
             return ""
 
-        message = "Some files were skipped."
+        message = "Some files were skipped or only partially analyzed."
         if limited_fragments:
             for fragment in limited_fragments:
                 message += f"\n  {fragment}"
+        if partial_fragments:
+            message += "\n  Partially scanned: " + ", ".join(partial_fragments)
         if skip_fragments:
             message += "\n  Scan skipped: " + ", ".join(skip_fragments)
             message += "\n  For a full list of skipped files, run semgrep with the --verbose flag."
