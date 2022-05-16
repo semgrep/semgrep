@@ -40,14 +40,22 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     spans: Optional[List[out.ErrorSpan]] = None
     if err.yaml_path:
         yaml_path = err.yaml_path[::-1]
+        start = out.PositionBis(
+            line=err.location.start.line, col=err.location.start.col
+        )
+        end = out.PositionBis(line=err.location.end.line, col=err.location.end.col)
+        config_start = out.PositionBis(line=0, col=1)
+        config_end = out.PositionBis(
+            line=err.location.end.line - err.location.start.line,
+            col=err.location.end.col - err.location.start.col + 1,
+        )
         spans = [
             out.ErrorSpan(
-                config_start=out.PositionBis(
-                    line=err.location.start.line, col=err.location.start.col
-                ),
-                config_end=out.PositionBis(
-                    line=err.location.end.line, col=err.location.end.col
-                ),
+                file=err.location.path,
+                start=start,
+                end=end,
+                config_start=config_start,
+                config_end=config_end,
                 config_path=yaml_path,
             )
         ]

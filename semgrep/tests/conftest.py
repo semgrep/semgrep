@@ -56,6 +56,16 @@ def _clean_stdout(out):
     json_output = json.loads(out)
     if json_output.get("version"):
         json_output["version"] = "0.42"
+
+    # Necessary because some tests produce temp files
+    if json_output.get("errors"):
+        for error in json_output.get("errors"):
+            if error.get("spans"):
+                for span in error.get("spans"):
+                    if span.get("file"):
+                        file = span.get("file")
+                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
+
     return json.dumps(json_output)
 
 

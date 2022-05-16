@@ -7,9 +7,6 @@
       "short_msg": "missing keys",
       "spans": [
         {
-          "config_end": null,
-          "config_path": null,
-          "config_start": null,
           "end": {
             "col": 0,
             "line": 7
