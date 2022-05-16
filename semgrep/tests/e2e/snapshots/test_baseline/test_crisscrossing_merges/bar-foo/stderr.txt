@@ -25,7 +25,7 @@ Switching repository to baseline commit 'foo'.
 
 Scanning 1 file.
 
-Some files were skipped.
+Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 Ran 1 rule on 1 file: 6 findings.

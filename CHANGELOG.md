@@ -9,6 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Datafow: The dataflow engine now handles if-then-else expressions as in OCaml,
   Ruby, etc. Previously it only handled if-then-else statements. (#4965)
 
+### Changed
+
+- Files where only some part of the code had to be skipped due to a parse failure
+  will now be listed as "partially scanned" in the end-of-scan skip report.
+
 ### Fixed
 
 - Kotlin: support for ellispis in class parameters, e.g.. `class Foo(...) {}` (#5180)
