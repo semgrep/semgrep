@@ -65,6 +65,7 @@ class Metrics:
         self._file_stats: List[Dict[str, Any]] = []
         self._rule_stats: List[Dict[str, Any]] = []
         self._rules_with_findings: Mapping[str, int] = {}
+        self._is_authenticated: Optional[bool] = None
 
         self._send_metrics: MetricsState = MetricsState.OFF
         self._using_server = False
@@ -175,6 +176,9 @@ class Metrics:
     ) -> None:
         self._rules_with_findings = {r.full_hash: len(f) for r, f in findings.items()}
 
+    def set_is_authenticated(self, is_authenticated: bool) -> None:
+        self._is_authenticated = is_authenticated
+
     def set_run_timings(
         self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
     ) -> None:
@@ -215,6 +219,7 @@ class Metrics:
                 "configNamesHash": self._configs_hash,
                 "rulesHash": self._rules_hash,
                 "ci": os.environ.get("CI"),
+                "isAuthenticated": self._is_authenticated,
             },
             "performance": {
                 "fileStats": self._file_stats,
