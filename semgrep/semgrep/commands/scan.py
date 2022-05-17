@@ -928,9 +928,17 @@ def scan(
                 all_targets,
             )
 
-    if enable_version_check:
-        from semgrep.app.version import version_check
+    run_has_findings = any(
+        len(filtered_matches_by_rule[f]) > 0 for f in filtered_matches_by_rule
+    )
+    if not run_has_findings:
+        # Only import/run msg check when needed to reduce overhead
+        from semgrep.app.version import get_no_findings_msg
 
-        version_check()
+        msg = get_no_findings_msg()
+
+        # decouple CLI from app - if functionality removed, do not fail
+        if msg:
+            click.echo(msg)
 
     return return_data

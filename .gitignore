@@ -174,3 +174,7 @@ perf/bench
 
 # Local actions testing
 act/
+
+# editor
+*.code-workspace
+.vscode
