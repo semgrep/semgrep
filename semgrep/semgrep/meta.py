@@ -340,8 +340,8 @@ class GithubMeta(GitMeta):
         Event name            GITHUB_HEAD_REF -> GITHUB_REF
         ---------------------------------------------------
         pull_request        - johnny-patch-1  -> refs/pulls/123/merge
-        pull_request_target - johnny-patch-1  -> main
-        push/schedule/etc.  - <unset>         -> main
+        pull_request_target - johnny-patch-1  -> refs/heads/main
+        push/schedule/etc.  - <unset>         -> refs/heads/main
 
         This code originally always sent GITHUB_REF.
         This caused obvious breakage for pull_request_target,
