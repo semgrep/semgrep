@@ -127,7 +127,75 @@ def test_read_args(tmp_path):
                 cli,
                 ["shouldafound", "-m", f"{message}", "--email", f"{email}", "-y", path],
             )
+            assert api_content["playground_link"] in result.output
 
     request_mock.assert_called_with(
         {"email": email, "lines": mock.ANY, "message": message, "path": path}
+    )
+
+
+@pytest.mark.quick
+def test_read_line_args(tmp_path):
+    file_content = dedent(
+        """
+        package main
+        import "fmt"
+
+        func main() {
+            fmt.Println("hello world")
+            foo(1,2)
+        }
+
+        func foo(a int, b int) int {
+            return a + b
+        }
+        """
+    )
+
+    desired_content = dedent(
+        """
+        func main() {
+            fmt.Println("hello world")
+            foo(1,2)
+        }
+        """
+    )
+
+    api_content = {"playground_link": "https://foo.bar.semgrep.dev/playground/asdf"}
+
+    request_mock = mock.Mock(return_value=api_content)
+
+    email = "myemail@foo.com"
+    message = "some vuln here"
+    path = "path/to/bad/file.go"
+
+    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
+        with mock.patch.object(
+            shouldafound, "_make_shouldafound_request", request_mock
+        ):
+            runner = CliRunner(
+                env={
+                    SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
+                }
+            )
+            result = runner.invoke(
+                cli,
+                [
+                    "shouldafound",
+                    "-m",
+                    f"{message}",
+                    "--email",
+                    f"{email}",
+                    "--start",
+                    "4",
+                    "--end",
+                    "8",
+                    "-y",
+                    path,
+                ],
+            )
+            assert api_content["playground_link"] in result.output
+
+    request_mock.assert_called_with(
+        {"email": email, "lines": desired_content, "message": message, "path": path}
     )
