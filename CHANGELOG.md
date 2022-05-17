@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Files where only some part of the code had to be skipped due to a parse failure
   will now be listed as "partially scanned" in the end-of-scan skip report.
+- Made error message for -11/-9 more actionable
 
 ### Fixed
 
