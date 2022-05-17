@@ -1017,7 +1017,7 @@ and map_class_member_declarations (env : env)
   in
   let fields =
     List.concat_map
-      (fun stmts -> List.map (fun stmt -> G.F stmt) stmts)
+      (fun stmts -> Common.map (fun stmt -> G.F stmt) stmts)
       (v1 :: v2)
   in
   let v3 =
