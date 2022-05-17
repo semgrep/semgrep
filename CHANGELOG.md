@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- Made error message for -11/-9 more actionable
+
 ## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
 
 ### Added
@@ -15,9 +19,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Files where only some part of the code had to be skipped due to a parse failure
   will now be listed as "partially scanned" in the end-of-scan skip report.
-- Made error message for -11/-9 more actionable
-  will now be listed as "partially scanned" in the end-of-scan skip
-  report.
 - Licensing: The ocaml-tree-sitter-core component is now distributed
   under the terms of the LGPL 2.1, rather than previously GPL 3.
 
