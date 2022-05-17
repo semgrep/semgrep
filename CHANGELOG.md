@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Kotlin: support for ellispis in class parameters, e.g.. `class Foo(...) {}` (#5180)
 - `fixed_lines` is once again included in JSON output when running with `--autofix --dryrun`
+- JS/TS: allow ellipsis in binding_pattern (e.g., in arrow parameters) (#5230)
 
 ## [0.92.0](https://github.com/returntocorp/semgrep/releases/tag/v0.92.0) - 2022-05-11
 
