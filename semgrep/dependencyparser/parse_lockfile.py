@@ -294,6 +294,40 @@ def parse_Pom_str(manifest_text: str) -> Generator[LockfileDependency, None, Non
         if dep_opt:
             yield dep_opt
 
+def parse_Gradle_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    def parse_dep(line: str) -> LockfileDependency:
+        line = line.split(":")
+        if len(line) != 3:
+            logger.info("Parse error in gradle lockfile")
+            return None
+        _,name,version = line
+        version,_ = version.split("=")
+        try:
+            Version(version)
+        except InvalidVersion:
+            logger.info("No valid version found for {name}")
+            return None
+        return LockfileDependency (name, version, PackageManagers.GRADLE, resolved_url=None, allowed_hashes={})
+
+    lines = lockfile_text.splitlines()[3:-1] # Drop the 3 comment lines at the top and the empty= line from the bottom
+    deps = [parse_dep(line) for line in lines]
+    yield from (dep for dep in deps if dep)
+
+def parse_Poetry_str(lockfile_text: str) -> Generator[LockfileDependency, None, None]:
+    def parse_dep(s: str) -> LockfileDependency:
+        lines = s.split("\n")[1:]
+        dep = lines[0].split("=")[1].strip()[1:-1]
+        version = lines[1].split("=")[1].strip()[1:-1]
+        return LockfileDependency(
+            dep,
+            version,
+            PackageManagers.PYPI,
+            resolved_url=None,
+            allowed_hashes={},
+        )
+
+    deps = lockfile_text.split("[[package]]")[1:] #drop the empty string at the start
+    yield from (parse_dep(dep) for dep in deps)
 
 LOCKFILE_PARSERS = {
     "pipfile.lock": parse_Pipfile_str,  # Python
@@ -303,6 +337,8 @@ LOCKFILE_PARSERS = {
     "go.sum": parse_Go_sum_str,  # Go
     "cargo.lock": parse_Cargo_str,  # Rust
     "pom.xml": parse_Pom_str,  # Java
+    "gradle.lockfile": parse_Gradle_str, # Java
+    "poetry.lock": parse_Poetry_str,
 }
 
 
