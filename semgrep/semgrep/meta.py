@@ -331,6 +331,31 @@ class GithubMeta(GitMeta):
         pr_title = self.glom_event(T["pull_request"]["title"])
         return str(pr_title) if pr_title else None
 
+    @property
+    def branch(self) -> Optional[str]:
+        """This branch name gets used for tracking issue state over time on the backend.
+
+        The head ref is in GITHUB_HEAD_REF and the base ref is in GITHUB_REF.
+
+        Event name            GITHUB_HEAD_REF -> GITHUB_REF
+        ---------------------------------------------------
+        pull_request        - johnny-patch-1  -> refs/pulls/123/merge
+        pull_request_target - johnny-patch-1  -> main
+        push/schedule/etc.  - <unset>         -> main
+
+        This code originally always sent GITHUB_REF.
+        This caused obvious breakage for pull_request_target,
+        so we just fixed the ref we report for that event.
+        But it's more subtly wrong for pull_request events:
+        what we're scanning there is still the head ref;
+        we force-switch to the head ref in `fix_head_if_github_action`.
+        But fixing this slight data inaccuracy would be incompatible with all existing data.
+        So as of May 2022 we have not corrected it.
+        """
+        if self.event_name == "pull_request_target":
+            return os.getenv("GITHUB_HEAD_REF")
+        return os.getenv("GITHUB_REF")
+
     def initialize_repo(self) -> None:
         if self.is_pull_request_event and self.head_ref is not None:
             self._find_branchoff_point()
@@ -339,7 +364,6 @@ class GithubMeta(GitMeta):
     def to_dict(self) -> Dict[str, Any]:
         return {
             **super().to_dict(),
-            "branch": os.getenv("GITHUB_REF"),
             "commit_author_username": self.glom_event(T["sender"]["login"]),
             "commit_author_image_url": self.glom_event(T["sender"]["avatar_url"]),
             "pull_request_author_username": self.glom_event(
