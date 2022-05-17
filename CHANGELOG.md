@@ -21,6 +21,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   should not break existing taint rules, but please report any regressions that
   you may find.
 - Processing large rule files is now 30% faster.
+- The dot access ellipsis now matches field accesses in addition to method
+  calls.
 
 ### Fixed
 
