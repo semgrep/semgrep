@@ -22,7 +22,7 @@ PACKAGE_MANAGER_MAP = {
     "gomod": PackageManagers.GOMOD,
     "cargo": PackageManagers.CARGO,
     "maven": PackageManagers.MAVEN,
-    "gradle": PackageManagers.GRADLE
+    "gradle": PackageManagers.GRADLE,
 }
 
 
