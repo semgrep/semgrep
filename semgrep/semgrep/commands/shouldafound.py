@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 from typing import Optional
 from typing import Sequence
 
@@ -10,7 +11,9 @@ import click
 
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import SHOULDAFOUND_BASE_URL
+from semgrep.error import SemgrepError
 from semgrep.state import get_state
+from semgrep.types import JsonObject
 
 
 @click.command()
@@ -45,7 +48,7 @@ def shouldafound(
     end: Optional[int],
     yes: bool,
     path: Path,
-) -> None:
+) -> NoReturn:
     """
     Report a false negative in this project. "path" should be the file in which you expected the vulnerability to be found.
     """
@@ -71,14 +74,30 @@ def shouldafound(
             sys.exit(0)
 
     # send to backend
-    state = get_state()
-    resp = state.app_session.post(f"{SHOULDAFOUND_BASE_URL}/shouldafound", json=data)
-    playground_link = resp.json()["playground_link"]
+    playground_link = _make_shouldafound_request(data)
     click.echo("Sent feedback. Thanks for your contribution!", err=True)
     click.echo(
         f"You can view and extend the generated rule template here: {playground_link}",
         err=True,
     )
+    sys.exit(0)
+
+
+def _make_shouldafound_request(data: JsonObject) -> Optional[str]:
+    state = get_state()
+    resp = state.app_session.post(f"{SHOULDAFOUND_BASE_URL}/shouldafound", json=data)
+
+    if resp.status_code == 200:
+        if "playground_link" in resp.json():
+            return str(resp.json()["playground_link"])
+        else:
+            raise SemgrepError(
+                f"Failed to parse playground link, response text: {resp.text}"
+            )
+    else:
+        raise SemgrepError(
+            f"Failed to POST shouldafound data, error code: {resp.status_code}"
+        )
 
 
 def _read_lines(path: Path, start: Optional[int], end: Optional[int]) -> Sequence[str]:
