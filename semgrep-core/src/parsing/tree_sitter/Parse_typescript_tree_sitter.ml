@@ -767,7 +767,7 @@ and generic_type (env : env) ((v1, _v2) : CST.generic_type) : a_dotted_ident =
 
   (* TODO:
      let v2 = type_arguments env v2 |> PI.unbracket
-             |> List.map (fun x -> G.TypeArg x) in
+             |> Common.map (fun x -> G.TypeArg x) in
      H2.name_of_ids ~name_typeargs:(Some v2) v1
   *)
   v1
@@ -1449,7 +1449,7 @@ and map_template_literal_type (env : env)
     ((v1, v2, v3) : CST.template_literal_type) : type_ =
   let v1 = (* "`" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Temp_chars tok ->
@@ -2591,7 +2591,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
     | None -> []
   in
   let v4 =
-    List.map
+    Common.map
       (fun (v1, v2, v3) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = expression env v2 in
@@ -3170,7 +3170,7 @@ and map_extends_type_clause (env : env) ((v1, v2, v3) : CST.extends_type_clause)
   let _textends = (* "extends" *) token env v1 in
   let v2 = map_anon_choice_type_id_a85f573 env v2 in
   let v3 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_type_id_a85f573 env v2 in
