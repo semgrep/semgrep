@@ -686,7 +686,7 @@ and module_directive x =
   | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
       G.OtherDirective (("ReExportNamespace", v1), [ G.Str v4 ])
-  | Import (t, v1, v2, v3) ->
+  | Import (t, (v1, v2), v3) ->
       let v1 = name v1 and v2 = option alias v2 and v3 = filename v3 in
       G.ImportFrom (t, G.FileName v3, v1, v2)
   | ModuleAlias (t, v1, v2) ->
