@@ -1,10 +1,8 @@
 (**
-   Derive a javascript AST from a tree-sitter typescript or TSX CST.
+   Derive a javascript AST from a tree-sitter typescript (or TSX) CST.
 
    This is derived from generated code 'typescript/lib/Boilerplate.ml'
-   in tree-sitter-lang and reuse functions from
-   Parse_javascript_tree_sitter since the typescript tree-sitter grammar
-   itself extends the tree-sitter javascript grammar.
+   in tree-sitter-lang.
 *)
 
 open Common
