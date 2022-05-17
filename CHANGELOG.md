@@ -16,6 +16,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- `semgrep ci` used to incorrectly report the base branch as a CI job's branch
+  when running on a `pull_request_target` event in GitHub Actions.
+  By fixing this, Semgrep App can now track issue status history with `on: pull_request_target` jobs.
 - Metrics events were missing timestamps even though `PRIVACY.md` had already documented a timestamp field.
 
 ## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
