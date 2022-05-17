@@ -227,6 +227,16 @@ let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
   | `Priv tok -> (Private, token env tok) (* "private" *)
   | `Prot tok -> (* "protected" *) (Protected, token env tok)
 
+let accessibility_modifier_opt_to_list env v =
+  match v with
+  | Some x -> [ accessibility_modifier env x ]
+  | None -> []
+
+let kwd_attr_opt_to_list env kwd v =
+  match v with
+  | Some tok -> [ (kwd, token env tok) ]
+  | None -> []
+
 let predefined_type (env : env) (x : CST.predefined_type) =
   match x with
   | `Any tok
@@ -2200,26 +2210,10 @@ and statement (env : env) (x : CST.statement) : stmt list =
 and method_definition (env : env)
     ((v1, v2, _v2overrideTODO, v3, v4, v5, v6, v7, v8, v9) :
       CST.method_definition) : property =
-  let v1 =
-    match v1 with
-    | Some x -> [ accessibility_modifier env x ]
-    | None -> []
-  in
-  let v2 =
-    match v2 with
-    | Some tok -> [ (Static, token env tok) ] (* "static" *)
-    | None -> []
-  in
-  let v3 =
-    match v3 with
-    | Some tok -> [ (Readonly, token env tok) ] (* "readonly" *)
-    | None -> []
-  in
-  let v4 =
-    match v4 with
-    | Some tok -> [ (Async, token env tok) ] (* "async" *)
-    | None -> []
-  in
+  let v1 = accessibility_modifier_opt_to_list env v1 in
+  let v2 = kwd_attr_opt_to_list env Static v2 in
+  let v3 = kwd_attr_opt_to_list env Readonly v3 in
+  let v4 = kwd_attr_opt_to_list env Async v4 in
   let v5 =
     match v5 with
     | Some x -> [ anon_choice_get_8fb02de env x ]
@@ -2453,21 +2447,9 @@ and anon_choice_export_stmt_f90d83f (env : env)
       let xs = export_statement env x in
       Right xs
   | `Prop_sign (v1, v2, _v2overrideTODO, v3, v4, v5, v6) ->
-      let v1 =
-        match v1 with
-        | Some x -> [ accessibility_modifier env x ]
-        | None -> []
-      in
-      let v2 =
-        match v2 with
-        | Some tok -> [ (Static, token env tok) ] (* "static" *)
-        | None -> []
-      in
-      let v3 =
-        match v3 with
-        | Some tok -> [ (Readonly, token env tok) ] (* "readonly" *)
-        | None -> []
-      in
+      let v1 = accessibility_modifier_opt_to_list env v1 in
+      let v2 = kwd_attr_opt_to_list env Static v2 in
+      let v3 = kwd_attr_opt_to_list env Readonly v3 in
       let v4 = property_name env v4 in
       let v5 =
         match v5 with
@@ -2525,37 +2507,17 @@ and anon_choice_export_stmt_f90d83f (env : env)
 and public_field_definition (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.public_field_definition) =
   let _tok_declare = optional env v1 token in
-  let _access_modif =
-    match v2 with
-    | Some x -> [ accessibility_modifier env x ]
-    | None -> []
-  in
+  let _access_modif = accessibility_modifier_opt_to_list env v2 in
   let attributes =
     match v3 with
     | `Opt_static_opt_over_modi_opt_read (v1, _v2overrideTODO, v2) ->
-        let v1 =
-          match v1 with
-          | Some tok -> [ (Static, token env tok) ] (* "static" *)
-          | None -> []
-        in
-        let v2 =
-          match v2 with
-          | Some tok -> [ (Readonly, token env tok) ] (* "readonly" *)
-          | None -> []
-        in
+        let v1 = kwd_attr_opt_to_list env Static v1 in
+        let v2 = kwd_attr_opt_to_list env Readonly v2 in
         v1 @ v2
     | `Opt_abst_opt_read (v1, v2)
     | `Opt_read_opt_abst (v2, v1) ->
-        let v1 =
-          match v1 with
-          | Some tok -> [ (Abstract, token env tok) ] (* "abstract" *)
-          | None -> []
-        in
-        let v2 =
-          match v2 with
-          | Some tok -> [ (Readonly, token env tok) ] (* "readonly" *)
-          | None -> []
-        in
+        let v1 = kwd_attr_opt_to_list env Abstract v1 in
+        let v2 = kwd_attr_opt_to_list env Readonly v2 in
         v1 @ v2
   in
   let prop_name = property_name env v4 in
@@ -2714,11 +2676,7 @@ and expressions (env : env) (x : CST.expressions) : expr =
 
 and abstract_method_signature (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.abstract_method_signature) =
-  let v1 =
-    match v1 with
-    | Some x -> [ accessibility_modifier env x ]
-    | None -> []
-  in
+  let v1 = accessibility_modifier_opt_to_list env v1 in
   let v2 = [ (Abstract, token env v2) ] (* "abstract" *) in
   let v3 =
     match v3 with
@@ -2914,16 +2872,8 @@ and parameter_name (env : env)
     ((v1, v2, _v2overrideTODO, v3, v4) : CST.parameter_name) :
     (a_ident, a_pattern) Common.either =
   let _decorators = Common.map (decorator env) v1 in
-  let _accessibility =
-    match v2 with
-    | Some x -> [ accessibility_modifier env x ]
-    | None -> []
-  in
-  let _readonly =
-    match v3 with
-    | Some tok -> [ token env tok ] (* "readonly" *)
-    | None -> []
-  in
+  let _accessibility = accessibility_modifier_opt_to_list env v2 in
+  let _readonly = kwd_attr_opt_to_list env Readonly v3 in
   let id_or_pat =
     match v4 with
     | `Pat x -> pattern env x
@@ -3025,37 +2975,17 @@ and tuple_type_member (env : env) (x : CST.tuple_type_member) :
 
 and method_signature (env : env)
     ((v1, v2, _v2overrideTODO, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
-  let v1 =
-    match v1 with
-    | Some x -> [ accessibility_modifier env x ]
-    | None -> []
-  in
-  let v2 =
-    match v2 with
-    | Some tok -> [ (Static, token env tok) ] (* "static" *)
-    | None -> []
-  in
-  let v3 =
-    match v3 with
-    | Some tok -> [ (Readonly, token env tok) ] (* "readonly" *)
-    | None -> []
-  in
-  let v4 =
-    match v4 with
-    | Some tok -> [ (Async, token env tok) ] (* "async" *)
-    | None -> []
-  in
+  let v1 = accessibility_modifier_opt_to_list env v1 in
+  let v2 = kwd_attr_opt_to_list env Static v2 in
+  let v3 = kwd_attr_opt_to_list env Readonly v3 in
+  let v4 = kwd_attr_opt_to_list env Async v4 in
   let v5 =
     match v5 with
     | Some x -> [ anon_choice_get_8fb02de env x ]
     | None -> []
   in
   let v6 = property_name env v6 in
-  let v7 =
-    match v7 with
-    | Some tok -> [ (Optional, token env tok) ] (* "?" *)
-    | None -> []
-  in
+  let v7 = kwd_attr_opt_to_list env Optional v7 in
   let attrs = v1 @ v2 @ v3 @ v4 @ v5 @ v7 |> Common.map attr in
   let _tparams, x = call_signature env v8 in
   let t = mk_functype x in
