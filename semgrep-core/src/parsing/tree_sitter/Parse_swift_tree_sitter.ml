@@ -243,16 +243,17 @@ let map_modify_specifier (env : env) ((v1, v2) : CST.modify_specifier) =
 
 let map_constructor_function_decl (env : env)
     ((v1, v2) : CST.constructor_function_decl) =
-  let v1 = (* "init" *) token env v1 in
+  (* TODO special-case the constructor somehow? *)
+  let v1 = (* "init" *) str env v1 in
   let v2 =
     match v2 with
     | Some x -> (
         match x with
-        | `Quest tok -> (* "?" *) token env tok
-        | `Bang tok -> (* bang *) token env tok)
-    | None -> todo env ()
+        | `Quest tok -> (* "?" *) token env tok |> todo env
+        | `Bang tok -> (* bang *) token env tok |> todo env)
+    | None -> ()
   in
-  todo env (v1, v2)
+  v1
 
 let map_additive_operator (env : env) (x : CST.additive_operator) :
     G.operator * G.tok =
@@ -549,8 +550,9 @@ let map_protocol_property_requirements (env : env)
 let rec map_annotated_inheritance_specifier (env : env)
     ((v1, v2) : CST.annotated_inheritance_specifier) =
   let v1 = Common.map (map_attribute env) v1 in
+  (* TODO attribute *)
   let v2 = map_inheritance_specifier env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_enum_entry_suffix (env : env) (x : CST.enum_entry_suffix) =
   match x with
@@ -883,7 +885,7 @@ and map_block (env : env) ((v1, v2, v3) : CST.block) =
   let v3 = (* "}" *) token env v3 in
   G.Block (v1, v2, v3) |> G.s
 
-and map_bodyless_function_declaration (env : env)
+and map_bodyless_function_declaration (env : env) ~in_class
     ((v1, v2, v3) : CST.bodyless_function_declaration) body =
   let v1 =
     match v1 with
@@ -895,7 +897,9 @@ and map_bodyless_function_declaration (env : env)
     | Some tok -> (* "class" *) token env tok |> todo env
     | None -> ()
   in
-  let v3 = map_modifierless_function_declaration_no_body env v3 body in
+  let v3 =
+    map_modifierless_function_declaration_no_body env ~in_class v3 body
+  in
   v3
 
 and map_call_expression (env : env) ((v1, v2) : CST.call_expression) : G.expr =
@@ -986,19 +990,19 @@ and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v2 =
     match v2 with
     | Some x -> map_class_member_declarations env x
-    | None -> todo env ()
+    | None -> []
   in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_class_declaration (env : env) ((v1, v2) : CST.class_declaration) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 = map_modifierless_class_declaration env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_class_member_declarations (env : env)
     ((v1, v2, v3) : CST.class_member_declarations) =
@@ -1008,15 +1012,22 @@ and map_class_member_declarations (env : env)
       (fun (v1, v2) ->
         let v1 = (* semi *) token env v1 in
         let v2 = map_type_level_declaration env v2 in
-        todo env (v1, v2))
+        v2)
       v2
+  in
+  let fields =
+    List.concat_map
+      (fun stmts -> List.map (fun stmt -> G.F stmt) stmts)
+      (v1 :: v2)
   in
   let v3 =
     match v3 with
-    | Some tok -> (* semi *) token env tok
-    | None -> todo env ()
+    | Some tok ->
+        let _ = (* semi *) token env tok in
+        ()
+    | None -> ()
   in
-  todo env (v1, v2, v3)
+  fields
 
 and map_constructor_suffix (env : env) (v1 : CST.constructor_suffix) =
   match v1 with
@@ -1049,12 +1060,17 @@ and map_control_transfer_statement (env : env)
 and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
-  let v2 = (* "deinit" *) token env v2 in
+  let v2 = (* "deinit" *) str env v2 in
   let v3 = map_function_body env v3 in
-  todo env (v1, v2, v3)
+  let entity = G.basic_entity v2 in
+  let definition_kind =
+    G.FuncDef
+      { fkind = (G.Method, snd v2); fparams = []; frettype = None; fbody = v3 }
+  in
+  G.DefStmt (entity, definition_kind) |> G.s
 
 and map_dictionary_literal_item (env : env)
     ((v1, v2, v3) : CST.dictionary_literal_item) =
@@ -1129,9 +1145,11 @@ and map_enum_class_body (env : env) ((v1, v2, v3) : CST.enum_class_body) =
         | `Enum_entry x -> map_enum_entry env x
         | `Type_level_decl x -> map_type_level_declaration env x)
       v2
+    |> List.concat_map (fun entries ->
+           Common.map (fun entry -> G.F entry) entries)
   in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.enum_entry) =
   let v1 =
@@ -1236,9 +1254,10 @@ and map_for_statement (env : env)
 and map_function_body (env : env) (x : CST.function_body) : G.function_body =
   G.FBStmt (map_block env x)
 
-and map_function_declaration (env : env) ((v1, v2) : CST.function_declaration) =
+and map_function_declaration (env : env) ~in_class
+    ((v1, v2) : CST.function_declaration) =
   let v2 = map_function_body env v2 in
-  let v1 = map_bodyless_function_declaration env v1 v2 in
+  let v1 = map_bodyless_function_declaration env ~in_class v1 v2 in
   v1
 
 and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
@@ -1380,7 +1399,7 @@ and map_import_declaration (env : env)
 and map_inheritance_specifier (env : env) (x : CST.inheritance_specifier) =
   match x with
   | `User_type x -> map_user_type env x
-  | `Func_type x -> map_function_type env x
+  | `Func_type x -> map_function_type env x |> todo env
 
 and map_inheritance_specifiers (env : env)
     ((v1, v2) : CST.inheritance_specifiers) =
@@ -1389,15 +1408,18 @@ and map_inheritance_specifiers (env : env)
     Common.map
       (fun (v1, v2) ->
         let v1 =
+          (* TODO definitively determine if there is a difference between these
+           * two in this context. I (nmote) did some basic testing and didn't
+           * notice a difference. *)
           match v1 with
           | `COMMA tok -> (* "," *) token env tok
           | `AMP tok -> (* "&" *) token env tok
         in
         let v2 = map_annotated_inheritance_specifier env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
-  todo env (v1, v2)
+  v1 :: v2 |> Common.map (fun t -> (t, None))
 
 and map_interpolation (env : env) ((v1, v2, v3) : CST.interpolation) =
   let v1 = (* "\\(" *) token env v1 in
@@ -1662,37 +1684,77 @@ and map_locally_permitted_modifiers (env : env)
       | `Loca_perm_modi x -> map_locally_permitted_modifier env x |> todo env)
     xs
 
+and construct_class_declaration :
+      'body.
+      env ->
+      ?kind:G.class_kind ->
+      ?attrs:'attrs ->
+      G.tok ->
+      CST.simple_identifier ->
+      CST.type_parameters option ->
+      'inheritance_specifiers ->
+      CST.type_constraints option ->
+      'body ->
+      (env -> 'body -> G.field list G.bracket) ->
+      G.stmt =
+ fun env ?(kind = G.Class) ?attrs class_token name tparams
+     inheritance_specifiers type_constraints body map_body ->
+  let name = map_simple_identifier env name in
+  let tparams =
+    match tparams with
+    | Some x -> map_type_parameters env x
+    | None -> []
+  in
+  let extends =
+    (* Swift allows classes to have at most one superclass, followed by a list
+     * of protocols that the class implements. If there is a superclass, it must
+     * be the first in the list, but there may not be a superclass.
+     * Unfortunately, there is no way to tell without resolving names whether
+     * the first inheritance specifier is a superclass or a protocol. Because of
+     * this, it seems to be the most consistent to put everything into
+     * `cextends` and leave `cimplements` empty. *)
+    match inheritance_specifiers with
+    | Some (v1, v2) ->
+        let v1 = (* ":" *) token env v1 in
+        let v2 = map_inheritance_specifiers env v2 in
+        v2
+    | None -> []
+  in
+  let type_constraints =
+    (* TODO handle type constraints. Type constraints can apply to type
+     * parameters in the current definition, or to other type parameters in
+     * scope. *)
+    match type_constraints with
+    | Some x -> map_type_constraints env x |> todo env
+    | None -> ()
+  in
+  let body = map_body env body in
+  let entity = G.basic_entity ?attrs ~tparams name in
+  let definition_kind =
+    {
+      G.ckind = (kind, class_token);
+      cextends = extends;
+      cimplements = [];
+      cmixins = [];
+      cparams = [];
+      cbody = body;
+    }
+  in
+  G.DefStmt (entity, G.ClassDef definition_kind) |> G.s
+
 and map_modifierless_class_declaration (env : env)
     (x : CST.modifierless_class_declaration) =
   match x with
   | `Choice_class_simple_id_opt_type_params_opt_COLON_inhe_specis_opt_type_consts_class_body
       (v1, v2, v3, v4, v5, v6) ->
       let v1 =
+        (* TODO differentiate between class and struct? Maybe use RecordClass
+         * attribute? *)
         match v1 with
         | `Class tok -> (* "class" *) token env tok
         | `Struct tok -> (* "struct" *) token env tok
       in
-      let v2 = map_simple_identifier env v2 in
-      let v3 =
-        match v3 with
-        | Some x -> map_type_parameters env x
-        | None -> todo env ()
-      in
-      let v4 =
-        match v4 with
-        | Some (v1, v2) ->
-            let v1 = (* ":" *) token env v1 in
-            let v2 = map_inheritance_specifiers env v2 in
-            todo env (v1, v2)
-        | None -> todo env ()
-      in
-      let v5 =
-        match v5 with
-        | Some x -> map_type_constraints env x
-        | None -> todo env ()
-      in
-      let v6 = map_class_body env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      construct_class_declaration env v1 v2 v3 v4 v5 v6 map_class_body
   | `Exte_user_type_opt_type_params_opt_COLON_inhe_specis_opt_type_consts_class_body
       (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "extension" *) token env v1 in
@@ -1721,39 +1783,22 @@ and map_modifierless_class_declaration (env : env)
       (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with
-        | Some tok -> (* "indirect" *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "indirect" *) token env tok |> todo env
+        | None -> ()
       in
       let v2 = (* "enum" *) token env v2 in
-      let v3 = map_simple_identifier env v3 in
-      let v4 =
-        match v4 with
-        | Some x -> map_type_parameters env x
-        | None -> todo env ()
-      in
-      let v5 =
-        match v5 with
-        | Some (v1, v2) ->
-            let v1 = (* ":" *) token env v1 in
-            let v2 = map_inheritance_specifiers env v2 in
-            todo env (v1, v2)
-        | None -> todo env ()
-      in
-      let v6 =
-        match v6 with
-        | Some x -> map_type_constraints env x
-        | None -> todo env ()
-      in
-      let v7 = map_enum_class_body env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      let attrs = [ G.KeywordAttr (G.EnumClass, v2) ] in
+      construct_class_declaration env ~attrs v2 v3 v4 v5 v6 v7
+        map_enum_class_body
 
 and map_modifierless_function_declaration (env : env)
     ((v1, v2) : CST.modifierless_function_declaration) =
   let v2 = map_function_body env v2 in
-  let v1 = map_modifierless_function_declaration_no_body env v1 v2 in
+  let in_class = todo env () in
+  let v1 = map_modifierless_function_declaration_no_body env ~in_class v1 v2 in
   todo env (v1, v2)
 
-and map_modifierless_function_declaration_no_body (env : env)
+and map_modifierless_function_declaration_no_body (env : env) ~in_class
     ((v1, v2, v3, v4, v5, v6, v7) :
       CST.modifierless_function_declaration_no_body) (body : G.function_body) =
   let v1 =
@@ -1791,9 +1836,10 @@ and map_modifierless_function_declaration_no_body (env : env)
     | None -> ()
   in
   let entity = G.basic_entity ~tparams:v2 v1 in
+  let kind = if in_class then G.Method else G.Function in
   let definition_kind =
     G.FuncDef
-      { fkind = (Function, snd v1); fparams = v3; frettype = v6; fbody = body }
+      { fkind = (kind, snd v1); fparams = v3; frettype = v6; fbody = body }
   in
   G.DefStmt (entity, definition_kind) |> G.s
 
@@ -2182,40 +2228,21 @@ and map_protocol_body (env : env) ((v1, v2, v3) : CST.protocol_body) =
   let v2 =
     match v2 with
     | Some x -> map_protocol_member_declarations env x
-    | None -> todo env ()
+    | None -> []
   in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_protocol_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.protocol_declaration) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
   let v2 = (* "protocol" *) token env v2 in
-  let v3 = map_simple_identifier env v3 in
-  let v4 =
-    match v4 with
-    | Some x -> map_type_parameters env x
-    | None -> todo env ()
-  in
-  let v5 =
-    match v5 with
-    | Some (v1, v2) ->
-        let v1 = (* ":" *) token env v1 in
-        let v2 = map_inheritance_specifiers env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
-  in
-  let v6 =
-    match v6 with
-    | Some x -> map_type_constraints env x
-    | None -> todo env ()
-  in
-  let v7 = map_protocol_body env v7 in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  construct_class_declaration env ~kind:G.Interface v2 v3 None None v6 v7
+    map_protocol_body
 
 and map_protocol_member_declaration (env : env)
     (x : CST.protocol_member_declaration) =
@@ -2226,7 +2253,7 @@ and map_protocol_member_declaration (env : env)
         | Some x -> map_function_body env x
         | None -> G.FBNothing
       in
-      let v1 = map_bodyless_function_declaration env v1 v2 in
+      let v1 = map_bodyless_function_declaration env ~in_class:true v1 v2 in
       todo env v1
   | `Deinit_decl x -> map_deinit_declaration env x
   | `Prot_prop_decl (v1, v2, v3, v4, v5) ->
@@ -2613,9 +2640,9 @@ and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
   | `Import_decl x -> [ map_import_declaration env x ]
   | `Prop_decl x -> map_property_declaration env x
   | `Typeas_decl x -> [ map_typealias_declaration env x ]
-  | `Func_decl x -> [ map_function_declaration env x ]
-  | `Class_decl x -> map_class_declaration env x
-  | `Prot_decl x -> map_protocol_declaration env x
+  | `Func_decl x -> [ map_function_declaration env ~in_class:true x ]
+  | `Class_decl x -> [ map_class_declaration env x ]
+  | `Prot_decl x -> [ map_protocol_declaration env x ]
   | `Deinit_decl x -> [ map_deinit_declaration env x ]
   | `Subs_decl x -> [ map_subscript_declaration env x ]
   | `Op_decl x -> map_operator_declaration env x
@@ -2864,9 +2891,9 @@ let map_global_declaration (env : env) (x : CST.global_declaration) :
   | `Import_decl x -> [ map_import_declaration env x ]
   | `Prop_decl x -> map_property_declaration env x
   | `Typeas_decl x -> [ map_typealias_declaration env x ]
-  | `Func_decl x -> [ map_function_declaration env x ]
-  | `Class_decl x -> map_class_declaration env x
-  | `Prot_decl x -> map_protocol_declaration env x
+  | `Func_decl x -> [ map_function_declaration env ~in_class:false x ]
+  | `Class_decl x -> [ map_class_declaration env x ]
+  | `Prot_decl x -> [ map_protocol_declaration env x ]
   | `Op_decl x -> map_operator_declaration env x
   | `Prec_group_decl x -> map_precedence_group_declaration env x
   | `Asso_decl x -> [ map_associatedtype_declaration env x ]
