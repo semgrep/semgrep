@@ -89,6 +89,7 @@ let identifier_ (env : env) (x : CST.identifier_) : expr =
   | `Unde tok -> IdSpecial (Undefined, token env tok)
   | `Id tok -> identifier env tok |> idexp_or_special
 
+(* LATER: this is overriden by another automatic_semicolon later, normal? *)
 let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
   (* do like in pfff: *)
   PI.unsafe_fake_info ";"
@@ -274,6 +275,11 @@ let type_or_typeof (env : env) (x : CST.anon_choice_type_2b11f6b) =
 
 let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
   token env tok
+
+let automatic_semicolon_opt env v =
+  match v with
+  | Some tok -> Some (automatic_semicolon env tok)
+  | None -> None
 
 let anon_choice_get_8fb02de (env : env) (x : CST.anon_choice_get_8fb02de) =
   match x with
@@ -932,11 +938,7 @@ and generator_function_declaration (env : env)
   let v4 = identifier env v4 (* identifier *) in
   let _tparams, (v5, tret) = call_signature env v5 in
   let v6 = statement_block env v6 in
-  let _v7 =
-    match v7 with
-    | Some tok -> Some (token env tok) (* automatic_semicolon *)
-    | None -> None
-  in
+  let _v7 = automatic_semicolon_opt env v7 in
   let f_kind = (G.Function, v2) in
   let f =
     { f_attrs = v1 @ v3; f_params = v5; f_body = v6; f_rettype = tret; f_kind }
@@ -2254,11 +2256,7 @@ and class_declaration (env : env)
     | None -> ([], [])
   in
   let v6 = class_body env v6 in
-  let _v7 =
-    match v7 with
-    | Some tok -> Some (token env tok) (* automatic_semicolon *)
-    | None -> None
-  in
+  let _v7 = automatic_semicolon_opt env v7 in
   let c =
     {
       c_kind = (G.Class, v2);
@@ -2899,11 +2897,7 @@ and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
   let v1 = token env v1 (* "{" *) in
   let v2 = List.concat_map (statement env) v2 in
   let v3 = token env v3 (* "}" *) in
-  let _v4 =
-    match v4 with
-    | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
-    | None -> None
-  in
+  let _v4 = automatic_semicolon_opt env v4 in
   Block (v1, v2, v3)
 
 and function_declaration (env : env)
@@ -2917,11 +2911,7 @@ and function_declaration (env : env)
   let v3 = identifier env v3 (* identifier *) in
   let _tparams, (v4, tret) = call_signature env v4 in
   let v5 = statement_block env v5 in
-  let _v6 =
-    match v6 with
-    | Some tok -> Some (token env tok) (* automatic_semicolon *)
-    | None -> None
-  in
+  let _v6 = automatic_semicolon_opt env v6 in
   let f_kind = (G.Function, v2) in
   let f =
     { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret; f_kind }
