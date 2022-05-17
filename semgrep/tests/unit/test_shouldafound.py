@@ -114,8 +114,6 @@ def test_read_args(tmp_path):
     message = "some vuln here"
     path = "path/to/bad/file.go"
 
-    print("testing")
-
     with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
         with mock.patch.object(
             shouldafound, "_make_shouldafound_request", request_mock
@@ -126,12 +124,10 @@ def test_read_args(tmp_path):
                 }
             )
             result = runner.invoke(
-                cli, ["shouldafound", f"-m {message}", f"--email {email}", path]
+                cli,
+                ["shouldafound", "-m", f"{message}", "--email", f"{email}", "-y", path],
             )
 
     request_mock.assert_called_with(
         {"email": email, "lines": mock.ANY, "message": message, "path": path}
     )
-
-
-# test click handling
