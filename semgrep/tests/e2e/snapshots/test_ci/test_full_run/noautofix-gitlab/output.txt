@@ -49,3 +49,5 @@ Found 5 findings from blocking rules and 1 findings from non-blocking rules
 Reporting findings to semgrep.dev ...
 Success.
 Has findings for blocking rules so exiting with code 1
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading

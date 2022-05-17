@@ -15,3 +15,5 @@ Ran 4 rules on 1 file: 6 findings.
 Ran 2 blocking rules, 1 audit rules, and 1 internal rules used for rule recommendations.
 Found 5 findings from blocking rules and 1 findings from non-blocking rules
 Has findings for blocking rules so exiting with code 1
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading
