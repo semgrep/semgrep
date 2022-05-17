@@ -507,7 +507,7 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     | `Choice_id_opt_type_args (v1, v2) ->
         let ids = id_or_nested_id env v1 in
         let id = concat_nested_identifier ids in
-        let _v2 =
+        let _v2TODO =
           match v2 with
           | Some x -> type_arguments env x |> PI.unbracket
           | None -> []
@@ -527,7 +527,7 @@ and jsx_self_clos_elem (env : env)
     | `Choice_id_opt_type_args (v1, v2) ->
         let v1 = id_or_nested_id env v1 in
         let id = concat_nested_identifier v1 in
-        let _v2 =
+        let _v2TODO =
           match v2 with
           | Some x -> type_arguments env x |> PI.unbracket
           | None -> []
@@ -1022,14 +1022,15 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) :
             in
             add_decorators (List.rev acc_decorators) v1 :: aux [] xs
         | `Meth_sign_choice_func_sign_auto_semi (v1, v2) ->
-            let v1 = method_signature env v1 in
-            let v2 =
+            let _v1 = method_signature env v1 in
+            let _v2 =
               match v2 with
               | `Func_sign_auto_semi tok ->
                   (* function_signature_automatic_semicolon *) token env tok
               | `COMMA tok -> (* "," *) token env tok
             in
-            todo env (v1, v2)
+            (* TODO: types *)
+            aux [] xs
         | `Choice_abst_meth_sign_choice_choice_auto_semi (v1, v2) -> (
             let v1 =
               match v1 with
@@ -1285,7 +1286,7 @@ and call_expression (env : env) (x : CST.call_expression) =
   | `Exp_opt_type_args_choice_args (v1, v2, v3) ->
       let v1 = expression env v1 in
       (* TODO: types *)
-      let _v2 =
+      let _v2TODO =
         match v2 with
         | Some x -> type_arguments env x |> PI.unbracket
         | None -> []
@@ -1304,7 +1305,7 @@ and call_expression (env : env) (x : CST.call_expression) =
       let v1 = primary_expression env v1 in
       let _v2 = token env v2 (* "?." *) in
       (* TODO: types *)
-      let _v3 =
+      let _v3TODO =
         match v3 with
         | Some x -> type_arguments env x |> PI.unbracket
         | None -> []
@@ -1451,10 +1452,11 @@ and map_template_literal_type (env : env)
     List.map
       (fun x ->
         match x with
-        | `Temp_chars tok -> (* template_chars *) token env tok
+        | `Temp_chars tok ->
+            TyLiteral (String (* template_chars *) (str env tok))
         | `Temp_type x ->
-            let x = map_template_type env x in
-            todo env x)
+            let _, x, _ = map_template_type env x in
+            x)
       v2
   in
   let v3 = (* "`" *) token env v3 in
@@ -1657,7 +1659,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v1 = token env v1 (* "new" *) in
       let v2 = primary_expression env v2 in
       (* TODO types *)
-      let _v3 =
+      let _v3TODO =
         match v3 with
         | Some x -> type_arguments env x |> PI.unbracket
         | None -> []
@@ -1813,7 +1815,7 @@ and index_signature (env : env) ((v1, v2, v3, v4, v5) : CST.index_signature) =
   in
   TypeTodo (("Indexsig", v2), [ Type v3; Type v5 ])
 
-and type_query (env : env) ((v1, v2) : CST.type_query) =
+and type_query (env : env) ((v1, v2) : CST.type_query) : type_ =
   (* TODO
      let e =
        (* TODO
@@ -2503,7 +2505,7 @@ and anon_choice_export_stmt_f90d83f (env : env)
       Left (Field x)
 
 and public_field_definition (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7) : CST.public_field_definition) =
+    ((v1, v2, v3, v4, v5, v6, v7) : CST.public_field_definition) : property =
   let _tok_declare = optional env v1 token in
   let _access_modif = accessibility_modifier_opt_to_list env v2 in
   let attributes =
@@ -2581,9 +2583,9 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
   (* TODO
      map_sep_list env v2 v3 anon_choice_choice_type_id_e16f95c
   *)
-  let v1 = (* "extends" *) token env v1 in
+  let _textends = (* "extends" *) token env v1 in
   let v2 = expression env v2 in
-  let _v3 =
+  let _v3TODO =
     match v3 with
     | Some x -> type_arguments env x |> PI.unbracket
     | None -> []
@@ -2591,17 +2593,17 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
   let v4 =
     List.map
       (fun (v1, v2, v3) ->
-        let v1 = (* "," *) token env v1 in
+        let _v1 = (* "," *) token env v1 in
         let v2 = expression env v2 in
-        let v3 =
+        let _v3TODO =
           match v3 with
           | Some x -> type_arguments env x |> PI.unbracket
           | None -> []
         in
-        todo env (v1, v2, v3))
+        Left v2)
       v4
   in
-  todo env (v1, v2, v3, v4)
+  Left v2 :: v4
 
 and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = token env v1 (* "{" *) in
