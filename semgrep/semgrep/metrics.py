@@ -1,5 +1,6 @@
 import hashlib
 import os
+from datetime import datetime
 from enum import auto
 from enum import Enum
 from pathlib import Path
@@ -65,6 +66,9 @@ class Metrics:
         self._file_stats: List[Dict[str, Any]] = []
         self._rule_stats: List[Dict[str, Any]] = []
         self._rules_with_findings: Mapping[str, int] = {}
+        self._is_authenticated: Optional[bool] = None
+        self._started_at: str = datetime.now().astimezone().isoformat()
+        self._sent_at: Optional[str] = None
 
         self._send_metrics: MetricsState = MetricsState.OFF
         self._using_server = False
@@ -175,6 +179,9 @@ class Metrics:
     ) -> None:
         self._rules_with_findings = {r.full_hash: len(f) for r, f in findings.items()}
 
+    def set_is_authenticated(self, is_authenticated: bool) -> None:
+        self._is_authenticated = is_authenticated
+
     def set_run_timings(
         self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
     ) -> None:
@@ -209,12 +216,15 @@ class Metrics:
 
     def as_dict(self) -> Dict[str, Any]:
         return {
+            "started_at": self._started_at,
+            "sent_at": self._sent_at,
             "environment": {
                 "version": self._version,
                 "projectHash": self._project_hash,
                 "configNamesHash": self._configs_hash,
                 "rulesHash": self._rules_hash,
                 "ci": os.environ.get("CI"),
+                "isAuthenticated": self._is_authenticated,
             },
             "performance": {
                 "fileStats": self._file_stats,
@@ -266,6 +276,8 @@ class Metrics:
 
         if not self.is_enabled():
             return
+
+        self._sent_at = datetime.now().astimezone().isoformat()
 
         try:
             r = app_session.post(
