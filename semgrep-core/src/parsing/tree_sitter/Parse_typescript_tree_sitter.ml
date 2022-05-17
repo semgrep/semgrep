@@ -231,12 +231,16 @@ let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
 
 let predefined_type (env : env) (x : CST.predefined_type) =
   match x with
-  | `Any tok -> identifier env tok (* "any" *)
-  | `Num tok -> identifier env tok (* "number" *)
-  | `Bool tok -> identifier env tok (* "boolean" *)
-  | `Str tok -> identifier env tok (* "string" *)
-  | `Symb tok -> identifier env tok (* "symbol" *)
-  | `Void tok -> (* "void" *) identifier env tok
+  | `Any tok
+  | `Num tok
+  | `Bool tok
+  | `Str tok
+  | `Symb tok
+  | `Void tok
+  | `Obj tok
+  | `Never tok
+  | `Unkn tok ->
+      identifier env tok
 
 let anon_choice_PLUSPLUS_e498e28 (env : env)
     (x : CST.anon_choice_PLUSPLUS_e498e28) =
@@ -260,20 +264,22 @@ let anon_choice_get_8fb02de (env : env) (x : CST.anon_choice_get_8fb02de) =
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) =
   match x with
-  | `Decl tok -> identifier env tok (* "declare" *)
-  | `Name tok -> identifier env tok (* "namespace" *)
-  | `Type tok -> identifier env tok (* "type" *)
-  | `Public tok -> identifier env tok (* "public" *)
-  | `Priv tok -> identifier env tok (* "private" *)
-  | `Prot tok -> identifier env tok (* "protected" *)
-  | `Read tok -> identifier env tok (* "readonly" *)
-  | `Module tok -> identifier env tok (* "module" *)
-  | `Any tok -> identifier env tok (* "any" *)
-  | `Num tok -> identifier env tok (* "number" *)
-  | `Bool tok -> identifier env tok (* "boolean" *)
-  | `Str tok -> identifier env tok (* "string" *)
-  | `Symb tok -> identifier env tok (* "symbol" *)
-  | `Export tok -> identifier env tok (* "export" *)
+  | `Decl tok
+  | `Name tok
+  | `Type tok
+  | `Public tok
+  | `Priv tok
+  | `Prot tok
+  | `Read tok
+  | `Module tok
+  | `Any tok
+  | `Num tok
+  | `Bool tok
+  | `Str tok
+  | `Symb tok
+  | `Export tok
+  | `Over tok ->
+      identifier env tok
   | `Choice_get x -> (
       match x with
       | `Get tok -> identifier env tok (* "get" *)
@@ -334,28 +340,27 @@ let import_require_clause tk (env : env)
   let _v6 = token env v6 (* ")" *) in
   ModuleAlias (tk, v1, v5)
 
-let literal_type (env : env) (x : CST.literal_type) : literal =
+let literal_type (env : env) (x : CST.literal_type) : expr =
   match x with
   | `Num_ (v1, v2) ->
       let s, t1 =
         match v1 with
         | `DASH tok -> str env tok (* "-" *)
-        | `PLUS tok -> str env tok
-        (* "+" *)
+        | `PLUS tok -> str env tok (* "+" *)
       in
       let s2, t2 = str env v2 (* number *) in
       (* TODO: float_of_string_opt_also_from_hexoctbin *)
-      Num (float_of_string_opt (s ^ s2), PI.combine_infos t1 [ t2 ])
+      L (Num (float_of_string_opt (s ^ s2), PI.combine_infos t1 [ t2 ]))
   | `Num tok ->
       let s, t = str env tok in
       (* number *)
       (* TODO: float_of_string_opt_also_from_hexoctbin *)
-      Num (float_of_string_opt s, t)
-  | `Str x -> String (string_ env x)
-  | `True tok -> Bool (true, token env tok) (* "true" *)
-  | `False tok -> Bool (false, token env tok)
-
-(* "false" *)
+      L (Num (float_of_string_opt s, t))
+  | `Str x -> L (String (string_ env x))
+  | `True tok -> L (Bool (true, token env tok (* "true" *)))
+  | `False tok -> L (Bool (false, token env tok (* "false" *)))
+  | `Null tok -> IdSpecial (Null, token env tok)
+  | `Unde tok -> IdSpecial (Undefined, token env tok)
 
 let nested_type_identifier (env : env)
     ((v1, v2, v3) : CST.nested_type_identifier) : a_ident list =
@@ -995,6 +1000,15 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) :
               | None -> None
             in
             add_decorators (List.rev acc_decorators) v1 :: aux [] xs
+        | `Meth_sign_choice_func_sign_auto_semi (v1, v2) ->
+            let v1 = method_signature env v1 in
+            let v2 =
+              match v2 with
+              | `Func_sign_auto_semi tok ->
+                  (* function_signature_automatic_semicolon *) token env tok
+              | `COMMA tok -> (* "," *) token env tok
+            in
+            todo env (v1, v2)
         | `Choice_abst_meth_sign_choice_choice_auto_semi (v1, v2) -> (
             let v1 =
               match v1 with
@@ -1485,9 +1499,12 @@ and expression (env : env) (x : CST.expression) : expr =
       | `Type x ->
           let x = type_ env x in
           TypeAssert (v1, v2, x)
-      | `Temp_str x ->
-          let _, xs, _ = template_string env x in
-          ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs))
+      | `Temp_lit_type _ -> failwith "TODO"
+      (* TODO
+            | `Temp_str x ->
+                let _, xs, _ = template_string env x in
+                ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs)
+      *))
   | `Inte_module x -> (
       (* namespace (deprecated in favor of ES modules) *)
       (* TODO represent namespaces properly in the AST instead of the nonsense
@@ -1624,6 +1641,7 @@ and paren_expr_or_lhs_expr (env : env)
 
 and primary_type (env : env) (x : CST.primary_type) : type_ =
   match x with
+  | `Temp_lit_type _ -> failwith "TODO"
   | `Paren_type (v1, v2, v3) ->
       let _v1 = token env v1 (* "(" *) in
       let v2 = type_ env v2 in
@@ -1683,7 +1701,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       TypeTodo (("*", v1), [])
   | `Lit_type x ->
       let v1 = literal_type env x in
-      TypeTodo (("LitType", fake), [ Expr (L v1) ])
+      TypeTodo (("LitType", fake), [ Expr v1 ])
   | `Lookup_type (v1, v2, v3, v4) ->
       let v1 = primary_type env v1 in
       let v2 = token env v2 (* "[" *) in
@@ -1743,9 +1761,12 @@ and type_query (env : env) ((v1, v2) : CST.type_query) =
   let typeof = token env v1 (* "typeof" *) in
   let e =
     match v2 with
-    | `Prim_exp x -> primary_expression env x
-    | `Gene_type x ->
-        generic_type env x |> concat_nested_identifier |> idexp_or_special
+    | _ -> failwith "TODO"
+    (* TODO
+        | `Prim_exp x -> primary_expression env x
+        | `Gene_type x ->
+            generic_type env x |> concat_nested_identifier |> idexp_or_special
+    *)
   in
   TypeTodo (("TypeQuery", typeof), [ Expr e ])
 
@@ -1879,7 +1900,8 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let _v3 = token env v3 (* "}" *) in
   v2
 
-and mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
+and mapped_type_clause (env : env)
+    ((v1, v2, v3, _v4TODO) : CST.mapped_type_clause) =
   let v1 = str env v1 (* identifier *) in
   let v2 = token env v2 (* "in" *) in
   let v3 = type_ env v3 in
@@ -2059,7 +2081,8 @@ and statement (env : env) (x : CST.statement) : stmt list =
       [ Label (v1, v3) ]
 
 and method_definition (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.method_definition) : property =
+    ((v1, v2, _v2overrideTODO, v3, v4, v5, v6, v7, v8, v9) :
+      CST.method_definition) : property =
   let v1 =
     match v1 with
     | Some x -> [ accessibility_modifier env x ]
@@ -2312,7 +2335,7 @@ and anon_choice_export_stmt_f90d83f (env : env)
   | `Export_stmt x ->
       let xs = export_statement env x in
       Right xs
-  | `Prop_sign (v1, v2, v3, v4, v5, v6) ->
+  | `Prop_sign (v1, v2, _v2overrideTODO, v3, v4, v5, v6) ->
       let v1 =
         match v1 with
         | Some x -> [ accessibility_modifier env x ]
@@ -2392,7 +2415,7 @@ and public_field_definition (env : env)
   in
   let attributes =
     match v3 with
-    | `Opt_static_opt_read (v1, v2) ->
+    | `Opt_static_opt_over_modi_opt_read (v1, _v2overrideTODO, v2) ->
         let v1 =
           match v1 with
           | Some tok -> [ (Static, token env tok) ] (* "static" *)
@@ -2446,32 +2469,43 @@ and public_field_definition (env : env)
       fld_body = opt_init;
     }
 
-and anon_choice_choice_type_id_e16f95c (env : env)
-    (x : CST.anon_choice_choice_type_id_e16f95c) : parent =
-  match x with
-  | `Choice_id x ->
-      (* type to be extended *)
-      Right (anon_choice_type_id_a85f573 env x)
-  | `Exp x ->
-      (* class expression to be extended *)
-      Left (expression env x)
+(* TODO dead
+   and anon_choice_choice_type_id_e16f95c (env : env)
+       (x : CST.anon_choice_choice_type_id_e16f95c) : parent =
+     match x with
+     | `Choice_id x ->
+         (* type to be extended *)
+         Right (anon_choice_type_id_a85f573 env x)
+     | `Exp x ->
+         (* class expression to be extended *)
+         Left (expression env x)
+
+   and anon_choice_type_id_a85f573 (env : env)
+       (x : CST.anon_choice_type_id_a85f573) : type_ =
+     match x with
+     | `Id tok -> TyName [ str env tok ] (* identifier *)
+     | `Nested_type_id x -> TyName (nested_type_identifier env x)
+     | `Gene_type x -> TyName (generic_type env x)
+*)
 
 and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
     : var list =
   let kind =
     match v1 with
-    | `Let tok -> (Let, token env tok) (* "let" *)
-    | `Const tok -> (Const, token env tok)
-    (* "const" *)
+    | `Let tok -> (Let, token env tok (* "let" *))
+    | `Const tok -> (Const, token env tok (* "const" *))
   in
   let vars = map_sep_list env v2 v3 variable_declarator in
   let _v4 = semicolon env v4 in
   build_vars kind vars
 
-and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : parent list
-    =
+and extends_clause (env : env)
+    ((v1, _v2TODO, _v3TODO, _v4TODO) : CST.extends_clause) : parent list =
   let _v1 = token env v1 (* "extends" *) in
-  map_sep_list env v2 v3 anon_choice_choice_type_id_e16f95c
+  (* TODO
+     map_sep_list env v2 v3 anon_choice_choice_type_id_e16f95c
+  *)
+  failwith "TODO"
 
 and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = token env v1 (* "{" *) in
@@ -2738,7 +2772,8 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) :
   let v2 = type_ env v2 in
   v2
 
-and parameter_name (env : env) ((v1, v2, v3, v4) : CST.parameter_name) :
+and parameter_name (env : env)
+    ((v1, v2, _v2overrideTODO, v3, v4) : CST.parameter_name) :
     (a_ident, a_pattern) Common.either =
   let _decorators = Common.map (decorator env) v1 in
   let _accessibility =
@@ -2805,13 +2840,6 @@ and function_declaration (env : env)
   in
   (basic_entity v3, FuncDef f)
 
-and anon_choice_type_id_a85f573 (env : env)
-    (x : CST.anon_choice_type_id_a85f573) : type_ =
-  match x with
-  | `Id tok -> TyName [ str env tok ] (* identifier *)
-  | `Nested_type_id x -> TyName (nested_type_identifier env x)
-  | `Gene_type x -> TyName (generic_type env x)
-
 and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
     =
   let _v1 = token env v1 (* "${" *) in
@@ -2865,7 +2893,7 @@ and tuple_type_member (env : env) (x : CST.tuple_type_member) :
   | `Type x -> TyTupMember (type_ env x)
 
 and method_signature (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
+    ((v1, v2, _v2overrideTODO, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
   let v1 =
     match v1 with
     | Some x -> [ accessibility_modifier env x ]
@@ -3006,7 +3034,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       in
       let v4 =
         match v4 with
-        | Some x -> extends_clause env x
+        | Some x -> map_extends_type_clause env x
         | None -> []
       in
       let t1, xs, t2 = object_type env v5 in
@@ -3083,6 +3111,8 @@ and declaration (env : env) (x : CST.declaration) : definition list =
             ]
       in
       v2
+
+and map_extends_type_clause _env _x = failwith "TODO"
 
 let toplevel env x = statement env x
 
