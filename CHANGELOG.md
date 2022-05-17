@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Licensing: The ocaml-tree-sitter-core component is now distributed
   under the terms of the LGPL 2.1, rather than previously GPL 3.
 - A new field was added to metrics collection: isAuthenticated.
-  This is a boolean flag which is true if you ran semgrep login. 
+  This is a boolean flag which is true if you ran semgrep login.
 
 ### Fixed
 
