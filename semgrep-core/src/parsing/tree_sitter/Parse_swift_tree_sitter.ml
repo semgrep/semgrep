@@ -744,29 +744,27 @@ and map_attribute_argument (env : env) (x : CST.attribute_argument) =
       in
       todo env (v1, v2, v3)
 
-and map_attribute (env : env) (x : CST.attribute) =
-  match x with
-  | `Rectype (v1, v2, v3) ->
-      let v1 = (* "@" *) token env v1 in
-      let v2 = map_user_type env v2 in
-      let v3 =
-        match v3 with
-        | Some (v1, v2, v3, v4) ->
-            let v1 = (* "(" *) token env v1 in
-            let v2 = map_attribute_argument env v2 in
-            let v3 =
-              Common.map
-                (fun (v1, v2) ->
-                  let v1 = (* "," *) token env v1 in
-                  let v2 = map_attribute_argument env v2 in
-                  todo env (v1, v2))
-                v3
-            in
-            let v4 = (* ")" *) token env v4 in
-            todo env (v1, v2, v3, v4)
-        | None -> todo env ()
-      in
-      todo env (v1, v2, v3)
+and map_attribute (env : env) ((v1, v2, v3) : CST.attribute) =
+  let v1 = (* "@" *) token env v1 in
+  let v2 = map_user_type env v2 in
+  let v3 =
+    match v3 with
+    | Some (v1, v2, v3, v4) ->
+        let v1 = (* "(" *) token env v1 in
+        let v2 = map_attribute_argument env v2 in
+        let v3 =
+          Common.map
+            (fun (v1, v2) ->
+              let v1 = (* "," *) token env v1 in
+              let v2 = map_attribute_argument env v2 in
+              todo env (v1, v2))
+            v3
+        in
+        let v4 = (* ")" *) token env v4 in
+        todo env (v1, v2, v3, v4)
+    | None -> todo env ()
+  in
+  todo env (v1, v2, v3)
 
 (* Returns G.expr rather than G.literal because interpolated string literals are
  * represented as G.Call expressions. *)
@@ -1218,9 +1216,14 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
           (* In this context, async is just a normal identifier *)
           let id = str env tok in
           G.N (H2.name_of_id id) |> G.e)
-  | `Semg_ellips tok ->
+  | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
+  | `Semg_deep_ellips (v1, v2, v3) ->
+      let v1 = (* "<..." *) token env v1 in
+      let v2 = map_expression env v2 in
+      let v3 = (* "...>" *) token env v3 in
+      todo env (v1, v2, v3)
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =
@@ -2326,14 +2329,12 @@ and map_repeat_while_statement (env : env)
   in
   todo env (v1, v2, v3, v4, v5, v6, v7)
 
-and map_simple_user_type (env : env) (x : CST.simple_user_type) :
+and map_simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
     G.ident * G.type_arguments option =
-  match x with
-  | `Rectype (v1, v2) -> (
-      let v1 = map_simple_identifier env v1 in
-      match v2 with
-      | Some x -> (v1, Some (map_type_arguments env x))
-      | None -> (v1, None))
+  let v1 = map_simple_identifier env v1 in
+  match v2 with
+  | Some x -> (v1, Some (map_type_arguments env x))
+  | None -> (v1, None)
 
 and map_statements (env : env) ((v1, v2, v3) : CST.statements) =
   let stmts = associate_statement_semis v1 v2 v3 in
@@ -2572,7 +2573,7 @@ and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
 
 and map_type_ (env : env) (x : CST.type_) : G.type_ =
   match x with
-  | `Rectype (v1, v2) ->
+  | `Opt_type_modifs_unan_type (v1, v2) ->
       let _v1 =
         match v1 with
         | Some x -> map_type_modifiers env x |> todo env
@@ -2581,26 +2582,26 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let v2 = map_unannotated_type env v2 in
       (* TODO include type modifiers *)
       v2
+  | `Semg_ellips tok -> (* "..." *) token env tok |> todo env
 
 and map_type_annotation (env : env) ((v1, v2) : CST.type_annotation) : G.type_ =
   let v1 = (* ":" *) token env v1 in
   let v2 = map_possibly_implicitly_unwrapped_type env v2 in
   v2
 
-and map_type_arguments (env : env) (x : CST.type_arguments) : G.type_arguments =
-  match x with
-  | `Rectype (v1, v2, v3, v4) ->
-      let v1 = (* "<" *) token env v1 in
-      let v2 = G.TA (map_type_ env v2) in
-      let v3 =
-        Common.map
-          (fun (v1, v2) ->
-            let _v1 = (* "," *) token env v1 in
-            G.TA (map_type_ env v2))
-          v3
-      in
-      let v4 = (* ">" *) token env v4 in
-      (v1, v2 :: v3, v4)
+and map_type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) :
+    G.type_arguments =
+  let v1 = (* "<" *) token env v1 in
+  let v2 = G.TA (map_type_ env v2) in
+  let v3 =
+    Common.map
+      (fun (v1, v2) ->
+        let _v1 = (* "," *) token env v1 in
+        G.TA (map_type_ env v2))
+      v3
+  in
+  let v4 = (* ">" *) token env v4 in
+  (v1, v2 :: v3, v4)
 
 and map_type_constraint (env : env) (x : CST.type_constraint) =
   match x with
@@ -2650,25 +2651,27 @@ and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
   | `Asso_decl x -> [ map_associatedtype_declaration env x ]
 
 and map_type_modifiers (env : env) (x : CST.type_modifiers) =
-  match x with
-  | `Rectype x -> map_type_parameter_modifiers env x
+  map_type_parameter_modifiers env x
 
-and map_type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let v1 =
-    match v1 with
-    | Some x -> map_type_parameter_modifiers env x |> todo env
-    | None -> ()
-  in
-  let v2 = map_simple_identifier env v2 in
-  let v3 =
-    match v3 with
-    | Some (v1, v2) ->
-        let v1 = (* ":" *) token env v1 in
-        let v2 = map_type_ env v2 in
-        [ v2 ]
-    | None -> []
-  in
-  G.tparam_of_id ~tp_bounds:v3 v2
+and map_type_parameter (env : env) (x : CST.type_parameter) =
+  match x with
+  | `Opt_type_param_modifs_simple_id_opt_COLON_type (v1, v2, v3) ->
+      let v1 =
+        match v1 with
+        | Some x -> map_type_parameter_modifiers env x |> todo env
+        | None -> ()
+      in
+      let v2 = map_simple_identifier env v2 in
+      let v3 =
+        match v3 with
+        | Some (v1, v2) ->
+            let v1 = (* ":" *) token env v1 in
+            let v2 = map_type_ env v2 in
+            [ v2 ]
+        | None -> []
+      in
+      G.tparam_of_id ~tp_bounds:v3 v2
+  | `Semg_ellips tok -> (* "..." *) token env tok |> todo env
 
 and map_type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers)
     =
@@ -2792,19 +2795,17 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       let op = (G.Range, v2) in
       G.opcall op [ v1; G.L (G.Null v2) |> G.e ]
 
-and map_user_type (env : env) (x : CST.user_type) : G.type_ =
-  match x with
-  | `Rectype (v1, v2) ->
-      let v1 = map_simple_user_type env v1 in
-      let v2 =
-        Common.map
-          (fun (v1, v2) ->
-            let _v1 = (* dot_custom *) token env v1 in
-            map_simple_user_type env v2)
-          v2
-      in
-      let name = H2.name_of_ids_with_opt_typeargs (v1 :: v2) in
-      G.TyN name |> G.t
+and map_user_type (env : env) ((v1, v2) : CST.user_type) : G.type_ =
+  let v1 = map_simple_user_type env v1 in
+  let v2 =
+    Common.map
+      (fun (v1, v2) ->
+        let _v1 = (* dot_custom *) token env v1 in
+        map_simple_user_type env v2)
+      v2
+  in
+  let name = H2.name_of_ids_with_opt_typeargs (v1 :: v2) in
+  G.TyN name |> G.t
 
 and map_value_argument (env : env) ((v1, v2) : CST.value_argument) :
     G.argument list =
