@@ -46,6 +46,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
 
+- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+
 ### Fixed
 
 - TS: support for template literal types after upgrading to a more recent
