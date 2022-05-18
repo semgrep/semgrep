@@ -8,6 +8,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
 
+### Changed
+
+- taint-mode: Let's say that e.g. `taint(x)` makes `x` tainted by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `taint(x); ...` was as taint source. If `x` was overwritten with
+  safe data, this was not recognized by the taint engine. Also, if `taint(x)`
+  occurred inside e.g. an `if` block, any occurrence of `x` outside that block
+  was not considered tainted. Now, if you specify that the code variable itself
+  is a taint source, the taint engine will handle this as expected and it will
+  not suffer from the aforementioned limitations. We believe that this change
+  should not break existing taint rules, but please report any regressions that
+  you may find.
+
 ### Fixed
 
 - TS: support for template literal types after upgrading to a more recent
@@ -58,7 +71,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   version of Semgrep used to generate the match results.
 - taint-mode: Previously, to declare a function parameteter as a taint source,
   we had to rely on a trick that declared that _any_ occurence of the parameter
-  was a taint source. If the parameter was overwriten with safe data, this was
+  was a taint source. If the parameter was overwritten with safe data, this was
   not recognized by the taint engine. Now, `focus-metavariable` can be used to
   precisely specify that a function parameter is a source of taint, and the taint
   engine will handle this as expected.

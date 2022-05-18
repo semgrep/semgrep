@@ -54,28 +54,30 @@ end)
 (*****************************************************************************)
 
 type var = Dataflow_core.var
+type overlap = float
 
 type config = {
   filepath : Common.filename;
   rule_id : string;
-  is_source : G.any -> PM.t list;
+  is_source : G.any -> (PM.t * overlap) list;
   is_sink : G.any -> PM.t list;
   is_sanitizer : G.any -> PM.t list;
   unify_mvars : bool;
   handle_findings :
-    var option -> T.finding list -> T.taints Dataflow_core.env -> unit;
+    var option -> T.finding list -> Taints.t Dataflow_core.env -> unit;
 }
 
-type mapping = T.taints Dataflow_core.mapping
+type mapping = Taints.t Dataflow_core.mapping
 
 (* HACK: Tracks tainted functions intrafile. *)
 type fun_env = (var, PM.Set.t) Hashtbl.t
+type var_env = Taints.t VarMap.t
 
 type env = {
   config : config;
   fun_name : var option;
   fun_env : fun_env;
-  var_env : T.taints VarMap.t;
+  var_env : var_env;
 }
 
 (*****************************************************************************)
@@ -87,6 +89,15 @@ let hook_function_taint_signature = ref None
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let union_vars = Dataflow_core.varmap_union Taints.union
+
+let union_taints_and_vars (t1, v1) (t2, v2) =
+  (Taints.union t1 t2, union_vars v1 v2)
+
+let union_map_taints_and_vars ~var_env f xs =
+  xs |> Common.map f
+  |> List.fold_left union_taints_and_vars (Taints.empty, var_env)
 
 (* Debug *)
 let _show_env =
@@ -144,9 +155,6 @@ let merge_source_sink_mvars env source_mvars sink_mvars =
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
 
-let union_map f xs =
-  xs |> Common.map f |> List.fold_left Taints.union Taints.empty
-
 (* Produces a finding for every taint source that is unifiable with the sink. *)
 let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
   let ( let* ) = Option.bind in
@@ -181,9 +189,26 @@ let findings_of_tainted_return taints return_tok : T.finding list =
 (* Tainted *)
 (*****************************************************************************)
 
+(* Add `var -> taints` to `var_env`. *)
+let add_taint_to_var_in_env var_env var taints =
+  if Taints.is_empty taints then var_env
+  else
+    let taints =
+      let var_tok = snd var.ident in
+      if Parse_info.is_fake var_tok then taints
+      else
+        taints |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+    in
+    VarMap.update (str_of_name var)
+      (function
+        | None -> Some taints
+        (* THINK: couldn't we just replace the existing taints? *)
+        | Some taints' -> Some (Taints.union taints taints'))
+      var_env
+
 (* Test whether a variable occurrence is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-let check_tainted_var env (var : IL.name) : T.taints =
+let check_tainted_var env (var : IL.name) : Taints.t * var_env =
   let source_pms, sanitizer_pms, sink_pms =
     let _, tok = var.ident in
     if Parse_info.is_origintok tok then
@@ -192,79 +217,102 @@ let check_tainted_var env (var : IL.name) : T.taints =
         env.config.is_sink (G.Tk tok) )
     else ([], [], [])
   in
-  let taint_sources = source_pms |> T.taints_of_pms
-  and taint_var_env =
-    VarMap.find_opt (str_of_name var) env.var_env
-    |> Option.value ~default:Taints.empty
-  and taint_fun_env =
-    (* TODO: Move this to check_tainted_instr ? *)
-    Hashtbl.find_opt env.fun_env (str_of_name var)
-    |> Option.value ~default:PM.Set.empty
-    |> PM.Set.elements |> T.taints_of_pms
-  in
-  let taint : T.taints =
-    taint_sources |> Taints.union taint_var_env |> Taints.union taint_fun_env
-    (* |> PM.Set.union (is_tainted_function_hook config ((G.Id (var.ident, var.id_info)))) *)
-  in
   match sanitizer_pms with
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-  | _ :: _ -> Taints.empty
+  | _ :: _ -> (Taints.empty, env.var_env)
   | [] ->
+      let mut_source_pms, reg_source_pms =
+        (* If the variable is an exact match (overlap > 0.99) for a source
+         * annotation, then we infer that the variable itself is now tainted
+         * (presumably by side-effect) and we will update the `var_env`
+         * accordingly. Otherwise the variable belongs to a piece of code that
+         * is a source of taint, but it is not tainted on its own. *)
+        List.partition (fun (_pm, o) -> o > 0.99) source_pms
+      in
+      let taints_sources_reg =
+        reg_source_pms |> Common.map fst |> T.taints_of_pms
+      and taints_sources_mut =
+        mut_source_pms |> Common.map fst |> T.taints_of_pms
+      and taints_var_env =
+        VarMap.find_opt (str_of_name var) env.var_env
+        |> Option.value ~default:Taints.empty
+      and taints_fun_env =
+        (* TODO: Move this to check_tainted_instr ? *)
+        Hashtbl.find_opt env.fun_env (str_of_name var)
+        |> Option.value ~default:PM.Set.empty
+        |> PM.Set.elements |> T.taints_of_pms
+      in
+      let var_env' =
+        add_taint_to_var_in_env env.var_env var taints_sources_mut
+      in
+      let taints_sources = Taints.union taints_sources_reg taints_sources_mut in
+      let taints : Taints.t =
+        taints_sources
+        |> Taints.union taints_var_env
+        |> Taints.union taints_fun_env
+      in
       let sinks = sink_pms |> Common.map T.trace_of_pm in
-      let findings = findings_of_tainted_sinks env taint sinks in
+      let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
-      taint
+      (taints, var_env')
 
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-let rec check_tainted_expr env exp =
+let rec check_tainted_expr env exp : Taints.t * var_env =
   let check = check_tainted_expr env in
   let check_base = function
     | Var var -> check_tainted_var env var
-    | VarSpecial _ -> Taints.empty
+    | VarSpecial _ -> (Taints.empty, env.var_env)
     | Mem e -> check e
   in
   let check_offset = function
     | Index e -> check e
     | NoOffset
     | Dot _ ->
-        Taints.empty
+        (Taints.empty, env.var_env)
   in
   let check_subexpr exp =
     match exp.e with
     | Fetch { base = VarSpecial (This, _); offset = Dot fld; _ } ->
         (* TODO: Move this to check_tainted_instr ? *)
-        Hashtbl.find_opt env.fun_env (str_of_name fld)
-        |> Option.value ~default:PM.Set.empty
-        |> PM.Set.elements |> T.taints_of_pms
+        let taints =
+          Hashtbl.find_opt env.fun_env (str_of_name fld)
+          |> Option.value ~default:PM.Set.empty
+          |> PM.Set.elements |> T.taints_of_pms
+        in
+        (taints, env.var_env)
     | Fetch { base; offset; _ } ->
-        Taints.union (check_base base) (check_offset offset)
+        union_taints_and_vars (check_base base) (check_offset offset)
     | FixmeExp (_, _, Some e) -> check e
     | Literal _
     | FixmeExp (_, _, None) ->
-        Taints.empty
+        (Taints.empty, env.var_env)
     | Composite (_, (_, es, _))
     | Operator (_, es) ->
-        union_map check es
-    | Record fields -> union_map (fun (_, e) -> check e) fields
+        union_map_taints_and_vars ~var_env:env.var_env check es
+    | Record fields ->
+        union_map_taints_and_vars ~var_env:env.var_env
+          (fun (_, e) -> check e)
+          fields
     | Cast (_, e) -> check e
   in
   let sanitizer_pms = orig_is_sanitized env.config exp.eorig in
   match sanitizer_pms with
   | _ :: _ ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-      Taints.empty
+      (Taints.empty, env.var_env)
   | [] ->
       let sinks =
         orig_is_sink env.config exp.eorig |> Common.map T.trace_of_pm
       in
-      let taint_sources =
-        orig_is_source env.config exp.eorig |> T.taints_of_pms
+      let taints_sources =
+        orig_is_source env.config exp.eorig |> Common.map fst |> T.taints_of_pms
       in
-      let taint = taint_sources |> Taints.union (check_subexpr exp) in
-      let findings = findings_of_tainted_sinks env taint sinks in
+      let taints_exp, var_env' = check_subexpr exp in
+      let taints = taints_sources |> Taints.union taints_exp in
+      let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
-      taint
+      (taints, var_env')
 
 let check_function_signature env fun_exp args_taints =
   let taints_of_arg i =
@@ -336,58 +384,65 @@ let check_function_signature env fun_exp args_taints =
 (* TODO: This should return a new var_env rather than just taint, it
  * makes more sense given that an instruction may have side-effects.
  * It Also makes simpler to handle sanitization by side-effect. *)
-let check_tainted_instr env instr : T.taints =
+let check_tainted_instr env instr : Taints.t * var_env =
   let check_expr = check_tainted_expr env in
   let check_instr = function
     | Assign (_, e) -> check_expr e
-    | AssignAnon _ -> Taints.empty (* TODO *)
-    | Call (_, e, args) -> (
-        let e_taints = check_expr e in
-        let args_taints = Common.map check_expr args in
-        match check_function_signature env e args_taints with
-        | Some call_taints -> call_taints
-        | None ->
-            (* Default is to assume that the function will propagate
-             * the taint of its arguments. *)
-            List.fold_left Taints.union Taints.empty args_taints
-            |> Taints.union e_taints)
-    | CallSpecial (_, _, args) -> union_map check_expr args
-    | FixmeInstr _ -> Taints.empty
+    | AssignAnon _ -> (Taints.empty, env.var_env) (* TODO *)
+    | Call (_, e, args) ->
+        let e_taints, var_env_e = check_expr e in
+        let args_taints, var_envs_args =
+          Common.map check_expr args |> List.split
+        in
+        let var_env' = List.fold_left union_vars var_env_e var_envs_args in
+        let call_taints =
+          match check_function_signature env e args_taints with
+          | Some call_taints -> call_taints
+          | None ->
+              (* Default is to assume that the function will propagate
+               * the taint of its arguments. *)
+              List.fold_left Taints.union Taints.empty args_taints
+              |> Taints.union e_taints
+        in
+        (call_taints, var_env')
+    | CallSpecial (_, _, args) ->
+        union_map_taints_and_vars ~var_env:env.var_env check_expr args
+    | FixmeInstr _ -> (Taints.empty, env.var_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
   match sanitizer_pms with
   | _ :: _ ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-      Taints.empty
+      (Taints.empty, env.var_env)
   | [] ->
       let sinks =
         orig_is_sink env.config instr.iorig |> Common.map T.trace_of_pm
       in
       let taint_sources =
-        orig_is_source env.config instr.iorig |> T.taints_of_pms
+        orig_is_source env.config instr.iorig
+        |> Common.map fst |> T.taints_of_pms
       in
-      let taint = taint_sources |> Taints.union (check_instr instr.i) in
-      let findings = findings_of_tainted_sinks env taint sinks in
+      let taints_instr, var_env' = check_instr instr.i in
+      let taints = taint_sources |> Taints.union taints_instr in
+      let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
-      taint
+      (taints, var_env')
 
 (* Test whether a `return' is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-let check_tainted_return env tok e =
+let check_tainted_return env tok e : Taints.t * var_env =
   let sinks =
     env.config.is_sink (G.Tk tok) @ orig_is_sink env.config e.eorig
     |> Common.map T.trace_of_pm
   in
-  let taint = check_tainted_expr env e in
-  let findings = findings_of_tainted_sinks env taint sinks in
+  let taints, var_env' = check_tainted_expr env e in
+  let findings = findings_of_tainted_sinks env taints sinks in
   report_findings env findings;
-  taint
+  (taints, var_env')
 
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
-
-let union_env = Dataflow_core.varmap_union Taints.union
 
 let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   let node = flow.graph#nodes#assoc ni in
@@ -401,46 +456,45 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       match pred_envs with
       | [] -> VarMap.empty
       | [ penv ] -> penv
-      | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
+      | penv1 :: penvs -> List.fold_left union_vars penv1 penvs)
 
 let (transfer :
       config ->
       fun_env ->
-      T.taints Dataflow_core.env ->
+      Taints.t Dataflow_core.env ->
       string option ->
       flow:F.cfg ->
-      T.taints Dataflow_core.transfn) =
+      Taints.t Dataflow_core.transfn) =
  fun config fun_env enter_env opt_name ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
-  let in' : T.taints VarMap.t = input_env ~enter_env ~flow mapping ni in
+  let in' : Taints.t VarMap.t = input_env ~enter_env ~flow mapping ni in
   let node = flow.graph#nodes#assoc ni in
-  let out' : T.taints VarMap.t =
+  let out' : Taints.t VarMap.t =
     let env = { config; fun_name = opt_name; fun_env; var_env = in' } in
     match node.F.n with
     | NInstr x -> (
-        let taint = check_tainted_instr env x in
-        match (Taints.is_empty taint, LV.lvar_of_instr_opt x) with
-        | true, Some var -> VarMap.remove (str_of_name var) in'
-        | false, Some var ->
-            let taint =
-              let var_tok = snd var.ident in
-              if Parse_info.is_fake var_tok then taint
-              else
-                taint
-                |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-            in
-            VarMap.update (str_of_name var)
-              (function
-                | None -> Some taint
-                (* THINK: Why can't we just replace the existing taint? *)
-                | Some taint' -> Some (Taints.union taint taint'))
-              in'
-        | _, None -> in')
+        let taints, var_env' = check_tainted_instr env x in
+        let var_env' =
+          match LV.lvar_of_instr_opt x with
+          | None -> var_env'
+          | Some var ->
+              (* We call `check_tainted_var` here because the assigned `var`
+               * itself could be annotated as a source of taint. *)
+              check_tainted_var { env with var_env = var_env' } var |> snd
+        in
+        match (Taints.is_empty taints, LV.lvar_of_instr_opt x) with
+        (* Instruction returns safe data, remove taint from `var`. *)
+        | true, Some var -> VarMap.remove (str_of_name var) var_env'
+        (* Instruction returns tainted data, add taints to `var`. *)
+        | false, Some var -> add_taint_to_var_in_env var_env' var taints
+        (* There is no variable being assigned, presumably the Instruction
+         * returns 'void'. *)
+        | _, None -> var_env')
     | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
-        let taints = check_tainted_return env tok e in
+        let taints, var_env' = check_tainted_return env tok e in
         let findings = findings_of_tainted_return taints tok in
         report_findings env findings;
         let pmatches =
@@ -460,8 +514,8 @@ let (transfer :
                    Hashtbl.add fun_env str pmatches
              | Some tained' ->
                  Hashtbl.replace fun_env str (PM.Set.union pmatches tained'));
-            in'
-        | None -> in')
+            var_env'
+        | None -> var_env')
     | _ -> in'
   in
   { D.in_env = in'; out_env = out' }
@@ -471,7 +525,7 @@ let (transfer :
 (*****************************************************************************)
 
 let (fixpoint :
-      ?in_env:T.taints Dataflow_core.VarMap.t ->
+      ?in_env:Taints.t Dataflow_core.VarMap.t ->
       ?name:Dataflow_core.var ->
       ?fun_env:fun_env ->
       config ->
