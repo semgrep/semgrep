@@ -887,7 +887,7 @@ let parse_one_type type_def =
           ],
           _ ) ) ->
       let types =
-        parse_string_wrap_list_no_env (metatype_name, t) types |> List.map fst
+        parse_string_wrap_list_no_env (metatype_name, t) types |> Common.map fst
       in
       (metatype_name, types)
   | _ -> yaml_error_at_expr type_def "expected a dictionary of types"
@@ -926,7 +926,7 @@ let parse_generic_metatypes file ast =
   let types_tbl = Hashtbl.create 10 in
   let () =
     types
-    |> List.map (fun type_def -> parse_one_type type_def)
+    |> Common.map (fun type_def -> parse_one_type type_def)
     |> List.iter (fun (key, value) -> Hashtbl.add types_tbl key value)
   in
   types_tbl

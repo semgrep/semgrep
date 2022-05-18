@@ -413,7 +413,7 @@ let rec m_name a b =
           | None -> default_check ()
           | Some types ->
               let types =
-                List.map (fun type_ -> G.Id ((type_, t), a_info)) types
+                Common.map (fun type_ -> G.Id ((type_, t), a_info)) types
               in
               List.fold_left
                 (fun acc type_ -> m_name type_ b >||> acc)
