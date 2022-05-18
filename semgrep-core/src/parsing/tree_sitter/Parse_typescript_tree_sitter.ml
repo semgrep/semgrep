@@ -1466,7 +1466,7 @@ and map_template_literal_type (env : env)
       v2
   in
   let _rback = (* "`" *) token env v3 in
-  TypeTodo (("TemplateLitType", lback), xs |> List.map (fun x -> Type x))
+  TypeTodo (("TemplateLitType", lback), xs |> Common.map (fun x -> Type x))
 
 and map_template_type (env : env) ((v1, v2, v3) : CST.template_type) :
     type_ bracket =
