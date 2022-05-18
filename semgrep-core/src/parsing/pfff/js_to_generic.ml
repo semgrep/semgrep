@@ -595,6 +595,7 @@ and keyword_attribute (x, tok) =
     | Readonly -> G.Const
     | Optional -> G.Optional
     | Abstract -> G.Abstract
+    | Override -> G.Override
     | NotNull -> G.NotNull),
     tok )
 
