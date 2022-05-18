@@ -3,5 +3,6 @@ try {
 }
 catch (error) {
     console.error("An exception was thrown.");
-    2 == 2; //This isn't flagged due to the Semgrep exception.
+    //ERROR: match
+    2 == 2; //This wasn't flagged before due to syntax error above.
 }
