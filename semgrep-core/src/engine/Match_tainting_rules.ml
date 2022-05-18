@@ -112,7 +112,19 @@ let any_in_ranges rule any rwms =
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
       List.filter (fun rwm -> Range.( $<=$ ) r rwm.RM.r) rwms
-      |> Common.map (RM.range_to_pattern_match_adjusted rule)
+      |> Common.map (fun rwm ->
+             let r1 = rwm.RM.r in
+             let overlap =
+               (* We want to know how well the AST node `any' is matching
+                * the taint-annotated code range, this is a ratio in [0.0, 1.0]. *)
+               float_of_int (r.Range.end_ - r.Range.start + 1)
+               /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
+             in
+             let pm = RM.range_to_pattern_match_adjusted rule rwm in
+             (pm, overlap))
+
+let any_in_ranges_no_overlap rule any rwms =
+  any_in_ranges rule any rwms |> Common.map fst
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
@@ -182,8 +194,9 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_in_ranges rule x sources_ranges);
-      is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
-      is_sink = (fun x -> any_in_ranges rule x sinks_ranges);
+      is_sanitizer =
+        (fun x -> any_in_ranges_no_overlap rule x sanitizers_ranges);
+      is_sink = (fun x -> any_in_ranges_no_overlap rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;
     },
@@ -238,7 +251,10 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   in
   let add_to_env env id ii =
     let var = D.str_of_name (AST_to_IL.var_of_id_info id ii) in
-    let taint = taint_config.D.is_source (G.Tk (snd id)) |> T.taints_of_pms in
+    let taint =
+      taint_config.D.is_source (G.Tk (snd id))
+      |> Common.map fst |> T.taints_of_pms
+    in
     Dataflow_core.VarMap.add var taint env
   in
   let in_env =
