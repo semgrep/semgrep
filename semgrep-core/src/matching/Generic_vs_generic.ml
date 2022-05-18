@@ -1670,6 +1670,20 @@ and m_type_ a b =
   Trace_matching.(if on then print_type_pair a b);
   let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
+  (* extension: metatypes *)
+  | G.TyN (G.Id ((str, t), id_info) as a1), B.TyN b1 -> (
+      match !Hooks.metatypes with
+      | None -> m_name a1 b1
+      | Some metatypes_tbl -> (
+          match Hashtbl.find_opt metatypes_tbl str with
+          | None -> m_name a1 b1
+          | Some types ->
+              let types =
+                List.map (fun type_ -> G.Id ((type_, t), id_info)) types
+              in
+              List.fold_left
+                (fun acc type_ -> m_name type_ b1 >||> acc)
+                (m_name a1 b1) types))
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
   | G.TyN a1, B.TyN b1 -> m_name a1 b1

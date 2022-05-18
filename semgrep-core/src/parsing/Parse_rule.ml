@@ -868,6 +868,80 @@ let parse_bis ?error_recovery file =
   in
   parse_generic ?error_recovery file ast
 
+(* ------- *)
+
+let parse_one_type type_def =
+  match type_def.G.e with
+  | Container
+      ( Dict,
+        ( _,
+          [
+            {
+              e =
+                Container
+                  ( Tuple,
+                    (_, [ { e = L (String (metatype_name, t)); _ }; types ], _)
+                  );
+              _;
+            };
+          ],
+          _ ) ) ->
+      let types =
+        parse_string_wrap_list_no_env (metatype_name, t) types |> List.map fst
+      in
+      (metatype_name, types)
+  | _ -> yaml_error_at_expr type_def "expected a dictionary of types"
+
+let parse_generic_metatypes file ast =
+  let _t, types =
+    match ast with
+    | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
+        match e.G.e with
+        | Container
+            ( Dict,
+              ( _,
+                [
+                  {
+                    e =
+                      Container
+                        ( Tuple,
+                          (_, [ { e = L (String ("types", _)); _ }; types ], _)
+                        );
+                    _;
+                  };
+                ],
+                _ ) ) -> (
+            match types.G.e with
+            | G.Container (G.Array, (l, types, _r)) -> (l, types)
+            | _ ->
+                yaml_error_at_expr types
+                  "expected a list of types following `types:`")
+        | _ ->
+            let loc = PI.first_loc_of_file file in
+            yaml_error (PI.mk_info_of_loc loc)
+              "missing types entry as top-level key")
+    | _ -> assert false
+    (* yaml_to_generic should always return a ExprStmt *)
+  in
+  let types_tbl = Hashtbl.create 10 in
+  let () =
+    types
+    |> List.map (fun type_def -> parse_one_type type_def)
+    |> List.iter (fun (key, value) -> Hashtbl.add types_tbl key value)
+  in
+  types_tbl
+
+let parse_metatypes file =
+  let ast =
+    match FT.file_type_of_file file with
+    | FT.Config FT.Yaml -> Yaml_to_generic.program file
+    | _ ->
+        logger#error "wrong rule format, only YAML is valid";
+        logger#info "trying to parse %s as YAML" file;
+        Yaml_to_generic.program file
+  in
+  parse_generic_metatypes file ast
+
 let parse file =
   let xs, skipped = parse_bis ~error_recovery:false file in
   assert (skipped = []);

@@ -136,6 +136,7 @@ let ncores = ref 1
 
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
+let metatypes_file = ref ""
 
 (* ------------------------------------------------------------------------- *)
 (* pad's action flag *)
@@ -293,6 +294,7 @@ let mk_config () =
     pattern_file = !pattern_file;
     rules_file = !rules_file;
     equivalences_file = !equivalences_file;
+    metatypes_file = !metatypes_file;
     lang = !lang;
     output_format = !output_format;
     match_format = !match_format;
@@ -549,6 +551,9 @@ let options () =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
+    ( "-metatypes",
+      Arg.Set_string metatypes_file,
+      " <file> define critical types to use in rules " );
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)

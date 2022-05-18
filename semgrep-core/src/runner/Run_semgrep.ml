@@ -450,6 +450,10 @@ let targets_of_config (config : Runner_config.t)
         failwith "if you use -targets and -rules, you should not specify a lang";
       (targets, skipped)
 
+let process_metatypes metatypes_file =
+  let metatypes = Parse_rule.parse_metatypes metatypes_file in
+  Hooks.metatypes := Some metatypes
+
 (*****************************************************************************)
 (* Semgrep -config *)
 (*****************************************************************************)
@@ -470,6 +474,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       raise (Rule.InvalidRule err)
   | _ -> ());
 
+  if not (config.metatypes_file = "") then
+    process_metatypes config.metatypes_file;
   let rule_table = mk_rule_table rules in
   let targets, skipped =
     targets_of_config config (Common.map (fun r -> fst r.R.id) rules)
