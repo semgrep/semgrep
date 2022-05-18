@@ -54,6 +54,27 @@ let optional env opt f =
   | None -> None
   | Some x -> Some (f env x)
 
+(* tree-sitter-typescript is now very laxist in what it accepts after
+ * an 'extends' for classes and allow now any expression, even though
+ * most expressions have the form foo.t in which case it's really a TyName.
+ * For interfaces, typescript uses 'extends_type_clause' which
+ * is simpler and restrict the 'extends' to be a type, but for regular
+ * classes it uses this 'extends_clause' which is very laxist.
+ * The function below tries to reverse-engineer a type from an expr
+ * to match what we do in parser_js.mly.
+ *)
+let tyname_or_expr_of_expr e _targsTODO =
+  let rec ids_of_expr = function
+    | Id id -> [ id ]
+    | ObjAccess (e, _, PN id) -> id :: ids_of_expr e
+    | _ -> raise Not_found
+  in
+  try
+    let ids = ids_of_expr e |> List.rev in
+    Right (TyName ids)
+  with
+  | Not_found -> Left e
+
 (*
    Map the comma-separated representation of a list to an ocaml list.
    The separator doesn't have to be a comma but must be a simple token.
@@ -2554,33 +2575,11 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
   let _v4 = semicolon env v4 in
   build_vars kind vars
 
-(* TODO dead
-   and anon_choice_choice_type_id_e16f95c (env : env)
-       (x : CST.anon_choice_choice_type_id_e16f95c) : parent =
-     match x with
-     | `Choice_id x ->
-         (* type to be extended *)
-         Right (anon_choice_type_id_a85f573 env x)
-     | `Exp x ->
-         (* class expression to be extended *)
-         Left (expression env x)
-
-   and anon_choice_type_id_a85f573 (env : env)
-       (x : CST.anon_choice_type_id_a85f573) : type_ =
-     match x with
-     | `Id tok -> TyName [ str env tok ] (* identifier *)
-     | `Nested_type_id x -> TyName (nested_type_identifier env x)
-     | `Gene_type x -> TyName (generic_type env x)
-*)
-
 and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
     parent list =
-  (* TODO
-     map_sep_list env v2 v3 anon_choice_choice_type_id_e16f95c
-  *)
   let _textends = (* "extends" *) token env v1 in
   let v2 = expression env v2 in
-  let _v3TODO =
+  let v3 =
     match v3 with
     | Some x -> type_arguments env x |> PI.unbracket
     | None -> []
@@ -2590,15 +2589,15 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) :
       (fun (v1, v2, v3) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = expression env v2 in
-        let _v3TODO =
+        let v3 =
           match v3 with
           | Some x -> type_arguments env x |> PI.unbracket
           | None -> []
         in
-        Left v2)
+        tyname_or_expr_of_expr v2 v3)
       v4
   in
-  Left v2 :: v4
+  tyname_or_expr_of_expr v2 v3 :: v4
 
 and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = token env v1 (* "{" *) in
