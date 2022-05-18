@@ -14,6 +14,9 @@ let string_of_lval x =
 let string_of_exp e =
   match e.e with
   | Fetch l -> string_of_lval l
+  | Literal _ -> "<LIT>"
+  | Operator _ -> "<OP>"
+  | FixmeExp _ -> "<FIXME-EXP>"
   | _ -> "<EXP>"
 
 let short_string_of_node_kind nkind =
@@ -31,7 +34,7 @@ let short_string_of_node_kind nkind =
   | NOther _ -> "<other>"
   | NInstr x -> (
       match x.i with
-      | Assign (lval, _) -> string_of_lval lval ^ " = ..."
+      | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
       | AssignAnon _ -> " ... = <lambda|class>"
       | Call (_lopt, exp, _) -> string_of_exp exp ^ "(...)"
       | CallSpecial _ -> "<special>"
