@@ -4,6 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+
+### Fixed
+
+- TS: support for template literal types after upgrading to a more recent
+  tree-sitter-typescript (Oct 2021)
+
 ## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 
 ### Changed
