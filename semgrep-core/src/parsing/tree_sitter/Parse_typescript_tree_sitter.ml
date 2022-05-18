@@ -2228,10 +2228,11 @@ and statement (env : env) (x : CST.statement) : stmt list =
       [ Label (v1, v3) ]
 
 and method_definition (env : env)
-    ((v1, v2, _v2overrideTODO, v3, v4, v5, v6, v7, v8, v9) :
-      CST.method_definition) : property =
+    ((v1, v2, v2bis, v3, v4, v5, v6, v7, v8, v9) : CST.method_definition) :
+    property =
   let v1 = accessibility_modifier_opt_to_list env v1 in
   let v2 = kwd_attr_opt_to_list env Static v2 in
+  let v2bis = kwd_attr_opt_to_list env Override v2bis in
   let v3 = kwd_attr_opt_to_list env Readonly v3 in
   let v4 = kwd_attr_opt_to_list env Async v4 in
   let v5 =
@@ -2248,7 +2249,7 @@ and method_definition (env : env)
   in
   let _tparams, (v8, tret) = call_signature env v8 in
   let v9 = statement_block env v9 in
-  let attrs = v1 @ v2 @ v3 @ v4 @ v5 @ v7 |> Common.map attr in
+  let attrs = v1 @ v2 @ v2bis @ v3 @ v4 @ v5 @ v7 |> Common.map attr in
   let f_kind = (G.Method, fake) in
   let f =
     { f_attrs = []; f_params = v8; f_body = v9; f_rettype = tret; f_kind }
@@ -2462,9 +2463,10 @@ and anon_choice_export_stmt_f90d83f (env : env)
   | `Export_stmt x ->
       let xs = export_statement env x in
       Right xs
-  | `Prop_sign (v1, v2, _v2overrideTODO, v3, v4, v5, v6) ->
+  | `Prop_sign (v1, v2, v2bis, v3, v4, v5, v6) ->
       let v1 = accessibility_modifier_opt_to_list env v1 in
       let v2 = kwd_attr_opt_to_list env Static v2 in
+      let v2bis = kwd_attr_opt_to_list env Override v2bis in
       let v3 = kwd_attr_opt_to_list env Readonly v3 in
       let v4 = property_name env v4 in
       let v5 =
@@ -2477,7 +2479,7 @@ and anon_choice_export_stmt_f90d83f (env : env)
         | Some x -> Some (type_annotation env x |> snd)
         | None -> None
       in
-      let attrs = v1 @ v2 @ v3 @ v5 |> Common.map attr in
+      let attrs = v1 @ v2 @ v2bis @ v3 @ v5 |> Common.map attr in
       let fld =
         { fld_name = v4; fld_attrs = attrs; fld_type = v6; fld_body = None }
       in
@@ -2526,10 +2528,11 @@ and public_field_definition (env : env)
   let _access_modif = accessibility_modifier_opt_to_list env v2 in
   let attributes =
     match v3 with
-    | `Opt_static_opt_over_modi_opt_read (v1, _v2overrideTODO, v2) ->
+    | `Opt_static_opt_over_modi_opt_read (v1, v2bis, v2) ->
         let v1 = kwd_attr_opt_to_list env Static v1 in
         let v2 = kwd_attr_opt_to_list env Readonly v2 in
-        v1 @ v2
+        let v2bis = kwd_attr_opt_to_list env Override v2bis in
+        v1 @ v2 @ v2bis
     | `Opt_abst_opt_read (v1, v2)
     | `Opt_read_opt_abst (v2, v1) ->
         let v1 = kwd_attr_opt_to_list env Abstract v1 in
@@ -2862,11 +2865,11 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) :
   let v2 = type_ env v2 in
   v2
 
-and parameter_name (env : env)
-    ((v1, v2, _v2overrideTODO, v3, v4) : CST.parameter_name) :
+and parameter_name (env : env) ((v1, v2, v2bis, v3, v4) : CST.parameter_name) :
     (a_ident, a_pattern) Common.either =
   let _decorators = Common.map (decorator env) v1 in
   let _accessibility = accessibility_modifier_opt_to_list env v2 in
+  let _override = kwd_attr_opt_to_list env Override v2bis in
   let _readonly = kwd_attr_opt_to_list env Readonly v3 in
   let id_or_pat =
     match v4 with
@@ -2960,9 +2963,10 @@ and tuple_type_member (env : env) (x : CST.tuple_type_member) :
   | `Type x -> TyTupMember (type_ env x)
 
 and method_signature (env : env)
-    ((v1, v2, _v2overrideTODO, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
+    ((v1, v2, v2bis, v3, v4, v5, v6, v7, v8) : CST.method_signature) =
   let v1 = accessibility_modifier_opt_to_list env v1 in
   let v2 = kwd_attr_opt_to_list env Static v2 in
+  let v2bis = kwd_attr_opt_to_list env Override v2bis in
   let v3 = kwd_attr_opt_to_list env Readonly v3 in
   let v4 = kwd_attr_opt_to_list env Async v4 in
   let v5 =
@@ -2972,7 +2976,7 @@ and method_signature (env : env)
   in
   let v6 = property_name env v6 in
   let v7 = kwd_attr_opt_to_list env Optional v7 in
-  let attrs = v1 @ v2 @ v3 @ v4 @ v5 @ v7 |> Common.map attr in
+  let attrs = v1 @ v2 @ v2bis @ v3 @ v4 @ v5 @ v7 |> Common.map attr in
   let _tparams, x = call_signature env v8 in
   let t = mk_functype x in
   { fld_name = v6; fld_attrs = attrs; fld_type = Some t; fld_body = None }
