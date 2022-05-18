@@ -9,6 +9,7 @@ ALL_LANGUAGES = ["ALL"]
 
 
 PASSING_REPOS = [
+    {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bifrost", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bip38", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/btcexport", "languages": ALL_LANGUAGES},
@@ -276,10 +277,6 @@ FAILING_REPOS = [
             "languages": ALL_LANGUAGES,
         },
         reason="https://github.com/returntocorp/semgrep/issues/5092",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/zulip/zulip", "languages": ["javascript"]},
-        reason="static/js/blueslip.ts: `name` was unexpected",
     ),
     xfail_repo(
         {"repo": "https://github.com/apache/airflow", "languages": ["javascript"]},
