@@ -19,6 +19,7 @@
         "scan_environment": "gitlab-ci",
         "is_full_scan": true,
         "base_sha": "sanitized",
-        "start_sha": null
+        "start_sha": null,
+        "is_sca_scan": false
     }
 }

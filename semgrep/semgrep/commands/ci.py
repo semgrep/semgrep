@@ -164,6 +164,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         Instead will print out json objects it would have sent.
     """,
 )
+@click.option(
+    "--sca",
+    is_flag=True,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -197,6 +202,7 @@ def ci(
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
+    sca: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
     timeout_threshold: int,
@@ -288,6 +294,8 @@ def ci(
         logger.info(
             f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
         )
+    if sca:
+        logger.info("  running an SCA scan")
     logger.info("")
 
     try:
@@ -297,7 +305,9 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    scan_handler.start_scan(metadata.to_dict())
+                    metadata_dict = metadata.to_dict()
+                    metadata_dict["is_sca_scan"] = sca
+                    scan_handler.start_scan(metadata_dict)
                     config = (scan_handler.scan_rules_url,)
             except Exception as e:
                 import traceback
