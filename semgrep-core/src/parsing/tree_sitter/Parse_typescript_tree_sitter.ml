@@ -31,11 +31,13 @@ open Ast_js
 type env = unit H.env
 
 let token = H.token
+let str = H.str
 let fake = PI.unsafe_fake_info ""
+let fb = PI.unsafe_fake_bracket
 let mk_functype (params, rett) = TyFun (params, rett)
 
 (* Note that this file also raises some Impossible and Ast_builder_error *)
-let todo _env _x = failwith "internal error: not implemented"
+let _todo _env _x = failwith "internal error: not implemented"
 
 (*
    We preserve the distinction between a plain identifier and a more complex
@@ -46,8 +48,6 @@ let sub_pattern (id_or_pat : (a_ident, a_pattern) either) : a_pattern =
   match id_or_pat with
   | Left id -> Id id
   | Right pat -> pat
-
-let fb = PI.unsafe_fake_bracket
 
 let optional env opt f =
   match opt with
@@ -102,7 +102,6 @@ let map_sep_list (env : env) (head : 'a) (tail : (_ * 'a) list)
 
 module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
 
-let str = H.str
 let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
 let identifier_ (env : env) (x : CST.identifier_) : expr =
@@ -125,6 +124,7 @@ let super env tok = IdSpecial (Super, token env tok)
 
 let number (env : env) (tok : CST.number) =
   let s, t = str env tok (* number *) in
+  (* TODO? float_of_string_opt_also_from_hexoctbin *)
   (Common2.float_of_string_opt s, t)
 
 let empty_stmt env tok =
@@ -399,10 +399,8 @@ let literal_type (env : env) (x : CST.literal_type) : expr =
       (* TODO: float_of_string_opt_also_from_hexoctbin *)
       L (Num (float_of_string_opt (s ^ s2), PI.combine_infos t1 [ t2 ]))
   | `Num tok ->
-      let s, t = str env tok in
-      (* number *)
-      (* TODO: float_of_string_opt_also_from_hexoctbin *)
-      L (Num (float_of_string_opt s, t))
+      let n = number env tok in
+      L (Num n)
   | `Str x -> L (String (string_ env x))
   | `True tok -> L (Bool (true, token env tok (* "true" *)))
   | `False tok -> L (Bool (false, token env tok (* "false" *)))
@@ -1465,12 +1463,6 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   let v2 = expressions env v2 in
   let _v3 = token env v3 (* "}" *) in
   v2
-
-(* TODO
-      | `Temp_str x ->
-          let _, xs, _ = template_string env x in
-          ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs)
-*)
 
 and map_template_literal_type (env : env)
     ((v1, v2, v3) : CST.template_literal_type) : type_ =
@@ -2696,28 +2688,30 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = statement_block env v2 in
   (v1, v2)
 
-and todo_type_predicate (env : env) ((v1, v2, v3) : CST.type_predicate) =
-  let _id_or_this =
+and map_type_predicate (env : env) ((v1, v2, v3) : CST.type_predicate) =
+  let v1 =
     match v1 with
-    | `Id tok -> token env tok (* identifier *)
-    | `This tok -> (* "this" *) token env tok
-  in
-  let _is = token env v2 (* "is" *) in
-  let _type_ = type_ env v3 in
-  todo env (_id_or_this, _is, type_)
-
-and todo_asserts (env : env) ((v1, v2, v3) : CST.asserts) =
-  let _colon = token env v1 (* ":" *) in
-  let _asserts = token env v2 (* "asserts" *) in
-  let body =
-    match v3 with
-    | `Type_pred x -> todo_type_predicate env x
     | `Id tok ->
         let id = identifier env tok (* identifier *) in
         idexp_or_special id
-    | `This tok -> (* "this" *) this env tok
+    | `This tok -> this env tok
   in
-  todo env body
+  let tis = token env v2 (* "is" *) in
+  let ty = type_ env v3 in
+  TypeTodo (("IsType", tis), [ Expr v1; Type ty ])
+
+and map_asserts (env : env) ((v1, v2, v3) : CST.asserts) : type_ =
+  let tcolon = token env v1 (* ":" *) in
+  let _asserts = token env v2 (* "asserts" *) in
+  let any =
+    match v3 with
+    | `Type_pred x -> Type (map_type_predicate env x)
+    | `Id tok ->
+        let id = identifier env tok (* identifier *) in
+        Expr (idexp_or_special id)
+    | `This tok -> Expr (this env tok)
+  in
+  TypeTodo (("Asserts", tcolon), [ any ])
 
 and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) :
     a_type_parameter list * (parameter list * type_ option) =
@@ -2733,25 +2727,11 @@ and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) :
         match x with
         | `Type_anno x -> Some (type_annotation env x |> snd)
         | `Asserts x ->
-            let _x () = todo_asserts env x in
-            (* TODO *)
-            None
+            let ty = map_asserts env x in
+            Some ty
         | `Type_pred_anno (v1, v2) ->
             let _v1 = token env v1 (* ":" *) in
-            let v2 =
-              let v1, v2, v3 = v2 in
-              let v1 =
-                match v1 with
-                | `Id tok ->
-                    let id = identifier env tok (* identifier *) in
-                    idexp_or_special id
-                | `This tok -> this env tok
-                (* "this" *)
-              in
-              let v2 = token env v2 (* "is" *) in
-              let v3 = type_ env v3 in
-              TypeTodo (("IsType", v2), [ Expr v1; Type v3 ])
-            in
+            let v2 = map_type_predicate env v2 in
             Some v2)
     | None -> None
   in
