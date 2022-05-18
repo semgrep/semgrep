@@ -17,6 +17,8 @@ open Ast_js
 module G = AST_generic
 module H = AST_generic_helpers
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -286,8 +288,11 @@ and expr (x : expr) =
       let v2 = bracket (list expr) v2 in
       match x with
       | SR_Special v ->
-          G.Call (G.IdSpecial v |> G.e, bracket (List.map (fun e -> G.Arg e)) v2)
-      | SR_Literal _ -> error (snd v1) "Weird: literal in call position"
+          G.Call (G.IdSpecial v |> G.e, bracket (List.map G.arg) v2)
+      | SR_Literal l ->
+          logger#info "Weird: literal in call position";
+          (* apparently there's code like (null)("fs"), no idea what that is *)
+          G.Call (G.L l |> G.e, bracket (List.map G.arg) v2)
       | SR_NeedArgs f -> f (G.unbracket v2)
       | SR_Other categ ->
           (* ex: NewTarget *)
