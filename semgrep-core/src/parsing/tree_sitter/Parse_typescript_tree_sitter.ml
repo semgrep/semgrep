@@ -1,5 +1,5 @@
 (**
-   Derive a Javascript AST from a tree-sitter Typescript (or TSX) CST.
+   Derive a JS/TS AST from a tree-sitter TS (or TSX) CST.
 
    This is derived from generated code 'semgrep-typescript/lib/Boilerplate.ml'
    in tree-sitter-lang.
@@ -238,7 +238,7 @@ let kwd_attr_opt_to_list env kwd v =
   | Some tok -> [ (kwd, token env tok) ]
   | None -> []
 
-let predefined_type (env : env) (x : CST.predefined_type) =
+let predefined_type (env : env) (x : CST.predefined_type) : a_ident =
   match x with
   | `Any tok
   | `Num tok
@@ -260,13 +260,14 @@ let anon_choice_PLUSPLUS_e498e28 (env : env)
 let map_anon_choice_DOT_d88d0af (env : env) (x : CST.anon_choice_DOT_d88d0af) =
   match x with
   | `DOT tok -> (* "." *) token env tok
+  (* TODO: return something different *)
   | `QMARKDOT tok -> (* "?." *) token env tok
 
 let map_anon_choice_priv_prop_id_89abb74 (env : env)
-    (x : CST.anon_choice_priv_prop_id_89abb74) =
+    (x : CST.anon_choice_priv_prop_id_89abb74) : a_ident =
   match x with
-  | `Priv_prop_id tok -> (* private_property_identifier *) token env tok
-  | `Id tok -> (* identifier *) token env tok
+  | `Priv_prop_id tok -> (* private_property_identifier *) str env tok
+  | `Id tok -> (* identifier *) str env tok
 
 let type_or_typeof (env : env) (x : CST.anon_choice_type_2b11f6b) =
   match x with
@@ -507,6 +508,11 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     | `Choice_id_opt_type_args (v1, v2) ->
         let ids = id_or_nested_id env v1 in
         let id = concat_nested_identifier ids in
+        (* TODO:
+           let v2 = type_arguments env v2 |> PI.unbracket
+             |> Common.map (fun x -> G.TypeArg x) in
+            H2.name_of_ids ~name_typeargs:(Some v2) v1
+        *)
         let _v2TODO =
           match v2 with
           | Some x -> type_arguments env x |> PI.unbracket
@@ -764,12 +770,6 @@ and generic_type (env : env) ((v1, _v2) : CST.generic_type) : a_dotted_ident =
     | `Id tok -> [ identifier env tok ] (* identifier *)
     | `Nested_type_id x -> nested_identifier env x
   in
-
-  (* TODO:
-     let v2 = type_arguments env v2 |> PI.unbracket
-             |> Common.map (fun x -> G.TypeArg x) in
-     H2.name_of_ids ~name_typeargs:(Some v2) v1
-  *)
   v1
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) :
@@ -1445,10 +1445,16 @@ and template_substitution (env : env) ((v1, v2, v3) : CST.template_substitution)
   let _v3 = token env v3 (* "}" *) in
   v2
 
+(* TODO
+      | `Temp_str x ->
+          let _, xs, _ = template_string env x in
+          ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs)
+*)
+
 and map_template_literal_type (env : env)
     ((v1, v2, v3) : CST.template_literal_type) : type_ =
-  let v1 = (* "`" *) token env v1 in
-  let v2 =
+  let lback = (* "`" *) token env v1 in
+  let xs =
     Common.map
       (fun x ->
         match x with
@@ -1459,8 +1465,8 @@ and map_template_literal_type (env : env)
             x)
       v2
   in
-  let v3 = (* "`" *) token env v3 in
-  todo env (v1, v2, v3)
+  let _rback = (* "`" *) token env v3 in
+  TypeTodo (("TemplateLitType", lback), xs |> List.map (fun x -> Type x))
 
 and map_template_type (env : env) ((v1, v2, v3) : CST.template_type) :
     type_ bracket =
@@ -1556,11 +1562,6 @@ and expression (env : env) (x : CST.expression) : expr =
         match v3 with
         | `Type x -> type_ env x
         | `Temp_lit_type x -> map_template_literal_type env x
-        (* TODO
-              | `Temp_str x ->
-                  let _, xs, _ = template_string env x in
-                  ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs)
-        *)
       in
       TypeAssert (e, tas, ty)
   | `Inte_module x -> (
@@ -1816,83 +1817,77 @@ and index_signature (env : env) ((v1, v2, v3, v4, v5) : CST.index_signature) =
   TypeTodo (("Indexsig", v2), [ Type v3; Type v5 ])
 
 and type_query (env : env) ((v1, v2) : CST.type_query) : type_ =
-  (* TODO
-     let e =
-       (* TODO
-           | `Prim_exp x -> primary_expression env x
-           | `Gene_type x ->
-               generic_type env x |> concat_nested_identifier |> idexp_or_special
-       *)
-     in
-     TypeTodo (("TypeQuery", typeof), [ Expr e ])
-  *)
-  let v1 = (* "typeof" *) token env v1 in
-  let v2 =
+  let ttypeof = (* "typeof" *) token env v1 in
+  let e =
     match v2 with
     | `Type_query_subs_exp x -> map_type_query_subscript_expression env x
     | `Type_query_member_exp x -> map_type_query_member_expression env x
     | `Type_query_call_exp x -> map_type_query_call_expression env x
     | `Id tok ->
         let id = (* identifier *) str env tok in
-        todo env id
+        idexp_or_special id
   in
-  todo env (v1, v2)
+  TypeTodo (("Typeof", ttypeof), [ Expr e ])
 
 and map_anon_choice_type_id_e96bf13 (env : env)
     (x : CST.anon_choice_type_id_e96bf13) : expr =
   match x with
   | `Id tok ->
-      let id = (* identifier *) token env tok in
-      todo env id
+      let id = (* identifier *) str env tok in
+      idexp_or_special id
   | `Type_query_subs_exp x -> map_type_query_subscript_expression env x
   | `Type_query_member_exp x -> map_type_query_member_expression env x
   | `Type_query_call_exp x -> map_type_query_call_expression env x
 
 and map_type_query_call_expression (env : env)
     ((v1, v2) : CST.type_query_call_expression) : expr =
-  let v1 =
+  let e =
     match v1 with
     (* ?? what is that? *)
     | `Import tok ->
         let id = (* import *) str env tok in
-        todo env id
+        idexp_or_special id
     | `Id tok ->
         let id = (* identifier *) str env tok in
-        todo env id
+        idexp_or_special id
     | `Type_query_member_exp x -> map_type_query_member_expression env x
     | `Type_query_subs_exp x -> map_type_query_subscript_expression env x
   in
-  let v2 = arguments env v2 in
-  todo env (v1, v2)
+  let args = arguments env v2 in
+  Apply (e, args)
 
 and map_type_query_member_expression (env : env)
     ((v1, v2, v3) : CST.type_query_member_expression) : expr =
-  let v1 = map_anon_choice_type_id_e96bf13 env v1 in
-  let v2 = map_anon_choice_DOT_d88d0af env v2 in
-  let v3 = map_anon_choice_priv_prop_id_89abb74 env v3 in
-  todo env (v1, v2, v3)
+  let e = map_anon_choice_type_id_e96bf13 env v1 in
+  let tdot = map_anon_choice_DOT_d88d0af env v2 in
+  let fld = map_anon_choice_priv_prop_id_89abb74 env v3 in
+  ObjAccess (e, tdot, PN fld)
 
 and map_type_query_subscript_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_query_subscript_expression) : expr =
-  let v1 = map_anon_choice_type_id_e96bf13 env v1 in
-  let v2 =
+  let e = map_anon_choice_type_id_e96bf13 env v1 in
+  let _v2TODO =
     match v2 with
-    | Some tok -> (* "?." *) token env tok
-    | None -> todo env ()
+    | Some tok -> Some ((* "?." *) token env tok)
+    | None -> None
   in
-  let v3 = (* "[" *) token env v3 in
-  let v4 =
+  let lbra = (* "[" *) token env v3 in
+  let arg =
     match v4 with
-    | `Pred_type x -> predefined_type env x
+    | `Pred_type x ->
+        (* ?? *)
+        let id = predefined_type env x in
+        (* TODO? ExprTodo (TyName id)? *)
+        Id id
     | `Str x ->
-        let x = string_ env x in
-        todo env x
+        let s = string_ env x in
+        L (String s)
     | `Num tok ->
-        let x = (* number *) token env tok in
-        todo env x
+        let n = (* number *) number env tok in
+        L (Num n)
   in
-  let v5 = (* "]" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  let rbra = (* "]" *) token env v5 in
+  ArrAccess (e, (lbra, arg, rbra))
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   match x with
@@ -2025,18 +2020,18 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   v2
 
 and mapped_type_clause (env : env) ((v1, v2, v3, v4) : CST.mapped_type_clause) =
-  let v1 = str env v1 (* identifier *) in
-  let v2 = token env v2 (* "in" *) in
-  let v3 = type_ env v3 in
-  let _v4TODO =
+  let id = str env v1 (* identifier *) in
+  let tin = token env v2 (* "in" *) in
+  let ty = type_ env v3 in
+  let asopt =
     match v4 with
     | Some (v1, v2) ->
-        let v1 = (* "as" *) token env v1 in
-        let v2 = type_ env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        let _tas = (* "as" *) token env v1 in
+        let ty = type_ env v2 in
+        [ Type ty ]
+    | None -> []
   in
-  TypeTodo (("MappedType", v2), [ Expr (Id v1); Type v3 ])
+  TypeTodo (("MappedType", tin), [ Expr (Id id); Type ty ] @ asopt)
 
 and statement1 (env : env) (x : CST.statement) : stmt =
   statement env x |> unsafe_stmt1
