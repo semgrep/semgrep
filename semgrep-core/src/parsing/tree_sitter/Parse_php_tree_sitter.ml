@@ -915,7 +915,8 @@ and map_callable_variable (env : env) (x : CST.callable_variable) =
       let v2 = map_arguments env v2 in
       todo env (v1, v2)
 
-and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
+and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) :
+    A.catch =
   let v1 = (* pattern [cC][aA][tT][cC][hH] *) token env v1 in
   let v2 = (* "(" *) token env v2 in
   let v3 = map_type_list env v3 in
@@ -926,7 +927,8 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   in
   let v5 = (* ")" *) token env v5 in
   let v6 = map_compound_statement env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  let ht = A.HintTuple (v2, v3, v5) in
+  (v1, ht, v4, v6)
 
 and map_class_constant_access_expression (env : env)
     ((v1, v2, v3) : CST.class_constant_access_expression) : A.expr =
@@ -1203,7 +1205,7 @@ and map_expressions (env : env) (x : CST.expressions) : A.expr list =
 and map_finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = (* pattern [fF][iI][nN][aA][lL][lL][yY] *) token env v1 in
   let v2 = map_compound_statement env v2 in
-  todo env (v1, v2)
+  (v1, v2)
 
 and split_catch_finally (env : env) cfs catches finallies =
   match cfs with
