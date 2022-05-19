@@ -1192,15 +1192,31 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       let v2 = map_expression env v2 in
       todo env (v1, v2)
 
-and map_expressions (env : env) (x : CST.expressions) =
+and map_expressions (env : env) (x : CST.expressions) : A.expr list =
   match x with
-  | `Exp x -> map_expression env x
+  | `Exp x -> [ map_expression env x ]
   | `Seq_exp x -> map_sequence_expression env x
 
 and map_finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = (* pattern [fF][iI][nN][aA][lL][lL][yY] *) token env v1 in
   let v2 = map_compound_statement env v2 in
   todo env (v1, v2)
+
+and split_catch_finally (env : env) cfs catches finallies =
+  match cfs with
+  | [] -> (catches, finallies)
+  | cf :: tail -> (
+      let catches, finallies = split_catch_finally env tail catches finallies in
+      match cf with
+      | `Catch_clause x ->
+          let c = map_catch_clause env x in
+          (c :: catches, finallies)
+      | `Fina_clause x ->
+          let catches, finallies =
+            split_catch_finally env tail catches finallies
+          in
+          let f = map_finally_clause env x in
+          (catches, f :: finallies))
 
 and map_foreach_pair (env : env) ((v1, v2, v3) : CST.foreach_pair) =
   let v1 = map_expression env v1 in
@@ -1564,9 +1580,9 @@ and map_sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression)
   let v3 =
     match v3 with
     | `Seq_exp x -> map_sequence_expression env x
-    | `Exp x -> map_expression env x
+    | `Exp x -> [ map_expression env x ]
   in
-  todo env (v1, v2, v3)
+  v1 :: v3
 
 and map_statement (env : env) (x : CST.statement) =
   match x with
@@ -1606,12 +1622,12 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let stmt, elseifs, else_ = v3 in
       let else_ = chain_else_if env elseifs else_ in
-      If (v1, v2, stmt, else_)
+      A.If (v1, v2, stmt, else_)
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = (* pattern [sS][wW][iI][tT][cC][hH] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in
       let v3 = map_switch_block env v3 in
-      todo env (v1, v2, v3)
+      A.Switch (v1, v2, v3)
   | `While_stmt (v1, v2, v3) ->
       let v1 = (* pattern [wW][hH][iI][lL][eE] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in
@@ -1626,33 +1642,33 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 = map_semicolon env v3 in
             todo env (v1, v2, v3)
       in
-      todo env (v1, v2, v3)
+      A.While (v1, v2, v3)
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* pattern [dD][oO] *) token env v1 in
       let v2 = map_statement env v2 in
       let v3 = (* pattern [wW][hH][iI][lL][eE] *) token env v3 in
       let v4 = map_parenthesized_expression env v4 in
       let v5 = map_semicolon env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      A.Do (v1, v2, v4)
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = (* pattern [fF][oO][rR] *) token env v1 in
       let v2 = (* "(" *) token env v2 in
       let v3 =
         match v3 with
         | Some x -> map_expressions env x
-        | None -> todo env ()
+        | None -> []
       in
       let v4 = (* ";" *) token env v4 in
       let v5 =
         match v5 with
         | Some x -> map_expressions env x
-        | None -> todo env ()
+        | None -> []
       in
       let v6 = (* ";" *) token env v6 in
       let v7 =
         match v7 with
         | Some x -> map_expressions env x
-        | None -> todo env ()
+        | None -> []
       in
       let v8 = (* ")" *) token env v8 in
       let v9 =
@@ -1667,7 +1683,7 @@ and map_statement (env : env) (x : CST.statement) =
             let v4 = map_semicolon env v4 in
             todo env (v1, v2, v3, v4)
       in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+      A.For (v1, v3, v5, v7, v9)
   | `Fore_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = (* pattern [fF][oO][rR][eE][aA][cC][hH] *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1692,54 +1708,47 @@ and map_statement (env : env) (x : CST.statement) =
             let v3 = map_semicolon env v3 in
             todo env (v1, v2, v3)
       in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      A.Foreach (v1, v3, v4, v5, v7)
   | `Goto_stmt (v1, v2, v3) ->
       let v1 = (* pattern [gG][oO][tT][oO] *) token env v1 in
       let v2 =
         (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-        token env v2
+        _str env v2
       in
       let v3 = map_semicolon env v3 in
-      todo env (v1, v2, v3)
+      A.Goto (v1, v2)
   | `Cont_stmt (v1, v2, v3) ->
       let v1 = (* pattern [cC][oO][nN][tT][iI][nN][uU][eE] *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_expression env x
-        | None -> todo env ()
+        | Some x -> Some (map_expression env x)
+        | None -> None
       in
       let v3 = map_semicolon env v3 in
-      todo env (v1, v2, v3)
+      A.Continue (v1, v2)
   | `Brk_stmt (v1, v2, v3) ->
       let v1 = (* pattern [bB][rR][eE][aA][kK] *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_expression env x
-        | None -> todo env ()
+        | Some x -> Some (map_expression env x)
+        | None -> None
       in
       let v3 = map_semicolon env v3 in
-      todo env (v1, v2, v3)
+      A.Break (v1, v2)
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = (* pattern [rR][eE][tT][uU][rR][nN] *) token env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_expression env x
-        | None -> todo env ()
+        | Some x -> Some (map_expression env x)
+        | None -> None
       in
       let v3 = map_semicolon env v3 in
-      todo env (v1, v2, v3)
+      A.Return (v1, v2)
   | `Try_stmt (v1, v2, v3) ->
       let v1 = (* pattern [tT][rR][yY] *) token env v1 in
       let v2 = map_compound_statement env v2 in
-      let v3 =
-        Common.map
-          (fun x ->
-            match x with
-            | `Catch_clause x -> map_catch_clause env x
-            | `Fina_clause x -> map_finally_clause env x)
-          v3
-      in
-      todo env (v1, v2, v3)
+      let catches, finallies = split_catch_finally env v3 [] [] in
+      A.Try (v1, v2, catches, finallies)
   | `Decl_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "declare" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1765,7 +1774,9 @@ and map_statement (env : env) (x : CST.statement) =
       let v1 = (* pattern [eE][cC][hH][oO] *) token env v1 in
       let v2 = map_expressions env v2 in
       let v3 = map_semicolon env v3 in
-      todo env (v1, v2, v3)
+      A.Expr
+        ( A.Call (A.Id [ (A.builtin "echo", v1) ], Parse_info.fake_bracket v1 v2),
+          v3 )
   | `Unset_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "unset" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1780,7 +1791,7 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v5 = (* ")" *) token env v5 in
       let v6 = map_semicolon env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      A.Expr (A.Call (A.Id [ (A.builtin "unset", v1) ], (v2, v3 :: v4, v5)), v6)
   | `Const_decl x -> map_const_declaration env x
   | `Func_defi (v1, v2, v3) ->
       let v1 =
