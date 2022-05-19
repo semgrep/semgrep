@@ -70,7 +70,7 @@ def get_file_ignore() -> FileIgnore:
             logger.verbose("using path ignore rules from user provided .semgrepignore")
 
     with semgrepignore_path.open() as f:
-        file_ignore = FileIgnore(
+        file_ignore = FileIgnore.from_unprocessed_patterns(
             base_path=workdir,
             patterns=Parser(workdir).parse(f),
         )

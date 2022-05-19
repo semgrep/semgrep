@@ -1,14 +1,16 @@
 import fnmatch
 import os
 import re
+from functools import lru_cache
 from pathlib import Path
+from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
 from typing import Set
 from typing import TextIO
 
+from attr import frozen
 from attrs import define
-from attrs import field
 from boltons.iterutils import partition
 
 from semgrep.error import SemgrepError
@@ -38,15 +40,12 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 ## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
 
 # This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
-@define
+@frozen
 class FileIgnore:
     base_path: Path
-    patterns: Set[str]
-    _processed_patterns: Set[str] = field(init=False)
+    patterns: FrozenSet[str]
 
-    def __attrs_post_init__(self) -> None:
-        self._processed_patterns = Processor(self.base_path).process(self.patterns)
-
+    @lru_cache(maxsize=100_000)
     def _survives(self, path: Path) -> bool:
         """
         Determines if a single Path survives the ignore filter.
@@ -57,7 +56,7 @@ class FileIgnore:
             path_relative_to_base = str(path.relative_to(self.base_path))
         else:
             path_relative_to_base = ""
-        for p in self._processed_patterns:
+        for p in self.patterns:
             if path_is_dir and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
                 logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
@@ -100,6 +99,12 @@ class FileIgnore:
             ),
         )
         return FilteredFiles(frozenset(kept), frozenset(removed))
+
+    @classmethod
+    def from_unprocessed_patterns(
+        cls, base_path: Path, patterns: Iterable[str]
+    ) -> "FileIgnore":
+        return cls(base_path, frozenset(Processor(base_path).process(patterns)))
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
