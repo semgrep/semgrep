@@ -89,15 +89,15 @@ class FileIgnore:
 
         return True
 
-    def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
-        kept, removed = partition(
-            candidates,
-            lambda path: path.exists()
-            and (
-                self._survives(path.absolute())
-                or path.absolute().samefile(self.base_path)
-            ),
+    @lru_cache(maxsize=100_000)
+    def _filter(self, path: Path) -> bool:
+        absolute_path = path.absolute()
+        return path.exists() and (
+            self._survives(absolute_path) or absolute_path.samefile(self.base_path)
         )
+
+    def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
+        kept, removed = partition(candidates, self._filter)
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @classmethod
