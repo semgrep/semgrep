@@ -3,14 +3,15 @@ type error = {
   typ : Output_from_core_t.core_error_kind;
   loc : Parse_info.token_location;
   msg : string;
+  (* ?? diff with msg? *)
   details : string option;
+  (* ??? error in yaml rule? *)
   yaml_path : string list option;
 }
 
 type severity = Error | Warning
 
 val g_errors : error list ref
-val options : unit -> Common.cmdline_options
 
 (*****************************************************************************)
 (* Convertor functions *)
@@ -63,8 +64,10 @@ val expected_error_lines_of_files :
   Common.filename list ->
   (Common.filename * int) (* line with ERROR *) list
 
-(*
-   Return the number of errors and an error message, if there's any error.
-*)
+(* Return the number of errors and an error message, if there's any error. *)
 val compare_actual_to_expected :
   error list -> (Common.filename * int) list -> (unit, int * string) result
+
+(* Call Alcotest.fail in case of errors *)
+val compare_actual_to_expected_for_alcotest :
+  error list -> (Common.filename * int) list -> unit
