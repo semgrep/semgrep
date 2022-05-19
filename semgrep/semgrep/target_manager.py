@@ -426,6 +426,15 @@ class Target:
         return self.files_from_filesystem()
 
 
+@lru_cache(maxsize=100_000)
+def get_shebang_line(path: Path) -> Optional[str]:
+    if not os.access(str(path), os.X_OK | os.R_OK):
+        return None
+
+    with path.open() as f:
+        return f.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+
+
 @define(eq=False)
 class TargetManager:
     """
@@ -490,19 +499,18 @@ class TargetManager:
         return result
 
     @staticmethod
-    def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
+    def _executes_with_shebang(path: Path, shebangs: Collection[Shebang]) -> bool:
         """
         Returns if a path is executable and executes with one of a set of programs
         """
-        if not os.access(str(f), os.X_OK | os.R_OK):
-            return False
         try:
-            with f.open("r") as fd:
-                hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+            hline = get_shebang_line(path)
+            if hline is None:
+                return False
             return any(hline.endswith(s) for s in shebangs)
         except UnicodeDecodeError:
             logger.debug(
-                f"Encountered likely binary file {f} while reading shebang; skipping this file"
+                f"Encountered likely binary file {path} while reading shebang; skipping this file"
             )
             return False
 
