@@ -45,7 +45,7 @@ class FileIgnore:
     base_path: Path
     patterns: FrozenSet[str]
 
-    @lru_cache(maxsize=100_000)
+    @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _survives(self, path: Path) -> bool:
         """
         Determines if a single Path survives the ignore filter.
@@ -89,7 +89,7 @@ class FileIgnore:
 
         return True
 
-    @lru_cache(maxsize=100_000)
+    @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _filter(self, path: Path) -> bool:
         absolute_path = path.absolute()
         return path.exists() and (
