@@ -635,7 +635,7 @@ let full_rule_semgrep_rules_regression_tests =
   in
   pack_suites "full semgrep rule"
     (groups
-    |> List.map (fun (group, tests) ->
+    |> Common.map (fun (group, tests) ->
            pack_tests (spf "%s" group) tests
            |> Common.map (fun (name, ftest) ->
                   let test () =
