@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from collections import OrderedDict
@@ -14,6 +15,7 @@ from typing import Sequence
 from typing import Tuple
 
 import requests
+from requests import JSONDecodeError
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
@@ -32,6 +34,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
+from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
@@ -195,17 +198,13 @@ class ConfigPath:
 
     def _make_config_request(self) -> str:
         app_session = get_state().app_session
-        r = app_session.get(self._config_path, headers=self._extra_headers)
+        r = app_session.get(
+            self._config_path,
+            headers={"Accept": "application/json", **self._extra_headers},
+        )
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
-            yaml_types = [
-                "text/plain",
-                "application/x-yaml",
-                "text/x-yaml",
-                "text/yaml",
-                "text/vnd.yaml",
-            ]
-            if content_type and any(ct in content_type for ct in yaml_types):
+            if content_type and "application/json" in content_type:
                 return r.content.decode("utf-8", errors="replace")
             else:
                 raise SemgrepError(
@@ -453,6 +452,16 @@ def parse_config_string(
             f"Empty configuration file {filename}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
+    try:
+        rule_definitions = [
+            rule
+            for rule_model in json.loads(contents)
+            for rule in rule_model["definition"]["rules"]
+        ]
+        # we pretend it came from YAML so we can keep later code simple
+        return {config_id: YamlTree.wrap({"rules": rule_definitions}, EmptySpan)}
+    except JSONDecodeError:
+        pass
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
