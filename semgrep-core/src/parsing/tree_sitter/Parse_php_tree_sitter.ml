@@ -737,145 +737,146 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
   | `Un_exp_pat_d58874b_choice_qual_name (v1, v2, v3) ->
       let v1 = map_unary_expression env v1 in
       let v2 =
-        (* pattern [iI][nN][sS][tT][aA][nN][cC][eE][oO][fF] *) token env v2
+        (* pattern [iI][nN][sS][tT][aA][nN][cC][eE][oO][fF] *)
+        (A.ArithOp G_.Is, token env v2)
       in
       let v3 = map_class_type_designator env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_QMARKQMARK_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "??" *) token env v2 in
+      let v2 = (* "??" *) (A.ArithOp G_.Nullish, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_pat_e0610ac_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* pattern and|AND *) token env v2 in
+      let v2 = (* pattern and|AND *) (A.ArithOp G_.And, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_pat_48a4c46_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* pattern or|OR *) token env v2 in
+      let v2 = (* pattern or|OR *) (A.ArithOp G_.Or, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_pat_f398476_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* pattern xor|XOR *) token env v2 in
+      let v2 = (* pattern xor|XOR *) (A.ArithOp G_.Xor, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "||" *) token env v2 in
+      let v2 = (* "||" *) (A.ArithOp G_.Or, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "&&" *) token env v2 in
+      let v2 = (* "&&" *) (A.ArithOp G_.And, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "|" *) token env v2 in
+      let v2 = (* "|" *) (A.ArithOp G_.BitOr, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_HAT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "^" *) token env v2 in
+      let v2 = (* "^" *) (A.ArithOp G_.BitXor, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "&" *) token env v2 in
+      let v2 = (* "&" *) (A.ArithOp G_.BitAnd, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "==" *) token env v2 in
+      let v2 = (* "==" *) (A.ArithOp G_.Eq, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "!=" *) token env v2 in
+      let v2 = (* "!=" *) (A.ArithOp G_.NotEq, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_LTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "<>" *) token env v2 in
+      let v2 = (* "<>" *) (A.ArithOp G_.NotEq, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_EQEQEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "===" *) token env v2 in
+      let v2 = (* "===" *) (A.ArithOp G_.PhysEq, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_BANGEQEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "!==" *) token env v2 in
+      let v2 = (* "!==" *) (A.ArithOp G_.NotPhysEq, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "<" *) token env v2 in
+      let v2 = (* "<" *) (A.ArithOp G_.Lt, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* ">" *) token env v2 in
+      let v2 = (* ">" *) (A.ArithOp G_.Gt, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "<=" *) token env v2 in
+      let v2 = (* "<=" *) (A.ArithOp G_.LtE, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* ">=" *) token env v2 in
+      let v2 = (* ">=" *) (A.ArithOp G_.GtE, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_LTEQGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "<=>" *) token env v2 in
+      let v2 = (* "<=>" *) (A.ArithOp G_.Cmp, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "<<" *) token env v2 in
+      let v2 = (* "<<" *) (A.ArithOp G_.LSL, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* ">>" *) token env v2 in
+      let v2 = (* ">>" *) (A.ArithOp G_.LSR, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "+" *) token env v2 in
+      let v2 = (* "+" *) (A.ArithOp G_.Plus, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "-" *) token env v2 in
+      let v2 = (* "-" *) (A.ArithOp G_.Minus, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_DOT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "." *) token env v2 in
+      let v2 = (* "." *) (A.ArithOp G_.Concat, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "*" *) token env v2 in
+      let v2 = (* "*" *) (A.ArithOp G_.Mult, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "/" *) token env v2 in
+      let v2 = (* "/" *) (A.ArithOp G_.Div, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "%" *) token env v2 in
+      let v2 = (* "%" *) (A.ArithOp G_.Mod, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.Binop (v1, v2, v3)
 
 and map_callable_expression (env : env) (x : CST.callable_expression) : A.expr =
   match x with
@@ -1127,22 +1128,22 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       let v1 = map_variable env v1 in
       let v2 =
         match v2 with
-        | `STARSTAREQ tok -> (* "**=" *) token env tok
-        | `STAREQ tok -> (* "*=" *) token env tok
-        | `SLASHEQ tok -> (* "/=" *) token env tok
-        | `PERCEQ tok -> (* "%=" *) token env tok
-        | `PLUSEQ tok -> (* "+=" *) token env tok
-        | `DASHEQ tok -> (* "-=" *) token env tok
-        | `DOTEQ tok -> (* ".=" *) token env tok
-        | `LTLTEQ tok -> (* "<<=" *) token env tok
-        | `GTGTEQ tok -> (* ">>=" *) token env tok
-        | `AMPEQ tok -> (* "&=" *) token env tok
-        | `HATEQ tok -> (* "^=" *) token env tok
-        | `BAREQ tok -> (* "|=" *) token env tok
-        | `QMARKQMARKEQ tok -> (* "??=" *) token env tok
+        | `STARSTAREQ tok -> (* "**=" *) (A.ArithOp G_.Pow, token env tok)
+        | `STAREQ tok -> (* "*=" *) (A.ArithOp G_.Mult, token env tok)
+        | `SLASHEQ tok -> (* "/=" *) (A.ArithOp G_.Div, token env tok)
+        | `PERCEQ tok -> (* "%=" *) (A.ArithOp G_.Mod, token env tok)
+        | `PLUSEQ tok -> (* "+=" *) (A.ArithOp G_.Plus, token env tok)
+        | `DASHEQ tok -> (* "-=" *) (A.ArithOp G_.Minus, token env tok)
+        | `DOTEQ tok -> (* ".=" *) (A.ArithOp G_.Concat, token env tok)
+        | `LTLTEQ tok -> (* "<<=" *) (A.ArithOp G_.LSL, token env tok)
+        | `GTGTEQ tok -> (* ">>=" *) (A.ArithOp G_.LSR, token env tok)
+        | `AMPEQ tok -> (* "&=" *) (A.ArithOp G_.BitAnd, token env tok)
+        | `HATEQ tok -> (* "^=" *) (A.ArithOp G_.BitXor, token env tok)
+        | `BAREQ tok -> (* "|=" *) (A.ArithOp G_.BitOr, token env tok)
+        | `QMARKQMARKEQ tok -> (* "??=" *) (A.ArithOp G_.Nullish, token env tok)
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.AssignOp (v1, v2, v3)
   | `Assign_exp (v1, v2, v3, v4) ->
       let v1 =
         match v1 with
