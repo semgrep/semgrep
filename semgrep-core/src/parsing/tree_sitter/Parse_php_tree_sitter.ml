@@ -1108,17 +1108,23 @@ and map_exponentiation_expression (env : env)
 
 and map_expression (env : env) (x : CST.expression) : A.expr =
   match x with
-  | `Cond_exp (v1, v2, v3, v4, v5) ->
+  | `Cond_exp (v1, v2, v3, v4, v5) -> (
       let v1 = map_expression env v1 in
       let v2 = (* "?" *) token env v2 in
       let v3 =
         match v3 with
-        | Some x -> map_expression env x
-        | None -> todo env ()
+        | Some x -> Some (map_expression env x)
+        | None -> None
       in
       let v4 = (* ":" *) token env v4 in
       let v5 = map_expression env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      match v3 with
+      | Some e -> A.CondExpr (v1, e, v5)
+      | None ->
+          let elvis =
+            (A.ArithOp G_.Elvis, Parse_info.combine_infos v2 [ v4 ])
+          in
+          A.Binop (v1, elvis, v5))
   | `Match_exp (v1, v2, v3) ->
       let v1 = (* pattern [mM][aA][tT][cC][hH] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in
