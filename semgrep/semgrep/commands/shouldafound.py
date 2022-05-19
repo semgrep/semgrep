@@ -74,13 +74,20 @@ def shouldafound(
             sys.exit(0)
 
     # send to backend
-    playground_link = _make_shouldafound_request(data)
-    click.echo("Sent feedback. Thanks for your contribution!", err=True)
-    click.echo(
-        f"You can view and extend the generated rule template here: {playground_link}",
-        err=True,
-    )
-    sys.exit(0)
+    try:
+        playground_link = _make_shouldafound_request(data)
+        click.echo("Sent feedback. Thanks for your contribution!", err=True)
+        click.echo(
+            f"You can view and extend the generated rule template here: {playground_link}",
+            err=True,
+        )
+        sys.exit(0)
+    except SemgrepError:
+        click.echo(
+            "Could not send feedback to server. Please consider instead reaching out to us another way!",
+            err=True,
+        )
+        sys.exit(2)
 
 
 def _make_shouldafound_request(data: JsonObject) -> Optional[str]:
