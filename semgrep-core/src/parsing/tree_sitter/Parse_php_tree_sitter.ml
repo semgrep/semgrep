@@ -165,10 +165,13 @@ let map_namespace_aliasing_clause (env : env)
 
 let map_visibility_modifier (env : env) (x : CST.visibility_modifier) =
   match x with
-  | `Pat_a9304a9 tok -> (* pattern [pP][uU][bB][lL][iI][cC] *) token env tok
+  | `Pat_a9304a9 tok ->
+      (* pattern [pP][uU][bB][lL][iI][cC] *) (A.Public, token env tok)
   | `Pat_954cb76 tok ->
-      (* pattern [pP][rR][oO][tT][eE][cC][tT][eE][dD] *) token env tok
-  | `Pat_1206b1e tok -> (* pattern [pP][rR][iI][vV][aA][tT][eE] *) token env tok
+      (* pattern [pP][rR][oO][tT][eE][cC][tT][eE][dD] *)
+      (A.Protected, token env tok)
+  | `Pat_1206b1e tok ->
+      (* pattern [pP][rR][iI][vV][aA][tT][eE] *) (A.Private, token env tok)
 
 let map_string__ (env : env) (x : CST.string__) =
   match x with
@@ -284,14 +287,16 @@ let map_namespace_use_group_clause (env : env)
   in
   todo env (v1, v2, v3)
 
-let map_modifier (env : env) (x : CST.modifier) =
+let map_modifier (env : env) (x : CST.modifier) : A.modifier =
   match x with
-  | `Var_modi tok -> (* pattern [vV][aA][rR] *) token env tok
+  | `Var_modi tok -> (* pattern [vV][aA][rR] *) todo env tok
   | `Visi_modi x -> map_visibility_modifier env x
-  | `Static_modi tok -> (* pattern [sS][tT][aA][tT][iI][cC] *) token env tok
-  | `Final_modi tok -> (* pattern [fF][iI][nN][aA][lL] *) token env tok
+  | `Static_modi tok ->
+      (* pattern [sS][tT][aA][tT][iI][cC] *) (A.Static, token env tok)
+  | `Final_modi tok ->
+      (* pattern [fF][iI][nN][aA][lL] *) (A.Final, token env tok)
   | `Abst_modi tok ->
-      (* pattern [aA][bB][sS][tT][rR][aA][cC][tT] *) token env tok
+      (* pattern [aA][bB][sS][tT][rR][aA][cC][tT] *) (A.Abstract, token env tok)
 
 let map_relative_scope (env : env) (x : CST.relative_scope) =
   match x with
@@ -306,6 +311,12 @@ let map_reserved_identifier (env : env) (x : CST.reserved_identifier) =
   | `Parent tok -> (* "parent" *) A.IdSpecial (A.Parent, token env tok)
   | `Pat_068a1b3 tok ->
       (* pattern [sS][tT][aA][tT][iI][cC] *) A.Id (map_name env tok)
+
+let map_reserved_identifier_ident (env : env) (x : CST.reserved_identifier) =
+  match x with
+  | `Self tok -> (* "self" *) _str env tok
+  | `Parent tok -> (* "parent" *) _str env tok
+  | `Pat_068a1b3 tok -> (* pattern [sS][tT][aA][tT][iI][cC] *) _str env tok
 
 let map_qualified_name (env : env) ((v1, v2) : CST.qualified_name) =
   let v1 = map_namespace_name_as_prefix env v1 in
@@ -342,12 +353,12 @@ let map_namespace_use_group (env : env)
   todo env (v1, v2, v3, v4)
 
 let map_anon_choice_name_9dd129a (env : env) (x : CST.anon_choice_name_9dd129a)
-    =
+    : A.ident =
   match x with
   | `Name tok ->
       (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-      A.Id (map_name env tok)
-  | `Rese_id x -> map_reserved_identifier env x
+      _str env tok
+  | `Rese_id x -> map_reserved_identifier_ident env x
 
 let map_named_type (env : env) (x : CST.named_type) : A.hint_type =
   match x with
@@ -536,7 +547,7 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 =
         match v2 with
@@ -559,7 +570,7 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 =
         match v2 with
@@ -1063,7 +1074,7 @@ and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 = (* "case" *) token env v2 in
       let v3 =
@@ -1270,19 +1281,15 @@ and map_formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters)
 and map_function_definition_header (env : env)
     ((v1, v2, v3, v4, v5) : CST.function_definition_header) =
   let v1 = (* pattern [fF][uU][nN][cC][tT][iI][oO][nN] *) token env v1 in
-  let v2 =
-    match v2 with
-    | Some tok -> (* "&" *) token env tok
-    | None -> todo env ()
-  in
+  let v2 = Option.is_some v2 in
   let v3 = map_anon_choice_name_9dd129a env v3 in
   let v4 = map_formal_parameters env v4 in
   let v5 =
     match v5 with
-    | Some x -> map_return_type env x
-    | None -> todo env ()
+    | Some x -> Some (map_return_type env x)
+    | None -> None
   in
-  todo env (v1, v2, v3, v4, v5)
+  (v1, v2, v3, v4, v5)
 
 and map_list_destructing (env : env)
     ((v1, v2, v3, v4, v5) : CST.list_destructing) =
@@ -1357,7 +1364,7 @@ and map_member_declaration (env : env) (x : CST.member_declaration) =
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 =
         match v2 with
@@ -1370,7 +1377,7 @@ and map_member_declaration (env : env) (x : CST.member_declaration) =
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 = Common.map (map_modifier env) v2 in
       let v3 =
@@ -1412,7 +1419,7 @@ and map_method_declaration (env : env)
   let v1 =
     match v1 with
     | Some x -> map_attribute_list env x
-    | None -> todo env ()
+    | None -> []
   in
   let v2 = Common.map (map_modifier env) v2 in
   let v3 = map_function_definition_header env v3 in
@@ -1421,7 +1428,19 @@ and map_method_declaration (env : env)
     | `Comp_stmt x -> map_compound_statement env x
     | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
   in
-  todo env (v1, v2, v3, v4)
+  let tok, is_ref, name, params, return = v3 in
+  A.FuncDef
+    {
+      A.f_name = name;
+      A.f_kind = (Method, tok);
+      A.f_params = params;
+      A.f_return_type = return;
+      A.f_ref = is_ref;
+      A.m_modifiers = v2;
+      A.f_attrs = v1;
+      A.l_uses = [];
+      A.f_body = v4;
+    }
 
 and map_nullsafe_member_access_expression (env : env)
     ((v1, v2, v3) : CST.nullsafe_member_access_expression) =
@@ -1800,16 +1819,28 @@ and map_statement (env : env) (x : CST.statement) =
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 = map_function_definition_header env v2 in
       let v3 = map_compound_statement env v3 in
-      todo env (v1, v2, v3)
+      let tok, is_ref, name, params, return = v2 in
+      A.FuncDef
+        {
+          A.f_name = name;
+          A.f_kind = (Function, tok);
+          A.f_params = params;
+          A.f_return_type = return;
+          A.f_ref = is_ref;
+          A.m_modifiers = [];
+          A.f_attrs = v1;
+          A.l_uses = [];
+          A.f_body = v3;
+        }
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 =
         match v2 with
@@ -1870,7 +1901,7 @@ and map_statement (env : env) (x : CST.statement) =
       let v1 =
         match v1 with
         | Some x -> map_attribute_list env x
-        | None -> todo env ()
+        | None -> []
       in
       let v2 = (* pattern [eE][nN][uU][mM] *) token env v2 in
       let v3 =
