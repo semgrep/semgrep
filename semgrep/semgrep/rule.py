@@ -1,6 +1,5 @@
 import hashlib
 import json
-from copy import deepcopy
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -247,6 +246,7 @@ class Rule:
 
 
 def rule_without_metadata(rule: Rule) -> Rule:
-    rule2 = deepcopy(rule)
-    rule2._raw["metadata"] = {}
-    return rule2
+    """Key used to deduplicate rules."""
+    new_rule = Rule(rule._yaml)
+    new_rule._raw.pop("metadata", None)
+    return new_rule
