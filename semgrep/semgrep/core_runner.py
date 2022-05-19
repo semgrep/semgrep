@@ -558,6 +558,7 @@ class CoreRunner:
         rule_file_name = (
             RULE_SAVE_FILE
             if dump_command_for_core
+            # we dump JSON formatted rules to .yaml because core's JSON parser can't parse them
             else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
         )
         target_file_name = (
@@ -575,8 +576,7 @@ class CoreRunner:
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
-            yaml = YAML()
-            yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
+            rule_file.write(json.dumps({"rules": [rule._raw for rule in rules]}))
             rule_file.flush()
 
             # Run semgrep
