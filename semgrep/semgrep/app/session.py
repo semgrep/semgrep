@@ -1,14 +1,17 @@
 import os
+from datetime import timedelta
 from typing import Any
 from typing import Optional
 from typing import Set
 
 import requests
+import requests_cache
 import urllib3
 from attrs import define
 from attrs import field
 
 from semgrep import __VERSION__
+from semgrep.constants import USER_DATA_FOLDER
 
 
 @define
@@ -43,7 +46,10 @@ class UserAgent:
         return result
 
 
-class AppSession(requests.Session):
+REQUESTS_CACHE_PATH = USER_DATA_FOLDER / "requests-cache.sqlite"
+
+
+class AppSession(requests_cache.CacheMixin, requests.Session):  # type: ignore
     """
     Send requests to Semgrep App with this session.
 
@@ -71,7 +77,9 @@ class AppSession(requests.Session):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(  # type: ignore
+            str(REQUESTS_CACHE_PATH), *args, expire_after=timedelta(days=30), **kwargs
+        )
         self.user_agent = UserAgent()
         self.token: Optional[str] = None
 
@@ -100,6 +108,7 @@ class AppSession(requests.Session):
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 30)
         kwargs.setdefault("headers", {})
+        kwargs.setdefault("refresh", True)
         kwargs["headers"].setdefault("User-Agent", str(self.user_agent))
         if self.token:
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")

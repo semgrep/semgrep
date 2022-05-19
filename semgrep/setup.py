@@ -122,6 +122,7 @@ install_requires = [
     "click-option-group~=0.5",
     "glom~=22.1",
     "requests~=2.22",
+    "requests-cache==1.0.0a0",
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm~=4.46",
     "packaging~=21.0",
