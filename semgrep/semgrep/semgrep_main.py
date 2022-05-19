@@ -13,6 +13,8 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from boltons.iterutils import partition
+
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -40,7 +42,6 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
-from semgrep.util import partition
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -130,14 +131,13 @@ def run_rules(
     deep: bool,
 ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
     join_rules, rest_of_the_rules = partition(
-        lambda rule: rule.mode == JOIN_MODE,
-        filtered_rules,
+        filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
     dependency_aware_rules = [
         r for r in rest_of_the_rules if r.project_depends_on is not None
     ]
     dependency_only_rules, rest_of_the_rules = partition(
-        lambda rule: not rule.should_run_on_semgrep_core, rest_of_the_rules
+        rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
     filtered_rules = rest_of_the_rules
 

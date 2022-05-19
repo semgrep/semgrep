@@ -9,10 +9,10 @@ from typing import TextIO
 
 from attrs import define
 from attrs import field
+from boltons.iterutils import partition
 
 from semgrep.error import SemgrepError
 from semgrep.types import FilteredFiles
-from semgrep.util import partition_set
 from semgrep.verbose_logging import getLogger
 
 CONTROL_REGEX = re.compile(r"(?!<\\):")  # Matches unescaped colons
@@ -51,8 +51,14 @@ class FileIgnore:
         """
         Determines if a single Path survives the ignore filter.
         """
+        path_is_dir = path.is_dir()
+        path_is_relative_to_base = path_is_relative_to(path, self.base_path)
+        if path_is_relative_to_base:
+            path_relative_to_base = str(path.relative_to(self.base_path))
+        else:
+            path_relative_to_base = ""
         for p in self._processed_patterns:
-            if path.is_dir() and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
+            if path_is_dir and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
                 logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
             if fnmatch.fnmatch(str(path), p):
@@ -68,11 +74,9 @@ class FileIgnore:
             # in instabot dir as base_path
             # Note: Append "/" to path before running fnmatch so **/pattern matches with pattern/stuff
             if (
-                path_is_relative_to(path, self.base_path)
+                path_is_relative_to_base
                 and p.endswith("/")
-                and fnmatch.fnmatch(
-                    "/" + str(path.relative_to(self.base_path)), p + "*"
-                )
+                and fnmatch.fnmatch("/" + path_relative_to_base, p + "*")
             ):
                 logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
@@ -87,15 +91,15 @@ class FileIgnore:
         return True
 
     def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
-        kept, removed = partition_set(
+        kept, removed = partition(
+            candidates,
             lambda path: path.exists()
             and (
                 self._survives(path.absolute())
                 or path.absolute().samefile(self.base_path)
             ),
-            candidates,
         )
-        return FilteredFiles(kept, removed)
+        return FilteredFiles(frozenset(kept), frozenset(removed))
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action

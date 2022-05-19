@@ -38,6 +38,7 @@ from attrs import field
 import click
 from attrs import Factory, frozen
 from wcmatch import glob as wcglob
+from boltons.iterutils import partition
 
 from semgrep.constants import Colors
 from semgrep.error import FilesNotFoundError
@@ -48,7 +49,6 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
-from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -598,12 +598,11 @@ class TargetManager:
         if max_target_bytes <= 0:
             return FilteredFiles(candidates)
 
-        kept, removed = partition_set(
-            lambda path: os.path.getsize(path) <= max_target_bytes,
-            candidates,
+        kept, removed = partition(
+            candidates, lambda path: os.path.getsize(path) <= max_target_bytes
         )
 
-        return FilteredFiles(kept, removed)
+        return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Language) -> FilteredFiles:
