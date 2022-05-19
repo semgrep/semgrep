@@ -69,6 +69,10 @@ let map_ref_expr (env : env) tok expr : A.expr =
 
 let map_empty_block (env : env) semi = A.Block (Parse_info.fake_bracket semi [])
 
+let fake_call_to_builtin (env : env) tok args =
+  let str, tok = tok in
+  A.Call (A.Id [ (A.builtin str, tok) ], Parse_info.fake_bracket tok args)
+
 let rec chain_else_if (env : env) ifelses (else_ : A.stmt) : A.stmt =
   match ifelses with
   | [] -> else_
@@ -945,9 +949,9 @@ and map_class_type_designator (env : env) (x : CST.class_type_designator) =
   | `Choice_dyna_var_name x -> A.Id (map_variable_name_ env x)
 
 and map_clone_expression (env : env) ((v1, v2) : CST.clone_expression) =
-  let v1 = (* "clone" *) token env v1 in
+  let v1 = (* "clone" *) _str env v1 in
   let v2 = map_primary_expression env v2 in
-  A.Call (A.Id [ (A.builtin "clone", v1) ], Parse_info.fake_bracket v1 [ v2 ])
+  fake_call_to_builtin env v1 [ v2 ]
 
 and map_colon_block (env : env) ((v1, v2) : CST.colon_block) =
   let v1 = (* ":" *) token env v1 in
@@ -1152,7 +1156,7 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       let v4 = map_ref_expr env v3 v4 in
       A.Assign (v1, v2, v4)
   | `Yield_exp (v1, v2) ->
-      let v1 = (* "yield" *) token env v1 in
+      let v1 = (* "yield" *) _str env v1 in
       let v2 =
         match v2 with
         | Some x -> (
@@ -1165,31 +1169,31 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
                 [ v2 ])
         | None -> []
       in
-      A.Call (A.Id [ (A.builtin "yield", v1) ], Parse_info.fake_bracket v1 v2)
+      fake_call_to_builtin env v1 v2
   | `Un_exp x -> map_unary_expression env x
   | `Bin_exp x -> map_binary_expression env x
   | `Incl_exp (v1, v2) ->
-      let v1 = (* pattern [iI][nN][cC][lL][uU][dD][eE] *) token env v1 in
+      let v1 = (* pattern [iI][nN][cC][lL][uU][dD][eE] *) _str env v1 in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      fake_call_to_builtin env v1 [ v2 ]
   | `Incl_once_exp (v1, v2) ->
       let v1 =
         (* pattern [iI][nN][cC][lL][uU][dD][eE][__][oO][nN][cC][eE] *)
-        token env v1
+        _str env v1
       in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      fake_call_to_builtin env v1 [ v2 ]
   | `Requ_exp (v1, v2) ->
-      let v1 = (* pattern [rR][eE][qQ][uU][iI][rR][eE] *) token env v1 in
+      let v1 = (* pattern [rR][eE][qQ][uU][iI][rR][eE] *) _str env v1 in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      fake_call_to_builtin env v1 [ v2 ]
   | `Requ_once_exp (v1, v2) ->
       let v1 =
         (* pattern [rR][eE][qQ][uU][iI][rR][eE][__][oO][nN][cC][eE] *)
-        token env v1
+        _str env v1
       in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      fake_call_to_builtin env v1 [ v2 ]
 
 and map_expressions (env : env) (x : CST.expressions) : A.expr list =
   match x with
@@ -1770,12 +1774,10 @@ and map_statement (env : env) (x : CST.statement) =
       in
       todo env (v1, v2, v3, v4, v5)
   | `Echo_stmt (v1, v2, v3) ->
-      let v1 = (* pattern [eE][cC][hH][oO] *) token env v1 in
+      let v1 = (* pattern [eE][cC][hH][oO] *) _str env v1 in
       let v2 = map_expressions env v2 in
       let v3 = map_semicolon env v3 in
-      A.Expr
-        ( A.Call (A.Id [ (A.builtin "echo", v1) ], Parse_info.fake_bracket v1 v2),
-          v3 )
+      A.Expr (fake_call_to_builtin env v1 v2, v3)
   | `Unset_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "unset" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
