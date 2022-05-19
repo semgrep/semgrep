@@ -61,7 +61,7 @@ type config = {
   rule_id : string;
   is_source : G.any -> (PM.t * overlap) list;
   is_sink : G.any -> PM.t list;
-  is_sanitizer : G.any -> PM.t list;
+  is_sanitizer : G.any -> (PM.t * overlap) list;
   unify_mvars : bool;
   handle_findings :
     var option -> T.finding list -> Taints.t Dataflow_core.env -> unit;
@@ -92,12 +92,13 @@ let hook_function_taint_signature = ref None
 
 let union_vars = Dataflow_core.varmap_union Taints.union
 
-let union_taints_and_vars (t1, v1) (t2, v2) =
-  (Taints.union t1 t2, union_vars v1 v2)
-
-let union_map_taints_and_vars ~var_env f xs =
-  xs |> Common.map f
-  |> List.fold_left union_taints_and_vars (Taints.empty, var_env)
+let union_map_taints_and_vars env f xs =
+  xs
+  |> List.fold_left
+       (fun (taints1, var_env) x ->
+         let taints2, var_env = f { env with var_env } x in
+         (Taints.union taints1 taints2, var_env))
+       (Taints.empty, env.var_env)
 
 (* Debug *)
 let _show_env =
@@ -189,6 +190,26 @@ let findings_of_tainted_return taints return_tok : T.finding list =
 (* Tainted *)
 (*****************************************************************************)
 
+let sanitize_var var_env sanitizer_pms var =
+  let var_is_now_safe =
+    (* If the variable is an exact match (overlap > 0.99) for a sanitizer
+       * annotation, then we infer that the variable itself has been updated
+       * (presumably by side-effect) and is no longer tainted. We will update
+       * the environment (i.e., `var_env') accordingly. *)
+    List.exists (fun (_pm, o) -> o > 0.99) sanitizer_pms
+  in
+  if var_is_now_safe then VarMap.remove (str_of_name var) var_env else var_env
+
+(* Check if an expression is sanitized, if so, return a new variable environment. *)
+let exp_is_sanitized env exp =
+  match orig_is_sanitized env.config exp.eorig with
+  | [] -> None
+  | sanitizer_pms -> (
+      match exp.e with
+      | Fetch { base = Var var; offset = NoOffset; _ } ->
+          Some (sanitize_var env.var_env sanitizer_pms var)
+      | _ -> Some env.var_env)
+
 (* Add `var -> taints` to `var_env`. *)
 let add_taint_to_var_in_env var_env var taints =
   if Taints.is_empty taints then var_env
@@ -219,7 +240,9 @@ let check_tainted_var env (var : IL.name) : Taints.t * var_env =
   in
   match sanitizer_pms with
   (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-  | _ :: _ -> (Taints.empty, env.var_env)
+  | _ :: _ ->
+      let var_env' = sanitize_var env.var_env sanitizer_pms var in
+      (Taints.empty, var_env')
   | [] ->
       let mut_source_pms, reg_source_pms =
         (* If the variable is an exact match (overlap > 0.99) for a source
@@ -259,14 +282,14 @@ let check_tainted_var env (var : IL.name) : Taints.t * var_env =
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let rec check_tainted_expr env exp : Taints.t * var_env =
-  let check = check_tainted_expr env in
-  let check_base = function
+  let check env = check_tainted_expr env in
+  let check_base env = function
     | Var var -> check_tainted_var env var
     | VarSpecial _ -> (Taints.empty, env.var_env)
-    | Mem e -> check e
+    | Mem e -> check env e
   in
-  let check_offset = function
-    | Index e -> check e
+  let check_offset env = function
+    | Index e -> check env e
     | NoOffset
     | Dot _ ->
         (Taints.empty, env.var_env)
@@ -282,37 +305,36 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
         in
         (taints, env.var_env)
     | Fetch { base; offset; _ } ->
-        union_taints_and_vars (check_base base) (check_offset offset)
-    | FixmeExp (_, _, Some e) -> check e
+        let base_taints, var_env = check_base env base in
+        let offset_taints, var_env = check_offset { env with var_env } offset in
+        (Taints.union base_taints offset_taints, var_env)
+    | FixmeExp (_, _, Some e) -> check env e
     | Literal _
     | FixmeExp (_, _, None) ->
         (Taints.empty, env.var_env)
     | Composite (_, (_, es, _))
     | Operator (_, es) ->
-        union_map_taints_and_vars ~var_env:env.var_env check es
+        union_map_taints_and_vars env check es
     | Record fields ->
-        union_map_taints_and_vars ~var_env:env.var_env
-          (fun (_, e) -> check e)
-          fields
-    | Cast (_, e) -> check e
+        union_map_taints_and_vars env (fun env (_, e) -> check env e) fields
+    | Cast (_, e) -> check env e
   in
-  let sanitizer_pms = orig_is_sanitized env.config exp.eorig in
-  match sanitizer_pms with
-  | _ :: _ ->
+  match exp_is_sanitized env exp with
+  | Some var_env ->
       (* TODO: We should check that taint and sanitizer(s) are unifiable. *)
-      (Taints.empty, env.var_env)
-  | [] ->
+      (Taints.empty, var_env)
+  | None ->
       let sinks =
         orig_is_sink env.config exp.eorig |> Common.map T.trace_of_pm
       in
       let taints_sources =
         orig_is_source env.config exp.eorig |> Common.map fst |> T.taints_of_pms
       in
-      let taints_exp, var_env' = check_subexpr exp in
+      let taints_exp, var_env = check_subexpr exp in
       let taints = taints_sources |> Taints.union taints_exp in
       let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
-      (taints, var_env')
+      (taints, var_env)
 
 let check_function_signature env fun_exp args_taints =
   let taints_of_arg i =
@@ -385,28 +407,30 @@ let check_function_signature env fun_exp args_taints =
  * makes more sense given that an instruction may have side-effects.
  * It Also makes simpler to handle sanitization by side-effect. *)
 let check_tainted_instr env instr : Taints.t * var_env =
-  let check_expr = check_tainted_expr env in
+  let check_expr env = check_tainted_expr env in
   let check_instr = function
-    | Assign (_, e) -> check_expr e
+    | Assign (_, e) -> check_expr env e
     | AssignAnon _ -> (Taints.empty, env.var_env) (* TODO *)
     | Call (_, e, args) ->
-        let e_taints, var_env_e = check_expr e in
-        let args_taints, var_envs_args =
-          Common.map check_expr args |> List.split
+        let e_taints, var_env = check_expr env e in
+        let args_taints, var_env =
+          args
+          |> List.fold_left_map
+               (fun var_env arg ->
+                 check_expr { env with var_env } arg |> Common2.swap)
+               var_env
+          |> Common2.swap
         in
-        let var_env' = List.fold_left union_vars var_env_e var_envs_args in
         let call_taints =
           match check_function_signature env e args_taints with
           | Some call_taints -> call_taints
           | None ->
               (* Default is to assume that the function will propagate
                * the taint of its arguments. *)
-              List.fold_left Taints.union Taints.empty args_taints
-              |> Taints.union e_taints
+              List.fold_left Taints.union e_taints args_taints
         in
-        (call_taints, var_env')
-    | CallSpecial (_, _, args) ->
-        union_map_taints_and_vars ~var_env:env.var_env check_expr args
+        (call_taints, var_env)
+    | CallSpecial (_, _, args) -> union_map_taints_and_vars env check_expr args
     | FixmeInstr _ -> (Taints.empty, env.var_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in

@@ -20,6 +20,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   not suffer from the aforementioned limitations. We believe that this change
   should not break existing taint rules, but please report any regressions that
   you may find.
+- taint-mode: Let's say that e.g. `sanitize(x)` sanitizes `x` by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `sanitize(x); ...` was sanitized. If `x` later overwritten with
+  tainted data, the taint engine would still regard `x` as safe. Now, if you
+  specify that the code variable itself is sanitized, the taint engine will
+  handle this as expected and it will not suffer from such limitation. We
+  believe that this change should not break existing taint rules, but please
+  report any regressions that you may find.
 - Processing large rule files is now 30% faster.
 
 ### Fixed
