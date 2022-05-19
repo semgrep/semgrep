@@ -30,11 +30,6 @@ let tests_path = "../../../tests"
 (* Helpers *)
 (*****************************************************************************)
 
-let compare_actual_to_expected actual expected =
-  match E.compare_actual_to_expected actual expected with
-  | Ok () -> ()
-  | Error (_num_errors, msg) -> Alcotest.fail msg
-
 (*****************************************************************************)
 (* Maturity tests *)
 (*****************************************************************************)
@@ -298,7 +293,7 @@ let regression_tests_for_lang ~with_caching files lang =
                  |> ignore;
                  let actual = !E.g_errors in
                  let expected = E.expected_error_lines_of_files [ file ] in
-                 compare_actual_to_expected actual expected) ))
+                 E.compare_actual_to_expected_for_alcotest actual expected) ))
 
 let lang_regression_tests ~with_caching =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
@@ -493,7 +488,7 @@ let tainting_test lang rules_file file =
            })
   in
   let expected = E.expected_error_lines_of_files [ file ] in
-  compare_actual_to_expected actual expected
+  E.compare_actual_to_expected_for_alcotest actual expected
 
 let tainting_tests_for_lang files lang =
   files
@@ -561,14 +556,108 @@ let full_rule_regression_tests =
        Test_engine.make_tests ~unit_testing:true [ path ]
      in
      tests
-     |> Common.map (fun (name, test) ->
+     |> Common.map (fun (name, ftest) ->
             let test () =
               Common2.save_excursion_and_enable
                 Flag_semgrep.filter_irrelevant_rules (fun () ->
                   logger#info "running with -filter_irrelevant_rules";
-                  test ())
+                  ftest ())
             in
             (name, test)))
+
+(* quite similar to full_rule_regression_tests but prefer to pack_tests
+ * with "full semgrep rule Java", so one can just run the Java tests
+ * with ./test Java
+ * alt: do like in deep-semgrep and call the toplevel engine
+ * in a Unit_runner.ml instead of using Test_engine.make_tests
+ *)
+let full_rule_semgrep_rules_regression_tests =
+  let path = Filename.concat tests_path "semgrep-rules" in
+  let tests, _print_summary =
+    Test_engine.make_tests ~unit_testing:true [ path ]
+  in
+  let groups =
+    tests
+    |> Common.map_filter (fun (name, ftest) ->
+           let group_opt =
+             match name with
+             (* TODO: cleanup nodejsscan? "no target for" error *)
+             | s
+               when s =~ ".*/contrib/nodejsscan/xss_serialize_js.yaml"
+                    || s =~ ".*/contrib/nodejsscan/xss_mustache_escape.yaml"
+                    || s
+                       =~ ".*/contrib/nodejsscan/xml_entity_expansion_dos.yaml"
+                    || s =~ ".*/contrib/nodejsscan/timing_attack_node.yaml"
+                    || s =~ ".*/contrib/nodejsscan/sql_injection.yaml"
+                    || s =~ ".*/contrib/nodejsscan/security_electronjs.yaml"
+                    || s =~ ".*/contrib/nodejsscan/resolve_path_traversal.yaml"
+                    || s =~ ".*/contrib/nodejsscan/regex_injection.yaml"
+                    || s =~ ".*/contrib/nodejsscan/logic_bypass.yaml"
+                    || s =~ ".*/contrib/nodejsscan/jwt_hardcoded.yaml"
+                    || s =~ ".*/contrib/nodejsscan/jwt_express_hardcoded.yaml"
+                    || s =~ ".*/contrib/nodejsscan/good_ratelimiting.yaml"
+                    || s =~ ".*/contrib/nodejsscan/good_helmet_checks.yaml"
+                    || s =~ ".*/contrib/nodejsscan/good_anti_csrf.yaml"
+                    || s =~ ".*/contrib/nodejsscan/eval_drpc_deserialize.yaml"
+                    || s =~ ".*/contrib/nodejsscan/error_disclosure.yaml"
+                    (* TODO: cleanup semgrep-rules: "no target for" error *)
+                    || s =~ ".*/contrib/dlint/dlint-equivalent.yaml"
+                    || s =~ ".*/fingerprints/fingerprints.yaml"
+                    || s
+                       =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
+                    (* TODO: parse error, weird *)
+                    || s =~ ".*/unicode/security/bidi.yml"
+                    || s
+                       =~ ".*/javascript/audit/detect-replaceall-sanitization.yaml"
+                    (* TODO many mismatches *)
+                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
+                    || s
+                       =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
+                    (* ?? *)
+                    || s =~ ".*/yaml/semgrep/consistency/.*" ->
+                 Some "PB"
+             (* not rule files *)
+             | s when s =~ ".*.test.yml" -> None
+             (* not languages tests *)
+             | s when s =~ ".*/semgrep-rules/stats/" -> None
+             | s when s =~ ".*/semgrep-rules/tests/" -> None
+             (* ok let's keep all the other one with the appropriate group name *)
+             | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
+                 let s = Common.matched1 name in
+                 Some (String.capitalize_ascii s)
+             (* this skips the semgrep-rules/.github enrtries *)
+             | _ ->
+                 logger#info "skipping %s" name;
+                 None
+           in
+           group_opt |> Option.map (fun groupname -> (groupname, (name, ftest))))
+    |> Common.group_assoc_bykey_eff
+  in
+  pack_suites "full semgrep rule"
+    (groups
+    |> Common.map (fun (group, tests) ->
+           pack_tests (spf "%s" group) tests
+           |> Common.map (fun (name, ftest) ->
+                  let test () =
+                    match group with
+                    | "PB" ->
+                        let is_throwing =
+                          try
+                            ftest ();
+                            false
+                          with
+                          | _exn -> true
+                        in
+                        if not is_throwing then
+                          Alcotest.fail
+                            "this used to raise an error (good news?)"
+                    | _ ->
+                        Common2.save_excursion_and_enable
+                          Flag_semgrep.filter_irrelevant_rules (fun () ->
+                            logger#info "running with -filter_irrelevant_rules";
+                            ftest ())
+                  in
+                  (name, test))))
 
 (*****************************************************************************)
 (* All tests *)
@@ -585,4 +674,5 @@ let tests =
       lang_tainting_tests;
       maturity_tests;
       full_rule_regression_tests;
+      full_rule_semgrep_rules_regression_tests;
     ]

@@ -567,7 +567,6 @@ let options () =
         " keep temporary generated files" );
     ]
   @ Meta_parse_info.cmdline_flags_precision ()
-  @ Semgrep_error_code.options ()
   @ Common.options_of_actions action (all_actions ())
   @ [
       ( "-version",
