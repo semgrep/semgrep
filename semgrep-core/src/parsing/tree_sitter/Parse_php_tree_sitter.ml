@@ -687,23 +687,14 @@ and map_array_element_initializer (env : env)
     (x : CST.array_element_initializer) =
   match x with
   | `Opt_AMP_exp (v1, v2) ->
-      let v1 =
-        match v1 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
-      in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      map_ref_expr env v1 v2
   | `Exp_EQGT_opt_AMP_exp (v1, v2, v3, v4) ->
       let v1 = map_expression env v1 in
       let v2 = (* "=>" *) token env v2 in
-      let v3 =
-        match v3 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
-      in
       let v4 = map_expression env v4 in
-      todo env (v1, v2, v3, v4)
+      let v4 = map_ref_expr env v3 v4 in
+      A.Arrow (v1, v2, v4)
   | `Vari_unpa x -> map_variadic_unpacking env x
 
 and map_attribute (env : env) ((v1, v2) : CST.attribute) =
@@ -1166,14 +1157,15 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
         match v2 with
         | Some x -> (
             match x with
-            | `Array_elem_init x -> map_array_element_initializer env x
+            | `Array_elem_init x -> [ map_array_element_initializer env x ]
             | `From_exp (v1, v2) ->
                 let v1 = (* "from" *) token env v1 in
+                (* TODO handle `yield from` *)
                 let v2 = map_expression env v2 in
-                todo env (v1, v2))
-        | None -> todo env ()
+                [ v2 ])
+        | None -> []
       in
-      todo env (v1, v2)
+      A.Call (A.Id [ (A.builtin "yield", v1) ], Parse_info.fake_bracket v1 v2)
   | `Un_exp x -> map_unary_expression env x
   | `Bin_exp x -> map_binary_expression env x
   | `Incl_exp (v1, v2) ->
