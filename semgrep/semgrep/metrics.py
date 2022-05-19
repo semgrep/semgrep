@@ -287,7 +287,6 @@ class Metrics:
                 # TODO: weird, we get a mypy error only in CI, and only
                 # after I've enabled submodules for pre-commit
                 headers=cast(Dict[str, str], {"Authorization": None}),
-                timeout=2,
             )
             r.raise_for_status()
             logger.debug("Sent pseudonymous metrics")
