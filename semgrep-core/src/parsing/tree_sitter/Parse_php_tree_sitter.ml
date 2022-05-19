@@ -92,18 +92,18 @@ let map_primitive_type (env : env) (x : CST.primitive_type) : A.hint_type =
 
 let map_cast_type (env : env) (x : CST.cast_type) =
   match x with
-  | `Array tok -> (* "array" *) token env tok
-  | `Bin tok -> (* "binary" *) token env tok
-  | `Bool_c506ff1 tok -> (* "bool" *) token env tok
-  | `Bool_84e2c64 tok -> (* "boolean" *) token env tok
-  | `Double tok -> (* "double" *) token env tok
-  | `Int_fa7153f tok -> (* "int" *) token env tok
-  | `Int_157db7d tok -> (* "integer" *) token env tok
-  | `Float tok -> (* "float" *) token env tok
-  | `Obj tok -> (* "object" *) token env tok
-  | `Real tok -> (* "real" *) token env tok
-  | `Str tok -> (* "string" *) token env tok
-  | `Unset tok -> (* "unset" *) token env tok
+  | `Array tok -> (* "array" *) (A.ArrayTy, token env tok)
+  | `Bin tok -> (* "binary" *) (A.StringTy, token env tok)
+  | `Bool_c506ff1 tok -> (* "bool" *) (A.BoolTy, token env tok)
+  | `Bool_84e2c64 tok -> (* "boolean" *) (A.BoolTy, token env tok)
+  | `Double tok -> (* "double" *) (A.DoubleTy, token env tok)
+  | `Int_fa7153f tok -> (* "int" *) (A.IntTy, token env tok)
+  | `Int_157db7d tok -> (* "integer" *) (A.IntTy, token env tok)
+  | `Float tok -> (* "float" *) (A.DoubleTy, token env tok)
+  | `Obj tok -> (* "object" *) (A.ObjectTy, token env tok)
+  | `Real tok -> (* "real" *) (A.DoubleTy, token env tok)
+  | `Str tok -> (* "string" *) (A.StringTy, token env tok)
+  | `Unset tok -> (* "unset" *) (A.ObjectTy, token env tok)
 
 let map_anon_choice_COLON_5102e09 (env : env)
     (x : CST.anon_choice_COLON_5102e09) =
@@ -2142,7 +2142,7 @@ and map_variable (env : env) (x : CST.variable) =
       let v2 = map_cast_type env v2 in
       let v3 = (* ")" *) token env v3 in
       let v4 = map_variable env v4 in
-      todo env (v1, v2, v3, v4)
+      A.Cast (v2, v4)
   | `Choice_choice_dyna_var_name x -> map_callable_variable env x
   | `Scoped_prop_access_exp x -> map_scoped_property_access_expression env x
   | `Member_access_exp x -> map_member_access_expression env x
@@ -2156,7 +2156,7 @@ and map_variable_name_ (env : env) (x : CST.variable_name_) : A.name =
 and map_variadic_unpacking (env : env) ((v1, v2) : CST.variadic_unpacking) =
   let v1 = (* "..." *) token env v1 in
   let v2 = map_expression env v2 in
-  todo env (v1, v2)
+  A.Unpack v2
 
 let map_program (env : env) ((v1, v2) : CST.program) : A.program =
   let v1 =
