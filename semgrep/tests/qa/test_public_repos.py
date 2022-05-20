@@ -257,3 +257,5 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
             f"Running on {repo_url} with regex rules. Expect {expected_results_count} results and no errors but got: "
             + json.dumps(output, indent=4)
         )
+
+    print(f"Run on {repo_url} with regex rules: success")
