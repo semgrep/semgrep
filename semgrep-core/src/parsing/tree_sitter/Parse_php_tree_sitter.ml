@@ -392,13 +392,13 @@ let map_named_type (env : env) (x : CST.named_type) : A.hint_type =
   | `Qual_name x -> Hint (map_qualified_name env x)
 
 let map_anon_choice_name_062e4f2 (env : env) (x : CST.anon_choice_name_062e4f2)
-    : A.class_name =
+    : A.name =
   match x with
   | `Name tok ->
       (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-      A.Hint (map_name env tok)
-  | `Rese_id x -> A.Hint [ map_reserved_identifier_ident env x ]
-  | `Qual_name x -> A.Hint (map_qualified_name env x)
+      map_name env tok
+  | `Rese_id x -> [ map_reserved_identifier_ident env x ]
+  | `Qual_name x -> map_qualified_name env x
 
 let map_type_list (env : env) ((v1, v2) : CST.type_list) : A.hint_type list =
   let v1 = map_named_type env v1 in
@@ -426,20 +426,20 @@ let map_base_clause (env : env) ((v1, v2, v3) : CST.base_clause) =
   todo env (v1, v2, v3)
 
 let map_class_interface_clause (env : env)
-    ((v1, v2, v3) : CST.class_interface_clause) =
+    ((v1, v2, v3) : CST.class_interface_clause) : A.class_name list =
   let v1 =
     (* pattern [iI][mM][pP][lL][eE][mM][eE][nN][tT][sS] *) token env v1
   in
-  let v2 = map_anon_choice_name_062e4f2 env v2 in
+  let v2 = A.Hint (map_anon_choice_name_062e4f2 env v2) in
   let v3 =
     Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
-        let v2 = map_anon_choice_name_062e4f2 env v2 in
-        todo env (v1, v2))
+        let v2 = A.Hint (map_anon_choice_name_062e4f2 env v2) in
+        v2)
       v3
   in
-  todo env (v1, v2, v3)
+  v2 :: v3
 
 let map_namespace_use_clause (env : env) ((v1, v2) : CST.namespace_use_clause) =
   let v1 = map_anon_choice_name_062e4f2 env v1 in
@@ -470,10 +470,12 @@ let map_union_type (env : env) ((v1, v2) : CST.union_type) =
       (fun (v1, v2) ->
         let v1 = (* "|" *) token env v1 in
         let v2 = map_types env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
-  todo env (v1, v2)
+  match v2 with
+  | [] -> v1
+  | _ -> HintTuple (Parse_info.fake_bracket Parse_info.unsafe_sc (v1 :: v2))
 
 let map_type_ (env : env) (x : CST.type_) = map_union_type env x
 
@@ -660,7 +662,7 @@ and map_arguments (env : env) ((v1, v2, v3, v4) : CST.arguments) =
     | None -> None
   in
   let v4 = (* ")" *) token env v4 in
-  v2
+  (v1, v2, v4)
 
 and map_array_creation_expression (env : env)
     (x : CST.array_creation_expression) =
@@ -736,17 +738,17 @@ and map_array_element_initializer (env : env)
       A.Arrow (v1, v2, v4)
   | `Vari_unpa x -> map_variadic_unpacking env x
 
-and map_attribute (env : env) ((v1, v2) : CST.attribute) =
+and map_attribute (env : env) ((v1, v2) : CST.attribute) : A.attribute =
   let v1 = map_anon_choice_name_062e4f2 env v1 in
-  let v2 =
-    match v2 with
-    | Some x -> map_arguments env x
-    | None -> todo env ()
-  in
-  todo env (v1, v2)
+  match v2 with
+  | Some x ->
+      let args = map_arguments env x in
+      A.Call (A.Id v1, args)
+  | None -> A.Id v1
 
-and map_attribute_list (env : env) (xs : CST.attribute_list) =
-  Common.map
+and map_attribute_list (env : env) (xs : CST.attribute_list) : A.attribute list
+    =
+  List.concat_map
     (fun (v1, v2, v3, v4) ->
       let v1 = (* "#[" *) token env v1 in
       let v2 = map_attribute env v2 in
@@ -755,11 +757,11 @@ and map_attribute_list (env : env) (xs : CST.attribute_list) =
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_attribute env v2 in
-            todo env (v1, v2))
+            v2)
           v3
       in
       let v4 = (* "]" *) token env v4 in
-      todo env (v1, v2, v3, v4))
+      v2 :: v3)
     xs
 
 and map_binary_expression (env : env) (x : CST.binary_expression) =
@@ -1093,9 +1095,9 @@ and map_else_if_clause_2 (env : env) ((v1, v2, v3) : CST.else_if_clause_2) =
 and map_enum_declaration_list (env : env)
     ((v1, v2, v3) : CST.enum_declaration_list) =
   let v1 = (* "{" *) token env v1 in
-  let v2 = Common.map (map_enum_member_declaration env) v2 in
+  let v2 = List.concat_map (map_enum_member_declaration env) v2 in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) :
     classmember list =
@@ -1414,8 +1416,8 @@ and map_member_declaration (env : env) (x : CST.member_declaration) :
       let v2 = Common.map (map_modifier env) v2 in
       let v3 =
         match v3 with
-        | Some x -> map_type_ env x
-        | None -> todo env ()
+        | Some x -> Some (map_type_ env x)
+        | None -> None
       in
       let v4 = map_property_element env v4 in
       let v5 =
@@ -1519,7 +1521,7 @@ and map_object_creation_expression (env : env)
       let v5 =
         match v5 with
         | Some x -> map_class_interface_clause env x
-        | None -> todo env ()
+        | None -> []
       in
       let v6 = map_declaration_list env v6 in
       todo env (v1, v2, v3, v4, v5, v6)
@@ -1910,7 +1912,7 @@ and map_statement (env : env) (x : CST.statement) =
       let v6 =
         match v6 with
         | Some x -> map_class_interface_clause env x
-        | None -> todo env ()
+        | None -> []
       in
       let v7 = map_declaration_list env v7 in
       let v8 =
@@ -1967,20 +1969,36 @@ and map_statement (env : env) (x : CST.statement) =
       let v2 = (* pattern [eE][nN][uU][mM] *) token env v2 in
       let v3 =
         (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-        token env v3
+        _str env v3
       in
       let v4 =
         match v4 with
-        | Some x -> map_return_type env x
-        | None -> todo env ()
+        | Some x ->
+            Some { A.e_base = map_return_type env x; A.e_constraint = None }
+        | None -> None
       in
       let v5 =
         match v5 with
         | Some x -> map_class_interface_clause env x
-        | None -> todo env ()
+        | None -> []
       in
-      let v6 = map_enum_declaration_list env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let opn, decls, cls = map_enum_declaration_list env v6 in
+      let consts, vars, methods, uses = split_classmembers env decls in
+      ClassDef
+        {
+          c_name = v3;
+          c_kind = (A.Enum, v2);
+          c_extends = None;
+          c_implements = v5;
+          c_uses = uses;
+          c_enum_type = v4;
+          c_modifiers = [];
+          c_attrs = v1;
+          c_constants = consts;
+          c_variables = vars;
+          c_methods = methods;
+          c_braces = (opn, (), cls);
+        }
   | `Name_defi (v1, v2) ->
       let v1 =
         (* pattern [nN][aA][mM][eE][sS][pP][aA][cC][eE] *) token env v1
@@ -2189,12 +2207,12 @@ and map_use_as_clause (env : env) ((v1, v2, v3) : CST.use_as_clause) =
 and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) :
     classmember list =
   let v1 = (* pattern [uU][sS][eE] *) token env v1 in
-  let v2 = map_anon_choice_name_062e4f2 env v2 in
+  let v2 = A.Hint (map_anon_choice_name_062e4f2 env v2) in
   let v3 =
     Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
-        let v2 = map_anon_choice_name_062e4f2 env v2 in
+        let v2 = A.Hint (map_anon_choice_name_062e4f2 env v2) in
         v2)
       v3
   in
