@@ -17,7 +17,7 @@ open Ast_json
 module M = Map_AST
 module G = AST_generic
 
-let expr x =
+let expr ?(unescape_strings = false) x =
   let e = Js_to_generic.expr x in
 
   let visitor =
@@ -65,13 +65,20 @@ let expr x =
                        | Right t -> G.Ellipsis t |> G.e)
                 in
                 G.Container (G.Dict, (lp, zs, rp)) |> G.e
+            | G.L (G.String (s, t)) when unescape_strings ->
+                (* TODO: use the proper JSON unescaping convention, not
+                 * the OCaml one, which is what Scanf.unescape does.
+                 * Reuse Yojson code?
+                 *)
+                G.L (G.String (Scanf.unescaped s, t)) |> G.e
             | _ -> e);
       }
   in
   visitor.M.vexpr e
 
-let program ast =
-  let e = expr ast in
+let program ?unescape_strings ast =
+  ignore unescape_strings;
+  let e = expr ?unescape_strings ast in
   [ G.exprstmt e ]
 
 let any x =
