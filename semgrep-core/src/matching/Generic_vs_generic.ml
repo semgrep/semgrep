@@ -1683,11 +1683,12 @@ and m_type_ a b =
   | G.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyTuple a1, B.TyTuple b1 ->
-      let partial_m_list_with_dots = m_list_with_dots m_type_ (function
+      let partial_m_list_with_dots =
+        m_list_with_dots m_type_ (function
           | { t = G.TyEllipsis _; _ } -> true
-          | _ -> false) in
+          | _ -> false)
+      in
       (m_bracket (partial_m_list_with_dots ~less_is_ok:false)) a1 b1
-
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
