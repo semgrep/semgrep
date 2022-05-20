@@ -179,11 +179,11 @@ let map_variable_name (env : env) ((v1, v2) : CST.variable_name) : A.var =
   ("$" ^ v2str, combined)
 
 let map_namespace_aliasing_clause (env : env)
-    ((v1, v2) : CST.namespace_aliasing_clause) =
+    ((v1, v2) : CST.namespace_aliasing_clause) : A.ident =
   let v1 = (* pattern [aA][sS] *) token env v1 in
   let v2 =
     (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-    map_name env v2
+    _str env v2
   in
   v2
 
@@ -300,8 +300,8 @@ let map_namespace_use_group_clause (env : env)
     ((v1, v2, v3) : CST.namespace_use_group_clause) =
   let v1 =
     match v1 with
-    | Some x -> map_anon_choice_pat_174c3a5_81b85de env x
-    | None -> todo env ()
+    | Some x -> Some (map_anon_choice_pat_174c3a5_81b85de env x)
+    | None -> None
   in
   let v2 = map_namespace_name env v2 in
   let v3 =
@@ -309,7 +309,7 @@ let map_namespace_use_group_clause (env : env)
     | Some x -> Some (map_namespace_aliasing_clause env x)
     | None -> None
   in
-  todo env (v1, v2, v3)
+  (v2, v3)
 
 let map_modifier (env : env) (x : CST.modifier) : A.modifier =
   match x with
@@ -370,11 +370,11 @@ let map_namespace_use_group (env : env)
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_namespace_use_group_clause env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
   let v4 = (* "}" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  v2 :: v3
 
 let map_anon_choice_name_9dd129a (env : env) (x : CST.anon_choice_name_9dd129a)
     : A.ident =
@@ -445,10 +445,10 @@ let map_namespace_use_clause (env : env) ((v1, v2) : CST.namespace_use_clause) =
   let v1 = map_anon_choice_name_062e4f2 env v1 in
   let v2 =
     match v2 with
-    | Some x -> map_namespace_aliasing_clause env x
-    | None -> todo env ()
+    | Some x -> Some (map_namespace_aliasing_clause env x)
+    | None -> None
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 let map_types (env : env) (x : CST.types) =
   match x with
@@ -2073,11 +2073,11 @@ and map_statement (env : env) (x : CST.statement) =
       in
       todo env (v1, v2)
   | `Name_use_decl (v1, v2, v3, v4) ->
-      let v1 = (* pattern [uU][sS][eE] *) token env v1 in
-      let v2 =
+      let use_tok = (* pattern [uU][sS][eE] *) token env v1 in
+      let v2_todo =
         match v2 with
-        | Some x -> map_anon_choice_pat_174c3a5_81b85de env x
-        | None -> todo env ()
+        | Some x -> Some (map_anon_choice_pat_174c3a5_81b85de env x)
+        | None -> None
       in
       let v3 =
         match v3 with
@@ -2088,23 +2088,28 @@ and map_statement (env : env) (x : CST.statement) =
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
                   let v2 = map_namespace_use_clause env v2 in
-                  todo env (v1, v2))
+                  v2)
                 v2
             in
-            todo env (v1, v2)
+            let names = v1 :: v2 in
+            Common.map
+              (fun (name, alias) -> A.NamespaceUse (use_tok, name, alias))
+              names
         | `Opt_BSLASH_name_name_BSLASH_name_use_group (v1, v2, v3, v4) ->
             let v1 =
               match v1 with
-              | Some tok -> (* "\\" *) token env tok
-              | None -> todo env ()
+              | Some tok -> (* "\\" *) Some (token env tok)
+              | None -> None
             in
             let v2 = map_namespace_name env v2 in
             let v3 = (* "\\" *) token env v3 in
             let v4 = map_namespace_use_group env v4 in
-            todo env (v1, v2, v3, v4)
+            Common.map
+              (fun (name, alias) -> A.NamespaceUse (use_tok, v2 @ name, alias))
+              v4
       in
       let v4 = map_semicolon env v4 in
-      todo env (v1, v2, v3, v4)
+      stmt1 v3
   | `Global_decl (v1, v2, v3, v4) ->
       let v1 = (* pattern [gG][lL][oO][bB][aA][lL] *) token env v1 in
       let v2 = map_variable_name_ env v2 in
