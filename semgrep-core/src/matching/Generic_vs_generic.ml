@@ -122,19 +122,25 @@ let has_case_ellipsis_and_filter_ellipsis xs =
       | _ -> false)
     xs
 
-let rec obj_and_method_calls_of_expr e =
+let rec obj_and_dot_accesses_of_expr e =
   match e.G.e with
   | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
-      let o, xs = obj_and_method_calls_of_expr e in
-      (o, (fld, tok, args) :: xs)
+      let o, xs = obj_and_dot_accesses_of_expr e in
+      (o, (fld, tok, Some args) :: xs)
+  | B.DotAccess (e, tok, fld) ->
+      let o, xs = obj_and_dot_accesses_of_expr e in
+      (o, (fld, tok, None) :: xs)
   | _ -> (e, [])
 
-let rec expr_of_obj_and_method_calls (obj, xs) =
+let rec expr_of_obj_and_dot_accesses (obj, xs) =
   match xs with
   | [] -> obj
-  | (fld, tok, args) :: xs ->
-      let e = expr_of_obj_and_method_calls (obj, xs) in
+  | (fld, tok, Some args) :: xs ->
+      let e = expr_of_obj_and_dot_accesses (obj, xs) in
       B.Call (B.DotAccess (e, tok, fld) |> G.e, args) |> G.e
+  | (fld, tok, None) :: xs ->
+      let e = expr_of_obj_and_dot_accesses (obj, xs) in
+      B.DotAccess (e, tok, fld) |> G.e
 
 let rec all_suffix_of_list xs =
   xs
@@ -823,14 +829,14 @@ and m_expr a b =
   | ( G.DotAccessEllipsis (a1, _a2),
       (B.DotAccess _ | B.Call ({ e = B.DotAccess _; _ }, _)) ) ->
       (* => o, [m3();m2();m1() *)
-      let obj, ys = obj_and_method_calls_of_expr b in
+      let obj, ys = obj_and_dot_accesses_of_expr b in
       (* the method chain ellipsis can match 0 or more of those method calls *)
       let candidates = all_suffix_of_list ys in
       let rec aux xxs =
         match xxs with
         | [] -> fail ()
         | xs :: xxs ->
-            let b = expr_of_obj_and_method_calls (obj, xs) in
+            let b = expr_of_obj_and_dot_accesses (obj, xs) in
             m_expr a1 b >||> aux xxs
       in
       aux candidates
