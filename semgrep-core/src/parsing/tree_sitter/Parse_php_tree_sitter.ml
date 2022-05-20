@@ -420,10 +420,10 @@ let map_base_clause (env : env) ((v1, v2, v3) : CST.base_clause) =
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_name_062e4f2 env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
-  todo env (v1, v2, v3)
+  Common.map (fun c -> A.Hint c) (v2 :: v3)
 
 let map_class_interface_clause (env : env)
     ((v1, v2, v3) : CST.class_interface_clause) : A.class_name list =
@@ -1510,13 +1510,15 @@ and map_object_creation_expression (env : env)
       let v2 = (* pattern [cC][lL][aA][sS][sS] *) token env v2 in
       let v3 =
         match v3 with
-        | Some x -> map_arguments env x
-        | None -> todo env ()
+        | Some x ->
+            let _, args, _ = map_arguments env x in
+            args
+        | None -> []
       in
       let v4 =
         match v4 with
-        | Some x -> map_base_clause env x
-        | None -> todo env ()
+        | Some x -> Some (List.hd (map_base_clause env x))
+        | None -> None
       in
       let v5 =
         match v5 with
@@ -1524,7 +1526,25 @@ and map_object_creation_expression (env : env)
         | None -> []
       in
       let v6 = map_declaration_list env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let opn, decls, cls = v6 in
+      let consts, vars, methods, uses = split_classmembers env decls in
+      A.NewAnonClass
+        ( v2,
+          v3,
+          {
+            c_name = ("", v1);
+            c_kind = (A.Class, v1);
+            c_extends = v4;
+            c_implements = v5;
+            c_uses = uses;
+            c_enum_type = None;
+            c_modifiers = [];
+            c_attrs = [];
+            c_constants = consts;
+            c_variables = vars;
+            c_methods = methods;
+            c_braces = (opn, (), cls);
+          } )
 
 and map_parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) : A.expr =
@@ -1906,8 +1926,8 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v5 =
         match v5 with
-        | Some x -> map_base_clause env x
-        | None -> todo env ()
+        | Some x -> Some (List.hd (map_base_clause env x))
+        | None -> None
       in
       let v6 =
         match v6 with
@@ -1943,23 +1963,56 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v2 =
         (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-        token env v2
+        _str env v2
       in
       let v3 =
         match v3 with
-        | Some x -> map_base_clause env x
-        | None -> todo env ()
+        (* TODO interfaces can extend multiple other interfaces, but we throw away everything but the first base interface here. *)
+        | Some x -> Some (List.hd (map_base_clause env x))
+        | None -> None
       in
       let v4 = map_declaration_list env v4 in
-      todo env (v1, v2, v3, v4)
+      let opn, decls, cls = v4 in
+      let consts, vars, methods, uses = split_classmembers env decls in
+      ClassDef
+        {
+          c_name = v2;
+          c_kind = (A.Interface, v1);
+          c_extends = v3;
+          c_implements = [];
+          c_uses = uses;
+          c_enum_type = None;
+          c_modifiers = [];
+          c_attrs = [];
+          c_constants = consts;
+          c_variables = vars;
+          c_methods = methods;
+          c_braces = (opn, (), cls);
+        }
   | `Trait_decl (v1, v2, v3) ->
       let v1 = (* pattern [tT][rR][aA][iI][tT] *) token env v1 in
       let v2 =
         (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-        token env v2
+        _str env v2
       in
       let v3 = map_declaration_list env v3 in
-      todo env (v1, v2, v3)
+      let opn, decls, cls = v3 in
+      let consts, vars, methods, uses = split_classmembers env decls in
+      ClassDef
+        {
+          c_name = v2;
+          c_kind = (A.Trait, v1);
+          c_extends = None;
+          c_implements = [];
+          c_uses = uses;
+          c_enum_type = None;
+          c_modifiers = [];
+          c_attrs = [];
+          c_constants = consts;
+          c_variables = vars;
+          c_methods = methods;
+          c_braces = (opn, (), cls);
+        }
   | `Enum_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         match v1 with
