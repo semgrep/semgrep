@@ -301,7 +301,9 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
    * recomputing the CFG for each taint rule. *)
+  let module Pmtbl = Hashtbl.Make (Pattern_match) in
   let matches = ref [] in
+  let pm2finding = Pmtbl.create 10 in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let lang =
@@ -319,7 +321,9 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
       findings
       |> List.iter (fun finding ->
              pm_of_finding file finding
-             |> Option.iter (fun pm -> Common.push pm matches))
+             |> Option.iter (fun pm ->
+                    Common.push pm matches;
+                    Pmtbl.add pm2finding pm finding))
     in
     taint_config_of_rule default_config equivs file (ast, []) rule taint_spec
       handle_findings
@@ -366,7 +370,8 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
            v
            |> List.iter (fun (m : Pattern_match.t) ->
                   let str = Common.spf "with rule %s" m.rule_id.id in
-                  match_hook str m.env m.tokens))
+                  let opt_finding = Pmtbl.find_opt pm2finding m in
+                  match_hook str m.env m.tokens opt_finding))
     |> Common.map (fun m ->
            { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
