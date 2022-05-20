@@ -31,6 +31,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Processing large rule files is now 30% faster.
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
+- pattern-regex, pattern-not-regex, etc.: `^` and `$` now match at the
+  beginning and end of each line rather than previously just at the
+  beginning and end of the input file. This corresponds to PCRE's
+  multiline mode. To get the the old behavior back, use `\A` instead
+  of '^' and `\Z` instead of `$`.
+  See the [PCRE
+  manual](https://www.pcre.org/original/doc/html/pcrepattern.html#smallassertions)
+  for details.
 
 ### Fixed
 
