@@ -37,6 +37,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   multiline mode. To get the the old behavior back, use `\A` instead
   of '^' and `\Z` instead of `$`.
   See the [PCRE
+- pattern-regex, pattern-not-regex, metavariable-regex: `^` and `$`
+  now match at the beginning and end of each line, respectively,
+  rather than previously just at the beginning and end of the input
+  file. This corresponds to PCRE's multiline mode. To get the old
+  behavior back, use `\A` instead of '^' and `\Z` instead of `$`. See
+  the [PCRE
   manual](https://www.pcre.org/original/doc/html/pcrepattern.html#smallassertions)
   for details.
 
