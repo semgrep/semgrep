@@ -9,3 +9,10 @@ def bad():
     x = source
     #ruleid: test
     sink(x)
+
+def also_bad():
+    x = source
+    sanitize(x)
+    x = source
+    #ruleid: test
+    sink(x)
