@@ -23,7 +23,7 @@ class JsonFormatter(BaseFormatter):
     def _rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
         extra = out.CliMatchExtra(
             message=rule_match.message,
-            metadata=out.RawJson(out._Identity(rule_match.metadata)),
+            metadata=out.RawJson(rule_match.metadata),
             severity=rule_match.severity.value,
             fingerprint=rule_match.syntactic_id,
             # 'lines' already contains '\n' at the end of each line
@@ -33,7 +33,7 @@ class JsonFormatter(BaseFormatter):
 
         if rule_match.extra.get("dependency_matches"):
             extra.dependency_matches = out.RawJson(
-                out._Identity(rule_match.extra.get("dependency_matches"))
+                rule_match.extra.get("dependency_matches")
             )
             extra.dependency_match_only = rule_match.extra.get("dependency_match_only")
         if rule_match.extra.get("fixed_lines"):
