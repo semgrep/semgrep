@@ -91,7 +91,7 @@ def run_dependency_aware_rule(
                 {
                     "dependency_pattern": vars(dep_pat),
                     "found_dependency": vars(found_dep),
-                    "lockfile": lockfile.name,
+                    "lockfile": str(lockfile),
                 }
                 for dep_pat, found_dep, lockfile in output
             ]
