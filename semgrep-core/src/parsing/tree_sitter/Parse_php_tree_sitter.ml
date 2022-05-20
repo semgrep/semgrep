@@ -536,7 +536,7 @@ and map_anon_choice_choice_list_dest_c865322 (env : env)
       let v1 = map_expression env v1 in
       let v2 = (* "=>" *) token env v2 in
       let v3 = map_anon_choice_list_dest_bb41c20 env v3 in
-      todo env (v1, v2, v3)
+      A.Arrow (v1, v2, v3)
 
 and map_anon_choice_class_cst_access_exp_18f5288 (env : env)
     (x : CST.anon_choice_class_cst_access_exp_18f5288) =
@@ -1330,7 +1330,7 @@ and map_list_destructing (env : env)
   let v3 =
     match v3 with
     | Some x -> map_anon_choice_choice_list_dest_c865322 env x
-    | None -> todo env ()
+    | None -> A.Id [ ("", Parse_info.fake_info v2 "") ]
   in
   let v4 =
     Common.map
@@ -1339,13 +1339,13 @@ and map_list_destructing (env : env)
         let v2 =
           match v2 with
           | Some x -> map_anon_choice_choice_list_dest_c865322 env x
-          | None -> todo env ()
+          | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
         in
-        todo env (v1, v2))
+        v2)
       v4
   in
   let v5 = (* ")" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  A.List (v2, v3 :: v4, v5)
 
 and map_list_literal (env : env) (x : CST.list_literal) =
   match x with
