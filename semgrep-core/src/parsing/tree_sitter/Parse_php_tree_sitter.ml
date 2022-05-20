@@ -511,12 +511,12 @@ and map_anon_choice_case_stmt_f1b35bc (env : env)
       let v2 = map_expression env v2 in
       let v3 = map_anon_choice_COLON_5102e09 env v3 in
       let v4 = Common.map (map_statement env) v4 in
-      todo env (v1, v2, v3, v4)
+      A.Case (v1, v2, v4)
   | `Defa_stmt (v1, v2, v3) ->
       let v1 = (* pattern [dD][eE][fF][aA][uU][lL][tT] *) token env v1 in
       let v2 = map_anon_choice_COLON_5102e09 env v2 in
       let v3 = Common.map (map_statement env) v3 in
-      todo env (v1, v2, v3)
+      A.Default (v1, v3)
 
 and map_anon_choice_choice_array_dest_abfb170 (env : env)
     (x : CST.anon_choice_choice_array_dest_abfb170) =
@@ -2174,7 +2174,7 @@ and map_switch_block (env : env) (x : CST.switch_block) =
       let v1 = (* "{" *) token env v1 in
       let v2 = Common.map (map_anon_choice_case_stmt_f1b35bc env) v2 in
       let v3 = (* "}" *) token env v3 in
-      todo env (v1, v2, v3)
+      v2
   | `COLON_rep_choice_case_stmt_pat_0b47e00_choice_auto_semi (v1, v2, v3, v4) ->
       let v1 = (* ":" *) token env v1 in
       let v2 = Common.map (map_anon_choice_case_stmt_f1b35bc env) v2 in
@@ -2182,7 +2182,7 @@ and map_switch_block (env : env) (x : CST.switch_block) =
         (* pattern [eE][nN][dD][sS][wW][iI][tT][cC][hH] *) token env v3
       in
       let v4 = map_semicolon env v4 in
-      todo env (v1, v2, v3, v4)
+      v2
 
 and map_unary_expression (env : env) (x : CST.unary_expression) =
   match x with
