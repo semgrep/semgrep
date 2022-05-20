@@ -30,6 +30,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   tree-sitter-typescript (Oct 2021)
 - TS: support for override keyword (#4220, #4798)
 - TS: better ASI (#4459) and accept (null)(foo) (#4468)
+- Go: Support for ellipsis in multiple return values (e.g., func foo() (..., error, ...) {}) (#4896)
 
 ## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 
