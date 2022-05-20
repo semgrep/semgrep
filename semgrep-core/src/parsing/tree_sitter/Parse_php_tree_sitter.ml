@@ -59,8 +59,26 @@ let _str = H.str
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
 
+type classmember =
+  | ConstantDef of A.constant_def
+  | ClassVar of A.class_var
+  | MethodDef of A.method_def
+  | UseTrait of A.class_name
+
 let todo (env : env) _ = failwith "not implemented"
 let map_name (env : env) tok : A.name = [ _str env tok ]
+
+let rec _split_classmembers env members constants classes methods uses =
+  match members with
+  | [] -> (constants, classes, methods, uses)
+  | hd :: rest -> (
+      match hd with
+      | ConstantDef c -> (constants @ [ c ], classes, methods, uses)
+      | ClassVar c -> (constants, classes @ [ c ], methods, uses)
+      | MethodDef m -> (constants, classes, methods @ [ m ], uses)
+      | UseTrait u -> (constants, classes, methods, uses @ [ u ]))
+
+let split_classmembers env members = _split_classmembers env members [] [] [] []
 
 let map_ref_expr (env : env) tok expr : A.expr =
   match tok with
@@ -68,6 +86,12 @@ let map_ref_expr (env : env) tok expr : A.expr =
   | None -> expr
 
 let map_empty_block (env : env) semi = A.Block (Parse_info.fake_bracket semi [])
+
+let stmt1 xs =
+  match xs with
+  | [] -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc [])
+  | [ st ] -> st
+  | xs -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc xs)
 
 let fake_call_to_builtin (env : env) tok args =
   let str, tok = tok in
@@ -368,13 +392,13 @@ let map_named_type (env : env) (x : CST.named_type) : A.hint_type =
   | `Qual_name x -> Hint (map_qualified_name env x)
 
 let map_anon_choice_name_062e4f2 (env : env) (x : CST.anon_choice_name_062e4f2)
-    =
+    : A.class_name =
   match x with
   | `Name tok ->
       (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-      A.Id (map_name env tok)
-  | `Rese_id x -> map_reserved_identifier env x
-  | `Qual_name x -> A.Id (map_qualified_name env x)
+      A.Hint (map_name env tok)
+  | `Rese_id x -> A.Hint [ map_reserved_identifier_ident env x ]
+  | `Qual_name x -> A.Hint (map_qualified_name env x)
 
 let map_type_list (env : env) ((v1, v2) : CST.type_list) : A.hint_type list =
   let v1 = map_named_type env v1 in
@@ -977,15 +1001,17 @@ and map_compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
   let v3 = (* "}" *) token env v3 in
   A.Block (v1, v2, v3)
 
-and map_const_declaration (env : env) (x : CST.const_declaration) =
-  map_const_declaration_ env x
+and map_const_declaration (env : env) (x : CST.const_declaration) :
+    classmember list =
+  let consts = map_const_declaration_ env x in
+  Common.map (fun c -> ConstantDef c) consts
 
 and map_const_declaration_ (env : env)
     ((v1, v2, v3, v4, v5) : CST.const_declaration_) =
   let v1 =
     match v1 with
-    | Some x -> map_visibility_modifier env x
-    | None -> todo env ()
+    | Some x -> [ map_visibility_modifier env x ]
+    | None -> []
   in
   let v2 = (* pattern [cC][oO][nN][sS][tT] *) token env v2 in
   let v3 = map_const_element env v3 in
@@ -994,23 +1020,26 @@ and map_const_declaration_ (env : env)
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_const_element env v2 in
-        todo env (v1, v2))
+        v2)
       v4
   in
   let v5 = map_semicolon env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  Common.map
+    (fun (name, expr) ->
+      { A.cst_tok = v2; A.cst_name = name; A.cst_body = expr })
+    (v3 :: v4)
 
 and map_const_element (env : env) ((v1, v2, v3) : CST.const_element) =
   let v1 = map_anon_choice_name_9dd129a env v1 in
   let v2 = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
-  todo env (v1, v2, v3)
+  (v1, v3)
 
 and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
   let v1 = (* "{" *) token env v1 in
-  let v2 = Common.map (map_member_declaration env) v2 in
+  let v2 = List.concat_map (map_member_declaration env) v2 in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_dereferencable_expression (env : env)
     (x : CST.dereferencable_expression) : A.expr =
@@ -1068,7 +1097,8 @@ and map_enum_declaration_list (env : env)
   let v3 = (* "}" *) token env v3 in
   todo env (v1, v2, v3)
 
-and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
+and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) :
+    classmember list =
   match x with
   | `Enum_case (v1, v2, v3, v4, v5) ->
       let v1 =
@@ -1095,7 +1125,7 @@ and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
       in
       let v5 = map_semicolon env v5 in
       todo env (v1, v2, v3, v4, v5)
-  | `Meth_decl x -> map_method_declaration env x
+  | `Meth_decl x -> [ map_method_declaration env x ]
   | `Use_decl x -> map_use_declaration env x
 
 and map_exponentiation_expression (env : env)
@@ -1358,7 +1388,8 @@ and map_member_access_expression (env : env)
   let v3 = map_member_name env v3 in
   todo env (v1, v2, v3)
 
-and map_member_declaration (env : env) (x : CST.member_declaration) =
+and map_member_declaration (env : env) (x : CST.member_declaration) :
+    classmember list =
   match x with
   | `Class_const_decl (v1, v2, v3) ->
       let v1 =
@@ -1368,11 +1399,12 @@ and map_member_declaration (env : env) (x : CST.member_declaration) =
       in
       let v2 =
         match v2 with
-        | Some tok -> (* pattern [fF][iI][nN][aA][lL] *) token env tok
-        | None -> todo env ()
+        | Some tok ->
+            (* pattern [fF][iI][nN][aA][lL] *) [ (A.Final, token env tok) ]
+        | None -> []
       in
       let v3 = map_const_declaration env v3 in
-      todo env (v1, v2, v3)
+      v3
   | `Prop_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         match v1 with
@@ -1391,12 +1423,21 @@ and map_member_declaration (env : env) (x : CST.member_declaration) =
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_property_element env v2 in
-            todo env (v1, v2))
+            v2)
           v5
       in
       let v6 = map_semicolon env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
-  | `Meth_decl x -> map_method_declaration env x
+      Common.map
+        (fun (name, value) ->
+          ClassVar
+            {
+              A.cv_name = name;
+              A.cv_type = v3;
+              A.cv_value = value;
+              A.cv_modifiers = v2;
+            })
+        (v4 :: v5)
+  | `Meth_decl x -> [ map_method_declaration env x ]
   | `Use_decl x -> map_use_declaration env x
 
 and map_member_name (env : env) (x : CST.member_name) =
@@ -1415,7 +1456,7 @@ and map_member_name (env : env) (x : CST.member_name) =
       v2
 
 and map_method_declaration (env : env)
-    ((v1, v2, v3, v4) : CST.method_declaration) =
+    ((v1, v2, v3, v4) : CST.method_declaration) : classmember =
   let v1 =
     match v1 with
     | Some x -> map_attribute_list env x
@@ -1429,7 +1470,7 @@ and map_method_declaration (env : env)
     | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
   in
   let tok, is_ref, name, params, return = v3 in
-  A.FuncDef
+  MethodDef
     {
       A.f_name = name;
       A.f_kind = (Method, tok);
@@ -1569,15 +1610,15 @@ and map_property_element (env : env) ((v1, v2) : CST.property_element) =
   let v1 = map_variable_name env v1 in
   let v2 =
     match v2 with
-    | Some x -> map_property_initializer env x
-    | None -> todo env ()
+    | Some x -> Some (map_property_initializer env x)
+    | None -> None
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 and map_property_initializer (env : env) ((v1, v2) : CST.property_initializer) =
   let v1 = (* "=" *) token env v1 in
   let v2 = map_expression env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_scope_resolution_qualifier (env : env)
     (x : CST.scope_resolution_qualifier) =
@@ -1814,7 +1855,10 @@ and map_statement (env : env) (x : CST.statement) =
       let v5 = (* ")" *) token env v5 in
       let v6 = map_semicolon env v6 in
       A.Expr (A.Call (A.Id [ (A.builtin "unset", v1) ], (v2, v3 :: v4, v5)), v6)
-  | `Const_decl x -> map_const_declaration env x
+  | `Const_decl x ->
+      let consts = map_const_declaration_ env x in
+      let consts = Common.map (fun c -> A.ConstantDef c) consts in
+      stmt1 consts
   | `Func_defi (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -1847,15 +1891,16 @@ and map_statement (env : env) (x : CST.statement) =
         | Some x -> (
             match x with
             | `Final_modi tok ->
-                (* pattern [fF][iI][nN][aA][lL] *) token env tok
+                (* pattern [fF][iI][nN][aA][lL] *) [ (A.Final, token env tok) ]
             | `Abst_modi tok ->
-                (* pattern [aA][bB][sS][tT][rR][aA][cC][tT] *) token env tok)
-        | None -> todo env ()
+                (* pattern [aA][bB][sS][tT][rR][aA][cC][tT] *)
+                [ (A.Abstract, token env tok) ])
+        | None -> []
       in
       let v3 = (* pattern [cC][lL][aA][sS][sS] *) token env v3 in
       let v4 =
         (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-        token env v4
+        _str env v4
       in
       let v5 =
         match v5 with
@@ -1870,10 +1915,26 @@ and map_statement (env : env) (x : CST.statement) =
       let v7 = map_declaration_list env v7 in
       let v8 =
         match v8 with
-        | Some x -> map_semicolon env x
-        | None -> todo env ()
+        | Some x -> Some (map_semicolon env x)
+        | None -> None
       in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8)
+      let opn, decls, cls = v7 in
+      let consts, vars, methods, uses = split_classmembers env decls in
+      ClassDef
+        {
+          c_name = v4;
+          c_kind = (A.Class, v3);
+          c_extends = v5;
+          c_implements = v6;
+          c_uses = uses;
+          c_enum_type = None;
+          c_modifiers = v2;
+          c_attrs = v1;
+          c_constants = consts;
+          c_variables = vars;
+          c_methods = methods;
+          c_braces = (opn, (), cls);
+        }
   | `Inte_decl (v1, v2, v3, v4) ->
       let v1 =
         (* pattern [iI][nN][tT][eE][rR][fF][aA][cC][eE] *) token env v1
@@ -2125,7 +2186,8 @@ and map_use_as_clause (env : env) ((v1, v2, v3) : CST.use_as_clause) =
   in
   todo env (v1, v2, v3)
 
-and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) =
+and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) :
+    classmember list =
   let v1 = (* pattern [uU][sS][eE] *) token env v1 in
   let v2 = map_anon_choice_name_062e4f2 env v2 in
   let v3 =
@@ -2133,7 +2195,7 @@ and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) =
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_name_062e4f2 env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
   let v4 =
@@ -2141,7 +2203,8 @@ and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) =
     | `Use_list x -> map_use_list env x
     | `Choice_auto_semi x -> map_semicolon env x
   in
-  todo env (v1, v2, v3, v4)
+  let uses = v2 :: v3 in
+  Common.map (fun u -> UseTrait u) uses
 
 and map_use_instead_of_clause (env : env)
     ((v1, v2, v3) : CST.use_instead_of_clause) =
