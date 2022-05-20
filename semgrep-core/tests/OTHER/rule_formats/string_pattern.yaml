@@ -1,0 +1,8 @@
+rules:
+- id: x
+  message: x
+  languages: [python]
+  severity: WARNING
+  pattern: |
+    "hello"
+  

@@ -1,0 +1,4 @@
+Those rules are actually not currently tested by our test infra.
+This is to avoid adding jsonnet as a dependency in our CI workflows.
+
+The targets for those files can be found in ../rules/
