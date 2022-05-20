@@ -16,7 +16,7 @@ type config = {
   is_sink : AST_generic.any -> Pattern_match.t list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)
-  is_sanitizer : AST_generic.any -> Pattern_match.t list;
+  is_sanitizer : AST_generic.any -> (Pattern_match.t * overlap) list;
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
