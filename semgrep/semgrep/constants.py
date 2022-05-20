@@ -13,7 +13,7 @@ SEMGREP_URL = os.environ.get(
     "SEMGREP_APP_URL", os.environ.get("SEMGREP_URL", "https://semgrep.dev")
 ).rstrip("/")
 SHOULDAFOUND_BASE_URL = os.environ.get(
-    "SHOULDAFOUND_BASE_URL", "https://shouldafound.dev.semgrep.dev"
+    "SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
 ).rstrip("/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
