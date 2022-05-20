@@ -459,7 +459,7 @@ let map_types (env : env) (x : CST.types) =
         | `Named_type x -> map_named_type env x
         | `Prim_type x -> map_primitive_type env x
       in
-      todo env (v1, v2)
+      A.HintQuestion (v1, v2)
   | `Named_type x -> map_named_type env x
   | `Prim_type x -> map_primitive_type env x
 
@@ -492,10 +492,10 @@ let rec map_anon_array_elem_init_rep_COMMA_array_elem_init_1dad3d4 (env : env)
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_array_element_initializer env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
-  todo env (v1, v2)
+  v1 :: v2
 
 and map_anon_choice_array_dest_08f4c18 (env : env)
     (x : CST.anon_choice_array_dest_08f4c18) =
@@ -675,15 +675,15 @@ and map_array_creation_expression (env : env)
         match v3 with
         | Some x ->
             map_anon_array_elem_init_rep_COMMA_array_elem_init_1dad3d4 env x
-        | None -> todo env ()
+        | None -> []
       in
       let v4 =
         match v4 with
-        | Some tok -> (* "," *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "," *) Some (token env tok)
+        | None -> None
       in
       let v5 = (* ")" *) token env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      A.ConsArray (v2, v3, v5)
   | `LBRACK_opt_array_elem_init_rep_COMMA_array_elem_init_opt_COMMA_RBRACK
       (v1, v2, v3, v4) ->
       let v1 = (* "[" *) token env v1 in
@@ -691,15 +691,15 @@ and map_array_creation_expression (env : env)
         match v2 with
         | Some x ->
             map_anon_array_elem_init_rep_COMMA_array_elem_init_1dad3d4 env x
-        | None -> todo env ()
+        | None -> []
       in
       let v3 =
         match v3 with
-        | Some tok -> (* "," *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "," *) Some (token env tok)
+        | None -> None
       in
       let v4 = (* "]" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      A.ConsArray (v1, v2, v4)
 
 and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
     =
