@@ -1,0 +1,2 @@
+The .jsonnet rules are actually not tested by our test infra, but
+you can manually check things with semgrep-core -dump_rule.

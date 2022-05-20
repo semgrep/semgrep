@@ -97,6 +97,10 @@ perf:
 report-perf:
 	cd ./perf && ./run-perf-suite --upload
 
+.PHONY: update_semgrep_rules
+update_semgrep_rules:
+	cd tests/semgrep-rules; git checkout develop; git pull
+
 ###############################################################################
 # Pad's targets
 ###############################################################################
