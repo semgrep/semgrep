@@ -16,7 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   safe data, this was not recognized by the taint engine. Also, if `taint(x)`
   occurred inside e.g. an `if` block, any occurrence of `x` outside that block
   was not considered tainted. Now, if you specify that the code variable itself
-  is a taint source (using `focus-metavaraible`), the taint engine will handle
+  is a taint source (using `focus-metavariable`), the taint engine will handle
   this as expected, and it will not suffer from the aforementioned limitations.
   We believe that this change should not break existing taint rules, but please
   report any regressions that you may find.
@@ -24,7 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Previously, we had to rely on a trick that declared that _any_ occurrence of
   `x` inside `sanitize(x); ...` was sanitized. If `x` later overwritten with
   tainted data, the taint engine would still regard `x` as safe. Now, if you
-  specify that the code variable itself is sanitized (using `focus-metavaraible`),
+  specify that the code variable itself is sanitized (using `focus-metavariable`),
   the taint engine will handle this as expected and it will not suffer from such
   limitation. We believe that this change should not break existing taint rules,
   but please report any regressions that you may find.

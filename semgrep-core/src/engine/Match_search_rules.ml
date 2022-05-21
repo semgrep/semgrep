@@ -1068,7 +1068,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
              v
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
-                    hook str m.env m.tokens));
+                    hook str m.env m.tokens None));
     errors = res.errors |> Common.map (error_with_rule_id rule_id);
     skipped_targets = res.skipped_targets;
     profiling = res.profiling;
