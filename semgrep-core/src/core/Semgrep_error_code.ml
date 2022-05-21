@@ -90,7 +90,7 @@ let exn_to_error ?(rule_id = None) file exn =
   | Parse_info.Other_error (s, tok) ->
       mk_error_tok ~rule_id tok s Out.SpecifiedParseError
   | Rule.InvalidRule
-      (Rule.InvalidPattern (_pattern, xlang, _message, yaml_path), rule_id, pos)
+      (Rule.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
     ->
       {
         rule_id = Some rule_id;
@@ -98,7 +98,13 @@ let exn_to_error ?(rule_id = None) file exn =
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
-          spf "Invalid pattern for %s" (Xlang.to_string xlang);
+          spf
+            "Invalid pattern for %s:\n\
+             --- pattern ---\n\
+             %s\n\
+             --- end pattern ---\n\
+             Pattern error: %s\n"
+            (Xlang.to_string xlang) pattern message;
         details = None;
         yaml_path = Some yaml_path;
       }
