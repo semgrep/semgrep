@@ -9,7 +9,11 @@ exception File_timeout
 *)
 val check :
   match_hook:
-    (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+    (string ->
+    Metavariable.bindings ->
+    Parse_info.t list Lazy.t ->
+    Taint.finding option ->
+    unit) ->
   timeout:float ->
   timeout_threshold:int ->
   Config_semgrep.t * Equivalence.equivalences ->
