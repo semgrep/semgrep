@@ -287,7 +287,7 @@ class RuleMatch:
             index=self.index,
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
-            metadata=out.RawJson(out._Identity(self.metadata)),
+            metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
         )
 

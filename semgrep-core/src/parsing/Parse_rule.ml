@@ -858,13 +858,38 @@ let parse_bis ?error_recovery file =
   let ast =
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
-        Json_to_generic.program (Parse_json.parse_program file)
+        (* in a parsing-rule context, we don't want the parsed strings by
+         * Parse_json.parse_program to remain escaped. For example with this
+         * JSON rule:
+         * { "rules": [ {
+         *       "id": "x",
+         *       "message": "",
+         *       "languages": ["python"],
+         *       "severity": "WARNING",
+         *       "pattern": "\"hello\""
+         *     }
+         *   ]
+         * }
+         * we want the pattern in the generic AST of the rule to contain the
+         * string '"hello"', without the antislash, otherwise
+         * Parse_python.parse_any will fail parsing it.
+         *
+         * Note that we didn't have this problem before when we were using
+         * Yojson to parse a JSON rule, because Yojson correctly unescaped
+         * and returned the "final string".
+         *
+         * Note that this is handled correctly by Yaml_to_generic.program
+         * below.
+         *)
+        Json_to_generic.program ~unescape_strings:true
+          (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
             let cmd = spf "jsonnet %s -o %s" file tmpfile in
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program (Parse_json.parse_program tmpfile))
+            Json_to_generic.program ~unescape_strings:true
+              (Parse_json.parse_program tmpfile))
     | FT.Config FT.Yaml -> Yaml_to_generic.program file
     | _ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";

@@ -194,8 +194,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
       is_source = (fun x -> any_in_ranges rule x sources_ranges);
-      is_sanitizer =
-        (fun x -> any_in_ranges_no_overlap rule x sanitizers_ranges);
+      is_sanitizer = (fun x -> any_in_ranges rule x sanitizers_ranges);
       is_sink = (fun x -> any_in_ranges_no_overlap rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;

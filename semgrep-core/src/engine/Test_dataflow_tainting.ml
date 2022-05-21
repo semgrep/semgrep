@@ -24,25 +24,10 @@ let pr2_ranges file rwms =
          in
          Common.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting lang file ast rule taint_spec def =
+let test_tainting lang file config def =
   let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
   let flow = CFG_build.cfg_of_stmts xs in
-  pr2 "Tainting";
-  pr2 "========";
-  let handle_findings _ _ _ = () in
-  let config, debug_taint =
-    Match_tainting_rules.taint_config_of_rule Config_semgrep.default_config []
-      file (ast, []) rule taint_spec handle_findings
-  in
-  Common.pr2 "\nSources";
-  Common.pr2 "-------";
-  pr2_ranges file debug_taint.sources;
-  Common.pr2 "\nSanitizers";
-  Common.pr2 "----------";
-  pr2_ranges file debug_taint.sanitizers;
-  Common.pr2 "\nSinks";
-  Common.pr2 "-----";
-  pr2_ranges file debug_taint.sinks;
+
   Common.pr2 "\nDataflow";
   Common.pr2 "--------";
   let mapping = Dataflow_tainting.fixpoint config flow in
@@ -88,13 +73,29 @@ let test_dfg_tainting rules_file file =
   in
   let _search_rules, taint_rules = Rule.partition_rules rules in
   let rule, taint_spec = List.hd taint_rules in
+  pr2 "Tainting";
+  pr2 "========";
+  let handle_findings _ _ _ = () in
+  let config, debug_taint =
+    Match_tainting_rules.taint_config_of_rule Config_semgrep.default_config []
+      file (ast, []) rule taint_spec handle_findings
+  in
+  Common.pr2 "\nSources";
+  Common.pr2 "-------";
+  pr2_ranges file debug_taint.sources;
+  Common.pr2 "\nSanitizers";
+  Common.pr2 "----------";
+  pr2_ranges file debug_taint.sanitizers;
+  Common.pr2 "\nSinks";
+  Common.pr2 "-----";
+  pr2_ranges file debug_taint.sinks;
   let v =
     V.mk_visitor
       {
         V.default_visitor with
         V.kfunction_definition =
           (fun (k, _v) def ->
-            test_tainting lang file ast rule taint_spec def;
+            test_tainting lang file config def;
             (* go into nested functions *)
             k def);
       }
