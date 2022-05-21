@@ -104,7 +104,9 @@ let generic_to_json env (key : key) ast =
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
-    | G.L (String (s, _)) -> J.String s
+    | G.L (String (s, _)) ->
+        (* should use the unescaped string *)
+        J.String s
     | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
@@ -113,6 +115,7 @@ let generic_to_json env (key : key) ast =
                  match x.G.e with
                  | G.Container
                      (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
+                     (* should use the unescaped string *)
                      (k, aux v)
                  | _ ->
                      error_at_expr env x
@@ -127,7 +130,9 @@ let generic_to_json env (key : key) ast =
 
 let read_string_wrap e =
   match e with
-  | G.L (String (value, t)) -> Some (value, t)
+  | G.L (String (value, t)) ->
+      (* should use the unescaped string *)
+      Some (value, t)
   | G.L (Float (Some n, t)) ->
       if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
       else Some (string_of_float n, t)
