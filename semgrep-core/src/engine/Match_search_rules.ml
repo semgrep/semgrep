@@ -376,10 +376,8 @@ let lexing_pos_to_loc file x str =
   { PI.str; charpos; file; line; column }
 
 let spacegrep_matcher (doc, src) file pat =
-  let matches =
-    Spacegrep.Match.search ~no_skip_search:false ~case_sensitive:true src pat
-      doc
-  in
+  let search_param = Spacegrep.Match.create_search_param () in
+  let matches = Spacegrep.Match.search search_param src pat doc in
   matches
   |> Common.map (fun m ->
          let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
