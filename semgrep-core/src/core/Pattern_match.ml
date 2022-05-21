@@ -74,8 +74,6 @@ and rule_id = {
 }
 [@@deriving show, eq]
 
-let hash pm = Hashtbl.hash (pm.rule_id, pm.file, pm.range_loc, pm.env)
-
 let uniq pms =
   let eq = AST_utils.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
