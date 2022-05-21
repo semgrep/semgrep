@@ -490,7 +490,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            in
 
            let xtarget = xtarget_of_file config xlang file in
-           let match_hook str env matched_tokens =
+           let match_hook str env matched_tokens _opt_taint_finding =
              if config.output_format = Text then
                let xs = Lazy.force matched_tokens in
                print_match ~str config.match_format config.mvars env
