@@ -475,12 +475,7 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, or `pattern-comby`"
 
-let rec parse_formula (env : env) (rule_dict : dict) : R.pformula =
-  match Hashtbl.find_opt rule_dict.h "match" with
-  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old env rule_dict))
-
-and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
+let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let env = { env with path = fst key :: env.path } in
   let get_pattern str_e = parse_xpattern_expr env str_e in
   let get_nested_formula i x =
@@ -652,9 +647,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let pformula = parse_formula env' mv_pattern_dict in
-      let formula = R.formula_of_pformula pformula in
-      R.MetavarPattern (metavar, opt_xlang, formula)
+      let formula_old =
+        parse_formula_old env' (find_formula_old env mv_pattern_dict)
+      in
+      R.MetavarPattern (metavar, opt_xlang, formula_old)
   | "metavariable-comparison" ->
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
@@ -704,6 +700,11 @@ let parse_severity ~id (s, t) =
 (*****************************************************************************)
 (* Sub parsers taint *)
 (*****************************************************************************)
+
+let parse_formula (env : env) (rule_dict : dict) : R.pformula =
+  match Hashtbl.find_opt rule_dict.h "match" with
+  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
+  | None -> R.Old (parse_formula_old env (find_formula_old env rule_dict))
 
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
