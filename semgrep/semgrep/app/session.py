@@ -38,7 +38,8 @@ class UserAgent:
     def __str__(self) -> str:
         result = f"{self.name}/{self.version}"
         for note in sorted(self.tags):
-            result += f" ({note})"
+            clean_note = note.strip("()")  # sometimes the env var has parens already
+            result += f" ({clean_note})"
         return result
 
 
@@ -87,9 +88,14 @@ class AppSession(requests.Session):
         self.mount("http://", retry_adapter)
 
     def authenticate(self) -> None:
-        from semgrep.app import auth  # avoid circular import in semgrep.state
+        # avoid circular imports in semgrep.state
+        from semgrep.app import auth
+        from semgrep.state import get_state
 
         self.token = auth.get_token()
+
+        metrics = get_state().metrics
+        metrics.set_is_authenticated(bool(self.token))
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 30)

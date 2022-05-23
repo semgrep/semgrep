@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - patterns:
+        # if $X is a variable, it will become tainted by side effect
+        - pattern: taint($X)
+        - focus-metavariable: $X
+    pattern-sinks:
+      - pattern: sink(...)

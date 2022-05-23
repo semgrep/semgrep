@@ -12,8 +12,44 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- Datafow: The dataflow engine now handles if-then-else expressions as in OCaml,
-  Ruby, etc. Previously it only handled if-then-else statements. (#4965)
+- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+
+### Changed
+
+- taint-mode: Let's say that e.g. `taint(x)` makes `x` tainted by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `taint(x); ...` was as taint source. If `x` was overwritten with
+  safe data, this was not recognized by the taint engine. Also, if `taint(x)`
+  occurred inside e.g. an `if` block, any occurrence of `x` outside that block
+  was not considered tainted. Now, if you specify that the code variable itself
+  is a taint source (using `focus-metavariable`), the taint engine will handle
+  this as expected, and it will not suffer from the aforementioned limitations.
+  We believe that this change should not break existing taint rules, but please
+  report any regressions that you may find.
+- taint-mode: Let's say that e.g. `sanitize(x)` sanitizes `x` by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `sanitize(x); ...` was sanitized. If `x` later overwritten with
+  tainted data, the taint engine would still regard `x` as safe. Now, if you
+  specify that the code variable itself is sanitized (using `focus-metavariable`),
+  the taint engine will handle this as expected and it will not suffer from such
+  limitation. We believe that this change should not break existing taint rules,
+  but please report any regressions that you may find.
+- Processing large rule files is now 30% faster.
+- The dot access ellipsis now matches field accesses in addition to method
+  calls.
+
+### Fixed
+
+- TS: support for template literal types after upgrading to a more recent
+  tree-sitter-typescript (Oct 2021)
+- TS: support for `override` keyword (#4220, #4798)
+- TS: better ASI (#4459) and accept code like `(null)(foo)` (#4468)
+- TS: parse correctly private properties (#5162)
+- Go: Support for ellipsis in multiple return values
+  (e.g., `func foo() (..., error, ...) {}`) (#4896)
+- semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
+
+## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 
 ### Changed
 
@@ -21,6 +57,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   will now be listed as "partially scanned" in the end-of-scan skip report.
 - Licensing: The ocaml-tree-sitter-core component is now distributed
   under the terms of the LGPL 2.1, rather than previously GPL 3.
+- A new field was added to metrics collection: isAuthenticated.
+  This is a boolean flag which is true if you ran semgrep login.
+
+### Fixed
+
+- `semgrep ci` used to incorrectly report the base branch as a CI job's branch
+  when running on a `pull_request_target` event in GitHub Actions.
+  By fixing this, Semgrep App can now track issue status history with `on: pull_request_target` jobs.
+- Metrics events were missing timestamps even though `PRIVACY.md` had already documented a timestamp field.
+
+## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
+
+### Added
+
+- Datafow: The dataflow engine now handles if-then-else expressions as in OCaml,
+  Ruby, etc. Previously it only handled if-then-else statements. (#4965)
 
 ### Fixed
 
@@ -41,7 +93,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   version of Semgrep used to generate the match results.
 - taint-mode: Previously, to declare a function parameteter as a taint source,
   we had to rely on a trick that declared that _any_ occurence of the parameter
-  was a taint source. If the parameter was overwriten with safe data, this was
+  was a taint source. If the parameter was overwritten with safe data, this was
   not recognized by the taint engine. Now, `focus-metavariable` can be used to
   precisely specify that a function parameter is a source of taint, and the taint
   engine will handle this as expected.

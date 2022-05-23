@@ -1,0 +1,10 @@
+rules:
+  - id: java-gradle-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: gradle
+        package: s3mock
+        version: <= 2.1.20
+    message: oh no
+    languages: [java]
+    severity: WARNING

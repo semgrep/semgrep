@@ -1,8 +1,31 @@
+(*
+ * Copyright (C) 2021 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
 open Common
 module PI = Parse_info
 module Out = Output_from_core_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
+
+(****************************************************************************)
+(* Prelude *)
+(****************************************************************************)
+(* Error management for semgrep-core.
+ *)
+
+(****************************************************************************)
+(* Types and globals *)
+(****************************************************************************)
 
 (* See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
  * filter_maybe_parse_and_fatal_errors.
@@ -21,15 +44,14 @@ type error = {
 type severity = Error | Warning
 
 let g_errors = ref []
-let options () = []
-
-let please_file_issue_text =
-  "An error occurred while invoking the Semgrep engine. Please help us fix \
-   this by creating an issue at https://github.com/returntocorp/semgrep"
 
 (****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
+
+let please_file_issue_text =
+  "An error occurred while invoking the Semgrep engine. Please help us fix \
+   this by creating an issue at https://github.com/returntocorp/semgrep"
 
 let mk_error ?(rule_id = None) loc msg err =
   let msg =
@@ -68,7 +90,7 @@ let exn_to_error ?(rule_id = None) file exn =
   | Parse_info.Other_error (s, tok) ->
       mk_error_tok ~rule_id tok s Out.SpecifiedParseError
   | Rule.InvalidRule
-      (Rule.InvalidPattern (_pattern, xlang, _message, yaml_path), rule_id, pos)
+      (Rule.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
     ->
       {
         rule_id = Some rule_id;
@@ -76,7 +98,13 @@ let exn_to_error ?(rule_id = None) file exn =
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
-          spf "Invalid pattern for %s" (Xlang.to_string xlang);
+          spf
+            "Invalid pattern for %s:\n\
+             --- pattern ---\n\
+             %s\n\
+             --- end pattern ---\n\
+             Pattern error: %s\n"
+            (Xlang.to_string xlang) pattern message;
         details = None;
         yaml_path = Some yaml_path;
       }
@@ -237,3 +265,8 @@ let compare_actual_to_expected actual_errors expected_error_lines =
   match num_errors with
   | 0 -> Stdlib.Ok ()
   | n -> Error (n, msg)
+
+let compare_actual_to_expected_for_alcotest actual expected =
+  match compare_actual_to_expected actual expected with
+  | Ok () -> ()
+  | Error (_num_errors, msg) -> Alcotest.fail msg

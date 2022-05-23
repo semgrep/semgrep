@@ -19,6 +19,7 @@
         "scan_environment": "gitlab-ci",
         "is_full_scan": false,
         "base_sha": "sanitized",
-        "start_sha": "unused-commit-test-placeholder"
+        "start_sha": "unused-commit-test-placeholder",
+        "is_sca_scan": false
     }
 }

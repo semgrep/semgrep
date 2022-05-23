@@ -1,3 +1,11 @@
+"""Ask the Semgrep App server about the latest Semgrep version
+
+This module is for pinging the app to ask for the latest Semgrep release
+so we can print a message prompting the user to upgrade if they have
+an outdated version.
+"""
+# TODO: for predictable test output, add a flag to avoid making actual
+# network calls?
 import json
 import os
 import time
