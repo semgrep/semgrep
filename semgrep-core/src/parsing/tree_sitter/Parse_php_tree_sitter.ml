@@ -936,15 +936,16 @@ and map_callable_variable (env : env) (x : CST.callable_variable) =
   | `Null_member_call_exp (v1, v2, v3, v4) ->
       let v1 = map_dereferencable_expression env v1 in
       let v2 = (* "?->" *) token env v2 in
+      (* TODO add nullsafe operator to AST *)
       let v3 = map_member_name env v3 in
       let v4 = map_arguments env v4 in
-      todo env (v1, v2, v3, v4)
+      A.Call (A.Obj_get (v1, v2, v3), v4)
   | `Scoped_call_exp (v1, v2, v3, v4) ->
       let v1 = map_scope_resolution_qualifier env v1 in
       let v2 = (* "::" *) token env v2 in
       let v3 = map_member_name env v3 in
       let v4 = map_arguments env v4 in
-      todo env (v1, v2, v3, v4)
+      A.Call (A.Class_get (v1, v2, v3), v4)
   | `Func_call_exp (v1, v2) ->
       let v1 =
         match v1 with
@@ -956,7 +957,7 @@ and map_callable_variable (env : env) (x : CST.callable_variable) =
         | `Choice_choice_choice_dyna_var_name x -> map_callable_expression env x
       in
       let v2 = map_arguments env v2 in
-      todo env (v1, v2)
+      A.Call (v1, v2)
 
 and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) :
     A.catch =
