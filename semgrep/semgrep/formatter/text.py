@@ -412,7 +412,7 @@ class TextFormatter(BaseFormatter):
         for match in rule_matches:
             if "dependency_match_only" not in match.extra:
                 first_party.append(match)
-            if match.extra["dependency_match_only"]:
+            elif match.extra["dependency_match_only"]:
                 unreachable.append(match)
             else:
                 reachable.append(match)
