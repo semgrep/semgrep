@@ -180,7 +180,7 @@ type formula_old =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * Xlang.t option * formula
+  | MetavarPattern of MV.mvar * Xlang.t option * formula_old
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
   (* arbitrary code! dangerous! *)
@@ -362,38 +362,6 @@ let rewrite_metavar_comparison_strip mvar cond =
   in
   visitor.Map_AST.vexpr cond
 
-let convert_extra x =
-  match x with
-  | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, opt_xlang, formula) ->
-      CondNestedFormula (mvar, opt_xlang, formula)
-  | MetavarComparison comp -> (
-      match comp with
-      (* do we care about strip and base? should not Eval_generic handle it?
-       * - base is handled automatically, in the Generic AST all integer
-       *   literals are normalized and represented in base 10.
-       * - for strip the user should instead use a more complex condition that
-       *   converts the string into a number (e.g., "1234" in 1234).
-       *)
-      | { metavariable = mvar; comparison; strip; base = _NOT_NEEDED } ->
-          let cond =
-            (* if strip=true we rewrite the condition and insert Python's `int`
-             * function to parse the integer value of mvar. *)
-            match strip with
-            | None
-            | Some false ->
-                comparison
-            | Some true -> rewrite_metavar_comparison_strip mvar comparison
-          in
-          CondEval cond)
-  | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
-  | PatWherePython _ ->
-      (*
-  logger#debug "convert_extra: %s" s;
-  Parse_rule.parse_metavar_cond s
-*)
-      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
-
 (* TODO This is ugly because depends-on is inside the formula
    but handled in Python. It might be that the only sane answer is
    to port it to OCaml *)
@@ -425,7 +393,7 @@ let remove_noop (e : formula_old) : formula_old =
   in
   aux e
 
-let (convert_formula_old : formula_old -> formula) =
+let rec (convert_formula_old : formula_old -> formula) =
  fun e ->
   let rec aux e =
     match e with
@@ -456,6 +424,39 @@ let (convert_formula_old : formula_old -> formula) =
     | _ -> Left3 (aux e)
   in
   aux (remove_noop e)
+
+and convert_extra x =
+  match x with
+  | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
+  | MetavarPattern (mvar, opt_xlang, formula_old) ->
+      let formula = convert_formula_old formula_old in
+      CondNestedFormula (mvar, opt_xlang, formula)
+  | MetavarComparison comp -> (
+      match comp with
+      (* do we care about strip and base? should not Eval_generic handle it?
+       * - base is handled automatically, in the Generic AST all integer
+       *   literals are normalized and represented in base 10.
+       * - for strip the user should instead use a more complex condition that
+       *   converts the string into a number (e.g., "1234" in 1234).
+       *)
+      | { metavariable = mvar; comparison; strip; base = _NOT_NEEDED } ->
+          let cond =
+            (* if strip=true we rewrite the condition and insert Python's `int`
+             * function to parse the integer value of mvar. *)
+            match strip with
+            | None
+            | Some false ->
+                comparison
+            | Some true -> rewrite_metavar_comparison_strip mvar comparison
+          in
+          CondEval cond)
+  | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
+  | PatWherePython _ ->
+      (*
+  logger#debug "convert_extra: %s" s;
+  Parse_rule.parse_metavar_cond s
+*)
+      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
 let formula_of_pformula = function
   | New f -> f
