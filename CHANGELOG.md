@@ -38,6 +38,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   tree-sitter-typescript (Oct 2021)
 - TS: support for `override` keyword (#4220, #4798)
 - TS: better ASI (#4459) and accept code like `(null)(foo)` (#4468)
+- TS: parse correctly private properties (#5162)
 - Go: Support for ellipsis in multiple return values
   (e.g., `func foo() (..., error, ...) {}`) (#4896)
 - semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
