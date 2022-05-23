@@ -453,29 +453,31 @@ class TextFormatter(BaseFormatter):
             else iter([])
         )
 
-        reachable_matches_output = (
-            f"\n{with_color(Colors.red, 'Reachable SCA Findings:')}\n"
-            + "\n".join(reachable_output)
-        )
-        unreachable_matches_output = (
-            f"\n{with_color(Colors.yellow, 'Unreachable SCA Findings:')}\n"
-            + "\n".join(unreachable_output)
-        )
+        findings_output = []
+
+        if reachable_output:
+            findings_output.append(
+                f"\n{with_color(Colors.red, 'Reachable SCA Findings:')}\n"
+                + "\n".join(reachable_output)
+            )
+
+        if unreachable_output:
+            findings_output.append(
+                f"\n{with_color(Colors.yellow, 'Unreachable SCA Findings:')}\n"
+                + "\n".join(unreachable_output)
+            )
+
         if (reachable or unreachable) and first_party:
-            first_party_matches_output = "\nFirst-Party Findings:\n" + "\n".join(
-                first_party_output
+            findings_output.append(
+                "\nFirst-Party Findings:\n" + "\n".join(first_party_output)
             )
         elif first_party:
-            first_party_matches_output = "\nFindings:\n" + "\n".join(first_party_output)
-        else:
-            first_party_matches_output = ""
+            findings_output.append("\nFindings:\n" + "\n".join(first_party_output))
 
         return "\n".join(
             [
                 sca_summary_output,
-                reachable_matches_output,
-                unreachable_matches_output,
-                first_party_matches_output,
+                *findings_output,
                 *timing_output,
             ]
         )
