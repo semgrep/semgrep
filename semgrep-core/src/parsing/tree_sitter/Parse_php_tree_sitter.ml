@@ -633,17 +633,17 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
       todo env (v1, v2, v3, v4)
 
 and map_argument (env : env) ((v1, v2) : CST.argument) =
-  let v1 =
+  let v1_todo =
     match v1 with
-    | Some x -> map_named_label_statement env x
-    | None -> todo env ()
+    | Some x -> Some (map_named_label_statement env x)
+    | None -> None
   in
   let v2 =
     match v2 with
     | `Vari_unpa x -> map_variadic_unpacking env x
     | `Exp x -> map_expression env x
   in
-  todo env (v1, v2)
+  v2
 
 and map_arguments (env : env) ((v1, v2, v3, v4) : CST.arguments) =
   let v1 = (* "(" *) token env v1 in
@@ -656,7 +656,7 @@ and map_arguments (env : env) ((v1, v2, v3, v4) : CST.arguments) =
             (fun (v1, v2) ->
               let v1 = (* "," *) token env v1 in
               let v2 = map_argument env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
         v1 :: v2
@@ -932,7 +932,7 @@ and map_callable_variable (env : env) (x : CST.callable_variable) =
       let v2 = (* "->" *) token env v2 in
       let v3 = map_member_name env v3 in
       let v4 = map_arguments env v4 in
-      todo env (v1, v2, v3, v4)
+      A.Call (A.Obj_get (v1, v2, v3), v4)
   | `Null_member_call_exp (v1, v2, v3, v4) ->
       let v1 = map_dereferencable_expression env v1 in
       let v2 = (* "?->" *) token env v2 in
