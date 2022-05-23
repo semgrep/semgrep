@@ -482,8 +482,8 @@ let rec m_list f a b =
   match (a, b) with
   | [], [] -> return ()
   | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> m_list f aas bbs
-  | [], _
-  | _ :: _, _ ->
+  | [], _ :: _
+  | _ :: _, [] ->
       fail ()
 
 let rec m_list_prefix f a b =

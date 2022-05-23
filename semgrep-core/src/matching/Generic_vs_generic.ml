@@ -2110,9 +2110,17 @@ and m_stmt a b =
       let* () = m_expr a1 b1 in
       m_tok asc bsc
   | G.Try (a0, a1, a2, a3), B.Try (b0, b1, b2, b3) ->
+      let rec m_list_pattern_can_be_shorter f a b =
+        match (a, b) with
+        | [], [] -> return ()
+        | xa :: aas, xb :: bbs ->
+            f xa xb >>= fun () -> m_list_pattern_can_be_shorter f aas bbs
+        | [], _ :: _ -> return ()
+        | _ :: _, [] -> fail ()
+      in
       let* () = m_tok a0 b0 in
       let* () = m_stmt a1 b1 in
-      let* () = (m_list m_catch) a2 b2 in
+      let* () = (m_list_pattern_can_be_shorter m_catch) a2 b2 in
       (m_option m_finally) a3 b3
   | G.Assert (a0, aargs, asc), B.Assert (b0, bargs, bsc) ->
       let* () = m_tok a0 b0 in
