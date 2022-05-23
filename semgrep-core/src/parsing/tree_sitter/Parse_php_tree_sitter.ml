@@ -2135,21 +2135,21 @@ and map_statement (env : env) (x : CST.statement) =
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_static_variable_declaration env v2 in
-            todo env (v1, v2))
+            v2)
           v3
       in
       let v4 = map_semicolon env v4 in
-      todo env (v1, v2, v3, v4)
+      StaticVars (v1, v2 :: v3)
 
 and map_static_variable_declaration (env : env)
-    ((v1, v2) : CST.static_variable_declaration) =
+    ((v1, v2) : CST.static_variable_declaration) : A.var * A.expr option =
   let v1 = map_variable_name env v1 in
   let v2 =
     match v2 with
-    | Some x -> map_property_initializer env x
-    | None -> todo env ()
+    | Some x -> Some (map_property_initializer env x)
+    | None -> None
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 and map_subscript_expression (env : env) ((v1, v2) : CST.subscript_expression) =
   let v1 = map_dereferencable_expression env v1 in
