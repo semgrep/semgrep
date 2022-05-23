@@ -532,7 +532,7 @@ and map_anon_choice_choice_array_dest_abfb170 (env : env)
       let v1 = map_expression env v1 in
       let v2 = (* "=>" *) token env v2 in
       let v3 = map_anon_choice_array_dest_08f4c18 env v3 in
-      todo env (v1, v2, v3)
+      A.Arrow (v1, v2, v3)
 
 and map_anon_choice_choice_list_dest_c865322 (env : env)
     (x : CST.anon_choice_choice_list_dest_c865322) =
@@ -713,7 +713,7 @@ and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
   let v2 =
     match v2 with
     | Some x -> map_anon_choice_choice_array_dest_abfb170 env x
-    | None -> todo env ()
+    | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
   in
   let v3 =
     Common.map
@@ -722,13 +722,13 @@ and map_array_destructing (env : env) ((v1, v2, v3, v4) : CST.array_destructing)
         let v2 =
           match v2 with
           | Some x -> map_anon_choice_choice_array_dest_abfb170 env x
-          | None -> todo env ()
+          | None -> A.Id [ ("", Parse_info.fake_info v1 "") ]
         in
-        todo env (v1, v2))
+        v2)
       v3
   in
   let v4 = (* "]" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  A.ConsArray (v1, v2 :: v3, v4)
 
 and map_array_element_initializer (env : env)
     (x : CST.array_element_initializer) =
@@ -1491,8 +1491,9 @@ and map_nullsafe_member_access_expression (env : env)
     ((v1, v2, v3) : CST.nullsafe_member_access_expression) =
   let v1 = map_dereferencable_expression env v1 in
   let v2 = (* "?->" *) token env v2 in
+  (* TODO add nullsafe operator to AST *)
   let v3 = map_member_name env v3 in
-  todo env (v1, v2, v3)
+  A.Obj_get (v1, v2, v3)
 
 and map_object_creation_expression (env : env)
     (x : CST.object_creation_expression) =
