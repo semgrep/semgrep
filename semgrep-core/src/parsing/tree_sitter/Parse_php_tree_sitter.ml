@@ -64,19 +64,21 @@ type classmember =
   | ClassVar of A.class_var
   | MethodDef of A.method_def
   | UseTrait of A.class_name
+  | EnumCase of A.class_var (* TODO add enum case to AST *)
 
 let todo (env : env) _ = failwith "not implemented"
 let map_name (env : env) tok : A.name = [ _str env tok ]
 
-let rec _split_classmembers env members constants classes methods uses =
+let rec _split_classmembers env members constants variables methods uses =
   match members with
-  | [] -> (constants, classes, methods, uses)
+  | [] -> (constants, variables, methods, uses)
   | hd :: rest -> (
       match hd with
-      | ConstantDef c -> (constants @ [ c ], classes, methods, uses)
-      | ClassVar c -> (constants, classes @ [ c ], methods, uses)
-      | MethodDef m -> (constants, classes, methods @ [ m ], uses)
-      | UseTrait u -> (constants, classes, methods, uses @ [ u ]))
+      | ConstantDef c -> (constants @ [ c ], variables, methods, uses)
+      | ClassVar c -> (constants, variables @ [ c ], methods, uses)
+      | MethodDef m -> (constants, variables, methods @ [ m ], uses)
+      | UseTrait u -> (constants, variables, methods, uses @ [ u ])
+      | EnumCase c -> (constants, variables @ [ c ], methods, uses))
 
 let split_classmembers env members = _split_classmembers env members [] [] [] []
 
@@ -275,13 +277,16 @@ let map_anonymous_function_use_clause (env : env)
   let v7 = (* ")" *) token env v7 in
   (v3, v4) :: v5
 
+let map_integer env tok =
+  let value, tok = _str env tok in
+  let value = int_of_string value in
+  A.Int (Some value, tok)
+
 let map_literal (env : env) (x : CST.literal) : A.expr =
   match x with
   | `Int tok ->
       (* integer *)
-      let value, tok = _str env tok in
-      let value = int_of_string value in
-      Int (Some value, tok)
+      map_integer env tok
   | `Float tok ->
       (* pattern \d*(_\d+)*((\.\d*(_\d+)*\
          )?([eE][\+-]?\d+(_\d+)*\
@@ -1143,7 +1148,7 @@ and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) :
       let v2 = (* "case" *) token env v2 in
       let v3 =
         (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
-        token env v3
+        _str env v3
       in
       let v4 =
         match v4 with
@@ -1151,14 +1156,24 @@ and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) :
             let v1 = (* "=" *) token env v1 in
             let v2 =
               match v2 with
-              | `Str tok -> (* string *) token env tok
-              | `Int tok -> (* integer *) token env tok
+              | `Str tok ->
+                  (* string *)
+                  ( Some (A.Hint [ ("string", token env tok) ]),
+                    Some (A.String (_str env tok)) )
+              | `Int tok ->
+                  (* integer *)
+                  ( Some (A.Hint [ ("int", token env tok) ]),
+                    Some (map_integer env tok) )
             in
-            todo env (v1, v2)
-        | None -> todo env ()
+            v2
+        | None -> (None, None)
       in
       let v5 = map_semicolon env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let type_, value = v4 in
+      [
+        EnumCase
+          { cv_name = v3; cv_type = type_; cv_value = value; cv_modifiers = [] };
+      ]
   | `Meth_decl x -> [ map_method_declaration env x ]
   | `Use_decl x -> map_use_declaration env x
 
