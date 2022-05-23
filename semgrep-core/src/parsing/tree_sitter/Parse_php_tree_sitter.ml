@@ -87,6 +87,11 @@ let map_ref_expr (env : env) tok expr : A.expr =
 
 let map_empty_block (env : env) semi = A.Block (Parse_info.fake_bracket semi [])
 
+let map_empty_statement_to_semicolon env empty =
+  match empty with
+  | `Empty_stmt t -> token env t
+  | _ -> failwith "not an empty statement"
+
 let stmt1 xs =
   match xs with
   | [] -> A.Block (Parse_info.fake_bracket Parse_info.unsafe_sc [])
@@ -313,7 +318,8 @@ let map_namespace_use_group_clause (env : env)
 
 let map_modifier (env : env) (x : CST.modifier) : A.modifier =
   match x with
-  | `Var_modi tok -> (* pattern [vV][aA][rR] *) todo env tok
+  | `Var_modi tok ->
+      (* pattern [vV][aA][rR] *) todo env tok (* TODO add to AST *)
   | `Visi_modi x -> map_visibility_modifier env x
   | `Static_modi tok ->
       (* pattern [sS][tT][aA][tT][iI][cC] *) (A.Static, token env tok)
@@ -353,13 +359,13 @@ let map_qualified_name (env : env) ((v1, v2) : CST.qualified_name) =
 let map_declare_directive (env : env) ((v1, v2, v3) : CST.declare_directive) =
   let v1 =
     match v1 with
-    | `Ticks tok -> (* "ticks" *) token env tok
-    | `Enco tok -> (* "encoding" *) token env tok
-    | `Strict_types tok -> (* "strict_types" *) token env tok
+    | `Ticks tok -> (* "ticks" *) A.Id (map_name env tok)
+    | `Enco tok -> (* "encoding" *) A.Id (map_name env tok)
+    | `Strict_types tok -> (* "strict_types" *) A.Id (map_name env tok)
   in
   let v2 = (* "=" *) token env v2 in
   let v3 = map_literal env v3 in
-  todo env (v1, v2, v3)
+  A.Assign (v1, v2, v3)
 
 let map_namespace_use_group (env : env)
     ((v1, v2, v3, v4) : CST.namespace_use_group) =
@@ -1839,7 +1845,7 @@ and map_statement (env : env) (x : CST.statement) =
       let v4 = (* ")" *) token env v4 in
       let v5 =
         match v5 with
-        | `Choice_empty_stmt x -> map_statement env x
+        | `Choice_empty_stmt x -> map_empty_statement_to_semicolon env x
         | `COLON_rep_choice_empty_stmt_pat_bb9603f_choice_auto_semi
             (v1, v2, v3, v4) ->
             let v1 = (* ":" *) token env v1 in
@@ -1849,10 +1855,10 @@ and map_statement (env : env) (x : CST.statement) =
               token env v3
             in
             let v4 = map_semicolon env v4 in
-            todo env (v1, v2, v3, v4)
-        | `Choice_auto_semi x -> map_empty_block env (map_semicolon env x)
+            v4
+        | `Choice_auto_semi x -> map_semicolon env x
       in
-      todo env (v1, v2, v3, v4, v5)
+      A.Expr (A.Call (A.Id [ (A.builtin "declare", v1) ], (v2, [ v3 ], v4)), v5)
   | `Echo_stmt (v1, v2, v3) ->
       let v1 = (* pattern [eE][cC][hH][oO] *) _str env v1 in
       let v2 = map_expressions env v2 in
