@@ -1646,24 +1646,32 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
   | `Arrow_func (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with
-        | Some tok -> (* pattern [sS][tT][aA][tT][iI][cC] *) token env tok
-        | None -> todo env ()
+        | Some tok ->
+            (* pattern [sS][tT][aA][tT][iI][cC] *) [ (A.Static, token env tok) ]
+        | None -> []
       in
       let v2 = (* pattern [fF][nN] *) token env v2 in
-      let v3 =
-        match v3 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
-      in
+      let v3 = (* "&" *) Option.is_some v3 in
       let v4 = map_formal_parameters env v4 in
       let v5 =
         match v5 with
-        | Some x -> map_return_type env x
-        | None -> todo env ()
+        | Some x -> Some (map_return_type env x)
+        | None -> None
       in
       let v6 = (* "=>" *) token env v6 in
       let v7 = map_expression env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      A.Lambda
+        {
+          A.f_name = ("", v2);
+          A.f_kind = (ShortLambda, v2);
+          A.f_params = v4;
+          A.f_return_type = v5;
+          A.f_ref = v3;
+          A.m_modifiers = v1;
+          A.f_attrs = [];
+          A.l_uses = [];
+          A.f_body = Expr (v7, Parse_info.unsafe_sc);
+        }
   | `Obj_crea_exp x -> map_object_creation_expression env x
   | `Update_exp x -> map_update_expression env x
   | `Shell_cmd_exp tok ->
