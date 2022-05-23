@@ -2159,18 +2159,18 @@ and map_subscript_expression (env : env) ((v1, v2) : CST.subscript_expression) =
         let v1 = (* "[" *) token env v1 in
         let v2 =
           match v2 with
-          | Some x -> map_expression env x
-          | None -> todo env ()
+          | Some x -> Some (map_expression env x)
+          | None -> None
         in
         let v3 = (* "]" *) token env v3 in
-        todo env (v1, v2, v3)
+        (v1, v2, v3)
     | `LCURL_exp_RCURL (v1, v2, v3) ->
         let v1 = (* "{" *) token env v1 in
-        let v2 = map_expression env v2 in
+        let v2 = Some (map_expression env v2) in
         let v3 = (* "}" *) token env v3 in
-        todo env (v1, v2, v3)
+        (v1, v2, v3)
   in
-  todo env (v1, v2)
+  A.Array_get (v1, v2)
 
 and map_switch_block (env : env) (x : CST.switch_block) =
   match x with
