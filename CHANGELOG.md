@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- `metavariable-regex` now supports an optional `constant-propagation` key.
+  When this is set to `true`, information learned from constant propagation
+  will be used when matching the metavariable against the regex. By default
+  it is set to `false`
+- Dockerfile: constant propagation now works on variables declared with `ENV`
+
 ### Changed
 
 - Made error message for resource exhausion (exit code -11/-9) more actionable
