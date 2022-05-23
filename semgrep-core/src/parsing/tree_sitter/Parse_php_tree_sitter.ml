@@ -996,7 +996,7 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) :
   let v4 =
     match v4 with
     | Some x -> map_variable_name env x
-    | None -> todo env ()
+    | None -> ("", Parse_info.fake_info v2 "")
   in
   let v5 = (* ")" *) token env v5 in
   let v6 = map_compound_statement env v6 in
@@ -1543,10 +1543,10 @@ and map_object_creation_expression (env : env)
       let v2 = map_class_type_designator env v2 in
       let v3 =
         match v3 with
-        | Some x -> map_arguments env x
-        | None -> todo env ()
+        | Some x -> Parse_info.unbracket (map_arguments env x)
+        | None -> []
       in
-      todo env (v1, v2, v3)
+      A.New (v1, v2, v3)
   | `New_pat_a7a1629_opt_args_opt_base_clause_opt_class_inte_clause_decl_list
       (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "new" *) token env v1 in
@@ -1828,7 +1828,7 @@ and map_statement (env : env) (x : CST.statement) =
             let v2 = Common.map (map_statement env) v2 in
             let v3 = (* pattern [eE][nN][dD][fF][oO][rR] *) token env v3 in
             let v4 = map_semicolon env v4 in
-            todo env (v1, v2, v3, v4)
+            A.Block (v1, v2, v3)
       in
       A.For (v1, v3, v5, v7, v9)
   | `Fore_stmt (v1, v2, v3, v4, v5, v6, v7) ->
