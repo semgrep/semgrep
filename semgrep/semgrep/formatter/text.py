@@ -417,32 +417,6 @@ class TextFormatter(BaseFormatter):
             else:
                 reachable.append(match)
 
-        if reachable or unreachable:
-            sca_summary_output = f"\n{with_color(Colors.foreground, 'SCA Summary')}: {len(reachable)} {with_color(Colors.red,'Reachable')} findings, {len(unreachable)} {with_color(Colors.yellow,'Unreachable')} findings\n"
-        else:
-            sca_summary_output = ""
-
-        reachable_output = self._build_text_output(
-            reachable,
-            extra.get("color_output", False),
-            extra["per_finding_max_lines_limit"],
-            extra["per_line_max_chars_limit"],
-        )
-
-        unreachable_output = self._build_text_output(
-            unreachable,
-            extra.get("color_output", False),
-            extra["per_finding_max_lines_limit"],
-            extra["per_line_max_chars_limit"],
-        )
-
-        first_party_output = self._build_text_output(
-            first_party,
-            extra.get("color_output", False),
-            extra["per_finding_max_lines_limit"],
-            extra["per_line_max_chars_limit"],
-        )
-
         timing_output = (
             self._build_summary(
                 cli_output_extra.time,
@@ -454,29 +428,58 @@ class TextFormatter(BaseFormatter):
         )
 
         findings_output = []
+        if reachable or unreachable:
+            findings_output.append(
+                f"\n{with_color(Colors.foreground, 'SCA Summary')}: {len(reachable)} {with_color(Colors.red,'Reachable')} findings, {len(unreachable)} {with_color(Colors.yellow,'Unreachable')} findings\n"
+            )
 
-        if reachable_output:
+        if reachable:
+            reachable_output = self._build_text_output(
+                reachable,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
+
             findings_output.append(
                 f"\n{with_color(Colors.red, 'Reachable SCA Findings:')}\n"
                 + "\n".join(reachable_output)
             )
 
-        if unreachable_output:
+        if unreachable:
+            unreachable_output = self._build_text_output(
+                unreachable,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
+
             findings_output.append(
                 f"\n{with_color(Colors.yellow, 'Unreachable SCA Findings:')}\n"
                 + "\n".join(unreachable_output)
             )
 
         if (reachable or unreachable) and first_party:
+            first_party_output = self._build_text_output(
+                first_party,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
             findings_output.append(
                 "\nFirst-Party Findings:\n" + "\n".join(first_party_output)
             )
         elif first_party:
+            first_party_output = self._build_text_output(
+                first_party,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
             findings_output.append("\nFindings:\n" + "\n".join(first_party_output))
 
         return "\n".join(
             [
-                sca_summary_output,
                 *findings_output,
                 *timing_output,
             ]

@@ -12,7 +12,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+- `r2c-internal-project-depends-on`
+  - Support for Gradle and Poetry lockfiles
+  - Pretty printing for SCA results
 
 ### Changed
 
