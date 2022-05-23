@@ -4,5 +4,4 @@ rules:
   languages: [python]
   severity: WARNING
   pattern: |
-    "hello"
-  
+    "hello" ♥
