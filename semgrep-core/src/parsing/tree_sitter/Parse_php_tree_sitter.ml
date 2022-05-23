@@ -949,7 +949,7 @@ and map_callable_expression (env : env) (x : CST.callable_expression) : A.expr =
 
 and map_callable_variable (env : env) (x : CST.callable_variable) =
   match x with
-  | `Choice_dyna_var_name x -> A.Id (map_variable_name_ env x)
+  | `Choice_dyna_var_name x -> map_variable_name_ env x
   | `Subs_exp x -> map_subscript_expression env x
   | `Member_call_exp (v1, v2, v3, v4) ->
       let v1 = map_dereferencable_expression env v1 in
@@ -1003,7 +1003,7 @@ and map_class_constant_access_expression (env : env)
   let v1 = map_scope_resolution_qualifier env v1 in
   let v2 = (* "::" *) token env v2 in
   let v3 = map_anon_choice_name_9dd129a env v3 in
-  todo env (v1, v2, v3)
+  A.Class_get (v1, v2, A.Id [ v3 ])
 
 and map_class_type_designator (env : env) (x : CST.class_type_designator) =
   match x with
@@ -1016,7 +1016,7 @@ and map_class_type_designator (env : env) (x : CST.class_type_designator) =
   | `Member_access_exp x -> map_member_access_expression env x
   | `Null_member_access_exp x -> map_nullsafe_member_access_expression env x
   | `Scoped_prop_access_exp x -> map_scoped_property_access_expression env x
-  | `Choice_dyna_var_name x -> A.Id (map_variable_name_ env x)
+  | `Choice_dyna_var_name x -> map_variable_name_ env x
 
 and map_clone_expression (env : env) ((v1, v2) : CST.clone_expression) =
   let v1 = (* "clone" *) _str env v1 in
@@ -1093,13 +1093,14 @@ and map_dynamic_variable_name (env : env) (x : CST.dynamic_variable_name) =
   | `DOLLAR_choice_dyna_var_name (v1, v2) ->
       let v1 = (* "$" *) token env v1 in
       let v2 = map_variable_name_ env v2 in
-      todo env (v1, v2)
+      A.Call
+        (A.Id [ (A.builtin "eval_var", v1) ], Parse_info.fake_bracket v1 [ v2 ])
   | `DOLLAR_LCURL_exp_RCURL (v1, v2, v3, v4) ->
       let v1 = (* "$" *) token env v1 in
       let v2 = (* "{" *) token env v2 in
       let v3 = map_expression env v3 in
       let v4 = (* "}" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      A.Call (A.Id [ (A.builtin "eval_var", v1) ], (v2, [ v3 ], v4))
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) =
   let v1 = (* pattern [eE][lL][sS][eE] *) token env v1 in
@@ -1476,7 +1477,7 @@ and map_member_name (env : env) (x : CST.member_name) =
       | `Name tok ->
           (* pattern [_a-zA-Z\u00A1-\u00ff][_a-zA-Z\u00A1-\u00ff\d]* *)
           A.Id (map_name env tok)
-      | `Choice_dyna_var_name x -> A.Id (map_variable_name_ env x))
+      | `Choice_dyna_var_name x -> map_variable_name_ env x)
   | `LCURL_exp_RCURL (v1, v2, v3) ->
       let v1 = (* "{" *) token env v1 in
       let v2 = map_expression env v2 in
@@ -1693,7 +1694,7 @@ and map_scoped_property_access_expression (env : env)
     ((v1, v2, v3) : CST.scoped_property_access_expression) =
   let v1 = map_scope_resolution_qualifier env v1 in
   let v2 = (* "::" *) token env v2 in
-  let v3 = A.Id (map_variable_name_ env v3) in
+  let v3 = map_variable_name_ env v3 in
   A.Call (A.Class_get (v1, v2, v3), Parse_info.fake_bracket v2 [])
 
 and map_sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression)
@@ -2158,8 +2159,7 @@ and map_statement (env : env) (x : CST.statement) =
           v3
       in
       let v4 = map_semicolon env v4 in
-      let vars = Common.map (fun v -> A.Id v) (v2 :: v3) in
-      Global (v1, vars)
+      Global (v1, v2 :: v3)
   | `Func_static_decl (v1, v2, v3, v4) ->
       let v1 = (* pattern [sS][tT][aA][tT][iI][cC] *) token env v1 in
       let v2 = map_static_variable_declaration env v2 in
@@ -2358,10 +2358,10 @@ and map_variable (env : env) (x : CST.variable) =
   | `Member_access_exp x -> map_member_access_expression env x
   | `Null_member_access_exp x -> map_nullsafe_member_access_expression env x
 
-and map_variable_name_ (env : env) (x : CST.variable_name_) : A.name =
+and map_variable_name_ (env : env) (x : CST.variable_name_) : A.expr =
   match x with
   | `Dyna_var_name x -> map_dynamic_variable_name env x
-  | `Var_name x -> [ map_variable_name env x ]
+  | `Var_name x -> A.Id [ map_variable_name env x ]
 
 and map_variadic_unpacking (env : env) ((v1, v2) : CST.variadic_unpacking) =
   let v1 = (* "..." *) token env v1 in
