@@ -5,7 +5,7 @@
       "message": "",
       "languages": ["python"],
       "severity": "WARNING",
-      "pattern": "\"hello\" \uD83D\uDE03"
+      "pattern": "\"hello\" \u2665"
     }
   ]
 }
