@@ -583,21 +583,29 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
       in
       let v2 =
         match v2 with
-        | Some x -> map_type_ env x
-        | None -> todo env ()
+        | Some x -> Some (map_type_ env x)
+        | None -> None
       in
       let v3 =
         match v3 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "&" *) Some (token env tok)
+        | None -> None
       in
       let v4 = map_variable_name env v4 in
       let v5 =
         match v5 with
-        | Some x -> map_property_initializer env x
-        | None -> todo env ()
+        | Some x -> Some (map_property_initializer env x)
+        | None -> None
       in
-      todo env (v1, v2, v3, v4, v5)
+      A.ParamClassic
+        {
+          p_type = v2;
+          p_ref = v3;
+          p_name = v4;
+          p_default = v5;
+          p_attrs = v1;
+          p_variadic = None;
+        }
   | `Vari_param (v1, v2, v3, v4, v5) ->
       let v1 =
         match v1 with
@@ -606,31 +614,47 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
       in
       let v2 =
         match v2 with
-        | Some x -> map_type_ env x
-        | None -> todo env ()
+        | Some x -> Some (map_type_ env x)
+        | None -> None
       in
       let v3 =
         match v3 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
+        | Some tok -> (* "&" *) Some (token env tok)
+        | None -> None
       in
       let v4 = (* "..." *) token env v4 in
       let v5 = map_variable_name env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      A.ParamClassic
+        {
+          p_type = v2;
+          p_ref = v3;
+          p_name = v5;
+          p_default = None;
+          p_attrs = v1;
+          p_variadic = Some v4;
+        }
   | `Prop_prom_param (v1, v2, v3, v4) ->
-      let v1 = map_visibility_modifier env v1 in
+      let v1_todo = map_visibility_modifier env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_type_ env x
-        | None -> todo env ()
+        | Some x -> Some (map_type_ env x)
+        | None -> None
       in
       let v3 = map_variable_name env v3 in
       let v4 =
         match v4 with
-        | Some x -> map_property_initializer env x
-        | None -> todo env ()
+        | Some x -> Some (map_property_initializer env x)
+        | None -> None
       in
-      todo env (v1, v2, v3, v4)
+      A.ParamClassic
+        {
+          p_type = v2;
+          p_ref = None;
+          p_name = v3;
+          p_default = v4;
+          p_attrs = [];
+          p_variadic = None;
+        }
 
 and map_argument (env : env) ((v1, v2) : CST.argument) =
   let v1_todo =
@@ -1287,7 +1311,7 @@ and map_foreach_value (env : env) (x : CST.foreach_value) =
   | `List_lit x -> map_list_literal env x
 
 and map_formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters)
-    =
+    : A.parameter list =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
@@ -1298,19 +1322,19 @@ and map_formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters)
             (fun (v1, v2) ->
               let v1 = (* "," *) token env v1 in
               let v2 = map_anon_choice_simple_param_5af5eb3 env v2 in
-              todo env (v1, v2))
+              v2)
             v2
         in
-        todo env (v1, v2)
-    | None -> todo env ()
+        v1 :: v2
+    | None -> []
   in
   let v3 =
     match v3 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   let v4 = (* ")" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  v2
 
 and map_function_definition_header (env : env)
     ((v1, v2, v3, v4, v5) : CST.function_definition_header) =
@@ -1573,28 +1597,36 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
   | `Anon_func_crea_exp (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with
-        | Some tok -> (* pattern [sS][tT][aA][tT][iI][cC] *) token env tok
-        | None -> todo env ()
+        | Some tok ->
+            (* pattern [sS][tT][aA][tT][iI][cC] *) [ (A.Static, token env tok) ]
+        | None -> []
       in
       let v2 = (* pattern [fF][uU][nN][cC][tT][iI][oO][nN] *) token env v2 in
-      let v3 =
-        match v3 with
-        | Some tok -> (* "&" *) token env tok
-        | None -> todo env ()
-      in
+      let v3 = (* "&" *) Option.is_some v3 in
       let v4 = map_formal_parameters env v4 in
       let v5 =
         match v5 with
         | Some x -> map_anonymous_function_use_clause env x
-        | None -> todo env ()
+        | None -> []
       in
       let v6 =
         match v6 with
-        | Some x -> map_return_type env x
-        | None -> todo env ()
+        | Some x -> Some (map_return_type env x)
+        | None -> None
       in
       let v7 = map_compound_statement env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      A.Lambda
+        {
+          A.f_name = ("", v2);
+          A.f_kind = (AnonLambda, v2);
+          A.f_params = v4;
+          A.f_return_type = v6;
+          A.f_ref = v3;
+          A.m_modifiers = v1;
+          A.f_attrs = [];
+          A.l_uses = v5;
+          A.f_body = v7;
+        }
   | `Arrow_func (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with
