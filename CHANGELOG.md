@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
-- Made error message for -11/-9 more actionable
+- Made error message for resource exhausion (exit code -11/-9) more actionable
 
 ## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
 
