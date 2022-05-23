@@ -1033,11 +1033,15 @@ and map_colon_block (env : env) ((v1, v2) : CST.colon_block) =
   let v2 = Common.map (map_statement env) v2 in
   A.Block (v1, v2, v1)
 
-and map_compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
+and map_compound_statement_ (env : env) ((v1, v2, v3) : CST.compound_statement)
+    =
   let v1 = (* "{" *) token env v1 in
   let v2 = Common.map (map_statement env) v2 in
   let v3 = (* "}" *) token env v3 in
-  A.Block (v1, v2, v3)
+  (v1, v2, v3)
+
+and map_compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
+  A.Block (map_compound_statement_ env (v1, v2, v3))
 
 and map_const_declaration (env : env) (x : CST.const_declaration) :
     classmember list =
@@ -2121,17 +2125,18 @@ and map_statement (env : env) (x : CST.statement) =
         | `Name_name_choice_auto_semi (v1, v2) ->
             let v1 = map_namespace_name env v1 in
             let v2 = map_semicolon env v2 in
-            todo env (v1, v2)
+            (v1, Parse_info.fake_bracket v2 [])
         | `Opt_name_name_comp_stmt (v1, v2) ->
             let v1 =
               match v1 with
               | Some x -> map_namespace_name env x
-              | None -> todo env ()
+              | None -> []
             in
-            let v2 = map_compound_statement env v2 in
-            todo env (v1, v2)
+            let v2 = map_compound_statement_ env v2 in
+            (v1, v2)
       in
-      todo env (v1, v2)
+      let name, block = v2 in
+      A.NamespaceDef (v1, name, block)
   | `Name_use_decl (v1, v2, v3, v4) ->
       let use_tok = (* pattern [uU][sS][eE] *) token env v1 in
       let v2_todo =
