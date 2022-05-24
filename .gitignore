@@ -175,5 +175,5 @@ perf/bench
 # Local actions testing
 act/
 
-# Ignore .history
+# Ignore .history and be doomed to repeat it
 /.history/
