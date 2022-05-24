@@ -374,6 +374,20 @@ let m_with_symbolic_propagation f b =
  * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
+  let try_parents dotted =
+    let parents =
+      match !hook_find_possible_parents with
+      | None -> []
+      | Some f -> f dotted
+    in
+    (* less: use a fold *)
+    let rec aux xs =
+      match xs with
+      | [] -> fail ()
+      | x :: xs -> m_name a x >||> aux xs
+    in
+    aux parents
+  in
   match (a, b) with
   (* equivalence: aliasing (name resolving) part 1 *)
   | ( a,
@@ -394,20 +408,8 @@ let rec m_name a b =
       m_name a (B.Id (idb, B.empty_id_info ()))
       >||> (* try this time a match with the resolved entity *)
       m_name a (H.name_of_ids dotted)
-      >||>
-      (* Try the parents *)
-      let parents =
-        match !hook_find_possible_parents with
-        | None -> []
-        | Some f -> f dotted
-      in
-      (* less: use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x :: xs -> m_name a x >||> aux xs
-      in
-      aux parents
+      >||> (* Try the parents *)
+      try_parents dotted
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -458,6 +460,25 @@ let rec m_name a b =
           return ())
   (* boilerplate *)
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
+  | ( G.Id _,
+      G.IdQualified
+        {
+          name_info =
+            {
+              B.id_resolved =
+                {
+                  contents =
+                    Some
+                      ( ( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName dotted ),
+                        _sid );
+                };
+              _;
+            };
+          _;
+        } ) ->
+      try_parents dotted
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
@@ -888,6 +909,7 @@ and m_expr a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
