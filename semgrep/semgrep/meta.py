@@ -533,6 +533,14 @@ class JenkinsMeta(GitMeta):
             return branch_or_tag
         return None
 
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("BUILD_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("GIT_COMMIT")
+
 
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
     # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
