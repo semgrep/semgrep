@@ -53,7 +53,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.yaml"))
+RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.json"))
 TARGET_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_targets.txt"))
 
 
@@ -558,8 +558,7 @@ class CoreRunner:
         rule_file_name = (
             RULE_SAVE_FILE
             if dump_command_for_core
-            # we dump JSON formatted rules to .yaml because core's JSON parser can't parse them
-            else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
+            else tempfile.NamedTemporaryFile("w", suffix=".json").name
         )
         target_file_name = (
             TARGET_SAVE_FILE
