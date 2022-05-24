@@ -178,3 +178,7 @@ act/
 # editor
 *.code-workspace
 .vscode
+
+# Ignore .history and be doomed to repeat it
+/.history/
+
