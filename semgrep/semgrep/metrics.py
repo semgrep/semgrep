@@ -14,6 +14,7 @@ from typing import Sequence
 from urllib.parse import urlparse
 
 import click
+import requests
 
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -269,7 +270,7 @@ class Metrics:
         """
         from semgrep.state import get_state  # avoiding circular import
 
-        app_session = get_state().app_session
+        user_agent = get_state().app_session.user_agent
         logger.verbose(
             f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self._using_server}"
         )
@@ -280,13 +281,11 @@ class Metrics:
         self._sent_at = datetime.now().astimezone().isoformat()
 
         try:
-            r = app_session.post(
+            r = requests.post(
                 METRICS_ENDPOINT,
                 json=self.as_dict(),
-                # metrics ingestion shouldn't see auth tokens
-                # TODO: weird, we get a mypy error only in CI, and only
-                # after I've enabled submodules for pre-commit
-                headers=cast(Dict[str, str], {"Authorization": None}),
+                headers={"User-Agent": str(user_agent)},
+                timeout=3,
             )
             r.raise_for_status()
             logger.debug("Sent pseudonymous metrics")

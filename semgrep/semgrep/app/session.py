@@ -69,7 +69,7 @@ class UserAgent:
 
     def __str__(self) -> str:
         result = f"{self.name}/{self.version}"
-        for note in sorted(self.tags):
+        for note in sorted(self.tags, key=lambda x: ("/" in x, x)):
             clean_note = note.strip("()")  # sometimes the env var has parens already
             result += f" ({clean_note})"
         return result
