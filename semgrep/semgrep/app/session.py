@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import subprocess
 from typing import Any
 from typing import Optional
 from typing import Set
@@ -31,9 +33,39 @@ class UserAgent:
 
     @tags.default
     def get_default_tags(self) -> Set[str]:
+        result = set()
         if os.getenv("SEMGREP_USER_AGENT_APPEND"):
-            return set({os.environ["SEMGREP_USER_AGENT_APPEND"]})
-        return set()
+            result.add(os.environ["SEMGREP_USER_AGENT_APPEND"])
+
+        try:
+            remote_url = subprocess.check_output(
+                ["git", "remote", "get-url", "origin"],
+                cwd=Path(__file__).parent,
+                stderr=subprocess.DEVNULL,
+                encoding="utf-8",
+            ).strip()
+            sha = subprocess.check_output(
+                [
+                    "git",
+                    "describe",
+                    # a --match value never matches will give us SHA instead of most recent tag
+                    "--match=nah_dont_actually_match",
+                    "--always",
+                    "--dirty",
+                ],
+                cwd=Path(__file__).parent,
+                stderr=subprocess.DEVNULL,
+                encoding="utf-8",
+            ).strip()
+            # If we installed semgrep in `.venv/` in the semgrep-docs repo,
+            # this function would report semgrep-docs commit SHAs in the user agent.
+            # This is why we verify the origin URL, and why check with .endswith()
+            if remote_url.replace(".git", "").endswith("/semgrep"):
+                result.add(f"sha/{sha}")
+        except subprocess.CalledProcessError:
+            pass
+
+        return result
 
     def __str__(self) -> str:
         result = f"{self.name}/{self.version}"
