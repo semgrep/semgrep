@@ -576,7 +576,9 @@ class CoreRunner:
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
-            rule_file.write(json.dumps({"rules": [rule._raw for rule in rules]}))
+            rule_file.write(
+                json.dumps({"rules": [rule._raw for rule in rules]}, indent=2)
+            )
             rule_file.flush()
 
             # Run semgrep
