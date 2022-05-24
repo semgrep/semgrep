@@ -936,4 +936,9 @@ def scan(
                 all_targets,
             )
 
+    if enable_version_check:
+        from semgrep.app.version import version_check
+
+        version_check()
+
     return return_data

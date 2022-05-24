@@ -50,13 +50,15 @@ def test_shouldafound_no_confirmation(monkeypatch, snapshot, mocker, tmp_path):
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    output = runner.invoke(
+    result = runner.invoke(
         cli,
         ["shouldafound", "targets/basic/stupid.py", "-m", "some vuln", "-y"],
         env={},
-    ).output
+    )
+    assert result.exit_code == 0
+    assert result.exception == None
 
-    snapshot.assert_match(output, "shouldafound.txt")
+    snapshot.assert_match(result.output, "shouldafound.txt")
 
 
 @pytest.mark.quick
@@ -83,6 +85,11 @@ def test_shouldafound_findings_output(
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
+    result = runner.invoke(cli, ["-e", pattern, "-l", "python"], env={})
+
+    assert result.exit_code == 0
+    assert result.exception == None
+
     snapshot.assert_match(
-        runner.invoke(cli, ["-e", pattern, "-l", "python"], env={}).output, "output.txt"
+        result.output, "output.txt"
     )
