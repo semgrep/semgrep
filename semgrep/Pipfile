@@ -20,6 +20,7 @@ types-all = "*"
 types-setuptools = "*"
 types-colorama = "~=0.4.0"
 types-jsonschema = "~=3.2"
+pytest-mock = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}

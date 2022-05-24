@@ -70,10 +70,7 @@ bump() {
   update_setup_py
 }
 
-##### Interactive steps #####
-
-echo -n "Enter a release ID of the form X.X.X for the semgrep release: "
-read release
+release="${SEMGREP_RELEASE_NEXT_VERSION}"
 
 case "$release" in
   *.*.*)
@@ -101,14 +98,8 @@ fi
 
 bump
 
-git status
-cat <<EOF
-The following files must have changes:
- $targets
-
-Please review the changes and commit them:
-- git status
-- git diff --cached $targets
-- git commit
-- git push
+if git status -s | grep -vq 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py'; then
+  error <<EOF
+The release branch contains unexpected changes, cancelling release.
 EOF
+fi

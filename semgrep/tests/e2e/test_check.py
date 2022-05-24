@@ -8,6 +8,7 @@ import pytest
 
 from semgrep.constants import OutputFormat
 from tests.conftest import _clean_output_json
+from tests.conftest import _clean_stdout
 from tests.conftest import _mask_times
 
 GITHUB_TEST_GIST_URL = (
@@ -230,7 +231,7 @@ def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/hidden")[0]
     assert excinfo.value.returncode == 7
-    snapshot.assert_match(excinfo.value.stdout, "error.json")
+    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
 
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp("rules/hidden", output_format=OutputFormat.TEXT)[0]
@@ -332,7 +333,7 @@ def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/regex-invalid.yaml")[0]
     assert excinfo.value.returncode == 2
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
-    snapshot.assert_match(excinfo.value.stdout, "error.json")
+    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
 
 
 @pytest.mark.kinda_slow
@@ -402,7 +403,7 @@ def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
         )
     assert excinfo.value.returncode not in (0, 1)
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
-    snapshot.assert_match(excinfo.value.stdout, "error.json")
+    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
 
 
 @pytest.mark.kinda_slow

@@ -6,7 +6,6 @@ from typing import Tuple
 
 import semgrep.output_from_core as core
 from dependencyparser.find_lockfiles import DependencyTrie
-from dependencyparser.models import languages_to_namespaces
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.package_restrictions import dependencies_range_match_any
@@ -64,7 +63,7 @@ def run_dependency_aware_rule(
     of dependencies. Dependencies are determined by searching for lockfiles under the first entry
     in the `targets` argument.
     """
-    depends_on_keys: List[Dict[str, str]] = rule.project_depends_on or []
+    depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
 
     if len(depends_on_keys) == 0:
@@ -74,7 +73,7 @@ def run_dependency_aware_rule(
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
     final_matches: List[RuleMatch] = []
 
-    namespaces = languages_to_namespaces(rule.languages)
+    namespaces = rule.namespaces
     dependencies: List[Tuple[Path, List[LockfileDependency]]] = []
     for ns in namespaces:
         if ns in dep_trie.all_deps:
@@ -114,7 +113,7 @@ def run_dependency_aware_rule(
                     severity=rule.severity,
                     fix=None,
                     fix_regex=None,
-                    match=core.Match(
+                    match=core.CoreMatch(
                         rule_id=core.RuleId(rule.id),
                         location=core.Location(
                             path=str(lockfile_path),
@@ -123,7 +122,7 @@ def run_dependency_aware_rule(
                         ),
                         # TODO: we need to define the fields below in
                         # Output_from_core.atd so we can reuse core.MatchExtra
-                        extra=core.MatchExtra(metavars={}),
+                        extra=core.CoreMatchExtra(metavars=core.Metavars({})),
                     ),
                     extra={
                         "dependency_match_only": True,

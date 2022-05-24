@@ -47,7 +47,7 @@ let compare_metavar_binding (name1, mv1) (name2, mv2) =
 
 (* Assumes the metavariable captures within each match_extra are already
    sorted. *)
-let compare_match_extra (a : match_extra) (b : match_extra) =
+let compare_match_extra (a : core_match_extra) (b : core_match_extra) =
   let c = compare_sorted_list compare_metavar_binding a.metavars b.metavars in
   if c <> 0 then c else compare a.message b.message
 
@@ -57,22 +57,23 @@ let compare_match_extra (a : match_extra) (b : match_extra) =
    match. This function makes a best a effort to return the results
    in a natural order.
 *)
-let compare_match (a : match_) (b : match_) =
+let compare_match (a : core_match) (b : core_match) =
   let c = compare_location a.location b.location in
   if c <> 0 then c else compare_match_extra a.extra b.extra
 
 let sort_metavars (metavars : (string * metavar_value) list) =
   List.stable_sort compare_metavar_binding metavars
 
-let sort_extra (extra : match_extra) =
+let sort_extra (extra : core_match_extra) =
   { extra with metavars = sort_metavars extra.metavars }
 
-let sort_match_list (matches : match_ list) : match_ list =
+let sort_match_list (matches : core_match list) : core_match list =
   let matches =
     matches
-    |> Common.map (fun (x : match_) -> { x with extra = sort_extra x.extra })
+    |> Common.map (fun (x : core_match) ->
+           { x with extra = sort_extra x.extra })
   in
   List.stable_sort compare_match matches
 
-let sort_match_results (res : match_results) : match_results =
+let sort_match_results (res : core_match_results) : core_match_results =
   { res with matches = sort_match_list res.matches }

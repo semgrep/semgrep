@@ -13,7 +13,6 @@
  * license.txt for more details.
  *)
 open Common
-open Cst_php
 open Ast_php
 module G = AST_generic
 module H = AST_generic_helpers

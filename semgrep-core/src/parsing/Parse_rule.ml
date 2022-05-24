@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Emma Jin
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -104,7 +104,9 @@ let generic_to_json env (key : key) ast =
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
-    | G.L (String (s, _)) -> J.String s
+    | G.L (String (s, _)) ->
+        (* should use the unescaped string *)
+        J.String s
     | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
@@ -113,6 +115,7 @@ let generic_to_json env (key : key) ast =
                  match x.G.e with
                  | G.Container
                      (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
+                     (* should use the unescaped string *)
                      (k, aux v)
                  | _ ->
                      error_at_expr env x
@@ -127,7 +130,9 @@ let generic_to_json env (key : key) ast =
 
 let read_string_wrap e =
   match e with
-  | G.L (String (value, t)) -> Some (value, t)
+  | G.L (String (value, t)) ->
+      (* should use the unescaped string *)
+      Some (value, t)
   | G.L (Float (Some n, t)) ->
       if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
       else Some (string_of_float n, t)
@@ -470,12 +475,7 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, or `pattern-comby`"
 
-let rec parse_formula (env : env) (rule_dict : dict) : R.pformula =
-  match Hashtbl.find_opt rule_dict.h "match" with
-  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old env rule_dict))
-
-and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
+let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let env = { env with path = fst key :: env.path } in
   let get_pattern str_e = parse_xpattern_expr env str_e in
   let get_nested_formula i x =
@@ -533,8 +533,11 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "r2c-internal-patterns-from" -> R.PatFilteredInPythonTodo t
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
-(* let extra = parse_extra env x in
-   R.PatExtra extra *)
+(* NOTE: this is mostly deadcode! None of our rules are using
+ * this new formula syntax directly (internally we do convert
+ * old style formula to new formula, but we always use the old
+ * syntax formula in yaml files).
+ *)
 and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
   | G.Container
@@ -553,6 +556,10 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" ->
           let xs = parse_list env key parse_formula_and_new value in
           let fs, conds = Common.partition_either (fun x -> x) xs in
+          (* sanity check fs *)
+          let pos, _negs = R.split_and fs in
+          if pos = [] then
+            raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
           R.And
             {
               tok = t;
@@ -647,9 +654,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let pformula = parse_formula env' mv_pattern_dict in
-      let formula = R.formula_of_pformula pformula in
-      R.MetavarPattern (metavar, opt_xlang, formula)
+      let formula_old =
+        parse_formula_old env' (find_formula_old env mv_pattern_dict)
+      in
+      R.MetavarPattern (metavar, opt_xlang, formula_old)
   | "metavariable-comparison" ->
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
@@ -699,6 +707,15 @@ let parse_severity ~id (s, t) =
 (*****************************************************************************)
 (* Sub parsers taint *)
 (*****************************************************************************)
+
+let parse_formula (env : env) (rule_dict : dict) : R.pformula =
+  match Hashtbl.find_opt rule_dict.h "match" with
+  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
+  | None ->
+      let old = parse_formula_old env (find_formula_old env rule_dict) in
+      (* sanity check *)
+      let _new = Rule.convert_formula_old ~rule_id:env.id old in
+      R.Old old
 
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
@@ -801,7 +818,6 @@ let parse_one_rule t i rule =
   }
 
 let parse_generic ?(error_recovery = false) file ast =
-  ignore error_recovery;
   let t, rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
@@ -853,13 +869,38 @@ let parse_bis ?error_recovery file =
   let ast =
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
-        Json_to_generic.program (Parse_json.parse_program file)
+        (* in a parsing-rule context, we don't want the parsed strings by
+         * Parse_json.parse_program to remain escaped. For example with this
+         * JSON rule:
+         * { "rules": [ {
+         *       "id": "x",
+         *       "message": "",
+         *       "languages": ["python"],
+         *       "severity": "WARNING",
+         *       "pattern": "\"hello\""
+         *     }
+         *   ]
+         * }
+         * we want the pattern in the generic AST of the rule to contain the
+         * string '"hello"', without the antislash, otherwise
+         * Parse_python.parse_any will fail parsing it.
+         *
+         * Note that we didn't have this problem before when we were using
+         * Yojson to parse a JSON rule, because Yojson correctly unescaped
+         * and returned the "final string".
+         *
+         * Note that this is handled correctly by Yaml_to_generic.program
+         * below.
+         *)
+        Json_to_generic.program ~unescape_strings:true
+          (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
             let cmd = spf "jsonnet %s -o %s" file tmpfile in
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program (Parse_json.parse_program tmpfile))
+            Json_to_generic.program ~unescape_strings:true
+              (Parse_json.parse_program tmpfile))
     | FT.Config FT.Yaml -> Yaml_to_generic.program file
     | _ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";

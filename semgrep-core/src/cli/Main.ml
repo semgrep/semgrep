@@ -418,6 +418,7 @@ let all_actions () =
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
+  @ Test_dataflow_tainting.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =
@@ -566,7 +567,6 @@ let options () =
         " keep temporary generated files" );
     ]
   @ Meta_parse_info.cmdline_flags_precision ()
-  @ Semgrep_error_code.options ()
   @ Common.options_of_actions action (all_actions ())
   @ [
       ( "-version",

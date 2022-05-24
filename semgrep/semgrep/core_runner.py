@@ -45,9 +45,8 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
-from semgrep.util import is_debug
-from semgrep.util import is_quiet
 from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
@@ -251,11 +250,12 @@ class StreamingSemgrepCore:
 
         Blocks til completion and returns exit code
         """
+        terminal = get_state().terminal
         if (
             sys.stderr.isatty()
             and self._total > 1
-            and not is_quiet()
-            and not is_debug()
+            and not terminal.is_quiet
+            and not terminal.is_debug
         ):
             # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
             self._progress_bar = tqdm(  # typing: ignore
@@ -432,15 +432,15 @@ class CoreRunner:
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
-            if returncode == -11:
+            if returncode == -11 or returncode == -9:
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
                 soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
-                tip = f" This may be a stack overflow. Current stack limit is {soft_limit}, try increasing it via `ulimit -s {2*soft_limit}`."
+                tip = f" Semgrep exceeded system resources. This may be caused by\n\n    1. Stack overflow. Try increasing the stack limit to `{soft_limit}` by running `ulimit -s {soft_limit}` before running Semgrep.\n    2. Out of memory. Try increasing the memory available to your container (if running in CI). If that is not possible, run `semgrep` with `--max-memory $YOUR_MEMORY_LIMIT`.\n    3. Some extremely niche compiler/c-bindings bug. (We've never seen this, but it's always possible.)\n\nYou can also try reducing the number of processes Semgrep uses by running `semgrep` with `--jobs 1` (or some other number of jobs). If you are running in CI, please try running the same command locally."
             else:
-                tip = ""
+                tip = "Semgrep encountered an internal error."
             self._fail(
-                f"Semgrep encountered an internal error.{tip}",
+                f"{tip}",
                 shell_command,
                 returncode,
                 semgrep_output,
@@ -477,11 +477,8 @@ class CoreRunner:
     def _add_match_times(
         self,
         profiling_data: ProfilingData,
-        timing: core.Time,
+        timing: core.CoreTiming,
     ) -> None:
-        targets = [Path(t.path) for t in timing.targets]
-
-        profiling_data.init_empty(timing.rules, targets)
         if timing.rules_parse_time:
             profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
@@ -654,7 +651,8 @@ class CoreRunner:
                 ]
 
             stderr: Optional[int] = subprocess.PIPE
-            if is_debug():
+            terminal = get_state().terminal
+            if terminal.is_debug:
                 cmd += ["--debug"]
 
             logger.debug("Running semgrep-core with command:")
@@ -684,7 +682,7 @@ class CoreRunner:
             outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
-                if err.error_type == "Timeout":
+                if isinstance(err.error_type.value, core.Timeout):
                     assert err.location.path is not None
 
                     file_timeouts[Path(err.location.path)] += 1

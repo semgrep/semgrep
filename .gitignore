@@ -172,5 +172,8 @@ perf/bench
 !perf/bench/gitlab
 !perf/bench/dummy
 
+# Local actions testing
+act/
+
 # Ignore .history
 /.history/

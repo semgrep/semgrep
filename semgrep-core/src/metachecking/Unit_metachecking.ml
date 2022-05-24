@@ -19,11 +19,6 @@ let tests_path = "../../../tests"
 (* Helpers *)
 (*****************************************************************************)
 
-let compare_actual_to_expected actual expected =
-  match E.compare_actual_to_expected actual expected with
-  | Ok () -> ()
-  | Error (_num_errors, msg) -> Alcotest.fail msg
-
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
@@ -49,7 +44,7 @@ let metachecker_checks_tests =
                            E.g_errors := errs @ !E.g_errors));
                 let actual = !E.g_errors in
                 let expected = E.expected_error_lines_of_files [ file ] in
-                compare_actual_to_expected actual expected )))
+                E.compare_actual_to_expected_for_alcotest actual expected )))
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests =

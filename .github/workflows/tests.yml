@@ -284,9 +284,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Run 0.82.0 Timing Benchmark
+      - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.82.0
+          pip3 install semgrep==0.88.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH

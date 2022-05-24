@@ -1,0 +1,15 @@
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - typescript
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - patterns:
+        - pattern: |
+            function $FUNC({$PARAM} : $TYPE) { ... }
+        - focus-metavariable: $PARAM
+    severity: ERROR

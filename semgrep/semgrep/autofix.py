@@ -152,19 +152,9 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                 except Exception as e:
                     raise SemgrepError(f"unable to modify file {filepath}: {e}")
             elif fix_regex:
-                regex = fix_regex.get("regex")
-                replacement = fix_regex.get("replacement")
-                count = fix_regex.get("count", 0)
-                if not regex or not replacement:
-                    raise SemgrepError(
-                        "'regex' and 'replacement' values required when using 'fix-regex'"
-                    )
-                try:
-                    count = int(count)
-                except ValueError:
-                    raise SemgrepError(
-                        "optional 'count' value must be an integer when using 'fix-regex'"
-                    )
+                regex = fix_regex.regex
+                replacement = fix_regex.replacement
+                count = fix_regex.count or 0
                 try:
                     fixobj, new_file_offset = _regex_replace(
                         rule_match, file_offsets, regex, replacement, count

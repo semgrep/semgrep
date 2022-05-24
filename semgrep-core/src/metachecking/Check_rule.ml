@@ -23,6 +23,7 @@ module RP = Report
 module SJ = Output_from_core_j
 module Set = Set_
 module V = Visitor_AST
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -70,11 +71,9 @@ type env = { r : Rule.t; errors : E.error list ref }
 
 let error env t s =
   let loc = Parse_info.unsafe_token_location_of_info t in
-  let check_id = "semgrep-metacheck-builtin" in
+  let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
-  let err =
-    E.mk_error ~rule_id:(Some rule_id) loc s (E.SemgrepMatchFound check_id)
-  in
+  let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -172,10 +171,11 @@ let check_formula env (lang : Xlang.t) f =
 (*****************************************************************************)
 
 let check r =
+  let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
   | Rule.Search pf ->
-      let f = Rule.formula_of_pformula pf in
+      let f = Rule.formula_of_pformula ~rule_id pf in
       check_formula { r; errors = ref [] } r.languages f
   | Taint _ -> (* TODO *) []
 
@@ -184,8 +184,9 @@ let semgrep_check config metachecks rules =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
     let s = m.rule_id.message in
-    let check_id = m.rule_id.id in
-    E.mk_error ~rule_id:None loc s (E.SemgrepMatchFound check_id)
+    let _check_id = m.rule_id.id in
+    (* TODO: why not set ~rule_id here?? bug? *)
+    E.mk_error ~rule_id:None loc s Out.SemgrepMatchFound
   in
   let config =
     {
@@ -260,7 +261,7 @@ let check_files mk_config fparser input =
   | Json ->
       let res = { RP.empty_final_result with errors } in
       let json = JSON_report.match_results_of_matches_and_errors [] res in
-      pr (SJ.string_of_match_results json)
+      pr (SJ.string_of_core_match_results json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

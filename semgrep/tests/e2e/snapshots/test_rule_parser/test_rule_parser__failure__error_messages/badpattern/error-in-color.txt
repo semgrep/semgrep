@@ -1,3 +1,8 @@
 Scanning 11 files.
 [31m[22m[24m[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Pattern parse error in rule rules.syntax.eqeq-is-bad:
- Invalid pattern for Python[0m
+ Invalid pattern for Python:
+--- pattern ---
+$X == $X 3
+--- end pattern ---
+Pattern error: Parsing.Parse_error
+[0m

@@ -1,0 +1,46 @@
+{
+  "errors": [
+    {
+      "code": 2,
+      "level": "error",
+      "message": "[ERROR] Pattern parse error in rule rules.invalid-rules.print:\n Invalid pattern for Python",
+      "rule_id": "rules.invalid-rules.print",
+      "spans": [
+        {
+          "end": {
+            "col": 21,
+            "line": 9,
+            "offset": 180
+          },
+          "file": "rules/invalid_rules/print",
+          "start": {
+            "col": 12,
+            "line": 9,
+            "offset": 171
+          },
+          "config_end": {
+            "col": 21,
+            "line": 9,
+            "offset": 180
+          },
+          "config_path": [
+            "rules",
+            "1",
+            "pattern"
+          ],
+          "config_start": {
+            "col": 12,
+            "line": 9,
+            "offset": 171
+          }
+        }
+      ],
+      "type": "Pattern parse error"
+    }
+  ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": []
+}

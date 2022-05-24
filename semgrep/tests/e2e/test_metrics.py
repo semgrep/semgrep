@@ -1,5 +1,5 @@
 """
-Tests for semgrep.metric_manager and associated command-line arguments.
+Tests for semgrep.metrics and associated command-line arguments.
 """
 from typing import Iterator
 

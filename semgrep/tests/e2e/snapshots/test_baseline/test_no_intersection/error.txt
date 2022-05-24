@@ -1,6 +1,6 @@
 Scanning 2 files.
 
-Some files were skipped.
+Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 Ran 1 rule on 2 files: 1 finding.

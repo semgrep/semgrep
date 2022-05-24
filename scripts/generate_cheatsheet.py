@@ -70,7 +70,6 @@ VERBOSE_SUBCATEGORY_NAME = {
     "stmt": "Statement",
     "stmts": "Statements",
     "call": "Function Call",
-    "eq": "Equality Constraints",
     "nested_stmts": "Nested Statements",
     "cond": "Conditionals",
     "arg": "Argument",
@@ -140,7 +139,6 @@ CHEATSHEET_ENTRIES = {
         # "field-order", TODO
         # "arg-order", TODO
         "constant_propagation",
-        "eq",
     ],
     "deep": ["exprstmt", "expr_operator"],
 }
@@ -164,7 +162,6 @@ GA_FEATURES = {
     "equivalence": [
         "naming_import",
         "constant_propagation",
-        "eq",
     ],
     "deep": ["expr_operator"],
 }

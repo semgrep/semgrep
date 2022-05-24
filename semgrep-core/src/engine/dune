@@ -14,6 +14,7 @@
 
    semgrep_core
    semgrep_matching
+   semgrep_tainting
    ; the engine used to not depend on the language-specific parsers
    ; (only the test code used semgrep_parsing), but with metavariable-pattern
    ; we now call Parse_target from Match_search_rules (we actually also
