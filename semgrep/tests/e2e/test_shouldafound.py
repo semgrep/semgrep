@@ -55,8 +55,9 @@ def test_shouldafound_no_confirmation(monkeypatch, snapshot, mocker, tmp_path):
         ["shouldafound", "targets/basic/stupid.py", "-m", "some vuln", "-y"],
         env={},
     )
-    assert result.exit_code == 0
+
     assert result.exception == None
+    assert result.exit_code == 0
 
     snapshot.assert_match(result.output, "shouldafound.txt")
 
@@ -87,9 +88,7 @@ def test_shouldafound_findings_output(
 
     result = runner.invoke(cli, ["-e", pattern, "-l", "python"], env={})
 
-    assert result.exit_code == 0
     assert result.exception == None
+    assert result.exit_code == 0
 
-    snapshot.assert_match(
-        result.output, "output.txt"
-    )
+    snapshot.assert_match(result.output, "output.txt")
