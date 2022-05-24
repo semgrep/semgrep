@@ -9,7 +9,58 @@
           "toolExecutionNotifications": []
         }
       ],
-      "results": [],
+      "results": [
+        {
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 26,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "    return a + b == a + b"
+                  },
+                  "startColumn": 12,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
+          },
+          "ruleId": "rules.eqeq-is-bad"
+        },
+        {
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/basic/stupid.js",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 19,
+                  "endLine": 3,
+                  "snippet": {
+                    "text": "console.log(x == x)"
+                  },
+                  "startColumn": 13,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison"
+          },
+          "ruleId": "rules.javascript-basic-eqeq-bad"
+        }
+      ],
       "tool": {
         "driver": {
           "name": "semgrep",

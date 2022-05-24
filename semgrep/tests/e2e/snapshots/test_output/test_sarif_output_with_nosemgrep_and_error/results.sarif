@@ -9,7 +9,38 @@
           "toolExecutionNotifications": []
         }
       ],
-      "results": [],
+      "results": [
+        {
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/nosemgrep/eqeq-nosemgrep.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 26,
+                  "endLine": 2,
+                  "snippet": {
+                    "text": "    return a + b == a + b  # nosemgrep: rules.eqeq-is-bad"
+                  },
+                  "startColumn": 12,
+                  "startLine": 2
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?"
+          },
+          "ruleId": "rules.eqeq-is-bad",
+          "suppressions": [
+            {
+              "kind": "inSource"
+            }
+          ]
+        }
+      ],
       "tool": {
         "driver": {
           "name": "semgrep",

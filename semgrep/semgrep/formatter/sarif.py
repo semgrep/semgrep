@@ -1,4 +1,5 @@
 import json
+from itertools import tee
 from typing import Any
 from typing import Iterable
 from typing import Mapping
@@ -190,8 +191,10 @@ class SarifFormatter(BaseFormatter):
         """
 
         # Check each rule match for any fixes
+        rule_matches, rule_matches_fixes = tee(rule_matches)
         fixes = [
-            self._rule_match_to_sarif_fix(rule_match) for rule_match in rule_matches
+            self._rule_match_to_sarif_fix(rule_match)
+            for rule_match in rule_matches_fixes
         ]
         # Filter out rule matches w/no fixes
         fixes = list(filter(None, fixes))
