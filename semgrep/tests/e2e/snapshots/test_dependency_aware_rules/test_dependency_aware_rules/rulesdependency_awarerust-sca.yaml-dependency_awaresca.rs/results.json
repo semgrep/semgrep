@@ -34,7 +34,11 @@
               "resolved_url": null,
               "version": "1.0.2"
             },
+<<<<<<< HEAD
             "lockfile": "cargo.lock"
+=======
+            "lockfile": "targets/dependency_aware/Cargo.lock"
+>>>>>>> 3988be6d (snapshots)
           }
         ],
         "fingerprint": "3af766253c433df522d5b6e84d4f5f8b",
