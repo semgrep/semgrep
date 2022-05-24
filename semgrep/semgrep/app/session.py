@@ -62,7 +62,7 @@ class UserAgent:
             # This is why we verify the origin URL, and why check with .endswith()
             if remote_url.replace(".git", "").endswith("/semgrep"):
                 result.add(f"sha/{sha}")
-        except subprocess.CalledProcessError:
+        except (OSError, subprocess.CalledProcessError):
             pass
 
         return result
