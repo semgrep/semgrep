@@ -260,7 +260,10 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/home-assistant/home-assistant", "languages": ALL_LANGUAGES},
+    {
+        "repo": "https://github.com/home-assistant/home-assistant",
+        "languages": ALL_LANGUAGES,
+    },
 ]
 
 FAILING_REPOS = [
