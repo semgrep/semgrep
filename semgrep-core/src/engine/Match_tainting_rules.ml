@@ -126,9 +126,10 @@ let any_in_ranges rule any rwms =
 let any_in_ranges_no_overlap rule any rwms =
   any_in_ranges rule any rwms |> Common.map fst
 
-let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
-  let formula = Rule.formula_of_pformula pformula in
-  Match_search_rules.matches_of_formula (config, equivs) rule_id file_and_more
+let range_w_metas_of_pformula config equivs file_and_more rule pformula =
+  let rule_id = fst rule.R.id in
+  let formula = Rule.formula_of_pformula ~rule_id pformula in
+  Match_search_rules.matches_of_formula (config, equivs) rule file_and_more
     formula None
   |> snd
 
@@ -298,20 +299,20 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   check_stmt ?name ~in_env lang fun_env taint_config
     (H.funcbody_to_stmt fdef.G.fbody)
 
+module PMtbl = Hashtbl.Make (struct
+  type t = PM.t
+
+  let hash (pm : PM.t) = Hashtbl.hash (pm.rule_id, pm.file, pm.range_loc, pm.env)
+
+  (* TODO: Shouldn't be the PM.equal that does the right thing? Instead of
+   * deriving `equal` for `Metavariable.bindings` via ppx_deriving, perhaps
+   * we need to have a custom definition that relies on AST_utils there. *)
+  let equal = AST_utils.with_structural_equal PM.equal
+end)
+
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
    * recomputing the CFG for each taint rule. *)
-  let module PMtbl = Hashtbl.Make (struct
-    type t = PM.t
-
-    let hash (pm : PM.t) =
-      Hashtbl.hash (pm.rule_id, pm.file, pm.range_loc, pm.env)
-
-    (* TODO: Shouldn't be the PM.equal that does the right thing? Instead of
-     * deriving `equal` for `Metavariable.bindings` via ppx_deriving, perhaps
-     * we need to have a custom definition that relies on AST_utils there. *)
-    let equal = AST_utils.with_structural_equal PM.equal
-  end) in
   let matches = ref [] in
   let pm2finding = PMtbl.create 10 in
 

@@ -31,6 +31,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
 - Made error message for resource exhausion (exit code -11/-9) more actionable
+- Made error message for rules with patterns missing positive terms
+  more actionable (#5234)
 - In this version, we have made several performance improvements
   to the code that surrounds our source parsing and matching core.
   This includes file targeting, rule fetching, and similar parts of the codebase.
