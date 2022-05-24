@@ -11,13 +11,13 @@ from typing import Tuple
 
 import click
 import requests
+from boltons.iterutils import partition
 
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 
@@ -148,10 +148,7 @@ class ScanHandler:
         """
         app_session = get_state().app_session
         all_ids = [r.id for r in rules]
-        cai_ids, rule_ids = partition(
-            lambda r_id: "r2c-internal-cai" in r_id,
-            all_ids,
-        )
+        cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
 
         all_matches = [
             match
@@ -159,8 +156,7 @@ class ScanHandler:
             for match in matches_of_rule
         ]
         new_ignored, new_matches = partition(
-            lambda match: match.is_ignored,
-            all_matches,
+            all_matches, lambda match: bool(match.is_ignored)
         )
 
         findings = {

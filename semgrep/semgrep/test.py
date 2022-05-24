@@ -26,11 +26,12 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+from boltons.iterutils import partition
+
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -355,7 +356,8 @@ def generate_test_results(
     config_filenames = get_config_filenames(config)
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
     config_with_tests, config_without_tests = partition(
-        lambda c: c[1], config_test_filenames.items()
+        config_test_filenames.items(),
+        lambda c: bool(c[1]),
     )
     config_missing_tests_output = [str(c[0]) for c in config_without_tests]
 
@@ -370,7 +372,7 @@ def generate_test_results(
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
-    config_with_errors, config_without_errors = partition(lambda r: r[1], results)
+    config_with_errors, config_without_errors = partition(results, lambda r: bool(r[1]))
     config_with_errors_output = [
         {"filename": str(filename), "error": error, "output": output}
         for filename, error, output in config_with_errors
