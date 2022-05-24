@@ -50,13 +50,7 @@ class SarifFormatter(BaseFormatter):
         # if rule_match.extra.get("dependency_matches"):
         fixed_lines = rule_match.extra.get("fixed_lines")
 
-        description = rule_match.fix
-        if rule_match.fix_regex:
-            fix_regex = rule_match.fix_regex
-            description = (
-                f"s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
-            )
-
+        description = "Semgrep rule suggested fix"
         if not fixed_lines:
             return None
         description_text = f"{rule_match.message}\n Autofix: {description}"
@@ -70,6 +64,7 @@ class SarifFormatter(BaseFormatter):
                             "deletedRegion": {
                                 "startLine": rule_match.start.line,
                                 "startColumn": rule_match.start.col,
+                                "endLine": rule_match.end.line,
                                 "endColumn": rule_match.end.col,
                             },
                             "insertedContent": {"text": fixed_lines},
