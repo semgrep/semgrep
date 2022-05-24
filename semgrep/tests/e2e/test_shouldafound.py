@@ -56,7 +56,6 @@ def test_shouldafound_no_confirmation(monkeypatch, snapshot, mocker, tmp_path):
         env={},
     )
 
-    assert result.exc_info == None
     assert result.exception == None
     assert result.exit_code == 0
 
@@ -89,7 +88,6 @@ def test_shouldafound_findings_output(
 
     result = runner.invoke(cli, ["-e", pattern, "-l", "python"], env={})
 
-    assert result.exc_info == None
     assert result.exception == None
     assert result.exit_code == 0
 
