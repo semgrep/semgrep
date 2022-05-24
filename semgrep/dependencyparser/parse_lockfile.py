@@ -345,7 +345,7 @@ LOCKFILE_PARSERS = {
     "cargo.lock": parse_Cargo_str,  # Rust
     "pom.xml": parse_Pom_str,  # Java
     "gradle.lockfile": parse_Gradle_str,  # Java
-    "poetry.lock": parse_Poetry_str, # Python
+    "poetry.lock": parse_Poetry_str,  # Python
 }
 
 
