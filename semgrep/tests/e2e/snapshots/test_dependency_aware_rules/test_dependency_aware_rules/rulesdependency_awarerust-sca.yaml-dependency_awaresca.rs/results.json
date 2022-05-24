@@ -34,7 +34,7 @@
               "resolved_url": null,
               "version": "1.0.2"
             },
-            "lockfile": "cargo.lock"
+            "lockfile": "Cargo.lock"
           }
         ],
         "fingerprint": "3af766253c433df522d5b6e84d4f5f8b",

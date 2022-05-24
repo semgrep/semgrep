@@ -47,7 +47,7 @@ NAMESPACE_TO_LOCKFILES = {
     PackageManagers.NPM: ["package-lock.json", "yarn.lock"],
     PackageManagers.GEM: ["Gemfile.lock"],
     PackageManagers.GOMOD: ["go.sum"],
-    PackageManagers.CARGO: ["cargo.lock"],
+    PackageManagers.CARGO: ["Cargo.lock"],
     PackageManagers.MAVEN: ["pom.xml"],
     PackageManagers.GRADLE: ["gradle.lockfile"],
 }
