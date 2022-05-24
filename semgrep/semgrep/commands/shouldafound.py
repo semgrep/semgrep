@@ -76,10 +76,9 @@ def shouldafound(
     # send to backend
     try:
         playground_link = _make_shouldafound_request(data)
-        click.echo("Sent feedback. Thanks for your contribution!", err=True)
+        click.echo("Sent feedback. Thanks for your contribution!")
         click.echo(
-            f"You can view and extend the generated rule template here: {playground_link}",
-            err=True,
+            f"You can view and extend the generated rule template here: {playground_link}"
         )
         sys.exit(0)
     except SemgrepError:

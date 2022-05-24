@@ -52,7 +52,15 @@ def test_shouldafound_no_confirmation(monkeypatch, snapshot, mocker, tmp_path):
 
     result = runner.invoke(
         cli,
-        ["shouldafound", "targets/basic/stupid.py", "-m", "some vuln", "-y"],
+        [
+            "shouldafound",
+            "targets/basic/stupid.py",
+            "--email",
+            "foo@bar.com",
+            "-m",
+            "some vuln",
+            "-y",
+        ],
         env={},
     )
 
