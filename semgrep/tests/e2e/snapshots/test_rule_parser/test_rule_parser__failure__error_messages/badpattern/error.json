@@ -23,13 +23,13 @@
             "line": 0
           },
           "end": {
-            "col": 24,
-            "line": 4
+            "col": 32,
+            "line": 7
           },
           "file": "tmp/masked/path",
           "start": {
-            "col": 14,
-            "line": 4
+            "col": 22,
+            "line": 7
           }
         }
       ],
