@@ -479,9 +479,6 @@ class CoreRunner:
         profiling_data: ProfilingData,
         timing: core.CoreTiming,
     ) -> None:
-        targets = [Path(t.path) for t in timing.targets]
-
-        profiling_data.init_empty(timing.rules, targets)
         if timing.rules_parse_time:
             profiling_data.set_rules_parse_time(timing.rules_parse_time)
 

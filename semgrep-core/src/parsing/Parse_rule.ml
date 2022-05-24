@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Emma Jin
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -533,8 +533,11 @@ let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "r2c-internal-patterns-from" -> R.PatFilteredInPythonTodo t
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
-(* let extra = parse_extra env x in
-   R.PatExtra extra *)
+(* NOTE: this is mostly deadcode! None of our rules are using
+ * this new formula syntax directly (internally we do convert
+ * old style formula to new formula, but we always use the old
+ * syntax formula in yaml files).
+ *)
 and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
   | G.Container
@@ -553,6 +556,10 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" ->
           let xs = parse_list env key parse_formula_and_new value in
           let fs, conds = Common.partition_either (fun x -> x) xs in
+          (* sanity check fs *)
+          let pos, _negs = R.split_and fs in
+          if pos = [] then
+            raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
           R.And
             {
               tok = t;
@@ -715,7 +722,11 @@ let parse_severity ~id (s, t) =
 let parse_formula (env : env) (rule_dict : dict) : R.pformula =
   match Hashtbl.find_opt rule_dict.h "match" with
   | Some (_matchkey, v) -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old env rule_dict))
+  | None ->
+      let old = parse_formula_old env (find_formula_old env rule_dict) in
+      (* sanity check *)
+      let _new = Rule.convert_formula_old ~rule_id:env.id old in
+      R.Old old
 
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
@@ -818,7 +829,6 @@ let parse_one_rule t i rule =
   }
 
 let parse_generic ?(error_recovery = false) file ast =
-  ignore error_recovery;
   let t, rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
