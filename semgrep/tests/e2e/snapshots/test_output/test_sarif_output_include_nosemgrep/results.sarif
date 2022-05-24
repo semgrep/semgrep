@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "fixes": [],
   "runs": [
     {
       "invocations": [
@@ -8,63 +9,7 @@
           "toolExecutionNotifications": []
         }
       ],
-      "results": [
-        {
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "targets/basic/regex-nosemgrep.txt",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 30,
-                  "endLine": 1,
-                  "snippet": {
-                    "text": "aws_account_id = 123456789012  # nosemgrep"
-                  },
-                  "startColumn": 1,
-                  "startLine": 1
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "AWS Account ID detected"
-          },
-          "ruleId": "rules.detected-aws-account-id",
-          "suppressions": [
-            {
-              "kind": "inSource"
-            }
-          ]
-        },
-        {
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "targets/basic/regex-nosemgrep.txt",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "endColumn": 28,
-                  "endLine": 3,
-                  "snippet": {
-                    "text": "aws_account_id:123456789012"
-                  },
-                  "startColumn": 1,
-                  "startLine": 3
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "AWS Account ID detected"
-          },
-          "ruleId": "rules.detected-aws-account-id"
-        }
-      ],
+      "results": [],
       "tool": {
         "driver": {
           "name": "semgrep",
