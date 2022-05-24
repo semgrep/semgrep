@@ -1,0 +1,14 @@
+software.amazon.awssdk:metrics-spi:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:netty-nio-client:2.17.37=runtimeClasspath,testRuntimeClasspath
+software.amazon.awssdk:profiles:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:protocol-core:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:regions:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:s3:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:sdk-core:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:sts:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:third-party-jackson-core:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:url-connection-client:2.17.37=testCompileClasspath,testRuntimeClasspath
+software.amazon.awssdk:utils:2.17.37=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.eventstream:eventstream:1.0.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+software.amazon.ion:ion-java:1.0.2=testCompileClasspath,testRuntimeClasspath
+empty=testAnnotationProcessor

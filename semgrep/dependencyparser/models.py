@@ -22,6 +22,8 @@ class PackageManagers(str, Enum):
     GOMOD = "gomod"
     CARGO = "cargo"
     MAVEN = "maven"
+    GRADLE = "gradle"
+
 
 
 @dataclass(eq=True, order=True, frozen=True)
@@ -48,4 +50,5 @@ NAMESPACE_TO_LOCKFILES = {
     PackageManagers.GOMOD: ["go.sum"],
     PackageManagers.CARGO: ["cargo.lock"],
     PackageManagers.MAVEN: ["pom.xml"],
+    PackageManagers.GRADLE: ["gradle.lockfile"],
 }

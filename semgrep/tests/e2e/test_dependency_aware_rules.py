@@ -29,6 +29,7 @@ from ..conftest import TESTS_PATH
         ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi.js"),
         ("rules/dependency_aware/js-sca.yaml", "dependency_aware/sca.js"),
         ("rules/dependency_aware/generic-sca.yaml", "dependency_aware/generic.txt"),
+        ("rules/dependency_aware/java-gradle-sca.yaml", "dependency_aware/sca-gradle.java"),
         (
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
