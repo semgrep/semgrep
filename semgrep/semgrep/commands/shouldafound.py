@@ -53,9 +53,18 @@ def shouldafound(
     Report a false negative in this project. "path" should be the file in which you expected the vulnerability to be found.
     """
     if not email:
-        email = (
-            subprocess.check_output(["git", "config", "user.email"]).decode().strip()
-        )
+        try:
+            email = (
+                subprocess.check_output(["git", "config", "user.email"])
+                .decode()
+                .strip()
+            )
+        except Exception:
+            click.echo(
+                "Could not parse git email. Please use the --email flag to report this false negative.",
+                err=True,
+            )
+            sys.exit(2)
 
     text = _read_lines(path, start, end)
 

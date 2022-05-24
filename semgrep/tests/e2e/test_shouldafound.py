@@ -28,7 +28,19 @@ def test_shouldafound_no_args(tmp_path, snapshot):
 
 
 @pytest.mark.quick
-def test_shouldafound_no_confirmation(monkeypatch, snapshot, mocker, tmp_path):
+@pytest.mark.parametrize(
+    "email_flag",
+    [
+        [],
+        [
+            "--email",
+            "foo@bar.com",
+        ],
+    ],
+)
+def test_shouldafound_no_confirmation(
+    monkeypatch, email_flag, snapshot, mocker, tmp_path
+):
     """
     Test that the -y flag allows seamless submission
     """
@@ -50,17 +62,19 @@ def test_shouldafound_no_confirmation(monkeypatch, snapshot, mocker, tmp_path):
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
+    args = [
+        "shouldafound",
+        "targets/basic/stupid.py",
+        "-m",
+        "some vuln",
+        "-y",
+    ]
+
+    args.extend(email_flag)
+
     result = runner.invoke(
         cli,
-        [
-            "shouldafound",
-            "targets/basic/stupid.py",
-            "--email",
-            "foo@bar.com",
-            "-m",
-            "some vuln",
-            "-y",
-        ],
+        args,
         env={},
     )
 
