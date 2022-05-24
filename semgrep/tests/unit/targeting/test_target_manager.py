@@ -295,7 +295,8 @@ def test_explicit_path(tmp_path, monkeypatch):
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats):
         return TargetManager(
-            [tmp_path], file_ignore=FileIgnore(tmp_path, ignore_pats)
+            [tmp_path],
+            file_ignore=FileIgnore.from_unprocessed_patterns(tmp_path, ignore_pats),
         ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id")
 
     monkeypatch.chdir(tmp_path)
