@@ -475,6 +475,41 @@ class GitlabMeta(GitMeta):
         }
 
 
+@dataclass
+class CircleCIMeta(GitMeta):
+    """Gather metadata from Circle CI."""
+
+    environment: str = field(default="circle-ci", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("CIRCLE_PROJECT_REPONAME")
+        if repo_name:
+            return repo_name
+        else:
+            return super().repo_name
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("CIRCLE_REPOSITORY_URL")
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("CIRCLE_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("CIRCLE_BUILD_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("CIRCLE_SHA1")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("CIRCLE_PR_NUMBER")
+
+
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
     # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
     if os.getenv("GITHUB_ACTIONS") == "true":
