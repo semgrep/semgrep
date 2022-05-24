@@ -22,6 +22,7 @@ import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
+from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
@@ -921,16 +922,18 @@ def scan(
                 severities=shown_severities,
             )
 
+            run_has_findings = any(filtered_matches_by_rule.values())
+            if not run_has_findings:
+                msg = get_no_findings_msg()
+                # decouple CLI from app - if functionality removed, do not fail
+                if msg:
+                    logger.info(msg)
+
             return_data = (
                 filtered_matches_by_rule,
                 semgrep_errors,
                 filtered_rules,
                 all_targets,
             )
-
-    if enable_version_check:
-        from semgrep.app.version import version_check
-
-        version_check()
 
     return return_data

@@ -4,9 +4,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- Made error message for resource exhausion (exit code -11/-9) more actionable
+
+## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
+
 ### Added
 
 - `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+- `shouldafound`: False Negative reporting via the CLI.
 
 ### Changed
 
@@ -28,21 +35,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the taint engine will handle this as expected and it will not suffer from such
   limitation. We believe that this change should not break existing taint rules,
   but please report any regressions that you may find.
+- Processing large rule files is now 30% faster.
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
-- Made error message for resource exhausion (exit code -11/-9) more actionable
-- In this version, we have made several performance improvements
-  to the code that surrounds our source parsing and matching core.
-  This includes file targeting, rule fetching, and similar parts of the codebase.
-  Running `semgrep scan --config auto` on the semgrep repo itself
-  went from 50-54 seconds to 28-30 seconds.
-  - As part of these changes, we removed `:include .gitignore` and `.git/`
-    from the default `.semgrepignore` patterns.
-    This should not cause any difference in which files are targeted
-    as other parts of Semgrep ignore these files already.
-  - A full breakdown of our performance updates,
-    including some upcoming ones,
-    can be found here https://github.com/returntocorp/semgrep/issues/5257#issuecomment-1133395694
 
 ### Fixed
 
