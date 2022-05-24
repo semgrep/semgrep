@@ -7,8 +7,10 @@ import sys
 import tempfile
 from pathlib import Path
 from shutil import copytree
+from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -16,6 +18,7 @@ from typing import Union
 
 import pytest
 
+from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
 
 TESTS_PATH = Path(__file__).parent
@@ -105,6 +108,31 @@ def _clean_output_json(output_json: str) -> str:
         ]
 
     return json.dumps(output, indent=2, sort_keys=True)
+
+
+def _clean_output_sarif(output):
+    # Rules are logically a set so the JSON list's order doesn't matter
+    # we make the order deterministic here so that snapshots match across runs
+    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
+    output["runs"][0]["tool"]["driver"]["rules"] = sorted(
+        output["runs"][0]["tool"]["driver"]["rules"],
+        key=lambda rule: str(rule["id"]),
+    )
+
+    # Semgrep version is included in sarif output. Verify this independently so
+    # snapshot does not need to be updated on version bump
+    assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+    output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+
+    return output
+
+
+CLEANERS: Mapping[str, Callable[[str], str]] = {
+    "--sarif": lambda s: json.dumps(_clean_output_sarif(json.loads(s))),
+    "--gitlab-sast": _clean_output_json,
+    "--gitlab-secrets": _clean_output_json,
+    "--json": _clean_output_json,
+}
 
 
 def _mask_times(result_json: str) -> str:

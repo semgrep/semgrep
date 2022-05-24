@@ -351,6 +351,8 @@ def ci(
                 max_target_bytes=max_target_bytes,
                 autofix=scan_handler.autofix if scan_handler else False,
                 dryrun=True,
+                # Always true, as we want to always report all findings, even
+                # ignored ones, to the backend
                 disable_nosem=True,
                 no_git_ignore=(not use_git_ignore),
                 timeout=timeout,
@@ -391,19 +393,23 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = {}
     nonblocking_matches_by_rule: RuleMatchMap = {}
     cai_matches_by_rule: RuleMatchMap = {}
+
+    # Since we keep nosemgrep disabled for the actual scan, we have to apply
+    # that flag here
+    keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
     for rule, matches in filtered_matches_by_rule.items():
         if "r2c-internal-cai" in rule.id:
             cai_matches_by_rule[rule] = [
-                match for match in matches if not match.is_ignored
+                match for match in matches if not match.is_ignored or keep_ignored
             ]
         else:
             if rule.is_blocking:
                 blocking_matches_by_rule[rule] = [
-                    match for match in matches if not match.is_ignored
+                    match for match in matches if not match.is_ignored or keep_ignored
                 ]
             else:
                 nonblocking_matches_by_rule[rule] = [
-                    match for match in matches if not match.is_ignored
+                    match for match in matches if not match.is_ignored or keep_ignored
                 ]
 
     sum(len(v) for v in cai_matches_by_rule.values())

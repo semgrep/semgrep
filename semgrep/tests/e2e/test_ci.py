@@ -18,6 +18,7 @@ from semgrep.config_resolver import ConfigPath
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
+from tests.conftest import CLEANERS
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -338,19 +339,25 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     snapshot.assert_match(sanitized_output, "output.txt")
 
 
-def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "format",
+    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+)
+def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix, format):
     runner = CliRunner(
         env={
             SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
             auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
         }
     )
-    result = runner.invoke(cli, ["ci", "--config", "p/something", "--json"], env={})
+    result = runner.invoke(cli, ["ci", "--config", "p/something", format], env={})
     sanitized_output = result.output.replace(__VERSION__, "<sanitized semgrep_version>")
     sanitized_output = re.sub(
         r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
     )
-    snapshot.assert_match(sanitized_output, "output.txt")
+    clean = CLEANERS.get(format, lambda s: s)(sanitized_output)
+    snapshot.assert_match(clean, "results.out")
 
 
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
