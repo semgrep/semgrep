@@ -486,8 +486,7 @@ class CircleCIMeta(GitMeta):
         repo_name = os.getenv("CIRCLE_PROJECT_REPONAME")
         if repo_name:
             return repo_name
-        else:
-            return super().repo_name
+        return super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -508,6 +507,31 @@ class CircleCIMeta(GitMeta):
     @property
     def pr_id(self) -> Optional[str]:
         return os.getenv("CIRCLE_PR_NUMBER")
+
+
+@dataclass
+class JenkinsMeta(GitMeta):
+    """Gather metadata from Jenkins CI."""
+
+    environment: str = field(default="jenkins", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("JOB_NAME")
+        if repo_name:
+            return repo_name
+        return super().repo_name
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("GIT_URL", os.getenv("GIT_URL_1"))
+
+    @property
+    def branch(self) -> Optional[str]:
+        branch_or_tag = os.getenv("GIT_BRANCH", "")
+        if "tags/" not in branch_or_tag:
+            return branch_or_tag
+        return None
 
 
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
