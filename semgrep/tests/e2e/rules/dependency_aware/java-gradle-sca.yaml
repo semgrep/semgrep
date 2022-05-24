@@ -3,8 +3,8 @@ rules:
     pattern: bad()
     r2c-internal-project-depends-on:
         namespace: gradle
-        package: ion-java
-        version: <= 1.0.2
+        package: swagger-ui-dist
+        version: <= 3.35.2
     message: oh no
     languages: [java]
     severity: WARNING

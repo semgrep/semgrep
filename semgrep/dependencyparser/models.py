@@ -25,7 +25,6 @@ class PackageManagers(str, Enum):
     GRADLE = "gradle"
 
 
-
 @dataclass(eq=True, order=True, frozen=True)
 class LockfileDependency:
     name: str
@@ -44,7 +43,7 @@ class LockfileDependency:
 
 
 NAMESPACE_TO_LOCKFILES = {
-    PackageManagers.PYPI: ["Pipfile.lock"],
+    PackageManagers.PYPI: ["Pipfile.lock", "poetry.lock"],
     PackageManagers.NPM: ["package-lock.json", "yarn.lock"],
     PackageManagers.GEM: ["Gemfile.lock"],
     PackageManagers.GOMOD: ["go.sum"],

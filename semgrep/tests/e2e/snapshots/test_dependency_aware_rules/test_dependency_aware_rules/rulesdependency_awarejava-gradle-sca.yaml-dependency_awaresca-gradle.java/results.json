@@ -20,15 +20,15 @@
           {
             "dependency_pattern": {
               "namespace": "gradle",
-              "package_name": "ion-java",
-              "semver_range": "<= 1.0.2"
+              "package_name": "swagger-ui-dist",
+              "semver_range": "<= 3.35.2"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "name": "ion-java",
+              "name": "swagger-ui-dist",
               "namespace": "gradle",
               "resolved_url": null,
-              "version": "1.0.2"
+              "version": "3.35.2"
             },
             "lockfile": "gradle.lockfile"
           }
