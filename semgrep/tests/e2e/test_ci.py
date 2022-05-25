@@ -349,14 +349,16 @@ def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix, format):
         env={
             SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
             auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
-        }
+        },
+        mix_stderr=False,
     )
     result = runner.invoke(cli, ["ci", "--config", "p/something", format], env={})
-    sanitized_output = result.output.replace(__VERSION__, "<sanitized semgrep_version>")
+    sanitized_output = result.stdout
     sanitized_output = re.sub(
         r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
     )
     clean = CLEANERS.get(format, lambda s: s)(sanitized_output)
+    clean = clean.replace(__VERSION__, "<sanitized semgrep_version>")
     snapshot.assert_match(clean, "results.out")
 
 
