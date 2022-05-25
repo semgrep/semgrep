@@ -2012,7 +2012,7 @@ and m_stmt a b =
    * _or_ an expression metavar with >||>. below
    *)
   | G.ExprStmt (({ e = G.N (G.Id ((str, tok), _id_info)); _ } as suba), sc), _b
-    when MV.is_metavar_name str -> (
+    when MV.is_metavar_name str || MV.is_metavar_ellipsis str -> (
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
