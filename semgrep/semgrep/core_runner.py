@@ -576,7 +576,9 @@ class CoreRunner:
             target_file.flush()
 
             rule_file.write(
-                json.dumps({"rules": [rule._raw for rule in rules]}, indent=2)
+                json.dumps(
+                    {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
+                )
             )
             rule_file.flush()
 
