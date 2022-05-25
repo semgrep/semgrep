@@ -12,6 +12,9 @@ CLI_RULE_ID = "-"
 SEMGREP_URL = os.environ.get(
     "SEMGREP_APP_URL", os.environ.get("SEMGREP_URL", "https://semgrep.dev")
 ).rstrip("/")
+SHOULDAFOUND_BASE_URL = os.environ.get(
+    "SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
+).rstrip("/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
@@ -30,6 +33,7 @@ SETTINGS_FILE = "settings.yml"
 SEMGREP_SETTING_ENVVAR_NAME = "SEMGREP_SETTINGS_FILE"
 SEMGREP_SETTINGS_FILE = os.environ.get(SEMGREP_SETTING_ENVVAR_NAME)
 
+SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ

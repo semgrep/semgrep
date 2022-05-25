@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   will be used when matching the metavariable against the regex. By default
   it is set to `false`
 - Dockerfile: constant propagation now works on variables declared with `ENV`
+- `shouldafound` - False Negative reporting via the CLI
 
 ### Changed
 
