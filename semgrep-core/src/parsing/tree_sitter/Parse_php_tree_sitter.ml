@@ -1689,8 +1689,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
   | `Throw_exp (v1, v2) ->
       let v1 = (* pattern [tT][hH][rR][oO][wW] *) token env v1 in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
-(* TODO A.Throw is a stmt, when it should be an expr *)
+      A.Throw (v1, v2)
 
 and map_property_element (env : env) ((v1, v2) : CST.property_element) =
   let v1 = map_variable_name env v1 in
