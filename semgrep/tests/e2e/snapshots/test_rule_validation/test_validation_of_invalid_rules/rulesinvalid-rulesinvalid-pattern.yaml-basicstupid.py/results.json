@@ -8,7 +8,7 @@
       "spans": [
         {
           "config_end": {
-            "col": 10,
+            "col": 12,
             "line": 0
           },
           "config_path": [
@@ -21,13 +21,13 @@
             "line": 0
           },
           "end": {
-            "col": 27,
-            "line": 14
+            "col": 29,
+            "line": 18
           },
           "file": "tmp/masked/path",
           "start": {
             "col": 18,
-            "line": 14
+            "line": 18
           }
         }
       ],
