@@ -1,4 +1,4 @@
-# Changelog
+Changelog
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
@@ -11,16 +11,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   will be used when matching the metavariable against the regex. By default
   it is set to `false`
 - Dockerfile: constant propagation now works on variables declared with `ENV`
-
-### Changed
-
-- Made error message for resource exhausion (exit code -11/-9) more actionable
-
-## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
-
-### Added
-
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
 
 ### Changed
 
@@ -52,7 +42,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   This includes file targeting, rule fetching, and similar parts of the codebase.
   Running `semgrep scan --config auto` on the semgrep repo itself
   went from 50-54 seconds to 28-30 seconds.
-
   - As part of these changes, we removed `:include .gitignore` and `.git/`
     from the default `.semgrepignore` patterns.
     This should not cause any difference in which files are targeted
@@ -63,8 +52,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - If a metrics event request times out, we no longer retry the request.
   This avoids Semgrep waiting 10-20 seconds before exiting if these requests are slow.
 - The metrics collection timeout has been raised from 2 seconds to 3 seconds.
-
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
 
 ### Fixed
 
@@ -217,11 +204,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby: Add basic support for lambdas in patterns. You can now write patterns
   of the form `-> (P) {Q}` where `P` and `Q` are sub-patterns. (#4950)
 - Experimental `semgrep install-deep-semgrep` command for DeepSemgrep beta (#4993)
-- `metavariable-regex` now supports an optional `constant-propagation` key.
-  When this is set to `true`, information learned from constant propagation
-  will be used when matching the metavariable against the regex. By default
-  it is set to `false`
-- Dockerfile: constant propagation now works on variables declared with `ENV`
 
 ### Changed
 
