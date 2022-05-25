@@ -1,1 +1,1 @@
-class foo(...): $...BODY
+class Foo: $...BODY
