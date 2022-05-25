@@ -4,12 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
-
 ### Added
 
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
-- `shouldafound`: False Negative reporting via the CLI.
+- `metavariable-regex` now supports an optional `constant-propagation` key.
+  When this is set to `true`, information learned from constant propagation
+  will be used when matching the metavariable against the regex. By default
+  it is set to `false`
+- Dockerfile: constant propagation now works on variables declared with `ENV`
+- `shouldafound` - False Negative reporting via the CLI
 
 ### Changed
 
