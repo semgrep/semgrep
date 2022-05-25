@@ -1,5 +1,5 @@
 # ERROR: match
-def foo(x):
+class Foo:
     y = bar(x)
     print(y)
     if y:
