@@ -18,10 +18,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
 
-### Added
-
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
-
 ### Changed
 
 - taint-mode: Let's say that e.g. `taint(x)` makes `x` tainted by side-effect.
@@ -60,8 +56,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - A full breakdown of our performance updates,
     including some upcoming ones,
     can be found here https://github.com/returntocorp/semgrep/issues/5257#issuecomment-1133395694
-
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
 
 ### Fixed
 
