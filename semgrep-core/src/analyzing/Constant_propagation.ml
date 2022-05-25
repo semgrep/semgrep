@@ -211,11 +211,22 @@ let rec eval env x : svalue option =
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
-  (* ugly: terraform specific. less: should require lang = Hcl *)
+  (* ugly: terraform specific. *)
   | DotAccess
       ( { e = N (Id ((("local" | "var"), _), _)); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
+        FN (Id (_, { id_svalue = { contents = Some x }; _ })) )
+    when is_lang env Lang.Hcl ->
+      Some x
+  (* ugly: dockerfile specific *)
+  | Call
+      ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
+        ( _,
+          [
+            Arg { e = N (Id (_, { id_svalue = { contents = Some x }; _ })); _ };
+          ],
+          _ ) )
+    when is_lang env Lang.Dockerfile ->
       Some x
   | Conditional (_e1, e2, e3) ->
       let* v2 = eval env e2 in
@@ -564,7 +575,18 @@ let propagate_basic lang prog =
       V.kexpr =
         (fun (k, v) x ->
           match x.e with
-          | N (Id (id, id_info)) when not !(env.in_lvalue) ->
+          | N (Id (id, id_info))
+          | Call
+              ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
+                (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
+            when not !(env.in_lvalue) ->
+              let/ svalue = find_id env id id_info in
+              id_info.id_svalue := Some svalue
+          (* ugly: dockerfile specific *)
+          | Call
+              ( { e = N (Id (("!dockerfile_expand!", _), _)); _ },
+                (_, [ Arg { e = N (Id (id, id_info)); _ } ], _) )
+            when not !(env.in_lvalue) ->
               let/ svalue = find_id env id id_info in
               id_info.id_svalue := Some svalue
           | DotAccess
@@ -631,16 +653,26 @@ let propagate_basic a b =
 
 let propagate_dataflow lang ast =
   logger#trace "Constant_propagation.propagate_dataflow program";
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition lang def in
-            let flow = CFG_build.cfg_of_stmts xs in
-            let mapping = Dataflow_svalue.fixpoint lang inputs flow in
-            Dataflow_svalue.update_svalue flow mapping);
-      }
-  in
-  v (Pr ast)
+  match lang with
+  | Lang.Dockerfile ->
+      (* Dockerfile has no functions. The whole file is just a single scope *)
+      let xs =
+        AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
+      in
+      let flow = CFG_build.cfg_of_stmts xs in
+      let mapping = Dataflow_svalue.fixpoint lang [] flow in
+      Dataflow_svalue.update_svalue flow mapping
+  | _ ->
+      let v =
+        V.mk_visitor
+          {
+            V.default_visitor with
+            V.kfunction_definition =
+              (fun (_k, _) def ->
+                let inputs, xs = AST_to_IL.function_definition lang def in
+                let flow = CFG_build.cfg_of_stmts xs in
+                let mapping = Dataflow_svalue.fixpoint lang inputs flow in
+                Dataflow_svalue.update_svalue flow mapping);
+          }
+      in
+      v (Pr ast)
