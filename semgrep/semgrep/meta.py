@@ -557,7 +557,7 @@ class JenkinsMeta(GitMeta):
 
 
 @dataclass
-class BitBucketMeta(GitMeta):
+class BitbucketMeta(GitMeta):
     """Gather metadata from BitBucket."""
 
     environment: str = field(default="bitbucket", init=False)
@@ -742,7 +742,7 @@ def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
 
     # https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
     elif os.getenv("BITBUCKET_BUILD_NUMBER") is not None:
-        return BitBucketMeta(baseline_ref)
+        return BitbucketMeta(baseline_ref)
 
     # https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
     # picked an env var that is only defined by Azure Pipelines

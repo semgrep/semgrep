@@ -214,6 +214,60 @@ def autofix(request, mocker):
             "CI_PROJECT_URL": "https://example.com/gitlab-org/gitlab-foss",
             "CI_JOB_URL": "https://gitlab.com/gitlab-examples/ci-debug-trace/-/jobs/379424655",
         },
+        {  # Circle CI
+            "CI": "true",
+            "CIRCLECI": "true",
+            "CIRCLE_PROJECT_USERNAME": REPO_DIR_NAME,
+            "CIRCLE_PROJECT_REPONAME": REPO_DIR_NAME,
+            "CIRCLE_REPOSITORY_URL": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "CIRCLE_BRANCH": BRANCH_NAME,
+            "CIRCLE_BUILD_URL": "https://circle.ci.build.url",
+            "CIRCLE_PR_NUMBER": "35",
+        },
+        {  # Jenkins
+            "JENKINS_URL": "some_url",
+            "GIT_URL": "https://github.com/org/repo.git",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
+        {  # Bitbucket
+            "CI": "true",
+            "BITBUCKET_BUILD_NUMBER": "hi",
+            "BITBUCKET_REPO_FULL_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "BITBUCKET_GIT_HTTP_ORIGIN": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "BITBUCKET_BRANCH": BRANCH_NAME,
+            "BITBUCKET_PIPELINE_UUID": "a-uuid",
+            "BITBUCKET_PR_ID": "35",
+        },
+        {  # Azure Pipelines
+            "BUILD_BUILDID": "some_id",
+            "BUILD_REPOSITORY_URI": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "SYSTEM_PULLREQUEST_SOURCEBRANCH": BRANCH_NAME,
+            "SYSTEM_TEAMFOUNDATIONSERVERURI": "https://azure.pipeline.url/",
+            "SYSTEM_TEAMPROJECTID": "project_id",
+            "SYSTEM_JOBID": "job_id",
+            "SYSTEM_TASKINSTANCEID": "task_id",
+        },
+        {  # Buildkite
+            "BUILDKITE": "true",
+            "BUILDKITE_PULL_REQUEST_REPO": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "BUILDKITE_BRANCH": BRANCH_NAME,
+            "BUILDKITE_BUILD_URL": "https://buildkite.build.url/something",
+            "BUILDKITE_JOB_ID": "42",
+            "BUILDKITE_PULL_REQUEST": "35",
+            "BUILDKITE_BUILD_AUTHOR": AUTHOR_NAME,
+            "BUILDKITE_BUILD_AUTHOR_EMAIL": AUTHOR_EMAIL,
+            "BUILDKITE_MESSAGE": COMMIT_MESSAGE,
+        },
+        {  # Travis CI
+            "CI": "true",
+            "TRAVIS": "true",
+            "TRAVIS_REPO_SLUG": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+            "TRAVIS_PULL_REQUEST_BRANCH": BRANCH_NAME,
+            "TRAVIS_JOB_WEB_URL": "https://travis.job.web.url/",
+            "TRAVIS_PULL_REQUEST": "35",
+            "TRAVIS_COMMIT_MESSAGE": COMMIT_MESSAGE,
+        },
     ],
     ids=[
         "local",
@@ -222,6 +276,12 @@ def autofix(request, mocker):
         "github-pr",
         "gitlab",
         "gitlab-push",
+        "circle-ci",
+        "jenkins",
+        "bitbucket",
+        "azure-pipelines",
+        "buildkite",
+        "travis",
     ],
 )
 @pytest.mark.skipif(
@@ -261,6 +321,18 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix, mo
             event_path = tmp_path / "event_path.json"
             event_path.write_text(json.dumps(event))
             env["GITHUB_EVENT_PATH"] = str(event_path)
+    if env.get("CIRCLECI"):
+        env["CIRCLE_SHA1"] = head_commit
+    if env.get("JENKINS_URL"):
+        env["GIT_COMMIT"] = head_commit
+    if env.get("BITBUCKET_BUILD_NUMBER"):
+        env["BITBUCKET_COMMIT"] = head_commit
+    if env.get("BUILD_BUILDID"):
+        env["SYSTEM_PULLREQUEST_SOURCECOMMITID"] = head_commit
+    if env.get("BUILDKITE"):
+        env["BUILDKITE_COMMIT"] = head_commit
+    if env.get("TRAVIS"):
+        env["TRAVIS_COMMIT"] = head_commit
 
     runner = CliRunner(
         env={
