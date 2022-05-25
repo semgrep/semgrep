@@ -56,6 +56,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - A full breakdown of our performance updates,
     including some upcoming ones,
     can be found here https://github.com/returntocorp/semgrep/issues/5257#issuecomment-1133395694
+- If a metrics event request times out, we no longer retry the request.
+  This avoids Semgrep waiting 10-20 seconds before exiting if these requests are slow.
+- The metrics collection timeout has been raised from 2 seconds to 3 seconds.
 
 ### Fixed
 
