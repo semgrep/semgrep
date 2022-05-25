@@ -483,10 +483,11 @@ class CircleCIMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        repo_name = os.getenv("CIRCLE_PROJECT_REPONAME")
-        if repo_name:
-            return repo_name
-        return super().repo_name
+        project_name = os.getenv("CIRCLE_PROJECT_USERNAME", "")
+        repo_name = os.getenv("CIRCLE_PROJECT_REPONAME", "")
+        if repo_name == "" and project_name == "":
+            return super().repo_name
+        return f"{project_name}/{repo_name}"
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -509,6 +510,19 @@ class CircleCIMeta(GitMeta):
         return os.getenv("CIRCLE_PR_NUMBER")
 
 
+def get_repo_name_from_github_repo_url(url: str) -> str:
+    """Pulls repository name from the url, assuming it is a GitHub repo url.
+    If url can't be parsed, just returns the full url as the repo name.
+    """
+    # url in format https://github.com/org/reponame.git
+    # and we want org/reponame
+    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
+    if second_to_last_slash == -1:
+        return url
+    # slice of beginning of string to last slash and ".git" at the end
+    return url[second_to_last_slash:-4]
+
+
 @dataclass
 class JenkinsMeta(GitMeta):
     """Gather metadata from Jenkins CI."""
@@ -517,10 +531,10 @@ class JenkinsMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        repo_name = os.getenv("JOB_NAME")
-        if repo_name:
-            return repo_name
-        return super().repo_name
+        """Constructs the repo name from the git url.
+        This assumes that the url is in the github format.
+        """
+        return get_repo_name_from_github_repo_url(os.getenv("GIT_URL", ""))
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -540,6 +554,173 @@ class JenkinsMeta(GitMeta):
     @property
     def commit_sha(self) -> Optional[str]:
         return os.getenv("GIT_COMMIT")
+
+
+@dataclass
+class BitBucketMeta(GitMeta):
+    """Gather metadata from BitBucket."""
+
+    environment: str = field(default="bitbucket", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("BITBUCKET_REPO_FULL_NAME")
+        return repo_name if repo_name else super().repo_name
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        url = "{}/addon/pipelines/home#!/results/{}".format(
+            os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"), os.getenv("BITBUCKET_PIPELINE_UUID")
+        )
+        return url
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_COMMIT")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_PR_ID")
+
+
+@dataclass
+class AzurePipelinesMeta(GitMeta):
+    """Gather metadata from Azure pipelines.
+    Pulled a lot from https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py
+    """
+
+    environment: str = field(default="azure-pipelines", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        return get_repo_name_from_github_repo_url(self.repo_url or "")
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI") or os.getenv(
+            "BUILD_REPOSITORY_URI"
+        )
+
+    @property
+    def branch(self) -> Optional[str]:
+        branch_or_tag = (
+            os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH")
+            or os.getenv("BUILD_SOURCEBRANCH")
+            or os.getenv("BUILD_SOURCEBRANCHNAME")
+            or ""
+        )
+        if "tags/" not in branch_or_tag:
+            return branch_or_tag
+        return None
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        if (
+            os.getenv("SYSTEM_TEAMFOUNDATIONSERVERURI")
+            and os.getenv("SYSTEM_TEAMPROJECTID")
+            and os.getenv("BUILD_BUILDID")
+        ):
+            base_url = "{}{}/_build/results?buildId={}".format(
+                os.getenv("SYSTEM_TEAMFOUNDATIONSERVERURI"),
+                os.getenv("SYSTEM_TEAMPROJECTID"),
+                os.getenv("BUILD_BUILDID"),
+            )
+            return base_url + "&view=logs&j={}&t={}".format(
+                os.getenv("SYSTEM_JOBID"), os.getenv("SYSTEM_TASKINSTANCEID")
+            )
+        return None
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("SYSTEM_PULLREQUEST_SOURCECOMMITID") or os.getenv(
+            "BUILD_SOURCEVERSION"
+        )
+
+
+@dataclass
+class BuildkiteMeta(GitMeta):
+    """Gather metadata from Buildkite."""
+
+    environment: str = field(default="buildkite", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        return get_repo_name_from_github_repo_url(
+            os.getenv("BUILDKITE_PULL_REQUEST_REPO", "")
+        )
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_PULL_REQUEST_REPO")
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return "{}#{}".format(
+            os.getenv("BUILDKITE_BUILD_URL"), os.getenv("BUILDKITE_JOB_ID")
+        )
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_COMMIT")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_PULL_REQUEST")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            **super().to_dict(),
+            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR"),
+            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
+            "commit_title": os.getenv("BUILDKITE_MESSAGE"),
+        }
+
+
+@dataclass
+class TravisMeta(GitMeta):
+    """Gather metadata from Travis CI."""
+
+    environment: str = field(default="travis-ci", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("TRAVIS_REPO_SLUG")
+        return repo_name if repo_name else super().repo_name
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return f"https://github.com/{self.repo_name}.git"
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("TRAVIS_PULL_REQUEST_BRANCH") or os.getenv("TRAVIS_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("TRAVIS_JOB_WEB_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("TRAVIS_COMMIT")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("TRAVIS_PULL_REQUEST")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {**super().to_dict(), "commit_title": os.getenv("TRAVIS_COMMIT_MESSAGE")}
 
 
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
