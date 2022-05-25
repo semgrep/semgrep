@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    patterns:
+      - pattern: |
+          class $C:
+            $...BODY
+      - metavariable-pattern:
+          metavariable: $...BODY
+          pattern: |
+            ...
+            pass
+            ...
+    message: class contains pass
+    languages:
+      - python
+    severity: ERROR
