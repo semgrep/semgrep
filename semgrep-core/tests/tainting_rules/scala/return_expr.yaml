@@ -9,6 +9,6 @@ rules:
     mode: taint
     languages:
       - scala
-    severity: WARNING
+    severity: ERROR
     message: Match found
 
