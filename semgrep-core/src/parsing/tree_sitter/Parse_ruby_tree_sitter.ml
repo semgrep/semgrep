@@ -1197,6 +1197,10 @@ and argument_list_with_trailing_comma (env : env)
 
 and argument (env : env) (x : CST.argument) : AST.argument =
   match x with
+  (* Ruby allows surrounding single arguments with useless parenthesis *)
+  (* Ex: method(1,2,3) is equivalent to method((1),(2),(3))*)
+  | `Exp (`Arg (`Prim (`Paren_stmts (_, Some (`Stmt (`Exp e)), _)))) ->
+      argument env (`Exp e)
   | `Exp x -> Arg (expression env x)
   | `Splat_arg x -> Arg (splat_argument env x)
   | `Hash_splat_arg x -> Arg (hash_splat_argument env x)
