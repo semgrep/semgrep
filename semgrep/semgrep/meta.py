@@ -732,5 +732,30 @@ def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
     elif os.getenv("GITLAB_CI") == "true":
         return GitlabMeta(baseline_ref)
 
+    # https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
+    elif os.getenv("CIRCLECI") == "true":
+        return CircleCIMeta(baseline_ref)
+
+    # https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/
+    elif os.getenv("JENKINS_URL") is not None:
+        return JenkinsMeta(baseline_ref)
+
+    # https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
+    elif os.getenv("BITBUCKET_BUILD_NUMBER") is not None:
+        return BitBucketMeta(baseline_ref)
+
+    # https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
+    # picked an env var that is only defined by Azure Pipelines
+    elif os.getenv("BUILD_BUILDID") is not None:
+        return AzurePipelinesMeta(baseline_ref)
+
+    # https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email
+    elif os.getenv("BUILDKITE") == "true":
+        return BuildkiteMeta(baseline_ref)
+
+    # https://docs.travis-ci.com/user/environment-variables/
+    elif os.getenv("TRAVIS") == "true":
+        return TravisMeta(baseline_ref)
+
     else:
         return GitMeta(baseline_ref)
