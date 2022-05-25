@@ -520,7 +520,7 @@ def get_repo_name_from_github_repo_url(url: str) -> str:
     if second_to_last_slash == -1:
         return url
     # slice of beginning of string to last slash and ".git" at the end
-    return url[second_to_last_slash:-4]
+    return url[second_to_last_slash + 1 : -4]
 
 
 @dataclass
