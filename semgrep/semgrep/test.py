@@ -612,8 +612,8 @@ def generate_test_results(
     fixtest_file_diffs: str = ""
     for target_filename, results in fixtest_results.items():
         num_fixtests += 1
-        filediff: List[str] = results[0]
-        fixtest: Path = results[1]
+        filediff = results[0]
+        fixtest = results[1]
         if len(filediff) > 0:
             fixtest_file_diffs += _generate_fixcheck_output_line(
                 target_filename, filediff, fixtest
