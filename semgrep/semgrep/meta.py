@@ -569,7 +569,7 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
+        return os.getenv("BITBUCKET_GIT_SSH_ORIGIN")
 
     @property
     def branch(self) -> Optional[str]:
