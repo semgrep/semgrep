@@ -41,7 +41,6 @@ from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
 from semgrep.util import is_config_fixtest_suffix
 from semgrep.util import final_suffix_matches
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -492,7 +491,7 @@ def generate_test_results(
     }
 
     config_with_fixtests, config_without_fixtests = partition(
-        lambda c: c[1], fixtest_filenames.items()
+        fixtest_filenames.items(), lambda c: bool(c[1])
     )
     
     configs_missing_fixtests = [
