@@ -730,7 +730,7 @@ and m_expr a b =
    *)
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
-  (* equivalence: extra parenthesis equivalence!
+  (* equivalence: extra parentheses equivalence!
    * must be before literal match below, to allow extra paren in the pattern to still match code without parens
    *)
   | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1

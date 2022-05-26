@@ -7,6 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - Sarif output format now includes `fixes` section
+- Patterns will now match against code with extra parentheses. See Ruby patterns change
+  below for an example
+
+### Changed
+
+- Ruby patterns will now match arguments with extra parentheses around arguments, or with a space
+  between the method and args. Previosuly `method("...")` would not match `method(("foo"))`
+  or `method (("foo"))`.
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
