@@ -16,6 +16,7 @@ import functools
 import json
 import multiprocessing
 import os
+from ruamel.yaml import YAML
 import shutil
 import sys
 import tarfile
@@ -31,8 +32,6 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 import uuid
-
-import yaml
 
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
@@ -393,7 +392,8 @@ def get_config_fixtest_filenames(
 
 def config_contains_fix_key(config: Path) -> bool:
     with open(config, "r") as file:
-        rule = yaml.safe_load(file)
+        yaml=YAML(typ='safe')   # default, if not specfied, is 'rt' (round-trip)
+        rule = yaml.load(file)
         if "rules" in rule:
             return "fix" in rule["rules"][0]
         else:
