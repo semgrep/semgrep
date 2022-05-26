@@ -278,6 +278,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                  *)
                  PI.bad_stat file
            in
+           if verbose && stat.PI.error_line_count > 0 then
+             pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PI.filename);
            stat)
   in
   (stats, skipped)

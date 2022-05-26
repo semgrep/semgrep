@@ -313,6 +313,17 @@ end)
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
   (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
    * recomputing the CFG for each taint rule. *)
+  let module PMtbl = Hashtbl.Make (struct
+    type t = PM.t
+
+    let hash (pm : PM.t) =
+      Hashtbl.hash (pm.rule_id, pm.file, pm.range_loc, pm.env)
+
+    (* TODO: Shouldn't be the PM.equal that does the right thing? Instead of
+     * deriving `equal` for `Metavariable.bindings` via ppx_deriving, perhaps
+     * we need to have a custom definition that relies on AST_utils there. *)
+    let equal = AST_utils.with_structural_equal PM.equal
+  end) in
   let matches = ref [] in
   let pm2finding = PMtbl.create 10 in
 
