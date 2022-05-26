@@ -2012,13 +2012,16 @@ and m_stmt a b =
    * _or_ an expression metavar with >||>. below
    *)
   | G.ExprStmt (({ e = G.N (G.Id ((str, tok), _id_info)); _ } as suba), sc), _b
-    when MV.is_metavar_name str || MV.is_metavar_ellipsis str -> (
+    when MV.is_metavar_name str -> (
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
       | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
           m_expr suba subb
       | _ -> fail ())
+  | G.ExprStmt ({ e = G.N (G.Id ((str, tok), _)); _ }, _), _b
+    when MV.is_metavar_ellipsis str ->
+      envf (str, tok) (MV.S b)
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
   (* deep ellipsis as a statement should match any exprs in stmt *)
