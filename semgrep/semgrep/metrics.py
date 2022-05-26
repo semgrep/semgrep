@@ -8,12 +8,11 @@ from pathlib import Path
 from typing import Any
 from typing import cast
 from typing import Dict
-from typing import Iterable
 from typing import List
-from typing import Mapping
 from typing import NewType
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -23,9 +22,12 @@ from attr import define
 from attr import Factory
 from typing_extensions import TypedDict
 
+from semgrep import __VERSION__
+from semgrep.error import SemgrepError
+from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
+from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -140,6 +142,7 @@ class Metrics:
 
     def __attrs_post_init__(self) -> None:
         self.payload["started_at"] = datetime.now()
+        self.payload["environment"]["version"] = __VERSION__
         self.payload["environment"]["ci"] = os.getenv("CI")
 
     def configure(
@@ -211,7 +214,7 @@ class Metrics:
         self._configs_hash = m
 
     def add_sanitized_rules(
-        self, rules: Iterable[Rule], profiling_data: ProfilingData
+        self, rules: Sequence[Rule], profiling_data: ProfilingData
     ) -> None:
         m = cast(Sha256Hash, hashlib.sha256())
         rule_hashes = sorted(r.full_hash for r in rules)
@@ -219,6 +222,7 @@ class Metrics:
             m.update(rule_hash.encode())
         self.payload["environment"]["rulesHash"] = m
 
+        self.payload["performance"]["numRules"] = len(rules)
         self.payload["performance"]["ruleStats"] = [
             {
                 "ruleHash": rule.full_hash,
@@ -228,13 +232,19 @@ class Metrics:
             for rule in rules
         ]
 
-    def add_sanitized_findings(
-        self, findings: Mapping[Rule, Sequence[RuleMatch]]
-    ) -> None:
-        self._rules_with_findings = {r.full_hash: len(f) for r, f in findings.items()}
+    def add_sanitized_findings(self, findings: FilteredMatches) -> None:
+        self.payload["value"]["ruleHashesWithFindings"] = {
+            r.full_hash: len(f) for r, f in findings.kept.items()
+        }
+        self.payload["value"]["numFindings"] = sum(
+            len(v) for v in findings.kept.values()
+        )
+        self.payload["value"]["numIgnored"] = sum(
+            len(v) for v in findings.removed.values()
+        )
 
     def add_sanitized_targets(
-        self, targets: Iterable[Path], profiling_data: ProfilingData
+        self, targets: Set[Path], profiling_data: ProfilingData
     ) -> None:
         self.payload["performance"]["fileStats"] = [
             {
@@ -246,6 +256,25 @@ class Metrics:
             }
             for target in targets
         ]
+
+        total_bytes_scanned = sum(t.stat().st_size for t in targets)
+        self.payload["performance"]["totalBytesScanned"] = total_bytes_scanned
+        self.payload["performance"]["numTargets"] = len(targets)
+
+    def add_sanitized_errors(self, errors: List[SemgrepError]) -> None:
+        self.payload["errors"]["errors"] = [e.semgrep_error_type() for e in errors]
+
+    def add_sanitized_profiling(self, profiler: ProfileManager) -> None:
+        self.payload["performance"]["profilingTimes"] = profiler.dump_stats()
+
+    def add_sanitized_token(self, token: Optional[str]) -> None:
+        self.payload["environment"]["isAuthenticated"] = bool(token)
+
+    def add_sanitized_exit_code(self, exit_code: int) -> None:
+        self.payload["errors"]["returnCode"] = exit_code
+
+    def add_version(self, version: str) -> None:
+        self.payload["environment"]["version"] = version
 
     def as_json(self) -> str:
         return json.dumps(

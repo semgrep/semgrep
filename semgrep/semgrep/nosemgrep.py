@@ -18,6 +18,7 @@ from typing import Sequence
 from typing import Tuple
 
 from attrs import evolve
+from boltons.iterutils import partition
 
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
@@ -26,6 +27,7 @@ from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -33,10 +35,10 @@ logger = getLogger(__name__)
 
 def process_ignores(
     rule_matches_by_rule: RuleMatchMap,
-    keep_ignored: bool,
     *,
+    keep_ignored: bool,
     strict: bool,
-) -> Tuple[RuleMatchMap, Sequence[SemgrepError], int]:
+) -> Tuple[FilteredMatches, Sequence[SemgrepError]]:
     """
     Converts a mapping of findings to a mapping of findings that
     will be shown to the caller.
@@ -45,35 +47,26 @@ def process_ignores(
     :param keep_ignored: if true will keep nosem findings in returned object, otherwise removes them
     :param strict: The value of the --strict flag (affects error return)
     :return:
-    - RuleMatchMap: dict from rule to list of findings. Findings have is_ignored
+    - FilteredMatches: dicts from rule to list of findings. Findings have is_ignored
         set to true if there was matching nosem comment found for it.
         If keep_ignored set to true, will keep all findings that have is_ignored: True
-        otherwise removes them in the return object
+        in the .kept attribute, otherwise moves them to .removed
     - list of semgrep errors when dealing with nosem:
         i.e. a nosem without associated finding or nosem id not matching finding
-    - number of findings with is_ignored set to true
     """
-    filtered = {}
-    nosem_errors: List[SemgrepError] = []
+    result = FilteredMatches(rule_matches_by_rule)
+    errors: List[SemgrepError] = []
     for rule, matches in rule_matches_by_rule.items():
         evolved_matches = []
         for match in matches:
             ignored, returned_errors = _rule_match_nosem(match, strict)
             evolved_matches.append(evolve(match, is_ignored=ignored))
-            nosem_errors.extend(returned_errors)
-        filtered[rule] = evolved_matches
+            errors.extend(returned_errors)
+        result.kept[rule], result.removed[rule] = partition(
+            evolved_matches, lambda match: keep_ignored or not match.is_ignored
+        )
 
-    if not keep_ignored:
-        filtered = {
-            rule: [m for m in matches if not m.is_ignored]
-            for rule, matches in filtered.items()
-        }
-
-    num_findings_nosem = sum(
-        1 for rule, matches in filtered.items() for m in matches if m.is_ignored
-    )
-
-    return filtered, nosem_errors, num_findings_nosem
+    return result, errors
 
 
 def _rule_match_nosem(

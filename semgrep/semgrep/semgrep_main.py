@@ -422,15 +422,12 @@ def main(
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
-    filtered_matches_by_rule, nosem_errors, num_ignored_by_nosem = process_ignores(
-        rule_matches_by_rule,
-        keep_ignored,
-        strict=strict,
+    filtered_matches_by_rule, nosem_errors = process_ignores(
+        rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
     )
     profiler.save("ignores_time", ignores_start_time)
     output_handler.handle_semgrep_errors(nosem_errors)
 
-    num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
     profiler.save("total_time", rule_start_time)
 
     metrics = get_state().metrics
@@ -440,24 +437,14 @@ def main(
         metrics.add_sanitized_rules(filtered_rules, profiling_data)
         metrics.add_sanitized_targets(all_targets, profiling_data)
         metrics.add_sanitized_findings(filtered_matches_by_rule)
-
-        metrics.payload["value"]["numFindings"] = num_findings
-        metrics.payload["value"]["numIgnored"] = num_ignored_by_nosem
-
-        total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
-        metrics.payload["performance"]["totalBytesScanned"] = total_bytes_scanned
-        metrics.payload["performance"]["profilingTimes"] = profiler.dump_stats()
-        metrics.payload["performance"]["numRules"] = len(filtered_rules)
-        metrics.payload["performance"]["numTargets"] = len(all_targets)
-
-        error_types = list(e.semgrep_error_type() for e in semgrep_errors)
-        metrics.payload["errors"]["errors"] = error_types
+        metrics.add_sanitized_errors(semgrep_errors)
+        metrics.add_sanitized_profiling(profiler)
 
     if autofix:
-        apply_fixes(filtered_matches_by_rule, dryrun)
+        apply_fixes(filtered_matches_by_rule.kept, dryrun)
 
     return (
-        filtered_matches_by_rule,
+        filtered_matches_by_rule.kept,
         semgrep_errors,
         all_targets,
         target_manager.ignore_log,

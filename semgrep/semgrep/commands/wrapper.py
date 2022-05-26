@@ -2,8 +2,8 @@ import sys
 from functools import wraps
 from typing import Any
 from typing import Callable
+from typing import NoReturn
 
-from semgrep import __VERSION__
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -25,30 +25,27 @@ def handle_command_errors(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> None:
+    def wrapper(*args: Any, **kwargs: Any) -> NoReturn:
         # When running semgrep as a command line tool
         # silence root level logger otherwise logs higher
         # than warning are handled twice
         logger = getLogger("semgrep")
         logger.propagate = False
 
-        metrics = get_state().metrics
-        metrics.payload["environment"]["version"] = __VERSION__
+        exit_code = OK_EXIT_CODE
 
         try:
             func(*args, **kwargs)
         # Catch custom exception, output the right message and exit
         except SemgrepError as e:
-            metrics.payload["errors"]["returnCode"] = e.code
-            sys.exit(e.code)
+            exit_code = e.code
         except Exception as e:
             logger.exception(e)
-            metrics.payload["errors"]["returnCode"] = FATAL_EXIT_CODE
-            sys.exit(FATAL_EXIT_CODE)
-        else:
-            metrics.payload["errors"]["returnCode"] = OK_EXIT_CODE
-            sys.exit(OK_EXIT_CODE)
+            exit_code = FATAL_EXIT_CODE
         finally:
+            metrics = get_state().metrics
+            metrics.add_sanitized_exit_code(exit_code)
             metrics.send()
+            sys.exit(exit_code)
 
     return wrapper
