@@ -171,3 +171,9 @@ perf/bench
 !perf/bench/dogfood
 !perf/bench/gitlab
 !perf/bench/dummy
+
+# Local actions testing
+act/
+
+# Ignore .history
+/.history/

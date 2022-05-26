@@ -17,6 +17,9 @@
       "extra": {
         "fingerprint": "52e9b86a1b3404140fcaedeed3274639",
         "fix": "inputs.get(x)",
+        "fixed_lines": [
+          "  inputs.get(x) = 1"
+        ],
         "is_ignored": false,
         "lines": "  inputs[x] = 1",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
@@ -76,6 +79,9 @@
       "extra": {
         "fingerprint": "2c58f67c769a8e675e9a74ca1ed3c096",
         "fix": "inputs.get(x + 1)",
+        "fixed_lines": [
+          "  if inputs.get(x + 1) == True:"
+        ],
         "is_ignored": false,
         "lines": "  if inputs[x + 1] == True:",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
@@ -125,5 +131,6 @@
         "offset": 64
       }
     }
-  ]
+  ],
+  "version": "0.42"
 }

@@ -1,3 +1,4 @@
+import dataclasses
 import pathlib
 import sys
 from collections import defaultdict
@@ -7,7 +8,6 @@ from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
-from typing import IO
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
@@ -17,9 +17,9 @@ from typing import Set
 from typing import Type
 
 import requests
+from boltons.iterutils import partition
 
-from semgrep.app import app_session
-from semgrep.app.metrics import metric_manager
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -41,12 +41,12 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.state import get_state
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
-from semgrep.util import partition
 from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -85,18 +85,17 @@ def _build_time_target_json(
     target: Path,
     num_bytes: int,
     profiling_data: ProfilingData,
-) -> Dict[str, Any]:
-    target_json: Dict[str, Any] = {}
+) -> out.CliTargetTimes:
     path_str = get_path_str(target)
-
-    target_json["path"] = path_str
-    target_json["num_bytes"] = num_bytes
     timings = [profiling_data.get_run_times(rule, target) for rule in rules]
-    target_json["parse_times"] = [timing.parse_time for timing in timings]
-    target_json["match_times"] = [timing.match_time for timing in timings]
-    target_json["run_time"] = profiling_data.get_file_run_time(target)
 
-    return target_json
+    return out.CliTargetTimes(
+        path=path_str,
+        num_bytes=num_bytes,
+        parse_times=[timing.parse_time for timing in timings],
+        match_times=[timing.match_time for timing in timings],
+        run_time=profiling_data.get_file_run_time(target) or 0.0,
+    )
 
 
 # coupling: if you change the JSON schema below, you probably need to
@@ -108,7 +107,7 @@ def _build_time_json(
     targets: Set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
     profiler: Optional[ProfileManager],
-) -> Dict[str, Any]:
+) -> out.CliTiming:
     """Convert match times to a json-ready format.
 
     Match times are obtained for each pair (rule, target) by running
@@ -117,19 +116,19 @@ def _build_time_json(
     the target file will become negligible once we run many rules on the
     same AST.
     """
-    time_info: Dict[str, Any] = {}
-    # this list of all rules names is given here so they don't have to be
-    # repeated for each target in the 'targets' field, saving space.
-    time_info["rules"] = [{"id": rule.id} for rule in rules]
-    time_info["rules_parse_time"] = profiling_data.get_rules_parse_time()
-    time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
-    time_info["targets"] = [
-        _build_time_target_json(rules, target, num_bytes, profiling_data)
-        for target, num_bytes in zip(targets, target_bytes)
-    ]
-    time_info["total_bytes"] = sum(n for n in target_bytes)
-    return time_info
+    return out.CliTiming(
+        # this list of all rules names is given here so they don't have to be
+        # repeated for each target in the 'targets' field, saving space.
+        rules=[out.RuleIdDict(id=out.RuleId(rule.id)) for rule in rules],
+        rules_parse_time=profiling_data.get_rules_parse_time(),
+        profiling_times=profiler.dump_stats() if profiler else {},
+        targets=[
+            _build_time_target_json(rules, target, num_bytes, profiling_data)
+            for target, num_bytes in zip(targets, target_bytes)
+        ],
+        total_bytes=sum(n for n in target_bytes),
+    )
 
 
 # WARNING: this class is unofficially part of our external API. It can be passed
@@ -166,12 +165,8 @@ class OutputHandler:
     def __init__(
         self,
         output_settings: OutputSettings,
-        stderr: IO = sys.stderr,
-        stdout: IO = sys.stdout,
     ):
         self.settings = output_settings
-        self.stderr = stderr
-        self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
         self.all_targets: Set[Path] = set()
@@ -277,6 +272,7 @@ class OutputHandler:
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
     ) -> None:
+        state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
         self.rule_matches = [
@@ -329,7 +325,7 @@ class OutputHandler:
             else:
                 if output:
                     try:
-                        print(output, file=self.stdout)
+                        print(output)
                     except UnicodeEncodeError as ex:
                         raise Exception(
                             "Received output encoding error, please set PYTHONIOENCODING=utf-8"
@@ -337,10 +333,9 @@ class OutputHandler:
 
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
-                lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
+                self.rule_matches, lambda m: m.severity == RuleSeverity.INVENTORY
             )
             num_findings = len(regular_matches)
-            num_fingerprint_findings = len(fingerprint_matches)
             num_targets = len(self.all_targets)
             num_rules = len(self.filtered_rules)
 
@@ -349,18 +344,16 @@ class OutputHandler:
                 num_findings == 0
                 and num_targets > 0
                 and num_rules > 0
-                and metric_manager.get_is_using_server()
-                and app_session.token is None
+                and state.metrics.get_is_using_server()
+                and state.app_session.token is None
             ):
                 suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
             else:
                 suggestion_line = ""
             stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
-            auto_line = f"({num_fingerprint_findings} code inventory findings. Run --config auto again in a few seconds use new rule recommendations)"
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
             output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
-            output_text += "\n" + auto_line if num_fingerprint_findings else ""
             logger.info(output_text)
 
         self._final_raise(final_error)
@@ -388,15 +381,18 @@ class OutputHandler:
     def _build_output(
         self,
     ) -> str:
+        # CliOutputExtra members
+        cli_paths = out.CliPaths(
+            scanned=[str(path) for path in sorted(self.all_targets)],
+            _comment=None,
+            skipped=None,
+        )
+        cli_timing: Optional[out.CliTiming] = None
         # Extra, extra! This just in! 🗞️
         # The extra dict is for blatantly skipping type checking and function signatures.
         # - The text formatter uses it to store settings
-        # - But the JSON formatter uses it to store additional data to directly output
-        extra: Dict[str, Any] = {
-            "paths": {
-                "scanned": [str(path) for path in sorted(self.all_targets)],
-            }
-        }
+        # You should use CliOutputExtra for better type checking
+        extra: Dict[str, Any] = {}
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
@@ -404,21 +400,31 @@ class OutputHandler:
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
         if self.settings.output_time or self.settings.verbose_errors:
-            extra["time"] = _build_time_json(
+            cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
                 self.profiling_data,
                 self.profiler,
             )
         if self.settings.verbose_errors:
-            extra["paths"]["skipped"] = sorted(
+            # TODO: use CliSkippedTarget directly in ignore_log or in yield_json_objects at least
+            skipped = sorted(
                 self.ignore_log.yield_json_objects(), key=lambda x: Path(x["path"])
             )
+            cli_paths = dataclasses.replace(
+                cli_paths,
+                skipped=[
+                    out.CliSkippedTarget(path=x["path"], reason=x["reason"])
+                    for x in skipped
+                ],
+            )
         else:
-            extra["paths"]["_comment"] = "<add --verbose for a list of skipped paths>"
+            cli_paths = dataclasses.replace(
+                cli_paths, _comment="<add --verbose for a list of skipped paths>"
+            )
         if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = (
-                self.settings.output_destination is None and self.stdout.isatty(),
+                self.settings.output_destination is None and sys.stdout.isatty(),
             )
             extra[
                 "per_finding_max_lines_limit"
@@ -427,10 +433,12 @@ class OutputHandler:
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
 
+        # the rules are used only by the SARIF formatter
         return self.formatter.output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,
+            out.CliOutputExtra(paths=cli_paths, time=cli_timing),
             extra,
             self.severities,
         )

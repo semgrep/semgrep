@@ -1,0 +1,51 @@
+{
+  "errors": [
+    {
+      "code": 2,
+      "level": "warn",
+      "message": "[WARN] Out of memory at line targets/equivalence/open_redirect.py:1:\n Exceeded memory limit",
+      "path": "targets/equivalence/open_redirect.py",
+      "type": "Out of memory"
+    }
+  ],
+  "paths": {
+    "scanned": [
+      "targets/equivalence/open_redirect.py"
+    ],
+    "skipped": [
+      {
+        "path": "targets/equivalence/open_redirect.py",
+        "reason": "analysis_failed_parser_or_internal_error"
+      }
+    ]
+  },
+  "results": [],
+  "time": {
+    "profiling_times": {
+      "config_time": 2.022,
+      "core_time": 2.022,
+      "ignores_time": 2.022,
+      "total_time": 2.022
+    },
+    "rules": [
+      {
+        "id": "rules.forcetimeout"
+      }
+    ],
+    "rules_parse_time": 2.022,
+    "targets": [
+      {
+        "match_times": [
+          2.022
+        ],
+        "num_bytes": 1763,
+        "parse_times": [
+          2.022
+        ],
+        "path": "targets/equivalence/open_redirect.py",
+        "run_time": 2.022
+      }
+    ],
+    "total_bytes": 1763
+  }
+}

@@ -23,7 +23,6 @@ https://github.com/polynote/polynote
 https://github.com/mesosphere/marathon
 https://github.com/zio/zio
 https://github.com/microsoft/SynapseML
-https://github.com/yahoo/CMAK
 https://github.com/delta-io/delta
 https://github.com/lichess-org/scalachess
 https://github.com/outworkers/phantom

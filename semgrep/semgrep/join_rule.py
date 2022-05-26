@@ -16,6 +16,7 @@ from typing import Type
 
 import peewee as pw
 from attrs import define
+from boltons.iterutils import partition
 from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
@@ -32,7 +33,6 @@ from semgrep.error import SemgrepError
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__file__)
@@ -175,8 +175,7 @@ def match_on_conditions(  # type: ignore
     BlogPost.select().where(author="Author").
     """
     recursive_conditions, normal_conditions = partition(
-        lambda condition: condition.operator == JoinOperator.RECURSIVE,
-        conditions,
+        conditions, lambda condition: condition.operator == JoinOperator.RECURSIVE
     )
 
     handle_recursive_conditions(recursive_conditions, model_map, aliases)
@@ -546,7 +545,7 @@ def run_join_rule(
                     "severity", match.get("severity", RuleSeverity.INFO.value)
                 )
             ),
-            match=core.Match(
+            match=core.CoreMatch(
                 rule_id=core.RuleId(
                     join_rule.get("id", match.get("check_id", "[empty]"))
                 ),
@@ -555,9 +554,9 @@ def run_join_rule(
                     start=core.Position.from_json(match["start"]),
                     end=core.Position.from_json(match["end"]),
                 ),
-                # TODO? extra=core.MatchExtra.from_json(match.get("extra", {})),
-                extra=core.MatchExtra(metavars={}),
+                extra=core.CoreMatchExtra.from_json(match.get("extra", {})),
             ),
+            # still needed?
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,

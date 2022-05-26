@@ -16,30 +16,46 @@ from click.shell_completion import CompletionItem
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
+import semgrep.config_resolver
+import semgrep.semgrep_main
+import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets
+from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
+from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
+from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
+from semgrep.output import OutputHandler
+from semgrep.output import OutputSettings
+from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
-from semgrep.types import MetricsState
+from semgrep.state import get_state
+from semgrep.synthesize_patterns import synthesize
+from semgrep.target_manager import converted_pipe_targets
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+ScanReturn = Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]
 
 
 def __get_cpu_count() -> int:
@@ -676,7 +692,7 @@ def scan(
     verbose: bool,
     version: bool,
     vim: bool,
-) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
+) -> ScanReturn:
     """
     Run semgrep rules on files
 
@@ -714,24 +730,10 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
-    # To keep version runtime fast, we defer non-version imports until here
-    import semgrep.semgrep_main
-    import semgrep.test
-    import semgrep.config_resolver
-    from semgrep.constants import OutputFormat
-    from semgrep.constants import DEFAULT_CONFIG_FILE
-    from semgrep.dump_ast import dump_parsed_ast
-    from semgrep.error import SemgrepError
-    from semgrep.app.metrics import metric_manager
-    from semgrep.output import OutputHandler
-    from semgrep.output import OutputSettings
-    from semgrep.project import get_project_url
-    from semgrep.synthesize_patterns import synthesize
-    from semgrep.target_manager import converted_pipe_targets
-
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
-    metric_manager.configure(metrics, metrics_legacy)
+    state = get_state()
+    state.metrics.configure(metrics, metrics_legacy)
 
     if include and exclude:
         logger.warning(
@@ -756,12 +758,11 @@ def scan(
 
     output_time = time_flag or json_time
 
-    # set the flags
-    semgrep.util.set_flags(
+    state.terminal.configure(
         verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
     )
 
-    # Note this must be after the call to `set_flags` so that verbosity is respected
+    # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
     # change cwd if using docker
@@ -812,6 +813,7 @@ def scan(
             json=json,
             save_test_output_tar=save_test_output_tar,
             optimizations=optimizations,
+            deep=deep,
         )
 
     # The 'optional_stdin_target' context manager must remain before
@@ -819,6 +821,7 @@ def scan(
     # already deleted the temporary stdin file.
     with converted_pipe_targets(target_sequence) as target_sequence:
         output_handler = OutputHandler(output_settings)
+        return_data: ScanReturn = None
 
         if dump_ast:
             dump_parsed_ast(
@@ -919,10 +922,23 @@ def scan(
                 severities=shown_severities,
             )
 
-            return filtered_matches_by_rule, semgrep_errors, filtered_rules, all_targets
+            run_has_findings = any(filtered_matches_by_rule.values())
+            if not run_has_findings:
+                msg = get_no_findings_msg()
+                # decouple CLI from app - if functionality removed, do not fail
+                if msg:
+                    logger.info(msg)
+
+            return_data = (
+                filtered_matches_by_rule,
+                semgrep_errors,
+                filtered_rules,
+                all_targets,
+            )
 
     if enable_version_check:
         from semgrep.app.version import version_check
 
         version_check()
-    return None
+
+    return return_data

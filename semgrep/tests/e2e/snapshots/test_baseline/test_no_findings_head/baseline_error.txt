@@ -3,7 +3,7 @@ Scanning 3 files.
 
 Skipping baseline scan, because there are no current findings.
 
-Some files were skipped.
+Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 Ran 1 rule on 3 files: 0 findings.

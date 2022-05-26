@@ -4,6 +4,148 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Sarif output format now includes `fixes` section
+
+## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
+
+### Added
+
+- `metavariable-regex` now supports an optional `constant-propagation` key.
+  When this is set to `true`, information learned from constant propagation
+  will be used when matching the metavariable against the regex. By default
+  it is set to `false`
+- Dockerfile: constant propagation now works on variables declared with `ENV`
+- `shouldafound` - False Negative reporting via the CLI
+
+### Changed
+
+- taint-mode: Let's say that e.g. `taint(x)` makes `x` tainted by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `taint(x); ...` was as taint source. If `x` was overwritten with
+  safe data, this was not recognized by the taint engine. Also, if `taint(x)`
+  occurred inside e.g. an `if` block, any occurrence of `x` outside that block
+  was not considered tainted. Now, if you specify that the code variable itself
+  is a taint source (using `focus-metavariable`), the taint engine will handle
+  this as expected, and it will not suffer from the aforementioned limitations.
+  We believe that this change should not break existing taint rules, but please
+  report any regressions that you may find.
+- taint-mode: Let's say that e.g. `sanitize(x)` sanitizes `x` by side-effect.
+  Previously, we had to rely on a trick that declared that _any_ occurrence of
+  `x` inside `sanitize(x); ...` was sanitized. If `x` later overwritten with
+  tainted data, the taint engine would still regard `x` as safe. Now, if you
+  specify that the code variable itself is sanitized (using `focus-metavariable`),
+  the taint engine will handle this as expected and it will not suffer from such
+  limitation. We believe that this change should not break existing taint rules,
+  but please report any regressions that you may find.
+- The dot access ellipsis now matches field accesses in addition to method
+  calls.
+- Made error message for resource exhausion (exit code -11/-9) more actionable
+- Made error message for rules with patterns missing positive terms
+  more actionable (#5234)
+- In this version, we have made several performance improvements
+  to the code that surrounds our source parsing and matching core.
+  This includes file targeting, rule fetching, and similar parts of the codebase.
+  Running `semgrep scan --config auto` on the semgrep repo itself
+  went from 50-54 seconds to 28-30 seconds.
+  - As part of these changes, we removed `:include .gitignore` and `.git/`
+    from the default `.semgrepignore` patterns.
+    This should not cause any difference in which files are targeted
+    as other parts of Semgrep ignore these files already.
+  - A full breakdown of our performance updates,
+    including some upcoming ones,
+    can be found here https://github.com/returntocorp/semgrep/issues/5257#issuecomment-1133395694
+- If a metrics event request times out, we no longer retry the request.
+  This avoids Semgrep waiting 10-20 seconds before exiting if these requests are slow.
+- The metrics collection timeout has been raised from 2 seconds to 3 seconds.
+
+### Fixed
+
+- TS: support for template literal types after upgrading to a more recent
+  tree-sitter-typescript (Oct 2021)
+- TS: support for `override` keyword (#4220, #4798)
+- TS: better ASI (#4459) and accept code like `(null)(foo)` (#4468)
+- TS: parse correctly private properties (#5162)
+- Go: Support for ellipsis in multiple return values
+  (e.g., `func foo() (..., error, ...) {}`) (#4896)
+- semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
+- Python: adds support for parentheses around `with` context expressions
+  (e.g., `with (open(x) as a, open(y) as b): pass`) (#5092)
+- C++: we now parse correctly const declarations (#5300)
+
+## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
+
+### Changed
+
+- Files where only some part of the code had to be skipped due to a parse failure
+  will now be listed as "partially scanned" in the end-of-scan skip report.
+- Licensing: The ocaml-tree-sitter-core component is now distributed
+  under the terms of the LGPL 2.1, rather than previously GPL 3.
+- A new field was added to metrics collection: isAuthenticated.
+  This is a boolean flag which is true if you ran semgrep login.
+
+### Fixed
+
+- `semgrep ci` used to incorrectly report the base branch as a CI job's branch
+  when running on a `pull_request_target` event in GitHub Actions.
+  By fixing this, Semgrep App can now track issue status history with `on: pull_request_target` jobs.
+- Metrics events were missing timestamps even though `PRIVACY.md` had already documented a timestamp field.
+
+## [0.92.1](https://github.com/returntocorp/semgrep/releases/tag/v0.92.1) - 2022-05-13
+
+### Added
+
+- Datafow: The dataflow engine now handles if-then-else expressions as in OCaml,
+  Ruby, etc. Previously it only handled if-then-else statements. (#4965)
+
+### Fixed
+
+- Kotlin: support for ellispis in class parameters, e.g.. `class Foo(...) {}` (#5180)
+- JS/TS: allow ellipsis in binding_pattern (e.g., in arrow parameters) (#5230)
+- JS/TS: allow ellipsis in imports (e.g., `import {..., Foo, ...} from 'Bar'`) (#5012)
+- `fixed_lines` is once again included in JSON output when running with `--autofix --dryrun`
+
+## [0.92.0](https://github.com/returntocorp/semgrep/releases/tag/v0.92.0) - 2022-05-11
+
+### Added
+
+- The JSON output of `semgrep scan` is now fully specified using
+  ATD (https://atd.readthedocs.io/) and jsonschema (https://json-schema.org/).
+  See the semgrep-interfaces submodule under interfaces/
+  (e.g., interfaces/semgrep-interfaces/Semgrep_output_v0.atd for the ATD spec)
+- The JSON output of `semgrep scan` now contains a "version": field with the
+  version of Semgrep used to generate the match results.
+- taint-mode: Previously, to declare a function parameteter as a taint source,
+  we had to rely on a trick that declared that _any_ occurence of the parameter
+  was a taint source. If the parameter was overwritten with safe data, this was
+  not recognized by the taint engine. Now, `focus-metavariable` can be used to
+  precisely specify that a function parameter is a source of taint, and the taint
+  engine will handle this as expected.
+- taint-mode: Add basic support for object destructuring in languages such as
+  Javascript. For example, given `let {x} = E`, Semgrep will now infer that `x`
+  is tainted if `E` is tainted.
+
+### Fixed
+
+- OCaml: Parenthesis in autofixed code will no longer leave dangling closing-paren.
+  Thanks to Elliott Cable for his contribution (#5087)
+- When running the Semgrep Docker image, we now mark all directories as safe for use by Git,
+  which prevents a crash when the current user does not own the source code directory.
+- C++: Ellipsis are now allowed in for loop header (#5164)
+- Java: typed metavariables now leverages the type of foreach variables (#5181)
+
+## [0.91.0](https://github.com/returntocorp/semgrep/releases/tag/v0.91.0) - 2022-05-03
+
+### Added
+
+- `--core-opts` flag to send options to semgrep-core. For internal use:
+  no guarantees made for semgrep-core options (#5111)
+
+### Changed
+
+- `semgrep ci` prints out all findings instead of hiding nonblocking findings (#5116)
+
 ## [0.90.0](https://github.com/returntocorp/semgrep/releases/tag/v0.90.0) - 2022-04-26
 
 ### Added
@@ -23,6 +165,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Keep only latest run logs in last.log file (#5070)
+- r2c-internal-project-depends-on:
+  - Lockfiles that fail to parse will not crash semgrep
+  - cargo.lock and Pipfile.lock dependencies that don't specify hashes now parse
+  - go.sum files with a trailing newline now parse
 
 ## [0.89.0](https://github.com/returntocorp/semgrep/releases/tag/v0.89.0) - 2022-04-20
 
@@ -30,7 +176,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Bash/Dockerfile: Add support for named ellipses such as in
   `echo $...ARGS` (#4887)
-- Constant propagation for static constants in php (#5022)
+- PHP: Constant propagation for static constants (#5022)
 
 ### Changed
 

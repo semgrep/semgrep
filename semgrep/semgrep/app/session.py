@@ -1,4 +1,6 @@
 import os
+import subprocess
+from pathlib import Path
 from typing import Any
 from typing import Optional
 from typing import Set
@@ -9,7 +11,6 @@ from attrs import define
 from attrs import field
 
 from semgrep import __VERSION__
-from semgrep.app import auth
 
 
 @define
@@ -17,7 +18,8 @@ class UserAgent:
     """
     Generates the user agent string we send to Semgrep App.
 
-    >>> from semgrep.app import app_session
+    >>> from semgrep.state import get_state
+    >>> app_session = get_state().app_session
     >>> str(app_session.user_agent)
     'semgrep/0.1.2'
     >>> app_session.user_agent.tags.add("testing")
@@ -31,14 +33,45 @@ class UserAgent:
 
     @tags.default
     def get_default_tags(self) -> Set[str]:
+        result = set()
         if os.getenv("SEMGREP_USER_AGENT_APPEND"):
-            return set({os.environ["SEMGREP_USER_AGENT_APPEND"]})
-        return set()
+            result.add(os.environ["SEMGREP_USER_AGENT_APPEND"])
+
+        try:
+            remote_url = subprocess.check_output(
+                ["git", "remote", "get-url", "origin"],
+                cwd=Path(__file__).parent,
+                stderr=subprocess.DEVNULL,
+                encoding="utf-8",
+            ).strip()
+            sha = subprocess.check_output(
+                [
+                    "git",
+                    "describe",
+                    # a --match value never matches will give us SHA instead of most recent tag
+                    "--match=nah_dont_actually_match",
+                    "--always",
+                    "--dirty",
+                ],
+                cwd=Path(__file__).parent,
+                stderr=subprocess.DEVNULL,
+                encoding="utf-8",
+            ).strip()
+            # If we installed semgrep in `.venv/` in the semgrep-docs repo,
+            # this function would report semgrep-docs commit SHAs in the user agent.
+            # This is why we verify the origin URL, and why check with .endswith()
+            if remote_url.replace(".git", "").endswith("/semgrep"):
+                result.add(f"sha/{sha}")
+        except (OSError, subprocess.CalledProcessError):
+            pass
+
+        return result
 
     def __str__(self) -> str:
         result = f"{self.name}/{self.version}"
-        for note in sorted(self.tags):
-            result += f" ({note})"
+        for note in sorted(self.tags, key=lambda x: ("/" in x, x)):
+            clean_note = note.strip("()")  # sometimes the env var has parens already
+            result += f" ({clean_note})"
         return result
 
 
@@ -55,7 +88,8 @@ class AppSession(requests.Session):
     - If a token is available, it is added to the request as an Authorization header
 
     Normal usage:
-    >>> from semgrep.app import app_session
+    >>> from semgrep.state import get_state
+    >>> app_session = get_state().app_session
     >>> app_session.get(url)
 
     Disable custom user agent for a request:
@@ -86,7 +120,14 @@ class AppSession(requests.Session):
         self.mount("http://", retry_adapter)
 
     def authenticate(self) -> None:
+        # avoid circular imports in semgrep.state
+        from semgrep.app import auth
+        from semgrep.state import get_state
+
         self.token = auth.get_token()
+
+        metrics = get_state().metrics
+        metrics.set_is_authenticated(bool(self.token))
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 30)

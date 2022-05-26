@@ -1,7 +1,0 @@
-1 file(s) failed to parse: targets/bad/invalid_python.py
-ParseErrors:
---> Failed to parse targets/bad/invalid_python.py:1 as python
-def foo(a)
-          ^
-= note: If the code is correct, this could be a semgrep bug -- please help us fix this by filing an an issue at https://semgrep.dev
-run with --strict and 1 errors occurred during semgrep run; exiting

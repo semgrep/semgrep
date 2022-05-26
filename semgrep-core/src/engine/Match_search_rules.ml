@@ -24,6 +24,7 @@ module S = Specialize_formula
 module RM = Range_with_metavars
 module E = Semgrep_error_code
 module Resp = Output_from_core_t
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 let debug_timeout = ref false
@@ -129,7 +130,7 @@ let error env msg =
   let loc = PI.first_loc_of_file env.file_and_more.Xtarget.file in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
-    E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg E.MatchingError
+    E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
   in
   Common.push err env.errors
 
@@ -643,7 +644,7 @@ let rec filter_ranges env xs cond =
           * which may not always be a string. The regexp is really done on
           * the text representation of the metavar content.
           *)
-         | R.CondRegexp (mvar, (re_str, _re)) ->
+         | R.CondRegexp (mvar, (re_str, _re), const_prop) ->
              let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
@@ -667,8 +668,11 @@ let rec filter_ranges env xs cond =
              in
 
              let env =
-               Eval_generic.bindings_to_env_with_just_strings (fst env.config)
-                 bindings
+               if const_prop && (fst env.config).constant_propagation then
+                 Eval_generic.bindings_to_env_just_strings_const_prop bindings
+               else
+                 Eval_generic.bindings_to_env_just_strings (fst env.config)
+                   bindings
              in
              Eval_generic.eval_bool env e
          | R.CondAnalysis (mvar, CondEntropy) ->
@@ -1047,8 +1051,8 @@ and matches_of_formula config rule file_and_more formula opt_context :
 
 let check_rule r hook (default_config, equivs) pformula xtarget =
   let config = r.R.options ||| default_config in
-  let formula = R.formula_of_pformula pformula in
   let rule_id = fst r.id in
+  let formula = R.formula_of_pformula ~rule_id pformula in
   let res, final_ranges =
     matches_of_formula (config, equivs) r xtarget formula None
   in
@@ -1064,7 +1068,7 @@ let check_rule r hook (default_config, equivs) pformula xtarget =
              v
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
-                    hook str m.env m.tokens));
+                    hook str m.env m.tokens None));
     errors = res.errors |> Common.map (error_with_rule_id rule_id);
     skipped_targets = res.skipped_targets;
     profiling = res.profiling;

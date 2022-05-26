@@ -1,1 +1,0 @@
-targets/basic/stupid.py:3:12:E:rules.eqeq-is-bad:useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?

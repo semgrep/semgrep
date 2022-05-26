@@ -1,6 +1,5 @@
 from pathlib import Path
 from textwrap import dedent
-from unittest import mock
 
 import pytest
 
@@ -11,7 +10,7 @@ from semgrep.rule_match import RuleMatchSet
 
 
 @pytest.mark.quick
-def test_rule_match_attributes():
+def test_rule_match_attributes(mocker):
     file_content = dedent(
         """
         # first line
@@ -19,20 +18,20 @@ def test_rule_match_attributes():
             5 == 5 # nosem
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        match = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("long.rule.id"),
-                location=core.Location(
-                    path="relative/path/to/foo.py",
-                    start=core.Position(3, 1, 24),
-                    end=core.Position(3, 15, 38),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    match = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("long.rule.id"),
+            location=core.Location(
+                path="relative/path/to/foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
             ),
-        )
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
     assert match.lines == ["    5 == 5 # nosem\n"], "wrong line was read from file"
     assert (
         match.previous_line == "def foo():\n"
@@ -46,7 +45,7 @@ def test_rule_match_attributes():
 
 
 @pytest.mark.quick
-def test_rule_match_sorting():
+def test_rule_match_sorting(mocker):
     file_content = dedent(
         """
         # first line
@@ -55,33 +54,33 @@ def test_rule_match_sorting():
             6 == 6 # nosem
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        line3 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(3, 1, 24),
-                    end=core.Position(3, 15, 38),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    line3 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
             ),
-        )
-        line4 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(4, 1, 36),
-                    end=core.Position(4, 15, 50),
-                ),
-                extra=core.MatchExtra(metavars={}),
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
+    line4 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(4, 1, 36),
+                end=core.Position(4, 15, 50),
             ),
-        )
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
     # fmt: off
     assert (
         sorted([line4, line3]) == [line3, line4]
@@ -90,7 +89,7 @@ def test_rule_match_sorting():
 
 
 @pytest.mark.quick
-def test_rule_match_hashing():
+def test_rule_match_hashing(mocker):
     file_content = dedent(
         """
         # first line
@@ -98,25 +97,25 @@ def test_rule_match_hashing():
             5 == 5 # nosem
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        match = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(3, 1, 24),
-                    end=core.Position(3, 15, 38),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    match = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
             ),
-        )
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
     assert {match, match} == {match}, "matches must deduplicate when added to a set"
 
 
 @pytest.mark.quick
-def test_rule_match_is_nosemgrep_agnostic():
+def test_rule_match_is_nosemgrep_agnostic(mocker):
     file_content = dedent(
         """
         # first line
@@ -126,20 +125,20 @@ def test_rule_match_is_nosemgrep_agnostic():
             5)
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        match_1 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(3, 1, 28),
-                    end=core.Position(5, 2, 48),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    match_1 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 28),
+                end=core.Position(5, 2, 48),
             ),
-        )
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
     file_content = dedent(
         """
         # first line
@@ -149,20 +148,20 @@ def test_rule_match_is_nosemgrep_agnostic():
             5)
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        match_2 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(3, 1, 28),
-                    end=core.Position(5, 2, 72),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    match_2 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 28),
+                end=core.Position(5, 2, 72),
             ),
-        )
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
     file_content = dedent(
         """
         # first line
@@ -173,20 +172,20 @@ def test_rule_match_is_nosemgrep_agnostic():
             5)
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        match_3 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(4, 1, 55),
-                    end=core.Position(6, 2, 75),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    match_3 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(4, 1, 55),
+                end=core.Position(6, 2, 75),
             ),
-        )
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
     assert (
         match_1.ci_unique_key == match_2.ci_unique_key
     ), "matches are identical per semgrep ci deduplication if the only difference is an inline nosemgrep comment"
@@ -196,7 +195,7 @@ def test_rule_match_is_nosemgrep_agnostic():
 
 
 @pytest.mark.quick
-def test_rule_match_set_indexes():
+def test_rule_match_set_indexes(mocker):
     file_content = dedent(
         """
         # first line
@@ -207,64 +206,64 @@ def test_rule_match_set_indexes():
             5 == 5 # nosem
         """
     ).lstrip()
-    with mock.patch.object(Path, "open", mock.mock_open(read_data=file_content)):
-        line3 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(3, 1, 24),
-                    end=core.Position(3, 15, 38),
-                ),
-                extra=core.MatchExtra(metavars={}),
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=file_content))
+    line3 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(3, 1, 24),
+                end=core.Position(3, 15, 38),
             ),
-        )
-        line4 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(4, 1, 36),
-                    end=core.Position(4, 15, 50),
-                ),
-                extra=core.MatchExtra(metavars={}),
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
+    line4 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(4, 1, 36),
+                end=core.Position(4, 15, 50),
             ),
-        )
-        line5 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(5, 1, 48),
-                    end=core.Position(5, 15, 62),
-                ),
-                extra=core.MatchExtra(metavars={}),
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
+    line5 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(5, 1, 48),
+                end=core.Position(5, 15, 62),
             ),
-        )
-        line6 = RuleMatch(
-            message="message",
-            severity=RuleSeverity.ERROR,
-            match=core.Match(
-                rule_id=core.RuleId("rule_id"),
-                location=core.Location(
-                    path="foo.py",
-                    start=core.Position(6, 1, 60),
-                    end=core.Position(6, 15, 74),
-                ),
-                extra=core.MatchExtra(metavars={}),
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
+    line6 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(6, 1, 60),
+                end=core.Position(6, 15, 74),
             ),
-        )
-        matches = RuleMatchSet()
-        matches.update(
-            [line3, line4, line5, line6]
-        )  # we do need to add them in the correct order
-        sorted_matches = list(sorted(matches))
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
+    matches = RuleMatchSet()
+    matches.update(
+        [line3, line4, line5, line6]
+    )  # we do need to add them in the correct order
+    sorted_matches = list(sorted(matches))
     assert sorted_matches[0].index == 0, "1st duplicate match must be assigned index 0"
     assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"
     assert sorted_matches[3].index == 2, "3rd duplicate match must be assigned index 2"

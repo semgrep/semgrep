@@ -16,14 +16,18 @@ val taint_config_of_rule :
   Rule.rule ->
   Rule.taint_spec ->
   (Dataflow_tainting.var option ->
-  Dataflow_tainting.finding list ->
-  Dataflow_tainting.Taint.t Dataflow_core.env ->
+  Taint.finding list ->
+  Taint.taints Dataflow_core.env ->
   unit) ->
   Dataflow_tainting.config * debug_taint
 
 val check_rule :
   Rule.t ->
-  (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  (string ->
+  Metavariable.bindings ->
+  Parse_info.t list Lazy.t ->
+  Taint.finding option ->
+  unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
   Rule.taint_spec ->
   Xtarget.t ->

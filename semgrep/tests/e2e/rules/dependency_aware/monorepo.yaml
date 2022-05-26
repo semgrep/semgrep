@@ -8,12 +8,3 @@ rules:
     message: oh no
     languages: [js]
     severity: WARNING
-  - id: go-sca
-    pattern: bad()
-    r2c-internal-project-depends-on:
-      namespace: gomod
-      package: github.com/bad-lib
-      version: == 0.3.1
-    message: oh no
-    languages: [go]
-    severity: WARNING

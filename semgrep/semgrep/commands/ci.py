@@ -14,9 +14,7 @@ from typing import Tuple
 import click
 
 import semgrep.semgrep_main
-from semgrep.app import app_session
 from semgrep.app import auth
-from semgrep.app.metrics import metric_manager
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
@@ -31,12 +29,12 @@ from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
+from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
-from semgrep.types import MetricsState
-from semgrep.util import set_flags
+from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -166,6 +164,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         Instead will print out json objects it would have sent.
     """,
 )
+@click.option(
+    "--sca",
+    is_flag=True,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -199,6 +202,7 @@ def ci(
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
+    sca: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
     timeout_threshold: int,
@@ -218,33 +222,37 @@ def ci(
 
     Only displays findings that were marked as blocking.
     """
+    state = get_state()
+    state.terminal.configure(
+        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+    )
 
-    set_flags(verbose=verbose, debug=debug, quiet=quiet, force_color=force_color)
-
-    metric_manager.configure(metrics, metrics_legacy)
+    state.metrics.configure(metrics, metrics_legacy)
     scan_handler = None
 
-    if not app_session.token and not config:
+    token = state.app_session.token
+    if not token and not config:
         # Not logged in and no explicit config
         logger.info("run `semgrep login` before using `semgrep ci` or set `--config`")
         sys.exit(INVALID_API_KEY_EXIT_CODE)
-    elif not app_session.token and config:
+    elif not token and config:
         # Not logged in but has explicit config
         logger.info(f"Running `semgrep ci` without API token but with configs {config}")
-    elif app_session.token and config:
+    elif token and config:
         # Logged in but has explicit config
         logger.info(
             "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure rules to run."
         )
         sys.exit(FATAL_EXIT_CODE)
-    else:
-        assert app_session.token  # Must be defined here
-        if not auth.is_valid_token(app_session.token):
+    elif token:
+        if not auth.is_valid_token(token):
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again.",
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
         scan_handler = ScanHandler(dry_run)
+    else:  # impossible state… until we break the code above
+        raise RuntimeError("The token and/or config are misconfigured")
 
     output_format = OutputFormat.TEXT
     if json:
@@ -286,6 +294,8 @@ def ci(
         logger.info(
             f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
         )
+    if sca:
+        logger.info("  running an SCA scan")
     logger.info("")
 
     try:
@@ -295,7 +305,9 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    scan_handler.start_scan(metadata.to_dict())
+                    metadata_dict = metadata.to_dict()
+                    metadata_dict["is_sca_scan"] = sca
+                    scan_handler.start_scan(metadata_dict)
                     config = (scan_handler.scan_rules_url,)
             except Exception as e:
                 import traceback
@@ -399,7 +411,7 @@ def ci(
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 
     output_handler.output(
-        blocking_matches_by_rule,
+        {**blocking_matches_by_rule, **nonblocking_matches_by_rule},
         all_targets=all_targets,
         ignore_log=ignore_log,
         profiler=profiler,
@@ -407,14 +419,13 @@ def ci(
         profiling_data=profiling_data,
         severities=shown_severities,
     )
+
     logger.info(
         f"Ran {len(blocking_rules)} blocking rules, {len(nonblocking_rules)} audit rules, and {len(cai_rules)} internal rules used for rule recommendations."
     )
-    if num_nonblocking_findings:
-        logger.info(
-            f"{num_nonblocking_findings} findings were from rules in audit rule board. These non-blocking findings are not displayed."
-        )
-
+    logger.info(
+        f"Found {num_blocking_findings} findings from blocking rules and {num_nonblocking_findings} findings from non-blocking rules"
+    )
     if scan_handler:
         logger.info("Reporting findings to semgrep.dev ...")
         scan_handler.report_findings(

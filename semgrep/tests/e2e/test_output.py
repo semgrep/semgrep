@@ -229,7 +229,25 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
     )
 
 
-IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped."
+@pytest.mark.kinda_slow
+def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
+    sarif_output = json.loads(
+        run_semgrep_in_tmp(
+            "rules/autofix/autofix.yaml",
+            target_name="autofix/autofix.py",
+            output_format=OutputFormat.SARIF,
+            options=["--autofix", "--dryrun"],
+        )[0]
+    )
+
+    sarif_output = _clean_sarif_output(sarif_output)
+
+    snapshot.assert_match(
+        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+    )
+
+
+IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped or only partially analyzed."
 IGNORE_LOG_REPORT_LAST_LINE = (
     "  For a full list of skipped files, run semgrep with the --verbose flag."
 )

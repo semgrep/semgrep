@@ -101,8 +101,9 @@ let dump_tree_sitter_cst lang file =
       Tree_sitter_tsx.Parse.file file
       |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
   | Lang.Ts ->
-      Tree_sitter_typescript.Parse.file file
-      |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
+      (* Typescript is mostly a subset of TSX *)
+      Tree_sitter_tsx.Parse.file file
+      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
@@ -162,8 +163,7 @@ let test_parse_tree_sitter lang root_paths =
                  | Lang.Js ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
                  | Lang.Ts ->
-                     Tree_sitter_typescript.Parse.file file
-                     |> fail_on_error |> ignore
+                     Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
                  | Lang.Rust ->
                      Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
                  | Lang.Ocaml ->
@@ -278,6 +278,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                  *)
                  PI.bad_stat file
            in
+           if verbose && stat.PI.error_line_count > 0 then
+             pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PI.filename);
            stat)
   in
   (stats, skipped)
