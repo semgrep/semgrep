@@ -212,7 +212,7 @@ def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
         )[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"

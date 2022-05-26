@@ -226,6 +226,9 @@
       "extra": {
         "fingerprint": "8646a2dfc020913606969dcfe84e53c0",
         "fix": "x == 2",
+        "fixed_lines": [
+          "    x == 2"
+        ],
         "is_ignored": false,
         "lines": "    x == 5",
         "message": "useless comparison to 5",
