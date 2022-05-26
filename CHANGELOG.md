@@ -68,6 +68,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
 - Python: adds support for parentheses around `with` context expressions
   (e.g., `with (open(x) as a, open(y) as b): pass`) (#5092)
+- C++: we now parse correctly const declarations (#5300)
 
 ## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 

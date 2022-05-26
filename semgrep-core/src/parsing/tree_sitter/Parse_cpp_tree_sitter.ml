@@ -1698,10 +1698,24 @@ and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) :
 
 and map_declaration_specifiers (env : env)
     ((v1, v2, v3) : CST.declaration_specifiers) : type_ * specifier list =
-  let v1 = Common.map (map_anon_choice_stor_class_spec_5764fed env) v1 in
-  let v2 = map_type_specifier env v2 in
-  let v3 = Common.map (map_anon_choice_stor_class_spec_5764fed env) v3 in
-  (v2, v1 @ v3)
+  let specs1 = Common.map (map_anon_choice_stor_class_spec_5764fed env) v1 in
+  let t = map_type_specifier env v2 in
+  let specs2 = Common.map (map_anon_choice_stor_class_spec_5764fed env) v3 in
+
+  (* adjustments for 'const int foo', where the const
+   * actually applies to the type (this is what we do in parse_cpp.mly)
+   * not the decl *)
+  let t, specs =
+    let tqs, other =
+      specs1 @ specs2
+      |> Common.partition_either (function
+           | TQ x -> Left x
+           | (A _ | M _ | ST _) as x -> Right x)
+    in
+    let tqs2, tc = t in
+    ((tqs @ tqs2, tc), other)
+  in
+  (t, specs)
 
 and map_declarator (env : env) (x : CST.declarator) : declarator =
   match x with
