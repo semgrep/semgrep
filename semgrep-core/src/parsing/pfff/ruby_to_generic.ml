@@ -177,6 +177,11 @@ and argument arg : G.argument =
   | Arg (Binop (Atom (_tk, AtomSimple id), (Op_ASSOC, _v2), v3)) ->
       let e3 = expr v3 in
       G.ArgKwd (id, e3)
+  (* Ruby allows surrounding single arguments with useless parenthesis *)
+  (* Ex: method(1,2,3) is equivalent to method((1),(2),(3))*)
+  | Arg (S (Block (l, [ S (Block (l2, [ e ], r2)) ], r))) ->
+      G.Arg (G.ParenExpr (l, G.ParenExpr (l2, expr e, r2) |> G.e, r) |> G.e)
+  | Arg (S (Block (l, [ e ], r))) -> G.Arg (G.ParenExpr (l, expr e, r) |> G.e)
   | Arg e -> G.Arg (expr e)
   | ArgKwd (id, _tk, arg) ->
       let id = ident id in
