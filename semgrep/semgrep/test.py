@@ -273,7 +273,7 @@ def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any])
 
 def _generate_fixcheck_output_line(filename: str, diff: List[str], fixtest: str) -> str:
     diff_lines = "\n\t".join(diff)
-    return f"\t✖ {fixtest} <> {filename} \n\n\t{diff_lines}\n\n\n"
+    return f"\t✖ {fixtest} <> autofix applied to {filename} \n\n\t{diff_lines}\n\n\n"
 
 
 def invoke_semgrep_multi(
@@ -609,16 +609,19 @@ def generate_test_results(
             else:
                 num_tests_passed += 1
 
-    all_fixtests_passed: bool = True
+    num_fixtests = 0
+    num_fixtests_passed = 0
     fixtest_file_diffs: str = ""
     for target_filename, results in fixtest_results.items():
+        num_fixtests += 1
         filediff = results["filediff"]
         fixtest = results["fixtest"]
         if len(filediff) > 0:
-            all_fixtests_passed = False
             fixtest_file_diffs += _generate_fixcheck_output_line(
                 target_filename, filediff, fixtest
             )
+        else:
+            num_fixtests_passed += 1
 
     if num_tests == 0:
         print(
@@ -633,10 +636,14 @@ def generate_test_results(
         print(BREAK_LINE)
         print(check_output_lines)
 
-    if all_fixtests_passed:
-        print("✓ All fix tests passed!")
+    if num_fixtests == 0:
+        print(
+            "No tests for fixes found."
+        )
+    elif num_fixtests == num_fixtests_passed:
+        print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed ")
     else:
-        print("The following fix tests did not pass:")
+        print(f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: ")
         print(BREAK_LINE)
         print(fixtest_file_diffs)
         
