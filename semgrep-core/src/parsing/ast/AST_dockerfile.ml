@@ -116,7 +116,7 @@ type healthcheck =
 
 type expose_port =
   | Expose_semgrep_ellipsis of tok
-  | Expose_port of (* port/protocol *) int option wrap * string wrap option
+  | Expose_port of (* port/protocol *) string wrap * string wrap option
   | Expose_fragment of string_fragment
 
 type instruction =

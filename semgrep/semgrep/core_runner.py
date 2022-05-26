@@ -53,7 +53,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.yaml"))
+RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.json"))
 TARGET_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_targets.txt"))
 
 
@@ -479,9 +479,6 @@ class CoreRunner:
         profiling_data: ProfilingData,
         timing: core.CoreTiming,
     ) -> None:
-        targets = [Path(t.path) for t in timing.targets]
-
-        profiling_data.init_empty(timing.rules, targets)
         if timing.rules_parse_time:
             profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
@@ -561,7 +558,7 @@ class CoreRunner:
         rule_file_name = (
             RULE_SAVE_FILE
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
+            else tempfile.NamedTemporaryFile("w", suffix=".json").name
         )
         target_file_name = (
             TARGET_SAVE_FILE
@@ -578,8 +575,11 @@ class CoreRunner:
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
-            yaml = YAML()
-            yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
+            rule_file.write(
+                json.dumps(
+                    {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
+                )
+            )
             rule_file.flush()
 
             # Run semgrep

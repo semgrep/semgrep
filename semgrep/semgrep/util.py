@@ -1,5 +1,4 @@
 import functools
-import itertools
 import operator
 import os
 import subprocess
@@ -8,10 +7,8 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import FrozenSet
-from typing import Iterable
 from typing import List
 from typing import Optional
-from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
 
@@ -33,22 +30,6 @@ def is_url(url: str) -> bool:
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
-
-
-def partition(
-    pred: Callable[[T], Any], iterable: Iterable[T]
-) -> Tuple[List[T], List[T]]:
-    """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
-    i1, i2 = itertools.tee(iterable)
-    return list(filter(pred, i1)), list(itertools.filterfalse(pred, i2))
-
-
-def partition_set(
-    pred: Callable[[T], Any], iterable: Iterable[T]
-) -> Tuple[FrozenSet[T], FrozenSet[T]]:
-    """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
-    i1, i2 = itertools.tee(iterable)
-    return frozenset(filter(pred, i1)), frozenset(itertools.filterfalse(pred, i2))
 
 
 def abort(message: str) -> None:

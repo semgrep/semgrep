@@ -1,0 +1,23 @@
+rules:
+  - id: use-absolute-workdir
+    pattern-either:
+      - patterns:
+          - pattern: WORKDIR $DIR
+          - metavariable-regex:
+              metavariable: $DIR
+              regex: (^(?!-)[a-z0-9-]+(?<!-)(/(?!-)[a-z0-9-]+(?<!-))*$)
+              constant-propagation: true
+
+    message: Detected a relative WORKDIR. Use absolute paths. This prevents issues
+      based on assumptions about the WORKDIR of previous containers.
+    severity: WARNING
+    languages:
+      - dockerfile
+    fix: WORKDIR /$WORD
+    metadata:
+      source-rule-url: https://github.com/hadolint/hadolint/wiki/DL3000
+      references:
+        - https://github.com/hadolint/hadolint/wiki/DL3000
+      category: best-practice
+      technology:
+        - dockerfile

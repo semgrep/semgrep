@@ -24,10 +24,6 @@
 # To ignore a file with a literal ':' character, escape it with
 # a backslash, e.g. "\:foo".
 
-# Ignore git items
-.gitignore
-.git/
-:include .gitignore
 semgrep-core/tests/
 
 # submodule, generated code

@@ -11,6 +11,7 @@ repos:
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-json
+        exclude: ".devcontainer/devcontainer.json"
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
@@ -168,4 +169,4 @@ repos:
     rev: v2.6.2
     hooks:
       - id: prettier
-        exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$"
+        exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"

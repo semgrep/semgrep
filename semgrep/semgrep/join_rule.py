@@ -16,6 +16,7 @@ from typing import Type
 
 import peewee as pw
 from attrs import define
+from boltons.iterutils import partition
 from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
@@ -32,7 +33,6 @@ from semgrep.error import SemgrepError
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__file__)
@@ -175,8 +175,7 @@ def match_on_conditions(  # type: ignore
     BlogPost.select().where(author="Author").
     """
     recursive_conditions, normal_conditions = partition(
-        lambda condition: condition.operator == JoinOperator.RECURSIVE,
-        conditions,
+        conditions, lambda condition: condition.operator == JoinOperator.RECURSIVE
     )
 
     handle_recursive_conditions(recursive_conditions, model_map, aliases)

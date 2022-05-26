@@ -38,6 +38,7 @@ from attrs import field
 import click
 from attrs import Factory, frozen
 from wcmatch import glob as wcglob
+from boltons.iterutils import partition
 
 from semgrep.constants import Colors
 from semgrep.error import FilesNotFoundError
@@ -48,7 +49,6 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
-from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -489,22 +489,35 @@ class TargetManager:
             result.append("**/" + pattern + "/**")
         return result
 
-    @staticmethod
-    def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
+    def executes_with_shebang(self, path: Path, shebangs: Collection[Shebang]) -> bool:
         """
         Returns if a path is executable and executes with one of a set of programs
         """
-        if not os.access(str(f), os.X_OK | os.R_OK):
-            return False
         try:
-            with f.open("r") as fd:
-                hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+            hline = self.get_shebang_line(path)
+            if hline is None:
+                return False
             return any(hline.endswith(s) for s in shebangs)
         except UnicodeDecodeError:
             logger.debug(
-                f"Encountered likely binary file {f} while reading shebang; skipping this file"
+                f"Encountered likely binary file {path} while reading shebang; skipping this file"
             )
             return False
+
+    @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
+    def get_shebang_line(self, path: Path) -> Optional[str]:
+        if not os.access(str(path), os.X_OK | os.R_OK):
+            return None
+
+        with path.open() as f:
+            return f.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+
+    @lru_cache(maxsize=10_000)  # size aims to be 100x of fully caching this repo
+    def globfilter(self, candidates: Iterable[Path], pattern: str) -> List[Path]:
+        result = wcglob.globfilter(
+            candidates, pattern, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+        )
+        return cast(List[Path], result)
 
     def filter_by_language(
         self, language: Language, *, candidates: FrozenSet[Path]
@@ -520,7 +533,7 @@ class TargetManager:
             path
             for path in candidates
             if any(str(path).endswith(ext) for ext in language.definition.exts)
-            or self._executes_with_shebang(path, language.definition.shebangs)
+            or self.executes_with_shebang(path, language.definition.shebangs)
         )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
@@ -535,9 +548,8 @@ class TargetManager:
         )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
-    @staticmethod
     def filter_includes(
-        includes: Sequence[str], *, candidates: FrozenSet[Path]
+        self, includes: Sequence[str], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns all elements in candidates that match any includes pattern
@@ -547,21 +559,13 @@ class TargetManager:
         if not includes:
             return FilteredFiles(candidates)
 
-        includes = TargetManager.preprocess_path_patterns(includes)
-        # Need cast b/c types-wcmatch doesn't use generics properly :(
-        kept = frozenset(
-            cast(
-                Iterable[Path],
-                wcglob.globfilter(
-                    candidates, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
-                ),
-            )
-        )
-        return FilteredFiles(kept, frozenset(candidates - kept))
+        kept = set()
+        for pattern in TargetManager.preprocess_path_patterns(includes):
+            kept.update(self.globfilter(candidates, pattern))
+        return FilteredFiles(frozenset(kept), frozenset(candidates - kept))
 
-    @staticmethod
     def filter_excludes(
-        excludes: Sequence[str], *, candidates: FrozenSet[Path]
+        self, excludes: Sequence[str], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns all elements in candidates that do not match any excludes pattern
@@ -571,18 +575,11 @@ class TargetManager:
         if not excludes:
             return FilteredFiles(candidates)
 
-        excludes = TargetManager.preprocess_path_patterns(excludes)
+        removed = set()
+        for pattern in TargetManager.preprocess_path_patterns(excludes):
+            removed.update(self.globfilter(candidates, pattern))
 
-        # Need cast b/c types-wcmatch doesn't use generics properly :(
-        removed = frozenset(
-            cast(
-                Iterable[Path],
-                wcglob.globfilter(
-                    candidates, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
-                ),
-            )
-        )
-        return FilteredFiles(frozenset(candidates - removed), removed)
+        return FilteredFiles(frozenset(candidates - removed), frozenset(removed))
 
     @staticmethod
     def filter_by_size(
@@ -598,12 +595,11 @@ class TargetManager:
         if max_target_bytes <= 0:
             return FilteredFiles(candidates)
 
-        kept, removed = partition_set(
-            lambda path: os.path.getsize(path) <= max_target_bytes,
-            candidates,
+        kept, removed = partition(
+            candidates, lambda path: os.path.getsize(path) <= max_target_bytes
         )
 
-        return FilteredFiles(kept, removed)
+        return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Language) -> FilteredFiles:

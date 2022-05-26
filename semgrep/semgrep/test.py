@@ -26,11 +26,12 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
+from boltons.iterutils import partition
+
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -355,7 +356,8 @@ def generate_test_results(
     config_filenames = get_config_filenames(config)
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
     config_with_tests, config_without_tests = partition(
-        lambda c: c[1], config_test_filenames.items()
+        config_test_filenames.items(),
+        lambda c: bool(c[1]),
     )
     config_missing_tests_output = [str(c[0]) for c in config_without_tests]
 
@@ -370,7 +372,7 @@ def generate_test_results(
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
-    config_with_errors, config_without_errors = partition(lambda r: r[1], results)
+    config_with_errors, config_without_errors = partition(results, lambda r: bool(r[1]))
     config_with_errors_output = [
         {"filename": str(filename), "error": error, "output": output}
         for filename, error, output in config_with_errors
@@ -426,20 +428,29 @@ def generate_test_results(
         with tarfile.open(SAVE_TEST_OUTPUT_TAR, "w:gz") as tar:
             tar.add(SAVE_TEST_OUTPUT_JSON)
 
-    all_tests_passed: bool = True
+    num_tests = 0
+    num_tests_passed = 0
     check_output_lines: str = ""
     for _filename, rr in results_output.items():
         for check_id, check_results in sorted(rr["checks"].items()):
+            num_tests += 1
             if not check_results["passed"]:
-                all_tests_passed = False
                 check_output_lines += _generate_check_output_line(
                     check_id, check_results
                 )
+            else:
+                num_tests_passed += 1
 
-    if all_tests_passed:
-        print("✓ All tests passed!")
+    if num_tests == 0:
+        print(
+            "No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules"
+        )
+    elif num_tests == num_tests_passed:
+        print(f"{num_tests_passed}/{num_tests}: ✓ All tests passed ")
     else:
-        print("The following unit tests did not pass:")
+        print(
+            f"{num_tests_passed}/{num_tests}: {num_tests - num_tests_passed} unit tests did not pass:"
+        )
         print(BREAK_LINE)
         print(check_output_lines)
 

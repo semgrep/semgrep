@@ -17,6 +17,7 @@ from typing import Set
 from typing import Type
 
 import requests
+from boltons.iterutils import partition
 
 import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors
@@ -46,7 +47,6 @@ from semgrep.stats import make_target_stats
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
-from semgrep.util import partition
 from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -333,7 +333,7 @@ class OutputHandler:
 
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
-                lambda m: m.severity == RuleSeverity.INVENTORY, self.rule_matches
+                self.rule_matches, lambda m: m.severity == RuleSeverity.INVENTORY
             )
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
