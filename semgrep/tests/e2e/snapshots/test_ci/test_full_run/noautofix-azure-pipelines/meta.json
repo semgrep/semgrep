@@ -1,7 +1,7 @@
 {
     "meta": {
         "semgrep_version": "<sanitized version>",
-        "repository": "/project_name/project_name",
+        "repository": "project_name/project_name",
         "repo_url": "https://github.com/project_name/project_name.git",
         "branch": "some/branch-name",
         "ci_job_url": "https://azure.pipeline.url/project_id/_build/results?buildId=some_id&view=logs&j=job_id&t=task_id",
