@@ -11,18 +11,17 @@ Validate that the output is annotated in the source file with by looking for a c
  """
 import collections
 import difflib
-import filecmp
 import functools
 import json
 import multiprocessing
 import os
-from ruamel.yaml import YAML
 import shutil
 import sys
 import tarfile
+import tempfile
+import uuid
 from itertools import product
 from pathlib import Path
-import tempfile
 from typing import Any
 from typing import Dict
 from typing import List
@@ -31,16 +30,16 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
-import uuid
 
 from boltons.iterutils import partition
+from ruamel.yaml import YAML
 
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
+from semgrep.util import final_suffix_matches
+from semgrep.util import is_config_fixtest_suffix
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
-from semgrep.util import is_config_fixtest_suffix
-from semgrep.util import final_suffix_matches
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -271,7 +270,10 @@ def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any])
 
     return f"\t✖ {check_id.ljust(60)} {expected_vs_reported_lines} \n\ttest file path: {test_file_names}\n\n"
 
-def _generate_fixcheck_output_line(filename: str, diff: List[str], fixtest: str) -> str:
+
+def _generate_fixcheck_output_line(
+    filename: Path, diff: List[str], fixtest: Path
+) -> str:
     diff_lines = "\n\t".join(diff)
     return f"\t✖ {fixtest} <> autofix applied to {filename} \n\n\t{diff_lines}\n\n\n"
 
@@ -289,12 +291,14 @@ def invoke_semgrep_multi(
     else:
         return (config, None, output)
 
-def create_temporary_copy(path):
+
+def create_temporary_copy(path: Path) -> str:
     temp_dir = tempfile.gettempdir()
     _filename, file_extension = os.path.splitext(path)
     temp_path = os.path.join(temp_dir, str(uuid.uuid4()) + file_extension)
     shutil.copy2(path, temp_path)
     return temp_path
+
 
 def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> bool:
     def remove_all_suffixes(p: Path) -> Path:
@@ -337,12 +341,8 @@ def get_config_test_filenames(
 
     def target_matches_config(target: Path, config: Path) -> bool:
         correct_suffix = (
-                    (
-                        is_config_test_suffix(target) 
-                        or not is_config_suffix(target)
-                    )
-                    and not is_config_fixtest_suffix(target)
-                )
+            is_config_test_suffix(target) or not is_config_suffix(target)
+        ) and not is_config_fixtest_suffix(target)
 
         return (
             (
@@ -358,10 +358,10 @@ def get_config_test_filenames(
         for config in configs
     }
 
+
 def get_config_fixtest_filenames(
-    original_target: Path,
-    targets: Dict[Path, List[Path]] 
-) -> Dict[Path, List[Tuple[Path]]]:
+    original_target: Path, targets: Dict[Path, List[Path]]
+) -> Dict[Path, List[Tuple[Path, Path]]]:
 
     original_target_is_file_not_directory = original_target.is_file()
 
@@ -371,11 +371,10 @@ def get_config_fixtest_filenames(
         fixtests = list(original_target.rglob("*"))
 
     def fixtest_matches_target(target: Path, fixtest: Path) -> bool:
-        correct_suffix = (
-                is_config_fixtest_suffix(fixtest)
-                and final_suffix_matches(target, fixtest)
-            )
-        
+        correct_suffix = is_config_fixtest_suffix(fixtest) and final_suffix_matches(
+            target, fixtest
+        )
+
         return (
             relatively_eq(original_target, target, original_target, fixtest)
             and correct_suffix
@@ -383,22 +382,24 @@ def get_config_fixtest_filenames(
 
     return {
         config: [
-                (target, fixtest)
-                for target in targets[config] 
-                for fixtest in fixtests
-                if fixtest_matches_target(target, fixtest)
-            ]
+            (target, fixtest)
+            for target in targets[config]
+            for fixtest in fixtests
+            if fixtest_matches_target(target, fixtest)
+        ]
         for config in targets
     }
 
+
 def config_contains_fix_key(config: Path) -> bool:
-    with open(config, "r") as file:
-        yaml=YAML(typ='safe')   # default, if not specfied, is 'rt' (round-trip)
+    with open(config) as file:
+        yaml = YAML(typ="safe")  # default, if not specfied, is 'rt' (round-trip)
         rule = yaml.load(file)
         if "rules" in rule:
             return "fix" in rule["rules"][0]
         else:
             return False
+
 
 def checkid_passed(matches_for_checkid: Dict[str, Any]) -> bool:
     for _filename, expected_and_reported_lines in matches_for_checkid.items():
@@ -409,12 +410,13 @@ def checkid_passed(matches_for_checkid: Dict[str, Any]) -> bool:
             return False
     return True
 
+
 def fixed_file_comparison(
-    fixed_testfile: Path, expected_fixed_testfile: Path
+    fixed_testfile: Path, expected_fixed_testfile: str
 ) -> List[str]:
 
     diff = []
-    with open(fixed_testfile, 'r') as file1, open(expected_fixed_testfile, 'r') as file2:
+    with open(fixed_testfile) as file1, open(expected_fixed_testfile) as file2:
         lines1 = file1.readlines()
         lines2 = file2.readlines()
 
@@ -436,7 +438,9 @@ def generate_test_results(
 ) -> None:
     config_filenames = get_config_filenames(config)
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
-    config_fixtest_filenames = get_config_fixtest_filenames(target, config_test_filenames)
+    config_fixtest_filenames: Dict[
+        Path, List[Tuple[Path, Path]]
+    ] = get_config_fixtest_filenames(target, config_test_filenames)
 
     config_with_tests, config_without_tests = partition(
         config_test_filenames.items(),
@@ -481,19 +485,20 @@ def generate_test_results(
         for filename, matches in tested.items()
     }
 
-    fixtest_filenames = {
+    fixtest_filenames: Dict[Path, List[Tuple[Path, Path]]] = {
         config: [
             (target, fixtest)
             for target, fixtest in testfiles
-            #if os.path.abspath(target) in passed_test_filenames
+            # if os.path.abspath(target) in passed_test_filenames
         ]
         for config, testfiles in config_fixtest_filenames.items()
     }
 
+    # List[Tuple[Path, List[Tuple[Path,Path]]]]
     config_with_fixtests, config_without_fixtests = partition(
         fixtest_filenames.items(), lambda c: bool(c[1])
     )
-    
+
     configs_missing_fixtests = [
         os.path.abspath(c)
         for c, _fixtest in config_without_fixtests
@@ -502,43 +507,40 @@ def generate_test_results(
 
     # this saves execution time: fix will not be correct, if regular test is not correct
     passed_test_filenames = [
-        filename 
+        filename
         for _config_filename, matches in tested.items()
         for _check_id, filename_and_matches in matches.items()
         for filename, expected_and_reported_lines in filename_and_matches.items()
-        if expected_and_reported_lines["expected_lines"] == expected_and_reported_lines["reported_lines"]
+        if expected_and_reported_lines["expected_lines"]
+        == expected_and_reported_lines["reported_lines"]
     ]
     configs_with_fixtests = {
         config: [
-                (target, fixtest)
-                for target, fixtest in testfiles
-                if os.path.abspath(target) in passed_test_filenames
-            ]
+            (target, fixtest)
+            for target, fixtest in testfiles
+            if os.path.abspath(target) in passed_test_filenames
+        ]
         for config, testfiles in config_with_fixtests
     }
 
-
-    temp_copies = {
+    temp_copies: Dict[Path, str] = {
         target: create_temporary_copy(target)
         for _config, testfiles in config_with_fixtests
         for target, _fixtest in testfiles
     }
 
     config_with_tempfiles = [
-        (config, [
-            temp_copies[target]
-            for target, _fixtest in testfiles
-        ])
+        (config, [temp_copies[target] for target, _fixtest in testfiles])
         for config, testfiles in config_with_fixtests
     ]
-    
+
     invoke_semgrep_fn2 = functools.partial(
         invoke_semgrep_multi,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
         optimizations=optimizations,
-        autofix=True
+        autofix=True,
     )
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
@@ -550,18 +552,14 @@ def generate_test_results(
         for target, fixtest in testfiles
     }
 
-    fixtest_results = {}
+    fixtest_results: Dict[Path, Tuple[List[str], Path]] = {}
     fixtest_results_output = {}
     for t, tempcopy in temp_copies.items():
         fixtest = fixtest_comparisons[tempcopy]
         filediff = fixed_file_comparison(fixtest, tempcopy)
-        fixtest_results[t] = {
-            "filediff": filediff,
-            "fixtest": fixtest
-        }
-        fixtest_results_output[os.path.abspath(t)] = {
-            "passed" : len(filediff) == 0
-        }
+        # fixtest_results[t] = {"filediff": filediff, "fixtest": fixtest}
+        fixtest_results[t] = (filediff, fixtest)
+        fixtest_results_output[os.path.abspath(t)] = {"passed": len(filediff) == 0}
         os.remove(tempcopy)
 
     output = {
@@ -569,7 +567,7 @@ def generate_test_results(
         "config_missing_fixtests": configs_missing_fixtests,
         "config_with_errors": config_with_errors_output,
         "results": results_output,
-        "fixtest_results": fixtest_results_output
+        "fixtest_results": fixtest_results_output,
     }
 
     strict_error = bool(config_with_errors_output) and strict
@@ -614,8 +612,8 @@ def generate_test_results(
     fixtest_file_diffs: str = ""
     for target_filename, results in fixtest_results.items():
         num_fixtests += 1
-        filediff = results["filediff"]
-        fixtest = results["fixtest"]
+        filediff: List[str] = results[0]
+        fixtest: Path = results[1]
         if len(filediff) > 0:
             fixtest_file_diffs += _generate_fixcheck_output_line(
                 target_filename, filediff, fixtest
@@ -637,16 +635,16 @@ def generate_test_results(
         print(check_output_lines)
 
     if num_fixtests == 0:
-        print(
-            "No tests for fixes found."
-        )
+        print("No tests for fixes found.")
     elif num_fixtests == num_fixtests_passed:
         print(f"{num_fixtests_passed}/{num_fixtests}: ✓ All fix tests passed ")
     else:
-        print(f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: ")
+        print(
+            f"{num_fixtests_passed}/{num_fixtests}: {num_fixtests - num_fixtests_passed} fix tests did not pass: "
+        )
         print(BREAK_LINE)
         print(fixtest_file_diffs)
-        
+
     if config_with_errors_output:
         print(BREAK_LINE)
         print("The following config files produced errors:")
