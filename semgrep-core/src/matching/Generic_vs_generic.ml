@@ -730,6 +730,11 @@ and m_expr a b =
    *)
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
+  (* equivalence: extra parenthesis equivalence!
+   * must be before literal match below, to allow extra paren in the pattern to still match code without parens
+   *)
+  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
+  | _, G.ParenExpr (_, b1, _) -> m_expr a b1
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
@@ -803,7 +808,6 @@ and m_expr a b =
   (* TODO? should probably do some equivalence like allowing extra
    * paren in the pattern to still match code without parens
    *)
-  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
