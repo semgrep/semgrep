@@ -48,7 +48,7 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.synthesize_patterns import synthesize
 from semgrep.target_manager import converted_pipe_targets
-from semgrep.util import abort
+from semgrep.util import abort, unit_str
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -920,6 +920,7 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 severities=shown_severities,
+                print_summary=True,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())
