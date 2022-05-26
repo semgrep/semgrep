@@ -126,8 +126,7 @@ class AppSession(requests.Session):
 
         self.token = auth.get_token()
 
-        metrics = get_state().metrics
-        metrics.set_is_authenticated(bool(self.token))
+        get_state().metrics.payload["environment"]["isAuthenticated"] = bool(self.token)
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 30)

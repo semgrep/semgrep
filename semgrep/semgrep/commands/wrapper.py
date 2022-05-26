@@ -33,20 +33,20 @@ def handle_command_errors(func: Callable) -> Callable:
         logger.propagate = False
 
         metrics = get_state().metrics
-        metrics.set_version(__VERSION__)
+        metrics.payload["environment"]["version"] = __VERSION__
 
         try:
             func(*args, **kwargs)
         # Catch custom exception, output the right message and exit
         except SemgrepError as e:
-            metrics.set_return_code(e.code)
+            metrics.payload["errors"]["returnCode"] = e.code
             sys.exit(e.code)
         except Exception as e:
             logger.exception(e)
-            metrics.set_return_code(FATAL_EXIT_CODE)
+            metrics.payload["errors"]["returnCode"] = FATAL_EXIT_CODE
             sys.exit(FATAL_EXIT_CODE)
         else:
-            metrics.set_return_code(OK_EXIT_CODE)
+            metrics.payload["errors"]["returnCode"] = OK_EXIT_CODE
             sys.exit(OK_EXIT_CODE)
         finally:
             metrics.send()

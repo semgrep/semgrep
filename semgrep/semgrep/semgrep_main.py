@@ -434,22 +434,24 @@ def main(
     profiler.save("total_time", rule_start_time)
 
     metrics = get_state().metrics
-    if metrics.is_enabled():
-        error_types = list(e.semgrep_error_type() for e in semgrep_errors)
+    if metrics.is_enabled:
+        metrics.add_sanitized_project_url(project_url)
+        metrics.add_sanitized_configs(configs)
+        metrics.add_sanitized_rules(filtered_rules, profiling_data)
+        metrics.add_sanitized_targets(all_targets, profiling_data)
+        metrics.add_sanitized_findings(filtered_matches_by_rule)
 
-        metrics.set_project_hash(project_url)
-        metrics.set_configs_hash(configs)
-        metrics.set_rules_hash(filtered_rules)
-        metrics.set_num_rules(len(filtered_rules))
-        metrics.set_num_targets(len(all_targets))
-        metrics.set_num_findings(num_findings)
-        metrics.set_num_ignored(num_ignored_by_nosem)
-        metrics.set_profiling_times(profiler.dump_stats())
+        metrics.payload["value"]["numFindings"] = num_findings
+        metrics.payload["value"]["numIgnored"] = num_ignored_by_nosem
+
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
-        metrics.set_total_bytes_scanned(total_bytes_scanned)
-        metrics.set_errors(error_types)
-        metrics.set_rules_with_findings(filtered_matches_by_rule)
-        metrics.set_run_timings(profiling_data, list(all_targets), filtered_rules)
+        metrics.payload["performance"]["totalBytesScanned"] = total_bytes_scanned
+        metrics.payload["performance"]["profilingTimes"] = profiler.dump_stats()
+        metrics.payload["performance"]["numRules"] = len(filtered_rules)
+        metrics.payload["performance"]["numTargets"] = len(all_targets)
+
+        error_types = list(e.semgrep_error_type() for e in semgrep_errors)
+        metrics.payload["errors"]["errors"] = error_types
 
     if autofix:
         apply_fixes(filtered_matches_by_rule, dryrun)
