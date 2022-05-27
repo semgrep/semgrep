@@ -505,9 +505,7 @@ def generate_test_results(
     )
 
     configs_missing_fixtests = [
-        str(c)
-        for c, _fixtest in config_without_fixtests
-        if config_contains_fix_key(c)
+        str(c) for c, _fixtest in config_without_fixtests if config_contains_fix_key(c)
     ]
 
     # this saves execution time: fix will not be correct, if regular test is not correct
