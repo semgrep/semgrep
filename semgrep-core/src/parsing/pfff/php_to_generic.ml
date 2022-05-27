@@ -359,10 +359,10 @@ and expr e : G.expr =
       let tok = snd v1.f_name in
       match v1 with
       | {
-       f_kind = AnonLambda, t;
-       f_ref = false;
-       m_modifiers = [];
-       f_name = _ignored;
+       f_kind = lambdakind, t;
+       f_ref = _;
+       m_modifiers = _;
+       f_name = _;
        l_uses;
        f_attrs = [];
        f_params = ps;
@@ -376,6 +376,12 @@ and expr e : G.expr =
                 ())
               l_uses
           in
+          let lambdakind =
+            match lambdakind with
+            | AnonLambda -> G.LambdaKind
+            | ShortLambda -> G.Arrow
+            | _ -> error tok "unsupported lambda variant"
+          in
 
           let body = stmt body in
           let ps = parameters ps in
@@ -386,7 +392,7 @@ and expr e : G.expr =
               G.fparams = ps;
               frettype = rett;
               fbody = G.FBStmt body;
-              fkind = (G.LambdaKind, t);
+              fkind = (lambdakind, t);
             }
       | _ -> error tok "TODO: Lambda"))
   |> G.e
