@@ -6,14 +6,3 @@ rules:
       Use "sys.exit" over "exit".
   languages: [python]
   severity: WARNING
-
-
-
-
-
-
-
-
-
-
-
