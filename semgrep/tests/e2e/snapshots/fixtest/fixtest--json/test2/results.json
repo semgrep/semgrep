@@ -1,0 +1,29 @@
+{
+    "config_missing_tests": [],
+    "config_missing_fixtests": [
+        "/Users/p/rules-workdir/fix-test/test2/test2.yaml"
+    ],
+    "config_with_errors": [],
+    "results": {
+        "test2/test2.yaml": {
+            "checks": {
+                "test2": {
+                    "passed": true,
+                    "matches": {
+                        "/Users/p/rules-workdir/fix-test/test2/test2.py": {
+                            "expected_lines": [
+                                2,
+                                5
+                            ],
+                            "reported_lines": [
+                                2,
+                                5
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "fixtest_results": {}
+}
