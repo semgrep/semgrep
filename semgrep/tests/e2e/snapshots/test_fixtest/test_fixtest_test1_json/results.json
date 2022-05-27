@@ -1,0 +1,20 @@
+{
+  "config_missing_fixtests": [],
+  "config_missing_tests": [],
+  "config_with_errors": [],
+  "fixtest_results": {
+    "/private/var/folders/6g/4bpqxstn2b12dh93jy0tn_0w0000gn/T/pytest-of-p/pytest-19/test_fixtest_test1_json0/targets/fixtest/test1.py": {
+      "passed": true
+    }
+  },
+  "results": {
+    "rules/fixtest/test1.yaml": {
+      "checks": {
+        "test1": {
+          "matches": "<masked in tests>",
+          "passed": true
+        }
+      }
+    }
+  }
+}

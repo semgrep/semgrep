@@ -1,0 +1,11 @@
+{
+  "config_missing_fixtests": [
+    "/private/var/folders/6g/4bpqxstn2b12dh93jy0tn_0w0000gn/T/pytest-of-p/pytest-19/test_fixtest_test5_json0/rules/fixtest/test5.yaml"
+  ],
+  "config_missing_tests": [
+    "rules/fixtest/test5.yaml"
+  ],
+  "config_with_errors": [],
+  "fixtest_results": {},
+  "results": {}
+}

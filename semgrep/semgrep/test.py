@@ -306,7 +306,7 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
         while result != result.with_suffix(""):
             result = result.with_suffix("")
         return result
-
+    
     rel1 = remove_all_suffixes(child1.relative_to(parent1))
     rel2 = remove_all_suffixes(child2.relative_to(parent2))
     return rel1 == rel2
@@ -375,11 +375,16 @@ def get_config_fixtest_filenames(
             target, fixtest
         )
 
-        return (
-            relatively_eq(original_target, target, original_target, fixtest)
-            and correct_suffix
-        )
+        if original_target_is_file_not_directory:
+            original_target_directory = original_target.parent
+        else:
+            original_target_directory = original_target
 
+        return (
+            correct_suffix
+            and relatively_eq(original_target_directory, target, original_target_directory, fixtest)
+        )
+    
     return {
         config: [
             (target, fixtest)
