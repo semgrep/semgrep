@@ -72,7 +72,7 @@ jobs:
           FILES: CHANGELOG.md
 
       - name: Send reminder
-        uses: unsplash/comment-on-pr@v1.2.0
+        uses: unsplash/comment-on-pr@v1.3.1
         if: >
           steps.semgrep_diff.outputs.insertions > 20
           && steps.changelog_diff.outputs.insertions == 0
