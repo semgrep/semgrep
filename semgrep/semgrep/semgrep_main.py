@@ -432,13 +432,13 @@ def main(
 
     metrics = get_state().metrics
     if metrics.is_enabled:
-        metrics.add_sanitized_project_url(project_url)
-        metrics.add_sanitized_configs(configs)
-        metrics.add_sanitized_rules(filtered_rules, profiling_data)
-        metrics.add_sanitized_targets(all_targets, profiling_data)
-        metrics.add_sanitized_findings(filtered_matches_by_rule)
-        metrics.add_sanitized_errors(semgrep_errors)
-        metrics.add_sanitized_profiling(profiler)
+        metrics.add_project_url(project_url)
+        metrics.add_configs(configs)
+        metrics.add_rules(filtered_rules, profiling_data)
+        metrics.add_targets(all_targets, profiling_data)
+        metrics.add_findings(filtered_matches_by_rule)
+        metrics.add_errors(semgrep_errors)
+        metrics.add_profiling(profiler)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)

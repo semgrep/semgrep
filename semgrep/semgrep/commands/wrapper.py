@@ -44,7 +44,7 @@ def handle_command_errors(func: Callable) -> Callable:
             exit_code = FATAL_EXIT_CODE
         finally:
             metrics = get_state().metrics
-            metrics.add_sanitized_exit_code(exit_code)
+            metrics.add_exit_code(exit_code)
             metrics.send()
             sys.exit(exit_code)
 

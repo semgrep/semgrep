@@ -124,9 +124,13 @@ class MetricsJsonEncoder(json.JSONEncoder):
 @define
 class Metrics:
     """
-    To prevent sending unintended metrics, be sure that any data
-    stored on this object is sanitized of anything that we don't
-    want sent (i.e. sanitize before saving not before sending)
+    To prevent sending unintended metrics:
+    1. send all data into this class with add_* methods
+    2. ensure all add_* methods only set sanitized data
+
+    These methods go directly from raw data to transported data,
+    thereby skipping a "stored data" step,
+    and enforcing that we sanitize before saving, not before sending.
     """
 
     _is_using_registry: bool = False
@@ -181,7 +185,7 @@ class Metrics:
 
         self._is_using_registry = value
 
-    def add_sanitized_project_url(self, project_url: Optional[str]) -> None:
+    def add_project_url(self, project_url: Optional[str]) -> None:
         """
         Standardizes url then hashes
         """
@@ -204,7 +208,7 @@ class Metrics:
         project_hash = cast(Sha256Hash, hashlib.sha256(sanitized_url.encode()))
         self.payload["environment"]["projectHash"] = project_hash
 
-    def add_sanitized_configs(self, configs: Sequence[str]) -> None:
+    def add_configs(self, configs: Sequence[str]) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
@@ -213,9 +217,7 @@ class Metrics:
             m.update(c.encode())
         self._configs_hash = m
 
-    def add_sanitized_rules(
-        self, rules: Sequence[Rule], profiling_data: ProfilingData
-    ) -> None:
+    def add_rules(self, rules: Sequence[Rule], profiling_data: ProfilingData) -> None:
         m = cast(Sha256Hash, hashlib.sha256())
         rule_hashes = sorted(r.full_hash for r in rules)
         for rule_hash in rule_hashes:
@@ -232,7 +234,7 @@ class Metrics:
             for rule in rules
         ]
 
-    def add_sanitized_findings(self, findings: FilteredMatches) -> None:
+    def add_findings(self, findings: FilteredMatches) -> None:
         self.payload["value"]["ruleHashesWithFindings"] = {
             r.full_hash: len(f) for r, f in findings.kept.items()
         }
@@ -243,9 +245,7 @@ class Metrics:
             len(v) for v in findings.removed.values()
         )
 
-    def add_sanitized_targets(
-        self, targets: Set[Path], profiling_data: ProfilingData
-    ) -> None:
+    def add_targets(self, targets: Set[Path], profiling_data: ProfilingData) -> None:
         self.payload["performance"]["fileStats"] = [
             {
                 "size": target.stat().st_size,
@@ -261,16 +261,16 @@ class Metrics:
         self.payload["performance"]["totalBytesScanned"] = total_bytes_scanned
         self.payload["performance"]["numTargets"] = len(targets)
 
-    def add_sanitized_errors(self, errors: List[SemgrepError]) -> None:
+    def add_errors(self, errors: List[SemgrepError]) -> None:
         self.payload["errors"]["errors"] = [e.semgrep_error_type() for e in errors]
 
-    def add_sanitized_profiling(self, profiler: ProfileManager) -> None:
+    def add_profiling(self, profiler: ProfileManager) -> None:
         self.payload["performance"]["profilingTimes"] = profiler.dump_stats()
 
-    def add_sanitized_token(self, token: Optional[str]) -> None:
+    def add_token(self, token: Optional[str]) -> None:
         self.payload["environment"]["isAuthenticated"] = bool(token)
 
-    def add_sanitized_exit_code(self, exit_code: int) -> None:
+    def add_exit_code(self, exit_code: int) -> None:
         self.payload["errors"]["returnCode"] = exit_code
 
     def add_version(self, version: str) -> None:

@@ -127,7 +127,7 @@ class AppSession(requests.Session):
         self.token = auth.get_token()
 
         metrics = get_state().metrics
-        metrics.add_sanitized_token(self.token)
+        metrics.add_token(self.token)
 
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault("timeout", 30)
