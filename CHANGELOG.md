@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Sarif output format now includes `fixes` section
+
+### Changed
+
+- The `ci` CLI command will now include ignored matches in output formats
+  that dictate they should always be included
+  
+### Fixed
+
+- Scala: correctly handle `return` for taint analysis (#4975)
+
+## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
+
+### Added
+
 - `metavariable-regex` now supports an optional `constant-propagation` key.
   When this is set to `true`, information learned from constant propagation
   will be used when matching the metavariable against the regex. By default
@@ -66,7 +81,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
 - Python: adds support for parentheses around `with` context expressions
   (e.g., `with (open(x) as a, open(y) as b): pass`) (#5092)
-- Scala: correctly handle `return` for taint analysis (#4975)
+- C++: we now parse correctly const declarations (#5300)
 
 ## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 
