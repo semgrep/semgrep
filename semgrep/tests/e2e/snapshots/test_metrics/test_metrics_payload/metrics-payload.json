@@ -1,0 +1,15 @@
+{
+  "environment": {
+    "ci": null,
+    "isAuthenticated": true,
+    "projectHash": "c26d8842e4e91153327987e1ec630cb08ca9b6320a9c0c1290626c5ad659f14e",
+    "version": "0.94.0"
+  },
+  "errors": {
+    "returnCode": 2
+  },
+  "performance": {},
+  "sent_at": "2017-03-03T00:00:00-08:00",
+  "started_at": "2017-03-03T00:00:00-08:00",
+  "value": {}
+}

@@ -1,11 +1,16 @@
 """
 Tests for semgrep.metrics and associated command-line arguments.
 """
+import json
 from typing import Iterator
 
 import pytest
+from click.testing import CliRunner
 from pytest import mark
 from pytest import MonkeyPatch
+
+from semgrep.cli import cli
+from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
 # Test data to avoid making web calls in test code
@@ -211,4 +216,24 @@ def test_legacy_flags(run_semgrep_in_tmp):
     assert (
         "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
         not in output
+    )
+
+
+@pytest.mark.quick
+@pytest.mark.freeze_time("2017-03-03")
+def test_metrics_payload(tmp_path, snapshot, mocker):
+    (tmp_path / "foo.py").write_text("5 == 5")
+    runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path / ".settings")})
+    mock_post = mocker.patch("requests.post")
+    runner.invoke(
+        cli,
+        ["scan", "-e", "$X == $X", "-l", "python", "--metrics=on", str(tmp_path)],
+    )
+    try:
+        payload = json.loads(mock_post.call_args.kwargs["data"])
+    except KeyError:
+        payload = mock_post.call_args.kwargs["json"]
+
+    snapshot.assert_match(
+        json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"
     )
