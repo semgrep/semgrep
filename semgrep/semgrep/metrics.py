@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+from _hashlib import HASH as HashType  # type: ignore
 from datetime import datetime
 from enum import auto
 from enum import Enum
@@ -13,6 +14,7 @@ from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -29,6 +31,9 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
+
+if TYPE_CHECKING:
+    from hashlib import _Hash as HashType
 
 logger = getLogger(__name__)
 
@@ -49,7 +54,7 @@ class MetricsState(Enum):
     AUTO = auto()
 
 
-Sha256Hash = NewType("Sha256Hash", hashlib._Hash)
+Sha256Hash = NewType("Sha256Hash", HashType)  # type: ignore
 
 
 class RuleStats(TypedDict, total=False):
@@ -112,7 +117,7 @@ class MetricsJsonEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.astimezone().isoformat()
 
-        if isinstance(obj, hashlib._Hash):
+        if isinstance(obj, HashType):
             return obj.hexdigest()
 
         if isinstance(obj, UUID):
