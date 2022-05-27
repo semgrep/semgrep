@@ -1,2 +1,1 @@
-Sent feedback. Thanks for your contribution!
-You can view and extend the generated rule template here: https://foo.bar.semgrep.dev/playground/asdf
+Could not parse git email. Please use the --email flag to report this false negative.
