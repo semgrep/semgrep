@@ -15,7 +15,6 @@ from typing import Sequence
 from typing import Tuple
 
 import requests
-from requests import JSONDecodeError
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
@@ -460,7 +459,7 @@ def parse_config_string(
         ]
         # we pretend it came from YAML so we can keep later code simple
         return {config_id: YamlTree.wrap({"rules": rule_definitions}, EmptySpan)}
-    except JSONDecodeError:
+    except json.decoder.JSONDecodeError:
         pass
     try:
         data = parse_yaml_preserve_spans(contents, filename)
