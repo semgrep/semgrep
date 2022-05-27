@@ -2,6 +2,7 @@ import pytest
 
 from semgrep.constants import OutputFormat
 
+
 @pytest.mark.kinda_slow
 def test_fixtest_test1_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -53,6 +54,7 @@ def test_fixtest_test2_json(run_semgrep_in_tmp, snapshot):
     )
     snapshot.assert_match(stdout, "results.json")
 
+
 @pytest.mark.kinda_slow
 def test_fixtest_test3_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -78,6 +80,7 @@ def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
     )
     snapshot.assert_match(stdout, "results.json")
 
+
 @pytest.mark.kinda_slow
 def test_fixtest_test4_no_json(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
@@ -102,6 +105,7 @@ def test_fixtest_test4_json(run_semgrep_in_tmp, snapshot):
         output_format=OutputFormat.JSON,
     )
     snapshot.assert_match(stdout, "results.json")
+
 
 @pytest.mark.kinda_slow
 def test_fixtest_test5_no_json(run_semgrep_in_tmp, snapshot):
