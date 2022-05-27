@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
-  
+
 ### Fixed
 
 - Scala: correctly handle `return` for taint analysis (#4975)
