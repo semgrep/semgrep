@@ -1,5 +1,6 @@
 import asyncio
 import collections
+import hashlib
 import json
 import os
 import resource
@@ -18,13 +19,14 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
-from attr import asdict
 from attr import field
 from attr import frozen
 from ruamel.yaml import YAML
 from tqdm import tqdm
 
 import semgrep.output_from_core as core
+from semgrep import __VERSION__
+from semgrep.cache import FindingsCache
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -275,7 +277,31 @@ class StreamingSemgrepCore:
 class Task:
     path: str = field(converter=str)
     language: Language
-    rule_ids: Sequence[str]
+    rules: Sequence[Rule]
+
+    @property
+    def rule_ids(self) -> Sequence[str]:
+        return [rule.id for rule in self.rules]
+
+    @property
+    def hash(self) -> str:
+        hasher = hashlib.sha256()
+        # TODO: add hash of semgrep-core binary?
+        # TODO: add hash of semgrep-py source code?
+        # TODO: add git describe output when developing?
+        hasher.update(__VERSION__.encode())
+        hasher.update(Path(self.path).read_bytes())
+        hasher.update(self.language.encode())
+        for rule in self.rules:
+            hasher.update(rule.full_hash.encode())
+        return hasher.hexdigest()
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "path": self.path,
+            "language": self.language,
+            "rule_ids": self.rule_ids,
+        }
 
 
 class Plan(List[Task]):
@@ -298,8 +324,11 @@ class Plan(List[Task]):
             result[label].append(task)
         return result
 
+    def without_hashes(self, hashes: Set[str]) -> "Plan":
+        return Plan([task for task in self if task.hash not in hashes])
+
     def to_json(self) -> List[Dict[str, Any]]:
-        return [asdict(task) for task in self]
+        return [task.to_json() for task in self]
 
     def log(self) -> None:
         if self.rule_count == 0:
@@ -516,7 +545,7 @@ class CoreRunner:
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
         target_info: Dict[
-            Tuple[Path, Language], List[str]  # TODO: List[core.RuleId]
+            Tuple[Path, Language], List[Rule]  # TODO: List[core.RuleId]
         ] = collections.defaultdict(list)
 
         for rule in rules:
@@ -525,14 +554,14 @@ class CoreRunner:
 
                 for target in targets:
                     all_targets.add(target)
-                    target_info[target, language].append(rule.id)  # TODO: core.RuleId
+                    target_info[target, language].append(rule)  # TODO: core.RuleId
 
         return Plan(
             [
                 Task(
                     path=target,
                     language=language,
-                    rule_ids=target_info[target, language],
+                    rules=target_info[target, language],
                 )
                 for target, language in target_info
             ]
@@ -569,10 +598,11 @@ class CoreRunner:
         with open(rule_file_name, "w+") as rule_file, open(
             target_file_name, "w+"
         ) as target_file:
-
+            findings_cache = FindingsCache()
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
-            target_file.write(json.dumps(plan.to_json()))
+            outputs, plan_lite = findings_cache.load(plan, rules)
+            target_file.write(json.dumps(plan_lite.to_json()))
             target_file.flush()
 
             rule_file.write(
@@ -665,7 +695,7 @@ class CoreRunner:
                 print(" ".join(cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, len(plan))
+            runner = StreamingSemgrepCore(cmd, len(plan_lite))
             returncode = runner.execute()
 
             # Process output
@@ -682,7 +712,11 @@ class CoreRunner:
                 self._add_match_times(profiling_data, core_output.time)
 
             # end with tempfile.NamedTemporaryFile(...) ...
-            outputs = core_matches_to_rule_matches(rules, core_output)
+            for rule, findings in core_matches_to_rule_matches(
+                rules, core_output
+            ).items():
+                outputs[rule].extend(findings)
+            findings_cache.save(plan, outputs)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
                 if isinstance(err.error_type.value, core.Timeout):
