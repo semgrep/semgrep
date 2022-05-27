@@ -73,12 +73,15 @@ let rec _split_classmembers env members constants variables methods uses =
   match members with
   | [] -> (constants, variables, methods, uses)
   | hd :: rest -> (
+      let constants, variables, methods, uses =
+        _split_classmembers env rest constants variables methods uses
+      in
       match hd with
-      | ConstantDef c -> (constants @ [ c ], variables, methods, uses)
-      | ClassVar c -> (constants, variables @ [ c ], methods, uses)
-      | MethodDef m -> (constants, variables, methods @ [ m ], uses)
-      | UseTrait u -> (constants, variables, methods, uses @ [ u ])
-      | EnumCase c -> (constants, variables @ [ c ], methods, uses))
+      | ConstantDef c -> (c :: constants, variables, methods, uses)
+      | ClassVar c -> (constants, c :: variables, methods, uses)
+      | MethodDef m -> (constants, variables, m :: methods, uses)
+      | UseTrait u -> (constants, variables, methods, u :: uses)
+      | EnumCase c -> (constants, c :: variables, methods, uses))
 
 let split_classmembers env members = _split_classmembers env members [] [] [] []
 
