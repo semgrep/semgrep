@@ -81,9 +81,6 @@ def test_shouldafound_no_confirmation(
         env={},
     )
 
-    print(result.exit_code)
-    print(result.exc_info)
-
     snapshot.assert_match(result.output, "shouldafound.txt")
 
 
