@@ -62,7 +62,7 @@
             },
             "is_blocking": false,
             "fixed_lines": [
-                "    y == 2  # nosem"
+                "    y == 2  # nosemgrep"
             ]
         },
         {
