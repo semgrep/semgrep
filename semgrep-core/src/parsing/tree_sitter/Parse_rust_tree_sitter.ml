@@ -1404,6 +1404,8 @@ and map_expression (env : env) (x : CST.expression) =
       in
       let l, fields, r = map_field_initializer_list env v2 in
       G.Constructor (name, (l, fields, r))
+  | `Member_access_ellips_exp (e, _, dots) ->
+      G.DotAccessEllipsis (map_expression env e, token env dots)
   | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Deep_ellips (v1, v2, v3) ->
       let lellips = token env v1 (* "<..." *) in
