@@ -1,0 +1,21 @@
+0/1: 1 unit tests did not pass:
+--------------------------------------------------------------------------------
+	✖ test4                                                        expected lines: [2, 5], reported lines: [] 
+	test file path: /Users/p/repos/semgrep/semgrep/tests/e2e/targets/fixtest/test4.py
+
+
+0/1: 1 fix tests did not pass: 
+--------------------------------------------------------------------------------
+	✖ targets/fixtest/test4.fixed.py <> autofix applied to targets/fixtest/test4.py 
+
+	---
+	+++
+	@@ -2 +2 @@
+	-sys.exit(1)
+	+exit(1)
+	@@ -5 +5 @@
+	-sys.exit(2)
+	+exit(2)
+
+
+
