@@ -27,7 +27,7 @@ jobs:
           prerelease: false
 
           # OSX
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: semgrep-osx-${{ github.sha }}
           path: semgrep-osx
@@ -58,7 +58,7 @@ jobs:
           asset_content_type: application/zip
 
           ## UBUNTU
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: semgrep-ubuntu
@@ -162,7 +162,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -187,7 +187,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: semgrep-osx-${{ github.sha }}
       - name: Install artifacts
@@ -218,7 +218,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -245,7 +245,7 @@ jobs:
     container: quay.io/pypa/manylinux1_x86_64
     needs: [build-wheels-manylinux]
     steps:
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: manylinux-wheel
           path: manylinux-wheel
@@ -268,12 +268,12 @@ jobs:
     needs: [test-wheels-manylinux, build-wheels-osx]
     steps:
       - name: Download Artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: manylinux-wheel
           path: manylinux-wheel
       - name: Download Osx Artifact
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: osx-wheel
           path: osx-wheel
