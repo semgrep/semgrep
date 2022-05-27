@@ -220,7 +220,7 @@ class Metrics:
         m = cast(Sha256Hash, hashlib.sha256())
         for c in configs:
             m.update(c.encode())
-        self._configs_hash = m
+        self.payload["environment"]["configNamesHash"] = m
 
     def add_rules(self, rules: Sequence[Rule], profiling_data: ProfilingData) -> None:
         m = cast(Sha256Hash, hashlib.sha256())
