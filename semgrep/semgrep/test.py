@@ -450,6 +450,7 @@ def generate_test_results(
         config_test_filenames.items(),
         lambda c: bool(c[1]),
     )
+
     config_missing_tests_output = [str(c[0]) for c in config_without_tests]
 
     invoke_semgrep_fn = functools.partial(
@@ -504,7 +505,7 @@ def generate_test_results(
     )
 
     configs_missing_fixtests = [
-        os.path.abspath(c)
+        str(c)
         for c, _fixtest in config_without_fixtests
         if config_contains_fix_key(c)
     ]
@@ -563,7 +564,7 @@ def generate_test_results(
         filediff = fixed_file_comparison(fixtest, tempcopy)
         # fixtest_results[t] = {"filediff": filediff, "fixtest": fixtest}
         fixtest_results[t] = (filediff, fixtest)
-        fixtest_results_output[os.path.abspath(t)] = {"passed": len(filediff) == 0}
+        fixtest_results_output[str(t)] = {"passed": len(filediff) == 0}
         os.remove(tempcopy)
 
     output = {
