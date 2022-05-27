@@ -54,7 +54,7 @@ def shouldafound(
     """
     if not email:
         email = _get_git_email()
-        if email == None:
+        if email is None:
             click.echo(
                 "Could not parse git email. Please use the --email flag to report this false negative.",
                 err=True,
