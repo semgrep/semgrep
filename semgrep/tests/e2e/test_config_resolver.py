@@ -1,9 +1,12 @@
 from textwrap import dedent
-from semgrep.app import auth
+
 from click.testing import CliRunner
+
+from semgrep.app import auth
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
+
 
 def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
     file_content = dedent(
