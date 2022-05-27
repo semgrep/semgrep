@@ -610,10 +610,10 @@ def generate_test_results(
     num_fixtests = 0
     num_fixtests_passed = 0
     fixtest_file_diffs: str = ""
-    for target_filename, results in fixtest_results.items():
+    for target_filename, f_results in fixtest_results.items():
         num_fixtests += 1
-        filediff = results[0]
-        fixtest = results[1]
+        filediff = f_results[0]
+        fixtest = f_results[1]
         if len(filediff) > 0:
             fixtest_file_diffs += _generate_fixcheck_output_line(
                 target_filename, filediff, fixtest
