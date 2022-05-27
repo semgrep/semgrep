@@ -11,6 +11,8 @@ from pytest import MonkeyPatch
 
 from semgrep.cli import cli
 from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
+from semgrep.profiling import ProfilingData
+from tests.conftest import TESTS_PATH
 
 
 # Test data to avoid making web calls in test code
@@ -222,12 +224,22 @@ def test_legacy_flags(run_semgrep_in_tmp):
 @pytest.mark.quick
 @pytest.mark.freeze_time("2017-03-03")
 def test_metrics_payload(tmp_path, snapshot, mocker):
+    # these mocks make the rule and file timings deterministic
+    mocker.patch.object(ProfilingData, "set_file_times")
+    mocker.patch.object(ProfilingData, "set_rules_parse_time")
+
     (tmp_path / "foo.py").write_text("5 == 5")
     runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path / ".settings")})
     mock_post = mocker.patch("requests.post")
     runner.invoke(
         cli,
-        ["scan", "-e", "$X == $X", "-l", "python", "--metrics=on", str(tmp_path)],
+        [
+            "scan",
+            "--config",
+            str(TESTS_PATH / "e2e" / "rules" / "eqeq.yaml"),
+            "--metrics=on",
+            str(tmp_path),
+        ],
     )
     try:
         payload = json.loads(mock_post.call_args.kwargs["data"])

@@ -1,15 +1,68 @@
 {
   "environment": {
     "ci": null,
+    "configNamesHash": "4a34b75810eab9dcfb56fa43b7b25391b28ac07a285dca56d979a9e0111ab23a",
     "isAuthenticated": true,
     "projectHash": "c26d8842e4e91153327987e1ec630cb08ca9b6320a9c0c1290626c5ad659f14e",
+    "rulesHash": "a501bbc393322a2b45518dc554d25894c0a4babdfd2860f820e6758b8f1ba4c0",
     "version": "0.94.0"
   },
   "errors": {
-    "returnCode": 2
+    "errors": [],
+    "returnCode": 0
   },
-  "performance": {},
+  "performance": {
+    "fileStats": [
+      {
+        "matchTime": 0.0,
+        "numTimesScanned": 0,
+        "parseTime": 0.0,
+        "runTime": 0.0,
+        "size": 6
+      }
+    ],
+    "numRules": 4,
+    "numTargets": 1,
+    "profilingTimes": {
+      "config_time": 0.0,
+      "core_time": 0.0,
+      "ignores_time": 0.0,
+      "total_time": 0.0
+    },
+    "ruleStats": [
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "c9f743a8a0b82e972d39e27742dc338edd19b8b8b5290cbc7648ab935ffe92ee"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "4a5729225fd6db9727a30a543782843b680b51628ea87f5d9e2c6e45603d9735"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "c5dbaccc321ef86dfd875201de8887ad2d5b8a9c5cf5861d6184f5e7859ddd47"
+      },
+      {
+        "bytesScanned": 0,
+        "matchTime": 0.0,
+        "ruleHash": "a3eadb7df30dbd3e2e7f0ffff0afafc3e97026ef1d8423ce1f6f7e169e4d4098"
+      }
+    ],
+    "totalBytesScanned": 6
+  },
   "sent_at": "2017-03-03T00:00:00-08:00",
   "started_at": "2017-03-03T00:00:00-08:00",
-  "value": {}
+  "value": {
+    "numFindings": 1,
+    "numIgnored": 0,
+    "ruleHashesWithFindings": {
+      "4a5729225fd6db9727a30a543782843b680b51628ea87f5d9e2c6e45603d9735": 1,
+      "a3eadb7df30dbd3e2e7f0ffff0afafc3e97026ef1d8423ce1f6f7e169e4d4098": 0,
+      "c5dbaccc321ef86dfd875201de8887ad2d5b8a9c5cf5861d6184f5e7859ddd47": 0,
+      "c9f743a8a0b82e972d39e27742dc338edd19b8b8b5290cbc7648ab935ffe92ee": 0
+    }
+  }
 }
