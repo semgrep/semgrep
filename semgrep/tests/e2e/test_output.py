@@ -2,16 +2,14 @@ import collections
 import json
 import re
 from pathlib import Path
-from typing import Callable
 from typing import Dict
-from typing import Mapping
 from xml.etree import cElementTree
 
 import pytest
 
-from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
-from tests.conftest import _clean_output_json
+from tests.conftest import _clean_output_sarif
+from tests.conftest import CLEANERS
 from tests.conftest import TESTS_PATH
 
 
@@ -40,32 +38,6 @@ def _etree_to_dict(t):
         else:
             d[t.tag] = text
     return d
-
-
-@pytest.mark.kinda_slow
-def _clean_sarif_output(output):
-    # Rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
-
-    return output
-
-
-CLEANERS: Mapping[str, Callable[[str], str]] = {
-    "--sarif": lambda s: json.dumps(_clean_sarif_output(json.loads(s))),
-    "--gitlab-sast": _clean_output_json,
-    "--gitlab-secrets": _clean_output_json,
-    "--json": _clean_output_json,
-}
 
 
 @pytest.mark.kinda_slow
@@ -170,7 +142,7 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
         )[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -183,7 +155,7 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -200,7 +172,7 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF)[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -222,7 +194,7 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
         )[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -240,7 +212,7 @@ def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
         )[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
