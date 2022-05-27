@@ -2,7 +2,7 @@ Fetching rules from https://semgrep.dev/registry.
 
 Rules downloaded from https://semgrep.dev/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.
-Please upgrade to latest version of semgrep and try again.
+Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.
 
 Parse error details: semgrep error: Invalid rule schema
   --> https://semgrep.dev/...:2

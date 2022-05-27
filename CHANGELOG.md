@@ -24,6 +24,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   of the heavy lifting work
   (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
 - TS: support number and boolean typed metavariables (#5350)
+- When a rule from the registry fails to parse, suggest user upgrade to
+  latest version of semgrep
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
@@ -122,11 +124,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: allow ellipsis in binding_pattern (e.g., in arrow parameters) (#5230)
 - JS/TS: allow ellipsis in imports (e.g., `import {..., Foo, ...} from 'Bar'`) (#5012)
 - `fixed_lines` is once again included in JSON output when running with `--autofix --dryrun`
-
-### Changed
-
-- When a rule from the registry fails to parse, suggest user upgrade to
-  latest version of semgrep
 
 ## [0.92.0](https://github.com/returntocorp/semgrep/releases/tag/v0.92.0) - 2022-05-11
 
