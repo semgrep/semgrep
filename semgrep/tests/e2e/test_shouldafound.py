@@ -38,8 +38,9 @@ def test_shouldafound_no_args(tmp_path, snapshot):
         ],
     ],
 )
+@pytest.mark.parametrize("git_return", [None, "foo@email.com"])
 def test_shouldafound_no_confirmation(
-    monkeypatch, email_flag, snapshot, mocker, tmp_path
+    monkeypatch, git_return, email_flag, snapshot, mocker, tmp_path
 ):
     """
     Test that the -y flag allows seamless submission
@@ -57,6 +58,8 @@ def test_shouldafound_no_confirmation(
         "_make_shouldafound_request",
         return_value=api_content,
     )
+
+    mocker.patch.object(shouldafound, "_get_git_email", return_value=git_return)
 
     copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
@@ -77,6 +80,9 @@ def test_shouldafound_no_confirmation(
         args,
         env={},
     )
+
+    print(result.exit_code)
+    print(result.exc_info)
 
     snapshot.assert_match(result.output, "shouldafound.txt")
 
