@@ -2,6 +2,7 @@
 Tests for semgrep.metrics and associated command-line arguments.
 """
 import json
+import re
 from typing import Iterator
 
 import pytest
@@ -10,7 +11,6 @@ from pytest import mark
 from pytest import MonkeyPatch
 
 from semgrep.cli import cli
-from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from semgrep.profiling import ProfilingData
 from tests.conftest import TESTS_PATH
 
@@ -221,15 +221,19 @@ def test_legacy_flags(run_semgrep_in_tmp):
     )
 
 
+def _mask_version(value: str) -> str:
+    return re.sub(r"\d+", "x", value)
+
+
 @pytest.mark.quick
 @pytest.mark.freeze_time("2017-03-03")
-def test_metrics_payload(tmp_path, snapshot, mocker):
+def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
     # these mocks make the rule and file timings deterministic
     mocker.patch.object(ProfilingData, "set_file_times")
     mocker.patch.object(ProfilingData, "set_rules_parse_time")
 
     (tmp_path / "foo.py").write_text("5 == 5")
-    runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path / ".settings")})
+    runner = CliRunner()
     mock_post = mocker.patch("requests.post")
     runner.invoke(
         cli,
@@ -245,6 +249,9 @@ def test_metrics_payload(tmp_path, snapshot, mocker):
         payload = json.loads(mock_post.call_args.kwargs["data"])
     except KeyError:
         payload = mock_post.call_args.kwargs["json"]
+
+    payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
+    payload["environment"]["isAuthenticated"] = False
 
     snapshot.assert_match(
         json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"

@@ -2,10 +2,10 @@
   "environment": {
     "ci": null,
     "configNamesHash": "4a34b75810eab9dcfb56fa43b7b25391b28ac07a285dca56d979a9e0111ab23a",
-    "isAuthenticated": true,
+    "isAuthenticated": false,
     "projectHash": "c26d8842e4e91153327987e1ec630cb08ca9b6320a9c0c1290626c5ad659f14e",
     "rulesHash": "a501bbc393322a2b45518dc554d25894c0a4babdfd2860f820e6758b8f1ba4c0",
-    "version": "0.94.0"
+    "version": "x.x.x"
   },
   "errors": {
     "errors": [],
