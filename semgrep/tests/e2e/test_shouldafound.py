@@ -76,11 +76,7 @@ def test_shouldafound_no_confirmation(
 
     args.extend(email_flag)
 
-    result = runner.invoke(
-        cli,
-        args,
-        env={},
-    )
+    result = runner.invoke(cli, args)
 
     snapshot.assert_match(result.output, "shouldafound.txt")
 
