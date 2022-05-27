@@ -4,6 +4,7 @@ from shutil import copytree
 import pytest
 from click.testing import CliRunner
 
+from semgrep import notifications
 from semgrep.cli import cli
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
@@ -98,6 +99,8 @@ def test_shouldafound_findings_output(
         "get_no_findings_msg",
         return_value=message,
     )
+    mocker.patch.object(notifications, "possibly_notify_user", return_value=None)
+
     runner = CliRunner(
         env={
             SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
@@ -108,7 +111,7 @@ def test_shouldafound_findings_output(
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(cli, ["-e", pattern, "-l", "python"], env={})
+    result = runner.invoke(cli, ["-e", pattern, "-l", "python"])
 
     assert result.exception == None
     assert result.exit_code == 0
