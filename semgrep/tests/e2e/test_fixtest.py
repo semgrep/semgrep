@@ -1,4 +1,5 @@
 from subprocess import CalledProcessError
+
 import pytest
 
 from semgrep.constants import OutputFormat
@@ -96,6 +97,7 @@ def test_fixtest_test4_no_json(run_semgrep_in_tmp, snapshot):
         )
     assert excinfo.value.returncode == 1
     snapshot.assert_match(excinfo.value.stdout, "error.txt")
+
 
 @pytest.mark.kinda_slow
 def test_fixtest_test4_json(run_semgrep_in_tmp, snapshot):
