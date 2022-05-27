@@ -163,9 +163,25 @@ let rec stmt_aux = function
       [ G.DirectiveStmt (G.Package (t, v1) |> G.d) |> G.s ]
       @ v2
       @ [ G.DirectiveStmt (G.PackageEnd t2 |> G.d) |> G.s ]
-  | NamespaceUse (t, v1, v2) ->
-      let v1 = qualified_ident v1 and v2 = option alias v2 in
-      [ G.DirectiveStmt (G.ImportAs (t, G.DottedName v1, v2) |> G.d) |> G.s ]
+  | NamespaceUse (t, v1, v2) -> (
+      let v1 = qualified_ident v1 in
+      match v2 with
+      | Some x ->
+          [
+            G.DirectiveStmt
+              (G.ImportAs (t, G.DottedName v1, Some (alias x)) |> G.d)
+            |> G.s;
+          ]
+      | None -> (
+          match List.rev v1 with
+          | name :: path ->
+              [
+                G.DirectiveStmt
+                  (G.ImportFrom (t, G.DottedName (List.rev path), name, None)
+                  |> G.d)
+                |> G.s;
+              ]
+          | [] -> raise Impossible))
   | StaticVars (t, v1) ->
       v1
       |> list (fun (v1, v2) ->
