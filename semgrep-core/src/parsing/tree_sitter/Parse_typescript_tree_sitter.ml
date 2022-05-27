@@ -2517,19 +2517,19 @@ and anon_choice_export_stmt_f90d83f (env : env)
 and public_field_definition (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.public_field_definition) : property =
   let _tok_declare = optional env v1 token in
-  let _access_modif = accessibility_modifier_opt_to_list env v2 in
+  let access_modif = accessibility_modifier_opt_to_list env v2 in
   let attributes =
     match v3 with
     | `Opt_static_opt_over_modi_opt_read (v1, v2bis, v2) ->
         let v1 = kwd_attr_opt_to_list env Static v1 in
         let v2 = kwd_attr_opt_to_list env Readonly v2 in
         let v2bis = kwd_attr_opt_to_list env Override v2bis in
-        v1 @ v2 @ v2bis
+        access_modif @ v1 @ v2 @ v2bis
     | `Opt_abst_opt_read (v1, v2)
     | `Opt_read_opt_abst (v2, v1) ->
         let v1 = kwd_attr_opt_to_list env Abstract v1 in
         let v2 = kwd_attr_opt_to_list env Readonly v2 in
-        v1 @ v2
+        access_modif @ v1 @ v2
   in
   let prop_name = property_name env v4 in
   let _question_or_exclam =

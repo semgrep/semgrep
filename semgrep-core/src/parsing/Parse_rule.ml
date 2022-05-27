@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Emma Jin
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -479,12 +479,7 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, or `pattern-comby`"
 
-let rec parse_formula (env : env) (rule_dict : dict) : R.pformula =
-  match Hashtbl.find_opt rule_dict.h "match" with
-  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old env rule_dict))
-
-and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
+let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let env = { env with path = fst key :: env.path } in
   let get_pattern str_e = parse_xpattern_expr env str_e in
   let get_nested_formula i x =
@@ -542,8 +537,11 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "r2c-internal-patterns-from" -> R.PatFilteredInPythonTodo t
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
-(* let extra = parse_extra env x in
-   R.PatExtra extra *)
+(* NOTE: this is mostly deadcode! None of our rules are using
+ * this new formula syntax directly (internally we do convert
+ * old style formula to new formula, but we always use the old
+ * syntax formula in yaml files).
+ *)
 and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
   | G.Container
@@ -562,6 +560,10 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" ->
           let xs = parse_list env key parse_formula_and_new value in
           let fs, conds = Common.partition_either (fun x -> x) xs in
+          (* sanity check fs *)
+          let pos, _negs = R.split_and fs in
+          if pos = [] then
+            raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
           R.And
             {
               tok = t;
@@ -608,7 +610,12 @@ and parse_formula_and_new env (x : G.expr) :
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string env key mvar in
               let x = parse_string_wrap env key re in
-              Right (t, R.CondRegexp (mvar, parse_regexp env x))
+              Right (t, R.CondRegexp (mvar, parse_regexp env x, false))
+          | G.Container (Array, (_, [ mvar; re; const_prop ], _)) ->
+              let mvar = parse_string env key mvar in
+              let x = parse_string_wrap env key re in
+              let const_prop = parse_bool env key const_prop in
+              Right (t, R.CondRegexp (mvar, parse_regexp env x, const_prop))
           | _ -> error_at_expr env value "Expected a metavariable and regex")
       | _ -> Left (parse_formula_new env x))
   | _ -> Left (R.P (parse_xpattern_expr env x, None))
@@ -634,11 +641,17 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
         | R.DuplicateYamlKey (msg, t) ->
             error env t (msg ^ ". You should use multiple metavariable-regex")
       in
-      let metavar, regexp =
+      let metavar, regexp, const_prop =
         ( take mv_regex_dict env parse_string "metavariable",
-          take mv_regex_dict env parse_string_wrap "regex" )
+          take mv_regex_dict env parse_string_wrap "regex",
+          take_opt mv_regex_dict env parse_bool "constant-propagation" )
       in
-      R.MetavarRegexp (metavar, parse_regexp env regexp)
+      R.MetavarRegexp
+        ( metavar,
+          parse_regexp env regexp,
+          match const_prop with
+          | Some b -> b
+          | None -> false )
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
       let metavar = take mv_pattern_dict env parse_string "metavariable" in
@@ -656,9 +669,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let pformula = parse_formula env' mv_pattern_dict in
-      let formula = R.formula_of_pformula pformula in
-      R.MetavarPattern (metavar, opt_xlang, formula)
+      let formula_old =
+        parse_formula_old env' (find_formula_old env mv_pattern_dict)
+      in
+      R.MetavarPattern (metavar, opt_xlang, formula_old)
   | "metavariable-comparison" ->
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
@@ -708,6 +722,15 @@ let parse_severity ~id (s, t) =
 (*****************************************************************************)
 (* Sub parsers taint *)
 (*****************************************************************************)
+
+let parse_formula (env : env) (rule_dict : dict) : R.pformula =
+  match Hashtbl.find_opt rule_dict.h "match" with
+  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
+  | None ->
+      let old = parse_formula_old env (find_formula_old env rule_dict) in
+      (* sanity check *)
+      let _new = Rule.convert_formula_old ~rule_id:env.id old in
+      R.Old old
 
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
@@ -810,7 +833,6 @@ let parse_one_rule t i rule =
   }
 
 let parse_generic ?(error_recovery = false) file ast =
-  ignore error_recovery;
   let t, rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (

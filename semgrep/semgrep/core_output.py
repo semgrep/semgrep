@@ -20,6 +20,7 @@ from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
+from semgrep.state import get_state
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
@@ -74,7 +75,12 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
 
 def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
+    terminal = get_state().terminal
     match_results = core.CoreMatchResults.from_json(raw_json)
+    if not terminal.is_debug:
+        # skipping the loop below can save seconds with lots of skipped_targets
+        # note that the skip logs will be missing from the last.log file as well
+        return match_results
 
     for skip in match_results.skipped_targets:
         if skip.rule_id:

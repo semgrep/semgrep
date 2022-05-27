@@ -53,7 +53,7 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.yaml"))
+RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.json"))
 TARGET_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_targets.txt"))
 
 
@@ -432,15 +432,15 @@ class CoreRunner:
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
-            if returncode == -11:
+            if returncode == -11 or returncode == -9:
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
                 soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
-                tip = f" This may be a stack overflow. Current stack limit is {soft_limit}, try increasing it via `ulimit -s {2*soft_limit}`."
+                tip = f" Semgrep exceeded system resources. This may be caused by\n\n    1. Stack overflow. Try increasing the stack limit to `{soft_limit}` by running `ulimit -s {soft_limit}` before running Semgrep.\n    2. Out of memory. Try increasing the memory available to your container (if running in CI). If that is not possible, run `semgrep` with `--max-memory $YOUR_MEMORY_LIMIT`.\n    3. Some extremely niche compiler/c-bindings bug. (We've never seen this, but it's always possible.)\n\nYou can also try reducing the number of processes Semgrep uses by running `semgrep` with `--jobs 1` (or some other number of jobs). If you are running in CI, please try running the same command locally."
             else:
-                tip = ""
+                tip = "Semgrep encountered an internal error."
             self._fail(
-                f"Semgrep encountered an internal error.{tip}",
+                f"{tip}",
                 shell_command,
                 returncode,
                 semgrep_output,
@@ -479,9 +479,6 @@ class CoreRunner:
         profiling_data: ProfilingData,
         timing: core.CoreTiming,
     ) -> None:
-        targets = [Path(t.path) for t in timing.targets]
-
-        profiling_data.init_empty(timing.rules, targets)
         if timing.rules_parse_time:
             profiling_data.set_rules_parse_time(timing.rules_parse_time)
 
@@ -561,7 +558,7 @@ class CoreRunner:
         rule_file_name = (
             RULE_SAVE_FILE
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w", suffix=".yaml").name
+            else tempfile.NamedTemporaryFile("w", suffix=".json").name
         )
         target_file_name = (
             TARGET_SAVE_FILE
@@ -578,8 +575,11 @@ class CoreRunner:
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
-            yaml = YAML()
-            yaml.dump({"rules": [rule._raw for rule in rules]}, rule_file)
+            rule_file.write(
+                json.dumps(
+                    {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
+                )
+            )
             rule_file.flush()
 
             # Run semgrep

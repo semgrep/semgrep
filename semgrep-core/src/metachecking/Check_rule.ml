@@ -132,7 +132,7 @@ let unknown_metavar_in_comparison env f =
         |> List.iter (fun (t, metavar_cond) ->
                match metavar_cond with
                | CondEval _ -> ()
-               | CondRegexp (mv, _) ->
+               | CondRegexp (mv, _, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t
@@ -171,10 +171,11 @@ let check_formula env (lang : Xlang.t) f =
 (*****************************************************************************)
 
 let check r =
+  let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
   | Rule.Search pf ->
-      let f = Rule.formula_of_pformula pf in
+      let f = Rule.formula_of_pformula ~rule_id pf in
       check_formula { r; errors = ref [] } r.languages f
   | Taint _ -> (* TODO *) []
 

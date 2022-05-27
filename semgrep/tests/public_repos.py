@@ -260,6 +260,10 @@ PASSING_REPOS = [
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
+    {
+        "repo": "https://github.com/home-assistant/home-assistant",
+        "languages": ALL_LANGUAGES,
+    },
 ]
 
 FAILING_REPOS = [
@@ -271,18 +275,6 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
-    #
-    # This test started to succeed for me locally but still failing in CI
-    # after changing regexp compilation to multiline mode.
-    # I don't know what's being tested here and the test takes 1 minute,
-    # which is a lot, so I'm commenting it out. - Martin J
-    # xfail_repo(
-    #     {
-    #         "repo": "https://github.com/home-assistant/home-assistant",
-    #         "languages": ALL_LANGUAGES,
-    #     },
-    #     reason="https://github.com/returntocorp/semgrep/issues/5092",
-    # ),
     xfail_repo(
         {"repo": "https://github.com/apache/airflow", "languages": ["javascript"]},
         reason="ui/src/views/Pipelines/PipelinesTable.tsx: `} =` was unexpected",

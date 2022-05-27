@@ -261,7 +261,24 @@ and scope_resolution x : G.name =
        * in which case we could generate a QDots instead of a QEXpr
        *)
       let e = expr e in
-      let qualif = G.QExpr (e, t) in
+      let qualif =
+        match e with
+        | { G.e = G.N (G.Id (id, _info)); _ } -> G.QDots [ (id, None) ]
+        | {
+         G.e =
+           G.N
+             (G.IdQualified
+               {
+                 name_last;
+                 name_middle = Some (G.QDots middle);
+                 name_top = None;
+                 _;
+               });
+         _;
+        } ->
+            G.QDots (middle @ [ name_last ])
+        | _ -> G.QExpr (e, t)
+      in
       IdQualified
         {
           G.name_last = (id, None);

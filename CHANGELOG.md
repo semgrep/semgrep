@@ -6,7 +6,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+- Sarif output format now includes `fixes` section
+- Rust: added support for method chaining patterns.
+
+### Changed
+
+- The `ci` CLI command will now include ignored matches in output formats
+  that dictate they should always be included
+
+## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
+
+### Added
+
+- `metavariable-regex` now supports an optional `constant-propagation` key.
+  When this is set to `true`, information learned from constant propagation
+  will be used when matching the metavariable against the regex. By default
+  it is set to `false`
+- Dockerfile: constant propagation now works on variables declared with `ENV`
+- `shouldafound` - False Negative reporting via the CLI
 
 ### Changed
 
@@ -16,7 +33,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   safe data, this was not recognized by the taint engine. Also, if `taint(x)`
   occurred inside e.g. an `if` block, any occurrence of `x` outside that block
   was not considered tainted. Now, if you specify that the code variable itself
-  is a taint source (using `focus-metavaraible`), the taint engine will handle
+  is a taint source (using `focus-metavariable`), the taint engine will handle
   this as expected, and it will not suffer from the aforementioned limitations.
   We believe that this change should not break existing taint rules, but please
   report any regressions that you may find.
@@ -24,11 +41,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Previously, we had to rely on a trick that declared that _any_ occurrence of
   `x` inside `sanitize(x); ...` was sanitized. If `x` later overwritten with
   tainted data, the taint engine would still regard `x` as safe. Now, if you
-  specify that the code variable itself is sanitized (using `focus-metavaraible`),
+  specify that the code variable itself is sanitized (using `focus-metavariable`),
   the taint engine will handle this as expected and it will not suffer from such
   limitation. We believe that this change should not break existing taint rules,
   but please report any regressions that you may find.
-- Processing large rule files is now 30% faster.
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
 - pattern-regex, pattern-not-regex, etc.: `^` and `$` now match at the
@@ -45,6 +61,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the [PCRE
   manual](https://www.pcre.org/original/doc/html/pcrepattern.html#smallassertions)
   for details.
+- Made error message for resource exhausion (exit code -11/-9) more actionable
+- Made error message for rules with patterns missing positive terms
+  more actionable (#5234)
+- In this version, we have made several performance improvements
+  to the code that surrounds our source parsing and matching core.
+  This includes file targeting, rule fetching, and similar parts of the codebase.
+  Running `semgrep scan --config auto` on the semgrep repo itself
+  went from 50-54 seconds to 28-30 seconds.
+  - As part of these changes, we removed `:include .gitignore` and `.git/`
+    from the default `.semgrepignore` patterns.
+    This should not cause any difference in which files are targeted
+    as other parts of Semgrep ignore these files already.
+  - A full breakdown of our performance updates,
+    including some upcoming ones,
+    can be found here https://github.com/returntocorp/semgrep/issues/5257#issuecomment-1133395694
+- If a metrics event request times out, we no longer retry the request.
+  This avoids Semgrep waiting 10-20 seconds before exiting if these requests are slow.
+- The metrics collection timeout has been raised from 2 seconds to 3 seconds.
 
 ### Fixed
 
@@ -52,17 +86,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   tree-sitter-typescript (Oct 2021)
 - TS: support for `override` keyword (#4220, #4798)
 - TS: better ASI (#4459) and accept code like `(null)(foo)` (#4468)
+- TS: parse correctly private properties (#5162)
 - Go: Support for ellipsis in multiple return values
   (e.g., `func foo() (..., error, ...) {}`) (#4896)
 - semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
+- Python: adds support for parentheses around `with` context expressions
+  (e.g., `with (open(x) as a, open(y) as b): pass`) (#5092)
+- C++: we now parse correctly const declarations (#5300)
 
 ## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 
 ### Changed
 
 - Files where only some part of the code had to be skipped due to a parse failure
-  will now be listed as "partially scanned" in the end-of-scan skip
-  report.
+  will now be listed as "partially scanned" in the end-of-scan skip report.
 - Licensing: The ocaml-tree-sitter-core component is now distributed
   under the terms of the LGPL 2.1, rather than previously GPL 3.
 - A new field was added to metrics collection: isAuthenticated.

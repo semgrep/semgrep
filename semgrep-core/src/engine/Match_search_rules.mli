@@ -1,6 +1,10 @@
 val check_rule :
   Rule.t ->
-  (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  (string ->
+  Metavariable.bindings ->
+  Parse_info.t list Lazy.t ->
+  _ option ->
+  unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
   Rule.pformula ->
   Xtarget.t ->

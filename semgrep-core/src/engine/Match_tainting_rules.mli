@@ -23,7 +23,11 @@ val taint_config_of_rule :
 
 val check_rule :
   Rule.t ->
-  (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  (string ->
+  Metavariable.bindings ->
+  Parse_info.t list Lazy.t ->
+  Taint.finding option ->
+  unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
   Rule.taint_spec ->
   Xtarget.t ->

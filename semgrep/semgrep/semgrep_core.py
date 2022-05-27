@@ -1,9 +1,8 @@
+import importlib.resources
 import os
 import shutil
 import sys
 from typing import Optional
-
-import pkg_resources
 
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
@@ -13,9 +12,9 @@ def compute_executable_path(exec_name: str) -> Optional[str]:
     Return None if no executable found
     """
     # First, try packaged binaries
-    pkg_exec = pkg_resources.resource_filename("semgrep.bin", exec_name)
-    if os.path.isfile(pkg_exec):
-        return pkg_exec
+    with importlib.resources.path("semgrep.bin", exec_name) as path:
+        if path.is_file():
+            return str(path)
 
     # Second, try system binaries in PATH.
     #
