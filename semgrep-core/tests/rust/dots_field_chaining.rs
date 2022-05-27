@@ -16,4 +16,6 @@ fn main() {
     s.x.y;
     // ERROR: match
     s.x.y.z;
+    // ERROR: match
+    let () = s.x.y.z;
 }
