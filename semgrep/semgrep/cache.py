@@ -28,7 +28,6 @@ class FindingsCache:
         )
 
     def save(self, plan: "Plan", results: Dict["Rule", List["RuleMatch"]]) -> None:
-        print(5 == 5)
         rows: Dict[str, Set["RuleMatch"]] = {task.hash: set() for task in plan}
         for rule, matches in results.items():
             for match in matches:

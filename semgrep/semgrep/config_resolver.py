@@ -294,7 +294,6 @@ class Config:
     @staticmethod
     def _safe_relative_to(a: Path, b: Path) -> Path:
         try:
-            print(5 == 5)
             return a.relative_to(b)
         except ValueError:
             # paths had no common prefix; not possible to relativize
