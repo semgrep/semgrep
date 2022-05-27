@@ -164,6 +164,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         Instead will print out json objects it would have sent.
     """,
 )
+@click.option(
+    "--sca",
+    is_flag=True,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -197,6 +202,7 @@ def ci(
     sarif: bool,
     quiet: bool,
     rewrite_rule_ids: bool,
+    sca: bool,
     scan_unknown_extensions: bool,
     time_flag: bool,
     timeout_threshold: int,
@@ -288,6 +294,8 @@ def ci(
         logger.info(
             f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
         )
+    if sca:
+        logger.info("  running an SCA scan")
     logger.info("")
 
     try:
@@ -297,7 +305,9 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    scan_handler.start_scan(metadata.to_dict())
+                    metadata_dict = metadata.to_dict()
+                    metadata_dict["is_sca_scan"] = sca
+                    scan_handler.start_scan(metadata_dict)
                     config = (scan_handler.scan_rules_url,)
             except Exception as e:
                 import traceback
@@ -341,6 +351,8 @@ def ci(
                 max_target_bytes=max_target_bytes,
                 autofix=scan_handler.autofix if scan_handler else False,
                 dryrun=True,
+                # Always true, as we want to always report all findings, even
+                # ignored ones, to the backend
                 disable_nosem=True,
                 no_git_ignore=(not use_git_ignore),
                 timeout=timeout,
@@ -381,19 +393,23 @@ def ci(
     blocking_matches_by_rule: RuleMatchMap = {}
     nonblocking_matches_by_rule: RuleMatchMap = {}
     cai_matches_by_rule: RuleMatchMap = {}
+
+    # Since we keep nosemgrep disabled for the actual scan, we have to apply
+    # that flag here
+    keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
     for rule, matches in filtered_matches_by_rule.items():
         if "r2c-internal-cai" in rule.id:
             cai_matches_by_rule[rule] = [
-                match for match in matches if not match.is_ignored
+                match for match in matches if not match.is_ignored or keep_ignored
             ]
         else:
             if rule.is_blocking:
                 blocking_matches_by_rule[rule] = [
-                    match for match in matches if not match.is_ignored
+                    match for match in matches if not match.is_ignored or keep_ignored
                 ]
             else:
                 nonblocking_matches_by_rule[rule] = [
-                    match for match in matches if not match.is_ignored
+                    match for match in matches if not match.is_ignored or keep_ignored
                 ]
 
     sum(len(v) for v in cai_matches_by_rule.values())

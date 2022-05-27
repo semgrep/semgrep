@@ -1,0 +1,57 @@
+Scanning 49 files.
+
+Findings:
+
+  targets/basic/stupid.py 
+          3┆ return a + b == a + b
+          ⋮┆----------------------------------------
+          8┆ x == x
+          ⋮┆----------------------------------------
+         12┆ assertTrue(x == x)
+
+
+  targets/ci/foo.py 
+          4┆ a == a
+          ⋮┆----------------------------------------
+          5┆ a == a
+          ⋮┆----------------------------------------
+          7┆ a == a
+          ⋮┆----------------------------------------
+         11┆ y == y
+
+
+  targets/cli_test/basic/basic.py 
+          2┆ print(1 == 1)
+
+
+  targets/cli_test/multiple_annotations/multiple-annotations-bad.py 
+          2┆ 4 == 4
+          ⋮┆----------------------------------------
+          5┆ 5 == 5
+
+
+  targets/cli_test/multiple_annotations/multiple-annotations.py 
+          5┆ 5 == 5
+
+
+  targets/cli_test/suffixes/this.that.check.py 
+          2┆ print(1 == 1)
+
+
+  targets/multiline/stupid.py 
+          7┆ SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK
+          8┆ == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK
+
+
+  targets/nosemgrep/eqeq-nosemgrep.py 
+          2┆ return a + b == a + b  # nosemgrep: rules.eqeq-is-bad
+
+
+  targets/script/bad 
+          3┆ 4 == 4
+
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+  Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
+
+Ran 1 rule on 49 files: 15 findings.

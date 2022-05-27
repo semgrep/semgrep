@@ -3,12 +3,12 @@
     {
       "code": 2,
       "level": "error",
-      "message": "[ERROR] Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python",
+      "message": "[ERROR] Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
       "rule_id": "rules.syntax.eqeq-is-bad",
       "spans": [
         {
           "config_end": {
-            "col": 11,
+            "col": 13,
             "line": 0
           },
           "config_path": [
@@ -23,13 +23,13 @@
             "line": 0
           },
           "end": {
-            "col": 24,
-            "line": 4
+            "col": 34,
+            "line": 11
           },
           "file": "tmp/masked/path",
           "start": {
-            "col": 14,
-            "line": 4
+            "col": 22,
+            "line": 11
           }
         }
       ],

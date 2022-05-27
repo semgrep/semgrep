@@ -237,6 +237,9 @@ let dump_ast ?(naming = false) lang file =
       pr s;
       if errors <> [] then (
         pr2 (spf "WARNING: fail to fully parse %s" file);
+        pr2
+          (Common.map (fun e -> "  " ^ E.string_of_error e) errors
+          |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
 let dump_v1_json file =
@@ -572,7 +575,6 @@ let options () =
         " keep temporary generated files" );
     ]
   @ Meta_parse_info.cmdline_flags_precision ()
-  @ Semgrep_error_code.options ()
   @ Common.options_of_actions action (all_actions ())
   @ [
       ( "-version",

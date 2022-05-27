@@ -1,0 +1,12 @@
+rules:
+- id: empty-test
+  patterns:
+  - pattern-not-regex: |
+      function
+  - pattern-not-regex:
+      class
+  message: test
+  languages:
+  - java
+  severity: INFO
+  

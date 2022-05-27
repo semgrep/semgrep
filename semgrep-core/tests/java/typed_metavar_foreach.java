@@ -5,8 +5,8 @@ public class OtherObj {
       obj.persistObj(arg0, arg1);
     }
 
-    MyObj obj = new MyObj()
+    MyObj obj = new MyObj();
     //ERROR:match   
-    obj.persistObj(arg0, arg1)
+    obj.persistObj(arg0, arg1);
   }
 }

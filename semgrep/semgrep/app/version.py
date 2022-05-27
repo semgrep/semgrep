@@ -1,3 +1,11 @@
+"""Ask the Semgrep App server about the latest Semgrep version
+
+This module is for pinging the app to ask for the latest Semgrep release
+so we can print a message prompting the user to upgrade if they have
+an outdated version.
+"""
+# TODO: for predictable test output, add a flag to avoid making actual
+# network calls?
 import json
 import os
 import time
@@ -158,3 +166,18 @@ def version_check(version_cache_path: Path = VERSION_CACHE_PATH) -> None:
         return
 
     _show_banners(current_version, latest_version_object)
+
+
+def get_no_findings_msg(
+    version_cache_path: Path = VERSION_CACHE_PATH,
+) -> Optional[str]:
+    """
+    Gets and returns the latest no_findings message from the backend, using cache if possible.
+
+    :param version_cache_path: Path where we cache the backend response
+    """
+    latest_version_object = _get_latest_version(version_cache_path)
+    if latest_version_object is None or "no_findings_msg" not in latest_version_object:
+        return None
+
+    return str(latest_version_object["no_findings_msg"])

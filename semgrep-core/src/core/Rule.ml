@@ -109,15 +109,19 @@ type formula =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of xpattern (* a leaf pattern *) * inside option
-  (* see Specialize_formula.split_and() *)
   | And of conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
-   * But this could change? If we were moving to a different range semantic?
+   * TODO? Could this change if we were moving to a different range semantic?
    *)
   | Not of tok * formula
 
+(* The conjuncts must contain at least
+ * one positive "term" (unless it's inside a CondNestedFormula, in which
+ * case there is not such a restriction).
+ * See also split_and().
+ *)
 and conjunction = {
   tok : tok;
   (* pattern-inside:'s and pattern:'s *)
@@ -144,7 +148,7 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of MV.mvar * regexp
+  | CondRegexp of MV.mvar * regexp * bool (* constant-propagation *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -179,8 +183,8 @@ type formula_old =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
-  | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * Xlang.t option * formula
+  | MetavarRegexp of MV.mvar * regexp * bool
+  | MetavarPattern of MV.mvar * Xlang.t option * formula_old
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
   (* arbitrary code! dangerous! *)
@@ -293,6 +297,7 @@ and invalid_rule_error_kind =
       * string list (* yaml path *)
   | InvalidRegexp of string (* PCRE error message *)
   | InvalidOther of string
+  | MissingPositiveTermInAnd
 
 let string_of_invalid_rule_error_kind = function
   | InvalidLanguage language -> spf "invalid language %s" language
@@ -302,6 +307,8 @@ let string_of_invalid_rule_error_kind = function
    * of a RuleParseError *)
   | InvalidPattern (_pattern, xlang, _message, _yaml_path) ->
       spf "Invalid pattern for %s" (Xlang.to_string xlang)
+  | MissingPositiveTermInAnd ->
+      "you need at least one positive term (not just negations or conditions)"
   | InvalidOther s -> s
 
 exception InvalidRule of invalid_rule_error
@@ -362,38 +369,6 @@ let rewrite_metavar_comparison_strip mvar cond =
   in
   visitor.Map_AST.vexpr cond
 
-let convert_extra x =
-  match x with
-  | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, opt_xlang, formula) ->
-      CondNestedFormula (mvar, opt_xlang, formula)
-  | MetavarComparison comp -> (
-      match comp with
-      (* do we care about strip and base? should not Eval_generic handle it?
-       * - base is handled automatically, in the Generic AST all integer
-       *   literals are normalized and represented in base 10.
-       * - for strip the user should instead use a more complex condition that
-       *   converts the string into a number (e.g., "1234" in 1234).
-       *)
-      | { metavariable = mvar; comparison; strip; base = _NOT_NEEDED } ->
-          let cond =
-            (* if strip=true we rewrite the condition and insert Python's `int`
-             * function to parse the integer value of mvar. *)
-            match strip with
-            | None
-            | Some false ->
-                comparison
-            | Some true -> rewrite_metavar_comparison_strip mvar comparison
-          in
-          CondEval cond)
-  | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
-  | PatWherePython _ ->
-      (*
-  logger#debug "convert_extra: %s" s;
-  Parse_rule.parse_metavar_cond s
-*)
-      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
-
 (* TODO This is ugly because depends-on is inside the formula
    but handled in Python. It might be that the only sane answer is
    to port it to OCaml *)
@@ -425,8 +400,26 @@ let remove_noop (e : formula_old) : formula_old =
   in
   aux e
 
-let (convert_formula_old : formula_old -> formula) =
- fun e ->
+(* return list of "positive" x list of Not *)
+let split_and : formula list -> formula list * formula list =
+ fun xs ->
+  xs
+  |> Common.partition_either (fun e ->
+         match e with
+         (* positives *)
+         | P _
+         | And _
+         | Or _ ->
+             Left e
+         (* negatives *)
+         | Not (_, f) -> Right f)
+
+let rec (convert_formula_old :
+          ?in_metavariable_pattern:bool ->
+          rule_id:rule_id ->
+          formula_old ->
+          formula) =
+ fun ?(in_metavariable_pattern = false) ~rule_id e ->
   let rec aux e =
     match e with
     | Pat x -> P (x, None)
@@ -438,6 +431,9 @@ let (convert_formula_old : formula_old -> formula) =
         Or (t, xs)
     | Patterns (t, xs) ->
         let fs, conds, focus = Common.partition_either3 aux_and xs in
+        let pos, _ = split_and fs in
+        if pos = [] && not in_metavariable_pattern then
+          raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
         And { tok = t; conjuncts = fs; conditions = conds; focus }
     | PatExtra (t, _) ->
         raise
@@ -450,16 +446,51 @@ let (convert_formula_old : formula_old -> formula) =
   and aux_and e =
     match e with
     | PatExtra (t, x) ->
-        let e = convert_extra x in
+        let e = convert_extra ~rule_id x in
         Middle3 (t, e)
     | PatFocus (t, mvar) -> Right3 (t, mvar)
     | _ -> Left3 (aux e)
   in
   aux (remove_noop e)
 
-let formula_of_pformula = function
+and convert_extra ~rule_id x =
+  match x with
+  | MetavarRegexp (mvar, re, const_prop) -> CondRegexp (mvar, re, const_prop)
+  | MetavarPattern (mvar, opt_xlang, formula_old) ->
+      let formula =
+        convert_formula_old ~in_metavariable_pattern:true ~rule_id formula_old
+      in
+      CondNestedFormula (mvar, opt_xlang, formula)
+  | MetavarComparison comp -> (
+      match comp with
+      (* do we care about strip and base? should not Eval_generic handle it?
+       * - base is handled automatically, in the Generic AST all integer
+       *   literals are normalized and represented in base 10.
+       * - for strip the user should instead use a more complex condition that
+       *   converts the string into a number (e.g., "1234" in 1234).
+       *)
+      | { metavariable = mvar; comparison; strip; base = _NOT_NEEDED } ->
+          let cond =
+            (* if strip=true we rewrite the condition and insert Python's `int`
+             * function to parse the integer value of mvar. *)
+            match strip with
+            | None
+            | Some false ->
+                comparison
+            | Some true -> rewrite_metavar_comparison_strip mvar comparison
+          in
+          CondEval cond)
+  | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
+  | PatWherePython _ ->
+      (*
+  logger#debug "convert_extra: %s" s;
+  Parse_rule.parse_metavar_cond s
+*)
+      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
+
+let formula_of_pformula ?in_metavariable_pattern ~rule_id = function
   | New f -> f
-  | Old oldf -> convert_formula_old oldf
+  | Old oldf -> convert_formula_old ?in_metavariable_pattern ~rule_id oldf
 
 let partition_rules rules =
   rules

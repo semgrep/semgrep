@@ -1,1 +1,1 @@
-✓ All tests passed!
+2/2: ✓ All tests passed 

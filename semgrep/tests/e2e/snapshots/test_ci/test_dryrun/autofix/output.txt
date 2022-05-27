@@ -234,7 +234,7 @@ Would have sent ignores blob: {
             },
             "is_blocking": false,
             "fixed_lines": [
-                "    y == 2  # nosem"
+                "    y == 2  # nosemgrep"
             ]
         },
         {
@@ -268,5 +268,3 @@ Would have sent complete blob: {
 }
 Success.
 Has findings for blocking rules so exiting with code 1
-
-A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading

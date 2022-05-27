@@ -3,12 +3,12 @@
     {
       "code": 2,
       "level": "error",
-      "message": "[ERROR] Pattern parse error in rule -:\n Invalid pattern for C",
+      "message": "[ERROR] Pattern parse error in rule -:\n Invalid pattern for C:\n--- pattern ---\n#include<asdf><<>>><$X>\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
       "rule_id": "-",
       "spans": [
         {
           "config_end": {
-            "col": 24,
+            "col": 26,
             "line": 0
           },
           "config_path": [
@@ -21,13 +21,13 @@
             "line": 0
           },
           "end": {
-            "col": 35,
-            "line": 3
+            "col": 43,
+            "line": 9
           },
           "file": "tmp/masked/path",
           "start": {
-            "col": 12,
-            "line": 3
+            "col": 18,
+            "line": 9
           }
         }
       ],

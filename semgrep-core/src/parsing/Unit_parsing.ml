@@ -31,8 +31,8 @@ let parsing_tests_for_lang files lang =
                  file
              in
              if errs <> [] then
-               failwith (String.concat ";" (Common.map E.string_of_error errs))
-         ))
+               Alcotest.fail
+                 (String.concat ";" (Common.map E.string_of_error errs)) ))
 
 let partial_parsing_tests_for_lang files lang =
   files
@@ -44,8 +44,8 @@ let partial_parsing_tests_for_lang files lang =
                  file
              in
              if errs = [] then
-               failwith "it should parse partially the file (with some errors)"
-         ))
+               Alcotest.fail
+                 "it should parse partially the file (with some errors)" ))
 
 (*****************************************************************************)
 (* Tests *)
@@ -91,6 +91,7 @@ let lang_parsing_tests =
          let files = Common2.glob (spf "%s/*.cpp" dir) in
          let lang = Lang.Cpp in
          partial_parsing_tests_for_lang files lang);
+      pack_parsing_tests_for_lang Lang.Php "php" ".php";
     ]
 
 (* It's important that our parsers generate classic parsing errors
@@ -109,7 +110,7 @@ let parsing_error_tests =
                   let lang = List.hd (Lang.langs_of_filename file) in
                   let res = Parse_target.just_parse_with_lang lang file in
                   if res.Parse_target.errors = [] then
-                    failwith
+                    Alcotest.fail
                       "it should raise a standard parsing error exn or return \
                        partial errors "
                 with
@@ -117,8 +118,22 @@ let parsing_error_tests =
                 | Parse_info.Parsing_error _ ->
                     () )))
 
+let parsing_rules_tests =
+  let dir = Filename.concat tests_path "OTHER/rule_formats" in
+  pack_tests "Parsing rules"
+    (let tests =
+       Common2.glob (spf "%s/*.yaml" dir) @ Common2.glob (spf "%s/*.json" dir)
+       (* skipped for now to avoid adding jsonnet as a dependency in our
+        * CI: Common2.glob (spf "%s/*.jsonnet" dir)
+        *)
+     in
+     tests
+     |> Common.map (fun file ->
+            (Filename.basename file, fun () -> Parse_rule.parse file |> ignore)))
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
-let tests = List.flatten [ lang_parsing_tests; parsing_error_tests ]
+let tests =
+  List.flatten [ lang_parsing_tests; parsing_error_tests; parsing_rules_tests ]

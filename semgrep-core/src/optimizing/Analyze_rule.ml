@@ -229,7 +229,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
   | Regexp of Rule.regexp
-  | MvarRegexp of MV.mvar * Rule.regexp
+  | MvarRegexp of MV.mvar * Rule.regexp * bool
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -300,12 +300,13 @@ and metavarcond_step1 x =
   match x with
   | R.CondEval _ -> None
   | R.CondNestedFormula _ -> None
-  | R.CondRegexp (mvar, re) ->
+  | R.CondRegexp (mvar, re, const_prop) ->
       (* bugfix: if the metavariable-regexp is "^(foo|bar)$" we
        * don't want to keep it because it can't be used on the whole file.
        * TODO: remove the anchor so it's usable?
        *)
-      if regexp_contain_anchor re then None else Some (MvarRegexp (mvar, re))
+      if regexp_contain_anchor re then None
+      else Some (MvarRegexp (mvar, re, const_prop))
   | R.CondAnalysis _ -> None
 
 (* todo: check for other special chars? *)
@@ -349,7 +350,8 @@ let and_step1bis_filter_general (And xs) =
                                          | StringsAndMvars (_, mvars) ->
                                              List.mem mvar mvars
                                          | Regexp _ -> false
-                                         | MvarRegexp (mvar2, _) -> mvar2 = mvar)))
+                                         | MvarRegexp (mvar2, _, _) ->
+                                             mvar2 = mvar)))
                   | _ -> false)
            in
            if null xs' then None else Some (Or xs'))
@@ -371,7 +373,7 @@ let or_step2 (Or xs) =
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re -> Regexp2 re
-      | MvarRegexp (_mvar, re) -> Regexp2 re)
+      | MvarRegexp (_mvar, re, _const_prop) -> Regexp2 re)
   in
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,
@@ -508,10 +510,14 @@ let regexp_prefilter_of_formula f =
   with
   | GeneralPattern -> None
 
-let regexp_prefilter_of_taint_rule rule_tok taint_spec =
+let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
-  let sources = taint_spec.R.sources |> Common.map R.formula_of_pformula in
-  let sinks = taint_spec.R.sinks |> Common.map R.formula_of_pformula in
+  let sources =
+    taint_spec.R.sources |> Common.map (R.formula_of_pformula ~rule_id)
+  in
+  let sinks =
+    taint_spec.R.sinks |> Common.map (R.formula_of_pformula ~rule_id)
+  in
   let f =
     (* Note that this formula would likely not yield any meaningful result
      * if executed by search-mode, but it works for the purpose of this
@@ -529,20 +535,20 @@ let regexp_prefilter_of_taint_rule rule_tok taint_spec =
 let hmemo = Hashtbl.create 101
 
 let regexp_prefilter_of_rule r =
-  let id, t = r.R.id in
-  let k = PI.file_of_info t ^ "." ^ id in
+  let rule_id, t = r.R.id in
+  let k = PI.file_of_info t ^ "." ^ rule_id in
   Common.memoized hmemo k (fun () ->
       try
         match r.mode with
         | R.Search pf ->
-            let f = R.formula_of_pformula pf in
+            let f = R.formula_of_pformula ~rule_id pf in
             regexp_prefilter_of_formula f
-        | R.Taint spec -> regexp_prefilter_of_taint_rule t spec
+        | R.Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with
       (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
       | CNF_exploded ->
-          logger#error "CNF size exploded on rule id %s" id;
+          logger#error "CNF size exploded on rule id %s" rule_id;
           None
       | Stack_overflow ->
-          logger#error "Stack overflow on rule id %s" id;
+          logger#error "Stack overflow on rule id %s" rule_id;
           None)

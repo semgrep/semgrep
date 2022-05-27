@@ -122,19 +122,25 @@ let has_case_ellipsis_and_filter_ellipsis xs =
       | _ -> false)
     xs
 
-let rec obj_and_method_calls_of_expr e =
+let rec obj_and_dot_accesses_of_expr e =
   match e.G.e with
   | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
-      let o, xs = obj_and_method_calls_of_expr e in
-      (o, (fld, tok, args) :: xs)
+      let o, xs = obj_and_dot_accesses_of_expr e in
+      (o, (fld, tok, Some args) :: xs)
+  | B.DotAccess (e, tok, fld) ->
+      let o, xs = obj_and_dot_accesses_of_expr e in
+      (o, (fld, tok, None) :: xs)
   | _ -> (e, [])
 
-let rec expr_of_obj_and_method_calls (obj, xs) =
+let rec expr_of_obj_and_dot_accesses (obj, xs) =
   match xs with
   | [] -> obj
-  | (fld, tok, args) :: xs ->
-      let e = expr_of_obj_and_method_calls (obj, xs) in
+  | (fld, tok, Some args) :: xs ->
+      let e = expr_of_obj_and_dot_accesses (obj, xs) in
       B.Call (B.DotAccess (e, tok, fld) |> G.e, args) |> G.e
+  | (fld, tok, None) :: xs ->
+      let e = expr_of_obj_and_dot_accesses (obj, xs) in
+      B.DotAccess (e, tok, fld) |> G.e
 
 let rec all_suffix_of_list xs =
   xs
@@ -368,6 +374,20 @@ let m_with_symbolic_propagation f b =
  * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
+  let try_parents dotted =
+    let parents =
+      match !hook_find_possible_parents with
+      | None -> []
+      | Some f -> f dotted
+    in
+    (* less: use a fold *)
+    let rec aux xs =
+      match xs with
+      | [] -> fail ()
+      | x :: xs -> m_name a x >||> aux xs
+    in
+    aux parents
+  in
   match (a, b) with
   (* equivalence: aliasing (name resolving) part 1 *)
   | ( a,
@@ -465,6 +485,25 @@ let rec m_name a b =
           return ())
   (* boilerplate *)
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
+  | ( G.Id _,
+      G.IdQualified
+        {
+          name_info =
+            {
+              B.id_resolved =
+                {
+                  contents =
+                    Some
+                      ( ( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName dotted ),
+                        _sid );
+                };
+              _;
+            };
+          _;
+        } ) ->
+      try_parents dotted
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
@@ -836,14 +875,14 @@ and m_expr a b =
   | ( G.DotAccessEllipsis (a1, _a2),
       (B.DotAccess _ | B.Call ({ e = B.DotAccess _; _ }, _)) ) ->
       (* => o, [m3();m2();m1() *)
-      let obj, ys = obj_and_method_calls_of_expr b in
+      let obj, ys = obj_and_dot_accesses_of_expr b in
       (* the method chain ellipsis can match 0 or more of those method calls *)
       let candidates = all_suffix_of_list ys in
       let rec aux xxs =
         match xxs with
         | [] -> fail ()
         | xs :: xxs ->
-            let b = expr_of_obj_and_method_calls (obj, xs) in
+            let b = expr_of_obj_and_dot_accesses (obj, xs) in
             m_expr a1 b >||> aux xxs
       in
       aux candidates
@@ -895,6 +934,7 @@ and m_expr a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -1696,8 +1736,12 @@ and m_type_ a b =
   | G.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyTuple a1, B.TyTuple b1 ->
-      (*TODO: m_list__m_type_ ? *)
-      (m_bracket (m_list m_type_)) a1 b1
+      let partial_m_list_with_dots =
+        m_list_with_dots m_type_ (function
+          | { t = G.TyEllipsis _; _ } -> true
+          | _ -> false)
+      in
+      (m_bracket (partial_m_list_with_dots ~less_is_ok:false)) a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2

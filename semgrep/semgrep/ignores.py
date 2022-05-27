@@ -1,18 +1,20 @@
 import fnmatch
 import os
 import re
+from functools import lru_cache
 from pathlib import Path
+from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
 from typing import Set
 from typing import TextIO
 
+from attr import frozen
 from attrs import define
-from attrs import field
+from boltons.iterutils import partition
 
 from semgrep.error import SemgrepError
 from semgrep.types import FilteredFiles
-from semgrep.util import partition_set
 from semgrep.verbose_logging import getLogger
 
 CONTROL_REGEX = re.compile(r"(?!<\\):")  # Matches unescaped colons
@@ -38,21 +40,24 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 ## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
 
 # This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
-@define
+@frozen
 class FileIgnore:
     base_path: Path
-    patterns: Set[str]
-    _processed_patterns: Set[str] = field(init=False)
+    patterns: FrozenSet[str]
 
-    def __attrs_post_init__(self) -> None:
-        self._processed_patterns = Processor(self.base_path).process(self.patterns)
-
+    @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _survives(self, path: Path) -> bool:
         """
         Determines if a single Path survives the ignore filter.
         """
-        for p in self._processed_patterns:
-            if path.is_dir() and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
+        path_is_dir = path.is_dir()
+        path_is_relative_to_base = path_is_relative_to(path, self.base_path)
+        if path_is_relative_to_base:
+            path_relative_to_base = str(path.relative_to(self.base_path))
+        else:
+            path_relative_to_base = ""
+        for p in self.patterns:
+            if path_is_dir and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
                 logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
             if fnmatch.fnmatch(str(path), p):
@@ -68,11 +73,9 @@ class FileIgnore:
             # in instabot dir as base_path
             # Note: Append "/" to path before running fnmatch so **/pattern matches with pattern/stuff
             if (
-                path_is_relative_to(path, self.base_path)
+                path_is_relative_to_base
                 and p.endswith("/")
-                and fnmatch.fnmatch(
-                    "/" + str(path.relative_to(self.base_path)), p + "*"
-                )
+                and fnmatch.fnmatch("/" + path_relative_to_base, p + "*")
             ):
                 logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
@@ -86,16 +89,22 @@ class FileIgnore:
 
         return True
 
-    def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
-        kept, removed = partition_set(
-            lambda path: path.exists()
-            and (
-                self._survives(path.absolute())
-                or path.absolute().samefile(self.base_path)
-            ),
-            candidates,
+    @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
+    def _filter(self, path: Path) -> bool:
+        absolute_path = path.absolute()
+        return path.exists() and (
+            self._survives(absolute_path) or absolute_path.samefile(self.base_path)
         )
-        return FilteredFiles(kept, removed)
+
+    def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
+        kept, removed = partition(candidates, self._filter)
+        return FilteredFiles(frozenset(kept), frozenset(removed))
+
+    @classmethod
+    def from_unprocessed_patterns(
+        cls, base_path: Path, patterns: Iterable[str]
+    ) -> "FileIgnore":
+        return cls(base_path, frozenset(Processor(base_path).process(patterns)))
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action

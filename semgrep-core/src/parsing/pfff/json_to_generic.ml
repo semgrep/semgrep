@@ -17,7 +17,20 @@ open Ast_json
 module M = Map_AST
 module G = AST_generic
 
-let expr x =
+let parse_json_string json =
+  try
+    Some
+      (Yojson.Safe.read_string
+         (Yojson.init_lexer ~buf:(Bi_outbuf.create 128) ())
+         (Lexing.from_string json))
+  with
+  | Yojson.Json_error _ -> None
+
+(* This is not very efficient but yojson doesn't provide a function to parse
+   the string contents without quotes. *)
+let unescape_json_string_contents data = parse_json_string ("\"" ^ data ^ "\"")
+
+let expr ?(unescape_strings = false) x =
   let e = Js_to_generic.expr x in
 
   let visitor =
@@ -65,13 +78,25 @@ let expr x =
                        | Right t -> G.Ellipsis t |> G.e)
                 in
                 G.Container (G.Dict, (lp, zs, rp)) |> G.e
+            | G.L (G.String (escaped, t)) when unescape_strings ->
+                let unescaped =
+                  match unescape_json_string_contents escaped with
+                  | Some s -> s
+                  | None ->
+                      (* This really should not happen, but this is also
+                         decent error recovery.
+                         Compare with: assert false *)
+                      escaped
+                in
+                G.L (G.String (unescaped, t)) |> G.e
             | _ -> e);
       }
   in
   visitor.M.vexpr e
 
-let program ast =
-  let e = expr ast in
+let program ?unescape_strings ast =
+  ignore unescape_strings;
+  let e = expr ?unescape_strings ast in
   [ G.exprstmt e ]
 
 let any x =

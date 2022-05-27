@@ -3,12 +3,12 @@
     {
       "code": 2,
       "level": "error",
-      "message": "[ERROR] Pattern parse error in rule rules.invalid-rules.print:\n Invalid pattern for Python",
+      "message": "[ERROR] Pattern parse error in rule rules.invalid-rules.print:\n Invalid pattern for Python:\n--- pattern ---\nprint..);\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
       "rule_id": "rules.invalid-rules.print",
       "spans": [
         {
           "config_end": {
-            "col": 10,
+            "col": 12,
             "line": 0
           },
           "config_path": [
@@ -21,13 +21,13 @@
             "line": 0
           },
           "end": {
-            "col": 21,
-            "line": 9
+            "col": 29,
+            "line": 18
           },
           "file": "tmp/masked/path",
           "start": {
-            "col": 12,
-            "line": 9
+            "col": 18,
+            "line": 18
           }
         }
       ],
