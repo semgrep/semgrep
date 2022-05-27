@@ -29,7 +29,7 @@ def test_fixtest_test1_json(run_semgrep_in_tmp, snapshot):
         options=["--test"],
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(stdout, "results.json")
+    snapshot.assert_match(stdout, "test-results.json")
 
 
 @pytest.mark.kinda_slow
@@ -55,7 +55,7 @@ def test_fixtest_test2_json(run_semgrep_in_tmp, snapshot):
         options=["--test"],
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(stdout, "results.json")
+    snapshot.assert_match(stdout, "test-results.json")
 
 
 @pytest.mark.kinda_slow
@@ -81,7 +81,7 @@ def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
         options=["--test"],
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(stdout, "results.json")
+    snapshot.assert_match(stdout, "test-results.json")
 
 
 @pytest.mark.kinda_slow
@@ -137,4 +137,4 @@ def test_fixtest_test5_json(run_semgrep_in_tmp, snapshot):
         options=["--test"],
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(stdout, "results.json")
+    snapshot.assert_match(stdout, "test-results.json")
