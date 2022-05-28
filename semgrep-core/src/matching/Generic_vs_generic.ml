@@ -408,24 +408,13 @@ let rec m_name a b =
       m_name a (B.Id (idb, B.empty_id_info ()))
       >||> (* try this time a match with the resolved entity *)
       m_name a (H.name_of_ids dotted)
-      >||>
-      (* Try the parents *)
-      let parents =
-        match !hook_find_possible_parents with
-        | None -> []
-        | Some f -> f dotted
-      in
-      (* less: use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x :: xs -> m_name a x >||> aux xs
-      in
-      aux parents
+      >||> (* Try the parents *)
+      try_parents dotted
   (* extension: metatypes *)
   | G.Id (((str, t) as a1), a_info), B.Id (b1, b2) -> (
       (* this will handle metavariables in Id *)
       let default_check () = m_ident_and_id_info (a1, a_info) (b1, b2) in
+      (* experiment: try matching with user definition of metatypes *)
       match !Hooks.metatypes with
       | None -> default_check ()
       | Some metatypes_tbl -> (

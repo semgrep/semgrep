@@ -261,6 +261,11 @@ let exn_to_error file exn =
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
+(* Experiment *)
+let process_metatypes metatypes_file =
+  let metatypes = Parse_rule.parse_metatypes metatypes_file in
+  Hooks.metatypes := Some metatypes
+
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
  *)
@@ -449,10 +454,6 @@ let targets_of_config (config : Runner_config.t)
       if lang_opt <> None && config.rules_file <> "" then
         failwith "if you use -targets and -rules, you should not specify a lang";
       (targets, skipped)
-
-let process_metatypes metatypes_file =
-  let metatypes = Parse_rule.parse_metatypes metatypes_file in
-  Hooks.metatypes := Some metatypes
 
 (*****************************************************************************)
 (* Semgrep -config *)
