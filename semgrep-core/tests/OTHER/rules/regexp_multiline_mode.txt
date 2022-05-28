@@ -1,6 +1,6 @@
 hi
 
-# ERROR: test-regex-multiline-mode
+# ruleid: test-regex-multiline-mode
 hello
 
 hello world
