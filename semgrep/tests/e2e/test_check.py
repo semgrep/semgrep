@@ -336,17 +336,6 @@ def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
 
 
-@pytest.mark.quick
-def test_regex_multiline_mode(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/regex-multiline-mode.yaml",
-            target_name="basic/regex-multiline-mode.txt",
-        )[0],
-        "results.json",
-    )
-
-
 @pytest.mark.kinda_slow
 def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
