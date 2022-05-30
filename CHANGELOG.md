@@ -14,6 +14,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
 
+### Fixed
+
+- Numerous improvements to PHP parsing
+
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
 ### Added

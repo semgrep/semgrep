@@ -395,8 +395,28 @@ and expr e : G.expr =
               fbody = G.FBStmt body;
               fkind = (lambdakind, t);
             }
-      | _ -> error tok "TODO: Lambda"))
+      | _ -> error tok "TODO: Lambda")
+  | Match (tok, e, matches) ->
+      let e = expr e in
+      let matches = Common.map match_ matches in
+      G.StmtExpr (G.Switch (tok, Some (G.Cond e), matches) |> G.s))
   |> G.e
+
+and match_ = function
+  | MCase (cases, e) ->
+      let cases =
+        Common.map
+          (fun case ->
+            let case = expr case in
+            (* TODO extend G.case_of_pat_and_expr to handle multiple cases? *)
+            G.Case (G.fake "case", H.expr_to_pattern case))
+          cases
+      in
+      let e = expr e in
+      G.CasesAndBody (cases, G.ExprStmt (e, G.sc) |> G.s)
+  | MDefault (tok, e) ->
+      let e = expr e in
+      G.CasesAndBody ([ G.Default tok ], G.ExprStmt (e, G.sc) |> G.s)
 
 and argument e =
   let e = expr e in

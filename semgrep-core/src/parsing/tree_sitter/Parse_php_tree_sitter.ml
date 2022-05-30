@@ -577,18 +577,18 @@ and map_anon_choice_list_dest_bb41c20 (env : env)
   | `Choice_cast_var x -> map_variable env x
 
 and map_anon_choice_match_cond_exp_d891119 (env : env)
-    (x : CST.anon_choice_match_cond_exp_d891119) =
+    (x : CST.anon_choice_match_cond_exp_d891119) : A.match_ =
   match x with
   | `Match_cond_exp (v1, v2, v3) ->
       let v1 = map_match_condition_list env v1 in
       let v2 = (* "=>" *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.MCase (v1, v3)
   | `Match_defa_exp (v1, v2, v3) ->
       let v1 = (* pattern [dD][eE][fF][aA][uU][lL][tT] *) token env v1 in
       let v2 = (* "=>" *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.MDefault (v1, v3)
 
 and map_anon_choice_simple_param_5af5eb3 (env : env)
     (x : CST.anon_choice_simple_param_5af5eb3) =
@@ -1233,7 +1233,7 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       let v1 = (* pattern [mM][aA][tT][cC][hH] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in
       let v3 = map_match_block env v3 in
-      todo env (v1, v2, v3)
+      A.Match (v1, v2, v3)
   | `Augm_assign_exp (v1, v2, v3) ->
       let v1 = map_variable env v1 in
       let v2 =
@@ -1411,7 +1411,8 @@ and map_list_literal (env : env) (x : CST.list_literal) =
   | `List_dest x -> map_list_destructing env x
   | `Array_dest x -> map_array_destructing env x
 
-and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) =
+and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) :
+    A.match_ list =
   let v1 = (* "{" *) token env v1 in
   let v2 = map_anon_choice_match_cond_exp_d891119 env v2 in
   let v3 =
@@ -1419,16 +1420,18 @@ and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) =
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_match_cond_exp_d891119 env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
   let v4 =
     match v4 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
+    | Some tok ->
+        let _ = (* "," *) token env tok in
+        ()
+    | None -> ()
   in
   let v5 = (* "}" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  v2 :: v3
 
 and map_match_condition_list (env : env) ((v1, v2) : CST.match_condition_list) =
   let v1 = map_expression env v1 in
