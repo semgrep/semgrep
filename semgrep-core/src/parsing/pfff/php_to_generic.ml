@@ -143,9 +143,6 @@ let rec stmt_aux = function
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
   | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
-  | Throw (t, v1) ->
-      let v1 = expr v1 in
-      [ G.Throw (t, v1, G.sc) |> G.s ]
   | Try (t, v1, v2, v3) ->
       let v1 = stmt v1 and v2 = list catch v2 and v3 = finally v3 in
       [ G.Try (t, v1, v2, v3) |> G.s ]
@@ -325,6 +322,10 @@ and expr e : G.expr =
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
+  | Throw (t, v1) ->
+      let v1 = expr v1 in
+      let st = G.Throw (t, v1, G.sc) |> G.s in
+      G.StmtExpr st
   | Infix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
