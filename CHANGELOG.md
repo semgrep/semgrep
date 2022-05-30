@@ -12,6 +12,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
   - support for poetry and gradle lockfiles
+- taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
+  Previously, if a variable became tainted outside a lanbda, and this variable was
+  used inside the lambda causing the taint to reach a sink, this was not being
+  detected because any nested lambdas were "opaque" to the analysis. (Taint tracking
+  looked at lambdas but as isolated functions.) Now lambas are simply analyzed as if
+  they were statement blocks. Taint tracking still does not follow the flow of taint
+  through the lambda's arguments!
 
 ### Changed
 
