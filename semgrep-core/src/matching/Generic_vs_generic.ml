@@ -1192,6 +1192,8 @@ and m_compatible_type lang typed_mvar t e =
       match (builtin, lit) with
       | T.TInt, B.Int _
       | T.TFloat, B.Float _
+      | T.TNumber, (B.Int _ | B.Float _)
+      | T.TBool, B.Bool _
       | T.TString, B.String _ ->
           envf typed_mvar (MV.E e)
       | _ -> fail ())
