@@ -326,8 +326,7 @@ let map_namespace_use_group_clause (env : env)
 
 let map_modifier (env : env) (x : CST.modifier) : A.modifier =
   match x with
-  | `Var_modi tok ->
-      (* pattern [vV][aA][rR] *) todo env tok (* TODO add to AST *)
+  | `Var_modi tok -> (* pattern [vV][aA][rR] *) failwith "not a modifier"
   | `Visi_modi x -> map_visibility_modifier env x
   | `Static_modi tok ->
       (* pattern [sS][tT][aA][tT][iI][cC] *) (A.Static, token env tok)
@@ -335,6 +334,17 @@ let map_modifier (env : env) (x : CST.modifier) : A.modifier =
       (* pattern [fF][iI][nN][aA][lL] *) (A.Final, token env tok)
   | `Abst_modi tok ->
       (* pattern [aA][bB][sS][tT][rR][aA][cC][tT] *) (A.Abstract, token env tok)
+
+let map_modifiers (env : env) (x : CST.modifier list) : A.modifier list =
+  List.concat_map
+    (fun m ->
+      match m with
+      | `Var_modi tok ->
+          []
+          (* pattern [vV][aA][rR] *)
+          (* `var` isn't a modifier *)
+      | _ -> [ map_modifier env m ])
+    x
 
 let map_relative_scope (env : env) (x : CST.relative_scope) =
   match x with
@@ -1462,7 +1472,7 @@ and map_member_declaration (env : env) (x : CST.member_declaration) :
         | Some x -> map_attribute_list env x
         | None -> []
       in
-      let v2 = Common.map (map_modifier env) v2 in
+      let v2 = map_modifiers env v2 in
       let v3 =
         match v3 with
         | Some x -> Some (map_type_ env x)
@@ -1513,7 +1523,7 @@ and map_method_declaration (env : env)
     | Some x -> map_attribute_list env x
     | None -> []
   in
-  let v2 = Common.map (map_modifier env) v2 in
+  let v2 = map_modifiers env v2 in
   let v3 = map_function_definition_header env v3 in
   let v4 =
     match v4 with
