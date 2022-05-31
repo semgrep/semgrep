@@ -53,8 +53,9 @@ def shouldafound(
     Report a false negative in this project. "path" should be the file in which you expected the vulnerability to be found.
     """
     if not email:
-        email = _get_git_email()
-        if email is None:
+        try:
+            email = _get_git_email()
+        except subprocess.CalledProcessError:
             click.echo(
                 "Could not parse git email. Please use the --email flag to report this false negative.",
                 err=True,
@@ -93,14 +94,11 @@ def shouldafound(
         sys.exit(2)
 
 
-def _get_git_email() -> Optional[str]:
-    try:
-        email = (
-            subprocess.check_output(["git", "config", "user.email"]).decode().strip()
-        )
-        return email
-    except Exception:
-        return None
+def _get_git_email() -> str:
+    """
+    :raises CalledProcessError: If not in a git environment / email not configured
+    """
+    return subprocess.check_output(["git", "config", "user.email"]).decode().strip()
 
 
 def _make_shouldafound_request(data: JsonObject) -> Optional[str]:

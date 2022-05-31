@@ -1,3 +1,5 @@
+import subprocess
+from contextlib import contextmanager
 from pathlib import Path
 from shutil import copytree
 
@@ -11,6 +13,11 @@ from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 # Point to the root of the tests dir
 TESTS_PATH = Path(__file__).parent.parent
+
+
+@contextmanager
+def does_not_raise():
+    yield
 
 
 @pytest.mark.quick
@@ -38,9 +45,9 @@ def test_shouldafound_no_args(tmp_path, snapshot):
         ],
     ],
 )
-@pytest.mark.parametrize("git_return", [None, "foo@email.com"])
+@pytest.mark.parametrize("git_return_error", [True, False])
 def test_shouldafound_no_confirmation(
-    monkeypatch, git_return, email_flag, snapshot, mocker, tmp_path
+    monkeypatch, git_return_error, email_flag, snapshot, mocker, tmp_path
 ):
     """
     Test that the -y flag allows seamless submission
@@ -59,7 +66,16 @@ def test_shouldafound_no_confirmation(
         return_value=api_content,
     )
 
-    mocker.patch.object(shouldafound, "_get_git_email", return_value=git_return)
+    if git_return_error:
+        mocker.patch.object(
+            shouldafound,
+            "_get_git_email",
+            side_effect=subprocess.CalledProcessError(1, "mock"),
+        )
+    else:
+        mocker.patch.object(
+            shouldafound, "_get_git_email", return_value="foo@email.com"
+        )
 
     copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
