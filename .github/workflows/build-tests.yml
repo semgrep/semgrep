@@ -32,7 +32,7 @@ jobs:
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
@@ -57,7 +57,7 @@ jobs:
       - name: Run OSX build
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: semgrep-osx
           path: artifacts
@@ -101,7 +101,7 @@ jobs:
       - name: Run Ubuntu build script
         run: ./scripts/ubuntu-release.sh
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
