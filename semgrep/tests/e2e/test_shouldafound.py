@@ -1,5 +1,4 @@
 import subprocess
-from contextlib import contextmanager
 from pathlib import Path
 from shutil import copytree
 
@@ -13,11 +12,6 @@ from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 # Point to the root of the tests dir
 TESTS_PATH = Path(__file__).parent.parent
-
-
-@contextmanager
-def does_not_raise():
-    yield
 
 
 @pytest.mark.quick
