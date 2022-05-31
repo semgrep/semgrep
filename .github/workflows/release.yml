@@ -143,7 +143,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
       - name: Run OSX release script
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
@@ -193,7 +193,7 @@ jobs:
       - name: Install artifacts
         run: unzip semgrep-osx-${{ github.sha }}/artifacts.zip
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           # This is just the Python version to build the wheels
           python-version: 3.7

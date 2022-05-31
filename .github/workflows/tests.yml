@@ -76,7 +76,7 @@ jobs:
         python: ["3.7", "3.8", "3.9"]
     steps:
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Checkout
@@ -120,7 +120,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
@@ -197,7 +197,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
@@ -243,7 +243,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
@@ -281,7 +281,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Run timing benchmark
