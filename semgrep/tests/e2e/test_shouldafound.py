@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 from shutil import copytree
 
@@ -38,8 +39,9 @@ def test_shouldafound_no_args(tmp_path, snapshot):
         ],
     ],
 )
+@pytest.mark.parametrize("git_return_error", [True, False])
 def test_shouldafound_no_confirmation(
-    monkeypatch, email_flag, snapshot, mocker, tmp_path
+    monkeypatch, git_return_error, email_flag, snapshot, mocker, tmp_path
 ):
     """
     Test that the -y flag allows seamless submission
@@ -58,6 +60,17 @@ def test_shouldafound_no_confirmation(
         return_value=api_content,
     )
 
+    if git_return_error:
+        mocker.patch.object(
+            shouldafound,
+            "_get_git_email",
+            side_effect=subprocess.CalledProcessError(1, "mock"),
+        )
+    else:
+        mocker.patch.object(
+            shouldafound, "_get_git_email", return_value="foo@email.com"
+        )
+
     copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
@@ -72,11 +85,7 @@ def test_shouldafound_no_confirmation(
 
     args.extend(email_flag)
 
-    result = runner.invoke(
-        cli,
-        args,
-        env={},
-    )
+    result = runner.invoke(cli, args)
 
     snapshot.assert_match(result.output, "shouldafound.txt")
 
@@ -95,6 +104,8 @@ def test_shouldafound_findings_output(
         "get_no_findings_msg",
         return_value=message,
     )
+    mocker.patch.object(scan, "possibly_notify_user", return_value=None)
+
     runner = CliRunner(
         env={
             SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
@@ -105,7 +116,7 @@ def test_shouldafound_findings_output(
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(cli, ["-e", pattern, "-l", "python"], env={})
+    result = runner.invoke(cli, ["-e", pattern, "-l", "python"])
 
     assert result.exception == None
     assert result.exit_code == 0
