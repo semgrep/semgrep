@@ -16,8 +16,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
-- Numerous improvements to PHP parsing. Huge shoutout to 
-  Sjoerd Langkemper for most of the heavy lifting work (#3941)
+- Numerous improvements to PHP parsing by switching to tree-sitter-php
+  to parse PHP target code. Huge shoutout to Sjoerd Langkemper for most
+  of the heavy lifting work
+  (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
 - TS: support number and boolean typed metavariables (#5350)
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
