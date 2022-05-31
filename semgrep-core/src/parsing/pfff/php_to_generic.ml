@@ -172,6 +172,7 @@ let rec stmt_aux = function
               (G.ImportAs (t, G.DottedName v1, Some (alias x)) |> G.d)
             |> G.s;
           ]
+      (* A use declaration such as `use A\B\C;` brings `C` into scope as `C` *)
       | None -> (
           match List.rev v1 with
           | name :: path ->
