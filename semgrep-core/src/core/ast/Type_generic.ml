@@ -41,7 +41,8 @@ module G = AST_generic
  * match literals like 'f(1)', so most of the types below should have
  * a corresponding construct in AST_generic.literal
  *)
-type builtin_type = TInt | TNumber | TString | TFloat [@@deriving show]
+type builtin_type = TBool | TInt | TFloat | TNumber | TString
+[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -56,6 +57,9 @@ let builtin_type_of_ident _langTODO str =
   | "string"
   | "String" ->
       Some TString
+  (* TS *)
+  | "number" -> Some TNumber
+  | "boolean" -> Some TBool
   | _ -> None
 
 let builtin_type_of_type lang t =

@@ -2356,8 +2356,15 @@ and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) :
   in
   let v4 =
     match v4 with
-    | `Use_list x -> map_use_list env x
-    | `Choice_auto_semi x -> map_semicolon env x
+    (* The use list is ignored by the pfff parser. For now, for consistency
+     * let's ignore it here too. But at some point it could be worthwhile to
+     * find a way to represent this in the generic AST. *)
+    | `Use_list x ->
+        let _ = map_use_list in
+        ()
+    | `Choice_auto_semi x ->
+        let _ = map_semicolon env x in
+        ()
   in
   let uses = v2 :: v3 in
   Common.map (fun u -> UseTrait u) uses
