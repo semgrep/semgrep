@@ -6,6 +6,7 @@ import re
 from typing import Iterator
 
 import dateutil.tz
+import freezegun.api
 import pytest
 from click.testing import CliRunner
 from pytest import mark
@@ -229,9 +230,13 @@ def _mask_version(value: str) -> str:
 @pytest.mark.quick
 @pytest.mark.freeze_time("2017-03-03")
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
-    # this mock makes the formatted timestamp string deterministic
-    mocker.patch("freezegun.api.tzlocal", return_value=dateutil.tz.gettz("Asia/Tokyo"))
-    # these mocks make the rule and file timings deterministic
+    # make the formatted timestamp strings deterministic
+    mocker.patch.object(
+        freezegun.api, "tzlocal", return_value=dateutil.tz.gettz("Asia/Tokyo")
+    )
+    monkeypatch.setenv("TZ", "Asia/Tokyo")
+
+    # make the rule and file timings deterministic
     mocker.patch.object(ProfilingData, "set_file_times")
     mocker.patch.object(ProfilingData, "set_rules_parse_time")
 
