@@ -30,6 +30,7 @@ from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
 from semgrep.util import with_color
+from semgrep.util import unit_str
 
 MAX_TEXT_WIDTH = 120
 
@@ -430,9 +431,8 @@ class TextFormatter(BaseFormatter):
         findings_output = []
         if reachable or unreachable:
             findings_output.append(
-                f"\n{with_color(Colors.foreground, 'SCA Summary')}: {len(reachable)} {with_color(Colors.red,'Reachable')} findings, {len(unreachable)} {with_color(Colors.yellow,'Unreachable')} findings\n"
+                f"\n{with_color(Colors.foreground, 'SCA Summary')}: {unit_str(len(reachable),with_color(Colors.red,'Reachable finding'))}, {unit_str(len(unreachable),with_color(Colors.yellow,'Unreachable finding'))}\n"
             )
-
         if reachable:
             reachable_output = self._build_text_output(
                 reachable,

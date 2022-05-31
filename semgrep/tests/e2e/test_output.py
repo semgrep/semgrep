@@ -300,3 +300,15 @@ def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snap
     snapshot.assert_match(
         json.dumps(parsed_output["paths"], indent=2, sort_keys=True), "report.json"
     )
+
+@pytest.mark.kinda_slow
+def test_sca_output(run_semgrep_in_tmp_no_symlink, snapshot):
+    results, _errors = run_semgrep_in_tmp_no_symlink(
+        "rules/dependency_aware/monorepo_with_first_party.yaml",
+        target_name="dependency_aware/monorepo",
+        output_format=OutputFormat.TEXT,
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
