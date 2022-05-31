@@ -13,6 +13,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
+- Previously, you could use $X in a message to interpolate the variable captured
+  by a metavariable named $X, but there was no way to access the underlying value.
+  However, sometimes that value is more important than the captured variable.
+  Now you can use the syntax `value($X)` to interpolate the underlying
+  propagated value if it exists (if not, it will just use the variable name).
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
