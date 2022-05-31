@@ -24,6 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   of the heavy lifting work
   (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
 - TS: support number and boolean typed metavariables (#5350)
+- Scala: correctly handle `return` for taint analysis (#4975)
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
