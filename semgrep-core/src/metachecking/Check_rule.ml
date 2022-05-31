@@ -23,6 +23,7 @@ module RP = Report
 module SJ = Output_from_core_j
 module Set = Set_
 module V = Visitor_AST
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -70,11 +71,9 @@ type env = { r : Rule.t; errors : E.error list ref }
 
 let error env t s =
   let loc = Parse_info.unsafe_token_location_of_info t in
-  let check_id = "semgrep-metacheck-builtin" in
+  let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
-  let err =
-    E.mk_error ~rule_id:(Some rule_id) loc s (E.SemgrepMatchFound check_id)
-  in
+  let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -88,12 +87,18 @@ let unknown_metavar_in_comparison env f =
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
            matcher expose the metavariables it detects. *)
-        let words = Str.split (Str.regexp "[^a-zA-Z0-9_$]") pstr in
+        (* First get the potential metavar ellipsis words *)
+        let words_with_dot = Str.split (Str.regexp "[^a-zA-Z0-9_\\.$]") pstr in
+        let ellipsis_metavars =
+          words_with_dot |> List.filter Metavariable.is_metavar_ellipsis
+        in
+        (* Then split the individual metavariables *)
+        let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
-        Set.of_list metavars
+        Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
-        let mv_sets = List.map collect_metavars xs in
+        let mv_sets = Common.map collect_metavars xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
            * speaking a metavariable needs to be in all cases of a pattern-either
@@ -105,8 +110,8 @@ let unknown_metavar_in_comparison env f =
            *)
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
-    | And { conjuncts; conditions; _ } ->
-        let mv_sets = List.map collect_metavars conjuncts in
+    | And { tok = _; conjuncts; conditions; focus } ->
+        let mv_sets = Common.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
             (fun acc mv_set -> Set.union acc mv_set)
@@ -118,19 +123,23 @@ let unknown_metavar_in_comparison env f =
              variants of this *)
           error env t
             (mv
-           ^ " is used in a metavariable-cond/regexp but is never used or only \
-              used in a pattern-not )")
+           ^ " is used in a 'metavariable-*' conditional or \
+              'focus-metavariable' operator but is never bound by a positive \
+              pattern (or is only bound by negative patterns like \
+              'pattern-not')")
         in
         conditions
         |> List.iter (fun (t, metavar_cond) ->
                match metavar_cond with
                | CondEval _ -> ()
-               | CondRegexp (mv, _) ->
+               | CondRegexp (mv, _, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t
                | CondNestedFormula (mv, _, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t
                | CondAnalysis (mv, _) ->
                    if not (Set.mem mv mvs) then mv_error mv t);
+        focus
+        |> List.iter (fun (t, mv) -> if not (Set.mem mv mvs) then mv_error mv t);
         mvs
   in
   let _ = collect_metavars f in
@@ -162,10 +171,11 @@ let check_formula env (lang : Xlang.t) f =
 (*****************************************************************************)
 
 let check r =
+  let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
   | Rule.Search pf ->
-      let f = Rule.formula_of_pformula pf in
+      let f = Rule.formula_of_pformula ~rule_id pf in
       check_formula { r; errors = ref [] } r.languages f
   | Taint _ -> (* TODO *) []
 
@@ -174,8 +184,9 @@ let semgrep_check config metachecks rules =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
     let s = m.rule_id.message in
-    let check_id = m.rule_id.id in
-    E.mk_error ~rule_id:None loc s (E.SemgrepMatchFound check_id)
+    let _check_id = m.rule_id.id in
+    (* TODO: why not set ~rule_id here?? bug? *)
+    E.mk_error ~rule_id:None loc s Out.SemgrepMatchFound
   in
   let config =
     {
@@ -190,7 +201,7 @@ let semgrep_check config metachecks rules =
   let _success, res, _targets =
     Run_semgrep.semgrep_with_raw_results_and_exn_handler config
   in
-  res.matches |> List.map match_to_semgrep_error
+  res.matches |> Common.map match_to_semgrep_error
 
 (* TODO *)
 
@@ -219,11 +230,11 @@ let run_checks config fparser metachecks xs =
       let semgrep_found_errs = semgrep_check config metachecks rules in
       let ocaml_found_errs =
         rules
-        |> List.map (fun file ->
+        |> Common.map (fun file ->
                logger#info "processing %s" file;
                try
                  let rs = fparser file in
-                 rs |> List.map (fun file -> check file) |> List.flatten
+                 rs |> Common.map (fun file -> check file) |> List.flatten
                with
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)
@@ -248,11 +259,9 @@ let check_files mk_config fparser input =
   match config.output_format with
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json ->
-      let res =
-        { RP.matches = []; errors; skipped = []; final_profiling = None }
-      in
+      let res = { RP.empty_final_result with errors } in
       let json = JSON_report.match_results_of_matches_and_errors [] res in
-      pr (SJ.string_of_match_results json)
+      pr (SJ.string_of_core_match_results json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

@@ -1,0 +1,10 @@
+rules:
+  - id: js-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: npm
+        package: "@types/jquery"
+        version: "== 3.3.22"
+    message: oh no
+    languages: [js]
+    severity: WARNING

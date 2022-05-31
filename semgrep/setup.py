@@ -115,10 +115,12 @@ install_requires = [
     # Flexibility is achieved by, in order of preference:
     # 1. x.0~= operator pinning to x major version
     # 2. >=x,<y operator pinning to multiple major versions
-    "attrs~=21.0",
+    "attrs~=21.3",
+    "boltons~=21.0",
     "colorama~=0.4.0",
     "click~=8.0",
     "click-option-group~=0.5",
+    "glom~=22.1",
     "requests~=2.22",
     "ruamel.yaml>=0.16.0,<0.18",
     "tqdm~=4.46",
@@ -127,13 +129,7 @@ install_requires = [
     "wcmatch~=8.3",
     "peewee~=3.14",
     "defusedxml~=0.7.1",
-    # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
-    # overly prescriptive and pin the version for two reasons: 1) because
-    # it may interfere with other 'setuptools' installs on the system,
-    # and 2) our 'pkg_resources' API usage appears to have been available
-    # in 'setuptools' for a very long time, so we don't need a recent
-    # version.
-    "setuptools",
+    "urllib3~=1.26",
 ]
 
 setuptools.setup(
@@ -148,7 +144,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=("*tests*",)),
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
     include_package_data=True,
     classifiers=[

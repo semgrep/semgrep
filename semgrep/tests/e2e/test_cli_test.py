@@ -1,8 +1,10 @@
-from tests.conftest import _mask_floats
+import pytest
 
 from semgrep.constants import OutputFormat
+from tests.conftest import _mask_floats
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_basic(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -17,6 +19,7 @@ def test_cli_test_basic(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -28,10 +31,11 @@ def test_cli_test_verbose(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         _mask_floats(results),
-        "results.json",
+        "results.txt",
     )
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_time(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -43,10 +47,11 @@ def test_cli_test_time(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         _mask_floats(results),
-        "results.json",
+        "results.txt",
     )
 
 
+@pytest.mark.kinda_slow
 def test_timeout(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/error/",
@@ -60,6 +65,7 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_yaml_language(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/language/",
@@ -73,6 +79,7 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -83,10 +90,11 @@ def test_cli_test_show_supported_languages(run_semgrep_in_tmp, snapshot):
 
     snapshot.assert_match(
         results,
-        "results.json",
+        "results.txt",
     )
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_suffixes(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/suffixes/",
@@ -100,6 +108,7 @@ def test_cli_test_suffixes(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
 def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/cli_test/multiple_annotations/",
@@ -110,10 +119,11 @@ def test_cli_test_multiline_annotations(run_semgrep_in_tmp, snapshot):
     )
     snapshot.assert_match(
         results,
-        "results.json",
+        "results.txt",
     )
 
 
+@pytest.mark.kinda_slow
 def test_parse_errors(run_semgrep_in_tmp, snapshot):
     _results, errors = run_semgrep_in_tmp(
         "rules/cli_test/parse_errors/",
@@ -125,5 +135,5 @@ def test_parse_errors(run_semgrep_in_tmp, snapshot):
     )
     snapshot.assert_match(
         errors,
-        "errors.json",
+        "errors.txt",
     )

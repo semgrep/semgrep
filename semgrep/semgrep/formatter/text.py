@@ -1,4 +1,3 @@
-import itertools
 import textwrap
 from itertools import groupby
 from pathlib import Path
@@ -15,8 +14,7 @@ from typing import Sequence
 import click
 import colorama
 
-from semgrep.constants import BREAK_LINE_CHAR
-from semgrep.constants import BREAK_LINE_WIDTH
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import ELLIPSIS_STRING
@@ -43,6 +41,8 @@ if width <= 110:
     width = width - 5
 else:
     width = width - (width - 100)
+
+FINDINGS_INDENT_DEPTH = 10
 
 
 class TextFormatter(BaseFormatter):
@@ -151,49 +151,48 @@ class TextFormatter(BaseFormatter):
                 ) + f"{line_number}┆ {line}" if line_number else f"{line}"
 
             if stripped:
-                yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
-            trimmed_str = (
-                f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
-            )
+                stripped_str = f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
+                yield " " * FINDINGS_INDENT_DEPTH + stripped_str
             if per_finding_max_lines_limit != 1:
                 if trimmed > 0:
-                    yield trimmed_str.center(BREAK_LINE_WIDTH, BREAK_LINE_CHAR)
+                    trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
+                    yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
                 elif show_separator:
-                    yield f" " * 10 + f"⋮┆" + f"-" * 40
+                    yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
-        source_url = rule_match._metadata.get("shortlink")
+        source_url = rule_match.metadata.get("shortlink")
         if not source_url:
             return ""
         return f"Details: {source_url}"
 
     @staticmethod
     def _build_summary(
-        time_data: Mapping[str, Any],
+        time_data: out.CliTiming,
         error_output: Sequence[SemgrepError],
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
         col_lim = 50
 
-        targets = time_data["targets"]
+        targets = time_data.targets
 
         # Compute summary timings
-        rule_parsing_time = time_data["rules_parse_time"]
+        rule_parsing_time = time_data.rules_parse_time
         rule_match_timings = {
-            rule["id"]: sum(
-                t["match_times"][i] for t in targets if t["match_times"][i] >= 0
+            rule.id.value: sum(
+                t.match_times[i] for t in targets if t.match_times[i] >= 0
             )
-            for i, rule in enumerate(time_data["rules"])
+            for i, rule in enumerate(time_data.rules)
         }
         file_parsing_time = sum(
-            sum(t for t in target["parse_times"] if t >= 0) for target in targets
+            sum(t for t in target.parse_times if t >= 0) for target in targets
         )
         file_timings = {
-            target["path"]: (
-                sum(t for t in target["parse_times"] if t >= 0),
-                target["run_time"],
+            target.path: (
+                sum(t for t in target.parse_times if t >= 0),
+                target.run_time,
             )
             for target in targets
         }
@@ -208,7 +207,10 @@ class TextFormatter(BaseFormatter):
             for err in error_output
             if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
         ]
-        errors = {(err.path, err.error_type) for err in semgrep_core_errors}
+        errors = {
+            (err.core.location.path, err.core.error_type.kind)
+            for err in semgrep_core_errors
+        }
 
         error_types = {k: len(list(v)) for k, v in groupby(errors, lambda x: x[1])}
         num_errors = len(errors)
@@ -228,13 +230,13 @@ class TextFormatter(BaseFormatter):
             return ext_to_lang.get(ext, "generic")
 
         ext_info = sorted(
-            [
+            (
                 (
-                    lang_of_path(target["path"]),
-                    (target["num_bytes"], target["run_time"]),
+                    lang_of_path(target.path),
+                    (target.num_bytes, target.run_time),
                 )
                 for target in targets
-            ],
+            ),
             key=lambda x: x[0],
         )
         lang_info = {k: list(v) for k, v in groupby(ext_info, lambda x: x[0])}
@@ -243,15 +245,15 @@ class TextFormatter(BaseFormatter):
         lang_bytes: Mapping[str, int] = {
             lang: sum(info[1][0] for info in lang_info[lang]) for lang in langs
         }
-        lang_times: Mapping[str, int] = {
+        lang_times: Mapping[str, float] = {
             lang: sum(info[1][1] for info in lang_info[lang]) for lang in langs
         }
 
         # Output semgrep summary
-        total_time = time_data["profiling_times"].get("total_time", 0.0)
-        config_time = time_data["profiling_times"].get("config_time", 0.0)
-        core_time = time_data["profiling_times"].get("core_time", 0.0)
-        _ignores_time = time_data["profiling_times"].get("ignores_time", 0.0)
+        total_time = time_data.profiling_times.get("total_time", 0.0)
+        config_time = time_data.profiling_times.get("config_time", 0.0)
+        core_time = time_data.profiling_times.get("core_time", 0.0)
+        # time_data.profiling_times.get("ignores_time", 0.0)
 
         yield f"\n============================[ summary ]============================"
 
@@ -300,8 +302,7 @@ class TextFormatter(BaseFormatter):
             f"{ lang_counts[lang] } { lang } files ({ format_bytes(lang_bytes[lang]) } in {(lang_times[lang]):.3f} seconds)"
             for lang in langs
         ]
-        for line in add_heading(ANALYZED, by_lang):
-            yield line
+        yield from add_heading(ANALYZED, by_lang)
 
         # Output errors
         def if_exists(num_errors: int, msg: str) -> str:
@@ -316,8 +317,7 @@ class TextFormatter(BaseFormatter):
             f"{type} ({num} files)" for (type, num) in error_types.items()
         ]
 
-        for line in add_heading(FAILED, error_lines):
-            yield line
+        yield from add_heading(FAILED, error_lines)
 
         yield ""
 
@@ -331,28 +331,28 @@ class TextFormatter(BaseFormatter):
 
         last_file = None
         last_message = None
-        sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+        sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.rule_id))
         for rule_index, rule_match in enumerate(sorted_rule_matches):
 
             current_file = rule_match.path
-            check_id = rule_match.id
+            rule_id = rule_match.rule_id
             message = rule_match.message
             fix = rule_match.fix
             if last_file is None or last_file != current_file:
                 if last_file is not None:
                     yield ""
-                yield f"\n{with_color(Colors.cyan, f' {current_file} ', bold=False)}"
+                yield f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}"
                 last_message = None
             # don't display the rule line if the check is empty
             if (
-                check_id
-                and check_id != CLI_RULE_ID
+                rule_id
+                and rule_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                shortlink_text = (8 * " " + shortlink) if shortlink else ""
+                shortlink_text = (8 * " " + shortlink + "\n") if shortlink else ""
                 rule_id_text = click.wrap_text(
-                    f"{with_color(Colors.foreground, check_id, bold=True)}",
+                    f"{with_color(Colors.foreground, rule_id, bold=True)}",
                     width + 10,
                     5 * " ",
                     5 * " ",
@@ -361,7 +361,7 @@ class TextFormatter(BaseFormatter):
                 message_text = click.wrap_text(
                     f"{message}", width, 8 * " ", 8 * " ", True
                 )
-                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}\n"
+                yield f"{rule_id_text}\n{message_text}\n{shortlink_text}"
 
             last_file = current_file
             last_message = message
@@ -375,7 +375,7 @@ class TextFormatter(BaseFormatter):
                 yield f"{autofix_tag} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{autofix_tag} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{autofix_tag} s/{fix_regex.regex}/{fix_regex.replacement}/{fix_regex.count or 'g'}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False
@@ -393,6 +393,7 @@ class TextFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         output = self._build_text_output(
@@ -404,12 +405,16 @@ class TextFormatter(BaseFormatter):
 
         timing_output = (
             self._build_summary(
-                extra.get("time", {}),
+                cli_output_extra.time,
                 semgrep_structured_errors,
                 extra.get("color_output", False),
             )
-            if "time" in extra
+            if cli_output_extra.time
             else iter([])
         )
 
-        return "\n".join(itertools.chain(output, timing_output))
+        matches_output = "\n".join((*output, *timing_output))
+        if not matches_output:
+            return ""
+
+        return "\nFindings:\n" + matches_output

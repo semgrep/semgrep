@@ -2,17 +2,19 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module J = JSON
+module In = Input_to_core_j
 
 let expr_at_range s file =
   let r = Range.range_of_linecol_spec s file in
@@ -30,7 +32,9 @@ let expr_at_range s file =
 let synthesize_patterns s file =
   let config = Config_semgrep.default_config in
   let options = Synthesizer.synthesize_patterns config s file in
-  let json_opts = J.Object (List.map (fun (k, v) -> (k, J.String v)) options) in
+  let json_opts =
+    J.Object (Common.map (fun (k, v) -> (k, J.String v)) options)
+  in
   let s = J.string_of_json json_opts in
   pr s
   [@@action]
@@ -39,4 +43,9 @@ let generate_pattern_choices s =
   let config = Config_semgrep.default_config in
   let options = Synthesizer.print_pattern_from_targets config s in
   List.iter (fun s -> pr s) options
+  [@@action]
+
+let locate_patched_functions f =
+  let res = Synthesizer.locate_patched_functions f in
+  pr res
   [@@action]

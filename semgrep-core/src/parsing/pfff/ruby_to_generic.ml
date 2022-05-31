@@ -36,21 +36,13 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let bool = id
-
 let string = id
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let fb = G.fake_bracket
-
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
 (*****************************************************************************)
@@ -58,7 +50,6 @@ let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -66,7 +57,6 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let ident x = wrap string x
 
 let rec expr e =
@@ -141,6 +131,23 @@ let rec expr e =
           frettype = None;
           fbody = G.FBStmt st;
           fkind = (G.LambdaKind, t1);
+        }
+      in
+      G.Lambda def
+  | Lambda (tok, params_opt, xs) ->
+      let params =
+        match params_opt with
+        | None -> []
+        | Some xs -> xs
+      in
+      let params = list formal_param params in
+      let st = G.Block (tok, list_stmts xs, tok) |> G.s in
+      let def =
+        {
+          G.fparams = params;
+          frettype = None;
+          fbody = G.FBStmt st;
+          fkind = (G.LambdaKind, tok);
         }
       in
       G.Lambda def
@@ -254,7 +261,24 @@ and scope_resolution x : G.name =
        * in which case we could generate a QDots instead of a QEXpr
        *)
       let e = expr e in
-      let qualif = G.QExpr (e, t) in
+      let qualif =
+        match e with
+        | { G.e = G.N (G.Id (id, _info)); _ } -> G.QDots [ (id, None) ]
+        | {
+         G.e =
+           G.N
+             (G.IdQualified
+               {
+                 name_last;
+                 name_middle = Some (G.QDots middle);
+                 name_top = None;
+                 _;
+               });
+         _;
+        } ->
+            G.QDots (middle @ [ name_last ])
+        | _ -> G.QExpr (e, t)
+      in
       IdQualified
         {
           G.name_last = (id, None);
@@ -429,12 +453,39 @@ and literal x =
       | Tick (l, xs, r) ->
           G.OtherExpr
             (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
-  | Regexp ((l, xs, r), opt) -> (
-      match xs with
-      | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
-      | _ ->
-          (* TODO *)
-          string_contents_list (l, xs, r))
+  | Regexp ((l, xs, r), opt) ->
+      let rec f strs toks = function
+        | [ StrChars (s, t) ] ->
+            let str = String.concat "" (s :: strs) in
+            let tok = PI.combine_infos t toks in
+            G.L (G.Regexp ((l, (str, tok), r), opt))
+        | StrChars (s, t) :: tl -> f (s :: strs) (t :: toks) tl
+        | StrExpr _ :: _
+        | [] ->
+            (* TODO *)
+            string_contents_list (l, xs, r)
+      in
+      f [] [] (List.rev xs)
+
+and expr_special_cases e =
+  (* Code parsed as expressions in Ruby that we want to represent
+     in some other way *)
+  match e.G.e with
+  (* Function calls like `require $X` are really directives *)
+  | G.Call ({ G.e = G.N (G.Id (("require_relative", t), _)); _ }, args)
+  | G.Call ({ G.e = G.N (G.Id (("require", t), _)); _ }, args)
+  | G.Call ({ G.e = G.N (G.Id (("load", t), _)); _ }, args) -> (
+      match args with
+      | _, [ G.Arg { G.e = G.L (G.String str); _ } ], _
+      | _, [ G.Arg { G.e = G.N (G.Id (str, _)); _ } ], _ ->
+          let s =
+            G.DirectiveStmt
+              { G.d = G.ImportAll (t, G.FileName str, t); G.d_attrs = [] }
+            |> G.s
+          in
+          G.S s
+      | _ -> G.E e)
+  | _ -> G.E e
 
 and expr_as_stmt = function
   | S x -> stmt x
@@ -442,15 +493,19 @@ and expr_as_stmt = function
   | e -> (
       let e = expr e in
       match e.G.e with
-      (* a single name on its own line is probably an hidden fun call,
-       * unless it's a metavariable
-       *)
+      (* targets only: a single name on its own line is probably an hidden fun call,
+         * unless it's a metavariable
+      *)
       | G.N (G.Id ((s, _), _)) ->
           if AST_generic_.is_metavar_name s then G.exprstmt e
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
-      | _ -> G.exprstmt e)
+      | _ -> (
+          match expr_special_cases e with
+          | G.S s -> s
+          | G.E e -> G.exprstmt e
+          | _ -> raise Impossible))
 
 and stmt st =
   match st with
@@ -763,7 +818,7 @@ let any x =
       match x with
       | S x -> G.S (stmt x)
       | D x -> G.S (definition x)
-      | _ -> G.E (expr x))
+      | e -> expr_special_cases (expr e))
   | S2 x -> G.S (stmt x)
   | Ss xs -> G.Ss (list_stmts xs)
   | Pr xs -> G.Ss (list_stmts xs)

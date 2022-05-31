@@ -2,11 +2,12 @@
 """
 E.g.
 
-  pipenv run scripts/hash-project.py $(git ls-remote --get-url)
+  pipenv run ../scripts/hash-project.py $(git ls-remote --get-url)
 """
 from sys import argv
 
-from semgrep.metric_manager import metric_manager
+from semgrep.metrics import Metrics
 
-metric_manager.set_project_hash(argv[1])
-print(metric_manager._project_hash)
+metrics = Metrics()
+metrics.set_project_hash(argv[1])
+print(metrics._project_hash)

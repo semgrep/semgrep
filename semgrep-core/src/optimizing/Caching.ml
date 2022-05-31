@@ -264,7 +264,6 @@ let prepare_pattern any =
 
 module Cache_key = struct
   type env = Metavariable.bindings [@@deriving show]
-
   type function_id = Match_deep | Match_list
 
   (*
@@ -344,7 +343,6 @@ module Cache_key = struct
   (* debugging.
      More calls to 'equal' than to 'hash' indicate frequent collisions. *)
   let hash_calls = ref 0
-
   let equal_calls = ref 0
 
   let equal : t -> t -> bool =
@@ -373,9 +371,7 @@ module Cache = struct
   module Tbl = Hashtbl.Make (Cache_key)
 
   type 'a t = 'a Tbl.t
-
   type pattern = AST_generic.stmt list
-
   type target = AST_generic.stmt list
 
   type 'a access = {
@@ -389,7 +385,6 @@ module Cache = struct
 
   (* debugging *)
   let cache_hits = ref 0
-
   let cache_misses = ref 0
 
   (*
@@ -426,7 +421,7 @@ module Cache = struct
     let cached_span : Stmts_match_span.t = access.get_span_field cached_acc in
 
     let patched_full_env =
-      List.map
+      Common.map
         (fun ((k, _v) as cached_binding) ->
           if Env.has_backref k backrefs (* = is in min_env *) then
             cached_binding
@@ -487,7 +482,7 @@ module Cache = struct
             match res with
             | [] -> []
             | res ->
-                List.map
+                Common.map
                   (fun cached_acc ->
                     patch_result_from_cache ~access backrefs a acc cached_acc)
                   res)

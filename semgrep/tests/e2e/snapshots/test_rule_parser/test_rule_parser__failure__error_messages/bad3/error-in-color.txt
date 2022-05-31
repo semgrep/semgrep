@@ -5,4 +5,4 @@
 
 [31m[22m[24m[{'pattern': '$D = {}'}] is not of type 'string'[0m
 [0m
-[31m[22m[24mrun with --strict and there were 1 errors loading configs[0m
+[31m[22m[24mRan with --strict and got 1 error while loading configs[0m

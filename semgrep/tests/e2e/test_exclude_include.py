@@ -5,6 +5,7 @@ def idfn(options):
     return "-and-".join(flag.strip("-") for flag in options if flag.startswith("--"))
 
 
+@pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "options",
     [

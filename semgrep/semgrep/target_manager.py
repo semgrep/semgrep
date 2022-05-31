@@ -38,6 +38,7 @@ from attrs import field
 import click
 from attrs import Factory, frozen
 from wcmatch import glob as wcglob
+from boltons.iterutils import partition
 
 from semgrep.constants import Colors
 from semgrep.error import FilesNotFoundError
@@ -48,7 +49,6 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
-from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -96,7 +96,7 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
 
 
 @define
-class IgnoreLog:
+class FileTargetingLog:
     """Keeps track of which paths were ignored for what reason.
 
     Each attribute is a distinct reason why files could be ignored.
@@ -111,6 +111,7 @@ class IgnoreLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
+    failed_to_analyze: Set[Path] = Factory(set)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
@@ -132,10 +133,16 @@ class IgnoreLog:
         )
 
     def __str__(self) -> str:
+        limited_fragments = []
         skip_fragments = []
+        partial_fragments = []
 
-        if self.target_manager.respect_git_ignore:
-            skip_fragments.append("all .gitignored files")
+        if self.target_manager.baseline_handler:
+            limited_fragments.append(
+                "Scan was limited to files changed since baseline commit."
+            )
+        elif self.target_manager.respect_git_ignore:
+            limited_fragments.append("Scan was limited to files tracked by git.")
 
         if self.cli_includes:
             skip_fragments.append(
@@ -153,13 +160,24 @@ class IgnoreLog:
             skip_fragments.append(
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
             )
+        if self.failed_to_analyze:
+            partial_fragments.append(
+                f"{len(self.failed_to_analyze)} files only partially analyzed due to a parsing or internal Semgrep error"
+            )
 
-        if not skip_fragments:
-            return "no files were skipped"
+        if not limited_fragments and not skip_fragments and not partial_fragments:
+            return ""
 
-        message = "skipped: " + ", ".join(skip_fragments)
-
-        message += "\nfor a detailed list of skipped files, run semgrep with the --verbose flag\n"
+        message = "Some files were skipped or only partially analyzed."
+        if limited_fragments:
+            for fragment in limited_fragments:
+                message += f"\n  {fragment}"
+        if partial_fragments:
+            message += "\n  Partially scanned: " + ", ".join(partial_fragments)
+        if skip_fragments:
+            message += "\n  Scan skipped: " + ", ".join(skip_fragments)
+            message += "\n  For a full list of skipped files, run semgrep with the --verbose flag."
+        message += "\n"
         return message
 
     def yield_verbose_lines(self) -> Iterator[Tuple[Literal[0, 1, 2], str]]:
@@ -215,23 +233,12 @@ class IgnoreLog:
         else:
             yield 2, "<none>"
 
-        for rule_id in self.rule_ids_with_skipped_paths:
-            if rule_id.startswith("fingerprints."):
-                # Skip fingerprint rules, since they all have include patterns
-                continue
-            yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's include patterns:"
-            if self.rule_includes[rule_id]:
-                for path in self.rule_includes[rule_id]:
-                    yield 2, with_color(Colors.cyan, str(path))
-            else:
-                yield 2, "<none>"
-
-            yield 1, f"Skipped only for {with_color(Colors.bright_blue, rule_id)} by the rule's exclude patterns:"
-            if self.rule_excludes[rule_id]:
-                for path in self.rule_excludes[rule_id]:
-                    yield 2, with_color(Colors.cyan, str(path))
-            else:
-                yield 2, "<none>"
+        yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
+        if self.failed_to_analyze:
+            for path in self.failed_to_analyze:
+                yield 2, with_color(Colors.cyan, str(path))
+        else:
+            yield 2, "<none>"
 
     def verbose_output(self) -> str:
         formatters_by_level: Mapping[int, Callable[[str], str]] = {
@@ -277,6 +284,11 @@ class IgnoreLog:
                 "path": str(path),
                 "reason": "exceeded_size_limit",
                 "size_limit_bytes": self.target_manager.max_target_bytes,
+            }
+        for path in self.failed_to_analyze:
+            yield {
+                "path": str(path),
+                "reason": "analysis_failed_parser_or_internal_error",
             }
 
 
@@ -383,7 +395,7 @@ class Target:
         return frozenset(
             match
             for match in self.path.glob("**/*")
-            if not match.is_dir() and match.is_file()
+            if match.is_file() and not match.is_symlink()
         )
 
     @lru_cache(maxsize=None)
@@ -444,7 +456,7 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
-    ignore_log: IgnoreLog = Factory(IgnoreLog, takes_self=True)
+    ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
@@ -477,22 +489,35 @@ class TargetManager:
             result.append("**/" + pattern + "/**")
         return result
 
-    @staticmethod
-    def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
+    def executes_with_shebang(self, path: Path, shebangs: Collection[Shebang]) -> bool:
         """
         Returns if a path is executable and executes with one of a set of programs
         """
-        if not os.access(str(f), os.X_OK | os.R_OK):
-            return False
         try:
-            with f.open("r") as fd:
-                hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+            hline = self.get_shebang_line(path)
+            if hline is None:
+                return False
             return any(hline.endswith(s) for s in shebangs)
         except UnicodeDecodeError:
             logger.debug(
-                f"Encountered likely binary file {f} while reading shebang; skipping this file"
+                f"Encountered likely binary file {path} while reading shebang; skipping this file"
             )
             return False
+
+    @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
+    def get_shebang_line(self, path: Path) -> Optional[str]:
+        if not os.access(str(path), os.X_OK | os.R_OK):
+            return None
+
+        with path.open() as f:
+            return f.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+
+    @lru_cache(maxsize=10_000)  # size aims to be 100x of fully caching this repo
+    def globfilter(self, candidates: Iterable[Path], pattern: str) -> List[Path]:
+        result = wcglob.globfilter(
+            candidates, pattern, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
+        )
+        return cast(List[Path], result)
 
     def filter_by_language(
         self, language: Language, *, candidates: FrozenSet[Path]
@@ -508,7 +533,7 @@ class TargetManager:
             path
             for path in candidates
             if any(str(path).endswith(ext) for ext in language.definition.exts)
-            or self._executes_with_shebang(path, language.definition.shebangs)
+            or self.executes_with_shebang(path, language.definition.shebangs)
         )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
@@ -523,9 +548,8 @@ class TargetManager:
         )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
-    @staticmethod
     def filter_includes(
-        includes: Sequence[str], *, candidates: FrozenSet[Path]
+        self, includes: Sequence[str], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns all elements in candidates that match any includes pattern
@@ -535,21 +559,13 @@ class TargetManager:
         if not includes:
             return FilteredFiles(candidates)
 
-        includes = TargetManager.preprocess_path_patterns(includes)
-        # Need cast b/c types-wcmatch doesn't use generics properly :(
-        kept = frozenset(
-            cast(
-                Iterable[Path],
-                wcglob.globfilter(
-                    candidates, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
-                ),
-            )
-        )
-        return FilteredFiles(kept, frozenset(candidates - kept))
+        kept = set()
+        for pattern in TargetManager.preprocess_path_patterns(includes):
+            kept.update(self.globfilter(candidates, pattern))
+        return FilteredFiles(frozenset(kept), frozenset(candidates - kept))
 
-    @staticmethod
     def filter_excludes(
-        excludes: Sequence[str], *, candidates: FrozenSet[Path]
+        self, excludes: Sequence[str], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns all elements in candidates that do not match any excludes pattern
@@ -559,18 +575,11 @@ class TargetManager:
         if not excludes:
             return FilteredFiles(candidates)
 
-        excludes = TargetManager.preprocess_path_patterns(excludes)
+        removed = set()
+        for pattern in TargetManager.preprocess_path_patterns(excludes):
+            removed.update(self.globfilter(candidates, pattern))
 
-        # Need cast b/c types-wcmatch doesn't use generics properly :(
-        removed = frozenset(
-            cast(
-                Iterable[Path],
-                wcglob.globfilter(
-                    candidates, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
-                ),
-            )
-        )
-        return FilteredFiles(frozenset(candidates - removed), removed)
+        return FilteredFiles(frozenset(candidates - removed), frozenset(removed))
 
     @staticmethod
     def filter_by_size(
@@ -586,12 +595,11 @@ class TargetManager:
         if max_target_bytes <= 0:
             return FilteredFiles(candidates)
 
-        kept, removed = partition_set(
-            lambda path: os.path.getsize(path) <= max_target_bytes,
-            candidates,
+        kept, removed = partition(
+            candidates, lambda path: os.path.getsize(path) <= max_target_bytes
         )
 
-        return FilteredFiles(kept, removed)
+        return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
     def get_files_for_language(self, lang: Language) -> FilteredFiles:

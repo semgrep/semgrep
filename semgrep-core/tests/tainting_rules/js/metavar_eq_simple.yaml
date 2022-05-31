@@ -3,6 +3,8 @@ rules:
     languages:
       - javascript
     message: Matched on $X!
+    options:
+      taint_unify_mvars: true
     mode: taint
     pattern-sinks:
       - pattern: sink($X,...)

@@ -30,9 +30,7 @@ open Ast_c
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = Common.map
 
 let either f g x =
@@ -41,11 +39,8 @@ let either f g x =
   | Right x -> Right (g x)
 
 let string = id
-
 let fake tok s = Parse_info.fake_info tok s
-
 let unsafe_fake s = Parse_info.unsafe_fake_info s
-
 let fb = G.fake_bracket
 
 let opt_to_ident opt =
@@ -64,7 +59,6 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-
 let name v = wrap string v
 
 let rec unaryOp (a, tok) =
@@ -278,10 +272,7 @@ and expr e =
       G.Record v1 |> G.e
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.Call
-        ( G.IdSpecial (G.New, unsafe_fake "new") |> G.e,
-          fb (G.ArgType v1 :: ([ v2 ] |> List.map G.arg)) )
-      |> G.e
+      G.New (unsafe_fake "new", v1, fb ([ v2 ] |> List.map G.arg)) |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
@@ -326,13 +317,18 @@ let rec stmt st =
   | DoWhile (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
       G.DoWhile (t, v1, v2)
-  | For (t, v1, v2, v3, v4) ->
-      let init = expr_or_vars v1
-      and v2 = option expr v2
-      and v3 = option expr v3
-      and v4 = stmt v4 in
-      let header = G.ForClassic (init, v2, v3) in
-      G.For (t, header, v4)
+  | For (t, header, st) ->
+      let header =
+        match header with
+        | ForClassic (v1, v2, v3) ->
+            let init = expr_or_vars v1 in
+            let v2 = option expr v2 in
+            let v3 = option expr v3 in
+            G.ForClassic (init, v2, v3)
+        | ForEllipsis v1 -> G.ForEllipsis v1
+      in
+      let st = stmt st in
+      G.For (t, header, st)
   | Return (t, v1) ->
       let v1 = option expr v1 in
       G.Return (t, v1, G.sc)
@@ -490,7 +486,6 @@ and definition = function
       G.DefStmt v1
 
 let toplevel x = stmt x
-
 let program v = list toplevel v
 
 let any = function

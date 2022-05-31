@@ -11,9 +11,7 @@ val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 
 (* may raise NotAnExpr *)
 val argument_to_expr : AST_generic.argument -> AST_generic.expr
-
 val expr_to_type : AST_generic.expr -> AST_generic.type_
-
 val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
 
 (* should avoid; used mainly during expr->condition migration for If/While/..*)
@@ -34,7 +32,6 @@ val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 (* name building *)
 
 val name_of_id : AST_generic.ident -> AST_generic.name
-
 val name_of_ids : AST_generic.dotted_ident -> AST_generic.name
 
 val name_of_ids_with_opt_typeargs :
@@ -66,9 +63,7 @@ val parameter_to_catch_exn_opt :
   AST_generic.parameter -> AST_generic.catch_exn option
 
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
-
 val gensym_counter : int ref
-
 val gensym : unit -> int
 
 val has_keyword_attr :
@@ -113,9 +108,7 @@ val undo_ac_matching_nf :
 (* AST_generic_ conversions *)
 
 val conv_op : AST_generic_.operator -> AST_generic.operator
-
 val conv_incr : AST_generic_.incr_decr -> AST_generic.incr_decr
-
 val conv_prepost : AST_generic_.prefix_postfix -> AST_generic.prefix_postfix
 
 val conv_incdec :

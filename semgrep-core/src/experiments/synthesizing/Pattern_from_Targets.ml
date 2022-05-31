@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module Set = Set_
@@ -17,7 +18,6 @@ open AST_generic
 module G = AST_generic
 
 exception InvalidSubstitution
-
 exception UnsupportedTargetType
 
 (*****************************************************************************)
@@ -60,9 +60,7 @@ type env = {
  * as well as instructions for where to put it back                           *
  *)
 type replacement_info = stage * ((any -> any) -> any -> any)
-
 type pattern_instr = env * any * replacement_info list
-
 type pattern_instrs = pattern_instr list
 
 let global_lang = ref Lang.Ocaml
@@ -121,11 +119,8 @@ let lookup env e =
   look mapping
 
 let fk = Parse_info.unsafe_fake_info "fake"
-
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
-
 let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
-
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
 let default_id str =
@@ -137,6 +132,7 @@ let default_id str =
            id_type = ref None;
            id_svalue = ref None;
            id_hidden = false;
+           id_info_id = 0;
          } ))
   |> G.e
 
@@ -171,14 +167,12 @@ let get_id env e =
 (*****************************************************************************)
 
 let replace_sk stmt s_kind = { stmt with s = s_kind }
-
 let add_pattern s pattern = Set.add (p_any pattern) s
 
 let add_patterns s patterns =
   List.fold_left (fun s' (_, pattern, _) -> add_pattern s' pattern) s patterns
 
 let lookup_pattern pattern s = Set.mem (p_any pattern) s
-
 let set_prev env prev' = { env with prev = prev' }
 
 (* Tranposes a list of lists, must be rectangular. *)
@@ -187,7 +181,7 @@ let rec transpose (list : 'a list list) : 'a list list =
   | [] -> []
   | [] :: xss -> transpose xss
   | (x :: xs) :: xss ->
-      (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
+      (x :: Common.map List.hd xss) :: transpose (xs :: Common.map List.tl xss)
 
 (* We can't handle lists of statements of unequal size yet.
  * Check that each target has the same number of statements.
@@ -196,7 +190,7 @@ let check_equal_length (targets : 'a list list) : bool =
   match targets with
   | [] -> true
   | _ ->
-      let lengths = List.map List.length targets in
+      let lengths = Common.map List.length targets in
       let hdlen = List.hd lengths in
       List.for_all (( == ) hdlen) lengths
 
@@ -394,13 +388,13 @@ and get_one_step_replacements (env, pattern, holes) =
        * For example, if f turns foo(...), a -> foo(a), and g turns (...), a -> (a, ...), we want a function *
        * that turns foo(...), a -> foo(a, ...) *)
       let incorporate_holes holes =
-        List.map
+        Common.map
           (fun (removed_target, g) ->
             (removed_target, fun h any -> f (g h) any))
           holes
       in
       ( (env, pattern, holes'),
-        List.map
+        Common.map
           (fun (env, pattern', target_holes) ->
             ( set_prev env pattern',
               f (fun _ -> pattern') pattern,
@@ -415,7 +409,7 @@ let get_included_patterns pattern_children =
     | x :: xs -> List.fold_left (fun acc s -> Set.inter acc s) x xs
   in
   let sets =
-    List.map
+    Common.map
       (fun patterns ->
         List.fold_left
           (fun s (_, child_patterns) -> add_patterns s child_patterns)
@@ -436,9 +430,7 @@ let get_included_patterns pattern_children =
         | _ -> [ (set_prev env pattern, pattern, holes) ])
     | _ -> children
   in
-  List.map
-    (fun patterns -> List.flatten (List.map include_pattern patterns))
-    pattern_children
+  Common.map (List.concat_map include_pattern) pattern_children
 
 let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   (* For each pattern in each set of target_patterns, generate the list of one step replacements *)
@@ -450,7 +442,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
     pr2 "target patterns";
     show_pattern_sets target_patterns);
   let pattern_children =
-    List.map (List.map get_one_step_replacements) target_patterns
+    Common.map (Common.map get_one_step_replacements) target_patterns
   in
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
@@ -462,7 +454,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   in
   (* Call recursively on these patterns *)
   if cont then generate_patterns_help included_patterns
-  else List.map List.hd target_patterns
+  else Common.map List.hd target_patterns
 
 let extract_pattern (pats : pattern_instr) : Pattern.t =
   (fun (_, pattern, _) -> pattern) pats
@@ -491,7 +483,7 @@ let generate_starting_patterns config (targets : AST_generic.any list list) :
         ]
     | _ -> raise UnsupportedTargetType
   in
-  List.map (List.map starting_pattern) targets
+  Common.map (Common.map starting_pattern) targets
 
 (* Copies the metavar count and mapping from src pattern_instr to
  *  each env in dsts.
@@ -503,7 +495,7 @@ let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
     let denv' = { denv with count = senv.count; mapping = senv.mapping } in
     (denv', dpattern, dholes)
   in
-  List.map cp dsts
+  Common.map cp dsts
 
 (* Calls generate_patterns_help on each list of pattern_instrs, retaining
  * the metavariable environment between calls.
@@ -526,11 +518,11 @@ let rec generate_with_env (target_patterns : pattern_instrs list list) :
 
 let generate_patterns config targets lang =
   global_lang := lang;
-  let split_targets = List.map Range_to_AST.split_any targets in
+  let split_targets = Common.map Range_to_AST.split_any targets in
   if check_equal_length split_targets then
     split_targets
     |> generate_starting_patterns config
     (* Transpose to intersect across targets, not within. *)
     |> transpose
-    |> generate_with_env |> List.map extract_pattern |> Range_to_AST.join_anys
+    |> generate_with_env |> Common.map extract_pattern |> Range_to_AST.join_anys
   else failwith "Only targets of equal length are supported."

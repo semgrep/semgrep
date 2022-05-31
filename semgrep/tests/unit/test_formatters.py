@@ -1,5 +1,6 @@
 from io import StringIO
 
+import pytest
 from ruamel.yaml import YAML
 
 from semgrep.formatter.sarif import SarifFormatter
@@ -8,6 +9,7 @@ from semgrep.rule import Rule
 yaml = YAML(typ="rt")
 
 
+@pytest.mark.quick
 def test_rule_to_sarif_tags():
     r = """
       id: blah

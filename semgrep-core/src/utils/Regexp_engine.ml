@@ -56,11 +56,8 @@ module Re_engine = struct
 
   (* calling pp on Re.t is really slow, so better just print the string *)
   let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-
   let matching_exact_string s = ("exact:" ^ s, Re.str s)
-
   let regexp s = (s, Re.Pcre.re s)
-
   let compile t = Re.compile t [@@profiling]
 
   (* nice! *)
@@ -77,9 +74,7 @@ module Str_engine = struct
   type t = string * Str.regexp
 
   let show (s, _) = s
-
   let matching_exact_string s = ("!exact:s!", Str.regexp_string s)
-
   let regexp s = (s, Str.regexp s)
 
   (* this is not anchored! *)
@@ -93,7 +88,8 @@ module Str_engine = struct
     try
       Str.search_forward re str 0 |> ignore;
       true
-    with Not_found -> false
+    with
+    | Not_found -> false
     [@@profiling]
 end
 
@@ -102,9 +98,7 @@ module Pcre_engine = struct
   type t = string * Pcre.regexp
 
   let show (s, _) = s
-
   let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-
   let equal (s1, _) (s2, _) = s1 = s2
 
   let matching_exact_string s =

@@ -2,6 +2,7 @@
 open Common
 module R = Rule
 module E = Semgrep_error_code
+module Out = Output_from_core_t
 
 let test_path = "../../../tests/OTHER/synthesizing/targets/"
 
@@ -76,11 +77,11 @@ let ranges_matched lang file pattern : Range.t list =
         let toks = xs |> List.filter Parse_info.is_origintok in
         let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
         let minii_loc = Parse_info.unsafe_token_location_of_info minii in
-        E.error "Synthesizier tests" minii_loc "" (E.SemgrepMatchFound ""))
+        E.error "Synthesizier tests" minii_loc "" Out.SemgrepMatchFound)
       (Config_semgrep.default_config, equiv)
       [ rule ] (file, lang, ast)
   in
-  List.map extract_range matches
+  Common.map extract_range matches
 
 let run_single_test file linecols expected_pattern =
   let lang, _, inferred_pattern =
@@ -92,7 +93,7 @@ let run_single_test file linecols expected_pattern =
   in
   let pattern_correct = actual_pattern = expected_pattern in
   let ranges_expected =
-    List.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
+    Common.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
   in
   let ranges_actual = ranges_matched lang file inferred_pattern in
   let ranges_correct =

@@ -1,0 +1,24 @@
+rules:
+  - id: invalid-port
+    message: Detected an invalid port number. Valid ports are 0 through 65535.
+    severity: ERROR
+    languages:
+      - dockerfile
+    metadata:
+      source-rule-url: https://github.com/hadolint/hadolint/wiki/DL3011
+      references:
+        - https://github.com/hadolint/hadolint/wiki/DL3011
+      category: correctness
+      technology:
+        - dockerfile
+    paths:
+      include:
+        - "*dockerfile*"
+        - "*Dockerfile*"
+    pattern-either:
+      - patterns:
+          - pattern: EXPOSE $PORT
+          - metavariable-comparison:
+              metavariable: $PORT
+              comparison: $PORT > 65535
+              strip: true

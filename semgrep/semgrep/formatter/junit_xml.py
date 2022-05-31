@@ -4,6 +4,7 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.error import SemgrepError
 from semgrep.external.junit_xml import TestCase  # type: ignore[attr-defined]
 from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]
@@ -17,7 +18,7 @@ class JunitXmlFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_test_case(rule_match: RuleMatch) -> TestCase:  # type: ignore
         test_case = TestCase(
-            rule_match.id,
+            rule_match.rule_id,
             file=str(rule_match.path),
             line=rule_match.start.line,
             classname=str(rule_match.path),
@@ -34,6 +35,7 @@ class JunitXmlFormatter(BaseFormatter):
         rules: Iterable[Rule],
         rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
+        cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
         test_cases = [

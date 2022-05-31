@@ -5,12 +5,16 @@ from enum import Enum
 from pathlib import Path
 from typing import Type
 
-from semgrep import __VERSION__
 
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
-SEMGREP_URL = os.environ.get("SEMGREP_URL", "https://semgrep.dev/")
+SEMGREP_URL = os.environ.get(
+    "SEMGREP_APP_URL", os.environ.get("SEMGREP_URL", "https://semgrep.dev")
+).rstrip("/")
+SHOULDAFOUND_BASE_URL = os.environ.get(
+    "SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
+).rstrip("/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
@@ -19,16 +23,15 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
-USER_DATA_FOLDER = Path.home() / ".semgrep"
+if "XDG_CONFIG_HOME" in os.environ and Path(os.environ["XDG_CONFIG_HOME"]).is_dir():
+    USER_DATA_FOLDER = Path(os.environ["XDG_CONFIG_HOME"]) / "semgrep"
+else:
+    USER_DATA_FOLDER = Path.home() / ".semgrep"
+
 USER_LOG_FILE = Path(os.environ.get("SEMGREP_LOG_FILE", USER_DATA_FOLDER / "last.log"))
 SETTINGS_FILE = "settings.yml"
 SEMGREP_SETTING_ENVVAR_NAME = "SEMGREP_SETTINGS_FILE"
 SEMGREP_SETTINGS_FILE = os.environ.get(SEMGREP_SETTING_ENVVAR_NAME)
-
-SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
-SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
-if SEMGREP_USER_AGENT_APPEND is not None:
-    SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
 
 SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
 
@@ -45,6 +48,8 @@ RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=jso
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
+    GITLAB_SAST = auto()
+    GITLAB_SECRETS = auto()
     JUNIT_XML = auto()
     SARIF = auto()
     EMACS = auto()
@@ -88,10 +93,12 @@ RULE_ID_RE_STR = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"
 #   Python comments that begin with '# '
 # * nosem and nosemgrep should be interchangeable
 #
-NOSEM_INLINE_RE = re.compile(
-    r" nosem(?:grep)?" + RULE_ID_RE_STR,
-    re.IGNORECASE,
-)
+NOSEM_INLINE_RE_STR = r" nosem(?:grep)?" + RULE_ID_RE_STR
+NOSEM_INLINE_RE = re.compile(NOSEM_INLINE_RE_STR, re.IGNORECASE)
+
+# As a hack adapted from semgrep-agent,
+# we assume comment markers are one of these special characters
+NOSEM_INLINE_COMMENT_RE = re.compile(rf"[:#/]+{NOSEM_INLINE_RE_STR}$", re.IGNORECASE)
 
 # A nosemgrep comment alone on its line.
 # Since we don't know the comment syntax for the particular language, we

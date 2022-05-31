@@ -59,7 +59,6 @@ type env = { mvars : (MV.mvar, value) Hashtbl.t; constant_propagation : bool }
 type code = AST_generic.expr
 
 exception NotHandled of code
-
 exception NotInEnv of Metavariable.mvar
 
 (*****************************************************************************)
@@ -88,8 +87,8 @@ let parse_json file =
        ("metavars", J.Object xs);
       ] ->
           let lang =
-            try Hashtbl.find Lang.lang_map lang
-            with Not_found -> failwith (spf "unsupported language %s" lang)
+            try Hashtbl.find Lang.lang_map lang with
+            | Not_found -> failwith (spf "unsupported language %s" lang)
           in
           (* less: could also use Parse_pattern *)
           let code =
@@ -98,7 +97,7 @@ let parse_json file =
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
-            xs |> List.map (fun (s, json) -> (s, metavar_of_json s json))
+            xs |> Common.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           let env =
             {
@@ -143,15 +142,31 @@ let value_of_lit ~code x =
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
-  | G.N (G.Id ((_s, _t), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
+  | G.N (G.Id ((_, _), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
+  (* coupling: Constant_propagation.eval *)
+  | G.Call
+      ( { e = G.N (G.Id (("!dockerfile_expand!", _), _)); _ },
+        ( _,
+          [
+            G.Arg
+              {
+                e =
+                  G.N
+                    (G.Id
+                      ( (_, _),
+                        { id_svalue = { contents = Some (G.Lit lit) }; _ } ));
+                _;
+              };
+          ],
+          _ ) )
     when env.constant_propagation ->
       value_of_lit ~code lit
   | G.N (G.Id ((s, _t), _idinfo))
     when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
-      try Hashtbl.find env.mvars s
-      with Not_found ->
-        logger#trace "could not find a value for %s in env" s;
-        raise (NotInEnv s))
+      try Hashtbl.find env.mvars s with
+      | Not_found ->
+          logger#trace "could not find a value for %s in env" s;
+          raise (NotInEnv s))
   (* Python int() operator *)
   | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
@@ -165,13 +180,13 @@ let rec eval env code =
   | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
-        |> List.map (function
+        |> Common.map (function
              | G.Arg e -> eval env e
              | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
-      let vs = List.map (eval env) xs in
+      let vs = Common.map (eval env) xs in
       List vs
   (* Emulate Python re.match just enough *)
   | G.Call
@@ -268,50 +283,13 @@ and eval_op op values code =
 
 (* when called from the new semgrep-full-rule-in-ocaml *)
 
-let bindings_to_env (config : Config_semgrep.t) xs =
-  let constant_propagation = config.constant_propagation in
-  let mvars =
-    xs
-    |> Common.map_filter (fun (mvar, mval) ->
-           let try_bind_to_exp e =
-             try
-               Some
-                 ( mvar,
-                   eval { mvars = Hashtbl.create 0; constant_propagation } e )
-               (* this can happen when a metavar is binded to a complex expression,
-                * e.g., os.getenv("foo") which can't be evaluated. It's ok to
-                * filter those metavars then.
-                *)
-             with
-             | NotHandled _
-             | NotInEnv _ ->
-                 logger#debug "filtering mvar %s, can't eval %s" mvar
-                   (MV.show_mvalue mval);
-                 (* todo: if not a value, could default to AST of range *)
-                 None
-           in
-           match mval with
-           (* this way we can leverage the constant propagation analysis
-            * in metavariable-comparison: too! This simplifies some rules.
-            *)
-           | MV.Id (i, Some id_info) ->
-               try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
-           | MV.E e -> try_bind_to_exp e
-           | x ->
-               logger#debug "filtering mvar %s, not an expr %s" mvar
-                 (MV.show_mvalue x);
-               None)
-    |> Common.hash_of_list
-  in
-  { mvars; constant_propagation }
-
 let text_of_binding mvar mval =
   match mval with
   | MV.Text (text, _) ->
       (* Note that `text` may be produced by constant folding, in which
        * case we will not have range info. *)
       Some text
-  | ___else___ -> (
+  | _ -> (
       let any = MV.mvalue_to_any mval in
       match Visitor_AST.range_of_any_opt any with
       | None ->
@@ -324,14 +302,83 @@ let text_of_binding mvar mval =
           let range = Range.range_of_token_locations min max in
           Some (Range.content_at_range file range))
 
-(* this is for metavariable-regexp *)
-let bindings_to_env_with_just_strings (config : Config_semgrep.t) bindings =
-  let ( let* ) = Option.bind in
+let bindings_to_env (config : Config_semgrep.t) bindings =
+  let constant_propagation = config.constant_propagation in
   let mvars =
     bindings
     |> Common.map_filter (fun (mvar, mval) ->
-           let* text = text_of_binding mvar mval in
-           Some (mvar, String text))
+           let try_bind_to_exp e =
+             try
+               Some
+                 ( mvar,
+                   eval { mvars = Hashtbl.create 0; constant_propagation } e )
+               (* this can happen when a metavar is binded to a complex expression,
+                  * e.g., os.getenv("foo") which can't be evaluated. It's ok to
+                  * filter those metavars then.
+               *)
+             with
+             | NotHandled _
+             | NotInEnv _ ->
+                 logger#debug "filtering mvar %s, can't eval %s" mvar
+                   (MV.show_mvalue mval);
+                 (* todo: if not a value, could default to AST of range *)
+                 None
+           in
+           match mval with
+           (* this way we can leverage the constant propagation analysis
+              * in metavariable-comparison: too! This simplifies some rules.
+           *)
+           | MV.Id (i, Some id_info) ->
+               try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
+           | MV.E e -> try_bind_to_exp e
+           | x ->
+               logger#debug "filtering mvar %s, not an expr %s" mvar
+                 (MV.show_mvalue x);
+               None)
+    |> Common.hash_of_list
+  in
+  { mvars; constant_propagation }
+
+let string_of_binding mvar mval =
+  Option.bind (text_of_binding mvar mval) @@ fun x -> Some (mvar, String x)
+
+(* this is for metavariable-regexp *)
+let bindings_to_env_just_strings_const_prop bindings =
+  let mvars =
+    bindings
+    |> Common.map_filter (fun (mvar, mval) ->
+           let try_bind_to_exp e =
+             try
+               Some
+                 ( mvar,
+                   eval
+                     { mvars = Hashtbl.create 0; constant_propagation = true }
+                     e )
+               (* this can happen when a metavar is binded to a complex expression,
+                  * e.g., os.getenv("foo") which can't be evaluated. It's ok to
+                  * filter those metavars then.
+               *)
+             with
+             | NotHandled _
+             | NotInEnv _ ->
+                 string_of_binding mvar mval
+           in
+           match mval with
+           (* this way we can leverage the constant propagation analysis
+              * in metavariable-comparison: too! This simplifies some rules.
+           *)
+           | MV.Id (i, Some id_info) ->
+               try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
+           | MV.E e -> try_bind_to_exp e
+           | x -> string_of_binding mvar x)
+    |> Common.hash_of_list
+  in
+  { mvars; constant_propagation = true }
+
+let bindings_to_env_just_strings (config : Config_semgrep.t) xs =
+  let mvars =
+    xs
+    |> Common.map_filter (fun (mvar, mval) -> string_of_binding mvar mval)
     |> Common.hash_of_list
   in
   { mvars; constant_propagation = config.constant_propagation }
@@ -346,9 +393,10 @@ let test_eval file =
     let env, code = parse_json file in
     let res = eval env code in
     print_result (Some res)
-  with NotHandled e ->
-    pr2 (G.show_expr e);
-    raise (NotHandled e)
+  with
+  | NotHandled e ->
+      pr2 (G.show_expr e);
+      raise (NotHandled e)
 
 (* We need to swallow most exns in eval_bool(). This is because the
  * metavariable-comparison code in [e] may be valid

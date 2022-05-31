@@ -2,20 +2,19 @@ import collections
 import json
 import re
 from pathlib import Path
-from typing import Callable
 from typing import Dict
-from typing import Mapping
 from xml.etree import cElementTree
 
 import pytest
-from tests.conftest import _clean_output_json
-from tests.conftest import TESTS_PATH
 
-from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
+from tests.conftest import _clean_output_sarif
+from tests.conftest import CLEANERS
+from tests.conftest import TESTS_PATH
 
 
 # https://stackoverflow.com/a/10077069
+@pytest.mark.kinda_slow
 def _etree_to_dict(t):
     """
     A simple and sufficient XML -> dict conversion function. This function is
@@ -41,29 +40,7 @@ def _etree_to_dict(t):
     return d
 
 
-def _clean_sarif_output(output):
-    # Rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
-
-    return output
-
-
-CLEANERS: Mapping[str, Callable[[str], str]] = {
-    "--sarif": lambda s: json.dumps(_clean_sarif_output(json.loads(s))),
-    "--json": _clean_output_json,
-}
-
-
+@pytest.mark.kinda_slow
 def test_output_highlighting(run_semgrep_in_tmp, snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/cli_test/basic/",
@@ -78,8 +55,49 @@ def test_output_highlighting(run_semgrep_in_tmp, snapshot):
     )
 
 
+@pytest.mark.kinda_slow
+def test_output_highlighting__no_color(run_semgrep_in_tmp, snapshot):
+    results, _errors = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        env={"NO_COLOR": "1"},
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
+@pytest.mark.kinda_slow
+def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snapshot):
+    """
+    NO_COLOR would normally disable color: https://no-color.org/
+
+    But a tool specific flag should override a global flag.
+    So when both are set, we should have color.
+    """
+    results, _errors = run_semgrep_in_tmp(
+        "rules/cli_test/basic/",
+        target_name="cli_test/basic/",
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        force_color=True,
+        env={"NO_COLOR": "1"},
+    )
+    snapshot.assert_match(
+        results,
+        "results.txt",
+    )
+
+
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
-@pytest.mark.parametrize("format", ["--json", "--sarif", "--emacs", "--vim"])
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "format",
+    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+)
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -91,6 +109,7 @@ def test_output_format(run_semgrep_in_tmp, snapshot, format):
     snapshot.assert_match(clean, "results.out")
 
 
+@pytest.mark.kinda_slow
 def test_omit_inventory(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/inventory/invent.yaml", target_name="inventory/invent.py"
@@ -98,6 +117,7 @@ def test_omit_inventory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "results.out")
 
 
+@pytest.mark.kinda_slow
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
@@ -112,6 +132,7 @@ def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
 
 # If there are nosemgrep comments to ignore findings, SARIF output should include them
 # labeled as suppressed.
+@pytest.mark.kinda_slow
 def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp(
@@ -121,19 +142,20 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
         )[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
     )
 
 
+@pytest.mark.kinda_slow
 def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -144,12 +166,13 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
         assert rule.get("helpUri", None) is not None
 
 
+@pytest.mark.kinda_slow
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF)[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -160,6 +183,7 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
         assert rule.get("help", None) is not None
 
 
+@pytest.mark.kinda_slow
 def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp(
@@ -170,19 +194,38 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
         )[0]
     )
 
-    sarif_output = _clean_sarif_output(sarif_output)
+    sarif_output = _clean_output_sarif(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
     )
 
 
-IGNORE_LOG_REPORT_FIRST_LINE = "Files skipped:"
+@pytest.mark.kinda_slow
+def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
+    sarif_output = json.loads(
+        run_semgrep_in_tmp(
+            "rules/autofix/autofix.yaml",
+            target_name="autofix/autofix.py",
+            output_format=OutputFormat.SARIF,
+            options=["--autofix", "--dryrun"],
+        )[0]
+    )
+
+    sarif_output = _clean_output_sarif(sarif_output)
+
+    snapshot.assert_match(
+        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+    )
+
+
+IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped or only partially analyzed."
 IGNORE_LOG_REPORT_LAST_LINE = (
-    "for a detailed list of skipped files, run semgrep with the --verbose flag"
+    "  For a full list of skipped files, run semgrep with the --verbose flag."
 )
 
 
+@pytest.mark.kinda_slow
 def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
@@ -218,6 +261,7 @@ def test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
     snapshot.assert_match(report.group(), "report.txt")
 
 
+@pytest.mark.kinda_slow
 def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()

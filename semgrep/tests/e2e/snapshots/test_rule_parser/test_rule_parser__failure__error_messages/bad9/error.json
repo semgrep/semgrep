@@ -7,11 +7,6 @@
       "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "config_end": null,
-          "config_path": null,
-          "config_start": null,
-          "context_end": null,
-          "context_start": null,
           "end": {
             "col": 7,
             "line": 5
@@ -29,7 +24,7 @@
     {
       "code": 7,
       "level": "error",
-      "message": "run with --strict and there were 1 errors loading configs",
+      "message": "Ran with --strict and got 1 error while loading configs",
       "type": "SemgrepError"
     }
   ],
@@ -37,5 +32,6 @@
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []
   },
-  "results": []
+  "results": [],
+  "version": "0.42"
 }

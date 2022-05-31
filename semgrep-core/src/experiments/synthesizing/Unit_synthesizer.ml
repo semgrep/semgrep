@@ -154,13 +154,13 @@ let java_tests =
         ("exact metavars", "$X == $X");
         ("typed metavars", "foo(bar((int $X))) == foo(bar((int $X)))");
         ("deep metavars", "foo(bar($X)) == foo(bar($X))");
-      ] );
+      ] )
     (* "exact_match.java", "4:15-4:42",
        ["exact match", "foo(bar(a)) == foo(bar(a))";
        "exact metavars", "$X == $X";
        "typed metavars", "foo(bar((int $X))) == foo(bar((int $X)))";
        "deep metavars", "foo(bar($X)) == foo(bar($X))";
-       ]; *)
+       ]; *);
   ]
 
 (* Cases splits up the test cases by language.
@@ -217,7 +217,7 @@ let tests =
                               in
                               let matches_with_env =
                                 let env =
-                                  Matching_generic.empty_environment None None
+                                  Matching_generic.empty_environment None lang
                                     Config_semgrep.default_config
                                 in
                                 Match_patterns.match_any_any pattern code env
@@ -237,8 +237,9 @@ let tests =
                           | None ->
                               failwith
                                 (spf "Couldn't find range %s in %s" range file)
-                        with Parsing.Parse_error ->
-                          failwith (spf "problem parsing %s" pat)
+                        with
+                        | Parsing.Parse_error ->
+                            failwith (spf "problem parsing %s" pat)
                       in
                       pats |> List.iter check_pats;
                       let pats_str =

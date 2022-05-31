@@ -17,6 +17,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "482df5917317c1d5798e55dc0448f6c3",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -28,6 +29,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -57,6 +71,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "900f2efd196ac4f4f506a309bd8a9df8",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -68,6 +83,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -97,6 +125,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "aedb5fdbecd5b50cac21a0c33b4367b0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -108,6 +137,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -137,6 +179,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "8b0440e3490ed0bba7873bee575a5aea",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -148,6 +191,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -177,6 +233,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "bca58467cfe2d8145dbd85e5e2bbd8d5",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -188,6 +245,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -217,6 +287,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "4306866fcd63fb557c7c99dc9938cfd0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -228,6 +299,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -257,6 +341,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "228adac48db4798e36818e66ab5da8bf",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -268,6 +353,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -297,6 +395,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "7c17b3f01167a9db941d797ee389d253",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -308,6 +407,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -337,6 +449,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "1e6b140ff4b9db6e6a4dbbb91f6c25c5",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -348,6 +461,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -377,6 +503,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "8ca51ec49d92f0a66256bf1a0733ab56",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -388,6 +515,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -417,6 +557,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "27f900541234ae9554551a81b2b25b99",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -428,6 +569,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -457,6 +611,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "909da2dc57ec17b15efe91f87190dd88",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -468,6 +623,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -497,6 +665,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "97ac2c9e772e5b0f6ed830d2678a7722",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -508,6 +677,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -537,6 +719,7 @@
         "offset": 30
       },
       "extra": {
+        "fingerprint": "87ac04950fdcebaa14a493c3db7aab18",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -548,6 +731,19 @@
               "col": 14,
               "line": 3,
               "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
             },
             "start": {
               "col": 13,
@@ -569,5 +765,6 @@
         "offset": 24
       }
     }
-  ]
+  ],
+  "version": "0.42"
 }

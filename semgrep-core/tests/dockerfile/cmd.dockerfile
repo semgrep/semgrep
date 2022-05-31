@@ -17,7 +17,4 @@ CMD ls \
   echo yay
 
 # MATCH:
-CMD ["echo", "hello"]
-
-# MATCH:
 CMD ["ls"]

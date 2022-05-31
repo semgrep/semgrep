@@ -106,9 +106,9 @@ let string_array ((open_, args, close) : string_array) : G.expr =
    Return the arguments to pass to the dockerfile command e.g. the arguments
    to CMD.
 *)
-let argv_or_shell env x : G.expr list =
+let argv_or_shell (env : env) (x : argv_or_shell) : G.expr list =
   match x with
-  | Runlike_ellipsis x -> [ ellipsis_expr x ]
+  | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
       let args = Bash_to_generic.program env x |> expr_of_stmts loc in
@@ -129,7 +129,7 @@ let opt_param_arg (x : param option) : G.argument list =
   | None -> []
   | Some x -> [ param_arg x ]
 
-let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
+let from (opt_param : param option) (image_spec : image_spec) opt_alias :
     G.argument list =
   (* TODO: metavariable for image name *)
   (* TODO: metavariable for image tag, metavariable for image digest *)
@@ -145,7 +145,14 @@ let from (opt_param : param option) (image_spec : image_spec) _TODO_opt_alias :
     | None -> []
     | Some (at, digest) -> [ G.ArgKwdOptional (("@", at), str_expr digest) ]
   in
-  let optional_params (* must be placed last *) = tag @ digest @ opt_param in
+  let alias =
+    match opt_alias with
+    | None -> []
+    | Some (as_, alias) -> [ G.ArgKwdOptional (("as", as_), str_expr alias) ]
+  in
+  let optional_params (* must be placed last *) =
+    opt_param @ tag @ digest @ alias
+  in
   name :: optional_params
 
 let label_pairs (kv_pairs : label_pair list) : G.argument list =
@@ -207,10 +214,19 @@ let array_or_paths (x : array_or_paths) : G.expr list =
   | Array (_loc, ar) -> [ string_array ar ]
   | Paths (_loc, paths) -> Common.map str_or_ellipsis_expr paths
 
-let expose_port_expr (x : expose_port) : G.expr =
+let expose_port_expr (x : expose_port) : G.expr list =
   match x with
-  | Expose_semgrep_ellipsis tok -> ellipsis_expr tok
-  | Expose_element x -> string_fragment_expr x
+  | Expose_semgrep_ellipsis tok -> [ ellipsis_expr tok ]
+  | Expose_port (port_tok, None) -> [ string_expr port_tok ]
+  | Expose_port (port_tok, Some protocol_tok) ->
+      [
+        G.Container
+          ( G.Tuple,
+            PI.unsafe_fake_bracket
+              [ string_expr port_tok; string_expr protocol_tok ] )
+        |> G.e;
+      ]
+  | Expose_fragment x -> [ string_fragment_expr x ]
 
 let healthcheck env loc name (x : healthcheck) =
   match x with
@@ -221,6 +237,24 @@ let healthcheck env loc name (x : healthcheck) =
       let args = healthcheck_cmd_args env params cmd in
       call name loc args
 
+let env_decl pairs =
+  let decls =
+    pairs
+    |> Common.map (function
+         | Label_semgrep_ellipsis tok ->
+             G.ExprStmt (G.Ellipsis tok |> G.e, PI.unsafe_sc) |> G.s
+         | Label_pair (_loc, key, _eq, value) -> (
+             match key with
+             | Var_ident v
+             | Var_semgrep_metavar v ->
+                 let entity = G.basic_entity v in
+                 let vardef =
+                   G.VarDef { vinit = Some (str_expr value); vtype = None }
+                 in
+                 G.DefStmt (entity, vardef) |> G.s))
+  in
+  G.StmtExpr (G.Block (PI.unsafe_fake_bracket decls) |> G.s) |> G.e
+
 let rec instruction_expr env (x : instruction) : G.expr =
   match x with
   | From (loc, name, opt_param, image_spec, opt_alias) ->
@@ -230,9 +264,9 @@ let rec instruction_expr env (x : instruction) : G.expr =
   | Cmd (loc, name, x) -> cmd_instr_expr env loc name x
   | Label (loc, name, kv_pairs) -> call name loc (label_pairs kv_pairs)
   | Expose (loc, name, port_protos) ->
-      let args = Common.map expose_port_expr port_protos in
+      let args = List.concat_map expose_port_expr port_protos in
       call_exprs name loc args
-  | Env (loc, name, pairs) -> call name loc (label_pairs pairs)
+  | Env (_loc, _name, pairs) -> env_decl pairs
   | Add (loc, name, param, src, dst) ->
       call name loc (add_or_copy param src dst)
   | Copy (loc, name, param, src, dst) ->
@@ -257,7 +291,9 @@ let rec instruction_expr env (x : instruction) : G.expr =
 
 let instruction env (x : instruction) : G.stmt =
   let expr = instruction_expr env x in
-  stmt_of_expr (instruction_loc x) expr
+  match expr.e with
+  | StmtExpr stmt -> stmt
+  | _ -> stmt_of_expr (instruction_loc x) expr
 
 let program (env : env) (x : program) : G.stmt list =
   Common.map (instruction env) x

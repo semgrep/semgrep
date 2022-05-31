@@ -2,14 +2,15 @@
  *
  * Copyright (c) 2022 R2C
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 
 module G = AST_generic
@@ -178,10 +179,10 @@ let map_anon_choice_PLUS_8019319 (env : env) (x : CST.anon_choice_PLUS_8019319)
 let map_terminator (env : env) (x : CST.terminator) =
   match x with
   | `Rep_pat_509ec78_SEMI (v1, v2) ->
-      let v1 = List.map (token env (* pattern \r?\n *)) v1 in
+      let v1 = Common.map (token env (* pattern \r?\n *)) v1 in
       let v2 = (* ";" *) token env v2 in
       todo env (v1, v2)
-  | `Rep1_pat_509ec78 xs -> List.map (token env (* pattern \r?\n *)) xs
+  | `Rep1_pat_509ec78 xs -> Common.map (token env (* pattern \r?\n *)) xs
 
 let map_identifier (env : env) (x : CST.identifier) =
   match x with
@@ -193,7 +194,7 @@ let map_identifier (env : env) (x : CST.identifier) =
 let map_quoted_slash (env : env) ((v1, v2, v3) : CST.quoted_slash) =
   let v1 = (* "/" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_slash tok -> (* quoted_content_slash *) token env tok
@@ -207,7 +208,7 @@ let map_quoted_heredoc_double (env : env)
     ((v1, v2, v3) : CST.quoted_heredoc_double) =
   let v1 = (* "\"\"\"" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_here_double tok ->
@@ -221,7 +222,7 @@ let map_quoted_heredoc_double (env : env)
 let map_quoted_single (env : env) ((v1, v2, v3) : CST.quoted_single) =
   let v1 = (* "'" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_single tok ->
@@ -235,7 +236,7 @@ let map_quoted_single (env : env) ((v1, v2, v3) : CST.quoted_single) =
 let map_quoted_angle (env : env) ((v1, v2, v3) : CST.quoted_angle) =
   let v1 = (* "<" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_angle tok -> (* quoted_content_angle *) token env tok
@@ -248,7 +249,7 @@ let map_quoted_angle (env : env) ((v1, v2, v3) : CST.quoted_angle) =
 let map_quoted_double (env : env) ((v1, v2, v3) : CST.quoted_double) =
   let v1 = (* "\"" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_double tok ->
@@ -262,7 +263,7 @@ let map_quoted_double (env : env) ((v1, v2, v3) : CST.quoted_double) =
 let map_quoted_parenthesis (env : env) ((v1, v2, v3) : CST.quoted_parenthesis) =
   let v1 = (* "(" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_paren tok ->
@@ -276,7 +277,7 @@ let map_quoted_parenthesis (env : env) ((v1, v2, v3) : CST.quoted_parenthesis) =
 let map_quoted_square (env : env) ((v1, v2, v3) : CST.quoted_square) =
   let v1 = (* "[" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_square tok ->
@@ -291,7 +292,7 @@ let map_quoted_heredoc_single (env : env)
     ((v1, v2, v3) : CST.quoted_heredoc_single) =
   let v1 = (* "'''" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_here_single tok ->
@@ -305,7 +306,7 @@ let map_quoted_heredoc_single (env : env)
 let map_quoted_curly (env : env) ((v1, v2, v3) : CST.quoted_curly) =
   let v1 = (* "{" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_curl tok -> (* quoted_content_curly *) token env tok
@@ -318,7 +319,7 @@ let map_quoted_curly (env : env) ((v1, v2, v3) : CST.quoted_curly) =
 let map_quoted_bar (env : env) ((v1, v2, v3) : CST.quoted_bar) =
   let v1 = (* "|" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_bar tok -> (* quoted_content_bar *) token env tok
@@ -404,14 +405,14 @@ and map_anon_choice_choice_stab_clause_rep_term_choice_stab_clause_b295119
         match v1 with
         | `Stab_clause x -> map_stab_clause env x
       in
-      let v2 = List.map (map_anon_term_choice_stab_clause_70647b7 env) v2 in
+      let v2 = Common.map (map_anon_term_choice_stab_clause_70647b7 env) v2 in
       todo env (v1, v2)
   | `Choice_exp_rep_term_choice_exp_opt_term (v1, v2, v3) ->
       let v1 =
         match v1 with
         | `Exp x -> map_expression env x
       in
-      let v2 = List.map (map_anon_term_choice_exp_996111b env) v2 in
+      let v2 = Common.map (map_anon_term_choice_exp_996111b env) v2 in
       let v3 =
         match v3 with
         | Some x -> map_terminator env x
@@ -434,7 +435,7 @@ and map_anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e (env : env)
     ((v1, v2, v3) : CST.anon_exp_rep_COMMA_exp_opt_COMMA_keywos_041d82e) =
   let v1 = map_expression env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -664,7 +665,7 @@ and map_body (env : env) ((v1, v2, v3, v4) : CST.body) =
   in
   let v2 = map_expression env v2 in
   let v3 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = map_terminator env v1 in
         let v2 = map_expression env v2 in
@@ -711,7 +712,7 @@ and map_call_arguments_with_trailing_separator (env : env)
   | `Exp_rep_COMMA_exp_opt_COMMA_keywos_with_trai_sepa (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_expression env v2 in
@@ -819,7 +820,7 @@ and map_do_block (env : env) ((v1, v2, v3, v4, v5) : CST.do_block) =
     | None -> todo env ()
   in
   let v4 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `After_blk x -> map_after_block env x
@@ -981,7 +982,7 @@ and map_expression (env : env) (x : CST.expression) =
       in
       let v3 = map_stab_clause env v3 in
       let v4 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = map_terminator env v1 in
             let v2 = map_stab_clause env v2 in
@@ -1003,7 +1004,7 @@ and map_items_with_trailing_separator (env : env)
   | `Exp_rep_COMMA_exp_opt_COMMA (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_expression env v2 in
@@ -1022,7 +1023,7 @@ and map_items_with_trailing_separator (env : env)
         | Some (v1, v2, v3) ->
             let v1 = map_expression env v1 in
             let v2 =
-              List.map
+              Common.map
                 (fun (v1, v2) ->
                   let v1 = (* "," *) token env v1 in
                   let v2 = map_expression env v2 in
@@ -1047,7 +1048,7 @@ and map_keyword (env : env) (x : CST.keyword) =
 and map_keywords (env : env) ((v1, v2) : CST.keywords) =
   let v1 = map_pair env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_pair env v2 in
@@ -1060,7 +1061,7 @@ and map_keywords_with_trailing_separator (env : env)
     ((v1, v2, v3) : CST.keywords_with_trailing_separator) =
   let v1 = map_pair env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_pair env v2 in
@@ -1089,7 +1090,7 @@ and map_pair (env : env) ((v1, v2) : CST.pair) =
 and map_quoted_i_angle (env : env) ((v1, v2, v3) : CST.quoted_i_angle) =
   let v1 = (* "<" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_angle tok ->
@@ -1104,7 +1105,7 @@ and map_quoted_i_angle (env : env) ((v1, v2, v3) : CST.quoted_i_angle) =
 and map_quoted_i_bar (env : env) ((v1, v2, v3) : CST.quoted_i_bar) =
   let v1 = (* "|" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_bar tok -> (* quoted_content_i_bar *) token env tok
@@ -1118,7 +1119,7 @@ and map_quoted_i_bar (env : env) ((v1, v2, v3) : CST.quoted_i_bar) =
 and map_quoted_i_curly (env : env) ((v1, v2, v3) : CST.quoted_i_curly) =
   let v1 = (* "{" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_curl tok ->
@@ -1133,7 +1134,7 @@ and map_quoted_i_curly (env : env) ((v1, v2, v3) : CST.quoted_i_curly) =
 and map_quoted_i_double (env : env) ((v1, v2, v3) : CST.quoted_i_double) =
   let v1 = (* "\"" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_double tok ->
@@ -1149,7 +1150,7 @@ and map_quoted_i_heredoc_double (env : env)
     ((v1, v2, v3) : CST.quoted_i_heredoc_double) =
   let v1 = (* "\"\"\"" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_here_double tok ->
@@ -1165,7 +1166,7 @@ and map_quoted_i_heredoc_single (env : env)
     ((v1, v2, v3) : CST.quoted_i_heredoc_single) =
   let v1 = (* "'''" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_here_single tok ->
@@ -1181,7 +1182,7 @@ and map_quoted_i_parenthesis (env : env)
     ((v1, v2, v3) : CST.quoted_i_parenthesis) =
   let v1 = (* "(" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_paren tok ->
@@ -1196,7 +1197,7 @@ and map_quoted_i_parenthesis (env : env)
 and map_quoted_i_single (env : env) ((v1, v2, v3) : CST.quoted_i_single) =
   let v1 = (* "'" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_single tok ->
@@ -1211,7 +1212,7 @@ and map_quoted_i_single (env : env) ((v1, v2, v3) : CST.quoted_i_single) =
 and map_quoted_i_slash (env : env) ((v1, v2, v3) : CST.quoted_i_slash) =
   let v1 = (* "/" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_slash tok ->
@@ -1226,7 +1227,7 @@ and map_quoted_i_slash (env : env) ((v1, v2, v3) : CST.quoted_i_slash) =
 and map_quoted_i_square (env : env) ((v1, v2, v3) : CST.quoted_i_square) =
   let v1 = (* "[" *) token env v1 in
   let v2 =
-    List.map
+    Common.map
       (fun x ->
         match x with
         | `Quoted_content_i_square tok ->
@@ -1413,7 +1414,7 @@ let map_source (env : env) ((v1, v2) : CST.source) =
     | Some (v1, v2, v3) ->
         let v1 = map_expression env v1 in
         let v2 =
-          List.map
+          Common.map
             (fun (v1, v2) ->
               let v1 = map_terminator env v1 in
               let v2 = map_expression env v2 in
@@ -1444,9 +1445,10 @@ let parse file =
         match map_source env cst with
         | G.Pr xs -> xs
         | _ -> failwith "not a program"
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_source cst);
-        raise exn)
+      with
+      | Failure "not implemented" as exn ->
+          H.debug_sexp_cst_after_error (CST.sexp_of_source cst);
+          raise exn)
 
 let parse_pattern str =
   H.wrap_parser

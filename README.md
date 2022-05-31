@@ -27,7 +27,7 @@
     <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="Star Semgrep on GitHub" />
   </a>
   <a href="https://hub.docker.com/r/returntocorp/semgrep">
-    <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg" />
+    <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg?style=flat-square" alt="Docker Pulls" />
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
     <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev on Twitter" />
@@ -61,7 +61,7 @@ Semgrep is developed and commercially supported by [r2c, a software security com
 
 <h4 align="center">General availability</h4>
 <p align="center">
-C# · Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</br>
+C# · Go · Java · JavaScript · JSX · JSON · Python · Ruby · Scala · TypeScript · TSX</br>
 </p>
 <h4 align="center">Beta & experimental</h4>
 <p align="center">
@@ -80,7 +80,7 @@ $ brew install semgrep
 $ python3 -m pip install semgrep
 
 # To try Semgrep without installation run via Docker
-$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
+$ docker run --rm -v "${PWD}:/src" returntocorp/semgrep
 ```
 
 Once installed, Semgrep can run with single rules or entire rulesets. Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:
@@ -95,9 +95,6 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 # to make selecting relevant rules fast next time;
 # source code will not be uploaded.
 $ semgrep --config auto
-
-# Run the r2c-ci ruleset (with rules for many languages) on your own code!
-$ semgrep --config=p/r2c-ci path/to/src
 ```
 
 Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
@@ -140,7 +137,8 @@ To disable Registry rule metrics, use `--metrics=off`.
 ### More
 
 - [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
-- [Contributing](https://semgrep.dev/docs/contributing/)
+- [Contributing](https://semgrep.dev/docs/contributing/how-to-contribute/)
+- [Build instructions for developers](INSTALL.md)
 - [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
 - [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
 - [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)

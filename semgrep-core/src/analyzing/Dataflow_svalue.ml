@@ -18,6 +18,7 @@ module G = AST_generic
 module F = IL
 module D = Dataflow_core
 module VarMap = Dataflow_core.VarMap
+module LV = IL_lvalue_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -30,9 +31,7 @@ type mapping = G.svalue Dataflow_core.mapping
 
 module DataflowX = Dataflow_core.Make (struct
   type node = F.node
-
   type edge = F.edge
-
   type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
@@ -57,7 +56,6 @@ let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 (*****************************************************************************)
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
-
 let eq_ctype t1 t2 = t1 = t2
 
 let ctype_of_literal = function
@@ -224,10 +222,10 @@ let eval_binop_int tok op opt_i1 opt_i2 =
   | G.Div, Some i1, Some i2 -> (
       if i1 = min_int && i2 = -1 then G.Cst G.Cint (* = max_int+1, overflow *)
       else
-        try G.Lit (literal_of_int (i1 / i2))
-        with Division_by_zero ->
-          warning tok "Found division by zero";
-          G.Cst G.Cint)
+        try G.Lit (literal_of_int (i1 / i2)) with
+        | Division_by_zero ->
+            warning tok "Found division by zero";
+            G.Cst G.Cint)
   | ___else____ -> G.Cst G.Cint
 
 let eval_binop_string ?tok op s1 s2 =
@@ -262,7 +260,7 @@ and eval_lval env lval =
 
 and eval_op env wop args =
   let op, tok = wop in
-  let cs = List.map (eval env) args in
+  let cs = Common.map (eval env) args in
   match (op, cs) with
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
@@ -282,7 +280,7 @@ and eval_op env wop args =
   | ___else___ -> G.NotCst
 
 and eval_concat env args =
-  match List.map (eval env) args with
+  match Common.map (eval env) args with
   | [] -> G.Lit (literal_of_string "")
   | G.Lit (G.String (r, tok)) :: args' ->
       List.fold_left
@@ -420,7 +418,7 @@ let transfer :
             let cexp = eval_or_sym_prop inp' exp in
             D.VarMap.add (str_of_name var) cexp inp'
         | Call (Some { base = Var var; offset = NoOffset }, func, args) -> (
-            let args_val = List.map (eval inp') args in
+            let args_val = Common.map (eval inp') args in
             match (lang, func, args_val) with
             (* Built-in knowledge, we know these functions return constants when
              * given constant arguments. *)
@@ -464,7 +462,7 @@ let transfer :
         | ___else___ -> (
             (* In any other case, assume non-constant.
              * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
-            let lvar_opt = IL.lvar_of_instr_opt instr in
+            let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
             | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp'))
@@ -511,7 +509,8 @@ let update_svalue (flow : F.cfg) mapping =
       try
         vout ast;
         !ok
-      with Exit -> false
+      with
+      | Exit -> false
   in
   let no_cycles var c =
     (* Check that `c' contains no reference to `var'. It can contain references
@@ -539,7 +538,7 @@ let update_svalue (flow : F.cfg) mapping =
          let node = flow.graph#nodes#assoc ni in
 
          (* Update RHS svalue according to the input env. *)
-         rlvals_of_node node.n
+         LV.rlvals_of_node node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
                   match

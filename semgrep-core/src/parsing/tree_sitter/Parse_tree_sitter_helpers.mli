@@ -6,9 +6,7 @@ type 'a env = {
 }
 
 val line_col_to_pos : Common.filename -> (int * int, int) Hashtbl.t
-
 val token : 'a env -> Tree_sitter_run.Token.t -> Parse_info.t
-
 val str : 'a env -> Tree_sitter_run.Token.t -> string * Parse_info.t
 
 val str_if_wrong_content_temporary_fix :

@@ -1,0 +1,23 @@
+rules:
+- id: metavariable-ellipsis
+  patterns:
+    - pattern: |
+        var $UTIL = require("something_or_other");
+        $...METHOD
+        $UTIL.$FUNC(...)
+    - metavariable-regex:
+        metavariable: $FUNC        
+        regex: (a|b|c)
+    - metavariable-regex:
+        metavariable: $UTIL        
+        regex: (a|b|c)
+    - metavariable-regex:
+        metavariable: $...METHOD
+        regex: (a|b|c)
+    # ruleid: semgrep-metacheck-builtin
+    - metavariable-regex:
+        metavariable: $OTHER
+        regex: (a|b|c)
+  message: Bad method call
+  languages: [js]
+  severity: WARNING

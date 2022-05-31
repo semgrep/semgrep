@@ -27,7 +27,6 @@ module Pos = struct
     { Lexing.pos_fname = ""; pos_lnum = 0; pos_bol = 0; pos_cnum = -1 }
 
   let absolute pos = pos.pos_bol + pos.pos_cnum
-
   let compare a b = Int.compare (absolute a) (absolute b)
 
   (* Shift a position within the same line. *)
@@ -52,5 +51,4 @@ let sub (a, b) pos len =
   (Pos.shift a pos, Pos.shift a (pos + len))
 
 let dummy = (Pos.dummy, Pos.dummy)
-
 let show (start, end_) = sprintf "(%s, %s)" (Pos.show start) (Pos.show end_)

@@ -24,7 +24,7 @@ jobs:
           docker pull returntocorp/semgrep:develop || :
 
       - name: Build semgrep image with default Dockerfile
-        run: docker build -t returntocorp/semgrep:develop .
+        run: docker build --cache-from=returntocorp/semgrep:develop -t returntocorp/semgrep:develop .
 
       - name: Check the semgrep Docker image
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep:develop

@@ -14,11 +14,8 @@ module B = AST_bash
 (*****************************************************************************)
 
 type tok = Parse_info.t
-
 type loc = Loc.t
-
 type 'a wrap = 'a * tok
-
 type 'a bracket = tok * 'a * tok
 
 (*****************************************************************************)
@@ -56,7 +53,6 @@ type string_fragment =
 
 (* Used for quoted and unquoted strings for now *)
 type str = loc * string_fragment list
-
 type str_or_ellipsis = Str_str of str | Str_semgrep_ellipsis of tok
 
 type array_elt =
@@ -78,7 +74,7 @@ type string_array = array_elt list bracket
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 type argv_or_shell =
-  | Runlike_ellipsis of tok
+  | Command_semgrep_ellipsis of tok
   | Argv of loc * (* [ "cmd", "arg1", "arg2$X" ] *) string_array
   | Sh_command of loc * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
@@ -104,9 +100,7 @@ type label_pair =
 (* value *)
 
 type protocol = TCP | UDP
-
 type path = str
-
 type path_or_ellipsis = str_or_ellipsis
 
 type array_or_paths =
@@ -122,7 +116,8 @@ type healthcheck =
 
 type expose_port =
   | Expose_semgrep_ellipsis of tok
-  | Expose_element of string_fragment
+  | Expose_port of (* port/protocol *) string wrap * string wrap option
+  | Expose_fragment of string_fragment
 
 type instruction =
   | From of
@@ -153,8 +148,8 @@ type instruction =
   | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
   | Maintainer (* deprecated *) of loc * string wrap * string_or_metavar
   | Cross_build_xxx
-      (* e.g. CROSS_BUILD_COPY;
-         TODO: who uses this exactly? and where is it documented? *) of
+    (* e.g. CROSS_BUILD_COPY;
+       TODO: who uses this exactly? and where is it documented? *) of
       loc * string wrap * string wrap
   | Instr_semgrep_ellipsis of tok
   | Instr_semgrep_metavar of string wrap
@@ -166,9 +161,7 @@ type program = instruction list
 (***************************************************************************)
 
 let wrap_tok ((_, tok) : _ wrap) = tok
-
 let wrap_loc ((_, tok) : _ wrap) = (tok, tok)
-
 let bracket_loc ((open_, _, close) : _ bracket) = (open_, close)
 
 let var_or_metavar_tok = function
@@ -213,15 +206,13 @@ let quoted_string_loc = bracket_loc
    which changes the shell to an unsupported shell (i.e. not sh or bash).
 *)
 let argv_or_shell_loc = function
-  | Runlike_ellipsis tok -> (tok, tok)
+  | Command_semgrep_ellipsis tok -> (tok, tok)
   | Argv (loc, _) -> loc
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
 
 let param_loc ((loc, _) : param) : loc = loc
-
 let image_spec_loc (x : image_spec) = x.loc
-
 let image_alias_loc = str_loc
 
 let label_pair_loc = function
@@ -244,7 +235,9 @@ let healthcheck_loc = function
 
 let expose_port_loc = function
   | Expose_semgrep_ellipsis tok -> (tok, tok)
-  | Expose_element x -> string_fragment_loc x
+  | Expose_port ((_, tok1), Some (_, tok2)) -> (tok1, tok2)
+  | Expose_port ((_, tok), None) -> (tok, tok)
+  | Expose_fragment x -> string_fragment_loc x
 
 let instruction_loc = function
   | From (loc, _, _, _, _) -> loc

@@ -79,3 +79,12 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-elixir"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-elixir
 	url = https://github.com/returntocorp/semgrep-elixir
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-swift"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-swift
+	url = https://github.com/returntocorp/semgrep-swift.git
+[submodule "semgrep/semgrep/semgrep-interfaces"]
+	path = semgrep/semgrep/semgrep_interfaces
+	url = https://github.com/returntocorp/semgrep-interfaces.git
+[submodule "semgrep-core/tests/semgrep-rules"]
+	path = semgrep-core/tests/semgrep-rules
+	url = https://github.com/returntocorp/semgrep-rules.git

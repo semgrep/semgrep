@@ -49,8 +49,8 @@ rules:
     - pattern-inside: |
         import { $ANSI } from "ansi-html";
         ...
-  - r2c-internal-project-depends-on:
-    - namespace: npm
+  r2c-internal-project-depends-on:
+      namespace: npm
       package: ansi-html
       version: < 0.0.8
   severity: ERROR

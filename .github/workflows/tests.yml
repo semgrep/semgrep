@@ -34,7 +34,7 @@ jobs:
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
@@ -84,7 +84,7 @@ jobs:
         with:
           submodules: true
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -100,6 +100,7 @@ jobs:
           SEMGREP_SKIP_BIN: true
         run: |
           cd semgrep
+
           # See tox.ini for pytest command being run
           tox -e py  # Run tox using the version of Python in `PATH`
 
@@ -123,7 +124,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -133,18 +134,22 @@ jobs:
       - name: Install semgrep
         run: |
           cd semgrep
-          export PATH=/github/home/.local/bin:$PATH
-          pip3 install pipenv==2021.5.29
+          pip install pipenv==2021.5.29
           pipenv install --dev
       - name: Test semgrep
         run: |
           cd semgrep
-          export PATH=/github/home/.local/bin:$PATH
+
+          # tests should simulate CI environment iff they need one
+          unset CI
+          unset "${!GITHUB_@}"
+
+          make check-markers
           pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -vv --tb=short --durations=0 --snapshot-update tests/
       - name: Generate cheatsheets for semgrep.dev
         run: ./scripts/generate-cheatsheet
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: cheatsheet
           path: cheatsheet.json
@@ -196,7 +201,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -242,7 +247,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -279,9 +284,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Run 0.82.0 Timing Benchmark
+      - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.82.0
+          pip3 install semgrep==0.94.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
@@ -292,7 +297,7 @@ jobs:
           jq . semgrep/baseline_timing2.json
           pip3 uninstall -y semgrep
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts

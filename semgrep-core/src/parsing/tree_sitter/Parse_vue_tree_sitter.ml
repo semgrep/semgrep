@@ -2,14 +2,15 @@
  *
  * Copyright (c) 2021 R2C
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module CST = Tree_sitter_vue.CST
@@ -39,9 +40,7 @@ type extra = {
 type env = extra H.env
 
 let fake = AST_generic.fake
-
 let token = H.token
-
 let str = H.str
 
 (*****************************************************************************)
@@ -95,7 +94,7 @@ let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
       (s, PI.combine_infos v1 (ts @ [ v3 ]))
 
 let map_directive_modifiers (env : env) (xs : CST.directive_modifiers) =
-  List.map
+  Common.map
     (fun (v1, v2) ->
       let v1 = token env v1 (* "." *) in
       let v2 = str env v2 (* pattern "[^<>\"'/=\\s.]+" *) in
@@ -190,7 +189,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
 let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* start_tag_name *) in
-  let v3 = List.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -198,21 +197,21 @@ let map_template_start_tag (env : env)
     ((v1, v2, v3, v4) : CST.template_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* template_start_tag_name *) in
-  let v3 = List.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* style_start_tag_name *) in
-  let v3 = List.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* script_start_tag_name *) in
-  let v3 = List.map (map_anon_choice_attr_a1991da env) v3 in
+  let v3 = Common.map (map_anon_choice_attr_a1991da env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -244,7 +243,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
   match x with
   | `Start_tag_rep_node_choice_end_tag (v1, v2, v3) ->
       let l, id, attrs, r = map_start_tag env v1 in
-      let v2 = List.map (map_node env) v2 |> List.flatten in
+      let v2 = List.concat_map (map_node env) v2 in
       let v3 =
         match v3 with
         | `End_tag x -> map_end_tag env x
@@ -255,7 +254,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
   | `Self_clos_tag (v1, v2, v3, v4) ->
       let l = token env v1 (* "<" *) in
       let id = str env v2 (* start_tag_name *) in
-      let attrs = List.map (map_anon_choice_attr_a1991da env) v3 in
+      let attrs = Common.map (map_anon_choice_attr_a1991da env) v3 in
       let r = token env v4 (* "/>" *) in
       { xml_kind = XmlSingleton (l, id, r); xml_attrs = attrs; xml_body = [] }
 
@@ -314,12 +313,12 @@ and map_node (env : env) (x : CST.node) : xml_body list =
 and map_template_element (env : env) ((v1, v2, v3) : CST.template_element) : xml
     =
   let l, id, attrs, r = map_template_start_tag env v1 in
-  let v2 = List.map (map_node env) v2 |> List.flatten in
+  let v2 = List.concat_map (map_node env) v2 in
   let v3 = map_end_tag env v3 in
   { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
 
 let map_component (env : env) (xs : CST.component) : stmt list =
-  List.map
+  List.concat_map
     (fun x ->
       match x with
       | `Comm tok ->
@@ -350,7 +349,6 @@ let map_component (env : env) (xs : CST.component) : stmt list =
           let xml = map_style_element env x in
           [ G.exprstmt (Xml xml |> G.e) ])
     xs
-  |> List.flatten
 
 (*****************************************************************************)
 (* Entry point *)

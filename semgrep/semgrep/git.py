@@ -2,12 +2,14 @@ import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 from textwrap import dedent
+from textwrap import indent
 from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
 from typing import Optional
 
+from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 
@@ -39,9 +41,12 @@ class StatusCode:
     Renamed = "R"
     Modified = "M"
     Unmerged = "U"
+    TypeChanged = "T"  # changed between file / symlink / submodule
     Ignored = "!"
     Untracked = "?"
     Unstaged = " "  # but changed
+    Unknown = "X"
+    Broken = "B"
 
 
 class BaselineHandler:
@@ -66,8 +71,7 @@ class BaselineHandler:
                 subprocess.run(
                     ["git", "cat-file", "-e", base_commit],
                     check=True,
-                    stderr=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
+                    capture_output=True,
                 )
             except subprocess.CalledProcessError:
                 raise Exception(
@@ -107,28 +111,44 @@ class BaselineHandler:
 
         # Output of git command will be relative to git project root not cwd
         logger.debug("Running git diff")
-        status_output = zsplit(
-            subprocess.run(
-                [
-                    "git",
-                    "diff",
-                    "--cached",
-                    "--name-status",
-                    "--no-ext-diff",
-                    "-z",
-                    "--diff-filter=ACDMRTUXB",
-                    "--ignore-submodules",
-                    "--relative",
-                    "--merge-base",
-                    f"{self._base_commit}",
-                ],
+        status_cmd = [
+            "git",
+            "diff",
+            "--cached",
+            "--name-status",
+            "--no-ext-diff",
+            "-z",
+            "--diff-filter=ACDMRTUXB",
+            "--ignore-submodules",
+            "--relative",
+            self._base_commit,
+        ]
+        try:
+            # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+            raw_output = subprocess.run(
+                [*status_cmd, "--merge-base"],
                 timeout=GIT_SH_TIMEOUT,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 encoding="utf-8",
                 check=True,
             ).stdout
-        )
+
+        except subprocess.CalledProcessError as exc:
+            if exc.stderr.strip() == "fatal: multiple merge bases found":
+                logger.warn(
+                    "git could not find a single branch-off point, so we will compare the baseline commit directly"
+                )
+                # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+                raw_output = subprocess.run(
+                    status_cmd,
+                    timeout=GIT_SH_TIMEOUT,
+                    capture_output=True,
+                    encoding="utf-8",
+                    check=True,
+                ).stdout
+            else:
+                raise exc
+        status_output = zsplit(raw_output)
         logger.debug("Finished git diff. Parsing git status output")
         logger.debug(status_output)
         added = []
@@ -136,9 +156,13 @@ class BaselineHandler:
         removed = []
         unmerged = []
         while status_output:
-            code = status_output[0]
-            fname = status_output[1]
-            trim_size = 2
+            code = status_output.pop(0)
+            fname = status_output.pop(0)
+            new_fname = None
+
+            # code is RXXX, where XXX is percent similarity
+            if code[0] == StatusCode.Renamed:
+                new_fname = status_output.pop(0)
 
             if not code.strip():
                 continue
@@ -155,21 +179,19 @@ class BaselineHandler:
             # The following detection for unmerged codes comes from `man git-status`
             if code == StatusCode.Unmerged:
                 unmerged.append(path)
-            if (
-                code[0] == StatusCode.Renamed
-            ):  # code is RXXX, where XXX is percent similarity
+            # code is RXXX, where XXX is percent similarity
+            if code[0] == StatusCode.Renamed and new_fname:
                 removed.append(path)
-                new_fname = status_output[2]
-                trim_size += 1
                 added.append(Path(new_fname))
             if code == StatusCode.Added:
                 added.append(path)
             if code == StatusCode.Modified:
                 modified.append(path)
+            if code == StatusCode.TypeChanged and not path.is_symlink():
+                modified.append(path)
             if code == StatusCode.Deleted:
                 removed.append(path)
 
-            status_output = status_output[trim_size:]
         logger.debug(
             f"Git status:\nadded: {added}\nmodified: {modified}\nremoved: {removed}\nunmerged: {unmerged}"
         )
@@ -192,8 +214,7 @@ class BaselineHandler:
         sub_out = subprocess.run(
             ["git", "status", "--porcelain", "-z"],
             timeout=GIT_SH_TIMEOUT,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             encoding="utf-8",
             check=True,
         )
@@ -272,35 +293,31 @@ class BaselineHandler:
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
-        status = self.status
-
         # Reabort in case for some reason aborting in __init__ did not cause
         # semgrep to exit
         self._abort_on_pending_changes()
         self._abort_on_conflicting_untracked_paths(self.status)
 
         logger.debug("Running git write-tree")
-        current_tree = subprocess.run(
-            ["git", "write-tree"],
+        current_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
             timeout=GIT_SH_TIMEOUT,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+            capture_output=True,
             encoding="utf-8",
             check=True,
         ).stdout.strip()
         try:
-            for a in status.added:
-                try:
-                    a.unlink()
-                except FileNotFoundError:
-                    logger.verbose(
-                        f"| {a} was not found when trying to delete", err=True
-                    )
+            merge_base_sha = (
+                sub_check_output(["git", "merge-base", self._base_commit, "HEAD"])
+                .rstrip()
+                .decode()
+            )
 
             logger.debug("Running git checkout for baseline context")
             subprocess.run(
-                ["git", "checkout", f"{self._base_commit}", "--", "."],
+                ["git", "reset", "--hard", merge_base_sha],
                 timeout=GIT_SH_TIMEOUT,
+                capture_output=True,
                 check=True,
             )
             logger.debug("Finished git checkout for baseline context")
@@ -312,12 +329,13 @@ class BaselineHandler:
             # In this case, we still want to continue without error.
             # Note that we have no good way of detecting this issue without inspecting the checkout output
             # message, which means we are fragile with respect to git version here.
-            logger.debug("Running git checkout to return original context")
+            logger.debug("Running git reset to return original context")
             x = subprocess.run(
-                ["git", "checkout", f"{current_tree.strip()}", "--", "."],
+                ["git", "reset", "--hard", current_head],
+                capture_output=True,
                 timeout=GIT_SH_TIMEOUT,
             )
-            logger.debug("Finished git checkout to return original context")
+            logger.debug("Finished git reset to return original context")
 
             if x.returncode != 0:
                 output = x.stderr.decode()
@@ -335,14 +353,43 @@ class BaselineHandler:
                         f"Fatal error restoring Git state; please restore your repository state manually:\n{output}"
                     )
 
-            if status.removed:
-                # Need to check if file exists since it is possible file was deleted
-                # in both the base and head. Only call if there are files to delete
-                to_remove = [r for r in status.removed if r.exists()]
-                if to_remove:
-                    logger.debug("Running git rm")
-                    subprocess.run(
-                        ["git", "rm", "-f", *(str(r) for r in to_remove)],
-                        timeout=GIT_SH_TIMEOUT,
-                    )
-                    logger.debug("finished git rm")
+    def print_git_log(self) -> None:
+        base_commit_sha = (
+            sub_check_output(["git", "rev-parse", self._base_commit]).rstrip().decode()
+        )
+        merge_base_sha = (
+            sub_check_output(["git", "merge-base", self._base_commit, "HEAD"])
+            .rstrip()
+            .decode()
+        )
+        logger.info("  Will report findings introduced by these commits:")
+        log = sub_check_output(
+            ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"],
+            timeout=GIT_SH_TIMEOUT,
+            encoding="utf-8",
+        ).rstrip()
+        logger.info(indent(log, "    "))
+        if merge_base_sha != base_commit_sha:
+            logger.warning(
+                "  The current branch is missing these commits from the baseline branch:"
+            )
+            log = sub_check_output(
+                [
+                    "git",
+                    "log",
+                    "--oneline",
+                    "--graph",
+                    f"{merge_base_sha}..{base_commit_sha}",
+                ],
+                timeout=GIT_SH_TIMEOUT,
+                encoding="utf-8",
+            )
+            logger.info(indent(log, "    ").rstrip())
+
+            logger.info(
+                "  Any finding these commits fixed will look like a new finding in the current branch."
+            )
+            logger.info(
+                "  To avoid reporting such findings, compare to the branch-off point with:\n"
+                f"    --baseline-commit=$(git merge-base {self._base_commit} HEAD)"
+            )

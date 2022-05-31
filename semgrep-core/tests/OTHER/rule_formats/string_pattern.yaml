@@ -1,0 +1,9 @@
+rules:
+- id: x
+  message: x
+  languages: [python]
+  severity: WARNING
+  # Due to a limitation in libyaml, "\uD83D\uDE03" isn't supported for
+  # "😃" like it is in JSON (see string_pattern.json).
+  # https://github.com/yaml/libyaml/issues/110
+  pattern: "\"hello 😃 \u2665\""

@@ -37,7 +37,6 @@ val predefined_styles : (string * style) list
 (* Replace comments by whitespace so as to preserve the (line, column)
    position of the other characters in the file. *)
 val remove_comments_from_string : style -> string -> string
-
 val remove_comments_from_src : style -> Src_file.t -> Src_file.t
 
 (**************************************************************************)
@@ -47,11 +46,8 @@ val remove_comments_from_src : style -> Src_file.t -> Src_file.t
 module CLI : sig
   (* Command-line options *)
   val comment_style_term : (string * style) option Cmdliner.Term.t
-
   val eol_comment_start_term : string option Cmdliner.Term.t
-
   val multiline_comment_start_term : string option Cmdliner.Term.t
-
   val multiline_comment_end_term : string option Cmdliner.Term.t
 
   (* Merge values collected from the command line into a style record. *)

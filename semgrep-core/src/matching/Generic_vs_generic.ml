@@ -31,6 +31,7 @@ module MV = Metavariable
 module Flag = Flag_semgrep
 module Config = Config_semgrep_t
 module H = AST_generic_helpers
+module T = Type_generic
 
 (* optimisations *)
 module CK = Caching.Cache_key
@@ -38,7 +39,6 @@ module Env = Metavariable_capture
 open Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
-
 let hook_find_possible_parents = ref None
 
 (*****************************************************************************)
@@ -123,19 +123,25 @@ let has_case_ellipsis_and_filter_ellipsis xs =
       | _ -> false)
     xs
 
-let rec obj_and_method_calls_of_expr e =
+let rec obj_and_dot_accesses_of_expr e =
   match e.G.e with
   | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
-      let o, xs = obj_and_method_calls_of_expr e in
-      (o, (fld, tok, args) :: xs)
+      let o, xs = obj_and_dot_accesses_of_expr e in
+      (o, (fld, tok, Some args) :: xs)
+  | B.DotAccess (e, tok, fld) ->
+      let o, xs = obj_and_dot_accesses_of_expr e in
+      (o, (fld, tok, None) :: xs)
   | _ -> (e, [])
 
-let rec expr_of_obj_and_method_calls (obj, xs) =
+let rec expr_of_obj_and_dot_accesses (obj, xs) =
   match xs with
   | [] -> obj
-  | (fld, tok, args) :: xs ->
-      let e = expr_of_obj_and_method_calls (obj, xs) in
+  | (fld, tok, Some args) :: xs ->
+      let e = expr_of_obj_and_dot_accesses (obj, xs) in
       B.Call (B.DotAccess (e, tok, fld) |> G.e, args) |> G.e
+  | (fld, tok, None) :: xs ->
+      let e = expr_of_obj_and_dot_accesses (obj, xs) in
+      B.DotAccess (e, tok, fld) |> G.e
 
 let rec all_suffix_of_list xs =
   xs
@@ -302,27 +308,33 @@ let m_resolved_name_kind a b =
   | G.EnumConstant, _
   | G.TypeName, _
   | G.ImportedEntity _, _
-  | G.ImportedModule _, _ ->
+  | G.ImportedModule _, _
+  | G.ResolvedName _, _ ->
       fail ()
 
 let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
   m_sid a2 b2
 
-(* Supports deep expression matching, either when done explicitly (e.g. with deep ellipsis) or implicitly
+(* Supports deep expression matching, either when done explicitly
+ * (e.g. with deep ellipsis) or implicitly.
  *
  * If "go_deeper_expr" is not enabled, reduces to `first_fun a b`.
- * If "go_deeper_expr" is enabled, will first check `first_fun a b`, then, if that match fails, will
- * match against all sub-expressions of b.
+ * If "go_deeper_expr" is enabled, will first run `first_fun a b`, and then
+ * will match against all sub-expressions of b.
  *
  * See m_expr_deep for an example of usage.
  *
  * deep_fun: Matching function to use when matching sub-expressions
- * first_fun: Matching function to use when matching the whole (top-level) expression
+ * first_fun: Matching function to use when matching the whole (top-level)
+ * expression
  * sub_fun: Function to use to extract sub-expressions from b
  * a: Pattern expression
  * b: Target node
  * 't: Type of the target node
+ *
+ * todo? now that we don't use >!> and always explore the subexprs,
+ * we could probably refactor this code to not need so many arguments.
  *)
 let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
@@ -331,14 +343,22 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
     (fun x -> not x.go_deeper_expr)
     ~then_:(first_fun a b)
     ~else_:
-      ( first_fun a b >!> fun () ->
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | x :: xs -> deep_fun a x >||> aux xs
-        in
-        b |> sub_fun |> aux )
+      (* bugfix: this used to be a >!> below, but this does not work! We need
+       * to also explore subexprs, whatever the result of 'first_fun a b'.
+       * Indeed, if the deep pattern was <... $X ...>, $X will always
+       * match (unless it was binded before), but we actually need to
+       * enumerate all possible subexprs and make $X bind to all
+       * possibles subexprs.
+       *)
+      (first_fun a b
+      >||>
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> deep_fun a x >||> aux xs
+      in
+      b |> sub_fun |> aux)
 
 let m_with_symbolic_propagation f b =
   if_config
@@ -355,6 +375,20 @@ let m_with_symbolic_propagation f b =
  * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
+  let try_parents dotted =
+    let parents =
+      match !hook_find_possible_parents with
+      | None -> []
+      | Some f -> f dotted
+    in
+    (* less: use a fold *)
+    let rec aux xs =
+      match xs with
+      | [] -> fail ()
+      | x :: xs -> m_name a x >||> aux xs
+    in
+    aux parents
+  in
   match (a, b) with
   (* equivalence: aliasing (name resolving) part 1 *)
   | ( a,
@@ -366,7 +400,8 @@ let rec m_name a b =
                 contents =
                   Some
                     ( ( B.ImportedEntity dotted
-                      | B.ImportedModule (B.DottedName dotted) ),
+                      | B.ImportedModule (B.DottedName dotted)
+                      | B.ResolvedName dotted ),
                       _sid );
               };
             _;
@@ -374,20 +409,8 @@ let rec m_name a b =
       m_name a (B.Id (idb, B.empty_id_info ()))
       >||> (* try this time a match with the resolved entity *)
       m_name a (H.name_of_ids dotted)
-      >||>
-      (* Try the parents *)
-      let parents =
-        match !hook_find_possible_parents with
-        | None -> []
-        | Some f -> f dotted
-      in
-      (* less: use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x :: xs -> m_name a x >||> aux xs
-      in
-      aux parents
+      >||> (* Try the parents *)
+      try_parents dotted
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -412,7 +435,7 @@ let rec m_name a b =
       let new_qualifier =
         match List.rev dotted with
         | [] -> raise Impossible
-        | _x :: xs -> List.rev xs |> List.map (fun id -> (id, None))
+        | _x :: xs -> List.rev xs |> Common.map (fun id -> (id, None))
       in
       m_name a
         (B.IdQualified
@@ -438,6 +461,25 @@ let rec m_name a b =
           return ())
   (* boilerplate *)
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
+  | ( G.Id _,
+      G.IdQualified
+        {
+          name_info =
+            {
+              B.id_resolved =
+                {
+                  contents =
+                    Some
+                      ( ( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName dotted ),
+                        _sid );
+                };
+              _;
+            };
+          _;
+        } ) ->
+      try_parents dotted
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
@@ -518,9 +560,20 @@ and m_ident_and_empty_id_info a1 b1 =
  *)
 and m_id_info a b =
   match (a, b) with
-  | ( { G.id_resolved = _a1; id_type = _a2; id_svalue = _a3; id_hidden = _a4 },
-      { B.id_resolved = _b1; id_type = _b2; id_svalue = _b3; id_hidden = _b4 } )
-    ->
+  | ( {
+        G.id_resolved = _a1;
+        id_type = _a2;
+        id_svalue = _a3;
+        id_hidden = _a4;
+        id_info_id = _a5;
+      },
+      {
+        B.id_resolved = _b1;
+        id_type = _b2;
+        id_svalue = _b3;
+        id_hidden = _b4;
+        id_info_id = _b5;
+      } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
        * but doing import flask in a source file means every reference
        * to flask.xxx will be tagged with a ImportedEntity, but
@@ -632,7 +685,7 @@ and m_expr a b =
           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
-      let full = (names |> List.map fst) @ [ alabel ] in
+      let full = (names |> Common.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -655,12 +708,11 @@ and m_expr a b =
     when MV.is_metavar_name str ->
       fail ()
   (* metavar: *)
-  (* Matching a generic Id metavariable to an IdSpecial will fail as it is missing the token
-   * info; instead the Id should match Call(IdSpecial _, _)
+  (* Matching a generic Id metavariable to an IdSpecial will fail as it is
+   * missing the token info; instead the Id should match Call(IdSpecial _, _)
    *)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
-  | G.N (G.Id ((str, _), _)), B.IdSpecial (B.New, _)
     when MV.is_metavar_name str ->
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
@@ -673,13 +725,12 @@ and m_expr a b =
       envf (str, tok) (MV.E b)
   (* metavar: typed! *)
   | G.TypedMetavar ((str, tok), _, t), _b when MV.is_metavar_name str ->
-      m_compatible_type (str, tok) t b
+      with_lang (fun lang -> m_compatible_type lang (str, tok) t b)
   (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
   | G.Ellipsis _a1, _ -> return ()
-  | G.DeepEllipsis (_, a1, _), _b ->
-      m_expr_deep a1 b (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
+  | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
@@ -693,7 +744,7 @@ and m_expr a b =
           (with_lang (fun lang ->
                match
                  Constant_propagation.constant_propagation_and_evaluate_literal
-                   ?lang b
+                   ~lang b
                with
                | Some b1 -> m_literal_svalue a1 b1
                | None -> fail ()))
@@ -757,7 +808,10 @@ and m_expr a b =
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
+  | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
+      m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
   | G.Call _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+  | G.New _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -797,14 +851,14 @@ and m_expr a b =
   | ( G.DotAccessEllipsis (a1, _a2),
       (B.DotAccess _ | B.Call ({ e = B.DotAccess _; _ }, _)) ) ->
       (* => o, [m3();m2();m1() *)
-      let obj, ys = obj_and_method_calls_of_expr b in
+      let obj, ys = obj_and_dot_accesses_of_expr b in
       (* the method chain ellipsis can match 0 or more of those method calls *)
       let candidates = all_suffix_of_list ys in
       let rec aux xxs =
         match xxs with
         | [] -> fail ()
         | xs :: xxs ->
-            let b = expr_of_obj_and_method_calls (obj, xs) in
+            let b = expr_of_obj_and_dot_accesses (obj, xs) in
             m_expr a1 b >||> aux xxs
       in
       aux candidates
@@ -856,6 +910,7 @@ and m_expr a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -1035,7 +1090,6 @@ and m_special a b =
   | G.Typeof, B.Typeof -> return ()
   | G.Instanceof, B.Instanceof -> return ()
   | G.Sizeof, B.Sizeof -> return ()
-  | G.New, B.New -> return ()
   | G.Defined, B.Defined -> return ()
   | G.ConcatString a, B.ConcatString b -> m_concat_string_kind a b
   | G.InterpolatedElement, B.InterpolatedElement -> return ()
@@ -1055,7 +1109,6 @@ and m_special a b =
   | G.Typeof, _
   | G.Instanceof, _
   | G.Sizeof, _
-  | G.New, _
   | G.ConcatString _, _
   | G.Spread, _
   | G.Op _, _
@@ -1133,46 +1186,48 @@ and m_container_ordered_elements a b =
  *    which would require to transform the code in the generic_vs_generic
  *    style as typechecking could also bind metavariables in the process
  *)
-and m_compatible_type typed_mvar t e =
-  match (t.G.t, e.G.e) with
-  (* for Python literal checking *)
-  | G.TyExpr { e = G.N (G.Id (("int", _tok), _idinfo)); _ }, B.L (B.Int _) ->
-      envf typed_mvar (MV.E e)
-  | G.TyExpr { e = G.N (G.Id (("float", _tok), _idinfo)); _ }, B.L (B.Float _)
-    ->
-      envf typed_mvar (MV.E e)
-  | G.TyExpr { e = G.N (G.Id (("str", _tok), _idinfo)); _ }, B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
-  (* for C specific literals *)
-  | G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }), B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
-  | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
-  (* for Java and Go literals *)
-  | G.TyN (Id (("int", _), _)), B.L (B.Int _) -> envf typed_mvar (MV.E e)
-  | G.TyN (Id (("float", _), _)), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | G.TyN (Id ((("string" | "String"), _), _)), B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
-  (* for C strings to match metavariable pointer types *)
-  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
-      B.L (B.String _) ) ->
-      m_type_ t
-        (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
-      >>= fun () -> envf typed_mvar (MV.E e)
-  (* for matching ids *)
-  (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-      (* NOTE: Name values must be represented with MV.Id! *)
-      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-      envf typed_mvar (MV.Id (idb, Some id_infob))
-  | _ta, _eb -> (
-      match type_of_expr e with
-      | Some (idb, tb) ->
-          m_type_option_with_hook idb (Some t) tb >>= fun () ->
+and m_compatible_type lang typed_mvar t e =
+  match (Type_generic.builtin_type_of_type lang t, e.G.e) with
+  | Some builtin, B.L lit -> (
+      match (builtin, lit) with
+      | T.TInt, B.Int _
+      | T.TFloat, B.Float _
+      | T.TNumber, (B.Int _ | B.Float _)
+      | T.TBool, B.Bool _
+      | T.TString, B.String _ ->
           envf typed_mvar (MV.E e)
       | _ -> fail ())
+  | _ -> (
+      match (t.G.t, e.G.e) with
+      (* for C specific literals *)
+      | ( G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }),
+          B.L (B.String _) ) ->
+          envf typed_mvar (MV.E e)
+      | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
+      (* for C strings to match metavariable pointer types *)
+      | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
+          B.L (B.String _) ) ->
+          m_type_ t
+            (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t)
+            |> G.t)
+          >>= fun () -> envf typed_mvar (MV.E e)
+      (* for matching ids *)
+      (* this is covered by the basic type propagation done in Naming_AST.ml *)
+      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+          (* NOTE: Name values must be represented with MV.Id! *)
+          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+          envf typed_mvar (MV.Id (idb, Some id_infob))
+      | _ta, _eb -> (
+          match type_of_expr e with
+          | Some (idb, tb) ->
+              m_type_option_with_hook idb (Some t) tb >>= fun () ->
+              envf typed_mvar (MV.E e)
+          | _ -> fail ()))
 
-and type_of_expr e =
+(* returns a type option and an ident that can be used to query LSP *)
+and type_of_expr e : (G.ident * G.type_ option) option =
   match e.B.e with
+  | B.New (tk, t, _) -> Some (("new", tk), Some t)
   (* this is covered by the basic type propagation done in Naming_AST.ml *)
   | B.N
       (B.IdQualified
@@ -1194,6 +1249,7 @@ and type_of_expr e =
       | Some { t = TyFun (_params, tret); _ } -> Some (idb, Some tret)
       | Some _ -> None
       | None -> None)
+  | B.ParenExpr (_, e, _) -> type_of_expr e
   | _ -> None
 
 (*---------------------------------------------------------------------------*)
@@ -1204,7 +1260,7 @@ and m_xml a b =
   | ( { G.xml_kind = a1; xml_attrs = a2; xml_body = a3 },
       { B.xml_kind = b1; xml_attrs = b2; xml_body = b3 } ) ->
       m_xml_kind a1 b1 >>= fun () ->
-      m_attrs a2 b2 >>= fun () -> m_bodies a3 b3
+      m_attrs a2 b2 >>= fun () -> m_xml_bodies a3 b3
 
 and m_xml_kind a b =
   match (a, b) with
@@ -1246,11 +1302,17 @@ and m_attrs a b =
     ~then_:(m_list_in_any_order ~less_is_ok:true m_xml_attr a b)
     ~else_:(m_list_in_any_order ~less_is_ok:has_ellipsis m_xml_attr a b)
 
-and m_bodies a b =
+and m_xml_bodies a b =
   match (a, b) with
   (* dots: *)
   | [ XmlText ("...", _) ], _ -> return ()
-  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_body a1 b1
+  (* dots: metavars:
+   * less: we should be more general and use
+   * m_list_with_dots_and_metavar_ellipsis() at some point
+   *)
+  | [ XmlText (s, tok) ], _ when MV.is_metavar_ellipsis s ->
+      envf (s, tok) (MV.Xmls b)
+  | [ (XmlText _ as a1) ], [ (XmlText _ as b1) ] -> m_xml_body a1 b1
   (* TODO: handle metavar matching a complex Xml elt or even list of elts *)
   | [ XmlText (s, _) ], [ _b ] when MV.is_metavar_name s -> fail ()
   (* TODO: should we impose $...X here to match a list of children? *)
@@ -1261,7 +1323,7 @@ and m_list__m_body a b =
   match a with
   (* less-is-ok: it's ok to have an empty body in the pattern *)
   | [] -> return ()
-  | _ -> m_list m_body a b
+  | _ -> m_list m_xml_body a b
 
 and m_xml_attr a b =
   match (a, b) with
@@ -1280,7 +1342,7 @@ and m_xml_attr_value a b =
   (* less: deep? *)
   m_expr a b
 
-and m_body a b =
+and m_xml_body a b =
   match (a, b) with
   (* dots: the "..." is actually intercepted now in m_bodies *)
   | G.XmlText a1, B.XmlText b1 ->
@@ -1360,7 +1422,8 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with Not_found -> fail ())
+        with
+        | Not_found -> fail ())
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_argument xa xb >>= fun () -> m_list__m_argument aas bbs
@@ -1394,11 +1457,15 @@ and m_arguments_concat a b =
       m_arguments_concat (G.Arg (G.L (G.String ("...", a)) |> G.e) :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs -> (
-      (* exception: for concat strings, don't have ellipsis match   *)
+      (* exception: for concat strings, don't have ellipsis/metavars match   *)
       (* string literals since string literals are implicitly not   *)
-      (* interpolated, and ellipsis implicitly is                   *)
+      (* interpolated, and ellipsis/metavars implicitly are                  *)
       match (xa, xb) with
       | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
+          fail ()
+      | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
+          G.Arg { e = G.L (G.String _); _ } )
+        when MV.is_metavar_name s ->
           fail ()
       | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _
@@ -1619,8 +1686,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
           in
           let tout =
             m_list__m_argument
-              (List.map G.arg avars_dots)
-              (List.map B.arg bs') tin
+              (Common.map G.arg avars_dots)
+              (Common.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten
@@ -1645,8 +1712,12 @@ and m_type_ a b =
   | G.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyTuple a1, B.TyTuple b1 ->
-      (*TODO: m_list__m_type_ ? *)
-      (m_bracket (m_list m_type_)) a1 b1
+      let partial_m_list_with_dots =
+        m_list_with_dots m_type_ (function
+          | { t = G.TyEllipsis _; _ } -> true
+          | _ -> false)
+      in
+      (m_bracket (partial_m_list_with_dots ~less_is_ok:false)) a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
@@ -1741,7 +1812,6 @@ and m_attribute a b =
       fail ()
 
 and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
-
 and m_other_attribute_operator = m_other_xxx
 
 (*****************************************************************************)
@@ -2214,7 +2284,6 @@ and m_case a b =
       fail ()
 
 and m_other_stmt_operator = m_other_xxx
-
 and m_other_stmt_with_stmt_operator = m_other_xxx
 
 (*****************************************************************************)
@@ -2231,7 +2300,8 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with H.NotAnExpr -> envf (str, tok) (MV.P b2))
+      with
+      | H.NotAnExpr -> envf (str, tok) (MV.P b2))
   (* dots: *)
   | G.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2489,7 +2559,7 @@ and m_parameter_classic a b =
       { B.pname = Some b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 }
     ) ->
       m_ident_and_id_info (a1, a5) (b1, b5) >>= fun () ->
-      (m_option m_expr) a2 b2 >>= fun () ->
+      (m_option_none_can_match_some m_expr) a2 b2 >>= fun () ->
       (m_type_option_with_hook b1) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (* boilerplate *)
@@ -2592,7 +2662,8 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
-      with Not_found -> fail ())
+      with
+      | Not_found -> fail ())
   (* the general case *)
   (* This applies to definitions where the field name is a metavariable,
    * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
@@ -2701,20 +2772,12 @@ and m_class_parent a b =
                            fun () ->
   match (a, b) with
   (* less: this could be generalized, but let's go simple first *)
-  | ( (a1, None),
-      ( {
-          t =
-            B.TyN
-              (B.Id
-                ( _id,
-                  {
-                    id_resolved =
-                      { contents = Some (B.ImportedEntity xs, _sid) };
-                    _;
-                  } ));
-          _;
-        },
-        None ) ) ->
+  | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
+      let xs =
+        match !id_resolved with
+        | Some (B.ImportedEntity xs, _sid) -> xs
+        | _ -> [ id ]
+      in
       (* deep: *)
       let candidates =
         match !hook_find_possible_parents with
@@ -2938,6 +3001,7 @@ and m_any a b =
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
   | G.Args a1, B.Args b1 -> m_list m_argument a1 b1
   | G.Params a1, B.Params b1 -> m_list m_parameter a1 b1
+  | G.Xmls a1, B.Xmls b1 -> m_list m_xml_body a1 b1
   | G.Anys a1, B.Anys b1 -> m_list m_any a1 b1
   (* boilerplate *)
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
@@ -2992,6 +3056,7 @@ and m_any a b =
   | G.Partial _, _
   | G.Args _, _
   | G.Params _, _
+  | G.Xmls _, _
   | G.ForOrIfComp _, _
   | G.Anys _, _
   | G.Str _, _ ->

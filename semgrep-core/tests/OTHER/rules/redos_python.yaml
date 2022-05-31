@@ -1,0 +1,18 @@
+rules:
+  - id: redos-python
+    patterns:
+      - pattern: re.match($PAT, ...)
+      - metavariable-analysis:
+          analyzer: redos
+          metavariable: $PAT
+    message: |
+      Found a regex potentially vulnerable to regex denial-of-service
+      attacks (ReDoS). Consider the use of possessive quantifiers to
+      disable backtracking where it isn't necessary e.g. instead of '[a-z]*',
+      write '[a-z]*+'.
+    metadata:
+      references:
+        - https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS
+    languages:
+      - python
+    severity: ERROR

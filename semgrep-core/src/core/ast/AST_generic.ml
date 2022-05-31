@@ -62,6 +62,9 @@
  *    because this is not always possible (e.g., a,b=foo()) and people may
  *    want to explicitely match tuples assignments (we do some magic in
  *    Generic_vs_generic though to let 'a=1' matches also 'a,b=1,2').
+ *  - multiple entity imports in one declaration (e.g., from foo import {a,b})
+ *    are expanded in multiple individual imports
+ *    (in the example, from foo import a; from foo import b).
  *  - multiple ways to define a function are converted all to a
  *    'function_definition' (e.g., Javascript arrows are converted in that)
  *    update: but we now have a more precise function_body type
@@ -100,7 +103,7 @@
  *  - Facebook Infer SIL (for C++, Java, Objective-C)
  *  - Dawson Engler and Fraser Brown micro-checkers for multiple languages
  *  - Comby common representation by Rijnard,
- *    see "Lightweight Multi-language syntax transformation", but does not
+ *    see "Lightweight Multi-language syntax transformation", but it does not
  *    really operate on an AST
  *  - https://tabnine.com/ which supports multiple languages, but probably
  *    again does not operate on an AST
@@ -169,9 +172,7 @@ type tok = Parse_info.t [@@deriving show]
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
  *)
 let equal_tok _t1 _t2 = true
-
 let hash_tok _t = 0
-
 let hash_fold_tok acc _t = acc
 
 (* a shortcut to annotate some information with position information *)
@@ -242,7 +243,6 @@ type module_name =
  *)
 (* a single unique gensym'ed number. See gensym() below *)
 type sid = int
-
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -280,6 +280,7 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
+  | ResolvedName of dotted_ident (* for deep semgrep *)
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -372,7 +373,11 @@ and id_info = {
      exist in the source of the target.
   *)
   id_hidden : bool;
+  (* this is used by Naming_X in deep-semgrep *)
+  id_info_id : id_info_id; [@equal fun _a _b -> true]
 }
+
+and id_info_id = int
 
 (*****************************************************************************)
 (* Expression *)
@@ -422,17 +427,26 @@ and expr_kind =
    * how user think.
    *)
   | Constructor of name * expr list bracket
-  (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
+  (* see also New(...) for other values *)
   | N of name
-  | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
+  | IdSpecial of
+      special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
   | Call of expr * arguments
+  (* 'type_' below is usually a TyN or TyArray (or TyExpr).
+   * Note that certain languages do not have a 'new' keyword
+   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
+   * old: this is used to be an IdSpecial used in conjunction with
+   * Call ([ArgType _; ...]) but better to be more precise here as
+   * New is really important for typing (and other program analysis).
+   * note: see also AnonClass which is also a New.
+   *)
+  | New of tok (* 'new' (can be fake) *) * type_ * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
   (* IntepolatedString of expr list is simulated with a
    * Call(IdSpecial (Concat ...)) *)
-
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
    * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.
@@ -469,8 +483,10 @@ and expr_kind =
         bracket
   (* very special value. 'fbody' is usually an FExpr. *)
   | Lambda of function_definition
-  (* also a special value. Usually an argument of a New
-   * (used in Java, Javascript, etc.) *)
+  (* also a special value; usually an argument of a New
+   * (used in Java/Javascript/Scala/...)
+   * TODO: rename as NewAnonClass and add the token for 'new'
+   *)
   | AnonClass of class_definition
   (* a.k.a ternary expression. Note that even in languages like OCaml
    * where 'if's are expressions, we still prefer to use the stmt 'If'
@@ -537,7 +553,21 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap (* TODO? bracket, ', ", or even """ *)
+  (* String literals:
+     The token includes the quotes (if any) but the string value excludes them.
+     The value is the escaped string content. For example,
+     The escaped content of the Python string literal '\\(\\)' is \\(\\).
+     The unescaped content would be \(\).
+     TODO: use bracket instead of wrap, ', ", or even """
+     TODO: expose the unescaped contents if known, so that we could analyze
+     string contents correctly.
+     An incremental change could be:
+
+     | String of (string * string option) bracket
+                  ^^^^^^   ^^^^^^
+                  escaped  unescaped
+  *)
+  | String of string wrap
   | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
@@ -624,11 +654,6 @@ and special =
   | Instanceof
   | Sizeof (* takes a ArgType *)
   | Defined (* defined? in Ruby, other? *)
-  (* Note that certain languages do not have a 'new' keyword
-   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
-   * Note that 'new' by itself is not a valid expression
-   *)
-  | New (* usually associated with Call(New, [ArgType _;...]) *)
   (* used for interpolated strings constructs
    * TODO: move out of 'special' and make special construct InterpolatedConcat
    * in 'expr' instead of abusing Call for that? that way can also
@@ -656,8 +681,9 @@ and special =
   (* Similar to Spread, but for a var containing a hashtbl.
    * The corresponding constructor in a parameter context is ParamHashSplat.
    *)
-  | HashSplat (* **x in Python/Ruby
-               * (not to confused with Pow below which is a Binary op *)
+  | HashSplat
+    (* **x in Python/Ruby
+     * (not to confused with Pow below which is a Binary op *)
   | ForOf (* Javascript, for generators, used in ForEach *)
   (* used for unary and binary operations
    * TODO: move out of special too, in separate OpCall? (where can also
@@ -741,7 +767,6 @@ and operator =
 
 (* '++', '--' *)
 and incr_decr = Incr | Decr
-
 and prefix_postfix = Prefix | Postfix
 
 and concat_string_kind =
@@ -799,7 +824,7 @@ and xml_attribute =
 and a_xml_attr_value = expr
 
 and xml_body =
-  (* sgrep-ext: can contain "..." *)
+  (* sgrep-ext: can contain "...". The string can also contain multiple lines *)
   | XmlText of string wrap
   (* this can be None when people abuse {} to put comments in it *)
   | XmlExpr of expr option bracket
@@ -985,7 +1010,6 @@ and catch_exn =
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt
-
 and label = ident
 
 and label_ident =
@@ -999,10 +1023,14 @@ and label_ident =
 and for_header =
   (* todo? copy Go and have 'of simple option * expr * simple option'? *)
   | ForClassic of
-      for_var_or_expr list (* init *) * expr option (* cond *) * expr option (* next *)
+      for_var_or_expr list (* init *)
+      * expr option (* cond *)
+      * expr option (* next *)
   (* newvar: *)
   | ForEach of
-      pattern * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *) * expr (* pattern 'in' expr *)
+      pattern
+      * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *)
+      * expr (* pattern 'in' expr *)
   (* Lua. todo: merge with ForEach? *)
   (* pattern 'in' expr *)
   | ForIn of for_var_or_expr list (* init *) * expr list
@@ -1048,7 +1076,8 @@ and other_stmt_operator =
   | OS_TryOrElse
   | OS_ThrowFrom
   | OS_ThrowNothing
-  | OS_ThrowArgsLocation (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
+  | OS_ThrowArgsLocation
+    (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
   | OS_Pass
   | OS_Async
   (* C/C++ *)
@@ -1131,7 +1160,7 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
-   * TODO: could merge with TyN when name has proper qualifiers?
+   * TODO: could merge with TyN now that qualified_info has type_arguments
    *)
   | TyApply of type_ * type_arguments
   (* old: was 'TyFun of type_ list * type*' , but languages such as C and
@@ -1358,7 +1387,7 @@ and type_parameter =
   (* sgrep-ext: *)
   | TParamEllipsis of tok
   (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
-   * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
+   * regular Param in C++/Go, AnonTypeParam/TPRest/TPNested in C++
    *)
   | OtherTypeParam of todo_kind * any list
 
@@ -1647,7 +1676,10 @@ and directive = {
 and directive_kind =
   (* newvar: *)
   | ImportFrom of
-      tok (* 'import'/'from' for Python *) * module_name * ident * alias option (* as name alias *)
+      tok (* 'import'/'from' for Python *)
+      * module_name
+      * ident
+      * alias option (* as name alias *)
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ #include and C++ 'using namespace'.
@@ -1685,7 +1717,6 @@ and alias = ident * id_info
  * TODO? make it an alias to stmt_or_def_or_dir instead?
  *)
 and item = stmt
-
 and program = item list
 
 (*****************************************************************************)
@@ -1726,6 +1757,7 @@ and any =
   | Flds of field list
   | Args of argument list
   | Params of parameter list
+  | Xmls of xml_body list
   | Partial of partial
   (* misc *)
   | I of ident
@@ -1790,7 +1822,6 @@ let error tok msg = raise (Error (msg, tok))
  * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
  *)
 let fake s = Parse_info.unsafe_fake_info s
-
 let fake_bracket x = (fake "(", x, fake ")")
 
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
@@ -1836,9 +1867,18 @@ let p x = x
 (* Ident and names *)
 (* ------------------------------------------------------------------------- *)
 
+(* For Naming_X.ml in deep-semgrep.
+ * This can be reseted to 0 before parsing each file, or not. It does
+ * not matter as the couple (filename, id_info_id) is unique.
+ *)
+let id_info_id_counter = ref 0
+
+let id_info_id () : id_info_id =
+  incr id_info_id_counter;
+  !id_info_id_counter
+
 (* before Naming_AST.resolve can do its job *)
 let sid_TODO = -1
-
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info ?(hidden = false) () =
@@ -1847,6 +1887,7 @@ let empty_id_info ?(hidden = false) () =
     id_type = ref None;
     id_svalue = ref None;
     id_hidden = hidden;
+    id_info_id = id_info_id ();
   }
 
 let basic_id_info ?(hidden = false) resolved =
@@ -1855,6 +1896,7 @@ let basic_id_info ?(hidden = false) resolved =
     id_type = ref None;
     id_svalue = ref None;
     id_hidden = hidden;
+    id_info_id = id_info_id ();
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
@@ -1879,7 +1921,7 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, fake_bracket (es |> List.map arg)) |> e
+  Call (IdSpecial spec |> e, fake_bracket (es |> Common.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
@@ -1896,13 +1938,13 @@ let interpolated (lquote, xs, rquote) =
         ( special,
           ( lquote,
             xs
-            |> List.map (function
+            |> Common.map (function
                  | Common.Left3 str -> Arg (L (String str) |> e)
                  | Common.Right3 (lbrace, eopt, rbrace) ->
                      let special =
                        IdSpecial (InterpolatedElement, lbrace) |> e
                      in
-                     let args = eopt |> Option.to_list |> List.map arg in
+                     let args = eopt |> Option.to_list |> Common.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
                  | Common.Middle3 e -> Arg e),
             rquote ) )
@@ -1964,7 +2006,6 @@ let emptystmt t = s (Block (t, [], t))
  * pattern_to_expr, etc.
  *)
 let stmt_to_expr st = e (StmtExpr st)
-
 let empty_body = fake_bracket []
 
 let stmt1 xs =

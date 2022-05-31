@@ -9,7 +9,7 @@ print("Coverage statistics for files under semgrep-core/matching/")
 
 def report_summary_stat() -> str:
     stat = os.popen("bisect-ppx-report summary").read()
-    patt = re.compile("Coverage:\s+\d+/\d+\s+\((\d+\.\d*)%\)")
+    patt = re.compile(r"Coverage:\s+\d+/\d+\s+\((\d+\.\d*)%\)")
     # mobj = patt.match("Coverage: 4/4 (4.4%)")
     mobj = patt.match(stat)
     if mobj is not None:
@@ -19,7 +19,7 @@ def report_summary_stat() -> str:
 
 def report_summary_for_file_stat(file: str) -> str:
     stat = os.popen("bisect-ppx-report summary --per-file").readlines()
-    patt = re.compile(f"\s*(\d+.\d*)\s+%\s+\d+/\d+\s+{file}")
+    patt = re.compile(rf"\s*(\d+.\d*)\s+%\s+\d+/\d+\s+{file}")
     for line in stat:
         mobj = patt.match(line)
         if mobj is not None:

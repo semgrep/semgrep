@@ -14,7 +14,13 @@
 
    semgrep_core
    semgrep_matching
-   semgrep_parsing semgrep_reporting ; for Test_rule.ml
+   semgrep_tainting
+   ; the engine used to not depend on the language-specific parsers
+   ; (only the test code used semgrep_parsing), but with metavariable-pattern
+   ; we now call Parse_target from Match_search_rules (we actually also
+   ; call Parse_pattern from Eval_generic)
+   semgrep_parsing
+   semgrep_reporting
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

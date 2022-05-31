@@ -1,10 +1,10 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 
-from attrs import frozen
 
 KNOWN_HASH_ALGORITHMS: Set[str] = {
     "sha256",
@@ -15,7 +15,7 @@ KNOWN_HASH_ALGORITHMS: Set[str] = {
 }
 
 
-class PackageManagers(Enum):
+class PackageManagers(str, Enum):
     NPM = "npm"
     PYPI = "pypi"
     GEM = "gem"
@@ -24,7 +24,7 @@ class PackageManagers(Enum):
     MAVEN = "maven"
 
 
-@frozen(eq=True, order=True)
+@dataclass(eq=True, order=True, frozen=True)
 class LockfileDependency:
     name: str
     version: str
@@ -39,3 +39,13 @@ class LockfileDependency:
             assert (
                 k in KNOWN_HASH_ALGORITHMS
             ), f"unknown hash type {k} not in {KNOWN_HASH_ALGORITHMS}"
+
+
+NAMESPACE_TO_LOCKFILES = {
+    PackageManagers.PYPI: ["Pipfile.lock"],
+    PackageManagers.NPM: ["package-lock.json", "yarn.lock"],
+    PackageManagers.GEM: ["Gemfile.lock"],
+    PackageManagers.GOMOD: ["go.sum"],
+    PackageManagers.CARGO: ["cargo.lock"],
+    PackageManagers.MAVEN: ["pom.xml"],
+}

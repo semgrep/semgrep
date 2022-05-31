@@ -1,0 +1,11 @@
+rules:
+  - id: unencrypted-ebs-volume
+    languages:
+      - hcl
+    message: >-
+      An EBS volume is configured without encryption enabled.
+    patterns:
+      - pattern: resource
+      - pattern-inside: |
+          resource "aws_ebs_volume" "..." {...}
+    severity: WARNING

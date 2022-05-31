@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "id": "x",
+      "message": "",
+      "languages": ["python"],
+      "severity": "WARNING",
+      "pattern": "\"hello \uD83D\uDE03 \u2665\""
+    }
+  ]
+}

@@ -6,7 +6,8 @@
 open Pfff_lang_regexp
 
 let parse_regexp conf re_str =
-  try Some (Parse.string ~conf re_str) with Parse_info.Parsing_error _ -> None
+  try Some (Parse.string ~conf re_str) with
+  | Parse_info.Parsing_error _ -> None
 
 (* Iterate over all the nodes of a regexp *)
 let rec iter f (x : AST.t) =
@@ -175,39 +176,6 @@ let find_vulnerable_nodes =
              (matches_deep matches_in_two_nonempty_branches)))
        matches_not_everywhere)
 
-(*
-   Assume:
-   \\ -> \
-   \' -> '
-   \" -> "
-*)
-let unescape =
-  let rex = SPcre.regexp "\\\\[\\\\'\"]" in
-  fun s ->
-    Pcre.substitute ~rex
-      ~subst:(fun s ->
-        assert (String.length s = 2);
-        String.sub s 1 1)
-      s
-
-(*
-   HACK!
-   Remove the quotes from string literals because string literals are
-   what we're getting. The generic AST should offer a view into
-   string content rather than the original quoted and escaped literals.
-*)
-let unquote s =
-  let len = String.length s in
-  if len < 2 then s
-  else
-    let first = s.[0] in
-    let last = s.[len - 1] in
-    match (first, last) with
-    | '\'', '\''
-    | '"', '"' ->
-        String.sub s 1 (len - 2) |> unescape
-    | _ -> s
-
 (* Take the requested substring if possible, otherwise return the original
    string. *)
 let safe_sub s pos sublen =
@@ -227,7 +195,6 @@ let recover_source re_str node =
   safe_sub re_str first_tok_pos len
 
 let find_vulnerable_subpatterns ?(dialect = Dialect.PCRE) re_str =
-  let re_str = (* TODO: take an already unquoted string *) unquote re_str in
   let conf = Dialect.conf dialect in
   match parse_regexp conf re_str with
   | None -> Error ()

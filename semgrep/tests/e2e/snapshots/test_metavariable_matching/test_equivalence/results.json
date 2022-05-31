@@ -25,6 +25,7 @@
         "offset": 96
       },
       "extra": {
+        "fingerprint": "dce9654204375612ebde83d55c295f4a",
         "is_ignored": false,
         "lines": "    open(path)",
         "message": "Unsafe open from request data",
@@ -36,6 +37,19 @@
               "col": 14,
               "line": 4,
               "offset": 95
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "request.get(\"unsafe\")",
+              "svalue_end": {
+                "col": 33,
+                "line": 3,
+                "offset": 81
+              },
+              "svalue_start": {
+                "col": 12,
+                "line": 3,
+                "offset": 60
+              }
             },
             "start": {
               "col": 10,
@@ -65,6 +79,7 @@
         "offset": 262
       },
       "extra": {
+        "fingerprint": "2dc27f71ab5cf9450fcbd204f1e71640",
         "is_ignored": false,
         "lines": "    open(z)",
         "message": "Unsafe open from request data",
@@ -97,5 +112,6 @@
         "offset": 255
       }
     }
-  ]
+  ],
+  "version": "0.42"
 }

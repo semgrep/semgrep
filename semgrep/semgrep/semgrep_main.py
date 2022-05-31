@@ -13,6 +13,9 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+from boltons.iterutils import partition
+
+from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
@@ -26,7 +29,6 @@ from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.ignores import Parser
-from semgrep.metric_manager import metric_manager
 from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
@@ -35,40 +37,16 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule_match_map import RuleMatchMap
+from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import JOIN_MODE
-from semgrep.target_manager import IgnoreLog
+from semgrep.state import get_state
+from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
-from semgrep.util import partition
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
-
-
-def notify_user_of_work(
-    filtered_rules: Sequence[Rule],
-    include: Sequence[str],
-    exclude: Sequence[str],
-) -> None:
-    """
-    Notify user of what semgrep is about to do, including:
-    - number of rules
-    - which rules? <- not yet, too cluttered
-    - which dirs are excluded, etc.
-    """
-    if include:
-        logger.info(f"including files:")
-        for inc in include:
-            logger.info(f"- {inc}")
-    if exclude:
-        logger.info(f"excluding files:")
-        for exc in exclude:
-            logger.info(f"- {exc}")
-    logger.info(f"Running {len(filtered_rules)} rules...")
-    logger.verbose("rules:")
-    for ruleid in sorted([rule.id for rule in filtered_rules]):
-        logger.verbose(f"- {ruleid}")
 
 
 def get_file_ignore() -> FileIgnore:
@@ -92,7 +70,7 @@ def get_file_ignore() -> FileIgnore:
             logger.verbose("using path ignore rules from user provided .semgrepignore")
 
     with semgrepignore_path.open() as f:
-        file_ignore = FileIgnore(
+        file_ignore = FileIgnore.from_unprocessed_patterns(
             base_path=workdir,
             patterns=Parser(workdir).parse(f),
         )
@@ -113,10 +91,11 @@ def invoke_semgrep(
     if output_settings is None:
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
 
-    io_capture = StringIO()
+    StringIO()
     output_handler = OutputHandler(output_settings)
     (
         filtered_matches_by_rule,
+        _,
         _,
         _,
         filtered_rules,
@@ -152,12 +131,14 @@ def run_rules(
     deep: bool,
 ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
     join_rules, rest_of_the_rules = partition(
-        lambda rule: rule.mode == JOIN_MODE,
-        filtered_rules,
+        filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
     dependency_aware_rules = [
         r for r in rest_of_the_rules if r.project_depends_on is not None
     ]
+    dependency_only_rules, rest_of_the_rules = partition(
+        rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
+    )
     filtered_rules = rest_of_the_rules
 
     (
@@ -181,16 +162,24 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     if len(dependency_aware_rules) > 0:
-        import semgrep.dependency_aware_rule as dep_aware_rule
+        from semgrep.dependency_aware_rule import run_dependency_aware_rule
+        from dependencyparser.find_lockfiles import make_dependency_trie
+
+        targets = [t.path for t in target_manager.targets]
+        top_level_target_rooted = list(targets[0].parents)
+        top_level_target: Path = (
+            targets[0]
+            if len(top_level_target_rooted) == 0
+            else top_level_target_rooted[-1]
+        )
+        namespaces = [ns for r in dependency_aware_rules for ns in r.namespaces]
+        dep_trie = make_dependency_trie(top_level_target, namespaces, target_manager)
 
         for rule in dependency_aware_rules:
-            (
-                dep_rule_matches,
-                dep_rule_errors,
-            ) = dep_aware_rule.run_dependency_aware_rule(
+            (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
                 rule_matches_by_rule.get(rule, []),
                 rule,
-                [t.path for t in target_manager.targets],
+                dep_trie,
             )
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -214,40 +203,24 @@ def remove_matches_in_baseline(
 
     num_removed = 0
 
-    for rule in head_matches_by_rule:
-        kept_matches = []
+    for rule, matches in head_matches_by_rule.items():
+        baseline_matches = {
+            match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
+        }
+        kept_matches_by_rule[rule] = [
+            match for match in matches if match.ci_unique_key not in baseline_matches
+        ]
+        num_removed += len(matches) - len(kept_matches_by_rule[rule])
 
-        head_matches = head_matches_by_rule[rule]
-
-        # Copy so we can destructively modify
-        baseline_matches = list(baseline_matches_by_rule.get(rule, []))
-
-        # Note we cannot convert to sets and do set subtraction because
-        # the way we consider equality in head vs baseline cannot be used to
-        # assert that two matches in head are equal (finding can appear in head
-        # more than once with the same syntatic id). We also cannot simply
-        # remove elements in head_matches that appear in baseline_matches
-        # because the above non-uniqueness of id means we need to remove
-        # a match 1:1 (i.e. if match with id X appears 3 times in head but
-        # 2 times in baseline) this function needs to return an object with one
-        # match with id X.
-        for head_match in head_matches:
-            for idx in range(len(baseline_matches)):
-                if head_match.is_baseline_equivalent(baseline_matches[idx]):
-                    baseline_matches.pop(idx)
-                    num_removed += 1
-                    break
-            else:
-                kept_matches.append(head_match)
-
-        kept_matches_by_rule[rule] = kept_matches
-
-    logger.verbose(f"Removed {num_removed} matches that were in baseline scan")
+    logger.verbose(
+        f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
+    )
     return kept_matches_by_rule
 
 
 def main(
     *,
+    core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     deep: bool = False,
     output_handler: OutputHandler,
@@ -275,13 +248,15 @@ def main(
     baseline_commit: Optional[str] = None,
 ) -> Tuple[
     RuleMatchMap,
+    List[SemgrepError],
     Set[Path],
-    IgnoreLog,
+    FileTargetingLog,
     List[Rule],
     ProfileManager,
     ProfilingData,
     Collection[RuleSeverity],
 ]:
+    logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
         include = []
 
@@ -309,22 +284,21 @@ def main(
 
     if config_errors and strict:
         raise SemgrepError(
-            f"run with --strict and there were {len(config_errors)} errors loading configs",
+            f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
     if not pattern:
-        plural = "s" if len(configs_obj.valid) > 1 else ""
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
         )
         invalid_msg = (
-            f"({len(config_errors)} config files were invalid)"
+            f"({unit_str(len(config_errors), 'invalid config file')})"
             if len(config_errors)
             else ""
         )
         logger.verbose(
-            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
+            f"running {len(filtered_rules)} rules from {unit_str(len(configs_obj.valid), 'config')} {config_id_if_single} {invalid_msg}".strip()
         )
         if len(config_errors) > 0:
             raise SemgrepError(
@@ -337,8 +311,6 @@ def main(
 """,
                 code=MISSING_CONFIG_EXIT_CODE,
             )
-
-        notify_user_of_work(filtered_rules, include, exclude)
 
     # Initialize baseline here to fail early on bad args
     baseline_handler = None
@@ -371,7 +343,12 @@ def main(
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
+        core_opts_str=core_opts_str,
     )
+
+    logger.verbose("Rules:")
+    for ruleid in sorted(rule.id for rule in filtered_rules):
+        logger.verbose(f"- {ruleid}")
 
     rule_matches_by_rule, semgrep_errors, all_targets, profiling_data = run_rules(
         filtered_rules,
@@ -385,49 +362,63 @@ def main(
     output_handler.handle_semgrep_errors(semgrep_errors)
 
     paths_with_matches = list(
-        {
-            str(match.path)
-            for matches in rule_matches_by_rule.values()
-            for match in matches
-        }
+        {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
+    findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
 
     # Run baseline if needed
     if baseline_handler:
-        logger.info(f"Running baseline scan with base set to: {baseline_commit}")
-        try:
-            with baseline_handler.baseline_context():
-                # Need to reinstantiate target_manager since
-                # filesystem has changed
-                baseline_target_manager = TargetManager(
-                    includes=paths_with_matches,  # only the paths that had a match
-                    excludes=exclude,
-                    max_target_bytes=max_target_bytes,
-                    target_strings=target,
-                    respect_git_ignore=respect_git_ignore,
-                    allow_unknown_extensions=not skip_unknown_extensions,
-                    file_ignore=get_file_ignore(),
-                )
+        logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
+        logger.info("")
+        if not paths_with_matches:
+            logger.info(
+                "Skipping baseline scan, because there are no current findings."
+            )
+        elif not (set(paths_with_matches) - set(baseline_handler.status.added)):
+            logger.info(
+                "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
+            )
+        else:
+            logger.info(f"Switching repository to baseline commit '{baseline_commit}'.")
+            baseline_handler.print_git_log()
+            logger.info("")
+            try:
+                with baseline_handler.baseline_context():
+                    baseline_target_manager = TargetManager(
+                        # only include the paths that had a match
+                        includes=[str(path) for path in paths_with_matches],
+                        excludes=exclude,
+                        max_target_bytes=max_target_bytes,
+                        target_strings=target,
+                        respect_git_ignore=respect_git_ignore,
+                        allow_unknown_extensions=not skip_unknown_extensions,
+                        file_ignore=get_file_ignore(),
+                    )
 
-                (
-                    baseline_rule_matches_by_rule,
-                    baseline_semgrep_errors,
-                    baseline_targets,
-                    baseline_profiling_data,
-                ) = run_rules(
-                    list(rule_matches_by_rule),  # only the rules that had a match
-                    baseline_target_manager,
-                    core_runner,
-                    output_handler,
-                    dump_command_for_core,
-                    deep,
-                )
-                rule_matches_by_rule = remove_matches_in_baseline(
-                    rule_matches_by_rule, baseline_rule_matches_by_rule
-                )
-                output_handler.handle_semgrep_errors(baseline_semgrep_errors)
-        except Exception as e:
-            raise SemgrepError(e)
+                    (
+                        baseline_rule_matches_by_rule,
+                        baseline_semgrep_errors,
+                        baseline_targets,
+                        baseline_profiling_data,
+                    ) = run_rules(
+                        # only the rules that had a match
+                        [
+                            rule
+                            for rule, matches in rule_matches_by_rule.items()
+                            if matches
+                        ],
+                        baseline_target_manager,
+                        core_runner,
+                        output_handler,
+                        dump_command_for_core,
+                        deep,
+                    )
+                    rule_matches_by_rule = remove_matches_in_baseline(
+                        rule_matches_by_rule, baseline_rule_matches_by_rule
+                    )
+                    output_handler.handle_semgrep_errors(baseline_semgrep_errors)
+            except Exception as e:
+                raise SemgrepError(e)
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
@@ -441,30 +432,31 @@ def main(
 
     num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
     profiler.save("total_time", rule_start_time)
-    if metric_manager.is_enabled():
+
+    metrics = get_state().metrics
+    if metrics.is_enabled():
         error_types = list(e.semgrep_error_type() for e in semgrep_errors)
 
-        metric_manager.set_project_hash(project_url)
-        metric_manager.set_configs_hash(configs)
-        metric_manager.set_rules_hash(filtered_rules)
-        metric_manager.set_num_rules(len(filtered_rules))
-        metric_manager.set_num_targets(len(all_targets))
-        metric_manager.set_num_findings(num_findings)
-        metric_manager.set_num_ignored(num_ignored_by_nosem)
-        metric_manager.set_profiling_times(profiler.dump_stats())
+        metrics.set_project_hash(project_url)
+        metrics.set_configs_hash(configs)
+        metrics.set_rules_hash(filtered_rules)
+        metrics.set_num_rules(len(filtered_rules))
+        metrics.set_num_targets(len(all_targets))
+        metrics.set_num_findings(num_findings)
+        metrics.set_num_ignored(num_ignored_by_nosem)
+        metrics.set_profiling_times(profiler.dump_stats())
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
-        metric_manager.set_total_bytes_scanned(total_bytes_scanned)
-        metric_manager.set_errors(error_types)
-        metric_manager.set_rules_with_findings(filtered_matches_by_rule)
-        metric_manager.set_run_timings(
-            profiling_data, list(all_targets), filtered_rules
-        )
+        metrics.set_total_bytes_scanned(total_bytes_scanned)
+        metrics.set_errors(error_types)
+        metrics.set_rules_with_findings(filtered_matches_by_rule)
+        metrics.set_run_timings(profiling_data, list(all_targets), filtered_rules)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule, dryrun)
 
     return (
         filtered_matches_by_rule,
+        semgrep_errors,
         all_targets,
         target_manager.ignore_log,
         filtered_rules,

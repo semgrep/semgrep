@@ -13,7 +13,6 @@ let debug_matching = ref false
  * parser if pfff fails. Here you can force to only use tree-sitter.
  *)
 let tree_sitter_only = ref false
-
 let pfff_only = ref false
 
 (* optimization flags *)

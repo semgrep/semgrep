@@ -53,7 +53,7 @@ class Settings:
     @staticmethod
     def get_path_to_settings() -> Path:
         """
-        Uses ~/.semgrep/settings.yaml unless SEMGREP_SETTINGS_FILE is set
+        Uses {$XDG_CONFIG_HOME/semgrep || ~/.semgrep}/settings.yaml unless SEMGREP_SETTINGS_FILE is set
         """
         if SEMGREP_SETTINGS_FILE:
             return Path(SEMGREP_SETTINGS_FILE)

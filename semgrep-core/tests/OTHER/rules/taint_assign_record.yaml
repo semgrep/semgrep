@@ -1,0 +1,23 @@
+rules:
+  - id: test
+    message: A database response value potentially containing user-input has been
+      inserted into a $PUG template and then compiled/rendered, this can lead to
+      a Server Side Template Injection (SSTI) vulnerability.
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    mode: taint
+    pattern-sinks:
+    - patterns:
+        - pattern-inside: |
+            $PUG = require('pug')
+            ...
+        - pattern-either:
+            - pattern: $PUG.compile(...)
+    pattern-sources:
+      - patterns:
+        - pattern-inside: |
+            $DBQUERY.findByPk(...)
+            ...
+        - pattern: $USER.dataValues

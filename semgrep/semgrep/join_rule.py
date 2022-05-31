@@ -16,10 +16,12 @@ from typing import Type
 
 import peewee as pw
 from attrs import define
+from boltons.iterutils import partition
 from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
 
+import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
@@ -30,9 +32,7 @@ from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
-from semgrep.util import partition
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__file__)
@@ -40,7 +40,6 @@ logger = getLogger(__file__)
 yaml = YAML()
 
 
-# TODO: refactor into nice code files instead of this giant file
 # TODO: probably, add error handling
 # TODO: decide how to represent these kinds of rules in the output.
 # TODO(bug): join rules don't propagate metavariables forward into messages
@@ -79,7 +78,6 @@ class Ref:
     id: str
     renames: Dict[str, str]
     alias: str
-    recursive: Dict[str, str]
 
 
 @define
@@ -177,8 +175,7 @@ def match_on_conditions(  # type: ignore
     BlogPost.select().where(author="Author").
     """
     recursive_conditions, normal_conditions = partition(
-        lambda condition: condition.operator == JoinOperator.RECURSIVE,
-        conditions,
+        conditions, lambda condition: condition.operator == JoinOperator.RECURSIVE
     )
 
     handle_recursive_conditions(recursive_conditions, model_map, aliases)
@@ -401,7 +398,9 @@ def run_join_rule(
     for an example.
     """
     join_contents = join_rule.get("join", {})
-    semgrep_config_strings = [ref.get("rule") for ref in join_contents.get("refs", [])]
+
+    refs = join_contents.get("refs", [])
+    semgrep_config_strings = [ref.get("rule") for ref in refs]
     config_map = create_config_map(semgrep_config_strings)
 
     join_rule_refs: List[Ref] = [
@@ -412,12 +411,25 @@ def run_join_rule(
                 for rename in ref.get("renames", [])
             },
             alias=ref.get("as"),
-            recursive=ref.get("recursive"),
         )
         for ref in join_contents.get("refs", [])
     ]
     refs_lookup = {ref.id: ref for ref in join_rule_refs}
     alias_lookup = {ref.alias: ref.id for ref in join_rule_refs}
+
+    inline_rules = join_contents.get("rules", [])
+    for rule in inline_rules:
+        # Add severity and message fields so that it can be a full rule
+        rule.update({"severity": "INFO", "message": "join rule"})
+    inline_rules = [Rule.from_json(rule) for rule in inline_rules]
+
+    # Hack: Use the rule ID for inline rules as keys for refs_lookup and alias_lookup.
+    # This behavior should probably split out into a separate code
+    # path that only deals with refs in the future.
+    refs_lookup.update(
+        {rule.id: Ref(id=rule.id, renames={}, alias=rule.id) for rule in inline_rules}
+    )
+    alias_lookup.update({rule.id: rule.id for rule in inline_rules})
 
     try:
         conditions = [
@@ -429,8 +441,16 @@ def run_join_rule(
 
     # Run Semgrep
     with tempfile.NamedTemporaryFile() as rule_path:
-        yaml.dump({"rules": [rule.raw for rule in config_map.values()]}, rule_path)
+        # Combine inline rules and refs
+        raw_rules = [rule.raw for rule in inline_rules]
+        raw_rules.extend([rule.raw for rule in config_map.values()])
+        yaml.dump({"rules": raw_rules}, rule_path)
         rule_path.flush()
+        rule_path.seek(0)
+
+        logger.debug(
+            f"Running join mode rule {join_rule.get('id')} on {len(targets)} files."
+        )
         output = semgrep.semgrep_main.invoke_semgrep(
             config=Path(rule_path.name),
             targets=targets,
@@ -475,7 +495,7 @@ def run_join_rule(
         alias_lookup[collection]
         for collection in create_collection_set_from_conditions(conditions)
     }
-    rule_ids = set(result.get("check_id") for result in results)
+    rule_ids = {result.get("check_id") for result in results}
     if collection_set_unaliased - rule_ids:
         logger.debug(
             f"No results for {collection_set_unaliased - rule_ids} in join rule '{join_rule.get('id')}'."
@@ -514,7 +534,6 @@ def run_join_rule(
 
     rule_matches = [
         RuleMatch(
-            id=join_rule.get("id", match.get("check_id", "[empty]")),
             message=join_rule.get(
                 "message", match.get("extra", {}).get("message", "[empty]")
             ),
@@ -526,9 +545,18 @@ def run_join_rule(
                     "severity", match.get("severity", RuleSeverity.INFO.value)
                 )
             ),
-            path=Path(match.get("path", "[empty]")),
-            start=CoreLocation.parse(match["start"]),
-            end=CoreLocation.parse(match["end"]),
+            match=core.CoreMatch(
+                rule_id=core.RuleId(
+                    join_rule.get("id", match.get("check_id", "[empty]"))
+                ),
+                location=core.Location(
+                    path=match.get("path", "[empty]"),
+                    start=core.Position.from_json(match["start"]),
+                    end=core.Position.from_json(match["end"]),
+                ),
+                extra=core.CoreMatchExtra.from_json(match.get("extra", {})),
+            ),
+            # still needed?
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,

@@ -1,0 +1,8 @@
+rules:
+  - id: wrap-afunc-arguments
+    patterns:
+      - pattern: a_function_call $X
+    fix: a_function_call (wrap ($X))
+    message: "Wrap the arguments to `a_function_call` with `wrap` first"
+    languages: [ocaml]
+    severity: ERROR

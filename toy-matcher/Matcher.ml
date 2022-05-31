@@ -142,7 +142,6 @@ type ellipsis =
   | In_named_ellipsis of pattern * char list
 
 type stat = { mutable match_calls : int }
-
 type cache_when = Always | Optimal
 
 (*

@@ -1,0 +1,15 @@
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - javascript
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - patterns:
+        - pattern: |
+            function $FUNC({$PARAM}) { ... }
+        - focus-metavariable: $PARAM
+    severity: ERROR

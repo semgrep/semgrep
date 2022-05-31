@@ -1,0 +1,14 @@
+# complicated
+rules:
+  - id: mongo-query-inject
+    languages:
+      - ts
+    patterns:
+      - pattern-inside: |
+          $ASDF = <... $REQ.params.id ...>
+          ...
+      - pattern: |
+          $DB.orders.find(..., { $where: <... $ASDF ...> }, ...)
+    severity: ERROR
+    message: found a match with $ASDF
+    

@@ -70,7 +70,6 @@ VERBOSE_SUBCATEGORY_NAME = {
     "stmt": "Statement",
     "stmts": "Statements",
     "call": "Function Call",
-    "eq": "Equality Constraints",
     "nested_stmts": "Nested Statements",
     "cond": "Conditionals",
     "arg": "Argument",
@@ -140,7 +139,6 @@ CHEATSHEET_ENTRIES = {
         # "field-order", TODO
         # "arg-order", TODO
         "constant_propagation",
-        "eq",
     ],
     "deep": ["exprstmt", "expr_operator"],
 }
@@ -164,14 +162,13 @@ GA_FEATURES = {
     "equivalence": [
         "naming_import",
         "constant_propagation",
-        "eq",
     ],
     "deep": ["expr_operator"],
 }
 
-NUM_ALPHA_FEATURES = sum([len(val) for val in ALPHA_FEATURES.values()])
-NUM_BETA_FEATURES = sum([len(val) for val in BETA_FEATURES.values()])
-NUM_GA_FEATURES = sum([len(val) for val in GA_FEATURES.values()])
+NUM_ALPHA_FEATURES = sum(len(val) for val in ALPHA_FEATURES.values())
+NUM_BETA_FEATURES = sum(len(val) for val in BETA_FEATURES.values())
+NUM_GA_FEATURES = sum(len(val) for val in GA_FEATURES.values())
 
 
 def find_path(
@@ -228,8 +225,7 @@ def run_semgrep_on_example(
         print(">>> " + " ".join(cmd))
         output = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         if output.returncode == 0:
             print(output.stderr.decode("utf-8"))

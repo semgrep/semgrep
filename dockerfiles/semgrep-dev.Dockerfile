@@ -13,7 +13,6 @@
 # For things like benchmarks, we want a "recent version of semgrep that works".
 #
 FROM returntocorp/semgrep:develop
-USER root
 
 # Various utilities. We can always install them during the CI job but it's
 # it's nice to do it here while we're root.
@@ -21,7 +20,8 @@ USER root
 RUN apk add --no-cache \
   bash \
   curl \
-  jq
+  jq && \
+  apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing pre-commit
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
@@ -29,5 +29,4 @@ COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
 # cd ~
 WORKDIR /home/semgrep
 
-USER semgrep
 ENTRYPOINT ["/bin/bash"]

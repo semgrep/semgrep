@@ -28,6 +28,7 @@ CANDIDATE_NAMES = [
 CANDIDATES = frozenset(Path(name) for name in CANDIDATE_NAMES)
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize(
     "patterns, expected_kept",
     [
@@ -189,7 +190,7 @@ CANDIDATES = frozenset(Path(name) for name in CANDIDATE_NAMES)
     ],
 )
 def test_filter_exclude(patterns, expected_kept):
-    actual = TargetManager.filter_excludes(patterns, candidates=CANDIDATES)
+    actual = TargetManager(".").filter_excludes(patterns, candidates=CANDIDATES)
     expected_kept = frozenset(Path(name) for name in expected_kept)
     assert actual.kept == expected_kept
     assert actual.kept == CANDIDATES - actual.removed
@@ -206,13 +207,14 @@ EQUIVALENT_PATTERNS = [
 ]
 
 
+@pytest.mark.quick
 @pytest.mark.parametrize("pattern_variant", EQUIVALENT_PATTERNS)
 def test_filter_exclude__equivalent_variants(pattern_variant):
     """Test some different variations of the pattern yield the same result."""
-    expected_result = TargetManager.filter_excludes(
+    expected_result = TargetManager(".").filter_excludes(
         [EQUIVALENT_PATTERNS[0]], candidates=CANDIDATES
     )
-    actual_result = TargetManager.filter_excludes(
+    actual_result = TargetManager(".").filter_excludes(
         [pattern_variant], candidates=CANDIDATES
     )
     assert actual_result == expected_result

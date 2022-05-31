@@ -79,7 +79,7 @@ type tin = {
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
-  lang : Lang.t option;
+  lang : Lang.t;
   config : Config_semgrep.t;
 }
 
@@ -96,9 +96,7 @@ and tout = tin list
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
-
 type 'a comb_result = tin -> ('a * tout) list
-
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
 (*****************************************************************************)
@@ -137,7 +135,7 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
    *)
   let xs = m1 tin in
   (* try m2 on each possible returned bindings *)
-  let xxs = xs |> List.map (fun binding -> m2 () binding) in
+  let xxs = xs |> Common.map (fun binding -> m2 () binding) in
   List.flatten xxs
 
 (* the disjunctive combinator *)
@@ -187,11 +185,11 @@ let or_list m a bs =
 let ( let* ) o f = o >>= f
 
 (* TODO: could maybe also define
-let (let/) o f =
-  match o with
-  | None -> fail ()
-  | Some x -> f x
-useful in Generic_vs_generic when see code like 'None -> fail()'
+   let (let/) o f =
+     match o with
+     | None -> fail ()
+     | Some x -> f x
+   useful in Generic_vs_generic when see code like 'None -> fail()'
 *)
 
 (*****************************************************************************)
@@ -266,7 +264,8 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     | MV.T _, MV.T _
     | MV.Text _, MV.Text _
     | MV.Params _, MV.Params _
-    | MV.Args _, MV.Args _ ->
+    | MV.Args _, MV.Args _
+    | MV.Xmls _, MV.Xmls _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
          * sgrep command line argument), we can not just use the
@@ -343,14 +342,8 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment opt_cache opt_lang config =
-  {
-    mv = Env.empty;
-    stmts_match_span = Empty;
-    cache = opt_cache;
-    lang = opt_lang;
-    config;
-  }
+let empty_environment opt_cache lang config =
+  { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; lang; config }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -361,7 +354,7 @@ let rec inits_and_rest_of_list = function
   | [ e ] -> [ ([ e ], []) ]
   | e :: l ->
       ([ e ], l)
-      :: List.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
+      :: Common.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
 
 let _ =
   Common2.example
@@ -401,7 +394,7 @@ let rec all_splits = function
   | [] -> [ ([], []) ]
   | x :: xs ->
       all_splits xs
-      |> List.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
+      |> Common.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
       |> List.flatten
 
 (* let _ = Common2.example
@@ -416,7 +409,6 @@ let lazy_rest_of_list v =
       Lazy.force v)
 
 let return () = return
-
 let fail () = fail
 
 (* TODO: deprecate *)
@@ -448,6 +440,7 @@ let regexp_matcher_of_regexp_string s =
 (* ---------------------------------------------------------------------- *)
 (* stdlib: option *)
 (* ---------------------------------------------------------------------- *)
+(* you should probably use m_option_none_can_match_some instead *)
 let (m_option : 'a matcher -> 'a option matcher) =
  fun f a b ->
   match (a, b) with
@@ -524,6 +517,11 @@ let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     | [], _ :: _ when less_is_ok -> return ()
     (* dots: '...', can also match no argument *)
     | [ a ], [] when is_dots a -> return ()
+    (* opti: if is_metavar_ellipsis and less_is_ok is false, then
+     * it's useless to enumerate all the candidates below; only the
+     * one that match everything will work
+    | [ a ], xs when is_metavar_ellipsis a <> None && not less_is_ok ->
+     *)
     (* dots: metavars: $...ARGS *)
     | a :: xsa, xsb when is_metavar_ellipsis a <> None -> (
         match is_metavar_ellipsis a with
@@ -590,14 +588,14 @@ let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
     | [] -> []
     | (bs, tout) :: comb_matches' ->
         let bs_matches =
-          tout |> List.map (fun tin -> f bs tin) |> List.flatten
+          tout |> Common.map (fun tin -> f bs tin) |> List.flatten
         in
         bs_matches @ loop comb_matches'
   in
   loop (comb_result tin)
 
 let m_comb_flatten (comb_result : _ comb_result) (tin : tin) : tout =
-  comb_result tin |> List.map snd |> List.flatten
+  comb_result tin |> Common.map snd |> List.flatten
 
 let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
     (comb_result : _ comb_result) : _ comb_result =
@@ -626,11 +624,8 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 (* ---------------------------------------------------------------------- *)
 
 let m_eq a b = if a = b then return () else fail ()
-
 let m_bool a b = if a = b then return () else fail ()
-
 let m_int a b = if a =|= b then return () else fail ()
-
 let m_string a b = if a =$= b then return () else fail ()
 
 (* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.
@@ -659,7 +654,6 @@ let m_filepath_prefix a b =
  * so we can just  'return ()'
  *)
 let m_info _a _b = return ()
-
 let m_tok a b = m_info a b
 
 let m_wrap f a b =
@@ -703,10 +697,11 @@ let adjust_info_remove_enclosing_quotes (s, info) =
         in
         let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
         (s, info)
-      with Not_found ->
-        logger#error "could not find %s in %s" s raw_str;
-        (* return original token ... better than failwith? *)
-        (s, info))
+      with
+      | Not_found ->
+          logger#error "could not find %s in %s" s raw_str;
+          (* return original token ... better than failwith? *)
+          (s, info))
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket

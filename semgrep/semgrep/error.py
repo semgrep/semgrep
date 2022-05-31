@@ -1,8 +1,11 @@
+import dataclasses
 import inspect
 import sys
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -11,13 +14,16 @@ from typing import Tuple
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
 
+import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors
-from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
-from semgrep.rule_match import CoreLocation
 from semgrep.util import with_color
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 OK_EXIT_CODE = 0
 FINDINGS_EXIT_CODE = 1
@@ -33,6 +39,8 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 # MATCH_MAX_MEMORY_EXIT_CODE = 10
 # LEXICAL_ERROR_EXIT_CODE = 11
 # TOO_MANY_MATCHES_EXIT_CODE = 12
+INVALID_API_KEY_EXIT_CODE = 13
+SCAN_FAIL_EXIT_CODE = 14
 
 
 class Level(Enum):
@@ -58,67 +66,48 @@ class SemgrepError(Exception):
 
         super().__init__(*args)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "type": self.__class__.__name__,
-            "code": self.code,
-            "level": self.level.name.lower(),
-            **self.to_dict_base(),
-        }
+    def to_CliError(self) -> out.CliError:
+        err = out.CliError(
+            code=self.code, type_=self.__class__.__name__, level=self.level.name.lower()
+        )
+        return self.adjust_CliError(err)
 
-    def to_dict_base(self) -> Dict[str, Any]:
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
         """
         Default implementation. Subclasses should override to provide custom information.
-        All values returned must be JSON serializable.
         """
-        return {"message": str(self)}
+        return dataclasses.replace(base, message=str(self))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return cast(Dict[str, Any], self.to_CliError().to_json())
 
     # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
         return type(self).__name__
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":
-        """
-        Instantiates class from dict representation
-        """
-        return cls(**data)
 
-
-@attr.s(auto_attribs=True, frozen=True)
-class LegacySpan:
-    config_start: CoreLocation
-    config_end: CoreLocation
-    config_path: Tuple[str]
-
-
-@attr.s(auto_attribs=True, frozen=True)
+@dataclass(frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
-    error_type: str
-    rule_id: Optional[str]
-    path: Path
-    start: CoreLocation
-    end: CoreLocation
-    message: str
-    spans: Optional[Tuple[LegacySpan, ...]]
-    details: Optional[str]
+    spans: Optional[List[out.ErrorSpan]]
+    core: core.CoreError
 
-    def to_dict_base(self) -> Dict[str, Any]:
-        base: Dict[str, Any] = {"type": self.error_type, "message": str(self)}
-        if self.rule_id:
-            base["rule_id"] = self.rule_id
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
+        base = dataclasses.replace(
+            base, type_=self.core.error_type.to_json(), message=str(self)
+        )
+        if self.core.rule_id:
+            base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
         # For rule errors path is a temp file so for now will just be confusing to add
-        if (
-            self.error_type != "Rule parse error"
-            and self.error_type != "Pattern parse error"
-        ):
-            base["path"] = str(self.path)
+        if not isinstance(
+            self.core.error_type.value, core.RuleParseError
+        ) and not isinstance(self.core.error_type.value, core.PatternParseError):
+            base = dataclasses.replace(base, path=str(self.core.location.path))
 
         if self.spans:
-            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
+            base = dataclasses.replace(base, spans=self.spans)
 
         return base
 
@@ -126,38 +115,40 @@ class SemgrepCoreError(SemgrepError):
         """
         Return if this error is a match timeout
         """
-        return self.error_type == "Timeout"
+        return isinstance(self.core.error_type.value, core.Timeout)
 
     def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self.error_type}"
+        return f"{type(self).__name__}: {self.core.error_type.to_json()}"
 
     @property
     def _error_message(self) -> str:
         """
         Generate error message exposed to user
         """
-        header = f"Semgrep Core — {self.error_type}\n{PLEASE_FILE_ISSUE_TEXT}"
-        if self.rule_id:
+        if self.core.rule_id:
             # For rule errors path is a temp file so for now will just be confusing to add
-            if (
-                self.error_type == "Rule parse error"
-                or self.error_type == "Pattern parse error"
-            ):
-                error_context = f"In rule {self.rule_id}"
+            if isinstance(
+                self.core.error_type.value, core.RuleParseError
+            ) or isinstance(self.core.error_type.value, core.PatternParseError):
+                error_context = f"in rule {self.core.rule_id.value}"
             else:
-                error_context = f"When running {self.rule_id} on {self.path}"
+                error_context = f"when running {self.core.rule_id.value} on {self.core.location.path}"
         else:
-            error_context = f"At line {self.path}:{self.start.line}"
+            error_context = (
+                f"at line {self.core.location.path}:{self.core.location.start.line}"
+            )
 
-        return f"{header}\n\n{error_context}: {self.message}\n"
+        return (
+            f"{self.core.error_type.to_json()} {error_context}:\n {self.core.message}"
+        )
 
     @property
     def _stack_trace(self) -> str:
         """
         Returns stack trace if error_type is Fatal error else returns empty strings
         """
-        if self.error_type == "Fatal error":
-            error_trace = self.details or "<no stack trace returned>"
+        if isinstance(self.core.error_type.value, core.FatalError):
+            error_trace = self.core.details or "<no stack trace returned>"
             return f"\n====[ BEGIN error trace ]====\n{error_trace}=====[ END error trace ]=====\n"
         else:
             return ""
@@ -173,6 +164,23 @@ class SemgrepCoreError(SemgrepError):
 
         return f"{level_tag} " + self._error_message + self._stack_trace
 
+    # TODO: I didn't manage to get core.Error to be hashable because it contains lists or
+    # objects (e.g., Error_) which are not hashable
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.code,
+                self.level,
+                self.core.rule_id,
+                self.core.error_type.kind,
+                self.core.location.path,
+                self.core.location.start,
+                self.core.location.end,
+                self.core.message,
+                self.core.details,
+            )
+        )
+
 
 class SemgrepInternalError(Exception):
     """
@@ -180,8 +188,6 @@ class SemgrepInternalError(Exception):
 
     Classes that inherit from SemgrepInternalError should begin with `_`
     """
-
-    pass
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -246,16 +252,17 @@ class ErrorWithSpan(SemgrepError):
         if not hasattr(self, "level"):
             raise ValueError("Inheritors of SemgrepError must define a level")
 
-    def to_dict_base(self) -> Dict[str, Any]:
-        base = dict(
+    def adjust_CliError(self, base: out.CliError) -> out.CliError:
+        base = dataclasses.replace(
+            base,
             short_msg=self.short_msg,
             long_msg=self.long_msg,
             level=self.level.name.lower(),
-            spans=[attr.asdict(s) for s in self.spans],
+            spans=[s.to_ErrorSpan() for s in self.spans],
         )
         # otherwise, we end up with `help: null` in JSON
         if self.help:
-            base["help"] = self.help
+            base = dataclasses.replace(base, help=self.help)
         return base
 
     @staticmethod

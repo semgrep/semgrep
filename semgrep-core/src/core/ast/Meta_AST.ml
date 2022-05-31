@@ -22,9 +22,7 @@ let vof_bracket of_a (t1, x, t2) =
   | _ -> OCaml.VTuple [ v1; v; v2 ]
 
 let vof_ident v = vof_wrap OCaml.vof_string v
-
 let vof_todo_kind v = vof_wrap OCaml.vof_string v
-
 let vof_dotted_name v = OCaml.vof_list vof_ident v
 
 let vof_module_name = function
@@ -56,6 +54,9 @@ and vof_resolved_name_kind = function
   | Macro -> OCaml.VSum ("Macro", [])
   | EnumConstant -> OCaml.VSum ("EnumConstant", [])
   | TypeName -> OCaml.VSum ("TypeName", [])
+  | ResolvedName v1 ->
+      let v1 = vof_dotted_ident v1 in
+      OCaml.VSum ("ResolvedName", [ v1 ])
 
 let rec vof_qualifier = function
   | QDots v1 ->
@@ -99,6 +100,7 @@ and vof_id_info
       id_type = v_id_type;
       id_svalue = v3;
       id_hidden;
+      id_info_id;
     } =
   let bnds = [] in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_svalue) v3 in
@@ -112,6 +114,9 @@ and vof_id_info
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_bool id_hidden in
   let bnd = ("id_hidden", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_int id_info_id in
+  let bnd = ("id_info_id", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
@@ -227,6 +232,10 @@ and vof_expr e =
   | Call (v1, v2) ->
       let v1 = vof_expr v1 and v2 = vof_arguments v2 in
       OCaml.VSum ("Call", [ v1; v2 ])
+  | New (v0, v1, v2) ->
+      let v0 = vof_tok v0 in
+      let v1 = vof_type_ v1 and v2 = vof_arguments v2 in
+      OCaml.VSum ("New", [ v0; v1; v2 ])
   | Assign (v1, v2, v3) ->
       let v1 = vof_expr v1 and v2 = vof_tok v2 and v3 = vof_expr v3 in
       OCaml.VSum ("Assign", [ v1; v2; v3 ])
@@ -408,7 +417,6 @@ and vof_special = function
   | Typeof -> OCaml.VSum ("Typeof", [])
   | Instanceof -> OCaml.VSum ("Instanceof", [])
   | Sizeof -> OCaml.VSum ("Sizeof", [])
-  | New -> OCaml.VSum ("New", [])
   | ConcatString v1 ->
       let v1 = vof_interpolated_kind v1 in
       OCaml.VSum ("ConcatString", [ v1 ])
@@ -1314,7 +1322,6 @@ and vof_alias (v1, v2) =
   (v1, v2)
 
 and vof_item x = vof_stmt x
-
 and vof_program v = OCaml.vof_list vof_item v
 
 and vof_partial = function
@@ -1350,6 +1357,9 @@ and vof_partial = function
       OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
 
 and vof_any = function
+  | Xmls v1 ->
+      let v1 = OCaml.vof_list vof_xml_body v1 in
+      OCaml.VSum ("Xmls", [ v1 ])
   | ForOrIfComp v1 ->
       let v1 = vof_for_or_if_comp v1 in
       OCaml.VSum ("ForOrIfComp", [ v1 ])

@@ -4,7 +4,7 @@ authors: ["r2c"]
 homepage: "https://github.com/returntocorp/spacegrep"
 bug-reports: "https://github.com/returntocorp/spacegrep/issues"
 dev-repo: "git+https://github.com/returntocorp/spacegrep.git"
-license: "GPL-3.0-only"
+license: "LGPL-2.1"
 
 build: [
   ["dune" "build" "-p" name "-j" jobs]
@@ -14,7 +14,7 @@ depends: [
   "alcotest"
   "atdgen"
   "ANSITerminal"
-  "cmdliner" {= "1.0.4"}
+  "cmdliner"
   "dune" {>= "2.1"}
 ]
 

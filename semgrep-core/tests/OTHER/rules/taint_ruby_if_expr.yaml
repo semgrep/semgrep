@@ -1,0 +1,16 @@
+rules:
+- id: check-symbol-dos
+  mode: taint
+  pattern-sources:
+    - pattern: |
+        params[...]
+  pattern-sinks:
+    - patterns:
+        - pattern-inside: |
+            $X.to_sym
+        - pattern: $X
+  message: Found potential denial of service via unsafe symbol conversion of a
+    string. Do not call symbol conversion on user-controllable input.
+  languages:
+    - ruby
+  severity: ERROR

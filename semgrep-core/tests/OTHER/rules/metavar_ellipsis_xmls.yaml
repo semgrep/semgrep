@@ -1,0 +1,15 @@
+rules:
+  - id: test
+    languages:
+      - html
+    message: javascript inside html working!
+    patterns:
+      - pattern: |
+          <script ...>$...JS</script>
+      - metavariable-pattern:
+          language: javascript
+          metavariable: $...JS
+          patterns:
+            - pattern: |
+                console.log(...)
+    severity: WARNING

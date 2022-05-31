@@ -18,6 +18,7 @@ module R = Rule
 module RP = Report
 module Resp = Output_from_core_t
 module E = Semgrep_error_code
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -59,7 +60,10 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
     Resp.skipped_target =
   let rule_id, _ = rule.id in
   let details =
-    spf "target doesn't contain some elements required by rule '%s'" rule_id
+    spf
+      "No need to perform deeper matching because target does not contain some \
+       elements necessary for the rule to match '%s'"
+      rule_id
   in
   {
     path = file_and_more.file;
@@ -109,8 +113,13 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                            Match_search_rules.check_rule r match_hook
                              default_config pformula xtarget
                        | Taint taint_spec ->
-                           Match_tainting_rules.check_rule r match_hook
-                             default_config taint_spec xtarget)
+                           (* TODO: 'debug_taint' should just be part of 'res'
+                            * (i.e., add a "debugging" field to 'Report.match_result'). *)
+                           let res, _TODO_debug_taint =
+                             Match_tainting_rules.check_rule r match_hook
+                               default_config taint_spec xtarget
+                           in
+                           res)
                  in
                  match match_result with
                  | Some res -> Left res
@@ -128,12 +137,13 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                          RP.matches = [];
                          errors =
                            [
-                             E.mk_error ~rule_id:(Some rule_id) loc "" E.Timeout;
+                             E.mk_error ~rule_id:(Some rule_id) loc ""
+                               Out.Timeout;
                            ];
-                         skipped = [];
+                         skipped_targets = [];
                          profiling = RP.empty_rule_profiling r;
                        }))
   in
   let skipped = Common.map (skipped_target_of_rule xtarget) skipped_rules in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_rules in
-  { res with skipped = skipped @ res.skipped }
+  { res with skipped_targets = skipped @ res.skipped_targets }

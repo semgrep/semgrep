@@ -20,12 +20,13 @@ These principles inform our decisions around data collection:
 ```sh
 $ semgrep --config=myrule.yaml  # → no metrics (loading rules from local file)
 $ semgrep --config=p/python     # → metrics enabled (fetching Registry)
+$ semgrep login && semgrep ci   # → metrics enabled (logged in to semgrep.dev)
 ```
 
 Semgrep does **not** enable metrics when running with only local configuration files or command-line search patterns.
 
-Semgrep does enable metrics if rules are loaded from the [Semgrep Registry](https://semgrep.dev/r). This helps
-maintainers improve the correctness and performance of registry rules.
+Semgrep does enable metrics if rules are loaded from the [Semgrep Registry](https://semgrep.dev/r).
+This helps maintainers improve the correctness and performance of registry rules.
 
 Metrics may also be configured to be sent on every run, or never sent.
 
@@ -35,23 +36,39 @@ To configure metrics, pass the `--metrics` option to Semgrep:
 - `--metrics on`: metrics are sent on every Semgrep run
 - `--metrics off`: metrics are never sent
 
-Instead of the `--metrics` option, collection can also be controlled by setting the `SEMGREP_SEND_METRICS`
-environment variable to any of `auto`, `on`, or `off`.
+Alternatively, set the `SEMGREP_SEND_METRICS` environment variable to `auto`, `on`, or `off`.
 
-Note that certain Semgrep integrators turn on metrics for every run. For example, both the [Semgrep CI agent](https://github.com/returntocorp/semgrep-action) and [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) use `--metrics on` by default.
+Note that certain Semgrep integrators turn on metrics for every run.
+For example, [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) uses `--metrics on` by default.
 
 ## Data NOT collected
 
-We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy and security. After all, we are a security tool! The following never leave your environment and are not sent or shared with anyone.
+### Data NOT collected ever
+
+We strive to balance our desire to collect data for improving Semgrep
+with our users' need for privacy and security.
+After all, we are a security tool!
+The following never leave your environment and are not sent or shared with anyone.
 
 - Source code
-- Filenames, file contents, or commit hashes
-- User-identifiable data about Semgrep’s findings in your code, including finding messages
 - Private rules
 
-## Data collected
+### Data NOT collected unless explicitly requested
 
-Semgrep collects data to improve the user experience. Four types of data are collected:
+The following data will never leave your environment as part of metrics.
+
+- Filenames
+- Git commit hashes, messages, authors
+- User-identifiable data about Semgrep’s findings in your code, including finding messages
+
+This data will be sent to Semgrep App only if you explicitly request it,
+such as with `semgrep login && semgrep ci` to connect with Semgrep App.
+Even in that case, your source code and private rules will never be sent.
+
+## Data collected as metrics
+
+Semgrep collects data to improve the user experience.
+Four types of data are collected:
 
 ### Environmental
 
@@ -112,17 +129,18 @@ r2c will:
   - Application-security-policy requirements for third parties (e.g. cloud-service providers; see "data sharing" below)
 - Only correlate hashed data to input data when these inputs are already known to r2c (e.g. publicly available project URLs for open-source projects, or projects that log in to the Semgrep Registry)
 
-## Description of fields
+## Description of metrics fields
 
 | Category    | Field                     | Description                                                            | Use Case                                                                                   | Example Datum                                                                                                                                                                         | Type           |
 | ----------- | ------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | Environment |                           |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
-|             | Timestamp                 | Time when the event fired                                              | Understanding tool usage over time                                                         | 2021-05-10T21:05:06+00:00                                                                                                                                                             | String         |
+|             | Timestamps (started/sent) | Time when the event fired                                              | Understanding tool usage over time                                                         | 2021-05-10T21:05:06+00:00                                                                                                                                                             | String         |
 |             | Version                   | Semgrep version being used                                             | Reproduce and debug issues with specific versions                                          | 0.51.0                                                                                                                                                                                | String         |
 |             | Project URL               | Project URL **(sent only if config=auto)**                             | Fetch pre-configured rules for the org or project by name                                  | `git@github.com:returntocorp/semgrep.git`                                                                                                                                             | String         |
 |             | Project hash              | One-way hash of the project URL                                        | Understand performance and accuracy improvements                                           | `c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a`                                                                                                                    | String         |
 |             | Rules hash                | One-way hash of the rule definitions                                   | Understand performance improvements                                                        | `b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43`                                                                                                                    | String         |
 |             | Config hash               | One-way hash of the config argument                                    | Understand performance and accuracy improvements                                           | `ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094`                                                                                                                    | String         |
+|             | Is authenticated          | Whether the user logged in to semgrep.dev with `semgrep login`         | Understand popularity of logged in features                                                | `false`                                                                                                                                                                               | Boolean        |
 |             | CI                        | Notes if Semgrep is running in CI and the name of the provider         | Reproduce and debug issues with specific CI providers                                      | GitLabCI v0.13.12                                                                                                                                                                     | String         |
 |             |                           |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
 | Performance |                           |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
@@ -157,6 +175,7 @@ This is a sample blob of the aggregate metrics described above:
         "configNamesHash": "ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094",
         "projectHash": "c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a",
         "rulesHash": "b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43",
+        "isAuthenticated": false,
     },
     "performance": {
         "runTime": 37.1234233823,
@@ -190,6 +209,36 @@ This is a sample blob of the aggregate metrics described above:
     }
 }
 ```
+
+## Data collected when explicitly requested
+
+For Semgrep App users running `semgrep ci` while logged in,
+data is sent to power your dashboard, notification, and finding management features.
+These data are ONLY sent when using `semgrep ci` in an App-connected mode
+and are not sent when not logged in.
+
+Two types of data are sent to r2c servers for this logged-in use case: scan data and findings data.
+
+**Scan data** provide information on the environment and performance of Semgrep.
+They power dashboards, identify anomalies with the product, and are needed for billing.
+The classes of scan data are:
+
+- Project identity (e.g., name, URL)
+- Scan environment (e.g., CI provider, OS)
+- Author identity (e.g., committer email)
+- Commit metadata (e.g., commit hash)
+- Review and review-requester identifying data (e.g., pull-request ID, branch, merge base, request author)
+- Scan metadata, including type of scan and scan parameters (e.g., paths scanned)
+- Timing metrics (e.g., time taken to scan per-rule and per-path)
+- Semgrep environment (e.g., version, interpreter, timestamp)
+
+**Findings data** are used to provide human readable content for notifications and integrations,
+as well tracking results as new, fixed, or duplicate. The classes of findings data are:
+
+- Check ID and metadata (as defined in the rule definition; e.g., OWASP category, message, severity)
+- Code location, including file path, that triggered findings
+- A one-way hash of a unique code identifier that includes the triggering code content
+- Source code is NOT collected
 
 ## Registry fetches
 

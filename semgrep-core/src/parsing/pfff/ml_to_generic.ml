@@ -29,13 +29,9 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 let id x = x
-
 let option = Option.map
-
 let list = List.map
-
 let string = id
-
 let bool = id
 
 (*
@@ -46,9 +42,7 @@ let _error = G.error
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
-
 let fb = G.fake_bracket
-
 let add_attrs ent attrs = { ent with G.attrs }
 
 let mk_var_or_func tlet params tret body =
@@ -89,7 +83,6 @@ let defs_of_bindings tlet attrs xs =
 (*****************************************************************************)
 
 let info x = x
-
 let tok v = info v
 
 let wrap _of_a (v1, v2) =
@@ -99,7 +92,6 @@ let wrap _of_a (v1, v2) =
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 
 let rec ident v = wrap string v
-
 and name (v1, v2) = H.name_of_ids (v1 @ [ v2 ])
 
 and name_ (v1, v2) =
@@ -115,7 +107,6 @@ and module_name (v1, v2) =
   v1 @ [ v2 ]
 
 and qualifier v = list ident v
-
 and todo_category v = ident v
 
 and type_ x =
@@ -245,7 +236,13 @@ and expr e =
       match e.G.e with
       (* replace fake brackets with real one *)
       | G.Container (G.Tuple, (_, xs, _)) -> G.Container (G.Tuple, (l, xs, r))
-      | e -> e)
+      (* actually, always keep the ParenExpr for now, so that autofix does not
+       * have dangling parenthesis
+       * TODO: this may prevent some matching in generic_vs_generic.
+       * Maybe we should have a pre-phase that set the e_range correctly and
+       * remove the extra ParenExpr.
+       *)
+      | _kind -> G.ParenExpr (l, e, r))
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
       let v2 = tok v2 in
@@ -338,7 +335,7 @@ and expr e =
       )
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
-      G.Call (G.IdSpecial (G.New, v1) |> G.e, fb [ G.Arg (G.N v2 |> G.e) ])
+      G.New (v1, G.TyN v2 |> G.t, fb [])
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in

@@ -113,6 +113,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
+    | ResolvedName v1 ->
+        let v1 = map_dotted_ident v1 in
+        ResolvedName v1
   and map_name_info
       {
         name_last = v1;
@@ -138,6 +141,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
        id_type = v_id_type;
        id_svalue = v3;
        id_hidden;
+       id_info_id;
       } ->
           let v3 = map_of_ref (map_of_option map_svalue) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
@@ -150,6 +154,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             id_type = v_id_type;
             id_svalue = v3;
             id_hidden;
+            id_info_id;
           }
     in
     vin.kidinfo (k, all_functions) v
@@ -254,6 +259,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | Call (v1, v2) ->
             let v1 = map_expr v1 and v2 = map_arguments v2 in
             Call (v1, v2)
+        | New (v1, v2, v3) ->
+            let v1 = map_tok v1
+            and v2 = map_type_ v2
+            and v3 = map_arguments v3 in
+            New (v1, v2, v3)
         | Assign (v1, v2, v3) ->
             let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
             Assign (v1, v2, v3)
@@ -428,7 +438,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Typeof
     | Instanceof
     | Sizeof
-    | New
     | Spread
     | HashSplat
     | NextArrayIndex
@@ -1133,6 +1142,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | Xmls v1 ->
+        let v1 = map_of_list map_xml_body v1 in
+        Xmls v1
     | ForOrIfComp v1 ->
         let v1 = map_for_or_if_comp v1 in
         ForOrIfComp v1

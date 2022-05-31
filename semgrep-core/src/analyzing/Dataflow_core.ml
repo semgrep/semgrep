@@ -47,9 +47,7 @@ open Common
 
 module type Flow = sig
   type node
-
   type edge
-
   type flow = (node, edge) CFG.t
 
   val short_string_of_node : node -> string
@@ -79,11 +77,9 @@ type 'a mapping = 'a inout array
 
 (* the In and Out sets, as in Appel Modern Compiler in ML book *)
 and 'a inout = { in_env : 'a env; out_env : 'a env }
-
 and 'a env = 'a VarMap.t
 
 let empty_env () = VarMap.empty
-
 let empty_inout () = { in_env = empty_env (); out_env = empty_env () }
 
 (*****************************************************************************)
@@ -143,8 +139,8 @@ let (add_var_and_nodei_to_env :
       var -> nodei -> NodeiSet.t env -> NodeiSet.t env) =
  fun var ni env ->
   let set =
-    try NodeiSet.add ni (VarMap.find var env)
-    with Not_found -> NodeiSet.singleton ni
+    try NodeiSet.add ni (VarMap.find var env) with
+    | Not_found -> NodeiSet.singleton ni
   in
   VarMap.add var set env
 

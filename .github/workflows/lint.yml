@@ -2,20 +2,28 @@ name: lint
 on:
   workflow_dispatch:
   pull_request:
+  push:
+    branches:
+      - develop
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: true
+      - uses: actions/setup-python@v3
       - uses: pre-commit/action@v2.0.3
 
   pre-commit-manual:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v3
       - uses: pre-commit/action@v2.0.3
         with:
           extra_args: --hook-stage manual
@@ -32,9 +40,15 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Check OCaml code
-        run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
+        run: |
+          sudo -u user git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          # install correct version of ocamlformat
+          sudo -u user opam install -y ocamlformat.0.21.0
+          sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   changelog-reminder:
     name: Changelog Reminder
@@ -42,7 +56,9 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - id: semgrep_diff
         name: Get semgrep package diff
@@ -56,7 +72,7 @@ jobs:
           FILES: CHANGELOG.md
 
       - name: Send reminder
-        uses: unsplash/comment-on-pr@v1.2.0
+        uses: unsplash/comment-on-pr@v1.3.1
         if: >
           steps.semgrep_diff.outputs.insertions > 20
           && steps.changelog_diff.outputs.insertions == 0

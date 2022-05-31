@@ -41,20 +41,6 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 (* Converter *)
 (*****************************************************************************)
 
-(* return list of "positive" x list of Not *)
-let split_and : R.formula list -> R.formula list * R.formula list =
- fun xs ->
-  xs
-  |> Common.partition_either (fun e ->
-         match e with
-         (* positives *)
-         | R.P _
-         | R.And _
-         | R.Or _ ->
-             Left e
-         (* negatives *)
-         | R.Not (_, f) -> Right f)
-
 let selector_from_formula f =
   match f with
   | Leaf ({ pat = Sem (pattern, _); pid; pstr }, None) -> (
@@ -93,12 +79,12 @@ let formula_to_sformula formula =
     | R.P (p, inside) -> Leaf (p, inside)
     | R.And { tok = _; conjuncts = fs; conditions = conds; focus } ->
         And (convert_and_formulas fs conds focus)
-    | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
+    | R.Or (_, fs) -> Or (Common.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
   and convert_and_formulas fs cond focus =
-    let pos, neg = split_and fs in
-    let pos = List.map formula_to_sformula pos in
-    let neg = List.map formula_to_sformula neg in
+    let pos, neg = Rule.split_and fs in
+    let pos = Common.map formula_to_sformula pos in
+    let neg = Common.map formula_to_sformula neg in
     let sel, pos =
       (* We only want a selector if there is something to select from. *)
       match remove_selectors (None, []) pos with
@@ -109,8 +95,8 @@ let formula_to_sformula formula =
       selector_opt = sel;
       positives = pos;
       negatives = neg;
-      conditionals = cond |> List.map snd;
-      focus = focus |> List.map snd;
+      conditionals = cond |> Common.map snd;
+      focus = focus |> Common.map snd;
     }
   in
   formula_to_sformula formula

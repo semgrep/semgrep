@@ -16,7 +16,7 @@
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
-FROM returntocorp/ocaml:alpine-2021-07-15 as build-semgrep-core
+FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
@@ -35,10 +35,11 @@ COPY --chown=user interfaces/ /semgrep/interfaces/
 # we need this lang/ subdirectory to generate Lang.ml. In theory the data
 # should be in interfaces/ but Python does not like symlinks when making
 # packages, so interfaces/lang/ is actually a symlink towards
-# semgrep/semgrep/lang. Note that the 'git submodule --depth 1' below
-# would actually checkout this directory, but it's better to be explicit here
-# about all the things we need to compile semgrep-core.
-COPY --chown=user semgrep/semgrep/lang /semgrep/semgrep/semgrep/lang
+# semgrep/semgrep/lang.
+# Note that the 'git submodule --depth 1' below
+# would actually checkout semgrep/semgrep/lang directory,
+# needed to compile 'semgrep-core' and to run 'semgrep'.
+COPY --chown=user semgrep /semgrep/semgrep/
 COPY --chown=user scripts /semgrep/scripts
 
 WORKDIR /semgrep
@@ -62,39 +63,41 @@ RUN git clean -dfX && \
 RUN ./semgrep-core/_build/install/default/bin/semgrep-core -version
 
 #
-# We change container, bringing only the 'semgrep-core' binary with us.
+# We change container, bringing the 'semgrep-core' binary and 'semgrep/semgrep' code with us.
 #
 
-FROM python:3.10.1-alpine3.15@sha256:dce56d40d885d2c8847aa2a278a29d50450c8e3d10f9d7ffeb2f38dcc1eb0ea4
-LABEL maintainer="support@r2c.dev"
-ENV PIP_DISABLE_PIP_VERSION_CHECK=true PIP_NO_CACHE_DIR=true
+FROM python:3.10-alpine
 
-# ugly: circle CI requires valid git and ssh programs in the container
-# when running semgrep on a repository containing submodules
-RUN apk add --no-cache git openssh
+WORKDIR /src
+LABEL maintainer="support@r2c.dev"
+ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
+     PIP_NO_CACHE_DIR=true \
+     SEMGREP_IN_DOCKER=1 \
+     SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
+     SEMGREP_USER_AGENT_APPEND="Docker" \
+     PYTHONIOENCODING=utf8 \
+     PYTHONUNBUFFERED=1
 
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
-RUN semgrep-core -version
+COPY --from=build-semgrep-core /semgrep/semgrep /semgrep
 
-COPY semgrep /semgrep
 # hadolint ignore=DL3013
-RUN SEMGREP_SKIP_BIN=true python -m pip install /semgrep && \
+RUN apk add --no-cache --virtual=.build-deps build-base && \
+     apk add --no-cache --virtual=.run-deps bash openssh && \
+     # we need git 2.36+ to be able to set safe.directories=*
+     apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache git && \
+     apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community --no-cache git-lfs && \
+     SEMGREP_SKIP_BIN=true pip install /semgrep && \
      semgrep --version && \
-     mkdir -p /src && \
-     chmod 777 /src && \
-     mkdir -p /tmp/.cache && \
-     chmod 777 /tmp/.cache
+     apk del .build-deps && \
+     mkdir -p /tmp/.cache
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep.Dockerfile /Dockerfile
 
-RUN adduser -D -u 1000 semgrep
-USER 1000
-ENV SEMGREP_IN_DOCKER=1
-ENV SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version
-ENV SEMGREP_USER_AGENT_APPEND="(Docker)"
-ENV PYTHONIOENCODING=utf8
-ENV PYTHONUNBUFFERED=1
-ENTRYPOINT ["semgrep"]
-CMD ["--help"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["semgrep", "--help"]

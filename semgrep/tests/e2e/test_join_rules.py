@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "rule,target",
     [
@@ -16,6 +17,10 @@ import pytest
             "rules/join_rules/multiple-rules.yaml",
             "join_rules/user-input-with-unescaped-extension",
         ),
+        (
+            "rules/join_rules/inline/inline-rules.yaml",
+            "join_rules/user-input-with-unescaped-extension",
+        ),
     ],
 )
 def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
@@ -25,6 +30,7 @@ def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "rule,target",
     [

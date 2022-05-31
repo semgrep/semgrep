@@ -3,7 +3,6 @@
 *)
 
 type exec = Exec | Nonexec
-
 type success = OK | XFAIL
 
 (*
@@ -59,7 +58,6 @@ let contents_tests : (string * Lang.t * string * string * exec * success) list =
   ]
 
 let ( // ) = Filename.concat
-
 let mkdir path = if not (Sys.file_exists path) then Unix.mkdir path 0o777
 
 (*
@@ -109,11 +107,11 @@ let fix_path s =
   | _ -> s
 
 let test_inspect_file =
-  List.map
+  Common.map
     (fun (test_name, lang, path, expectation) ->
       (test_name, fun () -> test_name_only lang (fix_path path) expectation))
     name_tests
-  @ List.map
+  @ Common.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->
         ( test_name,
           fun () -> test_with_contents lang file_name contents exec expectation

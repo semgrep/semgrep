@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
 module G = AST_generic
 module MV = Metavariable
 
@@ -34,7 +35,6 @@ module MV = Metavariable
  * error location when a rule is malformed.
  *)
 type tok = AST_generic.tok [@@deriving show, eq, hash]
-
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
 
 (* To help report pattern errors in simple mode in the playground *)
@@ -109,15 +109,19 @@ type formula =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of xpattern (* a leaf pattern *) * inside option
-  (* see Specialize_formula.split_and() *)
   | And of conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
-   * But this could change? If we were moving to a different range semantic?
+   * TODO? Could this change if we were moving to a different range semantic?
    *)
   | Not of tok * formula
 
+(* The conjuncts must contain at least
+ * one positive "term" (unless it's inside a CondNestedFormula, in which
+ * case there is not such a restriction).
+ * See also split_and().
+ *)
 and conjunction = {
   tok : tok;
   (* pattern-inside:'s and pattern:'s *)
@@ -144,7 +148,7 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of MV.mvar * regexp
+  | CondRegexp of MV.mvar * regexp * bool (* constant-propagation *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -179,8 +183,8 @@ type formula_old =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
-  | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * Xlang.t option * formula
+  | MetavarRegexp of MV.mvar * regexp * bool
+  | MetavarPattern of MV.mvar * Xlang.t option * formula_old
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
   (* arbitrary code! dangerous! *)
@@ -264,7 +268,6 @@ and paths = {
 
 (* alias *)
 type t = rule [@@deriving show]
-
 type rules = rule list [@@deriving show]
 
 (*****************************************************************************)
@@ -276,26 +279,44 @@ type rules = rule list [@@deriving show]
  *)
 let (last_matched_rule : rule_id option ref) = ref None
 
-exception InvalidLanguage of rule_id * string * Parse_info.t
+(* Those are recoverable errors; We can just skip the rules containing
+ * those errors.
+ * less: use a record
+ * alt: put in Output_from_core.atd?
+ *)
+type invalid_rule_error = invalid_rule_error_kind * rule_id * Parse_info.t
 
-(* TODO: the Parse_info.t is not precise for now, it corresponds to the
- * start of the pattern *)
-exception
-  InvalidPattern of
-    rule_id * string * Xlang.t * string (* exn *) * Parse_info.t * string list
+and invalid_rule_error_kind =
+  | InvalidLanguage of string (* the language string *)
+  (* TODO: the Parse_info.t for InvalidPattern is not precise for now;
+   * it corresponds to the start of the pattern *)
+  | InvalidPattern of
+      string (* pattern *)
+      * Xlang.t
+      * string (* exn *)
+      * string list (* yaml path *)
+  | InvalidRegexp of string (* PCRE error message *)
+  | InvalidOther of string
+  | MissingPositiveTermInAnd
 
-exception InvalidRegexp of rule_id * string * Parse_info.t
+let string_of_invalid_rule_error_kind = function
+  | InvalidLanguage language -> spf "invalid language %s" language
+  | InvalidRegexp message -> spf "invalid regex %s" message
+  (* coupling: this is actually intercepted in
+   * Semgrep_error_code.exn_to_error to generate a PatternParseError instead
+   * of a RuleParseError *)
+  | InvalidPattern (_pattern, xlang, _message, _yaml_path) ->
+      spf "Invalid pattern for %s" (Xlang.to_string xlang)
+  | MissingPositiveTermInAnd ->
+      "you need at least one positive term (not just negations or conditions)"
+  | InvalidOther s -> s
+
+exception InvalidRule of invalid_rule_error
 
 (* general errors *)
 exception InvalidYaml of string * Parse_info.t
-
 exception DuplicateYamlKey of string * Parse_info.t
-
-(* less: could be merged with InvalidYaml *)
-exception InvalidRule of rule_id * string * Parse_info.t
-
 exception UnparsableYamlException of string
-
 exception ExceededMemoryLimit of string
 
 (*****************************************************************************)
@@ -348,10 +369,97 @@ let rewrite_metavar_comparison_strip mvar cond =
   in
   visitor.Map_AST.vexpr cond
 
-let convert_extra x =
+(* TODO This is ugly because depends-on is inside the formula
+   but handled in Python. It might be that the only sane answer is
+   to port it to OCaml *)
+let remove_noop (e : formula_old) : formula_old =
+  let valid_formula x =
+    match x with
+    | PatFilteredInPythonTodo _ -> false
+    | _ -> true
+  in
+  let rec aux e =
+    match e with
+    | PatEither (t, xs) ->
+        let xs = Common.map aux (List.filter valid_formula xs) in
+        PatEither (t, xs)
+    | Patterns (t, xs) -> (
+        let xs' = Common.map aux (List.filter valid_formula xs) in
+        (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
+           after this filter it will be an empty And. To prevent
+           an error, check for that *)
+        match (xs, xs') with
+        | [ x ], [] -> aux x
+        | _ -> Patterns (t, xs'))
+    | PatFilteredInPythonTodo t ->
+        (* If a PatFilteredInPythonTodo key is the only thing on the top
+           level, return no matches *)
+        let any = "a^" in
+        Pat (mk_xpat (Regexp (any, SPcre.regexp any)) (any, t))
+    | _ -> e
+  in
+  aux e
+
+(* return list of "positive" x list of Not *)
+let split_and : formula list -> formula list * formula list =
+ fun xs ->
+  xs
+  |> Common.partition_either (fun e ->
+         match e with
+         (* positives *)
+         | P _
+         | And _
+         | Or _ ->
+             Left e
+         (* negatives *)
+         | Not (_, f) -> Right f)
+
+let rec (convert_formula_old :
+          ?in_metavariable_pattern:bool ->
+          rule_id:rule_id ->
+          formula_old ->
+          formula) =
+ fun ?(in_metavariable_pattern = false) ~rule_id e ->
+  let rec aux e =
+    match e with
+    | Pat x -> P (x, None)
+    | PatInside x -> P (x, Some Inside)
+    | PatNot (t, x) -> Not (t, P (x, None))
+    | PatNotInside (t, x) -> Not (t, P (x, Some Inside))
+    | PatEither (t, xs) ->
+        let xs = Common.map aux xs in
+        Or (t, xs)
+    | Patterns (t, xs) ->
+        let fs, conds, focus = Common.partition_either3 aux_and xs in
+        let pos, _ = split_and fs in
+        if pos = [] && not in_metavariable_pattern then
+          raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
+        And { tok = t; conjuncts = fs; conditions = conds; focus }
+    | PatExtra (t, _) ->
+        raise
+          (InvalidYaml
+             ("metavariable conditions must be inside a 'patterns:'", t))
+    | PatFocus (t, _) ->
+        raise
+          (InvalidYaml ("'focus-metavariable:' must be inside a 'patterns:'", t))
+    | PatFilteredInPythonTodo t -> raise (InvalidYaml ("Unexpected key", t))
+  and aux_and e =
+    match e with
+    | PatExtra (t, x) ->
+        let e = convert_extra ~rule_id x in
+        Middle3 (t, e)
+    | PatFocus (t, mvar) -> Right3 (t, mvar)
+    | _ -> Left3 (aux e)
+  in
+  aux (remove_noop e)
+
+and convert_extra ~rule_id x =
   match x with
-  | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, opt_xlang, formula) ->
+  | MetavarRegexp (mvar, re, const_prop) -> CondRegexp (mvar, re, const_prop)
+  | MetavarPattern (mvar, opt_xlang, formula_old) ->
+      let formula =
+        convert_formula_old ~in_metavariable_pattern:true ~rule_id formula_old
+      in
       CondNestedFormula (mvar, opt_xlang, formula)
   | MetavarComparison comp -> (
       match comp with
@@ -380,72 +488,9 @@ let convert_extra x =
 *)
       failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
-(* TODO This is ugly because depends-on is inside the formula
-   but handled in Python. It might be that the only sane answer is
-   to port it to OCaml *)
-let remove_noop (e : formula_old) : formula_old =
-  let valid_formula x =
-    match x with
-    | PatFilteredInPythonTodo _ -> false
-    | _ -> true
-  in
-  let rec aux e =
-    match e with
-    | PatEither (t, xs) ->
-        let xs = List.map aux (List.filter valid_formula xs) in
-        PatEither (t, xs)
-    | Patterns (t, xs) -> (
-        let xs' = List.map aux (List.filter valid_formula xs) in
-        (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
-           after this filter it will be an empty And. To prevent
-           an error, check for that *)
-        match (xs, xs') with
-        | [ x ], [] -> aux x
-        | _ -> Patterns (t, xs'))
-    | PatFilteredInPythonTodo t ->
-        (* If a PatFilteredInPythonTodo key is the only thing on the top
-           level, return no matches *)
-        let any = "a^" in
-        Pat (mk_xpat (Regexp (any, SPcre.regexp any)) (any, t))
-    | _ -> e
-  in
-  aux e
-
-let (convert_formula_old : formula_old -> formula) =
- fun e ->
-  let rec aux e =
-    match e with
-    | Pat x -> P (x, None)
-    | PatInside x -> P (x, Some Inside)
-    | PatNot (t, x) -> Not (t, P (x, None))
-    | PatNotInside (t, x) -> Not (t, P (x, Some Inside))
-    | PatEither (t, xs) ->
-        let xs = List.map aux xs in
-        Or (t, xs)
-    | Patterns (t, xs) ->
-        let fs, conds, focus = Common.partition_either3 aux_and xs in
-        And { tok = t; conjuncts = fs; conditions = conds; focus }
-    | PatExtra (t, _) ->
-        raise
-          (InvalidYaml
-             ("metavariable conditions must be inside a 'patterns:'", t))
-    | PatFocus (t, _) ->
-        raise
-          (InvalidYaml ("'focus-metavariable:' must be inside a 'patterns:'", t))
-    | PatFilteredInPythonTodo t -> raise (InvalidYaml ("Unexpected key", t))
-  and aux_and e =
-    match e with
-    | PatExtra (t, x) ->
-        let e = convert_extra x in
-        Middle3 (t, e)
-    | PatFocus (t, mvar) -> Right3 (t, mvar)
-    | _ -> Left3 (aux e)
-  in
-  aux (remove_noop e)
-
-let formula_of_pformula = function
+let formula_of_pformula ?in_metavariable_pattern ~rule_id = function
   | New f -> f
-  | Old oldf -> convert_formula_old oldf
+  | Old oldf -> convert_formula_old ?in_metavariable_pattern ~rule_id oldf
 
 let partition_rules rules =
   rules

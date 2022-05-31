@@ -1,6 +1,5 @@
 import hashlib
 import json
-from copy import deepcopy
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -10,6 +9,8 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
+import semgrep.output_from_core as core
+from dependencyparser.models import PackageManagers
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -22,7 +23,6 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
-from semgrep.util import flatten
 
 
 class Rule:
@@ -62,7 +62,7 @@ class Rule:
             language == LANGUAGE.resolve("javascript") for language in rule_languages
         ):
             rule_languages.add(LANGUAGE.resolve("typescript"))
-            self._raw["languages"] = [str(l) for l in rule_languages]
+            self._raw["languages"] = sorted(str(l) for l in rule_languages)
 
         self._languages = sorted(rule_languages)
 
@@ -128,8 +128,12 @@ class Rule:
         return self._excludes
 
     @property
-    def id(self) -> str:
+    def id(self) -> str:  # TODO: return a core.RuleId
         return self._id
+
+    @property
+    def id2(self) -> core.RuleId:  # TODO: merge with id
+        return core.RuleId(self._id)
 
     @property
     def message(self) -> str:
@@ -140,6 +144,13 @@ class Rule:
         return self._raw.get("metadata", {})
 
     @property
+    def is_blocking(self) -> bool:
+        """
+        Returns if this rule indicates matches should block CI
+        """
+        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+
+    @property
     def severity(self) -> RuleSeverity:
         return RuleSeverity(self._raw["severity"])
 
@@ -148,21 +159,27 @@ class Rule:
         return self._mode
 
     @property
-    def project_depends_on(self) -> Optional[List[List[Dict[str, str]]]]:
-        """
-        If the rule contains `project-depends-on` keys under patterns, return the values of those keys
-        Otherwise return None
-        """
-        # TODO: in initial implementation, this key is allowed only as a top-level key under `patterns`
-        PROJECT_DEPENDS_ON_KEY_NAME = "r2c-internal-project-depends-on"
-        matched_keys = [d for d in self._raw.get("patterns", [])]
-        depends_entries = [
-            list(_.values()) for _ in matched_keys if PROJECT_DEPENDS_ON_KEY_NAME in _
-        ]
-        flattened = flatten(depends_entries)
-        if len(flattened) == 0:
-            return None
-        return flattened
+    def project_depends_on(self) -> List[Dict[str, str]]:
+        if "r2c-internal-project-depends-on" in self._raw:
+            depends_on = self._raw["r2c-internal-project-depends-on"]
+            if "depends-on-either" in depends_on:
+                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                return dependencies
+            else:
+                return [depends_on]
+        else:
+            return []
+
+    @property
+    def namespaces(self) -> Set[PackageManagers]:
+        if "r2c-internal-project-depends-on" in self._raw:
+            depends_on = self._raw["r2c-internal-project-depends-on"]
+            if "depends-on-either" in depends_on:
+                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+                return {PackageManagers(d["namespace"]) for d in dependencies}
+            else:
+                return {depends_on["namespace"]}
+        return set()
 
     @property
     def languages(self) -> List[Language]:
@@ -180,6 +197,8 @@ class Rule:
     def fix(self) -> Optional[str]:
         return self._raw.get("fix")
 
+    # TODO: use v1.FixRegex and do the validation currently done
+    # in core_output.convert_to_rule_match() here
     @property
     def fix_regex(self) -> Optional[Dict[str, Any]]:
         return self._raw.get("fix-regex")
@@ -213,17 +232,13 @@ class Rule:
     def should_run_on_semgrep_core(self) -> bool:
         """
         Used to detect whether the rule had patterns that need to run on the core
-        (beyond Python-handled patterns, like `pattern-depends-on`).
+        (beyond Python-handled patterns, like `project-depends-on`).
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
 
         def has_runnable_rule(d: Dict[str, Any]) -> bool:
             for k in d:
-                # `pattern-inside` is valid without an accompanying `pattern`
-                if k in RuleValidation.PATTERN_KEYS or k == "pattern-inside":
-                    children = d.get(k)
-                    if children is not None and isinstance(children, list):
-                        return any(has_runnable_rule(_) for _ in children)
+                if k in RuleValidation.PATTERN_KEYS:
                     return True
             return False
 
@@ -231,6 +246,7 @@ class Rule:
 
 
 def rule_without_metadata(rule: Rule) -> Rule:
-    rule2 = deepcopy(rule)
-    rule2._raw["metadata"] = {}
-    return rule2
+    """Key used to deduplicate rules."""
+    new_rule = Rule(rule._yaml)
+    new_rule._raw.pop("metadata", None)
+    return new_rule

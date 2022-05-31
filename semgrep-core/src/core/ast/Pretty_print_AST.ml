@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 open AST_generic
@@ -61,7 +62,8 @@ let opt f = function
  * on fake tokens. It instead returns the fake token string
  *)
 let token default tok =
-  try Parse_info.str_of_info tok with Parse_info.NoTokenLocation _ -> default
+  try Parse_info.str_of_info tok with
+  | Parse_info.NoTokenLocation _ -> default
 
 let print_type t =
   match t.t with
@@ -97,6 +99,7 @@ let print_bool env = function
       | Lang.Rust
       | Lang.Scala
       | Lang.Solidity
+      | Lang.Swift
       | Lang.Html
       | Lang.Hcl ->
           "true"
@@ -129,6 +132,7 @@ let print_bool env = function
       | Lang.Rust
       | Lang.Scala
       | Lang.Solidity
+      | Lang.Swift
       | Lang.Html
       | Lang.Hcl ->
           "false"
@@ -254,7 +258,10 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Vue
     | Lang.Kotlin
     | Lang.Rust
-    | Lang.R ->
+    | Lang.R
+    (* Swift does not require parentheses around the condition, but it does
+     * permit them. *)
+    | Lang.Swift ->
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
@@ -295,6 +302,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
+    | Lang.Swift
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
@@ -333,6 +341,7 @@ and do_while stmt env level (s, e) =
     | Lang.Yaml
     | Lang.Scala
     | Lang.Solidity
+    | Lang.Swift
     | Lang.Html
     | Lang.Hcl ->
         raise Todo
@@ -382,7 +391,8 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Ts
     | Lang.Vue
     | Lang.Rust
-    | Lang.R ->
+    | Lang.R
+    | Lang.Swift ->
         F.sprintf "%s (%s) %s"
     | Lang.Go -> F.sprintf "%s %s %s"
     | Lang.Python
@@ -418,7 +428,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | ForEllipsis tok -> token "..." tok
     | ForIn (init, exprs) ->
         F.sprintf "%s %s %s" (show_init_list init) "in"
-          (String.concat "," (List.map (fun e -> expr env e) exprs))
+          (String.concat "," (Common.map (fun e -> expr env e) exprs))
   in
   let body_str = stmt env (level + 1) s in
   for_format (token "for" for_tok) hdr_str body_str
@@ -436,6 +446,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Yaml
       | Lang.Scala
       | Lang.Solidity
+      | Lang.Swift
       | Lang.Html
       | Lang.Hcl ->
           raise Todo
@@ -519,6 +530,7 @@ and return env (tok, eopt) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Swift
   | Lang.Ts
   | Lang.Vue
   | Lang.Lua ->
@@ -563,7 +575,8 @@ and break env (tok, lbl) _sc =
   | Lang.Ts
   | Lang.Vue
   | Lang.Lua
-  | Lang.R ->
+  | Lang.R
+  | Lang.Swift ->
       F.sprintf "%s%s" (token "break" tok) lbl_str
 
 and continue env (tok, lbl) _sc =
@@ -602,6 +615,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Swift
   | Lang.Ts
   | Lang.Vue ->
       F.sprintf "%s%s" (token "continue" tok) lbl_str
@@ -614,6 +628,7 @@ and expr env e =
   | N (IdQualified qualified_info) -> id_qualified env qualified_info
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
+  | New (_, t, es) -> new_call env (t, es)
   | L x -> literal env x
   | Container (Tuple, (_, es, _)) -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, (_, e2, _)) ->
@@ -645,16 +660,19 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   match name_middle with
   | Some (QDots dot_ids) ->
       (* TODO: do not do fst, look also at type qualification *)
-      F.sprintf "%s.%s" (dotted_access env (List.map fst dot_ids)) (ident id)
+      F.sprintf "%s.%s" (dotted_access env (Common.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 
 and special env = function
   | This, _ -> "this"
-  | New, _ -> "new"
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
   | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))
+
+and new_call env (t, (_, es, _)) =
+  let s1 = print_type t in
+  F.sprintf "new %s(%s)" s1 (arguments env es)
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
@@ -665,8 +683,6 @@ and call env (e, (_, es, _)) =
       F.sprintf "%s not in %s" (argument env e1) (argument env e2)
   | IdSpecial (Op _, _), [ x; y ] ->
       F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
-  | IdSpecial (New, _), x :: ys ->
-      F.sprintf "%s %s(%s)" s1 (argument env x) (arguments env ys)
   | IdSpecial (IncrDecr (i_d, pre_post), _), [ x ] -> (
       let op_str =
         match i_d with
@@ -715,7 +731,8 @@ and literal env l =
       | Lang.Ts
       | Lang.Lua
       | Lang.Rust
-      | Lang.R ->
+      | Lang.R
+      | Lang.Swift ->
           "\"" ^ s ^ "\"")
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/"
@@ -803,12 +820,7 @@ let svalue env = function
   | G.NotCst -> "TOP"
   | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
   | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
-  | G.Lit l -> (
-      match l with
-      | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
-      | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
-      | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
-      | ___else___ -> "lit(???)")
+  | G.Lit l -> Printf.sprintf "lit(%s)" (literal env l)
 
 (*****************************************************************************)
 (* Entry points *)

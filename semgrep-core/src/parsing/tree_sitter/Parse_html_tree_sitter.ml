@@ -2,14 +2,15 @@
  *
  * Copyright (c) 2021 R2C
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 module CST = Tree_sitter_html.CST
 module H = Parse_tree_sitter_helpers
@@ -31,9 +32,7 @@ module PI = Parse_info
 type env = unit H.env
 
 let fake = AST_generic.fake
-
 let token = H.token
-
 let str = H.str
 
 (*****************************************************************************)
@@ -110,14 +109,14 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* script_start_tag_name *) in
-  let v3 = List.map (map_attribute env) v3 in
+  let v3 = Common.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* style_start_tag_name *) in
-  let v3 = List.map (map_attribute env) v3 in
+  let v3 = Common.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -127,7 +126,7 @@ let map_start_tag (env : env) (x : CST.start_tag) =
   | `LT_start_tag_name_rep_attr_GT (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "<" *) in
       let v2 = str env v2 (* start_tag_name *) in
-      let v3 = List.map (map_attribute env) v3 in
+      let v3 = Common.map (map_attribute env) v3 in
       let v4 = token env v4 (* ">" *) in
       (v1, v2, v3, v4)
 
@@ -146,12 +145,12 @@ let rec map_element (env : env) (x : CST.element) : xml =
   | `Self_clos_tag (v1, v2, v3, v4) ->
       let l = token env v1 (* "<" *) in
       let id = str env v2 (* start_tag_name *) in
-      let attrs = List.map (map_attribute env) v3 in
+      let attrs = Common.map (map_attribute env) v3 in
       let r = token env v4 (* "/>" *) in
       { xml_kind = XmlSingleton (l, id, r); xml_attrs = attrs; xml_body = [] }
 
 and map_fragment (env : env) (xs : CST.fragment) : xml_body list =
-  List.map (map_node env) xs
+  Common.map (map_node env) xs
 
 and map_node (env : env) (x : CST.node) : xml_body =
   match x with

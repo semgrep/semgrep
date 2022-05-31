@@ -1,5 +1,7 @@
 open Common
 module J = JSON
+module In = Input_to_core_j
+module Out = Output_from_core_j
 
 let range_to_ast file lang s =
   let r = Range.range_of_linecol_spec s file in
@@ -19,9 +21,17 @@ let synthesize_patterns config s file =
   let lang = Lang.langs_of_filename file |> List.hd in
   let a = range_to_ast file lang s in
   let patterns = Pattern_from_Code.from_any config a in
-  List.map
+  Common.map
     (fun (k, v) -> (k, Pretty_print_pattern.pattern_to_string lang v))
     patterns
+
+let locate_patched_functions f =
+  let f = Common.read_file f in
+
+  let d = In.diff_files_of_string f in
+  let diff_files = d.In.cve_diffs in
+  let diffs = Common.map Pattern_from_diff.pattern_from_diff diff_files in
+  Out.string_of_cve_results diffs
 
 let target_to_string lang target =
   "target:\n" ^ Pretty_print_pattern.pattern_to_string lang target ^ "\n"
@@ -40,11 +50,11 @@ let parse_range_args s =
 let parse_targets (args : string list) : Pattern.t list * Lang.t =
   let ranges, file = parse_range_args args in
   let lang = Lang.langs_of_filename file |> List.hd in
-  let targets = List.map (range_to_ast file lang) ranges in
+  let targets = Common.map (range_to_ast file lang) ranges in
   (targets, lang)
 
 let print_pattern lang targets pattern =
-  List.map (target_to_string lang) targets
+  Common.map (target_to_string lang) targets
   @ [ Pretty_print_pattern.pattern_to_string lang pattern ]
 
 let generate_pattern_from_targets config s =

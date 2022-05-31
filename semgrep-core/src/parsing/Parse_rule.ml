@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Emma Jin
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -82,9 +82,7 @@ let yaml_error_at_expr (e : G.expr) s =
   yaml_error (Visitor_AST.first_info_of_any (G.E e)) s
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
-
-let error env t s = raise (R.InvalidRule (env.id, s, t))
-
+let error env t s = raise (R.InvalidRule (R.InvalidOther s, env.id, t))
 let error_at_key env (key : key) s = error env (snd key) s
 
 let error_at_expr env (e : G.expr) s =
@@ -106,15 +104,18 @@ let generic_to_json env (key : key) ast =
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
-    | G.L (String (s, _)) -> J.String s
-    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> List.map aux)
+    | G.L (String (s, _)) ->
+        (* should use the unescaped string *)
+        J.String s
+    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Common.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
           (xs
-          |> List.map (fun x ->
+          |> Common.map (fun x ->
                  match x.G.e with
                  | G.Container
                      (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
+                     (* should use the unescaped string *)
                      (k, aux v)
                  | _ ->
                      error_at_expr env x
@@ -129,7 +130,9 @@ let generic_to_json env (key : key) ast =
 
 let read_string_wrap e =
   match e with
-  | G.L (String (value, t)) -> Some (value, t)
+  | G.L (String (value, t)) ->
+      (* should use the unescaped string *)
+      Some (value, t)
   | G.L (Float (Some n, t)) ->
       if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
       else Some (string_of_float n, t)
@@ -221,7 +224,7 @@ let parse_string_wrap_no_env (key : key) x =
 
 let parse_list_no_env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.map f xs
+  | G.Container (Array, (_, xs, _)) -> Common.map f xs
   | _ -> yaml_error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list_no_env (key : key) e =
@@ -247,7 +250,7 @@ let parse_string env (key : key) x = parse_string_wrap env key x |> fst
 
 let parse_list env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.map (f env) xs
+  | G.Container (Array, (_, xs, _)) -> Common.map (f env) xs
   | _ -> error_at_key env key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
@@ -276,9 +279,8 @@ let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
   | G.L (String (s, _)) -> (
-      try int_of_string s
-      with Failure _ ->
-        error_at_key env key (spf "parse_int for %s" (fst key)))
+      try int_of_string s with
+      | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
       if float_of_int i = f then i else error_at_key env key "not an int"
@@ -322,9 +324,10 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try (s, SPcre.regexp s)
-  with Pcre.Error exn ->
-    raise (R.InvalidRegexp (env.id, pcre_error_to_string s exn, t))
+  try (s, SPcre.regexp s) with
+  | Pcre.Error exn ->
+      raise
+        (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
@@ -443,8 +446,10 @@ let parse_xpattern_expr env e =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
-        (R.InvalidPattern
-           (env.id, s, env.languages, Common.exn_to_s exn, t, env.path))
+        (R.InvalidRule
+           ( R.InvalidPattern (s, env.languages, Common.exn_to_s exn, env.path),
+             env.id,
+             t ))
 
 let find_formula_old env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
@@ -470,12 +475,7 @@ let find_formula_old env (rule_dict : dict) : key * G.expr =
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, or `pattern-comby`"
 
-let rec parse_formula (env : env) (rule_dict : dict) : R.pformula =
-  match Hashtbl.find_opt rule_dict.h "match" with
-  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old env rule_dict))
-
-and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
+let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let env = { env with path = fst key :: env.path } in
   let get_pattern str_e = parse_xpattern_expr env str_e in
   let get_nested_formula i x =
@@ -530,12 +530,14 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   (* These keys are handled in Python *)
   (* TODO really we should either remove these keys before sending
      the rules or handle them in OCaml, this is not good *)
-  | "r2c-internal-project-depends-on" -> R.PatFilteredInPythonTodo t
   | "r2c-internal-patterns-from" -> R.PatFilteredInPythonTodo t
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
 
-(* let extra = parse_extra env x in
-   R.PatExtra extra *)
+(* NOTE: this is mostly deadcode! None of our rules are using
+ * this new formula syntax directly (internally we do convert
+ * old style formula to new formula, but we always use the old
+ * syntax formula in yaml files).
+ *)
 and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
   | G.Container
@@ -554,6 +556,10 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" ->
           let xs = parse_list env key parse_formula_and_new value in
           let fs, conds = Common.partition_either (fun x -> x) xs in
+          (* sanity check fs *)
+          let pos, _negs = R.split_and fs in
+          if pos = [] then
+            raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
           R.And
             {
               tok = t;
@@ -600,7 +606,12 @@ and parse_formula_and_new env (x : G.expr) :
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string env key mvar in
               let x = parse_string_wrap env key re in
-              Right (t, R.CondRegexp (mvar, parse_regexp env x))
+              Right (t, R.CondRegexp (mvar, parse_regexp env x, false))
+          | G.Container (Array, (_, [ mvar; re; const_prop ], _)) ->
+              let mvar = parse_string env key mvar in
+              let x = parse_string_wrap env key re in
+              let const_prop = parse_bool env key const_prop in
+              Right (t, R.CondRegexp (mvar, parse_regexp env x, const_prop))
           | _ -> error_at_expr env value "Expected a metavariable and regex")
       | _ -> Left (parse_formula_new env x))
   | _ -> Left (R.P (parse_xpattern_expr env x, None))
@@ -622,17 +633,21 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarAnalysis (metavar, kind)
   | "metavariable-regex" ->
       let mv_regex_dict =
-        try yaml_to_dict env key value
-        with R.DuplicateYamlKey (msg, t) ->
-          raise
-            (R.InvalidRule
-               (env.id, msg ^ ". You should use multiple metavariable-regex", t))
+        try yaml_to_dict env key value with
+        | R.DuplicateYamlKey (msg, t) ->
+            error env t (msg ^ ". You should use multiple metavariable-regex")
       in
-      let metavar, regexp =
+      let metavar, regexp, const_prop =
         ( take mv_regex_dict env parse_string "metavariable",
-          take mv_regex_dict env parse_string_wrap "regex" )
+          take mv_regex_dict env parse_string_wrap "regex",
+          take_opt mv_regex_dict env parse_bool "constant-propagation" )
       in
-      R.MetavarRegexp (metavar, parse_regexp env regexp)
+      R.MetavarRegexp
+        ( metavar,
+          parse_regexp env regexp,
+          match const_prop with
+          | Some b -> b
+          | None -> false )
   | "metavariable-pattern" ->
       let mv_pattern_dict = yaml_to_dict env key value in
       let metavar = take mv_pattern_dict env parse_string "metavariable" in
@@ -650,9 +665,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
-      let pformula = parse_formula env' mv_pattern_dict in
-      let formula = R.formula_of_pformula pformula in
-      R.MetavarPattern (metavar, opt_xlang, formula)
+      let formula_old =
+        parse_formula_old env' (find_formula_old env mv_pattern_dict)
+      in
+      R.MetavarPattern (metavar, opt_xlang, formula_old)
   | "metavariable-comparison" ->
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
@@ -673,18 +689,16 @@ let parse_languages ~id langs : Xlang.t =
   | xs -> (
       let languages =
         xs
-        |> List.map (function s, t ->
+        |> Common.map (function s, t ->
                (match Lang.lang_of_string_opt s with
-               | None ->
-                   raise
-                     (R.InvalidLanguage
-                        (fst id, spf "unsupported language: %s" s, t))
+               | None -> raise (R.InvalidRule (R.InvalidLanguage s, fst id, t))
                | Some l -> l))
       in
       match languages with
       | [] ->
           raise
-            (R.InvalidRule (fst id, "we need at least one language", snd id))
+            (R.InvalidRule
+               (R.InvalidOther "we need at least one language", fst id, snd id))
       | x :: xs -> L (x, xs))
 
 let parse_severity ~id (s, t) =
@@ -696,11 +710,23 @@ let parse_severity ~id (s, t) =
   | s ->
       raise
         (R.InvalidRule
-           (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s, t))
+           ( R.InvalidOther
+               (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
+             id,
+             t ))
 
 (*****************************************************************************)
 (* Sub parsers taint *)
 (*****************************************************************************)
+
+let parse_formula (env : env) (rule_dict : dict) : R.pformula =
+  match Hashtbl.find_opt rule_dict.h "match" with
+  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
+  | None ->
+      let old = parse_formula_old env (find_formula_old env rule_dict) in
+      (* sanity check *)
+      let _new = Rule.convert_formula_old ~rule_id:env.id old in
+      R.Old old
 
 let parse_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
@@ -743,110 +769,160 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"
            (fst key))
 
-let parse_generic file ast =
-  let rules_block =
-    match ast with
-    | [
-     {
-       G.s =
-         G.ExprStmt
-           ( {
-               e =
-                 Container
-                   ( Dict,
-                     ( _,
-                       [
-                         {
-                           e =
-                             Container
-                               ( Tuple,
-                                 ( _,
-                                   [ { e = L (String ("rules", _)); _ }; rules ],
-                                   _ ) );
-                           _;
-                         };
-                       ],
-                       _ ) );
-               _;
-             },
-             _ );
-       _;
-     };
-    ] ->
-        rules
-    | _ ->
-        let loc = PI.first_loc_of_file file in
-        yaml_error (PI.mk_info_of_loc loc)
-          "missing rules entry as top-level key"
-  in
-  let t, rules =
-    match rules_block.G.e with
-    | Container (Array, (l, rules, _r)) -> (l, rules)
-    | _ ->
-        yaml_error_at_expr rules_block
-          "expected a list of rules following `rules:`"
-  in
-  rules
-  |> List.mapi (fun i rule ->
-         let rd = yaml_to_dict_no_env ("rules", t) rule in
-         let id, languages =
-           ( take_no_env rd parse_string_wrap_no_env "id",
-             take_no_env rd parse_string_wrap_list_no_env "languages" )
-         in
-         let languages = parse_languages ~id languages in
-         let env =
-           { id = fst id; languages; path = [ string_of_int i; "rules" ] }
-         in
-         let ( message,
-               severity,
-               mode_opt,
-               metadata_opt,
-               fix_opt,
-               fix_regex_opt,
-               paths_opt,
-               equivs_opt,
-               options_opt ) =
-           ( take rd env parse_string "message",
-             take rd env parse_string_wrap "severity",
-             take_opt rd env parse_string_wrap "mode",
-             take_opt rd env generic_to_json "metadata",
-             take_opt rd env parse_string "fix",
-             take_opt rd env parse_fix_regex "fix-regex",
-             take_opt rd env parse_paths "paths",
-             take_opt rd env parse_equivalences "equivalences",
-             take_opt rd env parse_options "options" )
-         in
-         let mode = parse_mode env mode_opt rd in
-         {
-           R.id;
-           message;
-           languages;
-           severity = parse_severity ~id:env.id severity;
-           mode;
-           (* optional fields *)
-           metadata = metadata_opt;
-           fix = fix_opt;
-           fix_regexp = fix_regex_opt;
-           paths = paths_opt;
-           equivalences = equivs_opt;
-           options = options_opt;
-         })
+(* sanity check there are no remaining fields in rd *)
+let report_unparsed_fields rd =
+  (* those were not "consumed" *)
+  Hashtbl.remove rd.h "pattern";
+  Hashtbl.remove rd.h "patterns";
+  match Common.hash_to_list rd.h with
+  | [] -> ()
+  | xs ->
+      (* less: we could return an error, but better to be fault-tolerant
+       * to futur extensions to the rule format
+       *)
+      xs
+      |> List.iter (fun (k, _v) ->
+             logger#warning "skipping unknown field: %s" k)
 
-let parse file =
+let parse_one_rule t i rule =
+  let rd = yaml_to_dict_no_env ("rules", t) rule in
+  let id, languages =
+    ( take_no_env rd parse_string_wrap_no_env "id",
+      take_no_env rd parse_string_wrap_list_no_env "languages" )
+  in
+  let languages = parse_languages ~id languages in
+  let env = { id = fst id; languages; path = [ string_of_int i; "rules" ] } in
+  let ( message,
+        severity,
+        mode_opt,
+        metadata_opt,
+        fix_opt,
+        fix_regex_opt,
+        paths_opt,
+        equivs_opt,
+        options_opt ) =
+    ( take rd env parse_string "message",
+      take rd env parse_string_wrap "severity",
+      take_opt rd env parse_string_wrap "mode",
+      take_opt rd env generic_to_json "metadata",
+      take_opt rd env parse_string "fix",
+      take_opt rd env parse_fix_regex "fix-regex",
+      take_opt rd env parse_paths "paths",
+      take_opt rd env parse_equivalences "equivalences",
+      take_opt rd env parse_options "options" )
+  in
+  let mode = parse_mode env mode_opt rd in
+  report_unparsed_fields rd;
+  {
+    R.id;
+    message;
+    languages;
+    severity = parse_severity ~id:env.id severity;
+    mode;
+    (* optional fields *)
+    metadata = metadata_opt;
+    fix = fix_opt;
+    fix_regexp = fix_regex_opt;
+    paths = paths_opt;
+    equivalences = equivs_opt;
+    options = options_opt;
+  }
+
+let parse_generic ?(error_recovery = false) file ast =
+  let t, rules =
+    match ast with
+    | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
+        match e.G.e with
+        | Container
+            ( Dict,
+              ( _,
+                [
+                  {
+                    e =
+                      Container
+                        ( Tuple,
+                          (_, [ { e = L (String ("rules", _)); _ }; rules ], _)
+                        );
+                    _;
+                  };
+                ],
+                _ ) ) -> (
+            match rules.G.e with
+            | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
+            | _ ->
+                yaml_error_at_expr rules
+                  "expected a list of rules following `rules:`")
+        (* it's also ok to not have the toplevel rules:, anyway we never
+         * used another toplevel key
+         *)
+        | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
+        | _ ->
+            let loc = PI.first_loc_of_file file in
+            yaml_error (PI.mk_info_of_loc loc)
+              "missing rules entry as top-level key")
+    | _ -> assert false
+    (* yaml_to_generic should always return a ExprStmt *)
+  in
+  let xs =
+    rules
+    |> List.mapi (fun i rule ->
+           if error_recovery then (
+             try Left (parse_one_rule t i rule) with
+             | R.InvalidRule ((kind, ruleid, _) as err) ->
+                 let s = Rule.string_of_invalid_rule_error_kind kind in
+                 logger#warning "skipping rule %s, error = %s" ruleid s;
+                 Right err)
+           else Left (parse_one_rule t i rule))
+  in
+  Common.partition_either (fun x -> x) xs
+
+let parse_bis ?error_recovery file =
   let ast =
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
-        Json_to_generic.program (Parse_json.parse_program file)
+        (* in a parsing-rule context, we don't want the parsed strings by
+         * Parse_json.parse_program to remain escaped. For example with this
+         * JSON rule:
+         * { "rules": [ {
+         *       "id": "x",
+         *       "message": "",
+         *       "languages": ["python"],
+         *       "severity": "WARNING",
+         *       "pattern": "\"hello\""
+         *     }
+         *   ]
+         * }
+         * we want the pattern in the generic AST of the rule to contain the
+         * string '"hello"', without the antislash, otherwise
+         * Parse_python.parse_any will fail parsing it.
+         *
+         * Note that we didn't have this problem before when we were using
+         * Yojson to parse a JSON rule, because Yojson correctly unescaped
+         * and returned the "final string".
+         *
+         * Note that this is handled correctly by Yaml_to_generic.program
+         * below.
+         *)
+        Json_to_generic.program ~unescape_strings:true
+          (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
             let cmd = spf "jsonnet %s -o %s" file tmpfile in
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program (Parse_json.parse_program tmpfile))
+            Json_to_generic.program ~unescape_strings:true
+              (Parse_json.parse_program tmpfile))
     | FT.Config FT.Yaml -> Yaml_to_generic.program file
     | _ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
         logger#info "trying to parse %s as YAML" file;
         Yaml_to_generic.program file
   in
-  parse_generic file ast
+  parse_generic ?error_recovery file ast
+
+let parse file =
+  let xs, skipped = parse_bis ~error_recovery:false file in
+  assert (skipped = []);
+  xs
+
+let parse_and_filter_invalid_rules file = parse_bis ~error_recovery:true file

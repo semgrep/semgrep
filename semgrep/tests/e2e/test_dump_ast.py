@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.kinda_slow
 def test_dump_ast(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -7,6 +11,7 @@ def test_dump_ast(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "results.json")
 
 
+@pytest.mark.kinda_slow
 def test_dump_ast_no_lang(run_semgrep_in_tmp, snapshot):
     _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",

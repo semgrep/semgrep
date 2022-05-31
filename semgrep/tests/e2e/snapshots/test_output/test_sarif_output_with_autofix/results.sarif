@@ -1,0 +1,147 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "fixes": [
+    {
+      "artifactChanges": [
+        {
+          "artifactLocation": {
+            "uri": "targets/autofix/autofix.py"
+          },
+          "replacements": [
+            {
+              "deletedRegion": {
+                "endColumn": 12,
+                "endLine": 5,
+                "startColumn": 3,
+                "startLine": 5
+              },
+              "insertedContent": {
+                "text": [
+                  "  inputs.get(x) = 1"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": {
+        "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
+      }
+    },
+    {
+      "artifactChanges": [
+        {
+          "artifactLocation": {
+            "uri": "targets/autofix/autofix.py"
+          },
+          "replacements": [
+            {
+              "deletedRegion": {
+                "endColumn": 19,
+                "endLine": 6,
+                "startColumn": 6,
+                "startLine": 6
+              },
+              "insertedContent": {
+                "text": [
+                  "  if inputs.get(x + 1) == True:"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": {
+        "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
+      }
+    }
+  ],
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/autofix/autofix.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 12,
+                  "endLine": 5,
+                  "snippet": {
+                    "text": "  inputs[x] = 1"
+                  },
+                  "startColumn": 3,
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Use `.get()` method to avoid a KeyNotFound error"
+          },
+          "ruleId": "rules.autofix.use-dict-get"
+        },
+        {
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/autofix/autofix.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 19,
+                  "endLine": 6,
+                  "snippet": {
+                    "text": "  if inputs[x + 1] == True:"
+                  },
+                  "startColumn": 6,
+                  "startLine": 6
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Use `.get()` method to avoid a KeyNotFound error"
+          },
+          "ruleId": "rules.autofix.use-dict-get"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "semgrep",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error"
+              },
+              "id": "rules.autofix.use-dict-get",
+              "name": "rules.autofix.use-dict-get",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

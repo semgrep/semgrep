@@ -18,7 +18,6 @@ val parse_and_resolve_name_use_pfff_or_treesitter :
 
 (* used only for testing purpose *)
 val just_parse_with_lang : Lang.t -> Common.filename -> parsing_result
-
 val parse_program : Common.filename -> AST_generic.program
 
 (* used by Parse_pattern *)

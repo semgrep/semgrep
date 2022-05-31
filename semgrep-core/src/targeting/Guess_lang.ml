@@ -63,7 +63,7 @@ let prepend_period_if_needed s =
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.
 *)
 let has_extension extensions =
-  has_suffix (List.map prepend_period_if_needed extensions)
+  has_suffix (Common.map prepend_period_if_needed extensions)
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 
@@ -93,7 +93,9 @@ let get_first_line path =
   let ic = open_in_bin path in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
-    (fun () -> try input_line ic with End_of_file -> (* empty file *) "")
+    (fun () ->
+      try input_line ic with
+      | End_of_file -> (* empty file *) "")
 
 (*
    Get the first N bytes of the file, which is ideally obtained from
@@ -108,7 +110,6 @@ let get_first_block ?(block_size = 4096) path =
       really_input_string ic len)
 
 let shebang_re = lazy (SPcre.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
-
 let split_cmd_re = lazy (SPcre.regexp "[ \t]+")
 
 (*
@@ -263,6 +264,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Rust
     | Scala
     | Solidity
+    | Swift
     | Hcl
     | Ts
     | Vue

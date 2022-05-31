@@ -39,19 +39,10 @@ class DefaultGroup(click.Group):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         default_command = kwargs.pop("default_command", None)
-        super(DefaultGroup, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_command_name = None
         if default_command is not None:
             self.default_command_name = default_command
-
-    def get_help(self, ctx: click.Context) -> str:
-        """
-        Override `semgrep --help` to print out `semgrep scan --help`
-        for backwards compatibility
-        """
-        command = self.get_command(ctx, "scan")
-        assert command
-        return command.get_help(ctx)
 
     def parse_args(self, ctx: click.Context, args: List[str]) -> List[str]:
         """
@@ -59,7 +50,7 @@ class DefaultGroup(click.Group):
         """
         if not args and self.default_command_name is not None:
             args.insert(0, self.default_command_name)
-        return super(DefaultGroup, self).parse_args(ctx, args)
+        return super().parse_args(ctx, args)
 
     def get_command(
         self, ctx: click.Context, command_name: str
@@ -76,7 +67,7 @@ class DefaultGroup(click.Group):
             ctx._default_command_overwrite_args0 = command_name  # type: ignore
             command_name = self.default_command_name
 
-        return super(DefaultGroup, self).get_command(ctx, command_name)
+        return super().get_command(ctx, command_name)
 
     def resolve_command(
         self, ctx: click.Context, args: List[str]
@@ -92,7 +83,7 @@ class DefaultGroup(click.Group):
         If args[0] is actually a command name then _default_command_overwrite_args0
         will not be set so this function is equivalent to existing behavior
         """
-        cmd_name, cmd, args = super(DefaultGroup, self).resolve_command(ctx, args)
+        cmd_name, cmd, args = super().resolve_command(ctx, args)
         if hasattr(ctx, "_default_command_overwrite_args0"):
             args.insert(0, ctx._default_command_overwrite_args0)  # type: ignore
         return cmd_name, cmd, args

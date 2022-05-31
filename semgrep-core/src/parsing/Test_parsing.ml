@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module PI = Parse_info
@@ -92,13 +93,17 @@ let dump_tree_sitter_cst lang file =
   | Lang.Solidity ->
       Tree_sitter_solidity.Parse.file file
       |> dump_and_print_errors Tree_sitter_solidity.CST.dump_tree
+  | Lang.Swift ->
+      Tree_sitter_swift.Parse.file file
+      |> dump_and_print_errors Tree_sitter_swift.CST.dump_tree
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
       |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
   | Lang.Ts ->
-      Tree_sitter_typescript.Parse.file file
-      |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
+      (* Typescript is mostly a subset of TSX *)
+      Tree_sitter_tsx.Parse.file file
+      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
   | Lang.Lua ->
       Tree_sitter_lua.Parse.file file
       |> dump_and_print_errors Tree_sitter_lua.CST.dump_tree
@@ -126,10 +131,13 @@ let dump_tree_sitter_cst lang file =
   | Lang.Hcl ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
+  | Lang.Elixir ->
+      Tree_sitter_elixir.Parse.file file
+      |> dump_and_print_errors Tree_sitter_elixir.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = List.map Common.fullpath root_paths in
+  let paths = Common.map Common.fullpath root_paths in
   let paths, _skipped_paths =
     Find_target.files_of_dirs_or_files (Some lang) paths
   in
@@ -158,8 +166,7 @@ let test_parse_tree_sitter lang root_paths =
                  | Lang.Js ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
                  | Lang.Ts ->
-                     Tree_sitter_typescript.Parse.file file
-                     |> fail_on_error |> ignore
+                     Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
                  | Lang.Rust ->
                      Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
                  | Lang.Ocaml ->
@@ -182,9 +189,10 @@ let test_parse_tree_sitter lang root_paths =
                        (spf "lang %s not supported with tree-sitter"
                           (Lang.to_string lang)));
                  PI.correct_stat file
-               with exn ->
-                 print_exn file exn;
-                 PI.bad_stat file
+               with
+               | exn ->
+                   print_exn file exn;
+                   PI.bad_stat file
              in
              Common.push stat stat_list));
   Parse_info.print_parsing_stat_list !stat_list;
@@ -241,7 +249,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    List.map Common.fullpath files_or_dirs
+    Common.map Common.fullpath files_or_dirs
   in
   let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
@@ -273,6 +281,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                  *)
                  PI.bad_stat file
            in
+           if verbose && stat.PI.error_line_count > 0 then
+             pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PI.filename);
            stat)
   in
   (stats, skipped)
@@ -326,7 +336,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 *)
 let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
     Parsing_stats_t.project_stats list =
-  List.map
+  Common.map
     (fun (project_name, file_stats) ->
       let acc =
         {
@@ -393,7 +403,7 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  List.map
+  Common.map
     (fun dir ->
       let name = dir in
       parse_project ~verbose lang name [ dir ])
@@ -403,7 +413,7 @@ let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects ~verbose lang project_dirs in
   if json then print_json lang stat_list
   else
-    let flat_stat = List.map snd stat_list |> List.flatten in
+    let flat_stat = List.concat_map snd stat_list in
     Parse_info.print_parsing_stat_list flat_stat
 
 let parsing_regressions lang files_or_dirs =

@@ -2,14 +2,15 @@
  *
  * Copyright (C) 2020 r2c
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open AST_generic
 module G = AST_generic
@@ -59,11 +60,8 @@ let lookup env e =
 (*****************************************************************************)
 
 let fk = Parse_info.unsafe_fake_info "fake"
-
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
-
 let body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
-
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
 let default_id str =
@@ -75,6 +73,7 @@ let default_id str =
            id_type = ref None;
            id_svalue = ref None;
            id_hidden = false;
+           id_info_id = 0;
          } ))
   |> G.e
 
@@ -196,7 +195,7 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 let generalize_call env e =
   match e.e with
-  | Call ({ e = IdSpecial (New, _); _ }, _) -> []
+  | New (_, _, _) -> []
   | Call (e, (lp, es, rp)) -> (
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
@@ -271,7 +270,7 @@ and generalize_exp e env =
 (* Helper functions to make it easier to add all variations *)
 (* Generalizes e, then applies the same transformation f to each *)
 and add_expr e f env =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | str, E e' -> f (str, e')
@@ -279,7 +278,7 @@ and add_expr e f env =
     (generalize_exp e env)
 
 and add_stmt s f env =
-  List.map
+  Common.map
     (fun x ->
       match x with
       | str, S s' -> f (str, s')
