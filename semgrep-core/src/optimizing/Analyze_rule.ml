@@ -229,7 +229,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
   | Regexp of Rule.regexp
-  | MvarRegexp of MV.mvar * Rule.regexp
+  | MvarRegexp of MV.mvar * Rule.regexp * bool
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -300,12 +300,13 @@ and metavarcond_step1 x =
   match x with
   | R.CondEval _ -> None
   | R.CondNestedFormula _ -> None
-  | R.CondRegexp (mvar, re) ->
+  | R.CondRegexp (mvar, re, const_prop) ->
       (* bugfix: if the metavariable-regexp is "^(foo|bar)$" we
        * don't want to keep it because it can't be used on the whole file.
        * TODO: remove the anchor so it's usable?
        *)
-      if regexp_contain_anchor re then None else Some (MvarRegexp (mvar, re))
+      if regexp_contain_anchor re then None
+      else Some (MvarRegexp (mvar, re, const_prop))
   | R.CondAnalysis _ -> None
 
 (* todo: check for other special chars? *)
@@ -349,7 +350,8 @@ let and_step1bis_filter_general (And xs) =
                                          | StringsAndMvars (_, mvars) ->
                                              List.mem mvar mvars
                                          | Regexp _ -> false
-                                         | MvarRegexp (mvar2, _) -> mvar2 = mvar)))
+                                         | MvarRegexp (mvar2, _, _) ->
+                                             mvar2 = mvar)))
                   | _ -> false)
            in
            if null xs' then None else Some (Or xs'))
@@ -371,7 +373,7 @@ let or_step2 (Or xs) =
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re -> Regexp2 re
-      | MvarRegexp (_mvar, re) -> Regexp2 re)
+      | MvarRegexp (_mvar, re, _const_prop) -> Regexp2 re)
   in
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,

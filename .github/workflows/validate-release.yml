@@ -36,7 +36,7 @@ jobs:
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
       - name: build tester image
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v3
         with:
           push: false
           path: scripts
