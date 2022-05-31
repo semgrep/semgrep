@@ -2282,7 +2282,7 @@ and map_unary_op_expression (env : env) (x : CST.unary_op_expression) =
   | `AT_exp (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
       let v2 = map_expression env v2 in
-      v2 (* TODO include error control operator "@" *)
+      A.Call (A.Id [ (A.builtin "at", v1) ], Parse_info.fake_bracket v1 [ v2 ])
   | `Choice_PLUS_exp (v1, v2) ->
       let v1 =
         match v1 with
