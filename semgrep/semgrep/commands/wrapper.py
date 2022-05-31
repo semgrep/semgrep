@@ -5,7 +5,6 @@ from typing import Callable
 from typing import NoReturn
 
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
@@ -32,8 +31,6 @@ def handle_command_errors(func: Callable) -> Callable:
         logger = getLogger("semgrep")
         logger.propagate = False
 
-        exit_code = None
-
         try:
             func(*args, **kwargs)
         # Catch custom exception, output the right message and exit
@@ -42,12 +39,15 @@ def handle_command_errors(func: Callable) -> Callable:
         except Exception as e:
             logger.exception(e)
             exit_code = FATAL_EXIT_CODE
+        except SystemExit as e:
+            exit_code = e.code
+        except:  # noqa: B001
+            exit_code = FATAL_EXIT_CODE
         else:
-            exit_code = OK_EXIT_CODE
+            exit_code = 0
         finally:
             metrics = get_state().metrics
-            if exit_code is not None:
-                metrics.add_exit_code(exit_code)
+            metrics.add_exit_code(exit_code)
             metrics.send()
 
         # not inside the finally block to avoid overriding other sys.exits
