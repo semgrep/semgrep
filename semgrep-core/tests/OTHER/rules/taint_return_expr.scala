@@ -1,9 +1,9 @@
 def no_ret(x: Int) : Int = {
-  // ERROR: match
+  // ruleid: match
   3 * foo(x) + 412
 }
 
 def ret(x: Int) : Int = {
-  // ERROR: match
+  // ruleid: test
   return foo(x) + 4
 }
