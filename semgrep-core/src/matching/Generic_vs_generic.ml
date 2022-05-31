@@ -2559,7 +2559,7 @@ and m_parameter_classic a b =
       { B.pname = Some b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 }
     ) ->
       m_ident_and_id_info (a1, a5) (b1, b5) >>= fun () ->
-      (m_option m_expr) a2 b2 >>= fun () ->
+      (m_option_none_can_match_some m_expr) a2 b2 >>= fun () ->
       (m_type_option_with_hook b1) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (* boilerplate *)
