@@ -68,7 +68,7 @@ jobs:
     needs: [mac-build]
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: semgrep-osx
           path: artifacts
@@ -90,7 +90,7 @@ jobs:
         with:
           submodules: true
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts

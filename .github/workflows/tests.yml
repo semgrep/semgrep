@@ -84,7 +84,7 @@ jobs:
         with:
           submodules: true
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -124,7 +124,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -201,7 +201,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -247,7 +247,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -297,7 +297,7 @@ jobs:
           jq . semgrep/baseline_timing2.json
           pip3 uninstall -y semgrep
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
