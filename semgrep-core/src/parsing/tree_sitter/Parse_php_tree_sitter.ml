@@ -209,7 +209,11 @@ let map_visibility_modifier (env : env) (x : CST.visibility_modifier) =
 
 let map_string__ (env : env) (x : CST.string__) =
   match x with
-  | `Str tok -> (* string *) A.String (_str env tok)
+  | `Str tok ->
+      (* string *)
+      let value, tok = _str env tok in
+      let value = String.sub value 1 (String.length value - 2) in
+      A.String (value, tok)
   | `Here tok -> (* heredoc *) A.String (_str env tok)
 
 let map_anon_choice_pat_174c3a5_81b85de (env : env)
