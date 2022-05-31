@@ -172,7 +172,7 @@ def run_rules(
             if len(top_level_target_rooted) == 0
             else top_level_target_rooted[-1]
         )
-        namespaces = [ns for r in dependency_aware_rules for ns in r.namespaces]
+        namespaces = list({ns for r in dependency_aware_rules for ns in r.namespaces})
         dep_trie = make_dependency_trie(top_level_target, namespaces, target_manager)
 
         for rule in dependency_aware_rules:

@@ -89,7 +89,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version
@@ -129,7 +129,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -206,7 +206,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -214,7 +214,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pip3 install pipenv==2021.5.29
           pipenv install --dev
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/semgrep-cache
           key: semgrep-repo-cache-test
@@ -252,7 +252,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -302,7 +302,7 @@ jobs:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |

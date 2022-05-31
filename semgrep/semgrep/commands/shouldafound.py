@@ -54,12 +54,8 @@ def shouldafound(
     """
     if not email:
         try:
-            email = (
-                subprocess.check_output(["git", "config", "user.email"])
-                .decode()
-                .strip()
-            )
-        except Exception:
+            email = _get_git_email()
+        except subprocess.CalledProcessError:
             click.echo(
                 "Could not parse git email. Please use the --email flag to report this false negative.",
                 err=True,
@@ -96,6 +92,13 @@ def shouldafound(
             err=True,
         )
         sys.exit(2)
+
+
+def _get_git_email() -> str:
+    """
+    :raises CalledProcessError: If not in a git environment / email not configured
+    """
+    return subprocess.check_output(["git", "config", "user.email"]).decode().strip()
 
 
 def _make_shouldafound_request(data: JsonObject) -> Optional[str]:

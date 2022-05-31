@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
 
 ### Changed
 
@@ -23,6 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   of the heavy lifting work
   (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
 - TS: support number and boolean typed metavariables (#5350)
+- Scala: correctly handle `return` for taint analysis (#4975)
 - PHP: correctly handle namespace use declarations when they don't rename
   the imported name (#3964)
 
