@@ -214,7 +214,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pip3 install pipenv==2021.5.29
           pipenv install --dev
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/semgrep-cache
           key: semgrep-repo-cache-test
