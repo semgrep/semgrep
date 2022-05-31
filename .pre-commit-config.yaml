@@ -11,6 +11,7 @@ repos:
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-json
+        exclude: ".devcontainer/devcontainer.json"
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
@@ -64,7 +65,7 @@ repos:
         args: ["--py37-plus"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v0.950"
+    rev: "v0.960"
     hooks:
       - id: mypy
         exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
@@ -101,7 +102,7 @@ repos:
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.91.0"
+    rev: "v0.94.0"
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -135,7 +136,7 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.91.0"
+    rev: "v0.94.0"
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
@@ -168,4 +169,4 @@ repos:
     rev: v2.6.2
     hooks:
       - id: prettier
-        exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$"
+        exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"

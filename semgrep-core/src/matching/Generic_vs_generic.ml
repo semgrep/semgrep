@@ -31,6 +31,7 @@ module MV = Metavariable
 module Flag = Flag_semgrep
 module Config = Config_semgrep_t
 module H = AST_generic_helpers
+module T = Type_generic
 
 (* optimisations *)
 module CK = Caching.Cache_key
@@ -374,6 +375,20 @@ let m_with_symbolic_propagation f b =
  * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
+  let try_parents dotted =
+    let parents =
+      match !hook_find_possible_parents with
+      | None -> []
+      | Some f -> f dotted
+    in
+    (* less: use a fold *)
+    let rec aux xs =
+      match xs with
+      | [] -> fail ()
+      | x :: xs -> m_name a x >||> aux xs
+    in
+    aux parents
+  in
   match (a, b) with
   (* equivalence: aliasing (name resolving) part 1 *)
   | ( a,
@@ -394,20 +409,8 @@ let rec m_name a b =
       m_name a (B.Id (idb, B.empty_id_info ()))
       >||> (* try this time a match with the resolved entity *)
       m_name a (H.name_of_ids dotted)
-      >||>
-      (* Try the parents *)
-      let parents =
-        match !hook_find_possible_parents with
-        | None -> []
-        | Some f -> f dotted
-      in
-      (* less: use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x :: xs -> m_name a x >||> aux xs
-      in
-      aux parents
+      >||> (* Try the parents *)
+      try_parents dotted
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
@@ -458,6 +461,25 @@ let rec m_name a b =
           return ())
   (* boilerplate *)
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
+  | ( G.Id _,
+      G.IdQualified
+        {
+          name_info =
+            {
+              B.id_resolved =
+                {
+                  contents =
+                    Some
+                      ( ( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName dotted ),
+                        _sid );
+                };
+              _;
+            };
+          _;
+        } ) ->
+      try_parents dotted
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
@@ -703,7 +725,7 @@ and m_expr a b =
       envf (str, tok) (MV.E b)
   (* metavar: typed! *)
   | G.TypedMetavar ((str, tok), _, t), _b when MV.is_metavar_name str ->
-      m_compatible_type (str, tok) t b
+      with_lang (fun lang -> m_compatible_type lang (str, tok) t b)
   (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
    *)
@@ -722,7 +744,7 @@ and m_expr a b =
           (with_lang (fun lang ->
                match
                  Constant_propagation.constant_propagation_and_evaluate_literal
-                   ?lang b
+                   ~lang b
                with
                | Some b1 -> m_literal_svalue a1 b1
                | None -> fail ()))
@@ -888,6 +910,7 @@ and m_expr a b =
   | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -1163,43 +1186,43 @@ and m_container_ordered_elements a b =
  *    which would require to transform the code in the generic_vs_generic
  *    style as typechecking could also bind metavariables in the process
  *)
-and m_compatible_type typed_mvar t e =
-  match (t.G.t, e.G.e) with
-  (* for Python literal checking *)
-  | G.TyExpr { e = G.N (G.Id (("int", _tok), _idinfo)); _ }, B.L (B.Int _) ->
-      envf typed_mvar (MV.E e)
-  | G.TyExpr { e = G.N (G.Id (("float", _tok), _idinfo)); _ }, B.L (B.Float _)
-    ->
-      envf typed_mvar (MV.E e)
-  | G.TyExpr { e = G.N (G.Id (("str", _tok), _idinfo)); _ }, B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
-  (* for C specific literals *)
-  | G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }), B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
-  | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
-  (* for Java and Go literals *)
-  | G.TyN (Id (("int", _), _)), B.L (B.Int _) -> envf typed_mvar (MV.E e)
-  | G.TyN (Id (("float", _), _)), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | G.TyN (Id ((("string" | "String"), _), _)), B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
-  (* for C strings to match metavariable pointer types *)
-  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
-      B.L (B.String _) ) ->
-      m_type_ t
-        (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
-      >>= fun () -> envf typed_mvar (MV.E e)
-  (* for matching ids *)
-  (* this is covered by the basic type propagation done in Naming_AST.ml *)
-  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-      (* NOTE: Name values must be represented with MV.Id! *)
-      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
-      envf typed_mvar (MV.Id (idb, Some id_infob))
-  | _ta, _eb -> (
-      match type_of_expr e with
-      | Some (idb, tb) ->
-          m_type_option_with_hook idb (Some t) tb >>= fun () ->
+and m_compatible_type lang typed_mvar t e =
+  match (Type_generic.builtin_type_of_type lang t, e.G.e) with
+  | Some builtin, B.L lit -> (
+      match (builtin, lit) with
+      | T.TInt, B.Int _
+      | T.TFloat, B.Float _
+      | T.TNumber, (B.Int _ | B.Float _)
+      | T.TBool, B.Bool _
+      | T.TString, B.String _ ->
           envf typed_mvar (MV.E e)
       | _ -> fail ())
+  | _ -> (
+      match (t.G.t, e.G.e) with
+      (* for C specific literals *)
+      | ( G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }),
+          B.L (B.String _) ) ->
+          envf typed_mvar (MV.E e)
+      | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
+      (* for C strings to match metavariable pointer types *)
+      | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
+          B.L (B.String _) ) ->
+          m_type_ t
+            (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t)
+            |> G.t)
+          >>= fun () -> envf typed_mvar (MV.E e)
+      (* for matching ids *)
+      (* this is covered by the basic type propagation done in Naming_AST.ml *)
+      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+          (* NOTE: Name values must be represented with MV.Id! *)
+          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+          envf typed_mvar (MV.Id (idb, Some id_infob))
+      | _ta, _eb -> (
+          match type_of_expr e with
+          | Some (idb, tb) ->
+              m_type_option_with_hook idb (Some t) tb >>= fun () ->
+              envf typed_mvar (MV.E e)
+          | _ -> fail ()))
 
 (* returns a type option and an ident that can be used to query LSP *)
 and type_of_expr e : (G.ident * G.type_ option) option =
@@ -2536,7 +2559,7 @@ and m_parameter_classic a b =
       { B.pname = Some b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 }
     ) ->
       m_ident_and_id_info (a1, a5) (b1, b5) >>= fun () ->
-      (m_option m_expr) a2 b2 >>= fun () ->
+      (m_option_none_can_match_some m_expr) a2 b2 >>= fun () ->
       (m_type_option_with_hook b1) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (* boilerplate *)

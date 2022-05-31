@@ -143,9 +143,6 @@ let rec stmt_aux = function
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
   | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
-  | Throw (t, v1) ->
-      let v1 = expr v1 in
-      [ G.Throw (t, v1, G.sc) |> G.s ]
   | Try (t, v1, v2, v3) ->
       let v1 = stmt v1 and v2 = list catch v2 and v3 = finally v3 in
       [ G.Try (t, v1, v2, v3) |> G.s ]
@@ -325,6 +322,10 @@ and expr e : G.expr =
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
+  | Throw (t, v1) ->
+      let v1 = expr v1 in
+      let st = G.Throw (t, v1, G.sc) |> G.s in
+      G.StmtExpr st
   | Infix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
@@ -359,10 +360,10 @@ and expr e : G.expr =
       let tok = snd v1.f_name in
       match v1 with
       | {
-       f_kind = AnonLambda, t;
-       f_ref = false;
-       m_modifiers = [];
-       f_name = _ignored;
+       f_kind = lambdakind, t;
+       f_ref = _;
+       m_modifiers = _;
+       f_name = _;
        l_uses;
        f_attrs = [];
        f_params = ps;
@@ -376,6 +377,12 @@ and expr e : G.expr =
                 ())
               l_uses
           in
+          let lambdakind =
+            match lambdakind with
+            | AnonLambda -> G.LambdaKind
+            | ShortLambda -> G.Arrow
+            | _ -> error tok "unsupported lambda variant"
+          in
 
           let body = stmt body in
           let ps = parameters ps in
@@ -386,10 +393,30 @@ and expr e : G.expr =
               G.fparams = ps;
               frettype = rett;
               fbody = G.FBStmt body;
-              fkind = (G.LambdaKind, t);
+              fkind = (lambdakind, t);
             }
-      | _ -> error tok "TODO: Lambda"))
+      | _ -> error tok "TODO: Lambda")
+  | Match (tok, e, matches) ->
+      let e = expr e in
+      let matches = Common.map match_ matches in
+      G.StmtExpr (G.Switch (tok, Some (G.Cond e), matches) |> G.s))
   |> G.e
+
+and match_ = function
+  | MCase (cases, e) ->
+      let cases =
+        Common.map
+          (fun case ->
+            let case = expr case in
+            (* TODO extend G.case_of_pat_and_expr to handle multiple cases? *)
+            G.Case (G.fake "case", H.expr_to_pattern case))
+          cases
+      in
+      let e = expr e in
+      G.CasesAndBody (cases, G.ExprStmt (e, G.sc) |> G.s)
+  | MDefault (tok, e) ->
+      let e = expr e in
+      G.CasesAndBody ([ G.Default tok ], G.ExprStmt (e, G.sc) |> G.s)
 
 and argument e =
   let e = expr e in

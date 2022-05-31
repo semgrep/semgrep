@@ -34,7 +34,7 @@ jobs:
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
@@ -84,7 +84,7 @@ jobs:
         with:
           submodules: true
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -124,7 +124,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -149,7 +149,7 @@ jobs:
       - name: Generate cheatsheets for semgrep.dev
         run: ./scripts/generate-cheatsheet
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: cheatsheet
           path: cheatsheet.json
@@ -201,7 +201,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -247,7 +247,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
@@ -286,7 +286,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run timing benchmark
         run: |
-          pip3 install semgrep==0.88.0
+          pip3 install semgrep==0.94.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
@@ -297,7 +297,7 @@ jobs:
           jq . semgrep/baseline_timing2.json
           pip3 uninstall -y semgrep
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
