@@ -6,7 +6,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- `r2c-internal-project-depends-on`: support for Gradle and Poetry lockfiles
+- Sarif output format now includes `fixes` section
+- Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+
+### Changed
+
+- The `ci` CLI command will now include ignored matches in output formats
+  that dictate they should always be included
+- A parameter pattern without a default value can now match a parameter
+  with a default value (#5021)
+
+### Fixed
+
+- Numerous improvements to PHP parsing by switching to tree-sitter-php
+  to parse PHP target code. Huge shoutout to Sjoerd Langkemper for most
+  of the heavy lifting work
+  (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
+- TS: support number and boolean typed metavariables (#5350)
+
+## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
+
+### Added
+
+- `metavariable-regex` now supports an optional `constant-propagation` key.
+  When this is set to `true`, information learned from constant propagation
+  will be used when matching the metavariable against the regex. By default
+  it is set to `false`
+- Dockerfile: constant propagation now works on variables declared with `ENV`
+- `shouldafound` - False Negative reporting via the CLI
 
 ### Changed
 
@@ -45,6 +73,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - A full breakdown of our performance updates,
     including some upcoming ones,
     can be found here https://github.com/returntocorp/semgrep/issues/5257#issuecomment-1133395694
+- If a metrics event request times out, we no longer retry the request.
+  This avoids Semgrep waiting 10-20 seconds before exiting if these requests are slow.
+- The metrics collection timeout has been raised from 2 seconds to 3 seconds.
 
 ### Fixed
 
@@ -56,6 +87,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Go: Support for ellipsis in multiple return values
   (e.g., `func foo() (..., error, ...) {}`) (#4896)
 - semgrep-core: you can use again rules stored in JSON instead of YAML (#5268)
+- Python: adds support for parentheses around `with` context expressions
+  (e.g., `with (open(x) as a, open(y) as b): pass`) (#5092)
+- C++: we now parse correctly const declarations (#5300)
 
 ## [0.93.0](https://github.com/returntocorp/semgrep/releases/tag/v0.93.0) - 2022-05-17
 
