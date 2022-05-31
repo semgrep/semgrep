@@ -1,0 +1,10 @@
+rules:
+  - id: java-gradle-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+        namespace: gradle
+        package: swagger-ui-dist
+        version: <= 3.35.2
+    message: oh no
+    languages: [java]
+    severity: WARNING

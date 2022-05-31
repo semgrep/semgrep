@@ -22,6 +22,7 @@ class PackageManagers(str, Enum):
     GOMOD = "gomod"
     CARGO = "cargo"
     MAVEN = "maven"
+    GRADLE = "gradle"
 
 
 @dataclass(eq=True, order=True, frozen=True)
@@ -42,10 +43,11 @@ class LockfileDependency:
 
 
 NAMESPACE_TO_LOCKFILES = {
-    PackageManagers.PYPI: ["Pipfile.lock"],
+    PackageManagers.PYPI: ["Pipfile.lock", "poetry.lock"],
     PackageManagers.NPM: ["package-lock.json", "yarn.lock"],
     PackageManagers.GEM: ["Gemfile.lock"],
     PackageManagers.GOMOD: ["go.sum"],
-    PackageManagers.CARGO: ["cargo.lock"],
+    PackageManagers.CARGO: ["Cargo.lock"],
     PackageManagers.MAVEN: ["pom.xml"],
+    PackageManagers.GRADLE: ["gradle.lockfile"],
 }
