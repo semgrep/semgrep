@@ -51,7 +51,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
       - name: Install pipenv
         run: sudo python3 -m pip install pipenv
       - name: Run OSX build
