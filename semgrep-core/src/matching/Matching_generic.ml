@@ -440,6 +440,7 @@ let regexp_matcher_of_regexp_string s =
 (* ---------------------------------------------------------------------- *)
 (* stdlib: option *)
 (* ---------------------------------------------------------------------- *)
+(* you should probably use m_option_none_can_match_some instead *)
 let (m_option : 'a matcher -> 'a option matcher) =
  fun f a b ->
   match (a, b) with
