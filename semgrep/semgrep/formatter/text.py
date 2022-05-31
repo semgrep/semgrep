@@ -29,8 +29,8 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
-from semgrep.util import with_color
 from semgrep.util import unit_str
+from semgrep.util import with_color
 
 MAX_TEXT_WIDTH = 120
 

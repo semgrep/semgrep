@@ -301,6 +301,7 @@ def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snap
         json.dumps(parsed_output["paths"], indent=2, sort_keys=True), "report.json"
     )
 
+
 @pytest.mark.kinda_slow
 def test_sca_output(run_semgrep_in_tmp_no_symlink, snapshot):
     results, _errors = run_semgrep_in_tmp_no_symlink(
