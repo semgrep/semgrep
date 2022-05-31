@@ -34,7 +34,7 @@
               ],
               "version": "0.0.7"
             },
-            "lockfile": "yarn.lock"
+            "lockfile": "targets/dependency_aware/monorepo/webapp1/yarn.lock"
           }
         ],
         "fingerprint": "f259dbe78c5afaa7d5dbc8059abb0792",
@@ -77,7 +77,7 @@
               ],
               "version": "0.0.7"
             },
-            "lockfile": "yarn.lock"
+            "lockfile": "targets/dependency_aware/monorepo/webapp2/yarn.lock"
           }
         ],
         "fingerprint": "8ccc21b07b8a8b8cf034f4a0a0bd9f6b",

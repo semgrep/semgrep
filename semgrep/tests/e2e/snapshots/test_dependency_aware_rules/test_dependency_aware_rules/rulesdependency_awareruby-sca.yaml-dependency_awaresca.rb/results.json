@@ -30,7 +30,7 @@
               "resolved_url": null,
               "version": "1.21.0"
             },
-            "lockfile": "Gemfile.lock"
+            "lockfile": "targets/dependency_aware/Gemfile.lock"
           }
         ],
         "fingerprint": "c61fb1ce8248b3d7e7d5200726fadbcf",

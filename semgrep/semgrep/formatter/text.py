@@ -29,6 +29,7 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
 from semgrep.util import truncate
+from semgrep.util import unit_str
 from semgrep.util import with_color
 
 MAX_TEXT_WIDTH = 120
@@ -338,10 +339,20 @@ class TextFormatter(BaseFormatter):
             rule_id = rule_match.rule_id
             message = rule_match.message
             fix = rule_match.fix
+            if "dependency_matches" in rule_match.extra and (
+                not rule_match.extra.get("dependency_match_only", True)
+            ):
+                lockfile = rule_match.extra["dependency_matches"][0]["lockfile"]
+            else:
+                lockfile = None
             if last_file is None or last_file != current_file:
                 if last_file is not None:
                     yield ""
-                yield f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}"
+                yield f"\n{with_color(Colors.cyan, f'  {current_file} ', bold=False)}" + (
+                    f"with lockfile {with_color(Colors.cyan, f'{lockfile}')}"
+                    if lockfile
+                    else ""
+                )
                 last_message = None
             # don't display the rule line if the check is empty
             if (
@@ -396,12 +407,16 @@ class TextFormatter(BaseFormatter):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
     ) -> str:
-        output = self._build_text_output(
-            rule_matches,
-            extra.get("color_output", False),
-            extra["per_finding_max_lines_limit"],
-            extra["per_line_max_chars_limit"],
-        )
+        reachable = []
+        unreachable = []
+        first_party = []
+        for match in rule_matches:
+            if "dependency_match_only" not in match.extra:
+                first_party.append(match)
+            elif match.extra["dependency_match_only"]:
+                unreachable.append(match)
+            else:
+                reachable.append(match)
 
         timing_output = (
             self._build_summary(
@@ -413,8 +428,59 @@ class TextFormatter(BaseFormatter):
             else iter([])
         )
 
-        matches_output = "\n".join((*output, *timing_output))
-        if not matches_output:
-            return ""
+        findings_output = []
+        if reachable or unreachable:
+            findings_output.append(
+                f"\n{with_color(Colors.foreground, 'SCA Summary')}: {unit_str(len(reachable),with_color(Colors.red,'Reachable finding'))}, {unit_str(len(unreachable),with_color(Colors.yellow,'Unreachable finding'))}\n"
+            )
+        if reachable:
+            reachable_output = self._build_text_output(
+                reachable,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
 
-        return "\nFindings:\n" + matches_output
+            findings_output.append(
+                f"\n{with_color(Colors.red, 'Reachable SCA Findings:')}\n"
+                + "\n".join(reachable_output)
+            )
+
+        if unreachable:
+            unreachable_output = self._build_text_output(
+                unreachable,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
+
+            findings_output.append(
+                f"\n{with_color(Colors.yellow, 'Unreachable SCA Findings:')}\n"
+                + "\n".join(unreachable_output)
+            )
+
+        if (reachable or unreachable) and first_party:
+            first_party_output = self._build_text_output(
+                first_party,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
+            findings_output.append(
+                "\nFirst-Party Findings:\n" + "\n".join(first_party_output)
+            )
+        elif first_party:
+            first_party_output = self._build_text_output(
+                first_party,
+                extra.get("color_output", False),
+                extra["per_finding_max_lines_limit"],
+                extra["per_line_max_chars_limit"],
+            )
+            findings_output.append("\nFindings:\n" + "\n".join(first_party_output))
+
+        return "\n".join(
+            [
+                *findings_output,
+                *timing_output,
+            ]
+        )

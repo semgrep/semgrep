@@ -8,7 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
-- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+- `r2c-internal-project-depends-on`:
+  - pretty printing for SCA results
+  - support for poetry and gradle lockfiles
 
 ### Changed
 
@@ -26,6 +28,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - TS: support number and boolean typed metavariables (#5350)
 - When a rule from the registry fails to parse, suggest user upgrade to
   latest version of semgrep
+- Scala: correctly handle `return` for taint analysis (#4975)
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
