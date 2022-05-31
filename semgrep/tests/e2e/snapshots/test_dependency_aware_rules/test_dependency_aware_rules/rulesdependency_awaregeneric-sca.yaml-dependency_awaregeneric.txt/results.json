@@ -36,7 +36,7 @@
               ],
               "version": "3.3.22"
             },
-            "lockfile": "package-lock.json"
+            "lockfile": "targets/dependency_aware/package-lock.json"
           }
         ],
         "fingerprint": "c505faced673ad23383c117ae4f664c5",

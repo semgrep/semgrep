@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    pattern-sources:
+      - patterns:
+          - pattern: x
+    pattern-sinks:
+      - patterns:
+          - pattern: foo(...)
+    mode: taint
+    languages:
+      - scala
+    severity: ERROR
+    message: Match found
+
