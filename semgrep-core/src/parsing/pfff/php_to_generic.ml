@@ -554,10 +554,10 @@ and constant_def { cst_name; cst_body; cst_tok = tok } =
   let ent = G.basic_entity id ~attrs:attr in
   (ent, { G.vinit = Some body; vtype = None })
 
-and enum_type tok { e_base; e_constraint } =
-  let _ = hint_type e_base in
+and enum_type _tok { e_base; e_constraint } =
+  let t = hint_type e_base in
   let _ = option hint_type e_constraint in
-  error tok "enum type not supported"
+  t
 
 and class_def
     {
