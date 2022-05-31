@@ -165,6 +165,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
+          path: ocaml-build-artifacts
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
@@ -190,6 +191,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: semgrep-osx-${{ github.sha }}
+          path: semgrep-osx
       - name: Install artifacts
         run: unzip semgrep-osx-${{ github.sha }}/artifacts.zip
       - name: Setup Python
@@ -221,6 +223,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
+          path: ocaml-build-artifacts
       - name: Install artifacts
         run: tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
       - name: Setup Python

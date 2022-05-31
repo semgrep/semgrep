@@ -93,6 +93,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
+          path: ocaml-build-artifacts
       - name: Install artifacts
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
