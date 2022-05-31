@@ -187,7 +187,7 @@ _scan_options = [
             Only show results that are not found in this commit hash. Aborts run if not currently
             in a git directory, there are unstaged changes, or given baseline hash doesn't exist
         """,
-        envvar="SEMGREP_BASELINE_COMMIT",
+        envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
     ),
     click.option(
         "--metrics",
