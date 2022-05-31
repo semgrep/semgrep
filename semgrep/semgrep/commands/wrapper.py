@@ -32,7 +32,7 @@ def handle_command_errors(func: Callable) -> Callable:
         logger = getLogger("semgrep")
         logger.propagate = False
 
-        exit_code = OK_EXIT_CODE
+        exit_code = None
 
         try:
             func(*args, **kwargs)
@@ -42,10 +42,15 @@ def handle_command_errors(func: Callable) -> Callable:
         except Exception as e:
             logger.exception(e)
             exit_code = FATAL_EXIT_CODE
+        else:
+            exit_code = OK_EXIT_CODE
         finally:
             metrics = get_state().metrics
-            metrics.add_exit_code(exit_code)
+            if exit_code is not None:
+                metrics.add_exit_code(exit_code)
             metrics.send()
-            sys.exit(exit_code)
+
+        # not inside the finally block to avoid overriding other sys.exits
+        sys.exit(exit_code)
 
     return wrapper

@@ -138,21 +138,12 @@ def test_read_line_args(tmp_path, mocker):
 @pytest.mark.quick
 def test_handle_api_error(tmp_path, mocker):
 
-    runner = CliRunner(
-        env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-        }
-    )
+    runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
 
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=FILE_CONTENT))
 
-    error_mock = mocker.Mock()
-    error_mock.side_effect = SemgrepError
-
     mocker.patch.object(
-        shouldafound,
-        "_make_shouldafound_request",
-        error_mock,
+        shouldafound, "_make_shouldafound_request", side_effect=SemgrepError
     )
     email = "myemail@foo.com"
     message = "some vuln here"

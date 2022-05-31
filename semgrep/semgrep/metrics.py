@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-from _hashlib import HASH as HashType  # type: ignore
 from datetime import datetime
 from enum import auto
 from enum import Enum
@@ -14,7 +13,6 @@ from typing import NewType
 from typing import Optional
 from typing import Sequence
 from typing import Set
-from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -31,9 +29,6 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
-
-if TYPE_CHECKING:
-    from hashlib import _Hash as HashType
 
 logger = getLogger(__name__)
 
@@ -54,7 +49,7 @@ class MetricsState(Enum):
     AUTO = auto()
 
 
-Sha256Hash = NewType("Sha256Hash", HashType)  # type: ignore
+Sha256Hash = NewType("Sha256Hash", str)
 
 
 class RuleStats(TypedDict, total=False):
@@ -116,9 +111,6 @@ class MetricsJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, datetime):
             return obj.astimezone().isoformat()
-
-        if isinstance(obj, HashType):
-            return obj.hexdigest()
 
         if isinstance(obj, UUID):
             return str(obj)
@@ -210,24 +202,24 @@ class Metrics:
             logger.debug(f"Failed to parse url {project_url}")
             sanitized_url = project_url
 
-        project_hash = cast(Sha256Hash, hashlib.sha256(sanitized_url.encode()))
-        self.payload["environment"]["projectHash"] = project_hash
+        m = hashlib.sha256(sanitized_url.encode())
+        self.payload["environment"]["projectHash"] = cast(Sha256Hash, m.hexdigest())
 
     def add_configs(self, configs: Sequence[str]) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
-        m = cast(Sha256Hash, hashlib.sha256())
+        m = hashlib.sha256()
         for c in configs:
             m.update(c.encode())
-        self.payload["environment"]["configNamesHash"] = m
+        self.payload["environment"]["configNamesHash"] = cast(Sha256Hash, m.hexdigest())
 
     def add_rules(self, rules: Sequence[Rule], profiling_data: ProfilingData) -> None:
-        m = cast(Sha256Hash, hashlib.sha256())
-        rule_hashes = list(sorted(r.full_hash for r in rules))
-        for rule_hash in rule_hashes:
-            m.update(rule_hash.encode())
-        self.payload["environment"]["rulesHash"] = m
+        rules = sorted(rules, key=lambda r: r.full_hash)
+        m = hashlib.sha256()
+        for rule in rules:
+            m.update(rule.full_hash.encode())
+        self.payload["environment"]["rulesHash"] = cast(Sha256Hash, m.hexdigest())
 
         self.payload["performance"]["numRules"] = len(rules)
         self.payload["performance"]["ruleStats"] = [
