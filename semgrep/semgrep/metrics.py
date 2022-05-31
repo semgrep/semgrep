@@ -224,7 +224,7 @@ class Metrics:
 
     def add_rules(self, rules: Sequence[Rule], profiling_data: ProfilingData) -> None:
         m = cast(Sha256Hash, hashlib.sha256())
-        rule_hashes = sorted(r.full_hash for r in rules)
+        rule_hashes = list(sorted(r.full_hash for r in rules))
         for rule_hash in rule_hashes:
             m.update(rule_hash.encode())
         self.payload["environment"]["rulesHash"] = m

@@ -5,6 +5,7 @@ import json
 import re
 from typing import Iterator
 
+import dateutil.tz
 import pytest
 from click.testing import CliRunner
 from pytest import mark
@@ -228,28 +229,21 @@ def _mask_version(value: str) -> str:
 @pytest.mark.quick
 @pytest.mark.freeze_time("2017-03-03")
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
+    # this mock makes the formatted timestamp string deterministic
+    mocker.patch("freezegun.api.tzlocal", return_value=dateutil.tz.gettz("Asia/Tokyo"))
     # these mocks make the rule and file timings deterministic
     mocker.patch.object(ProfilingData, "set_file_times")
     mocker.patch.object(ProfilingData, "set_rules_parse_time")
 
-    (tmp_path / "foo.py").write_text("5 == 5")
-    runner = CliRunner()
     mock_post = mocker.patch("requests.post")
-    runner.invoke(
-        cli,
-        [
-            "scan",
-            "--config",
-            str(TESTS_PATH / "e2e" / "rules" / "eqeq.yaml"),
-            "--metrics=on",
-            str(tmp_path),
-        ],
-    )
-    try:
-        payload = json.loads(mock_post.call_args.kwargs["data"])
-    except KeyError:
-        payload = mock_post.call_args.kwargs["json"]
 
+    (tmp_path / "code.py").write_text("5 == 5")
+    (tmp_path / "rule.yaml").symlink_to(TESTS_PATH / "e2e" / "rules" / "eqeq.yaml")
+    monkeypatch.chdir(tmp_path)
+
+    CliRunner().invoke(cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"])
+
+    payload = json.loads(mock_post.call_args.kwargs["data"])
     payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
 

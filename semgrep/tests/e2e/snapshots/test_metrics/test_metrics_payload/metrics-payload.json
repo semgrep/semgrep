@@ -1,10 +1,10 @@
 {
   "environment": {
     "ci": null,
-    "configNamesHash": "4a34b75810eab9dcfb56fa43b7b25391b28ac07a285dca56d979a9e0111ab23a",
+    "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
     "isAuthenticated": false,
-    "projectHash": "c26d8842e4e91153327987e1ec630cb08ca9b6320a9c0c1290626c5ad659f14e",
-    "rulesHash": "a501bbc393322a2b45518dc554d25894c0a4babdfd2860f820e6758b8f1ba4c0",
+    "projectHash": null,
+    "rulesHash": "35cecb4773928947459818858bc1c19bb125fc2e4ffa7e900bb55aa5f817ce67",
     "version": "x.x.x"
   },
   "errors": {
@@ -33,36 +33,36 @@
       {
         "bytesScanned": 0,
         "matchTime": 0.0,
-        "ruleHash": "c9f743a8a0b82e972d39e27742dc338edd19b8b8b5290cbc7648ab935ffe92ee"
+        "ruleHash": "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8"
       },
       {
         "bytesScanned": 0,
         "matchTime": 0.0,
-        "ruleHash": "4a5729225fd6db9727a30a543782843b680b51628ea87f5d9e2c6e45603d9735"
+        "ruleHash": "a8cd926ebff78f194e33fbd7e53578c3b035e25000a5c2e8248ff9a8ef152783"
       },
       {
         "bytesScanned": 0,
         "matchTime": 0.0,
-        "ruleHash": "c5dbaccc321ef86dfd875201de8887ad2d5b8a9c5cf5861d6184f5e7859ddd47"
+        "ruleHash": "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731"
       },
       {
         "bytesScanned": 0,
         "matchTime": 0.0,
-        "ruleHash": "a3eadb7df30dbd3e2e7f0ffff0afafc3e97026ef1d8423ce1f6f7e169e4d4098"
+        "ruleHash": "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089"
       }
     ],
     "totalBytesScanned": 6
   },
-  "sent_at": "2017-03-03T00:00:00-08:00",
-  "started_at": "2017-03-03T00:00:00-08:00",
+  "sent_at": "2017-03-03T17:00:00+09:00",
+  "started_at": "2017-03-03T17:00:00+09:00",
   "value": {
     "numFindings": 1,
     "numIgnored": 0,
     "ruleHashesWithFindings": {
-      "4a5729225fd6db9727a30a543782843b680b51628ea87f5d9e2c6e45603d9735": 1,
-      "a3eadb7df30dbd3e2e7f0ffff0afafc3e97026ef1d8423ce1f6f7e169e4d4098": 0,
-      "c5dbaccc321ef86dfd875201de8887ad2d5b8a9c5cf5861d6184f5e7859ddd47": 0,
-      "c9f743a8a0b82e972d39e27742dc338edd19b8b8b5290cbc7648ab935ffe92ee": 0
+      "0c9be123b69d289f1b0fa65faefade9c76479bae63006869f3ecacd8ffe8b0a8": 0,
+      "a8cd926ebff78f194e33fbd7e53578c3b035e25000a5c2e8248ff9a8ef152783": 1,
+      "c3f79a06bc39dcd0d7ed1e1b676934d1d9fa628d5631ecd666fc204e3d811089": 0,
+      "f19cada0143903df62f6b421917d325fbbcc5ff6a7c423818030cdf64c828731": 0
     }
   }
 }
