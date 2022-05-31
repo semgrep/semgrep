@@ -152,6 +152,26 @@ jobs:
           name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
 
+  build-core-m1:
+    name: Build the OSX M1 binaries
+    runs-on: [self-hosted,macOS,ARM64]
+    steps:
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v1
+      - name: Run OSX release script
+        run: ./scripts/osx-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-m1-${{ github.sha }}
+          path: artifacts.zip
+
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
