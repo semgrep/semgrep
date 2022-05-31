@@ -34,7 +34,7 @@ jobs:
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
@@ -84,12 +84,12 @@ jobs:
         with:
           submodules: true
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Test semgrep-core
         run: semgrep-core -version
@@ -124,12 +124,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -149,7 +149,7 @@ jobs:
       - name: Generate cheatsheets for semgrep.dev
         run: ./scripts/generate-cheatsheet
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: cheatsheet
           path: cheatsheet.json
@@ -201,12 +201,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -214,7 +214,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pip3 install pipenv==2021.5.29
           pipenv install --dev
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/semgrep-cache
           key: semgrep-repo-cache-test
@@ -247,12 +247,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -297,12 +297,12 @@ jobs:
           jq . semgrep/baseline_timing2.json
           pip3 uninstall -y semgrep
       - name: Download artifacts
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: ocaml-build-artifacts
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
