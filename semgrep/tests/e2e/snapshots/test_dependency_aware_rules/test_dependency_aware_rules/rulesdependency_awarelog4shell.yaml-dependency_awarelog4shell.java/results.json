@@ -30,7 +30,7 @@
               "resolved_url": null,
               "version": "0.0.1"
             },
-            "lockfile": "pom.xml"
+            "lockfile": "targets/dependency_aware/pom.xml"
           }
         ],
         "fingerprint": "2dad36618046aba1c66784346119c366",

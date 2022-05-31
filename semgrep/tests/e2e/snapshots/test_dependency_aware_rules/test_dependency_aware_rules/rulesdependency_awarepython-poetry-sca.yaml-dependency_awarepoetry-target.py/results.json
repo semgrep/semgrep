@@ -3,7 +3,7 @@
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "targets/dependency_aware/sca-poetry.py"
+      "targets/dependency_aware/poetry-target.py"
     ]
   },
   "results": [
@@ -20,20 +20,20 @@
           {
             "dependency_pattern": {
               "namespace": "pypi",
-              "package_name": "faker",
-              "semver_range": "<= 13.11.1"
+              "package_name": "affine",
+              "semver_range": "<= 2.3.1"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "name": "faker",
+              "name": "affine",
               "namespace": "pypi",
               "resolved_url": null,
-              "version": "13.11.1"
+              "version": "2.3.0"
             },
             "lockfile": "targets/dependency_aware/poetry.lock"
           }
         ],
-        "fingerprint": "e48712b411e825f0147678c075c4fa85",
+        "fingerprint": "b1611e01841cab954c675dbc9b24d7fd",
         "is_ignored": false,
         "lines": "bad()",
         "message": "oh no",
@@ -41,7 +41,7 @@
         "metavars": {},
         "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/sca-poetry.py",
+      "path": "targets/dependency_aware/poetry-target.py",
       "start": {
         "col": 1,
         "line": 1,

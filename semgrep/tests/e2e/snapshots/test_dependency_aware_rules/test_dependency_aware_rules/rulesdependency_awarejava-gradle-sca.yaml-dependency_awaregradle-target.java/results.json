@@ -3,7 +3,7 @@
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "targets/dependency_aware/sca-gradle.java"
+      "targets/dependency_aware/gradle-target.java"
     ]
   },
   "results": [
@@ -20,20 +20,20 @@
           {
             "dependency_pattern": {
               "namespace": "gradle",
-              "package_name": "swagger-ui-dist",
-              "semver_range": "<= 3.35.2"
+              "package_name": "s3mock",
+              "semver_range": "<= 2.1.20"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "name": "swagger-ui-dist",
+              "name": "s3mock",
               "namespace": "gradle",
               "resolved_url": null,
-              "version": "3.35.2"
+              "version": "2.1.19"
             },
             "lockfile": "targets/dependency_aware/gradle.lockfile"
           }
         ],
-        "fingerprint": "a3d9a927ab61119d8367579160aabe55",
+        "fingerprint": "80187e2419da7ecddee2d0475625ee17",
         "is_ignored": false,
         "lines": "        return bad()",
         "message": "oh no",
@@ -41,7 +41,7 @@
         "metavars": {},
         "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/sca-gradle.java",
+      "path": "targets/dependency_aware/gradle-target.java",
       "start": {
         "col": 16,
         "line": 3,
