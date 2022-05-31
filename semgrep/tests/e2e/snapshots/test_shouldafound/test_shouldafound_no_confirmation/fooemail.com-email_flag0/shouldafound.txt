@@ -1,0 +1,2 @@
+Sent feedback. Thanks for your contribution!
+You can view and extend the generated rule template here: https://foo.bar.semgrep.dev/playground/asdf
