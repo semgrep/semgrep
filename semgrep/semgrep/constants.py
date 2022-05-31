@@ -24,6 +24,9 @@ FIXTEST_SUFFIX = ".fixed"
 
 RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=json"
 
+LSP_DEFAULT_CONFIG = "p/r2c"
+LSP_REGISTRY_LOOKUP_URL = SEMGREP_URL + "/playground?registry="
+
 
 class OutputFormat(Enum):
     TEXT = auto()

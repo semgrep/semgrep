@@ -134,6 +134,7 @@ install_requires = [
     "defusedxml~=0.7.1",
     "urllib3~=1.26",
     "typing-extensions~=4.2",
+    "python-lsp-jsonrpc~=1.0.0",
 ]
 
 setuptools.setup(
