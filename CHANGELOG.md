@@ -8,7 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
-- `r2c-internal-project-depends-on`: pretty printing for SCA results
+- `r2c-internal-project-depends-on`:
+  - pretty printing for SCA results
+  - support for poetry and gradle lockfiles
 
 ### Changed
 
