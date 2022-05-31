@@ -1,7 +1,9 @@
 import json
+from itertools import tee
 from typing import Any
 from typing import Iterable
 from typing import Mapping
+from typing import Optional
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v0 as out
@@ -41,6 +43,37 @@ class SarifFormatter(BaseFormatter):
         if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
         return rule_match_sarif
+
+    @staticmethod
+    def _rule_match_to_sarif_fix(rule_match: RuleMatch) -> Optional[Mapping[str, Any]]:
+
+        # if rule_match.extra.get("dependency_matches"):
+        fixed_lines = rule_match.extra.get("fixed_lines")
+
+        description = "Semgrep rule suggested fix"
+        if not fixed_lines:
+            return None
+        description_text = f"{rule_match.message}\n Autofix: {description}"
+        fix_sarif = {
+            "description": {"text": description_text},
+            "artifactChanges": [
+                {
+                    "artifactLocation": {"uri": str(rule_match.path)},
+                    "replacements": [
+                        {
+                            "deletedRegion": {
+                                "startLine": rule_match.start.line,
+                                "startColumn": rule_match.start.col,
+                                "endLine": rule_match.end.line,
+                                "endColumn": rule_match.end.col,
+                            },
+                            "insertedContent": {"text": fixed_lines},
+                        }
+                    ],
+                }
+            ],
+        }
+        return fix_sarif
 
     @staticmethod
     def _rule_to_sarif(rule: Rule) -> Mapping[str, Any]:
@@ -152,6 +185,15 @@ class SarifFormatter(BaseFormatter):
             https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
         """
 
+        # Check each rule match for any fixes
+        rule_matches, rule_matches_fixes = tee(rule_matches)
+        fixes = [
+            self._rule_match_to_sarif_fix(rule_match)
+            for rule_match in rule_matches_fixes
+        ]
+        # Filter out rule matches w/no fixes
+        fixes = list(filter(None, fixes))
+
         output_dict = {
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             "version": "2.1.0",
@@ -179,6 +221,8 @@ class SarifFormatter(BaseFormatter):
                     ],
                 },
             ],
+            "fixes": fixes,
         }
+
         # Sort keys for predictable output. This helps with snapshot tests, etc.
         return json.dumps(output_dict, sort_keys=True)

@@ -73,12 +73,15 @@ let rec _split_classmembers env members constants variables methods uses =
   match members with
   | [] -> (constants, variables, methods, uses)
   | hd :: rest -> (
+      let constants, variables, methods, uses =
+        _split_classmembers env rest constants variables methods uses
+      in
       match hd with
-      | ConstantDef c -> (constants @ [ c ], variables, methods, uses)
-      | ClassVar c -> (constants, variables @ [ c ], methods, uses)
-      | MethodDef m -> (constants, variables, methods @ [ m ], uses)
-      | UseTrait u -> (constants, variables, methods, uses @ [ u ])
-      | EnumCase c -> (constants, variables @ [ c ], methods, uses))
+      | ConstantDef c -> (c :: constants, variables, methods, uses)
+      | ClassVar c -> (constants, c :: variables, methods, uses)
+      | MethodDef m -> (constants, variables, m :: methods, uses)
+      | UseTrait u -> (constants, variables, methods, u :: uses)
+      | EnumCase c -> (constants, c :: variables, methods, uses))
 
 let split_classmembers env members = _split_classmembers env members [] [] [] []
 
@@ -206,7 +209,11 @@ let map_visibility_modifier (env : env) (x : CST.visibility_modifier) =
 
 let map_string__ (env : env) (x : CST.string__) =
   match x with
-  | `Str tok -> (* string *) A.String (_str env tok)
+  | `Str tok ->
+      (* string *)
+      let value, tok = _str env tok in
+      let value = String.sub value 1 (String.length value - 2) in
+      A.String (value, tok)
   | `Here tok -> (* heredoc *) A.String (_str env tok)
 
 let map_anon_choice_pat_174c3a5_81b85de (env : env)
@@ -323,8 +330,7 @@ let map_namespace_use_group_clause (env : env)
 
 let map_modifier (env : env) (x : CST.modifier) : A.modifier =
   match x with
-  | `Var_modi tok ->
-      (* pattern [vV][aA][rR] *) todo env tok (* TODO add to AST *)
+  | `Var_modi tok -> (* pattern [vV][aA][rR] *) failwith "not a modifier"
   | `Visi_modi x -> map_visibility_modifier env x
   | `Static_modi tok ->
       (* pattern [sS][tT][aA][tT][iI][cC] *) (A.Static, token env tok)
@@ -332,6 +338,17 @@ let map_modifier (env : env) (x : CST.modifier) : A.modifier =
       (* pattern [fF][iI][nN][aA][lL] *) (A.Final, token env tok)
   | `Abst_modi tok ->
       (* pattern [aA][bB][sS][tT][rR][aA][cC][tT] *) (A.Abstract, token env tok)
+
+let map_modifiers (env : env) (x : CST.modifier list) : A.modifier list =
+  List.concat_map
+    (fun m ->
+      match m with
+      | `Var_modi tok ->
+          []
+          (* pattern [vV][aA][rR] *)
+          (* `var` isn't a modifier *)
+      | _ -> [ map_modifier env m ])
+    x
 
 let map_relative_scope (env : env) (x : CST.relative_scope) =
   match x with
@@ -564,18 +581,18 @@ and map_anon_choice_list_dest_bb41c20 (env : env)
   | `Choice_cast_var x -> map_variable env x
 
 and map_anon_choice_match_cond_exp_d891119 (env : env)
-    (x : CST.anon_choice_match_cond_exp_d891119) =
+    (x : CST.anon_choice_match_cond_exp_d891119) : A.match_ =
   match x with
   | `Match_cond_exp (v1, v2, v3) ->
       let v1 = map_match_condition_list env v1 in
       let v2 = (* "=>" *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.MCase (v1, v3)
   | `Match_defa_exp (v1, v2, v3) ->
       let v1 = (* pattern [dD][eE][fF][aA][uU][lL][tT] *) token env v1 in
       let v2 = (* "=>" *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      A.MDefault (v1, v3)
 
 and map_anon_choice_simple_param_5af5eb3 (env : env)
     (x : CST.anon_choice_simple_param_5af5eb3) =
@@ -1220,7 +1237,7 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
       let v1 = (* pattern [mM][aA][tT][cC][hH] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in
       let v3 = map_match_block env v3 in
-      todo env (v1, v2, v3)
+      A.Match (v1, v2, v3)
   | `Augm_assign_exp (v1, v2, v3) ->
       let v1 = map_variable env v1 in
       let v2 =
@@ -1398,7 +1415,8 @@ and map_list_literal (env : env) (x : CST.list_literal) =
   | `List_dest x -> map_list_destructing env x
   | `Array_dest x -> map_array_destructing env x
 
-and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) =
+and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) :
+    A.match_ list =
   let v1 = (* "{" *) token env v1 in
   let v2 = map_anon_choice_match_cond_exp_d891119 env v2 in
   let v3 =
@@ -1406,16 +1424,18 @@ and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) =
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = map_anon_choice_match_cond_exp_d891119 env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
   let v4 =
     match v4 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ()
+    | Some tok ->
+        let _ = (* "," *) token env tok in
+        ()
+    | None -> ()
   in
   let v5 = (* "}" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  v2 :: v3
 
 and map_match_condition_list (env : env) ((v1, v2) : CST.match_condition_list) =
   let v1 = map_expression env v1 in
@@ -1459,7 +1479,7 @@ and map_member_declaration (env : env) (x : CST.member_declaration) :
         | Some x -> map_attribute_list env x
         | None -> []
       in
-      let v2 = Common.map (map_modifier env) v2 in
+      let v2 = map_modifiers env v2 in
       let v3 =
         match v3 with
         | Some x -> Some (map_type_ env x)
@@ -1510,7 +1530,7 @@ and map_method_declaration (env : env)
     | Some x -> map_attribute_list env x
     | None -> []
   in
-  let v2 = Common.map (map_modifier env) v2 in
+  let v2 = map_modifiers env v2 in
   let v3 = map_function_definition_header env v3 in
   let v4 =
     match v4 with
@@ -1689,8 +1709,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
   | `Throw_exp (v1, v2) ->
       let v1 = (* pattern [tT][hH][rR][oO][wW] *) token env v1 in
       let v2 = map_expression env v2 in
-      todo env (v1, v2)
-(* TODO A.Throw is a stmt, when it should be an expr *)
+      A.Throw (v1, v2)
 
 and map_property_element (env : env) ((v1, v2) : CST.property_element) =
   let v1 = map_variable_name env v1 in
@@ -2267,7 +2286,7 @@ and map_unary_op_expression (env : env) (x : CST.unary_op_expression) =
   | `AT_exp (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
       let v2 = map_expression env v2 in
-      v2 (* TODO include error control operator "@" *)
+      A.Call (A.Id [ (A.builtin "at", v1) ], Parse_info.fake_bracket v1 [ v2 ])
   | `Choice_PLUS_exp (v1, v2) ->
       let v1 =
         match v1 with
@@ -2341,8 +2360,15 @@ and map_use_declaration (env : env) ((v1, v2, v3, v4) : CST.use_declaration) :
   in
   let v4 =
     match v4 with
-    | `Use_list x -> map_use_list env x
-    | `Choice_auto_semi x -> map_semicolon env x
+    (* The use list is ignored by the pfff parser. For now, for consistency
+     * let's ignore it here too. But at some point it could be worthwhile to
+     * find a way to represent this in the generic AST. *)
+    | `Use_list x ->
+        let _ = map_use_list in
+        ()
+    | `Choice_auto_semi x ->
+        let _ = map_semicolon env x in
+        ()
   in
   let uses = v2 :: v3 in
   Common.map (fun u -> UseTrait u) uses

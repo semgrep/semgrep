@@ -38,7 +38,7 @@ jobs:
           check_artifacts: false
       - name: Install artifacts
         run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
         run: |
@@ -53,7 +53,7 @@ jobs:
           cd target
           PIPENV_PIPFILE=../semgrep/Pipfile pipenv run semgrep -c ${{github.event.inputs.CONFIG}} --json --json-time . | tee -a times.json
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: times
           path: target/times.json

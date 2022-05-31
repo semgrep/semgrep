@@ -130,13 +130,6 @@ install_requires = [
     "peewee~=3.14",
     "defusedxml~=0.7.1",
     "urllib3~=1.26",
-    # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
-    # overly prescriptive and pin the version for two reasons: 1) because
-    # it may interfere with other 'setuptools' installs on the system,
-    # and 2) our 'pkg_resources' API usage appears to have been available
-    # in 'setuptools' for a very long time, so we don't need a recent
-    # version.
-    "setuptools",
 ]
 
 setuptools.setup(

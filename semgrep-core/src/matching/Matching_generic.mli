@@ -6,7 +6,7 @@ type tin = {
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
-  lang : Lang.t option;
+  lang : Lang.t;
   config : Config_semgrep.t;
 }
 
@@ -47,7 +47,7 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
 val empty_environment :
-  tout Caching.Cache.t option -> Lang.t option -> Config_semgrep.t -> tin
+  tout Caching.Cache.t option -> Lang.t -> Config_semgrep.t -> tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 
@@ -65,7 +65,7 @@ val if_config :
   tin ->
   tout
 
-val with_lang : (Lang.t option -> tin -> 'a) -> tin -> 'a
+val with_lang : (Lang.t -> tin -> 'a) -> tin -> 'a
 
 val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue -> tin -> tin option
