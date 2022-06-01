@@ -358,9 +358,10 @@ and v_expr e : G.expr =
   | DotAccessEllipsis (v1, v2) ->
       let v1 = v_expr v1 in
       G.DotAccessEllipsis (v1, v2) |> G.e
-  | TypedExpr (Name (Id (s, tok), []), v2, v3) when String.get s 0 = '$' ->
+  | TypedExpr (Name (Id id, []), v2, v3)
+    when AST_generic_.is_metavar_name (fst (v_varid_or_wildcard id)) ->
       let v3 = v_type_ v3 in
-      G.TypedMetavar ((s, tok), v2, v3) |> G.e
+      G.TypedMetavar (id, v2, v3) |> G.e
   | L v1 -> (
       let v1 = v_literal v1 in
       match v1 with
