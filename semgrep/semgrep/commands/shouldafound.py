@@ -11,6 +11,7 @@ import click
 
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import SHOULDAFOUND_BASE_URL
+from semgrep.constants import SHOULDAFOUND_NO_EMAIL
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.types import JsonObject
@@ -20,7 +21,7 @@ from semgrep.types import JsonObject
 @click.option(
     "--message",
     "-m",
-    required=True,
+    prompt="Please provide a message describing the false negative",
     type=str,
     help="Explain what should have been found, plus any supporting information (such as framework, etc.).",
 )
@@ -52,15 +53,13 @@ def shouldafound(
     """
     Report a false negative in this project. "path" should be the file in which you expected the vulnerability to be found.
     """
-    if not email:
+
+    # try to set an email unless specifically asked not to.
+    if not email and not SHOULDAFOUND_NO_EMAIL:
         try:
             email = _get_git_email()
         except subprocess.CalledProcessError:
-            click.echo(
-                "Could not parse git email. Please use the --email flag to report this false negative.",
-                err=True,
-            )
-            sys.exit(2)
+            email = None
 
     text = _read_lines(path, start, end)
 
