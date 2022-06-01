@@ -3,6 +3,7 @@ Tests for semgrep.metrics and associated command-line arguments.
 """
 import json
 import re
+from datetime import datetime
 from typing import Iterator
 
 import dateutil.tz
@@ -228,7 +229,9 @@ def _mask_version(value: str) -> str:
 
 
 @pytest.mark.quick
-@pytest.mark.freeze_time("2017-03-03")
+@pytest.mark.freeze_time(
+    datetime(2017, 3, 3, tzinfo=dateutil.tz.gettz("Asia/Tokyo")), tz_offset=9
+)
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
     # make the formatted timestamp strings deterministic
     mocker.patch.object(
