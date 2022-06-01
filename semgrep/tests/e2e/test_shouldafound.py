@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from shutil import copy
 from shutil import copytree
 from unittest.mock import ANY
 
@@ -132,6 +133,14 @@ def test_shouldafound_findings_output(
         "get_no_findings_msg",
         return_value=message,
     )
+
+    copy(
+        TESTS_PATH / "e2e" / "targets" / "basic" / "stupid.py",
+        tmp_path / "stupid.py",
+    )
+
+    monkeypatch.chdir(tmp_path)
+
     mocker.patch.object(scan, "possibly_notify_user", return_value=None)
 
     runner = CliRunner(
@@ -140,11 +149,10 @@ def test_shouldafound_findings_output(
         }
     )
 
-    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
-    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
-    monkeypatch.chdir(tmp_path)
-
-    result = runner.invoke(cli, ["-e", pattern, "-l", "python"])
+    result = runner.invoke(
+        cli,
+        ["-e", pattern, "-l", "python"],
+    )
 
     assert result.exception == None
     assert result.exit_code == 0
