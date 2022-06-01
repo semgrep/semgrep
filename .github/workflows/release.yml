@@ -271,7 +271,6 @@ jobs:
   upload-wheels:
     runs-on: ubuntu-latest
     needs: [test-wheels-manylinux, build-wheels-osx]
-    if: ${{ !contains(github.head_ref,env.TEST_RELEASE_SUFFIX) }}
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v3
