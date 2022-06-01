@@ -37,7 +37,7 @@ let debug_exn = ref false
 type parsing_result = {
   ast : AST_generic.program;
   (* partial errors tree-sitter was able to recover from *)
-  errors : Semgrep_error_code.error list;
+  skipped_tokens : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
 
@@ -188,8 +188,9 @@ let (run :
     | _ -> xs
   in
   match run_either file xs with
-  | Ok (ast, stat) -> { ast = fconvert ast; errors = []; stat }
-  | Partial (ast, errs, stat) -> { ast = fconvert ast; errors = errs; stat }
+  | Ok (ast, stat) -> { ast = fconvert ast; skipped_tokens = []; stat }
+  | Partial (ast, errs, stat) ->
+      { ast = fconvert ast; skipped_tokens = errs; stat }
   | Error (exn, trace) -> Printexc.raise_with_backtrace exn trace
 
 let throw_tokens f file =
@@ -339,7 +340,7 @@ let rec just_parse_with_lang lang file =
   | Lang.Yaml ->
       {
         ast = Yaml_to_generic.program file;
-        errors = [];
+        skipped_tokens = [];
         stat = Parse_info.default_stat file;
       }
   | Lang.Html ->
@@ -347,11 +348,13 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue ->
       let parse_embedded_js file =
-        let { ast; errors; stat = _ } = just_parse_with_lang Lang.Js file in
+        let { ast; skipped_tokens; stat = _ } =
+          just_parse_with_lang Lang.Js file
+        in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors
          *)
-        if errors <> [] then failwith "parse error in embedded JS";
+        if skipped_tokens <> [] then failwith "parse error in embedded JS";
         ast
       in
       run file
@@ -363,11 +366,12 @@ let rec just_parse_with_lang lang file =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_and_resolve_name_use_pfff_or_treesitter lang file =
+let parse_and_resolve_name lang file =
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
-  let { ast; errors; stat } = just_parse_with_lang lang file in
+  let res = just_parse_with_lang lang file in
+  let ast = res.ast in
 
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
@@ -380,7 +384,19 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   if !Flag.use_bloom_filter then Bloom_annotation.annotate_program ast;
 
   logger#info "Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done";
-  { ast; errors; stat }
+  res
+
+(* used in test files *)
+let parse_and_resolve_name_warn_if_partial lang file =
+  let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
+  if skipped_tokens <> [] (* nosemgrep *) then
+    pr2 (spf "WARNING: fail to fully parse %s" file);
+  ast
+
+let parse_and_resolve_name_fail_if_partial lang file =
+  let { ast; skipped_tokens; _ } = parse_and_resolve_name lang file in
+  if skipped_tokens <> [] then failwith (spf "fail to fully parse %s" file);
+  ast
 
 (*****************************************************************************)
 (* For testing purpose *)

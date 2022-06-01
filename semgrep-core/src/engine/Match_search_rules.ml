@@ -793,20 +793,19 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                     lazy
                       (match xlang with
                       | L (lang, _) ->
-                          let { Parse_target.ast; errors; _ } =
-                            Parse_target
-                            .parse_and_resolve_name_use_pfff_or_treesitter lang
-                              file
+                          let { Parse_target.ast; skipped_tokens; _ } =
+                            Parse_target.parse_and_resolve_name lang file
                           in
-                          (* TODO: If we wanted to report the parse errors then we should
-                           * fix the parse info with Parse_info.adjust_info_wrt_base! *)
-                          if errors <> [] then
+                          (* TODO: If we wanted to report the parse errors
+                           * then we should fix the parse info with
+                           * Parse_info.adjust_info_wrt_base! *)
+                          if skipped_tokens <> [] then
                             pr2
                               (spf
                                  "rule %s: metavariable-pattern: failed to \
                                   fully parse the content of %s"
                                  (fst env.rule.Rule.id) mvar);
-                          (ast, errors)
+                          (ast, skipped_tokens)
                       | LRegex
                       | LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")

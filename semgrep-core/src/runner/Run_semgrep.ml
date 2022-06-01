@@ -391,11 +391,10 @@ let xtarget_of_file _config xlang file =
         (* xlang from the language field in -target, which should be unique *)
         assert (other_langs = []);
         lazy
-          (let { Parse_target.ast; errors; _ } =
-             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
-               file
+          (let { Parse_target.ast; skipped_tokens; _ } =
+             Parse_target.parse_and_resolve_name lang file
            in
-           (ast, errors))
+           (ast, skipped_tokens))
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 
@@ -681,12 +680,10 @@ let semgrep_with_one_pattern config =
              logger#info "processing: %s" file;
              let process file =
                timeout_function file config.timeout (fun () ->
-                   let { Parse_target.ast; errors; _ } =
-                     Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                       lang file
+                   let ast =
+                     Parse_target.parse_and_resolve_name_warn_if_partial lang
+                       file
                    in
-                   if errors <> [] then
-                     pr2 (spf "WARNING: fail to fully parse %s" file);
                    Match_patterns.check
                      ~hook:(fun env matched_tokens ->
                        let xs = Lazy.force matched_tokens in
