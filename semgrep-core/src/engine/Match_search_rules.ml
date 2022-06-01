@@ -375,8 +375,12 @@ let lexing_pos_to_loc file x str =
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
   { PI.str; charpos; file; line; column }
 
-let spacegrep_matcher (doc, src) file pat =
-  let search_param = Spacegrep.Match.create_search_param () in
+let spacegrep_matcher config (doc, src) file pat =
+  let (config : Config_semgrep.t), _equivalences = config in
+  let search_param =
+    Spacegrep.Match.create_search_param
+      ~ellipsis_max_span:config.generic_ellipsis_max_span ()
+  in
   let matches = Spacegrep.Match.search search_param src pat doc in
   matches
   |> Common.map (fun m ->
@@ -396,7 +400,20 @@ let spacegrep_matcher (doc, src) file pat =
          let loc2 = lexing_pos_to_loc file pos2 "" in
          ((loc1, loc2), env))
 
-let matches_of_spacegrep spacegreps file =
+(* Preprocess spacegrep pattern or target to remove comments *)
+let preprocess_spacegrep ((config : Config_semgrep.t), _equivalences) src =
+  match config.generic_comment_style with
+  | None -> src
+  | Some style ->
+      let style =
+        match style with
+        | `C -> Spacegrep.Comment.c_style
+        | `Cpp -> Spacegrep.Comment.cpp_style
+        | `Shell -> Spacegrep.Comment.shell_style
+      in
+      Spacegrep.Comment.remove_comments_from_src style src
+
+let matches_of_spacegrep config spacegreps file =
   matches_of_matcher spacegreps
     {
       init =
@@ -425,9 +442,10 @@ let matches_of_spacegrep spacegreps file =
                 then partial_doc_src
                 else Spacegrep.Src_file.of_file file
               in
+              let src = preprocess_spacegrep config src in
               (* pr (Spacegrep.Doc_AST.show doc); *)
               Some (Spacegrep.Parse_doc.of_src src, src));
-      matcher = spacegrep_matcher;
+      matcher = spacegrep_matcher config;
     }
     file
   [@@profiling]
@@ -583,7 +601,7 @@ let matches_of_xpatterns config file_and_more xpatterns =
   RP.collate_pattern_results
     [
       matches_of_patterns config file_and_more patterns;
-      matches_of_spacegrep spacegreps file;
+      matches_of_spacegrep config spacegreps file;
       matches_of_regexs regexps lazy_content file;
       matches_of_combys combys lazy_content file;
     ]

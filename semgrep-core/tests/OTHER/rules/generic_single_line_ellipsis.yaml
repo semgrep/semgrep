@@ -1,0 +1,10 @@
+rules:
+- id: single-line-ellipsis
+  languages:
+  - generic
+  pattern: |
+    a ... b
+  options:
+    generic_ellipsis_max_span: 0
+  message: found
+  severity: ERROR
