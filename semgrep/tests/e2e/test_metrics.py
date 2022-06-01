@@ -4,6 +4,7 @@ Tests for semgrep.metrics and associated command-line arguments.
 import json
 import os
 import re
+import sys
 import time
 from typing import Iterator
 
@@ -231,6 +232,10 @@ def _mask_version(value: str) -> str:
 
 @pytest.mark.quick
 @pytest.mark.freeze_time("2017-03-03")
+@pytest.mark.skipif(
+    sys.version_info < (3, 8),
+    reason="snapshotting mock call kwargs doesn't work on py3.7",
+)
 def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
     # make the formatted timestamp strings deterministic
     mocker.patch.object(
