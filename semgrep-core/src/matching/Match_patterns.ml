@@ -142,7 +142,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
     any x =
   rules
   |> List.iter (fun (pattern, rule, cache) ->
-         let env = MG.empty_environment cache (Some lang) config in
+         let env = MG.empty_environment cache lang config in
          let matches_with_env = matcher rule pattern x env in
          if matches_with_env <> [] then
            (* Found a match *)
@@ -233,7 +233,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
     |> List.iter (fun rule ->
            (* less: normalize the pattern? *)
            let any = rule.MR.pattern in
-           let any = Apply_equivalences.apply equivs any in
+           let any = Apply_equivalences.apply equivs lang any in
            let cache =
              if !Flag.with_opt_cache then Some (Caching.Cache.create ())
              else None
@@ -278,9 +278,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                          (show_expr_kind x.e);
                        ()
                    | Some range_loc when range_filter range_loc ->
-                       let env =
-                         MG.empty_environment cache (Some lang) config
-                       in
+                       let env = MG.empty_environment cache lang config in
                        let matches_with_env = match_e_e rule pattern x env in
                        if matches_with_env <> [] then
                          (* Found a match *)
@@ -316,7 +314,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
             let visit_stmt () =
               !stmt_rules
               |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
-                     let env = MG.empty_environment cache (Some lang) config in
+                     let env = MG.empty_environment cache lang config in
                      let matches_with_env = match_st_st rule pattern x env in
                      if matches_with_env <> [] then
                        (* Found a match *)
@@ -377,9 +375,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
             !stmts_rules
             |> List.iter (fun (pattern, _pattern_strs, rule, cache) ->
                    Common.profile_code "Semgrep_generic.kstmts" (fun () ->
-                       let env =
-                         MG.empty_environment cache (Some lang) config
-                       in
+                       let env = MG.empty_environment cache lang config in
                        let matches_with_env =
                          match_sts_sts rule pattern x env
                        in

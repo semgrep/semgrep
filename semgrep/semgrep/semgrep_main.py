@@ -172,7 +172,7 @@ def run_rules(
             if len(top_level_target_rooted) == 0
             else top_level_target_rooted[-1]
         )
-        namespaces = [ns for r in dependency_aware_rules for ns in r.namespaces]
+        namespaces = list({ns for r in dependency_aware_rules for ns in r.namespaces})
         dep_trie = make_dependency_trie(top_level_target, namespaces, target_manager)
 
         for rule in dependency_aware_rules:
@@ -422,40 +422,29 @@ def main(
 
     ignores_start_time = time.time()
     keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
-    filtered_matches_by_rule, nosem_errors, num_ignored_by_nosem = process_ignores(
-        rule_matches_by_rule,
-        keep_ignored,
-        strict=strict,
+    filtered_matches_by_rule, nosem_errors = process_ignores(
+        rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
     )
     profiler.save("ignores_time", ignores_start_time)
     output_handler.handle_semgrep_errors(nosem_errors)
 
-    num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
     profiler.save("total_time", rule_start_time)
 
     metrics = get_state().metrics
-    if metrics.is_enabled():
-        error_types = list(e.semgrep_error_type() for e in semgrep_errors)
-
-        metrics.set_project_hash(project_url)
-        metrics.set_configs_hash(configs)
-        metrics.set_rules_hash(filtered_rules)
-        metrics.set_num_rules(len(filtered_rules))
-        metrics.set_num_targets(len(all_targets))
-        metrics.set_num_findings(num_findings)
-        metrics.set_num_ignored(num_ignored_by_nosem)
-        metrics.set_profiling_times(profiler.dump_stats())
-        total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
-        metrics.set_total_bytes_scanned(total_bytes_scanned)
-        metrics.set_errors(error_types)
-        metrics.set_rules_with_findings(filtered_matches_by_rule)
-        metrics.set_run_timings(profiling_data, list(all_targets), filtered_rules)
+    if metrics.is_enabled:
+        metrics.add_project_url(project_url)
+        metrics.add_configs(configs)
+        metrics.add_rules(filtered_rules, profiling_data)
+        metrics.add_targets(all_targets, profiling_data)
+        metrics.add_findings(filtered_matches_by_rule)
+        metrics.add_errors(semgrep_errors)
+        metrics.add_profiling(profiler)
 
     if autofix:
-        apply_fixes(filtered_matches_by_rule, dryrun)
+        apply_fixes(filtered_matches_by_rule.kept, dryrun)
 
     return (
-        filtered_matches_by_rule,
+        filtered_matches_by_rule.kept,
         semgrep_errors,
         all_targets,
         target_manager.ignore_log,

@@ -62,17 +62,17 @@ jobs:
 
       - id: semgrep_diff
         name: Get semgrep package diff
-        uses: technote-space/get-diff-action@v4.0.1
+        uses: technote-space/get-diff-action@v6.0.1
         with:
           PATTERNS: semgrep/semgrep/**
       - id: changelog_diff
         name: Get changelog diff
-        uses: technote-space/get-diff-action@v4.0.1
+        uses: technote-space/get-diff-action@v6.0.1
         with:
           FILES: CHANGELOG.md
 
       - name: Send reminder
-        uses: unsplash/comment-on-pr@v1.2.0
+        uses: unsplash/comment-on-pr@v1.3.1
         if: >
           steps.semgrep_diff.outputs.insertions > 20
           && steps.changelog_diff.outputs.insertions == 0

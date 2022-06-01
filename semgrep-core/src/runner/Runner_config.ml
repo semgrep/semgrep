@@ -21,6 +21,7 @@ type t = {
   pattern_file : filename;
   rules_file : filename;
   equivalences_file : string;
+  metatypes_file : string;
   lang : Xlang.t option;
   roots : Common.path list;
   output_format : output_format;

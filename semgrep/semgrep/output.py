@@ -344,7 +344,7 @@ class OutputHandler:
                 num_findings == 0
                 and num_targets > 0
                 and num_rules > 0
-                and state.metrics.get_is_using_server()
+                and state.metrics.is_using_registry
                 and state.app_session.token is None
             ):
                 suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"

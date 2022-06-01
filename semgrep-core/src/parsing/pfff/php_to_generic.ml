@@ -143,9 +143,6 @@ let rec stmt_aux = function
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
   | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
-  | Throw (t, v1) ->
-      let v1 = expr v1 in
-      [ G.Throw (t, v1, G.sc) |> G.s ]
   | Try (t, v1, v2, v3) ->
       let v1 = stmt v1 and v2 = list catch v2 and v3 = finally v3 in
       [ G.Try (t, v1, v2, v3) |> G.s ]
@@ -166,9 +163,26 @@ let rec stmt_aux = function
       [ G.DirectiveStmt (G.Package (t, v1) |> G.d) |> G.s ]
       @ v2
       @ [ G.DirectiveStmt (G.PackageEnd t2 |> G.d) |> G.s ]
-  | NamespaceUse (t, v1, v2) ->
-      let v1 = qualified_ident v1 and v2 = option alias v2 in
-      [ G.DirectiveStmt (G.ImportAs (t, G.DottedName v1, v2) |> G.d) |> G.s ]
+  | NamespaceUse (t, v1, v2) -> (
+      let v1 = qualified_ident v1 in
+      match v2 with
+      | Some x ->
+          [
+            G.DirectiveStmt
+              (G.ImportAs (t, G.DottedName v1, Some (alias x)) |> G.d)
+            |> G.s;
+          ]
+      (* A use declaration such as `use A\B\C;` brings `C` into scope as `C` *)
+      | None -> (
+          match List.rev v1 with
+          | name :: path ->
+              [
+                G.DirectiveStmt
+                  (G.ImportFrom (t, G.DottedName (List.rev path), name, None)
+                  |> G.d)
+                |> G.s;
+              ]
+          | [] -> raise Impossible))
   | StaticVars (t, v1) ->
       v1
       |> list (fun (v1, v2) ->
@@ -325,6 +339,10 @@ and expr e : G.expr =
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
+  | Throw (t, v1) ->
+      let v1 = expr v1 in
+      let st = G.Throw (t, v1, G.sc) |> G.s in
+      G.StmtExpr st
   | Infix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
@@ -359,10 +377,10 @@ and expr e : G.expr =
       let tok = snd v1.f_name in
       match v1 with
       | {
-       f_kind = AnonLambda, t;
-       f_ref = false;
-       m_modifiers = [];
-       f_name = _ignored;
+       f_kind = lambdakind, t;
+       f_ref = _;
+       m_modifiers = _;
+       f_name = _;
        l_uses;
        f_attrs = [];
        f_params = ps;
@@ -376,6 +394,12 @@ and expr e : G.expr =
                 ())
               l_uses
           in
+          let lambdakind =
+            match lambdakind with
+            | AnonLambda -> G.LambdaKind
+            | ShortLambda -> G.Arrow
+            | _ -> error tok "unsupported lambda variant"
+          in
 
           let body = stmt body in
           let ps = parameters ps in
@@ -386,10 +410,30 @@ and expr e : G.expr =
               G.fparams = ps;
               frettype = rett;
               fbody = G.FBStmt body;
-              fkind = (G.LambdaKind, t);
+              fkind = (lambdakind, t);
             }
-      | _ -> error tok "TODO: Lambda"))
+      | _ -> error tok "TODO: Lambda")
+  | Match (tok, e, matches) ->
+      let e = expr e in
+      let matches = Common.map match_ matches in
+      G.StmtExpr (G.Switch (tok, Some (G.Cond e), matches) |> G.s))
   |> G.e
+
+and match_ = function
+  | MCase (cases, e) ->
+      let cases =
+        Common.map
+          (fun case ->
+            let case = expr case in
+            (* TODO extend G.case_of_pat_and_expr to handle multiple cases? *)
+            G.Case (G.fake "case", H.expr_to_pattern case))
+          cases
+      in
+      let e = expr e in
+      G.CasesAndBody (cases, G.ExprStmt (e, G.sc) |> G.s)
+  | MDefault (tok, e) ->
+      let e = expr e in
+      G.CasesAndBody ([ G.Default tok ], G.ExprStmt (e, G.sc) |> G.s)
 
 and argument e =
   let e = expr e in
@@ -527,10 +571,10 @@ and constant_def { cst_name; cst_body; cst_tok = tok } =
   let ent = G.basic_entity id ~attrs:attr in
   (ent, { G.vinit = Some body; vtype = None })
 
-and enum_type tok { e_base; e_constraint } =
-  let _ = hint_type e_base in
+and enum_type _tok { e_base; e_constraint } =
+  let t = hint_type e_base in
   let _ = option hint_type e_constraint in
-  error tok "enum type not supported"
+  t
 
 and class_def
     {
@@ -550,7 +594,7 @@ and class_def
   let tok = snd c_name in
 
   let id = ident c_name in
-  let kind = class_kind c_kind in
+  let kind, class_attrs = class_kind c_kind in
   let extends = option class_parent c_extends in
   let implements = list class_name c_implements in
   let uses = list class_name c_uses in
@@ -572,7 +616,7 @@ and class_def
     @ (methods |> List.map (fun (ent, var) -> (ent, G.FuncDef var)))
   in
 
-  let ent = G.basic_entity id ~attrs:(attrs @ modifiers) in
+  let ent = G.basic_entity id ~attrs:(attrs @ modifiers @ class_attrs) in
   let def =
     {
       G.ckind = kind;
@@ -591,10 +635,10 @@ and class_parent x : G.class_parent =
 
 and class_kind (x, t) =
   match x with
-  | Class -> (G.Class, t)
-  | Interface -> (G.Interface, t)
-  | Trait -> (G.Trait, t)
-  | Enum -> error t "Enum not supported"
+  | Class -> ((G.Class, t), [])
+  | Interface -> ((G.Interface, t), [])
+  | Trait -> ((G.Trait, t), [])
+  | Enum -> ((G.Class, t), [ G.KeywordAttr (G.EnumClass, t) ])
 
 and class_var
     {

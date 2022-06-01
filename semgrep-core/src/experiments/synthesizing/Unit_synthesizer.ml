@@ -190,13 +190,12 @@ let tests =
                         Synthesizer.synthesize_patterns config range file
                       in
                       (* the code *)
-                      let { Parse_target.ast = code; errors = errs; _ } =
-                        Parse_target
-                        .parse_and_resolve_name_use_pfff_or_treesitter lang file
+                      let ast =
+                        Parse_target.parse_and_resolve_name_fail_if_partial lang
+                          file
                       in
-                      if errs <> [] then
-                        failwith (spf "problem parsing %s" filename);
-                      Naming_AST.resolve lang code;
+                      (* BUG? resolve again? already done above *)
+                      Naming_AST.resolve lang ast;
 
                       let r = Range.range_of_linecol_spec range file in
 
@@ -206,7 +205,7 @@ let tests =
                           let pattern = Parse_pattern.parse_pattern lang pat in
 
                           (* extracting the code at the range *)
-                          let e_opt = Range_to_AST.any_at_range_first r code in
+                          let e_opt = Range_to_AST.any_at_range_first r ast in
                           match e_opt with
                           | Some any ->
                               let code =
@@ -217,7 +216,7 @@ let tests =
                               in
                               let matches_with_env =
                                 let env =
-                                  Matching_generic.empty_environment None None
+                                  Matching_generic.empty_environment None lang
                                     Config_semgrep.default_config
                                 in
                                 Match_patterns.match_any_any pattern code env

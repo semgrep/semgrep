@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime
+from os.path import exists
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -55,6 +56,16 @@ logger = getLogger(__name__)
 
 RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.json"))
 TARGET_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_targets.txt"))
+
+# This is an experiment based on a conversation with security. We allow
+# users to pass in a file (like equivalences, but specifically for types)
+# to define a metatype. When they use this metatype in a rule, we also
+# check whether any of the metatype's subtypes are present in the code.
+# In addition, we still check for the metatype, to allow the name to be
+# reused
+METATYPES_FILE = str(
+    USER_DATA_FOLDER / Path("r2c-internal-experiment-metatypes-file.yaml")
+)
 
 
 def setrlimits_preexec_fn() -> None:
@@ -608,6 +619,9 @@ class CoreRunner:
 
             if self._optimizations != "none":
                 cmd.append("-fast")
+
+            if exists(METATYPES_FILE):
+                cmd += ["-metatypes", METATYPES_FILE]
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.

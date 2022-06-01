@@ -21,11 +21,11 @@ jobs:
         python: [3.7]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
       - name: Download artifacts
@@ -52,7 +52,7 @@ jobs:
           cd target
           PIPENV_PIPFILE=../semgrep/Pipfile /usr/bin/time pipenv run semgrep --metrics=off --config=${{github.event.inputs.CONFIG}} --time --json . >times.json
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: times
           path: target/times.json

@@ -840,6 +840,9 @@ and stmt_expr env ?e_gen st =
           rev_sts |> List.rev |> List.concat_map (stmt env) |> add_stmts env;
           stmt_expr env st
       | __else__ -> todo ())
+  | G.Return (t, eorig, _) ->
+      mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
+      expr_opt env None
   | __else__ -> todo ()
 
 (*****************************************************************************)

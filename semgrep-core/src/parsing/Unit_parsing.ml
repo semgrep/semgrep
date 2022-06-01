@@ -26,9 +26,8 @@ let parsing_tests_for_lang files lang =
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
-             let { Parse_target.errors = errs; _ } =
-               Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
-                 file
+             let { Parse_target.skipped_tokens = errs; _ } =
+               Parse_target.parse_and_resolve_name lang file
              in
              if errs <> [] then
                Alcotest.fail
@@ -39,9 +38,8 @@ let partial_parsing_tests_for_lang files lang =
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
-             let { Parse_target.errors = errs; _ } =
-               Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
-                 file
+             let { Parse_target.skipped_tokens = errs; _ } =
+               Parse_target.parse_and_resolve_name lang file
              in
              if errs = [] then
                Alcotest.fail
@@ -109,7 +107,7 @@ let parsing_error_tests =
                 try
                   let lang = List.hd (Lang.langs_of_filename file) in
                   let res = Parse_target.just_parse_with_lang lang file in
-                  if res.Parse_target.errors = [] then
+                  if res.Parse_target.skipped_tokens = [] then
                     Alcotest.fail
                       "it should raise a standard parsing error exn or return \
                        partial errors "

@@ -10,11 +10,30 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `--test` flag will now seach for code files with `.fixed` suffix and use
   these to test the behaviour of autofixes of the rules.
 - Rust: added support for method chaining patterns.
+- Accept `SEMGREP_BASELINE_REF` as alias for `SEMGREP_BASELINE_COMMIT`
+- `r2c-internal-project-depends-on`:
+  - pretty printing for SCA results
+  - support for poetry and gradle lockfiles
 
 ### Changed
 
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
+- A parameter pattern without a default value can now match a parameter
+  with a default value (#5021)
+
+### Fixed
+
+- Numerous improvements to PHP parsing by switching to tree-sitter-php
+  to parse PHP target code. Huge shoutout to Sjoerd Langkemper for most
+  of the heavy lifting work
+  (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
+- TS: support number and boolean typed metavariables (#5350)
+- When a rule from the registry fails to parse, suggest user upgrade to
+  latest version of semgrep
+- Scala: correctly handle `return` for taint analysis (#4975)
+- PHP: correctly handle namespace use declarations when they don't rename
+  the imported name (#3964)
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
@@ -49,6 +68,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   but please report any regressions that you may find.
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
+- pattern-regex, pattern-not-regex, metavariable-regex: `^` and `$`
+  now match at the beginning and end of each line, respectively,
+  rather than previously just at the beginning and end of the input
+  file. This corresponds to PCRE's multiline mode. To get the old
+  behavior back, use `\A` instead of '^' and `\Z` instead of `$`. See
+  the [PCRE
+  manual](https://www.pcre.org/original/doc/html/pcrepattern.html#smallassertions)
+  for details.
 - Made error message for resource exhausion (exit code -11/-9) more actionable
 - Made error message for rules with patterns missing positive terms
   more actionable (#5234)

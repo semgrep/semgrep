@@ -1,0 +1,13 @@
+rules:
+  - id: simple-function-sink
+    pattern-sources:
+      - patterns:
+          - pattern: a
+    pattern-sinks:
+      - patterns:
+          - pattern: addInt(...)
+    mode: taint
+    languages:
+      - scala
+    severity: WARNING
+    message: Match found

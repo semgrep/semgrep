@@ -45,10 +45,7 @@ let compare_range (r1 : Range.t) (r2 : Range.t) : bool =
   r1.start == r2.start && r1.end_ == r2.end_
 
 let parse_file lang file : AST_generic.program =
-  let { Parse_target.ast; errors; _ } =
-    Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-  in
-  if errors <> [] then failwith (spf "fail to parse %s" file) else ast
+  Parse_target.parse_and_resolve_name_fail_if_partial lang file
 
 let extract_range (m : Pattern_match.t) : Range.t =
   let start_token_loc, end_token_loc = m.range_loc in

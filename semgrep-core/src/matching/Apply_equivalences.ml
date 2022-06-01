@@ -26,7 +26,7 @@ module Env = Metavariable_capture
 (* Matchers for code equivalence mode *)
 (*****************************************************************************)
 
-let match_e_e_for_equivalences _ruleid a b =
+let match_e_e_for_equivalences _ruleid lang a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
       let config =
         {
@@ -36,7 +36,6 @@ let match_e_e_for_equivalences _ruleid a b =
         }
       in
       let cache = None in
-      let lang = None in
       let env = Matching_generic.empty_environment cache lang config in
       Generic_vs_generic.m_expr a b env)
 
@@ -71,7 +70,7 @@ let subst_e (env : Env.t) e =
   in
   visitor.M.vexpr e
 
-let apply equivs any =
+let apply equivs lang any =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
 
@@ -106,7 +105,7 @@ let apply equivs any =
               | (l, r) :: xs -> (
                   (* look for a match on original x, not x' *)
                   let matches_with_env =
-                    match_e_e_for_equivalences "<equivalence>" l x
+                    match_e_e_for_equivalences "<equivalence>" lang l x
                   in
                   match matches_with_env with
                   (* todo: should generate a Disj for each possibilities? *)
