@@ -261,6 +261,11 @@ let exn_to_error file exn =
 (* Parsing (non-cached) *)
 (*****************************************************************************)
 
+(* Experiment *)
+let process_metatypes metatypes_file =
+  let metatypes = Parse_rule.parse_metatypes metatypes_file in
+  Hooks.metatypes := Some metatypes
+
 (* TODO? this is currently deprecated, but pad still has hope the
  * feature can be resurrected.
  *)
@@ -470,6 +475,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
       raise (Rule.InvalidRule err)
   | _ -> ());
 
+  if not (config.metatypes_file = "") then
+    process_metatypes config.metatypes_file;
   let rule_table = mk_rule_table rules in
   let targets, skipped =
     targets_of_config config (Common.map (fun r -> fst r.R.id) rules)
