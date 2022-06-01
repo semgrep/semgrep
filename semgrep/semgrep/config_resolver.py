@@ -19,6 +19,7 @@ from ruamel.yaml import YAMLError
 
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
+from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
@@ -43,6 +44,7 @@ from semgrep.state import get_state
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.util import terminal_wrap
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -140,6 +142,9 @@ class ConfigPath:
         return url
 
     def _download_config(self) -> Mapping[str, YamlTree]:
+        """
+        Download a configuration from semgrep.dev
+        """
         config_url = self._config_path
         logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
         try:
@@ -150,6 +155,11 @@ class ConfigPath:
             )
             logger.debug(f"finished downloading from {config_url}")
             return config
+        except InvalidRuleSchemaError as e:
+            notice = f"\nRules downloaded from {config_url} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
+            notice_color = with_color(Colors.red, notice, bold=True)
+            logger.error(notice_color)
+            raise SemgrepError(terminal_wrap(f"Parse error details: {str(e)}"))
         except Exception as e:
             raise SemgrepError(
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
