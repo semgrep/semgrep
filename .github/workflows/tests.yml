@@ -26,7 +26,7 @@ jobs:
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Post-checkout fixes
@@ -80,7 +80,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Download artifacts
@@ -116,7 +116,7 @@ jobs:
         python: [3.7]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
@@ -193,7 +193,7 @@ jobs:
         python: [3.7]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
@@ -239,7 +239,7 @@ jobs:
         python: [3.7]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
@@ -277,7 +277,7 @@ jobs:
         python: [3.7]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Python
