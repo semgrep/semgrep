@@ -32,7 +32,7 @@
               ],
               "version": "0.0.7"
             },
-            "lockfile": "yarn.lock"
+            "lockfile": "targets/dependency_aware/yarn.lock"
           }
         ],
         "fingerprint": "e87e6dc13255fff5bd134556c84b5a22",

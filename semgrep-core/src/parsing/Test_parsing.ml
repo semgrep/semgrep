@@ -265,9 +265,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
                  Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
                      Common.set_timeout ~name:"Test_parsing.parsing_common"
                        timeout_seconds (fun () ->
-                         Parse_target
-                         .parse_and_resolve_name_use_pfff_or_treesitter lang
-                           file))
+                         Parse_target.parse_and_resolve_name lang file))
                with
                | Some res -> res.Parse_target.stat
                | None -> { (PI.bad_stat file) with have_timeout = true }

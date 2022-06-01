@@ -30,7 +30,7 @@
               "resolved_url": null,
               "version": "3.35.2"
             },
-            "lockfile": "gradle.lockfile"
+            "lockfile": "targets/dependency_aware/gradle.lockfile"
           }
         ],
         "fingerprint": "a3d9a927ab61119d8367579160aabe55",

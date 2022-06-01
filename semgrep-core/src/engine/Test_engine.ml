@@ -141,12 +141,10 @@ let make_tests ?(unit_testing = false) xs =
                lazy
                  (match xlang with
                  | L (lang, _) ->
-                     let { Parse_target.ast; errors; _ } =
-                       Parse_target
-                       .parse_and_resolve_name_use_pfff_or_treesitter lang
-                         target
+                     let { Parse_target.ast; skipped_tokens; _ } =
+                       Parse_target.parse_and_resolve_name lang target
                      in
-                     (ast, errors)
+                     (ast, skipped_tokens)
                  | LRegex
                  | LGeneric ->
                      assert false)

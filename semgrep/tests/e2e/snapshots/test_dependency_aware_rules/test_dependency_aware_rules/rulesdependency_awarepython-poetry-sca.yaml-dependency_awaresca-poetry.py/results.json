@@ -30,7 +30,7 @@
               "resolved_url": null,
               "version": "13.11.1"
             },
-            "lockfile": "poetry.lock"
+            "lockfile": "targets/dependency_aware/poetry.lock"
           }
         ],
         "fingerprint": "e48712b411e825f0147678c075c4fa85",

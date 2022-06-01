@@ -36,7 +36,7 @@
               ],
               "version": "1.0.0"
             },
-            "lockfile": "go.sum"
+            "lockfile": "targets/dependency_aware/go.sum"
           },
           {
             "dependency_pattern": {
@@ -57,7 +57,7 @@
               ],
               "version": "1.0.0"
             },
-            "lockfile": "go.sum"
+            "lockfile": "targets/dependency_aware/go.sum"
           }
         ],
         "fingerprint": "5c136ae7599499d8a4779d6ddbe0a3cf",

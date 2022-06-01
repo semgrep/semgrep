@@ -41,6 +41,7 @@ let config =
     pattern_file = "";
     rules_file = "";
     equivalences_file = "";
+    metatypes_file = "";
     lang = None;
     output_format = Text;
     match_format = Matching_report.Normal;
