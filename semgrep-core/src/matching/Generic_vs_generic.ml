@@ -480,26 +480,30 @@ let rec m_name a b =
           (* m_name a n *)
           return ())
   (* boilerplate *)
-  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
-  | ( G.Id _,
+  | ( _,
       G.IdQualified
-        {
-          name_info =
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName dotted ),
-                        _sid );
-                };
-              _;
-            };
-          _;
-        } ) ->
+        ({
+           name_info =
+             {
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( ( B.ImportedEntity dotted
+                         | B.ImportedModule (B.DottedName dotted)
+                         | B.ResolvedName dotted ),
+                         _sid );
+                 };
+               _;
+             };
+           _;
+         } as b1) ) -> (
       try_parents dotted
+      >||>
+      match a with
+      | IdQualified a1 -> m_name_info a1 b1
+      | Id _ -> fail ())
+  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
