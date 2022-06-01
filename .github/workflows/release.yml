@@ -14,6 +14,7 @@ jobs:
     name: Create the Github Release
     runs-on: ubuntu-latest
     needs: [upload-wheels, release-ubuntu-16-04]
+    if: ${{ !contains(github.ref, '-test-release') }}
     steps:
       - name: Create Release
         id: create_release
@@ -88,6 +89,7 @@ jobs:
   release-docker:
     name: Build and Push Semgrep Docker Container
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -245,10 +247,9 @@ jobs:
     container: quay.io/pypa/manylinux1_x86_64
     needs: [build-wheels-manylinux]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v1
         with:
           name: manylinux-wheel
-          path: manylinux-wheel
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
       - name: install package
@@ -284,9 +285,17 @@ jobs:
         run: unzip ./osx-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@master
+        if: ${{ !contains(github.ref,'-test-release') }}
         with:
           user: __token__
           password: ${{ secrets.pypi_upload_token }}
+          skip_existing: true
+      - name: Publish to test Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: ${{ contains(github.ref,'-test-release') }}
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_upload_token }}
           skip_existing: true
 
   sleep-before-homebrew:
@@ -294,6 +303,7 @@ jobs:
     # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
     needs: [upload-wheels]
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - name: Sleep 10 min
         run: sleep 10m
@@ -302,6 +312,7 @@ jobs:
     name: Update on Homebrew-Core
     needs: [sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-10.15
+    if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - name: Setup Python
         uses: actions/setup-python@v3
