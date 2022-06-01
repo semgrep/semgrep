@@ -14,6 +14,7 @@ jobs:
     name: Create the Github Release
     runs-on: ubuntu-latest
     needs: [upload-wheels, release-ubuntu-16-04]
+    if: ${{ !contains(github.head_ref,'-test-release') }}
     steps:
       - name: Create Release
         id: create_release
@@ -88,6 +89,7 @@ jobs:
   release-docker:
     name: Build and Push Semgrep Docker Container
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.head_ref,'-test-release') }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -266,6 +268,7 @@ jobs:
   upload-wheels:
     runs-on: ubuntu-latest
     needs: [test-wheels-manylinux, build-wheels-osx]
+    if: ${{ !contains(github.head_ref,'-test-release') }}
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v3
@@ -289,11 +292,39 @@ jobs:
           password: ${{ secrets.pypi_upload_token }}
           skip_existing: true
 
+  upload-wheels-test:
+    runs-on: ubuntu-latest
+    needs: [test-wheels-manylinux, build-wheels-osx]
+    if: ${{ contains(github.head_ref,'-test-release') }}
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: manylinux-wheel
+          path: manylinux-wheel
+      - name: Download Osx Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: osx-wheel
+          path: osx-wheel
+      - name: Unzip
+        run: unzip ./manylinux-wheel/dist.zip
+      - name: Unzip OSX Wheel
+        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
+        run: unzip ./osx-wheel/dist.zip "*.whl"
+      - name: Publish to Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_upload_token }}
+          skip_existing: true
+
   sleep-before-homebrew:
     name: Sleep 10 min before releasing to homebrew
     # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
     needs: [upload-wheels]
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.head_ref,'-test-release') }}
     steps:
       - name: Sleep 10 min
         run: sleep 10m
@@ -302,6 +333,7 @@ jobs:
     name: Update on Homebrew-Core
     needs: [sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-10.15
+    if: ${{ !contains(github.head_ref,'-test-release') }}
     steps:
       - name: Setup Python
         uses: actions/setup-python@v3
