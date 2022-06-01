@@ -554,10 +554,10 @@ and constant_def { cst_name; cst_body; cst_tok = tok } =
   let ent = G.basic_entity id ~attrs:attr in
   (ent, { G.vinit = Some body; vtype = None })
 
-and enum_type tok { e_base; e_constraint } =
-  let _ = hint_type e_base in
+and enum_type _tok { e_base; e_constraint } =
+  let t = hint_type e_base in
   let _ = option hint_type e_constraint in
-  error tok "enum type not supported"
+  t
 
 and class_def
     {
@@ -577,7 +577,7 @@ and class_def
   let tok = snd c_name in
 
   let id = ident c_name in
-  let kind = class_kind c_kind in
+  let kind, class_attrs = class_kind c_kind in
   let extends = option class_parent c_extends in
   let implements = list class_name c_implements in
   let uses = list class_name c_uses in
@@ -599,7 +599,7 @@ and class_def
     @ (methods |> List.map (fun (ent, var) -> (ent, G.FuncDef var)))
   in
 
-  let ent = G.basic_entity id ~attrs:(attrs @ modifiers) in
+  let ent = G.basic_entity id ~attrs:(attrs @ modifiers @ class_attrs) in
   let def =
     {
       G.ckind = kind;
@@ -618,10 +618,10 @@ and class_parent x : G.class_parent =
 
 and class_kind (x, t) =
   match x with
-  | Class -> (G.Class, t)
-  | Interface -> (G.Interface, t)
-  | Trait -> (G.Trait, t)
-  | Enum -> error t "Enum not supported"
+  | Class -> ((G.Class, t), [])
+  | Interface -> ((G.Interface, t), [])
+  | Trait -> ((G.Trait, t), [])
+  | Enum -> ((G.Class, t), [ G.KeywordAttr (G.EnumClass, t) ])
 
 and class_var
     {
