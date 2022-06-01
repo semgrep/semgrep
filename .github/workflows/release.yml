@@ -156,8 +156,6 @@ jobs:
     name: Build the OSX M1 binaries
     runs-on: [self-hosted, macOS, ARM64]
     steps:
-      - name: Install pipenv
-        run: sudo python3 -m pip install pipenv
       - name: Checkout
         uses: actions/checkout@v2
         with:
