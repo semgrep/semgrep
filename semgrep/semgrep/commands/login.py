@@ -1,4 +1,3 @@
-import os
 import sys
 import time
 import uuid
@@ -10,9 +9,6 @@ import click
 
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import IN_DOCKER
-from semgrep.constants import IN_GH_ACTION
-from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
@@ -21,10 +17,11 @@ logger = getLogger(__name__)
 
 
 def make_login_url() -> Tuple[uuid.UUID, str]:
+    env = get_state().env
     session_id = uuid.uuid4()
     return (
         session_id,
-        f"{SEMGREP_URL}/login?cli-token={session_id}&docker={IN_DOCKER}&gha={IN_GH_ACTION}",
+        f"{env.semgrep_url}/login?cli-token={session_id}&docker={env.in_docker}&gha={env.in_gh_action}",
     )
 
 
@@ -47,9 +44,8 @@ def login() -> NoReturn:
         sys.exit(FATAL_EXIT_CODE)
 
     # If the token is provided as an environment variable, save it to the settings file.
-    env_var_token = os.environ.get(auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
-    if env_var_token is not None and len(env_var_token) > 0:
-        if not save_token(env_var_token, echo_token=False):
+    if state.env.app_token is not None and len(state.env.app_token) > 0:
+        if not save_token(state.env.app_token, echo_token=False):
             sys.exit(FATAL_EXIT_CODE)
         sys.exit(0)
 
@@ -57,7 +53,7 @@ def login() -> NoReturn:
     # interactively prompt the user to supply it (if we are in a TTY).
     if not auth.is_a_tty():
         click.echo(
-            f"Error: semgrep login is an interactive command: run in an interactive terminal (or define {auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME})",
+            f"Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
             err=True,
         )
         sys.exit(FATAL_EXIT_CODE)
@@ -75,7 +71,7 @@ def login() -> NoReturn:
 
     for _ in range(MAX_RETRIES):
         r = state.app_session.post(
-            f"{SEMGREP_URL}/api/agent/tokens/requests",
+            f"{state.env.semgrep_url}/api/agent/tokens/requests",
             json={"token_request_key": str(session_id)},
         )
         if r.status_code == 200:
@@ -86,7 +82,7 @@ def login() -> NoReturn:
                 sys.exit(FATAL_EXIT_CODE)
         elif r.status_code != 404:
             click.echo(
-                f"Unexpected failure from {SEMGREP_URL}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
                 err=True,
             )
 
@@ -100,14 +96,14 @@ def login() -> NoReturn:
 
 
 def save_token(login_token: Optional[str], echo_token: bool) -> bool:
-    settings = get_state().settings
+    state = get_state()
     if login_token is not None and auth.is_valid_token(login_token):
         auth.set_token(login_token)
         click.echo(
-            f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {settings.path}."
+            f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {state.settings.path}."
         )
         click.echo(
-            f"Note: You can always generate more tokens at {SEMGREP_URL}/orgs/-/settings/tokens"
+            f"Note: You can always generate more tokens at {state.env.semgrep_url}/orgs/-/settings/tokens"
         )
         return True
     else:

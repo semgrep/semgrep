@@ -23,9 +23,7 @@ from ruamel.yaml import YAML
 from typing_extensions import Literal
 from typing_extensions import TypedDict
 
-from semgrep.constants import SEMGREP_SETTINGS_FILE
-from semgrep.constants import SETTINGS_FILE
-from semgrep.constants import USER_DATA_FOLDER
+from semgrep.env import Env
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -53,10 +51,10 @@ class Settings:
         """
         Uses {$XDG_CONFIG_HOME/semgrep || ~/.semgrep}/settings.yaml unless SEMGREP_SETTINGS_FILE is set
         """
-        if SEMGREP_SETTINGS_FILE:
-            return Path(SEMGREP_SETTINGS_FILE)
-
-        return USER_DATA_FOLDER / SETTINGS_FILE
+        # state.env and state.settings get initialized together, but settings depends on env
+        # so we just read the env a second time here ¯\_(ツ)_/¯
+        env = Env()
+        return env.user_settings_file
 
     @_contents.default
     def get_default_contents(self) -> SettingsSchema:

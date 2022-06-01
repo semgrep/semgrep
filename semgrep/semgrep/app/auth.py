@@ -1,26 +1,19 @@
 import logging
-import os
 import sys
 from typing import Optional
 
-from typing_extensions import Final
-
-from semgrep.constants import SEMGREP_URL
 from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
-
-SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: Final = "SEMGREP_APP_TOKEN"
-SEMGREP_API_TOKEN_SETTINGS_KEY: Final = "api_token"
 
 
 def is_valid_token(token: str) -> bool:
     """
     Returns true if token is valid
     """
-    app_session = get_state().app_session
-    r = app_session.get(
-        f"{SEMGREP_URL}/api/agent/deployments/current",
+    state = get_state()
+    r = state.app_session.get(
+        f"{state.env.semgrep_url}/api/agent/deployments/current",
         headers={"Authorization": f"Bearer {token}"},
     )
     return r.ok
@@ -32,8 +25,8 @@ def get_deployment_id() -> Optional[int]:
 
     Returns None if api_token is invalid/doesn't have associated deployment
     """
-    app_session = get_state().app_session
-    r = app_session.get(f"{SEMGREP_URL}/api/agent/deployments/current")
+    state = get_state()
+    r = state.app_session.get(f"{state.env.semgrep_url}/api/agent/deployments/current")
 
     if r.ok:
         data = r.json()
@@ -49,12 +42,10 @@ def get_token() -> Optional[str]:
     - settings file
     - None
     """
-    login_token = os.environ.get(SEMGREP_LOGIN_TOKEN_ENVVAR_NAME)
-    if login_token is not None:
-        logger.debug(
-            f"Using environment variable {SEMGREP_LOGIN_TOKEN_ENVVAR_NAME} as api token"
-        )
-        return login_token
+    state = get_state()
+    if state.env.app_token is not None:
+        logger.debug(f"Using environment variable SEMGREP_APP_TOKEN as api token")
+        return state.env.app_token
 
     return _read_token_from_settings_file()
 
@@ -67,7 +58,7 @@ def _read_token_from_settings_file() -> Optional[str]:
     """
     logger.debug("Getting API token from settings file")
     settings = get_state().settings
-    login_token = settings.get(SEMGREP_API_TOKEN_SETTINGS_KEY)
+    login_token = settings.get("api_token")
 
     if login_token and not isinstance(login_token, str):
         raise ValueError()
@@ -81,7 +72,7 @@ def set_token(token: str) -> None:
     """
     logger.debug("Saving API token in settings file")
     settings = get_state().settings
-    settings.set(SEMGREP_API_TOKEN_SETTINGS_KEY, token)
+    settings.set("api_token", token)
 
 
 def delete_token() -> None:
@@ -90,7 +81,7 @@ def delete_token() -> None:
     """
     logger.debug("Deleting api token from settings file")
     settings = get_state().settings
-    settings.delete(SEMGREP_API_TOKEN_SETTINGS_KEY)
+    settings.delete("api_token")
 
 
 def is_a_tty() -> bool:

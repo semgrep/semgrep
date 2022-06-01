@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime
-from os.path import exists
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -29,7 +28,6 @@ import semgrep.output_from_core as core
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.constants import USER_DATA_FOLDER
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_output import parse_core_output
@@ -53,19 +51,6 @@ from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-RULE_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_rules.json"))
-TARGET_SAVE_FILE = str(USER_DATA_FOLDER / Path("semgrep_targets.txt"))
-
-# This is an experiment based on a conversation with security. We allow
-# users to pass in a file (like equivalences, but specifically for types)
-# to define a metatype. When they use this metatype in a rule, we also
-# check whether any of the metatype's subtypes are present in the code.
-# In addition, we still check for the metatype, to allow the name to be
-# reused
-METATYPES_FILE = str(
-    USER_DATA_FOLDER / Path("r2c-internal-experiment-metatypes-file.yaml")
-)
 
 
 def setrlimits_preexec_fn() -> None:
@@ -556,6 +541,7 @@ class CoreRunner:
         dump_command_for_core: bool,
         deep: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
+        state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
@@ -567,12 +553,12 @@ class CoreRunner:
         profiling_data: ProfilingData = ProfilingData()
 
         rule_file_name = (
-            RULE_SAVE_FILE
+            str(state.env.user_data_folder / "semgrep_rules.json")
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w", suffix=".json").name
         )
         target_file_name = (
-            TARGET_SAVE_FILE
+            str(state.env.user_data_folder / "semgrep_targets.txt")
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w").name
         )
@@ -620,8 +606,19 @@ class CoreRunner:
             if self._optimizations != "none":
                 cmd.append("-fast")
 
-            if exists(METATYPES_FILE):
-                cmd += ["-metatypes", METATYPES_FILE]
+            # This is an experiment based on a conversation with security. We allow
+            # users to pass in a file (like equivalences, but specifically for types)
+            # to define a metatype. When they use this metatype in a rule, we also
+            # check whether any of the metatype's subtypes are present in the code.
+            # In addition, we still check for the metatype, to allow the name to be
+            # reused
+            metatypes_path = (
+                state.env.user_data_folder
+                / "r2c-internal-experiment-metatypes-file.yaml"
+            )
+
+            if metatypes_path.is_file():
+                cmd += ["-metatypes", str(metatypes_path)]
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -668,8 +665,7 @@ class CoreRunner:
                 ]
 
             stderr: Optional[int] = subprocess.PIPE
-            terminal = get_state().terminal
-            if terminal.is_debug:
+            if state.terminal.is_debug:
                 cmd += ["--debug"]
 
             logger.debug("Running semgrep-core with command:")

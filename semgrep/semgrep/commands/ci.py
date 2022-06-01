@@ -20,7 +20,6 @@ from semgrep.commands.scan import CONTEXT_SETTINGS
 from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import OutputFormat
-from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -289,7 +288,11 @@ def ci(
     logger.info(
         f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
     )
-    to_server = "" if SEMGREP_URL == "https://semgrep.dev" else f" to {SEMGREP_URL}"
+    to_server = (
+        ""
+        if state.env.semgrep_url == "https://semgrep.dev"
+        else f" to {state.env.semgrep_url}"
+    )
     if scan_handler:
         logger.info(
             f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"

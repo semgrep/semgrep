@@ -24,12 +24,9 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
-from semgrep.constants import IN_DOCKER
-from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
-from semgrep.constants import SEMGREP_URL
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
@@ -48,9 +45,6 @@ from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
-OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
@@ -106,7 +100,7 @@ class ConfigPath:
         elif config_str == AUTO_CONFIG_KEY:
             if self._project_url is not None:
                 self._extra_headers["X-Semgrep-Project"] = self._project_url
-            self._config_path = f"{SEMGREP_URL}/{AUTO_CONFIG_LOCATION}"
+            self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = str(Path(config_str).expanduser())
@@ -180,8 +174,9 @@ class ConfigPath:
             else:
                 raise SemgrepError(f"config location `{loc}` is not a file or folder!")
         else:
+            env = get_state().env
             addendum = ""
-            if IN_DOCKER:
+            if env.in_docker:
                 addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
             raise SemgrepError(
                 f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
@@ -409,18 +404,14 @@ def manual_config(
 
 
 def adjust_for_docker() -> None:
-    # change into this folder so that all paths are relative to it
-    if IN_DOCKER and not IN_GH_ACTION:
-        if OLD_SRC_DIRECTORY.exists():
+    """change into this folder so that all paths are relative to it"""
+    env = get_state().env
+    if env.in_docker and not env.in_gh_action:
+        if not env.src_directory.exists():
             raise SemgrepError(
-                f"Detected Docker environment using old code volume, please use '{SRC_DIRECTORY}' instead of '{OLD_SRC_DIRECTORY}'"
+                f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{env.src_directory}\"'"
             )
-        if not SRC_DIRECTORY.exists():
-            raise SemgrepError(
-                f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{SRC_DIRECTORY}\"'"
-            )
-        if SRC_DIRECTORY.exists():
-            os.chdir(SRC_DIRECTORY)
+        os.chdir(env.src_directory)
 
 
 def indent(msg: str) -> str:
@@ -521,7 +512,8 @@ def registry_id_to_url(registry_id: str) -> str:
     """
     Convert from registry_id to semgrep.dev url
     """
-    return f"{SEMGREP_URL}/{registry_id}"
+    env = get_state().env
+    return f"{env.semgrep_url}/{registry_id}"
 
 
 def url_for_policy(config_str: str) -> str:
@@ -547,7 +539,8 @@ def url_for_policy(config_str: str) -> str:
             "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
         )
 
-    request_url = f"{SEMGREP_URL}/api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
+    env = get_state().env
+    request_url = f"{env.semgrep_url}/api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
 
     if include_cai:
         return f"{request_url}?include_cai=1"
