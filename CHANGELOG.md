@@ -7,11 +7,26 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - Sarif output format now includes `fixes` section
+- Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`:
+  - pretty printing for SCA results
+  - support for poetry and gradle lockfiles
 
 ### Changed
 
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
+- A parameter pattern without a default value can now match a parameter
+  with a default value (#5021)
+
+### Fixed
+
+- Numerous improvements to PHP parsing by switching to tree-sitter-php
+  to parse PHP target code. Huge shoutout to Sjoerd Langkemper for most
+  of the heavy lifting work
+  (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
+- TS: support number and boolean typed metavariables (#5350)
+- Scala: correctly handle `return` for taint analysis (#4975)
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
