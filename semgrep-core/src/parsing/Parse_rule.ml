@@ -323,8 +323,12 @@ let parse_metavar_cond env key s =
   | UnixExit n -> raise (UnixExit n)
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
+(*
+   MULTILINE = ^ and $ match at the beginning and end of lines rather than
+               just at the beginning and end of input.
+*)
 let parse_regexp env (s, t) =
-  try (s, SPcre.regexp s) with
+  try (s, SPcre.regexp ~flags:[ `MULTILINE ] s) with
   | Pcre.Error exn ->
       raise
         (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))
