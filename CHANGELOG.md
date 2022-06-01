@@ -30,6 +30,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - When a rule from the registry fails to parse, suggest user upgrade to
   latest version of semgrep
 - Scala: correctly handle `return` for taint analysis (#4975)
+- PHP: correctly handle namespace use declarations when they don't rename
+  the imported name (#3964)
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
