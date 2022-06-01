@@ -97,6 +97,7 @@ class ValueSchema(TypedDict, total=False):
 
 class TopLevelSchema(TypedDict, total=False):
     event_id: uuid.UUID
+    anonymous_user_id: str
     started_at: datetime
     sent_at: datetime
 
@@ -302,7 +303,7 @@ class Metrics:
         """
         from semgrep.state import get_state  # avoiding circular import
 
-        user_agent = get_state().app_session.user_agent
+        state = get_state()
         logger.verbose(
             f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"
         )
@@ -311,6 +312,7 @@ class Metrics:
             return
 
         self.payload["sent_at"] = datetime.now()
+        self.payload["anonymous_user_id"] = state.settings.get("anonymous_user_id")
 
         try:
             r = requests.post(
@@ -318,7 +320,7 @@ class Metrics:
                 data=self.as_json(),
                 headers={
                     "Content-Type": "application/json",
-                    "User-Agent": str(user_agent),
+                    "User-Agent": str(state.app_session.user_agent),
                 },
                 timeout=3,
             )

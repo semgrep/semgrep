@@ -255,11 +255,15 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
 
     mock_post = mocker.patch("requests.post")
 
+    (tmp_path / ".settings.yaml").write_text(
+        f"anonymous_user_id: {str(uuid.UUID('1' * 32))}"
+    )
     (tmp_path / "code.py").write_text("5 == 5")
     (tmp_path / "rule.yaml").symlink_to(TESTS_PATH / "e2e" / "rules" / "eqeq.yaml")
     monkeypatch.chdir(tmp_path)
 
-    CliRunner().invoke(cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"])
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
+    runner.invoke(cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"])
 
     payload = json.loads(mock_post.call_args.kwargs["data"])
     payload["environment"]["version"] = _mask_version(payload["environment"]["version"])

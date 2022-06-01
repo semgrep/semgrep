@@ -12,6 +12,7 @@ If the process does not have permission to the settings path, a PermissionError 
 callers should handle this gracefully.
 """
 import os
+import uuid
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -34,11 +35,14 @@ yaml.default_flow_style = False
 class SettingsSchema(TypedDict, total=False):
     has_shown_metrics_notification: bool
     api_token: str
+    anonymous_user_id: str
 
 
-SettingsKeys = Literal["has_shown_metrics_notification", "api_token"]
+SettingsKeys = Literal[
+    "has_shown_metrics_notification", "api_token", "anonymous_user_id"
+]
 
-DEFAULT_SETTINGS: SettingsSchema = {}
+DEFAULT_SETTINGS: SettingsSchema = {"anonymous_user_id": str(uuid.uuid4())}
 
 
 @define
@@ -72,7 +76,10 @@ class Settings:
             )
             return DEFAULT_SETTINGS.copy()
 
-        return cast(SettingsSchema, yaml_contents)
+        return cast(SettingsSchema, {**DEFAULT_SETTINGS, **yaml_contents})
+
+    def __attrs_post_init__(self) -> None:
+        self.save()  # in case we retrieved default contents
 
     def save(self) -> None:
         try:
