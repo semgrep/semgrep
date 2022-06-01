@@ -209,7 +209,7 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
       - name: Install artifacts
-        run: unzip semgrep-osx-${{ github.sha }}/artifacts.zip
+        run: unzip artifacts.zip
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
