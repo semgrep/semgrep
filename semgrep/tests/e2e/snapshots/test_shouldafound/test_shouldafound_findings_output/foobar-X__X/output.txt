@@ -2,7 +2,7 @@ Scanning 1 file.
 
 Findings:
 
-  /Users/sdrak/projects/semgrep/semgrep/tests/e2e/targets/basic/stupid.py 
+  stupid.py 
           3┆ return a + b == a + b
           ⋮┆----------------------------------------
           8┆ x == x
@@ -11,7 +11,5 @@ Findings:
 
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
-  Scan skipped: 1 files matching .semgrepignore patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
 
 Ran 1 rule on 1 file: 3 findings.

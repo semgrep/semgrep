@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from shutil import copy
 from shutil import copytree
 
 import pytest
@@ -104,6 +105,14 @@ def test_shouldafound_findings_output(
         "get_no_findings_msg",
         return_value=message,
     )
+
+    copy(
+        TESTS_PATH / "e2e" / "targets" / "basic" / "stupid.py",
+        tmp_path / "stupid.py",
+    )
+
+    monkeypatch.chdir(tmp_path)
+
     mocker.patch.object(scan, "possibly_notify_user", return_value=None)
 
     runner = CliRunner(
@@ -114,7 +123,7 @@ def test_shouldafound_findings_output(
 
     result = runner.invoke(
         cli,
-        ["-e", pattern, "-l", "python", f"{TESTS_PATH}/e2e/targets/basic/stupid.py"],
+        ["-e", pattern, "-l", "python"],
     )
 
     assert result.exception == None
