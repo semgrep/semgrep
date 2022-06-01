@@ -130,6 +130,7 @@ install_requires = [
     "peewee~=3.14",
     "defusedxml~=0.7.1",
     "urllib3~=1.26",
+    "typing-extensions~=4.2",
 ]
 
 setuptools.setup(

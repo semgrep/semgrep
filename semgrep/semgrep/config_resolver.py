@@ -112,7 +112,7 @@ class ConfigPath:
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
-            state.metrics.set_using_server_true()
+            state.metrics.is_using_registry = True
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
