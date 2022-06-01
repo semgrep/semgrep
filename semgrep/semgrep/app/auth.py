@@ -3,14 +3,15 @@ import os
 import sys
 from typing import Optional
 
+from typing_extensions import Final
+
 from semgrep.constants import SEMGREP_URL
-from semgrep.settings import SETTINGS
 from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
 
-SEMGREP_LOGIN_TOKEN_ENVVAR_NAME = "SEMGREP_APP_TOKEN"
-SEMGREP_API_TOKEN_SETTINGS_KEY = "api_token"
+SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: Final = "SEMGREP_APP_TOKEN"
+SEMGREP_API_TOKEN_SETTINGS_KEY: Final = "api_token"
 
 
 def is_valid_token(token: str) -> bool:
@@ -65,7 +66,8 @@ def _read_token_from_settings_file() -> Optional[str]:
     Returns None if api token not in settings file
     """
     logger.debug("Getting API token from settings file")
-    login_token = SETTINGS.get_setting(SEMGREP_API_TOKEN_SETTINGS_KEY, default=None)
+    settings = get_state().settings
+    login_token = settings.get(SEMGREP_API_TOKEN_SETTINGS_KEY)
 
     if login_token and not isinstance(login_token, str):
         raise ValueError()
@@ -78,7 +80,8 @@ def set_token(token: str) -> None:
     Save api token to settings file
     """
     logger.debug("Saving API token in settings file")
-    SETTINGS.add_setting(SEMGREP_API_TOKEN_SETTINGS_KEY, token)
+    settings = get_state().settings
+    settings.set(SEMGREP_API_TOKEN_SETTINGS_KEY, token)
 
 
 def delete_token() -> None:
@@ -86,7 +89,8 @@ def delete_token() -> None:
     Remove api token from settings file
     """
     logger.debug("Deleting api token from settings file")
-    SETTINGS.delete_setting(SEMGREP_API_TOKEN_SETTINGS_KEY)
+    settings = get_state().settings
+    settings.delete(SEMGREP_API_TOKEN_SETTINGS_KEY)
 
 
 def is_a_tty() -> bool:

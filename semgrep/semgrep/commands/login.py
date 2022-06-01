@@ -14,7 +14,6 @@ from semgrep.constants import IN_DOCKER
 from semgrep.constants import IN_GH_ACTION
 from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.settings import SETTINGS
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
@@ -39,11 +38,11 @@ def login() -> NoReturn:
     If not defined and running in a TTY, prompts interactively.
     Once token is found, saves it to global settings file
     """
-    app_session = get_state().app_session
+    state = get_state()
     saved_login_token = auth._read_token_from_settings_file()
     if saved_login_token:
         click.echo(
-            f"API token already exists in {SETTINGS.get_path_to_settings()}. To login with a different token logout use `semgrep logout`"
+            f"API token already exists in {state.settings.path}. To login with a different token logout use `semgrep logout`"
         )
         sys.exit(FATAL_EXIT_CODE)
 
@@ -75,7 +74,7 @@ def login() -> NoReturn:
     MAX_RETRIES = 30  # Give users 3 minutes to log in / open link
 
     for _ in range(MAX_RETRIES):
-        r = app_session.post(
+        r = state.app_session.post(
             f"{SEMGREP_URL}/api/agent/tokens/requests",
             json={"token_request_key": str(session_id)},
         )
@@ -101,10 +100,11 @@ def login() -> NoReturn:
 
 
 def save_token(login_token: Optional[str], echo_token: bool) -> bool:
+    settings = get_state().settings
     if login_token is not None and auth.is_valid_token(login_token):
         auth.set_token(login_token)
         click.echo(
-            f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {SETTINGS.get_path_to_settings()}."
+            f"Saved login token\n\n\t{login_token if echo_token else '<redacted>'}\n\nin {settings.path}."
         )
         click.echo(
             f"Note: You can always generate more tokens at {SEMGREP_URL}/orgs/-/settings/tokens"
