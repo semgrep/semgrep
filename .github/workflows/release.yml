@@ -247,10 +247,9 @@ jobs:
     container: quay.io/pypa/manylinux1_x86_64
     needs: [build-wheels-manylinux]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v1
         with:
           name: manylinux-wheel
-          path: manylinux-wheel
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
       - name: install package
