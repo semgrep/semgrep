@@ -9,6 +9,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
 - `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+- M1 Mac support added to PyPi
+- Accept `SEMGREP_BASELINE_REF` as alias for `SEMGREP_BASELINE_COMMIT`
+- `r2c-internal-project-depends-on`:
+  - pretty printing for SCA results
+  - support for poetry and gradle lockfiles
+- taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
+  Previously, if a variable became tainted outside a lambda, and this variable was
+  used inside the lambda causing the taint to reach a sink, this was not being
+  detected because any nested lambdas were "opaque" to the analysis. (Taint tracking
+  looked at lambdas but as isolated functions.) Now lambas are simply analyzed as if
+  they were statement blocks. However, taint tracking still does not follow the flow
+  of taint through the lambda's arguments!
 
 ### Changed
 
@@ -24,6 +36,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   of the heavy lifting work
   (#3941, #2648, #2650, #3590, #3588, #3587, #3576, #3848, #3978, #4589)
 - TS: support number and boolean typed metavariables (#5350)
+- When a rule from the registry fails to parse, suggest user upgrade to
+  latest version of semgrep
+- Scala: correctly handle `return` for taint analysis (#4975)
+- PHP: correctly handle namespace use declarations when they don't rename
+  the imported name (#3964)
+- Constant propagation is now faster and memory efficient when analyzing
+  large functions with lots of variables.
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
@@ -58,6 +77,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   but please report any regressions that you may find.
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
+- pattern-regex, pattern-not-regex, metavariable-regex: `^` and `$`
+  now match at the beginning and end of each line, respectively,
+  rather than previously just at the beginning and end of the input
+  file. This corresponds to PCRE's multiline mode. To get the old
+  behavior back, use `\A` instead of '^' and `\Z` instead of `$`. See
+  the [PCRE
+  manual](https://www.pcre.org/original/doc/html/pcrepattern.html#smallassertions)
+  for details.
 - Made error message for resource exhausion (exit code -11/-9) more actionable
 - Made error message for rules with patterns missing positive terms
   more actionable (#5234)

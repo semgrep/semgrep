@@ -583,11 +583,12 @@ and expr_aux env ?(void = false) e_gen =
       mk_e (Composite (kind, xs)) eorig
   | G.Comprehension _ -> todo (G.E e_gen)
   | G.Record fields -> record env fields
-  | G.Lambda def ->
+  | G.Lambda fdef ->
       (* TODO: we should have a use def.f_tok *)
       let tok = G.fake "lambda" in
       let lval = fresh_lval env tok in
-      add_instr env (mk_i (AssignAnon (lval, Lambda def)) eorig);
+      let fdef = function_definition env fdef in
+      add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) eorig);
       mk_e (Fetch lval) eorig
   | G.AnonClass def ->
       (* TODO: should use def.ckind *)
@@ -840,6 +841,9 @@ and stmt_expr env ?e_gen st =
           rev_sts |> List.rev |> List.concat_map (stmt env) |> add_stmts env;
           stmt_expr env st
       | __else__ -> todo ())
+  | G.Return (t, eorig, _) ->
+      mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
+      expr_opt env None
   | __else__ -> todo ()
 
 (*****************************************************************************)
@@ -1373,6 +1377,15 @@ and python_with_stmt env manager opt_pat body =
     ss_exit
   in
   pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_finally)) ]
+
+(*****************************************************************************)
+(* Defs *)
+(*****************************************************************************)
+
+and function_definition env fdef =
+  let foarams = parameters env fdef.G.fparams in
+  let fbody = function_body env fdef.G.fbody in
+  { foarams; frettype = fdef.G.frettype; fbody }
 
 (*****************************************************************************)
 (* Entry points *)

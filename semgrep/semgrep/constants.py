@@ -15,6 +15,8 @@ SEMGREP_URL = os.environ.get(
 SHOULDAFOUND_BASE_URL = os.environ.get(
     "SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
 ).rstrip("/")
+SHOULDAFOUND_NO_EMAIL = "SHOULDAFOUND_NO_EMAIL" in os.environ
+
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"

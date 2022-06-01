@@ -55,20 +55,16 @@ let semgrep_cli_output =
      let files =
        Common2.glob (spf "%s/*.json" dir)
        @ (Common.files_of_dir_or_files_no_vcs_nofilter [ e2e_path ]
-         |> List.filter (fun file -> file =~ ".*\\.json")
+         |> List.filter (fun file -> file =~ ".*/results[.]json")
          |> Common.exclude (fun file ->
-                (* just toplevel 'scanned:' and 'skipped:', no 'results:' *)
-                file =~ ".*test_semgrepignore_ignore_log_json_report"
                 (* empty JSON (because of timeout probably) *)
-                || file =~ ".*/test_spacegrep_timeout/"
+                file =~ ".*/test_spacegrep_timeout/"
                 (* weird JSON, results but not match results *)
                 || file =~ ".*/test_cli_test/"
                 (* missing offset *)
                 || file =~ ".*/test_max_target_bytes/"
                 (* different API *)
                 || file =~ ".*/test_dump_ast/"
-                (* different JSON, for findings API *)
-                || file =~ ".*/test_ci/"
                 (* too long filename exn in alcotest, and no fingerprint *)
                 || file =~ ".*/test_join_rules/"
                 || false))
