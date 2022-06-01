@@ -350,13 +350,14 @@ let eval_or_sym_prop env exp =
  *     while cond():
  *         x = x + "a"
  *
- * FIXME: At the entry node everything must be set to non-constant, but
+ * ^ FIXME: At the entry node everything must be set to non-constant, but
  * otherwise it should be initialized with _|_.
  *)
 let union_env =
+  let ( let* ) = Option.bind in
   VarMap.merge (fun _ c1_opt c2_opt ->
-      let c1 = Option.value c1_opt ~default:G.NotCst in
-      let c2 = Option.value c2_opt ~default:G.NotCst in
+      let* c1 = c1_opt in
+      let* c2 = c2_opt in
       Some (union c1 c2))
 
 let input_env ~enter_env ~(flow : F.cfg) mapping ni =
@@ -368,21 +369,32 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
         CFG.predecessors flow ni
         |> Common.map (fun (pi, _) -> mapping.(pi).D.out_env)
       in
-      (* Due to how `union_env` is defined, `VarMap.empty` represents an
-       * environment where all variables are non-constant, thus `VarMap.empty`
-       * is not the neutral element wrt `union_env` but the absorbing element.
-       * In other words, `union_env VarMap.empty env` will always return an
-       * environment where all variables are non-constant.
+      (* Note that `VarMap.empty` represents an environment where all variables
+       * are non-constant, thus `VarMap.empty` is not the neutral element wrt
+       * `union_env` but the absorbing element. In other words,
+       * `union_env VarMap.empty env` will always return an  environment where
+       * all variables are non-constant.
        *
        * FIXME: Right now `enter_env` only sets the function parameters to
        *        non-constant, but it should do the same with every local
        *        variable. Then we could change `union_env` to stop assuming
-       *        non-constant by default.
+       *        non-constant by default. Although by storing `NotCst` explicitly
+       *        we need to be careful with performance when processing large
+       *        graphs, we should pick a compact representation for potentially
+       *        large sets of `NotCst`s.
        *)
       match pred_envs with
       | [] -> VarMap.empty
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left union_env penv1 penvs)
+
+let update_env_with env var sval =
+  (* We save allocations by not storing `NotCst` at all, we actually
+   * remove variables from the environment when they become non-constant!
+   * This improves perf by a lot when proccessing large graphs. *)
+  match sval with
+  | G.NotCst -> D.VarMap.remove (str_of_name var) env
+  | __else__ -> D.VarMap.add (str_of_name var) sval env
 
 let transfer :
     lang:Lang.t ->
@@ -416,7 +428,7 @@ let transfer :
         | Assign ({ base = Var var; offset = NoOffset }, exp) ->
             (* var = exp *)
             let cexp = eval_or_sym_prop inp' exp in
-            D.VarMap.add (str_of_name var) cexp inp'
+            update_env_with inp' var cexp
         | Call (Some { base = Var var; offset = NoOffset }, func, args) -> (
             let args_val = Common.map (eval inp') args in
             match (lang, func, args_val) with
@@ -447,25 +459,25 @@ let transfer :
                  * propagate actual constants in this case, but we can propagate the
                  * call itself as a symbolic expression. *)
                 let ccall = sym_prop instr.iorig in
-                D.VarMap.add (str_of_name var) ccall inp')
+                update_env_with inp' var ccall)
         | CallSpecial
             (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
             (* var = concat(args) *)
             let cexp = eval_concat inp' args in
-            D.VarMap.add (str_of_name var) cexp inp'
+            update_env_with inp' var cexp
         | Call (None, { e = Fetch { base = Var var; offset = Dot _; _ }; _ }, _)
           ->
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
              * mutable. *)
-            D.VarMap.add (str_of_name var) G.NotCst inp'
+            D.VarMap.remove (str_of_name var) inp'
         | ___else___ -> (
             (* In any other case, assume non-constant.
              * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
-            | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp'))
+            | Some lvar -> D.VarMap.remove (str_of_name lvar) inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
@@ -475,12 +487,8 @@ let transfer :
 (*****************************************************************************)
 
 let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
- fun lang inputs flow ->
-  let enter_env =
-    inputs |> List.to_seq
-    |> Seq.map (fun var -> (str_of_name var, G.NotCst))
-    |> D.VarMap.of_seq
-  in
+ fun lang _inputs flow ->
+  let enter_env = D.VarMap.empty in
   DataflowX.fixpoint ~eq
     ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
     ~trans:(transfer ~lang ~enter_env ~flow) (* svalue is a forward analysis! *)

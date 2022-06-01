@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - javascript
+    severity: WARNING
+    mode: taint
+    pattern-sinks:
+    - pattern: sink(...)
+    pattern-sources:
+    - pattern: source

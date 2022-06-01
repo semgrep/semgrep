@@ -273,14 +273,14 @@ and call_special =
    | StringAccess of string (* for records/hashes *)
 *)
 and anonymous_entity =
-  | Lambda of G.function_definition
+  | Lambda of function_definition
   | AnonClass of G.class_definition
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
-type stmt = { s : stmt_kind (* sorig: G.stmt; ?*) }
+and stmt = { s : stmt_kind (* sorig: G.stmt; ?*) }
 
 and stmt_kind =
   | Instr of instr
@@ -316,6 +316,11 @@ and label = ident * G.sid [@@deriving show { with_path = false }]
 (* Defs *)
 (*****************************************************************************)
 (* See AST_generic.ml *)
+and function_definition = {
+  foarams : name list;
+  frettype : G.type_ option;
+  fbody : stmt list;
+}
 
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)

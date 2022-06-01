@@ -1,0 +1,47 @@
+rules:
+- id: jdbc
+  languages:
+    - java
+  severity: ERROR
+  message: User data flows into this manually-constructed SQL string. User data
+    can be safely inserted into SQL strings using prepared statements or an
+    object-relational mapper (ORM). Manually-constructed SQL strings is a possible
+    indicator of SQL injection, which could let an attacker steal or manipulate
+    data from the database. Instead, use prepared statements
+    (`connection.PreparedStatement`) or a safe library.
+  metadata:
+    cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      ('SQL Injection')"
+    owasp:
+      - A03:2021
+      - A01:2017
+    references:
+      - https://docs.oracle.com/javase/7/docs/api/java/sql/PreparedStatement.html
+    category: security
+    technology:
+      - spring
+    license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+  mode: taint
+  pattern-sources:
+    - patterns:
+        - pattern-inside: |
+            public ResponseEntity<String> $FUNC(...,
+            @RequestParam Map<$TYPE, $TYPE> $VALUE,...) {
+            ...
+            }
+        - pattern-either:
+            - pattern: $VALUE.get(...)
+  pattern-sinks:
+    - patterns:
+        - pattern-either:
+            - pattern: |
+                applicationJdbcTemplate.query($QUERY,...)          
+        - pattern: $QUERY
+    - patterns:
+        - pattern-inside: |
+            applicationJdbcTemplate.query(...)
+        - pattern-either:
+            - pattern-inside: |
+                conn.prepareStatement($QUERY,...)          
+        - pattern: $QUERY
+
