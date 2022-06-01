@@ -19,6 +19,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   looked at lambdas but as isolated functions.) Now lambas are simply analyzed as if
   they were statement blocks. However, taint tracking still does not follow the flow
   of taint through the lambda's arguments!
+- Metrics now include an anonymous Event ID. This is an ID generated at send-time
+  and will be used to de-duplicate events that potentially get duplicated during transmission.
 
 ### Changed
 

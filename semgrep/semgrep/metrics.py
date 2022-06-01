@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import uuid
 from datetime import datetime
 from enum import auto
 from enum import Enum
@@ -14,7 +15,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from urllib.parse import urlparse
-from uuid import UUID
 
 import click
 import requests
@@ -96,6 +96,7 @@ class ValueSchema(TypedDict, total=False):
 
 
 class TopLevelSchema(TypedDict, total=False):
+    event_id: uuid.UUID
     started_at: datetime
     sent_at: datetime
 
@@ -112,7 +113,7 @@ class MetricsJsonEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.astimezone().isoformat()
 
-        if isinstance(obj, UUID):
+        if isinstance(obj, uuid.UUID):
             return str(obj)
 
         return super().default(obj)
@@ -145,6 +146,7 @@ class Metrics:
         self.payload["started_at"] = datetime.now()
         self.payload["environment"]["version"] = __VERSION__
         self.payload["environment"]["ci"] = os.getenv("CI")
+        self.payload["event_id"] = uuid.uuid4()
 
     def configure(
         self,

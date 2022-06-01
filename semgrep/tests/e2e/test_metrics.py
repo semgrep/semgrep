@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import uuid
 from typing import Iterator
 
 import dateutil.tz
@@ -248,6 +249,9 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
     # make the rule and file timings deterministic
     mocker.patch.object(ProfilingData, "set_file_times")
     mocker.patch.object(ProfilingData, "set_rules_parse_time")
+
+    # make the event ID deterministic
+    mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
 
     mock_post = mocker.patch("requests.post")
 
