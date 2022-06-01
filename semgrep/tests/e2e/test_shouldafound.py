@@ -112,11 +112,10 @@ def test_shouldafound_findings_output(
         }
     )
 
-    copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
-    copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
-    monkeypatch.chdir(tmp_path)
-
-    result = runner.invoke(cli, ["-e", pattern, "-l", "python"])
+    result = runner.invoke(
+        cli,
+        ["-e", pattern, "-l", "python", f"{TESTS_PATH}/e2e/targets/basic/stupid.py"],
+    )
 
     assert result.exception == None
     assert result.exit_code == 0
