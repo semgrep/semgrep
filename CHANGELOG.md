@@ -12,6 +12,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
   - support for poetry and gradle lockfiles
+- taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
+  Previously, if a variable became tainted outside a lambda, and this variable was
+  used inside the lambda causing the taint to reach a sink, this was not being
+  detected because any nested lambdas were "opaque" to the analysis. (Taint tracking
+  looked at lambdas but as isolated functions.) Now lambas are simply analyzed as if
+  they were statement blocks. However, taint tracking still does not follow the flow
+  of taint through the lambda's arguments!
 
 ### Changed
 
@@ -33,6 +40,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: correctly handle namespace use declarations when they don't rename
   the imported name (#3964)
 - `yarn.lock` files with no depenencies, and with dependencies that lack URLs, now parse
+- Constant propagation is now faster and memory efficient when analyzing
+  large functions with lots of variables.
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
