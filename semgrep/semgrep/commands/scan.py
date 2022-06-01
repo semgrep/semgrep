@@ -183,6 +183,7 @@ _scan_options = [
     ),
     click.option(
         "--baseline-commit",
+        "baseline_commit_ref",
         help="""
             Only show results that are not found in this commit hash. Aborts run if not currently
             in a git directory, there are unstaged changes, or given baseline hash doesn't exist
@@ -636,7 +637,7 @@ def scan(
     *,
     apply: bool,
     autofix: bool,
-    baseline_commit: Optional[str],
+    baseline_commit_ref: Optional[str],
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
@@ -905,7 +906,7 @@ def scan(
                     skip_unknown_extensions=(not scan_unknown_extensions),
                     severity=severity,
                     optimizations=optimizations,
-                    baseline_commit=baseline_commit,
+                    baseline_commit_ref=baseline_commit_ref,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])

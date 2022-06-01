@@ -245,7 +245,7 @@ def main(
     skip_unknown_extensions: bool = False,
     severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
-    baseline_commit: Optional[str] = None,
+    baseline_commit_ref: Optional[str] = None,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -314,9 +314,9 @@ def main(
 
     # Initialize baseline here to fail early on bad args
     baseline_handler = None
-    if baseline_commit:
+    if baseline_commit_ref:
         try:
-            baseline_handler = BaselineHandler(baseline_commit)
+            baseline_handler = BaselineHandler(baseline_commit_ref)
         # TODO better handling
         except Exception as e:
             raise SemgrepError(e)
@@ -379,7 +379,9 @@ def main(
                 "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
             )
         else:
-            logger.info(f"Switching repository to baseline commit '{baseline_commit}'.")
+            logger.info(
+                f"Switching repository to baseline commit '{baseline_commit_ref}'."
+            )
             baseline_handler.print_git_log()
             logger.info("")
             try:

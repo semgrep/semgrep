@@ -175,7 +175,7 @@ def ci(
     *,
     audit_on: Sequence[str],
     autofix: bool,
-    baseline_commit: Optional[str],
+    baseline_commit_ref: Optional[str],
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
@@ -280,7 +280,7 @@ def ci(
         output_per_line_max_chars_limit=max_chars_per_line,
     )
     output_handler = OutputHandler(output_settings)
-    metadata = generate_meta_from_environment(baseline_commit)
+    metadata = generate_meta_from_environment(baseline_commit_ref)
 
     logger.info("Scan environment:")
     logger.info(
@@ -360,7 +360,7 @@ def ci(
                 timeout_threshold=timeout_threshold,
                 skip_unknown_extensions=(not scan_unknown_extensions),
                 optimizations=optimizations,
-                baseline_commit=metadata.base_commit_ref,
+                baseline_commit_ref=metadata.base_commit_ref,
             )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
