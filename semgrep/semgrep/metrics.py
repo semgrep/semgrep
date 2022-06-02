@@ -120,7 +120,7 @@ class MetricsJsonEncoder(json.JSONEncoder):
             return str(obj)
 
         if isinstance(obj, set):
-            return list(obj)
+            return list(sorted(obj))
 
         return super().default(obj)
 
