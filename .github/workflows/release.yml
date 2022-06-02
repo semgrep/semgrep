@@ -161,10 +161,7 @@ jobs:
       m1_support: ${{ steps.my-key.outputs.defined }}
     steps:
       - id: my-key
-        env:
-            MY_KEY: ${{ secrets.M1_SUPPORT }}
-        if: "${{ env.MY_KEY != '' }}"
-        run: echo "::set-output name=defined::true"
+        run: echo "::set-output name=defined::${{secrets.M1_SUPPORT}}"
         
   build-core-m1:
     name: Build the OSX M1 binaries
