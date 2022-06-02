@@ -315,7 +315,11 @@ class Metrics:
     @suppress_errors
     def add_registry_url(self, url_string: str) -> None:
         path = urlparse(url_string).path
-        prefix, name = path.lstrip("/").split("/")
+        parts = path.lstrip("/").split("/")
+        if len(parts) != 2:
+            return  # not a simple registry shorthand
+
+        prefix, name = parts
 
         if prefix == "r":
             self.add_feature("registry-query", name)
