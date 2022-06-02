@@ -22,6 +22,9 @@ types-jsonschema = "~=3.2"
 pytest-mock = "*"
 pytest-freezegun = "*"
 types-requests = "*"
+types-jinja2 = "*"
+types-python-dateutil = "*"
+types-freezegun = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}

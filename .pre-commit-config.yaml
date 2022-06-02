@@ -87,6 +87,9 @@ repos:
           - types-jsonschema~=3.2
           - types-requests
           - types-setuptools
+          - types-freezegun
+          - types-python-dateutil
+          - types-Jinja2
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
