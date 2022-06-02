@@ -48,7 +48,8 @@ type state = {
   exiti : F.nodei;
   (* Attaches labels to nodes. *)
   labels : (label_key, F.nodei) Hashtbl.t;
-  (* Gotos pending to be resolved. *)
+  (* Gotos pending to be resolved, a list of Goto nodes and the label
+   * to which they are jumping. *)
   gotos : (nodei * label_key) list ref;
   (* If we are inside a Try, this is the start of the handlers. *)
   try_catches_opt : F.nodei option;
@@ -129,10 +130,10 @@ type cfg_stmt_result =
 let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
  fun state previ stmt ->
   match stmt.s with
-  | Instr x ->
+  | Instr x -> (
       let newi = state.g#add_node { F.n = F.NInstr x } in
       state.g |> add_arc_from_opt (previ, newi);
-      (match x.i with
+      match x.i with
       | Call _ ->
           (* If we are inside a try-catch, we consider the possibility of this call
            * raising an exception, then we add a jump to catch-blocks. This could
@@ -141,9 +142,28 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
            * this should reduce false positives (since it's a must-analysis).
            * Ideally we should have a preceeding analysis that infers which calls
            * may (or may not) raise exceptions. *)
-          state.g |> add_arc_opt_to_opt (Some newi, state.try_catches_opt)
-      | __else__ -> ());
-      CfgFirstLast (newi, Some newi)
+          state.g |> add_arc_opt_to_opt (Some newi, state.try_catches_opt);
+          CfgFirstLast (newi, Some newi)
+      | AssignAnon (_, Lambda fdef) ->
+          (* Lambdas are treated as statement blocks, kind of like IF-THEN blocks,
+           * the CFG does NOT capture the actual flow of data that goes into the
+           * lambda through its parameters, and back into the surrounding definition
+           * through its `return' statement.
+           *
+           * previ -> newi -> ... (lambda body) -> finallambda -> lasti
+           *               \__________________________________/
+           *
+           * TODO: In order to handle lambdas properly, we could either inline
+           * them, or "lift" them and then use an inter-procedural analysis.
+           *)
+          let lasti = state.g#add_node { F.n = F.Join } in
+          let finallambda =
+            cfg_stmt_list { state with exiti = lasti } (Some newi) fdef.fbody
+          in
+          state.g |> add_arc (newi, lasti);
+          state.g |> add_arc_from_opt (finallambda, lasti);
+          CfgFirstLast (newi, Some lasti)
+      | __else__ -> CfgFirstLast (newi, Some newi))
   | If (tok, e, st1, st2) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
        *                |                                     |

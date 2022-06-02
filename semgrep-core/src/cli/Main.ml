@@ -136,6 +136,7 @@ let ncores = ref 1
 
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
+let metatypes_file = ref ""
 
 (* ------------------------------------------------------------------------- *)
 (* pad's action flag *)
@@ -224,9 +225,8 @@ let dump_pattern (file : Common.filename) =
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_exit_fast file (fun () ->
-      let { Parse_target.ast; errors; _ } =
-        if naming then
-          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+      let { Parse_target.ast; skipped_tokens; _ } =
+        if naming then Parse_target.parse_and_resolve_name lang file
         else Parse_target.just_parse_with_lang lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
@@ -234,10 +234,10 @@ let dump_ast ?(naming = false) lang file =
       Format.set_margin 120;
       let s = dump_v_to_format v in
       pr s;
-      if errors <> [] then (
+      if skipped_tokens <> [] then (
         pr2 (spf "WARNING: fail to fully parse %s" file);
         pr2
-          (Common.map (fun e -> "  " ^ E.string_of_error e) errors
+          (Common.map (fun e -> "  " ^ E.string_of_error e) skipped_tokens
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
@@ -246,13 +246,14 @@ let dump_v1_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise file (fun () ->
-          let { Parse_target.ast; errors; _ } =
-            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+          let { Parse_target.ast; skipped_tokens; _ } =
+            Parse_target.parse_and_resolve_name lang file
           in
           let v1 = AST_generic_to_v1.program ast in
           let s = AST_generic_v1_j.string_of_program v1 in
           pr s;
-          if errors <> [] then pr2 (spf "WARNING: fail to fully parse %s" file))
+          if skipped_tokens <> [] then
+            pr2 (spf "WARNING: fail to fully parse %s" file))
   | [] -> failwith (spf "unsupported language for %s" file)
 
 let dump_ext_of_lang () =
@@ -296,6 +297,7 @@ let mk_config () =
     pattern_file = !pattern_file;
     rules_file = !rules_file;
     equivalences_file = !equivalences_file;
+    metatypes_file = !metatypes_file;
     lang = !lang;
     output_format = !output_format;
     match_format = !match_format;
@@ -552,6 +554,9 @@ let options () =
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
+    ( "-metatypes",
+      Arg.Set_string metatypes_file,
+      " <file> define critical types to use in rules " );
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)

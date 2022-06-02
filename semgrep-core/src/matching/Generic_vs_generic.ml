@@ -417,9 +417,23 @@ let rec m_name a b =
        * since the captured metavariable will be different. *)
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ -> try_parents dotted)
-  | G.Id (a1, a2), B.Id (b1, b2) ->
+  (* extension: metatypes *)
+  | G.Id (((str, t) as a1), a_info), B.Id (b1, b2) -> (
       (* this will handle metavariables in Id *)
-      m_ident_and_id_info (a1, a2) (b1, b2)
+      let default_check () = m_ident_and_id_info (a1, a_info) (b1, b2) in
+      (* experiment: try matching with user definition of metatypes *)
+      match !Hooks.metatypes with
+      | None -> default_check ()
+      | Some metatypes_tbl -> (
+          match Hashtbl.find_opt metatypes_tbl str with
+          | None -> default_check ()
+          | Some types ->
+              let types =
+                Common.map (fun type_ -> G.Id ((type_, t), a_info)) types
+              in
+              List.fold_left
+                (fun acc type_ -> m_name type_ b >||> acc)
+                (default_check ()) types))
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
       envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
@@ -466,26 +480,30 @@ let rec m_name a b =
           (* m_name a n *)
           return ())
   (* boilerplate *)
-  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
-  | ( G.Id _,
+  | ( _,
       G.IdQualified
-        {
-          name_info =
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted)
-                        | B.ResolvedName dotted ),
-                        _sid );
-                };
-              _;
-            };
-          _;
-        } ) ->
+        ({
+           name_info =
+             {
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( ( B.ImportedEntity dotted
+                         | B.ImportedModule (B.DottedName dotted)
+                         | B.ResolvedName dotted ),
+                         _sid );
+                 };
+               _;
+             };
+           _;
+         } as b1) ) -> (
       try_parents dotted
+      >||>
+      match a with
+      | IdQualified a1 -> m_name_info a1 b1
+      | Id _ -> fail ())
+  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()

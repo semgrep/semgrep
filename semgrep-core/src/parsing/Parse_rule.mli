@@ -14,6 +14,7 @@ val parse_and_filter_invalid_rules :
  * This function may raise the exns in Rule (e.g., InvalidRule).
  *)
 val parse : Common.filename -> Rule.rules
+val parse_metatypes : Common.filename -> (string, string list) Hashtbl.t
 
 (* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml *)
 val parse_xpattern : Xlang.t -> string Rule.wrap -> Rule.xpattern
