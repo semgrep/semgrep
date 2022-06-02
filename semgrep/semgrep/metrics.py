@@ -92,7 +92,11 @@ class ErrorsSchema(TypedDict, total=False):
     errors: List[str]
 
 
-class ValueSchema(TypedDict, total=False):
+class ValueRequiredSchema(TypedDict):
+    features: Set[str]
+
+
+class ValueSchema(ValueRequiredSchema, total=False):
     numFindings: int
     numIgnored: int
     ruleHashesWithFindings: Dict[str, int]
@@ -110,7 +114,6 @@ class PayloadSchema(TopLevelSchema):
     performance: PerformanceSchema
     errors: ErrorsSchema
     value: ValueSchema
-    features: Set[str]
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -158,8 +161,7 @@ class Metrics:
             environment=EnvironmentSchema(),
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
-            value=ValueSchema(),
-            features=set(),
+            value=ValueSchema(features=set()),
         )
     )
 
@@ -308,7 +310,7 @@ class Metrics:
 
     @suppress_errors
     def add_feature(self, category: LiteralString, name: str) -> None:
-        self.payload["features"].add(f"{category}/{name}")
+        self.payload["value"]["features"].add(f"{category}/{name}")
 
     @suppress_errors
     def add_registry_url(self, url_string: str) -> None:
