@@ -57,12 +57,15 @@ def cli(ctx: click.Context) -> None:
     """
     state = get_state()
 
-    state.app_session.authenticate()
-    state.app_session.user_agent.tags.add(
-        f"command/{ctx.invoked_subcommand}"
+    subcommand: str = (
+        ctx.invoked_subcommand
         if ctx.invoked_subcommand in ctx.command.commands  # type: ignore
-        else "command/unset"
+        else "unset"
     )
+
+    state.app_session.authenticate()
+    state.app_session.user_agent.tags.add(f"command/{subcommand}")
+    state.metrics.add_feature("subcommand", subcommand)
 
     maybe_set_git_safe_directories()
 
