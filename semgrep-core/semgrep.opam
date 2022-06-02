@@ -39,7 +39,7 @@ depends: [
   "re"
   "pcre"
   "parmap"
-  "ppxlib" {= "0.20.0" }
+  "ppxlib"
   "lsp" {= "1.7.0"}
   "comby-kernel" {= "1.4.1"}
 ]
