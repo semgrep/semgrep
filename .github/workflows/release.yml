@@ -162,6 +162,7 @@ jobs:
     steps:
       - id: setvar
         run: |
+          echo "${{ secrets.m1_support }}"
           if [[ "${{ secrets.m1_support }}" == "true" ]];
            then
              echo "::set-output name=supported::true"
