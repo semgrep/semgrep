@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- When a logged in CI scan encounters a Git failure,
+  we now print a helpful error message instead of a traceback.
+
 ### Added
 
 - Sarif output format now includes `fixes` section
