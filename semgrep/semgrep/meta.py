@@ -26,6 +26,7 @@ logger = getLogger(__name__)
 
 def git_check_output(command: Sequence[str]) -> str:
     try:
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
         return subprocess.check_output(
             command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
         ).strip()
