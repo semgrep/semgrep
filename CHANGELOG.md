@@ -122,6 +122,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the imported name (#3964)
 - Constant propagation is now faster and memory efficient when analyzing
   large functions with lots of variables.
+- The JUnit XML output should serialize the failure messages as a single
+  string instead of a python list of strings.
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
