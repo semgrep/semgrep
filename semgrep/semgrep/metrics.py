@@ -304,6 +304,19 @@ class Metrics:
             return self.is_using_registry
         return self.metrics_state == MetricsState.ON
 
+    def gather_click_params(self) -> None:
+        ctx = click.get_current_context()
+        if ctx is None:
+            return
+        for param in ctx.params:
+            source = ctx.get_parameter_source(param)
+            if source == click.core.ParameterSource.COMMANDLINE:
+                self.add_feature("cli-flag", param)
+            if source == click.core.ParameterSource.ENVIRONMENT:
+                self.add_feature("cli-envvar", param)
+            if source == click.core.ParameterSource.PROMPT:
+                self.add_feature("cli-prompt", param)
+
     def send(self) -> None:
         """
         Send metrics to the metrics server.
@@ -320,6 +333,7 @@ class Metrics:
         if not self.is_enabled:
             return
 
+        self.gather_click_params()
         self.payload["sent_at"] = datetime.now()
         self.payload["anonymous_user_id"] = state.settings.get("anonymous_user_id")
 
