@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import json
 import os
@@ -7,6 +8,7 @@ from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import cast
 from typing import Dict
 from typing import List
@@ -125,6 +127,18 @@ class MetricsJsonEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error in {func.__name__}: {e}")
+            return None
+
+    return wrapper
+
+
 @define
 class Metrics:
     """
@@ -191,6 +205,7 @@ class Metrics:
 
         self._is_using_registry = value
 
+    @suppress_errors
     def add_project_url(self, project_url: Optional[str]) -> None:
         """
         Standardizes url then hashes
@@ -214,6 +229,7 @@ class Metrics:
         m = hashlib.sha256(sanitized_url.encode())
         self.payload["environment"]["projectHash"] = cast(Sha256Hash, m.hexdigest())
 
+    @suppress_errors
     def add_configs(self, configs: Sequence[str]) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
@@ -223,6 +239,7 @@ class Metrics:
             m.update(c.encode())
         self.payload["environment"]["configNamesHash"] = cast(Sha256Hash, m.hexdigest())
 
+    @suppress_errors
     def add_rules(self, rules: Sequence[Rule], profiling_data: ProfilingData) -> None:
         rules = sorted(rules, key=lambda r: r.full_hash)
         m = hashlib.sha256()
@@ -240,6 +257,7 @@ class Metrics:
             for rule in rules
         ]
 
+    @suppress_errors
     def add_findings(self, findings: FilteredMatches) -> None:
         self.payload["value"]["ruleHashesWithFindings"] = {
             r.full_hash: len(f) for r, f in findings.kept.items()
@@ -251,6 +269,7 @@ class Metrics:
             len(v) for v in findings.removed.values()
         )
 
+    @suppress_errors
     def add_targets(self, targets: Set[Path], profiling_data: ProfilingData) -> None:
         self.payload["performance"]["fileStats"] = [
             {
@@ -267,23 +286,39 @@ class Metrics:
         self.payload["performance"]["totalBytesScanned"] = total_bytes_scanned
         self.payload["performance"]["numTargets"] = len(targets)
 
+    @suppress_errors
     def add_errors(self, errors: List[SemgrepError]) -> None:
         self.payload["errors"]["errors"] = [e.semgrep_error_type() for e in errors]
 
+    @suppress_errors
     def add_profiling(self, profiler: ProfileManager) -> None:
         self.payload["performance"]["profilingTimes"] = profiler.dump_stats()
 
+    @suppress_errors
     def add_token(self, token: Optional[str]) -> None:
         self.payload["environment"]["isAuthenticated"] = bool(token)
 
+    @suppress_errors
     def add_exit_code(self, exit_code: int) -> None:
         self.payload["errors"]["returnCode"] = exit_code
 
+    @suppress_errors
     def add_version(self, version: str) -> None:
         self.payload["environment"]["version"] = version
 
+    @suppress_errors
     def add_feature(self, category: LiteralString, name: str) -> None:
         self.payload["features"].add(f"{category}/{name}")
+
+    @suppress_errors
+    def add_registry_url(self, url_string: str) -> None:
+        path = urlparse(url_string).path
+        prefix, name = path.lstrip("/").split("/")
+
+        if prefix == "r":
+            self.add_feature("registry-query", name)
+        if prefix == "p":
+            self.add_feature("ruleset", name)
 
     def as_json(self) -> str:
         return json.dumps(
@@ -304,6 +339,7 @@ class Metrics:
             return self.is_using_registry
         return self.metrics_state == MetricsState.ON
 
+    @suppress_errors
     def gather_click_params(self) -> None:
         ctx = click.get_current_context()
         if ctx is None:
@@ -317,6 +353,7 @@ class Metrics:
             if source == click.core.ParameterSource.PROMPT:
                 self.add_feature("cli-prompt", param)
 
+    @suppress_errors
     def send(self) -> None:
         """
         Send metrics to the metrics server.
@@ -337,17 +374,13 @@ class Metrics:
         self.payload["sent_at"] = datetime.now()
         self.payload["anonymous_user_id"] = state.settings.get("anonymous_user_id")
 
-        try:
-            r = requests.post(
-                METRICS_ENDPOINT,
-                data=self.as_json(),
-                headers={
-                    "Content-Type": "application/json",
-                    "User-Agent": str(state.app_session.user_agent),
-                },
-                timeout=3,
-            )
-            r.raise_for_status()
-            logger.debug("Sent pseudonymous metrics")
-        except Exception as e:
-            logger.debug(f"Failed to send pseudonymous metrics: {e}")
+        r = requests.post(
+            METRICS_ENDPOINT,
+            data=self.as_json(),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": str(state.app_session.user_agent),
+            },
+            timeout=3,
+        )
+        r.raise_for_status()
