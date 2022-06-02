@@ -20,6 +20,7 @@ import click
 import requests
 from attr import define
 from attr import Factory
+from typing_extensions import LiteralString
 from typing_extensions import TypedDict
 
 from semgrep import __VERSION__
@@ -107,6 +108,7 @@ class PayloadSchema(TopLevelSchema):
     performance: PerformanceSchema
     errors: ErrorsSchema
     value: ValueSchema
+    features: Set[str]
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -116,6 +118,9 @@ class MetricsJsonEncoder(json.JSONEncoder):
 
         if isinstance(obj, uuid.UUID):
             return str(obj)
+
+        if isinstance(obj, set):
+            return list(obj)
 
         return super().default(obj)
 
@@ -140,6 +145,7 @@ class Metrics:
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
             value=ValueSchema(),
+            features=set(),
         )
     )
 
@@ -275,6 +281,9 @@ class Metrics:
 
     def add_version(self, version: str) -> None:
         self.payload["environment"]["version"] = version
+
+    def add_feature(self, category: LiteralString, name: str) -> None:
+        self.payload["features"].add(f"{category}/{name}")
 
     def as_json(self) -> str:
         return json.dumps(
