@@ -10,8 +10,6 @@ from typing import Sequence
 import click
 
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import SHOULDAFOUND_BASE_URL
-from semgrep.constants import SHOULDAFOUND_NO_EMAIL
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.types import JsonObject
@@ -53,9 +51,9 @@ def shouldafound(
     """
     Report a false negative in this project. "path" should be the file in which you expected the vulnerability to be found.
     """
-
+    env = get_state().env
     # try to set an email unless specifically asked not to.
-    if not email and not SHOULDAFOUND_NO_EMAIL:
+    if not email and not env.shouldafound_no_email:
         try:
             email = _get_git_email()
         except subprocess.CalledProcessError:
@@ -102,7 +100,9 @@ def _get_git_email() -> str:
 
 def _make_shouldafound_request(data: JsonObject) -> Optional[str]:
     state = get_state()
-    resp = state.app_session.post(f"{SHOULDAFOUND_BASE_URL}/shouldafound", json=data)
+    resp = state.app_session.post(
+        f"{state.env.shouldafound_base_url}/shouldafound", json=data
+    )
 
     if resp.status_code == 200:
         if "playground_link" in resp.json():

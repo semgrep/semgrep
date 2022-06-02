@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+- M1 Mac support added to PyPi
 - Accept `SEMGREP_BASELINE_REF` as alias for `SEMGREP_BASELINE_COMMIT`
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
@@ -19,6 +21,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   looked at lambdas but as isolated functions.) Now lambas are simply analyzed as if
   they were statement blocks. However, taint tracking still does not follow the flow
   of taint through the lambda's arguments!
+- Metrics now include an anonymous Event ID. This is an ID generated at send-time
+  and will be used to de-duplicate events that potentially get duplicated during transmission.
+- Metrics now include an anonymous User ID. This ID is stored in the ~/.semgrep/settings.yml file. If the ID disappears, the next run will generate a new one randomly. See the [Anonymous User ID in PRIVACY.md](PRIVACY.md#anonymous-user-id) for more details.
 
 ### Changed
 

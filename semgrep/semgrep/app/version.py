@@ -7,7 +7,6 @@ an outdated version.
 # TODO: for predictable test output, add a flag to avoid making actual
 # network calls?
 import json
-import os
 import time
 from json import JSONDecodeError
 from pathlib import Path
@@ -25,29 +24,14 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-VERSION_CHECK_URL = str(
-    os.environ.get("SEMGREP_VERSION_CHECK_URL", "https://semgrep.dev/api/check-version")
-)
-VERSION_CHECK_TIMEOUT = int(
-    os.environ.get(
-        "SEMGREP_VERSION_CHECK_TIMEOUT", 2  # Don't block user's for too long
-    )
-)
-VERSION_CACHE_PATH = Path(
-    os.environ.get(
-        "SEMGREP_VERSION_CACHE_PATH",
-        Path.home() / ".cache" / "semgrep_version",
-    )
-)
 
-
-def _fetch_latest_version(
-    url: str = VERSION_CHECK_URL, timeout: int = VERSION_CHECK_TIMEOUT
-) -> Optional[JsonObject]:
-    app_session = get_state().app_session
+def _fetch_latest_version() -> Optional[JsonObject]:
+    state = get_state()
 
     try:
-        resp = app_session.get(url, timeout=timeout)
+        resp = state.app_session.get(
+            state.env.version_check_url, timeout=state.env.version_check_timeout
+        )
     except Exception as e:
         logger.debug(f"Fetching latest version failed to connect: {e}")
         return None
@@ -106,8 +90,9 @@ def _get_version_from_cache(version_cache_path: Path) -> Optional[JsonObject]:
     return res
 
 
-def _get_latest_version(version_cache_path: Path) -> Optional[JsonObject]:
-    latest_version = _get_version_from_cache(version_cache_path)
+def _get_latest_version() -> Optional[JsonObject]:
+    env = get_state().env
+    latest_version = _get_version_from_cache(env.version_check_cache_path)
 
     if latest_version is None:
         latest_version = _fetch_latest_version()
@@ -116,8 +101,8 @@ def _get_latest_version(version_cache_path: Path) -> Optional[JsonObject]:
         # Request timed out or invalid
         return None
 
-    version_cache_path.parent.mkdir(parents=True, exist_ok=True)
-    with version_cache_path.open("w") as f:
+    env.version_check_cache_path.parent.mkdir(parents=True, exist_ok=True)
+    with env.version_check_cache_path.open("w") as f:
         # Integer time so no need to deal with str float conversions
         f.write(f"{int(time.time())}\n")
         f.write(json.dumps(latest_version))
@@ -143,19 +128,18 @@ def _show_banners(current_version: Version, latest_version_object: JsonObject) -
             logger.warning("\n" + b.get("message", ""))
             logged_something = True
 
-    if logged_something and os.getenv("SEMGREP_ACTION"):
+    env = get_state().env
+    if logged_something and env.in_agent:
         logger.warning(
             "If you're using the returntocorp/semgrep-agent:v1 image, you will be automatically upgraded within 24 hours."
         )
 
 
-def version_check(version_cache_path: Path = VERSION_CACHE_PATH) -> None:
+def version_check() -> None:
     """
     Checks for messages from the backend, displaying any messages that match the current version
-
-    :param version_cache_path: Path where we cache the backend response
     """
-    latest_version_object = _get_latest_version(version_cache_path)
+    latest_version_object = _get_latest_version()
     if latest_version_object is None:
         return
 
@@ -168,15 +152,11 @@ def version_check(version_cache_path: Path = VERSION_CACHE_PATH) -> None:
     _show_banners(current_version, latest_version_object)
 
 
-def get_no_findings_msg(
-    version_cache_path: Path = VERSION_CACHE_PATH,
-) -> Optional[str]:
+def get_no_findings_msg() -> Optional[str]:
     """
     Gets and returns the latest no_findings message from the backend, using cache if possible.
-
-    :param version_cache_path: Path where we cache the backend response
     """
-    latest_version_object = _get_latest_version(version_cache_path)
+    latest_version_object = _get_latest_version()
     if latest_version_object is None or "no_findings_msg" not in latest_version_object:
         return None
 

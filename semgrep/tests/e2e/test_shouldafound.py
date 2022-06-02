@@ -10,7 +10,6 @@ from click.testing import CliRunner
 from semgrep.cli import cli
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
-from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 # Point to the root of the tests dir
 TESTS_PATH = Path(__file__).parent.parent
@@ -21,11 +20,7 @@ def test_shouldafound_no_args(tmp_path, snapshot):
     """
     Test for shouldafound usage output
     """
-    runner = CliRunner(
-        env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-        }
-    )
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
     result = runner.invoke(cli, ["shouldafound"])
     snapshot.assert_match(result.output, "shouldafound.txt")
 
@@ -58,11 +53,7 @@ def test_shouldafound_no_confirmation(
     """
     Test that the -y flag allows seamless submission
     """
-    runner = CliRunner(
-        env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-        }
-    )
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
 
     api_content = "https://foo.bar.semgrep.dev/playground/asdf"
 
@@ -143,11 +134,7 @@ def test_shouldafound_findings_output(
 
     mocker.patch.object(scan, "possibly_notify_user", return_value=None)
 
-    runner = CliRunner(
-        env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-        }
-    )
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
 
     result = runner.invoke(
         cli,

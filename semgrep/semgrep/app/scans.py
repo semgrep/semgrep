@@ -13,7 +13,6 @@ import click
 import requests
 from boltons.iterutils import partition
 
-from semgrep.constants import SEMGREP_URL
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
@@ -47,10 +46,10 @@ class ScanHandler:
 
         Returns None if api_token is invalid/doesn't have associated deployment
         """
-        app_session = get_state().app_session
-        url = f"{SEMGREP_URL}/api/agent/deployments/current"
+        state = get_state()
+        url = f"{state.env.semgrep_url}/api/agent/deployments/current"
         logger.debug(f"Retrieving deployment details from {url}")
-        r = app_session.get(url)
+        r = state.app_session.get(url)
 
         if r.ok:
             data = r.json()
@@ -67,18 +66,18 @@ class ScanHandler:
 
         returns ignored list
         """
-        app_session = get_state().app_session
+        state = get_state()
         logger.debug("Starting scan")
         if self.dry_run:
             repo_name = meta["repository"]
-            self._dry_run_rules_url = f"{SEMGREP_URL}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
+            self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
             logger.debug(
                 f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
             )
             return
 
-        response = app_session.post(
-            f"{SEMGREP_URL}/api/agent/deployments/{self.deployment_id}/scans",
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/scans",
             json={"meta": meta},
         )
 
@@ -86,14 +85,14 @@ class ScanHandler:
             raise Exception(
                 "Failed to create a scan with given token and deployment_id."
                 "Please make sure they have been set correctly."
-                f"API server at {SEMGREP_URL} returned this response: {response.text}"
+                f"API server at {state.env.semgrep_url} returned this response: {response.text}"
             )
 
         try:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
-                f"API server at {SEMGREP_URL} returned this error: {response.text}"
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
 
         body = response.json()
@@ -103,10 +102,11 @@ class ScanHandler:
 
     @property
     def scan_rules_url(self) -> str:
+        state = get_state()
         if self.dry_run:
             url = self._dry_run_rules_url
         else:
-            url = f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/rules.yaml"
+            url = f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/rules.yaml"
 
         logger.debug(f"Using {url} as scan rules url")
         return url
@@ -116,13 +116,13 @@ class ScanHandler:
         Send semgrep cli non-zero exit code information to server
         and return what exit code semgrep should exit with.
         """
-        app_session = get_state().app_session
+        state = get_state()
         if self.dry_run:
             logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
             return
 
-        response = app_session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/error",
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/error",
             json={
                 "exit_code": exit_code,
                 "stderr": "",
@@ -146,7 +146,7 @@ class ScanHandler:
         """
         commit_date here for legacy reasons. epoch time of latest commit
         """
-        app_session = get_state().app_session
+        state = get_state()
         all_ids = [r.id for r in rules]
         cai_ids, rule_ids = partition(all_ids, lambda r_id: "r2c-internal-cai" in r_id)
 
@@ -204,8 +204,9 @@ class ScanHandler:
             logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
-        response = app_session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/findings", json=findings
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings",
+            json=findings,
         )
         try:
             response.raise_for_status()
@@ -218,8 +219,9 @@ class ScanHandler:
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
-        response = app_session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/ignores", json=ignores
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/ignores",
+            json=ignores,
         )
         try:
             response.raise_for_status()
@@ -227,13 +229,14 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         # mark as complete
-        response = app_session.post(
-            f"{SEMGREP_URL}/api/agent/scans/{self.scan_id}/complete", json=complete
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
+            json=complete,
         )
 
         try:
             response.raise_for_status()
         except requests.RequestException:
             raise Exception(
-                f"API server at {SEMGREP_URL} returned this error: {response.text}"
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
