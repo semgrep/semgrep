@@ -163,7 +163,7 @@ jobs:
       - id: my-key
         env:
             MY_KEY: ${{ secrets.M1_SUPPORT }}
-        if: "${{ env.MY_KEY == 'true' }}"
+        if: "${{ env.MY_KEY != '' }}"
         run: echo "::set-output name=defined::true"
         
   build-core-m1:
