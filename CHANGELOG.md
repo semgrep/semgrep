@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+- M1 Mac support added to PyPi
 - Accept `SEMGREP_BASELINE_REF` as alias for `SEMGREP_BASELINE_COMMIT`
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
