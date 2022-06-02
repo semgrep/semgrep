@@ -12,8 +12,9 @@ from urllib.parse import urlparse
 import requests
 from attrs import define
 from attrs import field
-from constants import SEMGREP_URL
 from ruamel.yaml import YAML
+
+from semgrep.state import get_state
 
 
 logger = logging.getLogger(__file__)
@@ -160,7 +161,8 @@ class RuleConfig:
             consolidated_rules = self._fetch_rule_config_from_url(self.config_str)
             self._write(cache_path, consolidated_rules)
         elif self.is_short_config():
-            rule_config_url = f"{SEMGREP_URL}/{self.config_str}"
+            env = get_state().env
+            rule_config_url = f"{env.semgrep_url}/{self.config_str}"
             consolidated_rules = self._fetch_rule_config_from_url(rule_config_url)
             self._write(cache_path, consolidated_rules)
         else:

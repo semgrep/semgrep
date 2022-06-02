@@ -3,15 +3,13 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from semgrep.app import auth
 from semgrep.cli import cli
-from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from tests.conftest import TESTS_PATH
 
 
 @pytest.mark.kinda_slow
 def test_publish(tmp_path, mocker):
-    runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
 
     tests_path = Path(TESTS_PATH / "e2e" / "targets" / "semgrep-publish" / "valid")
     valid_target = str(tests_path.resolve())
@@ -35,9 +33,7 @@ def test_publish(tmp_path, mocker):
     mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
 
     # log back in
-    result = runner.invoke(
-        cli, ["login"], env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fakeapitoken"}
-    )
+    result = runner.invoke(cli, ["login"], env={"SEMGREP_APP_TOKEN": "fakeapitoken"})
     assert result.exit_code == 0
 
     # fails if no rule specified

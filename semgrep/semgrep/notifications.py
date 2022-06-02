@@ -1,18 +1,22 @@
+from typing_extensions import Final
+
 from semgrep.constants import Colors
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
-HAS_SHOWN_SETTINGS_KEY = "has_shown_metrics_notification"
+HAS_SHOWN_SETTINGS_KEY: Final = "has_shown_metrics_notification"
 
 logger = getLogger(__name__)
 
 
 def possibly_notify_user() -> None:
-    from semgrep.settings import SETTINGS
+    from semgrep.state import get_state
+
+    settings = get_state().settings
 
     has_shown = False
     try:
-        has_shown = SETTINGS.get_setting(HAS_SHOWN_SETTINGS_KEY, default=False)
+        has_shown = settings.get(HAS_SHOWN_SETTINGS_KEY, False)
     except PermissionError:
         logger.debug("Semgrep does not have access to user settings file")
 
@@ -28,4 +32,4 @@ def possibly_notify_user() -> None:
                 "\n",
             )
         )
-        SETTINGS.add_setting(HAS_SHOWN_SETTINGS_KEY, True)
+        settings.set(HAS_SHOWN_SETTINGS_KEY, True)
