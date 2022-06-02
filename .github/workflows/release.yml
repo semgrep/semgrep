@@ -162,12 +162,12 @@ jobs:
     steps:
       - id: my-key
         run: |
-         if [[ "${{ secrets.M1_SUPPORT }}" == "1" ]]; \
-         then
-           echo "::set-output name=defined::true"
-         else
-           echo "::set-output name=defined::false"
-         fi        
+          if [[ "${{ secrets.M1_SUPPORT }}" == "1" ]]; \
+          then
+            echo "::set-output name=defined::true"
+          else
+            echo "::set-output name=defined::false"
+          fi        
   build-core-m1:
     name: Build the OSX M1 binaries
     needs: [check-m1-build]
