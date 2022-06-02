@@ -155,20 +155,16 @@ jobs:
           path: artifacts.zip
 
   check-m1-build:
-    name: Check if we should build for M1
+    name: Check build status for M1
     runs-on: ubuntu-latest
     outputs:
       m1-support: ${{ steps.setvar.supported}}
     steps:
-      - id: setvar
-        run: |
-          echo "${{ secrets.m1_support }}"
-          if [[ "${{ secrets.m1_support }}" == "true" ]];
-           then
-             echo "::set-output name=supported::true"
-           else
-             echo "::set-output name=supported::false"
-           fi
+      - id: my-key
+        env:
+            MY_KEY: ${{ secrets.M1_SUPPORT }}
+        if: "${{ env.MY_KEY == 'true' }}"
+        run: echo "::set-output name=defined::true"
         
   build-core-m1:
     name: Build the OSX M1 binaries
