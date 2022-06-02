@@ -8,7 +8,7 @@ on:
       - "**-test-release"
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-
+ 
 jobs:
   create_release:
     name: Create the Github Release
@@ -153,10 +153,26 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
-
+  check-m1-build:
+    name: Check if we should build for M1
+    runs-on: ubuntu-latest
+    outputs:
+      m1-support: ${{ steps.setvar.supported}}
+    steps:
+      - id: setvar
+        run: |
+          if [[ "${{ secrets.m1_support }}" != "true" ]];
+           then
+             echo "::set-output name=supported::true"
+           else
+             echo "::set-output name=supported::false"
+           fi
+        
   build-core-m1:
     name: Build the OSX M1 binaries
+    needs: [check-m1-build]
     runs-on: [self-hosted, macOS, ARM64]
+    if: needs.check-m1-build.outputs.m1-support == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -307,7 +323,10 @@ jobs:
 
   upload-wheels:
     runs-on: ubuntu-latest
-    needs: [test-wheels-manylinux, build-wheels-osx, build-wheels-m1]
+    needs: [test-wheels-manylinux, build-wheels-osx, build-wheels-m1, check-m1-build]
+    if: |
+      always() &&
+      (needs.build-wheels-m1.result == 'success' || needs.builds-wheels-m1.result == 'skipped')
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v3
@@ -321,6 +340,7 @@ jobs:
           path: osx-wheel
       - name: Download Artifact
         uses: actions/download-artifact@v3
+        if: needs.check-m1-build.outputs.m1-support == 'true'
         with:
           name: m1-wheel
           path: m1-wheel
@@ -330,6 +350,7 @@ jobs:
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
         run: unzip ./osx-wheel/dist.zip "*.whl"
       - name: Unzip M1 Wheel
+        if: needs.check-m1-build.outputs.m1-support == 'true'
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
         run: unzip ./m1-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
