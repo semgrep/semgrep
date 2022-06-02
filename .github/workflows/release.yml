@@ -158,7 +158,7 @@ jobs:
     name: Check build status for M1
     runs-on: ubuntu-latest
     outputs:
-      m1-support: ${{ steps.setvar.supported}}
+      m1-support: ${{ steps.my-key.defined}}
     steps:
       - id: my-key
         env:
