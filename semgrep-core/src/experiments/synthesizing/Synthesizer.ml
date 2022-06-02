@@ -5,10 +5,7 @@ module Out = Output_from_core_j
 
 let range_to_ast file lang s =
   let r = Range.range_of_linecol_spec s file in
-  let { Parse_target.ast; errors; _ } =
-    Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-  in
-  if errors <> [] then failwith (spf "problem parsing %s" file);
+  let ast = Parse_target.parse_and_resolve_name_fail_if_partial lang file in
   let a_opt = Range_to_AST.any_at_range_all r ast in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;

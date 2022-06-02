@@ -229,13 +229,7 @@ let regression_tests_for_lang ~with_caching files lang =
              let sgrep_file = sgrep_file_of_target file in
              let ast =
                try
-                 let { Parse_target.ast; errors; _ } =
-                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                     lang file
-                 in
-                 if errors <> [] then
-                   pr2 (spf "WARNING: fail to fully parse %s" file);
-                 ast
+                 Parse_target.parse_and_resolve_name_warn_if_partial lang file
                with
                | exn ->
                    failwith
@@ -435,13 +429,7 @@ let tainting_test lang rules_file file =
              (Common.exn_to_s exn))
   in
   let ast =
-    try
-      let { Parse_target.ast; errors; _ } =
-        Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-      in
-      if errors <> [] then pr2 (spf "WARNING: fail to fully parse %s" file);
-      ast
-    with
+    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
     | exn ->
         failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
   in

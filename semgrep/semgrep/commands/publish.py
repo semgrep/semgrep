@@ -12,7 +12,6 @@ import click
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
-from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.project import get_project_url
 from semgrep.state import get_state
@@ -21,10 +20,6 @@ from semgrep.test import get_config_test_filenames
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_URL}/api/registry/rule"
-SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_URL}/r/"
-SEMGREP_SNIPPET_VIEW_URL = f"{SEMGREP_URL}/s/"
 
 
 class VisibilityState(str, Enum):
@@ -159,7 +154,7 @@ def _upload_rule(
         visibility: the visibility of the uploaded rule
         test_code_file: optional test case to attach with the rule
     """
-    app_session = get_state().app_session
+    state = get_state()
     config, errors = get_config(None, None, [str(rule_file)], project_url=None)
 
     if errors:
@@ -193,7 +188,9 @@ def _upload_rule(
         "test_target": test_code_file.read_text() if test_code_file else None,
         "registry_check_id": registry_id,
     }
-    response = app_session.post(SEMGREP_REGISTRY_UPLOAD_URL, json=request_json)
+    response = state.app_session.post(
+        f"{state.env.semgrep_url}/api/registry/rule", json=request_json
+    )
 
     if not response.ok:
         click.echo(
@@ -211,11 +208,11 @@ def _upload_rule(
             )
         elif visibility == VisibilityState.UNLISTED:
             click.echo(
-                f"    Published {visibility} rule at {SEMGREP_SNIPPET_VIEW_URL}{created_rule['id']}"
+                f"    Published {visibility} rule at {state.env.semgrep_url}/s/{created_rule['id']}"
             )
         else:
             click.echo(
-                f"    Published {visibility} rule at {SEMGREP_REGISTRY_VIEW_URL}{created_rule['path']}"
+                f"    Published {visibility} rule at {state.env.semgrep_url}/r/{created_rule['path']}"
             )
 
     return True
