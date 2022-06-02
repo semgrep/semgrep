@@ -153,6 +153,7 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
           path: artifacts.zip
+
   check-m1-build:
     name: Check if we should build for M1
     runs-on: ubuntu-latest
@@ -161,7 +162,7 @@ jobs:
     steps:
       - id: setvar
         run: |
-          if [[ "${{ secrets.m1_support }}" != "true" ]];
+          if [[ "${{ secrets.m1_support }}" == "true" ]];
            then
              echo "::set-output name=supported::true"
            else
