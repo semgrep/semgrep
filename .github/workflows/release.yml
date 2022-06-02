@@ -161,16 +161,16 @@ jobs:
       m1_support: ${{ steps.my-key.outputs.defined }}
     steps:
       - id: my-key
-        env:
-            MY_KEY: ${{ secrets.M1_SUPPORT }}
-        if: "${{ env.MY_KEY == 'true' }}"
+      #  env:
+       #     MY_KEY: ${{ secrets.M1_SUPPORT }}
+        #if: "${{ env.MY_KEY == 'true' }}"
         run: echo "::set-output name=defined::true"
         
   build-core-m1:
     name: Build the OSX M1 binaries
     needs: [check-m1-build]
     runs-on: [self-hosted, macOS, ARM64]
-    if: needs.check-m1-build.outputs.m1_support != ''
+    if: ${{needs.check-m1-build.outputs.m1_support == 'true'}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
