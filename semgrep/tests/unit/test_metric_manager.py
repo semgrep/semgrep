@@ -1,3 +1,4 @@
+import uuid
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
@@ -11,8 +12,14 @@ from semgrep.profiling import ProfilingData
 pytestmark = pytest.mark.freeze_time("2017-03-03")
 
 
+@pytest.fixture(autouse=True)
+def automocks(mocker) -> None:
+    # this makes event_id deterministic
+    mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
+
+
 @pytest.fixture
-def metrics() -> Metrics:
+def metrics(mocker) -> Metrics:
     return Metrics()
 
 
@@ -26,7 +33,7 @@ def metrics() -> Metrics:
         (["a", "b"], ["b", "a"], False),
     ],
 )
-def test_configs_hash(metrics, first, second, is_equal) -> None:
+def test_configs_hash(first, second, is_equal) -> None:
     first_metrics = Metrics()
     first_metrics.add_configs(first)
     second_metrics = Metrics()
@@ -50,7 +57,7 @@ def test_configs_hash(metrics, first, second, is_equal) -> None:
         ([0, 1, 2], [1], False),
     ],
 )
-def test_rules_hash(metrics, first, second, is_equal) -> None:
+def test_rules_hash(first, second, is_equal) -> None:
     config1 = dedent(
         """
         rules:

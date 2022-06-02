@@ -4,7 +4,7 @@ import sys
 
 from attr import define
 
-from semgrep.constants import USER_LOG_FILE
+from semgrep.env import Env
 
 
 @define
@@ -43,9 +43,11 @@ class Terminal:
         logger.addHandler(stdout_handler)
 
         # Setup file logging
-        # USER_LOG_FILE dir must exist
-        USER_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(USER_LOG_FILE, "w")
+        # Env and Terminal get initialized together, but Terminal depends on env
+        env = Env()
+        # env.user_log_file dir must exist
+        env.user_log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(env.user_log_file, "w")
         file_formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
