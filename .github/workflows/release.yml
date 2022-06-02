@@ -161,9 +161,9 @@ jobs:
       m1_support: ${{ steps.my-key.outputs.defined }}
     steps:
       - id: my-key
-      #  env:
-       #     MY_KEY: ${{ secrets.M1_SUPPORT }}
-        #if: "${{ env.MY_KEY == 'true' }}"
+        env:
+            MY_KEY: ${{ secrets.M1_SUPPORT }}
+        if: "${{ env.MY_KEY == 'true' }}"
         run: echo "::set-output name=defined::true"
         
   build-core-m1:
