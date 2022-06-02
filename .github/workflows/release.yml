@@ -158,7 +158,7 @@ jobs:
     name: Check build status for M1
     runs-on: ubuntu-latest
     outputs:
-      m1-support: ${{ steps.my-key.outputs.defined}}
+      m1_support: ${{ steps.my-key.outputs.defined }}
     steps:
       - id: my-key
         env:
@@ -170,7 +170,7 @@ jobs:
     name: Build the OSX M1 binaries
     needs: [check-m1-build]
     runs-on: [self-hosted, macOS, ARM64]
-    if: needs.check-m1-build.outputs.m1-support == 'true'
+    if: needs.check-m1-build.outputs.m1_support != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -339,7 +339,7 @@ jobs:
           path: osx-wheel
       - name: Download Artifact
         uses: actions/download-artifact@v3
-        if: needs.check-m1-build.outputs.m1-support == 'true'
+        if: needs.check-m1-build.outputs.m1_support != ''
         with:
           name: m1-wheel
           path: m1-wheel
@@ -349,7 +349,7 @@ jobs:
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
         run: unzip ./osx-wheel/dist.zip "*.whl"
       - name: Unzip M1 Wheel
-        if: needs.check-m1-build.outputs.m1-support == 'true'
+        if: needs.check-m1-build.outputs.m1_support != ''
         # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
         run: unzip ./m1-wheel/dist.zip "*.whl"
       - name: Publish to Pypi
