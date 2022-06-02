@@ -12,6 +12,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
   - support for poetry and gradle lockfiles
+- Generic mode: new option `generic_ellipsis_max_span` for controlling
+  how many lines an ellipsis can match (#5211)
+- Generic mode: new option `generic_comment_style` for ignoring
+  comments that follow the specified syntax (C style, C++ style, or
+  Shell style) (#3428)
 
 ### Changed
 
