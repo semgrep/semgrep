@@ -132,7 +132,7 @@ jobs:
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
       - name: Test image
-        run: ./scripts/validate-docker-build.sh ${{ github.repository }}:${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        run: ./scripts/validate-docker-build.sh ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
 
       - name: Push image
         uses: docker/build-push-action@v3
