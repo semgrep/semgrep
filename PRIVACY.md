@@ -161,6 +161,7 @@ r2c will:
 |             | Warnings                                | Array of Warning Classes (compile-time-constant)                       | Understand most common warnings users encounter                                            | `["TimeoutExceeded"]`                                                                                                                                                                 | WarningClass[] |
 |             |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
 | Value       |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
+|             | Features used                           | List of strings that identify Semgrep features used                    | Understand what features users find valuable, and what we could deprecate                  | `["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`                                                                                           | Object         |
 |             | Rule hashes with findings               | Map of rule hashes to number of findings                               | Understand which rules are providing value to the user; diagnose high false-positive rates | `{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}`                                                                                                             | Object         |
 |             | Total Findings                          | Count of all findings                                                  | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
 |             | Total Nosems                            | Count of all `nosem` annotations that tell semgrep to ignore a finding | Understand if rules are super noisy for the user                                           | 3                                                                                                                                                                                     | Number         |
@@ -189,13 +190,17 @@ This is a sample blob of the aggregate metrics described above:
 
 ```
 {
+    "started_at": "2021-05-10T21:05:06+00:00",
+    "sent_at": "2021-05-10T21:05:09+00:00",
+    "event_id": "222bcccd-9dc2-4d10-ac3a-5692460e77ee",
+    "anonymous_user_id": "5f52484c-3f82-4779-9353-b29bbd3193b6",
     "environment": {
         "version": "0.51.0",
         "ci": "true",
         "configNamesHash": "ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094",
         "projectHash": "c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a",
         "rulesHash": "b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43",
-        "isAuthenticated": false,
+        "isAuthenticated": false
     },
     "performance": {
         "runTime": 37.1234233823,
@@ -225,7 +230,8 @@ This is a sample blob of the aggregate metrics described above:
     "value": {
         "ruleHashesWithFindings": {"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4},
         "numFindings": 7,
-        "numIgnored": 3
+        "numIgnored": 3,
+        "features": ["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]
     }
 }
 ```

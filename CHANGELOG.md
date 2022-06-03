@@ -29,6 +29,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metrics now include an anonymous Event ID. This is an ID generated at send-time
   and will be used to de-duplicate events that potentially get duplicated during transmission.
 - Metrics now include an anonymous User ID. This ID is stored in the ~/.semgrep/settings.yml file. If the ID disappears, the next run will generate a new one randomly. See the [Anonymous User ID in PRIVACY.md](PRIVACY.md#anonymous-user-id) for more details.
+- Metrics now include a list of features used during an execution.
+  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
+  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
 
 ### Changed
 
