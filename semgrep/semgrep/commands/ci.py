@@ -34,6 +34,7 @@ from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
+from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -417,7 +418,6 @@ def ci(
                     match for match in matches if not match.is_ignored or keep_ignored
                 ]
 
-    sum(len(v) for v in cai_matches_by_rule.values())
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
 
@@ -431,14 +431,12 @@ def ci(
         severities=shown_severities,
     )
 
+    logger.info("CI scan completed successfully.")
     logger.info(
-        f"Ran {len(blocking_rules)} blocking rules, {len(nonblocking_rules)} audit rules, and {len(cai_rules)} internal rules used for rule recommendations."
-    )
-    logger.info(
-        f"Found {num_blocking_findings} findings from blocking rules and {num_nonblocking_findings} findings from non-blocking rules"
+        f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(blocking_rules) + len(nonblocking_rules), 'rule')}."
     )
     if scan_handler:
-        logger.info("Reporting findings to semgrep.dev ...")
+        logger.info("  Uploading findings to Semgrep App.")
         scan_handler.report_findings(
             filtered_matches_by_rule,
             semgrep_errors,
@@ -447,20 +445,19 @@ def ci(
             total_time,
             metadata.commit_datetime,
         )
-        logger.info(f"Success.")
 
     audit_mode = metadata.event_name in audit_on
     if num_blocking_findings > 0:
         if audit_mode:
             logger.info(
-                f"Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
+                f"  Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
             )
             exit_code = 0
         else:
-            logger.info("Has findings for blocking rules so exiting with code 1")
+            logger.info("  Has findings for blocking rules so exiting with code 1")
             exit_code = 1
     else:
-        logger.info("No findings so exiting with code 0")
+        logger.info("  No findings so exiting with code 0")
         exit_code = 0
 
     if enable_version_check:

@@ -14,6 +14,7 @@ from attrs import define
 from boltons.iterutils import partition
 
 from semgrep.error import SemgrepError
+from semgrep.state import get_state
 from semgrep.types import FilteredFiles
 from semgrep.verbose_logging import getLogger
 
@@ -169,12 +170,14 @@ class Parser:
 
     def expand_directives(self, line: str) -> Iterable[str]:
         """Load :include files"""
+        metrics = get_state().metrics
         if line.startswith(":include "):
             include_path = self.base_path / line[9:]
             if include_path.is_file():
                 with include_path.open() as include_lines:
                     sub_base = include_path.parent.resolve()
                     sub_parser = Parser(sub_base)
+                    metrics.add_feature("semgrepignore", "include")
                     return sub_parser.parse(include_lines)
             else:
                 logger.debug(
