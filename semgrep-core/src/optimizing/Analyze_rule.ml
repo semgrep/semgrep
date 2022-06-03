@@ -13,8 +13,6 @@
  * license.txt for more details.
  *)
 open Common
-module Re = Regexp_engine.Re_engine
-module Pcre = Regexp_engine.Pcre_engine
 module R = Rule
 module MV = Metavariable
 module PI = Parse_info
@@ -301,16 +299,8 @@ and metavarcond_step1 x =
   | R.CondEval _ -> None
   | R.CondNestedFormula _ -> None
   | R.CondRegexp (mvar, re, const_prop) ->
-      (* bugfix: if the metavariable-regexp is "^(foo|bar)$" we
-       * don't want to keep it because it can't be used on the whole file.
-       * TODO: remove the anchor so it's usable?
-       *)
-      if regexp_contain_anchor re then None
-      else Some (MvarRegexp (mvar, re, const_prop))
+      Some (MvarRegexp (mvar, re, const_prop))
   | R.CondAnalysis _ -> None
-
-(* todo: check for other special chars? *)
-and regexp_contain_anchor (s, _re) = s =~ ".*[^$]"
 
 (*****************************************************************************)
 (* Step2: no more metavariables *)
@@ -362,7 +352,7 @@ let and_step1bis_filter_general (And xs) =
 type step2 =
   | Idents of string list
   (* a And *)
-  | Regexp2 of Rule.regexp
+  | Regexp2_search of Rule.regexp
 [@@deriving show]
 
 type cnf_step2 = step2 cnf [@@deriving show]
@@ -372,8 +362,8 @@ let or_step2 (Or xs) =
     Common.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
-      | Regexp re -> Regexp2 re
-      | MvarRegexp (_mvar, re, _const_prop) -> Regexp2 re)
+      | Regexp re -> Regexp2_search re
+      | MvarRegexp (_mvar, re, _const_prop) -> Regexp2_search re)
   in
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,
@@ -406,7 +396,7 @@ let or_final (Or xs) =
    | Idents [] -> raise Impossible
    (* take the first one *)
    | Idents (x::_) -> Re.matching_exact_string x
-   | Regexp2 (s, _re) ->
+   | Regexp2_search (s, _re) ->
         (* PCRE regular expression not supported by Re, grrr *)
         try Re.regexp s
         with _ -> failwith (spf "Could not parse regexp: %s" s)
@@ -466,9 +456,9 @@ let run_cnf_step2 cnf big_str =
                   logger#debug "check for the presence of %S" id;
                   (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under Idents? *)
-                  let re = Pcre.matching_exact_string id in
-                  Pcre.run re big_str)
-       | Regexp2 re -> Pcre.run re big_str)
+                  let re = Regexp_engine.matching_exact_string id in
+                  Regexp_engine.unanchored_match re big_str)
+       | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
   [@@profiling]
 
 (*****************************************************************************)

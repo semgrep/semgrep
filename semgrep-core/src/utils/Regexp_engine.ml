@@ -41,73 +41,39 @@
  *
  * TODO:
  *  - move the regexp-related code in Generic_vs_generic here!
- *  - switch everything to PCRE? use Re.Glob just for globbing?
- *  - make internal modules so easy to test and switch implem?
+ *  - use Re.Glob just for globbing?
  *
  *)
 
 (*****************************************************************************)
 (* Helpers  *)
 (*****************************************************************************)
-module Re_engine = struct
-  type t = string * Re.t (* not compiled *)
 
-  let show (s, _) = s
+(* keep the string around for show *)
+type t = string * Pcre.regexp
 
-  (* calling pp on Re.t is really slow, so better just print the string *)
-  let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-  let matching_exact_string s = ("exact:" ^ s, Re.str s)
-  let regexp s = (s, Re.Pcre.re s)
-  let compile t = Re.compile t [@@profiling]
+let pcre_pattern = fst
+let pcre_regexp = snd
+let show (s, _) = s
+let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
+let equal (s1, _) (s2, _) = s1 = s2
 
-  (* nice! *)
-  let alt (s1, t1) (s2, t2) = (s1 ^ "|" ^ s2, Re.alt [ t1; t2 ])
+let matching_exact_string s =
+  let quoted = Pcre.quote s in
+  (quoted, SPcre.regexp quoted)
 
-  let run (_, t) str =
-    let re = compile t in
-    Re.execp re str
-    [@@profiling]
-end
+let matching_exact_word s =
+  let re = "\b" ^ Pcre.quote s ^ "\b" in
+  (re, SPcre.regexp re)
 
-module Str_engine = struct
-  (* keep the string around for show *)
-  type t = string * Str.regexp
+(*
+   MULTILINE = ^ and $ match at the beginning and end of lines rather than
+               just at the beginning and end of input.
+*)
+let pcre_compile pat = (pat, SPcre.regexp ~flags:[ `MULTILINE ] pat)
+let anchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
 
-  let show (s, _) = s
-  let matching_exact_string s = ("!exact:s!", Str.regexp_string s)
-  let regexp s = (s, Str.regexp s)
-
-  (* this is not anchored! *)
-  let run (_, re) str =
-    (* bugfix:
-     * this does not work!:  Str.string_match re str 0
-     * because you need to add ".*" in front to make it work,
-     * (but then you can not use regexp_string above)
-     * => use Str.search_forward instead.
-     *)
-    try
-      Str.search_forward re str 0 |> ignore;
-      true
-    with
-    | Not_found -> false
-    [@@profiling]
-end
-
-module Pcre_engine = struct
-  (* keep the string around for show *)
-  type t = string * Pcre.regexp
-
-  let show (s, _) = s
-  let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-  let equal (s1, _) (s2, _) = s1 = s2
-
-  let matching_exact_string s =
-    let quoted = Pcre.quote s in
-    (quoted, SPcre.regexp quoted)
-
-  let matching_exact_word s =
-    let re = "\b" ^ Pcre.quote s ^ "\b" in
-    (re, SPcre.regexp re)
-
-  let run (_, re) str = SPcre.pmatch_noerr ~rex:re str
-end
+let unanchored_match (_, re) str =
+  match SPcre.exec_noerr ~rex:re str with
+  | None -> false
+  | Some _ -> true
