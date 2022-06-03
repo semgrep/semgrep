@@ -46,7 +46,7 @@ class SarifFormatter(BaseFormatter):
         fix = SarifFormatter._rule_match_to_sarif_fix(rule_match)
 
         if fix is not None:
-            rule_match["fixes"] = [fix]
+            rule_match_sarif["fixes"] = [fix]
 
         return rule_match_sarif
 
