@@ -4,6 +4,13 @@
 
 val debug : bool ref
 
+(* See function 'make_search_param' *)
+type search_param = {
+  no_skip_search : bool;
+  case_sensitive : bool;
+  ellipsis_max_span : int;
+}
+
 (*
   Unique identifier for a pattern among all the patterns specified
   on the command line.
@@ -43,27 +50,41 @@ type match_ = {
 val timef : (unit -> 'a) -> 'a * float
 
 (*
-   Match a pattern against a document. Return the list of all
-   non-overlapping matches found by scanning the document from left to right.
+   Create search parameters, overriding defaults if desired.
 
+   no_skip_search: disable an optimization. Default is false.
+   See --help for details.
+
+   case_sensitive:
    By default, matching ascii words is case-sensitive. Set case_sensitive to
    false for case-insensitive matching on the ascii letters a-z/A-Z.
    This doesn't affect backreferences, e.g. the pattern '$A = $A'
    will match 'A = A' and 'a = a' as always, but not 'A = a', regardless
    of the case-sensitivity setting.
+
+   ellipsis_max_span: maximum number of newlines an ellipsis can match.
+   The default is 10. Setting it to 0 forces matched tokens to be all
+   on the same line.
+*)
+val create_search_param :
+  ?no_skip_search:bool ->
+  ?case_sensitive:bool ->
+  ?ellipsis_max_span:int ->
+  unit ->
+  search_param
+
+val default_search_param : search_param
+
+(*
+   Match a pattern against a document. Return the list of all
+   non-overlapping matches found by scanning the document from left to right.
 *)
 val search :
-  no_skip_search:bool ->
-  case_sensitive:bool ->
-  Src_file.t ->
-  Pattern_AST.t ->
-  Doc_AST.t ->
-  match_ list
+  search_param -> Src_file.t -> Pattern_AST.t -> Doc_AST.t -> match_ list
 
 (* Same as 'search', but also returns the time it took. *)
 val timed_search :
-  no_skip_search:bool ->
-  case_sensitive:bool ->
+  search_param ->
   Src_file.t ->
   Pattern_AST.t ->
   Doc_AST.t ->

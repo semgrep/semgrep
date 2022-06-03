@@ -20,6 +20,7 @@ type output_format = Text
 
 type config = {
   case_insensitive : bool;
+  ellipsis_max_span : int;
   color : when_use_color;
   output_format : output_format;
   debug : bool;
@@ -68,8 +69,8 @@ let parse_doc comment_style src =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search ~comment_style
-    patterns docs : matches =
+let run_all ~search_param ~debug ~force ~warn ~comment_style patterns docs :
+    matches =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
@@ -135,8 +136,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search ~comment_style
                             (Src_file.source_string doc_src)
                             (Src_file.source_string pat_src);
                         let matches_for_pat, match_time =
-                          Match.timed_search ~no_skip_search ~case_sensitive
-                            doc_src pat doc
+                          Match.timed_search search_param doc_src pat doc
                         in
                         num_matches :=
                           !num_matches + List.length matches_for_pat;
@@ -217,11 +217,13 @@ let run config =
     num_matches;
     num_matching_files;
   } =
-    run_all
-      ~case_sensitive:(not config.case_insensitive)
-      ~debug ~force:config.force ~warn:config.warn
-      ~no_skip_search:config.no_skip_search ~comment_style:config.comment_style
-      patterns docs
+    let search_param =
+      Match.create_search_param ~no_skip_search:config.no_skip_search
+        ~case_sensitive:(not config.case_insensitive)
+        ~ellipsis_max_span:config.ellipsis_max_span ()
+    in
+    run_all ~search_param ~debug ~force:config.force ~warn:config.warn
+      ~comment_style:config.comment_style patterns docs
   in
   (match config.output_format with
   | Text ->
@@ -276,6 +278,20 @@ let case_insensitive_term =
          \\$A' will match 'foo + foo' but not 'foo + Foo'."
   in
   Arg.value (Arg.flag info)
+
+let ellipsis_max_span_term =
+  let default = Match.default_search_param.ellipsis_max_span in
+  let info =
+    Arg.info
+      [ "ellipsis-max-span"; "e" ]
+      ~doc:
+        (sprintf
+           "Maximum number of newlines a single ellipsis pattern ('...') can \
+            match. The default is %i newlines. The value 0 will force the \
+            matched items to be all on the same line."
+           default)
+  in
+  Arg.value (Arg.opt Arg.int default info)
 
 let color_term =
   let info =
@@ -399,9 +415,9 @@ let no_skip_search_term =
   Arg.value (Arg.flag info)
 
 let cmdline_term =
-  let combine case_insensitive color output_format debug force pattern
-      pattern_files anon_doc_file doc_files time timeout warn no_skip_search
-      comment_style eol_comment_start multiline_comment_start
+  let combine case_insensitive ellipsis_max_span color output_format debug force
+      pattern pattern_files anon_doc_file doc_files time timeout warn
+      no_skip_search comment_style eol_comment_start multiline_comment_start
       multiline_comment_end =
     let doc_files =
       match anon_doc_file with
@@ -414,6 +430,7 @@ let cmdline_term =
     in
     {
       case_insensitive;
+      ellipsis_max_span;
       color;
       output_format;
       debug;
@@ -429,11 +446,11 @@ let cmdline_term =
     }
   in
   Term.(
-    const combine $ case_insensitive_term $ color_term $ output_format_term
-    $ debug_term $ force_term $ pattern_term $ pattern_file_term
-    $ anon_doc_file_term $ doc_file_term $ time_term $ timeout_term $ warn_term
-    $ no_skip_search_term $ Comment.CLI.comment_style_term
-    $ Comment.CLI.eol_comment_start_term
+    const combine $ case_insensitive_term $ ellipsis_max_span_term $ color_term
+    $ output_format_term $ debug_term $ force_term $ pattern_term
+    $ pattern_file_term $ anon_doc_file_term $ doc_file_term $ time_term
+    $ timeout_term $ warn_term $ no_skip_search_term
+    $ Comment.CLI.comment_style_term $ Comment.CLI.eol_comment_start_term
     $ Comment.CLI.multiline_comment_start_term
     $ Comment.CLI.multiline_comment_end_term)
 

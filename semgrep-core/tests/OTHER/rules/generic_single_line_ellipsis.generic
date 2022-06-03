@@ -1,0 +1,8 @@
+a
+b
+
+# ruleid: single-line-ellipsis
+a b
+
+# ruleid: single-line-ellipsis
+x, a, b, y
