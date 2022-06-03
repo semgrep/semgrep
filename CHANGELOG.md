@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- The output summarizing a scan's results has been simplified.
+
 ### Added
 
 - Sarif output format now includes `fixes` section

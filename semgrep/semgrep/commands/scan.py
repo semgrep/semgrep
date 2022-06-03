@@ -920,6 +920,7 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 severities=shown_severities,
+                print_summary=True,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())
