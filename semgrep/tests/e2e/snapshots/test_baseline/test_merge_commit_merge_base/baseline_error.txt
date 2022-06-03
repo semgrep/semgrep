@@ -1,0 +1,18 @@
+Scanning 2 files.
+  Current version has 2 findings.
+
+Switching repository to baseline commit 'baseline-commit'.
+  Will report findings introduced by these commits:
+    * 4e933ff commit #1
+  The current branch is missing these commits from the baseline branch:
+    * 10a1819 commit #2
+  Any finding these commits fixed will look like a new finding in the current branch.
+  To avoid reporting such findings, compare to the branch-off point with:
+    --baseline-commit=$(git merge-base baseline-commit HEAD)
+
+Scanning 1 file.
+
+Some files were skipped or only partially analyzed.
+  Scan was limited to files changed since baseline commit.
+
+Ran 1 rule on 2 files: 1 finding.

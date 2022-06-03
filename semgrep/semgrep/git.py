@@ -123,31 +123,16 @@ class BaselineHandler:
             "--relative",
             self._baseline_commit_ref,
         ]
-        try:
-            # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-            raw_output = subprocess.run(
-                [*status_cmd, "--merge-base"],
-                timeout=GIT_SH_TIMEOUT,
-                capture_output=True,
-                encoding="utf-8",
-                check=True,
-            ).stdout
 
-        except subprocess.CalledProcessError as exc:
-            if exc.stderr.strip() == "fatal: multiple merge bases found":
-                logger.warn(
-                    "git could not find a single branch-off point, so we will compare the baseline commit directly"
-                )
-                # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-                raw_output = subprocess.run(
-                    status_cmd,
-                    timeout=GIT_SH_TIMEOUT,
-                    capture_output=True,
-                    encoding="utf-8",
-                    check=True,
-                ).stdout
-            else:
-                raise exc
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+        raw_output = subprocess.run(
+            status_cmd,
+            timeout=GIT_SH_TIMEOUT,
+            capture_output=True,
+            encoding="utf-8",
+            check=True,
+        ).stdout
+
         status_output = zsplit(raw_output)
         logger.debug("Finished git diff. Parsing git status output")
         logger.debug(status_output)
@@ -307,17 +292,9 @@ class BaselineHandler:
             check=True,
         ).stdout.strip()
         try:
-            merge_base_sha = (
-                sub_check_output(
-                    ["git", "merge-base", self._baseline_commit_ref, "HEAD"]
-                )
-                .rstrip()
-                .decode()
-            )
-
             logger.debug("Running git checkout for baseline context")
             subprocess.run(
-                ["git", "reset", "--hard", merge_base_sha],
+                ["git", "reset", "--hard", self._baseline_commit_ref],
                 timeout=GIT_SH_TIMEOUT,
                 capture_output=True,
                 check=True,

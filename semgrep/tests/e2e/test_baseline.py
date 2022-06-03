@@ -782,3 +782,37 @@ def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     output = run_sentinel_scan(base_commit=baseline)
     snapshot.assert_match(output.stdout, f"stdout.txt")
     snapshot.assert_match(output.stderr, f"stderr.txt")
+
+
+def test_merge_commit_merge_base(git_tmp_path, snapshot):
+    """
+    Two branches independently make a finding should
+    have finding not reported by semgrep
+    """
+    commits = defaultdict(list)
+    foo = git_tmp_path / "foo.py"
+    bar = git_tmp_path / "bar.py"
+    baz = git_tmp_path / "baz.py"
+
+    subprocess.run(["git", "checkout", "-b", "foo"])
+    foo.open("a").write(f"foo = {SENTINEL_1}\n\n")
+    commits["foo"].append(_git_commit(1, add=True))
+
+    subprocess.run(["git", "checkout", "-b", "baz"])
+    baz.open("a").write(f"baz = {SENTINEL_1}\n\n")
+    bar.open("a").write(f"bar = {SENTINEL_1}\n\n")
+    commits["baz"].append(_git_commit(1, add=True))
+
+    subprocess.run(["git", "checkout", "foo"])
+    foo.open("a").write(f"foo = {SENTINEL_1}\n\n")
+    bar.open("a").write(f"bar = {SENTINEL_1}\n\n")
+    commits["foo"].append(_git_commit(2, add=True))
+
+    subprocess.run(["git", "checkout", "baz"])
+
+    baseline_output = run_sentinel_scan(base_commit=commits["foo"][-1])
+    snapshot.assert_match(baseline_output.stdout, "output.txt")
+    snapshot.assert_match(
+        baseline_output.stderr.replace(commits["foo"][-1], "baseline-commit"),
+        "baseline_error.txt",
+    )

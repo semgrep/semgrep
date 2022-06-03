@@ -307,7 +307,10 @@ class GithubMeta(GitMeta):
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
         if self.is_pull_request_event and self.head_ref is not None:
-            return self._find_branchoff_point()
+            # Technically no longer needed but will keep until 0.96.0 to limit
+            # changes to git fetch behavior
+            self._find_branchoff_point()
+            return self.base_branch_tip
         return None
 
     @property
