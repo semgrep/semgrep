@@ -1,5 +1,3 @@
-from typing import cast
-
 import click
 from attrs import Factory
 from attrs import frozen
@@ -37,4 +35,4 @@ def get_state() -> SemgrepState:
 
         ctx = click.Context(command=cli).scope().__enter__()
 
-    return cast(SemgrepState, ctx.ensure_object(SemgrepState))
+    return ctx.ensure_object(SemgrepState)

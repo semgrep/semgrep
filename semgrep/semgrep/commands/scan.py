@@ -137,7 +137,7 @@ class MetricsStateType(click.ParamType):
         return "[auto|on|off]"
 
     def shell_complete(
-        self, context: click.Context, param: str, incomplete: str
+        self, context: click.Context, param: click.Parameter, incomplete: str
     ) -> List[Any]:
         return [
             CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
@@ -169,7 +169,7 @@ METRICS_STATE_TYPE = MetricsStateType()
 # Slightly increase the help width from default 80 characters, to improve readability
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
-_scan_options = [
+_scan_options: List[Callable] = [
     click.help_option("--help", "-h", help=("Show this message and exit.")),
     click.option(
         "-a",
@@ -920,6 +920,7 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 severities=shown_severities,
+                print_summary=True,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

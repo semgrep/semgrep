@@ -298,6 +298,8 @@ class Plan(List[Task]):
         return [asdict(task) for task in self]
 
     def log(self) -> None:
+        metrics = get_state().metrics
+
         if self.rule_count == 0:
             logger.info("Nothing to scan.")
             return
@@ -319,6 +321,8 @@ class Plan(List[Task]):
 
         logger.info("\nScanning across multiple languages:")
         for language, plan in plans_by_language:
+            metrics.add_feature("language", language)
+
             lang_chars = max(len(lang) for lang, _ in plans_by_language)
             rules_chars = max(
                 len(str(plan.rule_count)) for _, plan in plans_by_language
