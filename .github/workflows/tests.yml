@@ -70,6 +70,9 @@ jobs:
   build-docker:
     name: Build and push Semgrep Docker image
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -81,8 +84,20 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
+        if: matrix.platform == 'linux/arm64'
         with:
           platforms: arm64
+
+      - name: Build image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          load: true
+          platforms: ${{ matrix.platform }}
+          tags: image-to-test
+
+      - name: Check the semgrep Docker image
+        run: ./scripts/validate-docker-build.sh image-to-test
 
       - name: Login to Docker Hub
         uses: docker/login-action@v1
@@ -104,27 +119,13 @@ jobs:
             type=sha,event=branch
             type=edge
 
-      - name: Build image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: false
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
-      - name: Check the semgrep Docker image
-        run: ./scripts/validate-docker-build.sh ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-
       - name: Push image
         uses: docker/build-push-action@v3
         if: github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository)
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
@@ -140,7 +141,7 @@ jobs:
           context: .
           push: true
           file: dockerfiles/semgrep-dev.Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
