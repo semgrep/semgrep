@@ -106,8 +106,8 @@ jobs:
         with:
           images: ${{ github.repository }}
   tags: |
-    type=semver,pattern={{version}}
-    type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
           # when running on a tag push, :latest is added automatically
 
       - name: Build and push image
