@@ -48,7 +48,6 @@ logger = getLogger(__name__)
 
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
-RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -86,27 +85,34 @@ class ConfigPath:
         state = get_state()
         self._project_url = project_url
         self._origin = ConfigType.REGISTRY
-
-        if config_str in RULES_REGISTRY:
-            self._config_path = RULES_REGISTRY[config_str]
+        if config_str == "r2c":
+            state.metrics.add_feature("config", "r2c")
+            self._config_path = "https://semgrep.dev/c/p/r2c"
         elif is_url(config_str):
+            state.metrics.add_feature("config", "url")
             self._config_path = config_str
         elif is_policy_id(config_str):
+            state.metrics.add_feature("config", "policy")
             self._config_path = url_for_policy(config_str)
         elif is_registry_id(config_str):
+            state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
+            state.metrics.add_feature("config", f"registry:snippet-id")
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
+            state.metrics.add_feature("config", "auto")
             if self._project_url is not None:
                 self._extra_headers["X-Semgrep-Project"] = self._project_url
             self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
         else:
+            state.metrics.add_feature("config", "local")
             self._origin = ConfigType.LOCAL
             self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
             state.metrics.is_using_registry = True
+            state.metrics.add_registry_url(self._config_path)
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""

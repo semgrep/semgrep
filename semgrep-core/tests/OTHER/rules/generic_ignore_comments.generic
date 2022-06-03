@@ -1,0 +1,16 @@
+// ruleid: ignore-comments
+(a b c)
+
+// ruleid: ignore-comments
+a // ignore me
+b
+
+// ruleid: ignore-comments
+a
+/*
+   ignore me too
+*/
+b
+
+a # don't ignore me
+b

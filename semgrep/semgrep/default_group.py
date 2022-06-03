@@ -71,7 +71,7 @@ class DefaultGroup(click.Group):
 
     def resolve_command(
         self, ctx: click.Context, args: List[str]
-    ) -> Tuple[str, click.Command, List[str]]:
+    ) -> Tuple[Optional[str], Optional[click.Command], List[str]]:
         """
         MultiCommand.resolve_command assumes args[0] is the command name
         if we are running a default command then args[0] will actually be

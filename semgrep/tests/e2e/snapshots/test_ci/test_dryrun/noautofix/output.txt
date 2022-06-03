@@ -35,10 +35,9 @@ Findings:
 Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
-Ran 4 rules on 1 file: 6 findings.
-Ran 2 blocking rules, 1 audit rules, and 1 internal rules used for rule recommendations.
-Found 5 findings from blocking rules and 1 findings from non-blocking rules
-Reporting findings to semgrep.dev ...
+CI scan completed successfully.
+  Found 6 findings (5 blocking) from 3 rules.
+  Uploading findings to Semgrep App.
 Would have sent findings blob: {
     "token": null,
     "gitlab_token": null,
@@ -260,5 +259,4 @@ Would have sent complete blob: {
         "total_time": <sanitized date>
     }
 }
-Success.
-Has findings for blocking rules so exiting with code 1
+  Has findings for blocking rules so exiting with code 1
