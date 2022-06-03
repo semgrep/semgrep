@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
     {
       "invocations": [
@@ -25,9 +25,11 @@
                         "startColumn": 3,
                         "startLine": 5
                       },
-                      "insertedContent": [
-                        "  inputs.get(x) = 1"
-                      ]
+                      "insertedContent": {
+                        "text": [
+                          "  inputs.get(x) = 1"
+                        ]
+                      }
                     }
                   ]
                 }
@@ -77,9 +79,11 @@
                         "startColumn": 6,
                         "startLine": 6
                       },
-                      "insertedContent": [
-                        "  if inputs.get(x + 1) == True:"
-                      ]
+                      "insertedContent": {
+                        "text": [
+                          "  if inputs.get(x + 1) == True:"
+                        ]
+                      }
                     }
                   ]
                 }
