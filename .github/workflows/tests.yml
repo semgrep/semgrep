@@ -67,6 +67,77 @@ jobs:
           #
           opam exec -- make -C semgrep-core report-perf
 
+  build-docker:
+    name: Build and push Semgrep Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - id: docker-meta
+        name: Set tags and labels
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ github.repository }}
+          # :latest is also added automatically
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=pr
+            type=ref,event=branch
+            type=sha,event=branch
+            type=edge
+
+      - name: Build image
+        uses: docker/build-push-action@v3
+        with:
+          push: false
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+
+      - name: Check the semgrep Docker image
+        run: ./scripts/validate-docker-build.sh ${{ github.repository }}:${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+
+      - name: Push image
+        uses: docker/build-push-action@v3
+        if: github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository)
+        with:
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+
+      # Extend the semgrep image, changing the entry point to bash and
+      # adding some utilities. This image is meant for internal uses
+      # such as benchmarks.
+      - name: Push dev image
+        uses: docker/build-push-action@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        with:
+          push: true
+          file: dockerfiles/semgrep-dev.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+
   tox-tests:
     name: semgrep tests with different python envs
     runs-on: ubuntu-latest
