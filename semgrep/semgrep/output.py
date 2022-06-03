@@ -3,7 +3,7 @@ import pathlib
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 from typing import cast
 from typing import Collection
 from typing import Dict
