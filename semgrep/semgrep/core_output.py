@@ -104,17 +104,25 @@ def core_matches_to_rule_matches(
     """
     rule_table = {rule.id: rule for rule in rules}
 
-    def interpolate(text: str, metavariables: Dict[str, str]) -> str:
+    def interpolate(
+        text: str, metavariables: Dict[str, str], propagated_values: Dict[str, str]
+    ) -> str:
         """Interpolates a string with the metavariables contained in it, returning a new string"""
 
         # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
         for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
+            text = text.replace(
+                "value(" + metavariable + ")", propagated_values[metavariable]
+            )
             text = text.replace(metavariable, metavariables[metavariable])
 
         return text
 
-    def read_metavariables(match: core.CoreMatch) -> Dict[str, str]:
-        result = {}
+    def read_metavariables(
+        match: core.CoreMatch,
+    ) -> Tuple[Dict[str, str], Dict[str, str]]:
+        matched_values = {}
+        propagated_values = {}
 
         # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
         with open(match.location.path, errors="replace") as fd:
@@ -124,18 +132,31 @@ def core_matches_to_rule_matches(
                 end_offset = metavariable_data.end.offset
                 length = end_offset - start_offset
 
-                # TODO Also save the propagated value
-
                 fd.seek(start_offset)
-                result[metavariable] = fd.read(length)
+                matched_value = fd.read(length)
 
-        return result
+                # Use propagated value
+                if metavariable_data.propagated_value:
+                    propagated_value = (
+                        metavariable_data.propagated_value.svalue_abstract_content
+                    )
+                else:
+                    propagated_value = matched_value
+
+                matched_values[metavariable] = matched_value
+                propagated_values[metavariable] = propagated_value
+
+        return matched_values, propagated_values
 
     def convert_to_rule_match(match: core.CoreMatch) -> RuleMatch:
         rule = rule_table[match.rule_id.value]
-        metavariables = read_metavariables(match)
-        message = interpolate(rule.message, metavariables)
-        fix = interpolate(rule.fix, metavariables) if rule.fix else None
+        matched_values, propagated_values = read_metavariables(match)
+        message = interpolate(rule.message, matched_values, propagated_values)
+        fix = (
+            interpolate(rule.fix, matched_values, propagated_values)
+            if rule.fix
+            else None
+        )
         fix_regex = None
 
         # this validation for fix_regex code was in autofix.py before

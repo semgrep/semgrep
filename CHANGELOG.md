@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+- M1 Mac support added to PyPi
 - Accept `SEMGREP_BASELINE_REF` as alias for `SEMGREP_BASELINE_COMMIT`
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
@@ -32,6 +34,33 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
+- Previously, you could use `$X` in a message to interpolate the variable captured
+  by a metavariable named `$X`, but there was no way to access the underlying value.
+  However, sometimes that value is more important than the captured variable.
+  Now you can use the syntax `value($X)` to interpolate the underlying
+  propagated value if it exists (if not, it will just use the variable name).
+
+  Example:
+
+  Take a target file that looks like
+
+  ```py
+  x = 42
+  log(x)
+  ```
+
+  Now take a rule to find that log command:
+
+  ```yaml
+  - id: example_log
+    message: Logged $SECRET: value($SECRET)
+    pattern: log(42)
+    languages: [python]
+  ```
+
+  Before, this would have given you the message `Logged x: value(x)`. Now, it
+  will give the message `Logged x: 42`.
+
 - A parameter pattern without a default value can now match a parameter
   with a default value (#5021)
 
