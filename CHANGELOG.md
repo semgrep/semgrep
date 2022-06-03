@@ -6,11 +6,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 
-## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
+### Added
+
+- Generic mode: new option `generic_ellipsis_max_span` for controlling
+  how many lines an ellipsis can match (#5211)
+- Generic mode: new option `generic_comment_style` for ignoring
+  comments that follow the specified syntax (C style, C++ style, or
+  Shell style) (#3428)
+- Metrics now include a list of features used during an execution.
+  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
+  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
 
 ### Changed
 
 - The output summarizing a scan's results has been simplified.
+
+## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
 
 ### Added
 
@@ -22,11 +33,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
   - support for poetry and gradle lockfiles
-- Generic mode: new option `generic_ellipsis_max_span` for controlling
-  how many lines an ellipsis can match (#5211)
-- Generic mode: new option `generic_comment_style` for ignoring
-  comments that follow the specified syntax (C style, C++ style, or
-  Shell style) (#3428)
 - taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
   Previously, if a variable became tainted outside a lambda, and this variable was
   used inside the lambda causing the taint to reach a sink, this was not being
@@ -37,9 +43,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metrics now include an anonymous Event ID. This is an ID generated at send-time
   and will be used to de-duplicate events that potentially get duplicated during transmission.
 - Metrics now include an anonymous User ID. This ID is stored in the ~/.semgrep/settings.yml file. If the ID disappears, the next run will generate a new one randomly. See the [Anonymous User ID in PRIVACY.md](PRIVACY.md#anonymous-user-id) for more details.
-- Metrics now include a list of features used during an execution.
-  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
-  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
+
+### Fixed
+
+- M1 Mac installed via pip now links tree-sitter properly
+- Restore `--sca`
 
 ### Changed
 
