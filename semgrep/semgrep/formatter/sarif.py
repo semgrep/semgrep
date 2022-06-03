@@ -72,7 +72,7 @@ class SarifFormatter(BaseFormatter):
                                 "endLine": rule_match.end.line,
                                 "endColumn": rule_match.end.col,
                             },
-                            "insertedContent": fixed_lines,
+                            "insertedContent": {"text": fixed_lines},
                         }
                     ],
                 }
