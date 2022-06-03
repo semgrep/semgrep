@@ -322,7 +322,13 @@ class Metrics:
         prefix, name = parts
 
         if prefix == "r":
-            self.add_feature("registry-query", name)
+            # we want to avoid reporting specific rules, so we do this mapping:
+            # r/python -> "python"
+            # r/python.flask -> "python."
+            # r/python.correctness.lang => "python.."
+            query_parts = name.split(".")
+            dot_count = len(query_parts) - 1
+            self.add_feature("registry-query", query_parts[0] + dot_count * ".")
         if prefix == "p":
             self.add_feature("ruleset", name)
 
