@@ -105,7 +105,9 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: ${{ github.repository }}
-          tags: type=match,pattern=\d.\d.\d
+  tags: |
+    type=semver,pattern={{version}}
+    type=semver,pattern={{major}}.{{minor}}
           # when running on a tag push, :latest is added automatically
 
       - name: Build and push image
