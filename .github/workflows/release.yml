@@ -90,6 +90,9 @@ jobs:
     name: Build and push Semgrep Docker image
     runs-on: ubuntu-latest
     if: ${{ !contains(github.ref,'-test-release') }}
+    strategy:
+      matrix:
+        platform: [linux/amd64]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
