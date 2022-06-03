@@ -113,6 +113,24 @@ rules:
     paths:
       include:
         - semgrep/semgrep/*
+
+  - id: no-env-vars-on-top-level
+    patterns:
+      - pattern-either:
+          - pattern: os.getenv
+          - pattern: os.environ
+      - pattern-not-inside: "def $F(...): ..."
+    message: >-
+      If you access environment variables on the top level of a module,
+      it'll be near impossible to mock the value of that variable in tests.
+
+      Please make sure to only access environment variables in functions,
+      preferably in semgrep.env.Env
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - semgrep/semgrep/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |

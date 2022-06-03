@@ -58,7 +58,20 @@ type t = {
   (* TODO: eventually the default should be 'false'. *)
   ~xml_attrs_implicit_ellipsis <ocaml default="true"> : bool;
 
+  (* maximum number of newlines that an ellipsis can match.
+     Use 0 to contain the match within a single line. *)
+  ~generic_ellipsis_max_span <ocaml default="10">: int;
+
+  (* preprocess comments away to facilitate matching with spacegrep *)
+  ?generic_comment_style: generic_comment_style option;
+
   (* TODO: equivalences:
    *   - require_to_import (but need pass config to Js_to_generic)
    *)
 }
+
+type generic_comment_style = [
+  | C <json name="c"> (* /* ... */ *)
+  | Cpp <json name="cpp"> (* /* ... */ or // ... *)
+  | Shell <json name="shell"> (* # ... *)
+]

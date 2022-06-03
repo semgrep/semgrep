@@ -3,10 +3,8 @@ from textwrap import dedent
 import pytest
 from click.testing import CliRunner
 
-from semgrep.app import auth
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigPath
-from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
 @pytest.mark.quick
@@ -25,9 +23,9 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
 
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "",
         }
     )
-    result = runner.invoke(cli, ["scan", "--config", "p/ci"], env={})
+    result = runner.invoke(cli, ["scan", "--config", "p/ci"])
     snapshot.assert_match(result.output, "output.txt")

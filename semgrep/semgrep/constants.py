@@ -1,20 +1,12 @@
-import os
 import re
 from enum import auto
 from enum import Enum
-from pathlib import Path
 from typing import Type
 
 
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
-SEMGREP_URL = os.environ.get(
-    "SEMGREP_APP_URL", os.environ.get("SEMGREP_URL", "https://semgrep.dev")
-).rstrip("/")
-SHOULDAFOUND_BASE_URL = os.environ.get(
-    "SHOULDAFOUND_BASE_URL", "https://shouldafound.semgrep.dev"
-).rstrip("/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. Please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
@@ -23,20 +15,7 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
-if "XDG_CONFIG_HOME" in os.environ and Path(os.environ["XDG_CONFIG_HOME"]).is_dir():
-    USER_DATA_FOLDER = Path(os.environ["XDG_CONFIG_HOME"]) / "semgrep"
-else:
-    USER_DATA_FOLDER = Path.home() / ".semgrep"
-
-USER_LOG_FILE = Path(os.environ.get("SEMGREP_LOG_FILE", USER_DATA_FOLDER / "last.log"))
-SETTINGS_FILE = "settings.yml"
-SEMGREP_SETTING_ENVVAR_NAME = "SEMGREP_SETTINGS_FILE"
-SEMGREP_SETTINGS_FILE = os.environ.get(SEMGREP_SETTING_ENVVAR_NAME)
-
-SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
-
-IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
-IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
+SETTINGS_FILENAME = "settings.yml"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
