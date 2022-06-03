@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.95.1](https://github.com/returntocorp/semgrep/releases/tag/v0.95.1) - 2022-06-03
+
 ## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
 
 ### Changed
