@@ -228,37 +228,39 @@ let map_semicolon (env : env) (x : CST.semicolon) =
   | `Auto_semi tok -> (* automatic_semicolon *) token env tok
   | `SEMI tok -> (* ";" *) token env tok
 
+let map_namespace_root env tok = [ (A.special "ROOT", token env tok) ]
+
 let map_namespace_name_as_prefix (env : env) (x : CST.namespace_name_as_prefix)
     : A.name =
   match x with
-  | `BSLASH tok -> (* "\\" *) []
+  | `BSLASH tok -> (* "\\" *) map_namespace_root env tok
   | `Opt_BSLASH_name_name_BSLASH (v1, v2, v3) ->
       let v1 =
         match v1 with
-        | Some tok -> (* "\\" *) Some (map_name env tok)
-        | None -> None
+        | Some tok -> (* "\\" *) map_namespace_root env tok
+        | None -> []
       in
       let v2 = map_namespace_name env v2 in
       let v3 = (* "\\" *) token env v3 in
-      v2
+      v1 @ v2
   | `Pat_1e9d49b_BSLASH (v1, v2) ->
       let v1 =
         (* pattern [nN][aA][mM][eE][sS][pP][aA][cC][eE] *) token env v1
       in
-      let v2 = (* "\\" *) token env v2 in
-      []
+      let v2 = (* "\\" *) map_namespace_root env v2 in
+      v2
   | `Pat_1e9d49b_opt_BSLASH_name_name_BSLASH (v1, v2, v3, v4) ->
       let v1 =
         (* pattern [nN][aA][mM][eE][sS][pP][aA][cC][eE] *) token env v1
       in
       let v2 =
         match v2 with
-        | Some tok -> (* "\\" *) Some (token env tok)
-        | None -> None
+        | Some tok -> (* "\\" *) map_namespace_root env tok
+        | None -> []
       in
       let v3 = map_namespace_name env v3 in
       let v4 = (* "\\" *) token env v4 in
-      v3
+      v2 @ v3
 
 let map_anonymous_function_use_clause (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.anonymous_function_use_clause) :
@@ -2182,14 +2184,16 @@ and map_statement (env : env) (x : CST.statement) =
         | `Opt_BSLASH_name_name_BSLASH_name_use_group (v1, v2, v3, v4) ->
             let v1 =
               match v1 with
-              | Some tok -> (* "\\" *) Some (token env tok)
-              | None -> None
+              | Some tok -> (* "\\" *) map_namespace_root env tok
+              | None -> []
             in
             let v2 = map_namespace_name env v2 in
             let v3 = (* "\\" *) token env v3 in
             let v4 = map_namespace_use_group env v4 in
+            let namespace = v1 @ v2 in
             Common.map
-              (fun (name, alias) -> A.NamespaceUse (use_tok, v2 @ name, alias))
+              (fun (name, alias) ->
+                A.NamespaceUse (use_tok, namespace @ name, alias))
               v4
       in
       let v4 = map_semicolon env v4 in
