@@ -134,14 +134,12 @@ def test_flags(
         options=[*options, "--debug"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
     )
-    print(output)
-    # Test that we try to send metrics. Even if it fails sending
-    assert (
-        "Sent pseudonymous metrics" in output
-        or "Failed to send pseudonymous metrics" in output
-        if should_send
-        else "Sent pseudonymous metrics" not in output
-    )
+    if should_send:
+        assert "Sending pseudonymous metrics" in output
+        assert "Not sending pseudonymous metrics" not in output
+    else:
+        assert "Sending pseudonymous metrics" not in output
+        assert "Not sending pseudonymous metrics" in output
 
 
 @pytest.mark.kinda_slow
@@ -162,8 +160,7 @@ def test_flags_actual_send(
         options=[*options, "--debug"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
     )
-    print(output)
-    assert "Sent pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in output
     assert "Failed to send pseudonymous metrics" not in output
 
 
@@ -177,21 +174,21 @@ def test_legacy_flags(run_semgrep_in_tmp):
         options=["--debug", "--enable-metrics"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing"},
     )
-    assert "Sent pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in output
 
     _, output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--enable-metrics"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": ""},
     )
-    assert "Sent pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in output
 
     _, output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--disable-metrics"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing"},
     )
-    assert "Sent pseudonymous metrics" not in output
+    assert "Sending pseudonymous metrics" not in output
 
     _, output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
