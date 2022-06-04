@@ -12,6 +12,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Java: you can now use a metavariable in a package directive (#5420),
+  for example, `package $X`, which is useful to bind the package
+  name and use it in the error message.
+
+## Unreleased
+
+### Added
+
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
 - `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
