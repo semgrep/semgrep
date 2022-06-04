@@ -234,33 +234,34 @@ let (expected_error_lines_of_files :
 (* A copy-paste of Error_code.compare_actual_to_expected but
  * with Semgrep_error_code.error instead of Error_code.t for the error type.
  *)
-let compare_actual_to_expected actual_errors expected_error_lines =
-  let actual_error_lines =
-    actual_errors
+let compare_actual_to_expected actual_findings expected_findings_lines =
+  let actual_findings_lines =
+    actual_findings
     |> Common.map (fun err ->
            let loc = err.loc in
            (loc.PI.file, loc.PI.line))
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
-    Common2.diff_set_eff expected_error_lines actual_error_lines
+    Common2.diff_set_eff expected_findings_lines actual_findings_lines
   in
 
   only_in_expected
   |> List.iter (fun (src, l) ->
-         pr2 (spf "this one error is missing: %s:%d" src l));
+         pr2 (spf "this one finding is missing: %s:%d" src l));
   only_in_actual
   |> List.iter (fun (src, l) ->
          pr2
-           (spf "this one error was not expected: %s:%d (%s)" src l
-              (actual_errors
+           (spf "this one finding was not expected: %s:%d (%s)" src l
+              (actual_findings
               |> List.find (fun err ->
                      let loc = err.loc in
                      src =$= loc.PI.file && l =|= loc.PI.line)
               |> string_of_error)));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =
-    spf "it should find all reported errors and no more (%d errors)" num_errors
+    spf "it should find all reported findings and no more (%d errors)"
+      num_errors
   in
   match num_errors with
   | 0 -> Stdlib.Ok ()
