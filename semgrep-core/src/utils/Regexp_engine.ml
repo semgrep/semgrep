@@ -71,9 +71,10 @@ let matching_exact_word s =
                just at the beginning and end of input.
 *)
 let pcre_compile pat = (pat, SPcre.regexp ~flags:[ `MULTILINE ] pat)
-let anchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
 
-let unanchored_match (_, re) str =
-  match SPcre.exec_noerr ~rex:re str with
-  | None -> false
-  | Some _ -> true
+let anchored_match =
+  (* ~iflags are precompiled flags for better performance compared to ~flags *)
+  let iflags = Pcre.rflags [ `ANCHORED ] in
+  fun (_, re) str -> SPcre.pmatch_noerr ~iflags ~rex:re str
+
+let unanchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
