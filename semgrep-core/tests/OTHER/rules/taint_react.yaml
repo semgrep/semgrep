@@ -1,0 +1,18 @@
+rules:
+- id: href-semgrep-app
+  mode: taint
+  pattern-sources:
+    - pattern: rule
+    - pattern: url
+  pattern-sanitizers:
+    - pattern: validateUrl(...)
+  pattern-sinks:
+    - patterns:
+        - pattern-inside: |
+            (<SourceLink ... href=$HREF .../>)
+        - focus-metavariable: $HREF
+  message: Found logging of sensitive data
+  languages:
+    - js
+  severity: WARNING
+
