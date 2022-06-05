@@ -19,6 +19,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Generic mode: new option `generic_comment_style` for ignoring
   comments that follow the specified syntax (C style, C++ style, or
   Shell style) (#3428)
+- Dataflow: XML elements (e.g. JSX elements) have now a basic translation to the
+  Dataflow IL, meaning that dataflow analysis (constant propagation, taint tracking)
+  can now operate inside these elements (#5115)
 - taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
   Previously, if a variable became tainted outside a lambda, and this variable was
   used inside the lambda causing the taint to reach a sink, this was not being
