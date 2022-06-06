@@ -4,6 +4,27 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Generic mode: new option `generic_ellipsis_max_span` for controlling
+  how many lines an ellipsis can match (#5211)
+- Generic mode: new option `generic_comment_style` for ignoring
+  comments that follow the specified syntax (C style, C++ style, or
+  Shell style) (#3428)
+- Dataflow: XML elements (e.g. JSX elements) have now a basic translation to the
+  Dataflow IL, meaning that dataflow analysis (constant propagation, taint tracking)
+  can now operate inside these elements (#5115)
+- Java: you can now use a metavariable in a package directive (#5420),
+  for example, `package $X`, which is useful to bind the package
+  name and use it in the error message.
+  
+### Fixed
+
+- Java: support for Sealed classes and Text Blocks via tree-sitter-java
+  (#3787, #4644)
+- Typescript: update to latest tree-sitter-typescript, with support
+  for 'abstract' modifier in more places
+
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 
 ### Added

@@ -9,6 +9,7 @@ ALL_LANGUAGES = ["ALL"]
 
 
 PASSING_REPOS = [
+    {"repo": "https://github.com/apache/airflow", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/zulip/zulip", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bifrost", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/coinbase/bip38", "languages": ALL_LANGUAGES},
@@ -275,10 +276,6 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
-    xfail_repo(
-        {"repo": "https://github.com/apache/airflow", "languages": ["javascript"]},
-        reason="ui/src/views/Pipelines/PipelinesTable.tsx: `} =` was unexpected",
-    ),
     xfail_repo(
         {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
         reason="https://github.com/tree-sitter/tree-sitter-ruby/issues/167",
