@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Typescript: update to latest tree-sitter-typescript, with support
   for 'abstract' modifier in more places
 - Scala: stop parsing parenthesized expressions as unary tuples
+- `yarn.lock` files with no depenencies, and with dependencies that lack URLs, now parse
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 
