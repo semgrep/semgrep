@@ -131,6 +131,20 @@ jobs:
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
+      - id: dev-meta
+        name: Set tags and labels
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ github.repository }}-dev
+          # :latest is also added automatically
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=pr
+            type=ref,event=branch
+            type=sha,event=branch
+            type=edge
+
       # Extend the semgrep image, changing the entry point to bash and
       # adding some utilities. This image is meant for internal uses
       # such as benchmarks.
@@ -142,8 +156,8 @@ jobs:
           push: true
           file: dockerfiles/semgrep-dev.Dockerfile
           platforms: ${{ matrix.platform }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.dev-meta.outputs.tags }}
+          labels: ${{ steps.dev-meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
