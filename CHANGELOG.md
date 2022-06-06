@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Java: support for Sealed classes and Text Blocks via tree-sitter-java
   (#3787, #4644)
+- Typescript: update to latest tree-sitter-typescript, with support
+  for 'abstract' modifier in more places
 
 ## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
 

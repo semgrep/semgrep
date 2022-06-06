@@ -674,12 +674,11 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
 
 and pattern (env : env) (x : CST.pattern) : (a_ident, a_pattern) either =
   match x with
-  | `Choice_choice_member_exp e -> Right (lhs_expression env e)
-  (* TODO
-     | `Id tok -> Left (identifier env tok)
-     | `Choice_decl x -> Left (reserved_identifier env x)
-     | `Dest_pat x -> Right (destructuring_pattern env x)
-  *)
+  | `Choice_choice_member_exp e -> (
+      let lhs = lhs_expression env e in
+      match lhs with
+      | Id x -> Left x
+      | _ -> Right lhs)
   | `Rest_pat (v1, v2) ->
       let tok = token env v1 (* "..." *) in
       let _lhs_TODO = lhs_expression env v2 in
