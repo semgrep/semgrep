@@ -4,9 +4,26 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- Java: support for Sealed classes and Text Blocks via tree-sitter-java
+  (#3787, #4644)
+- Typescript: update to latest tree-sitter-typescript, with support
+  for 'abstract' modifier in more places
+
+## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
+
 ### Changed
 
 - The output summarizing a scan's results has been simplified.
+
+### Added
+
+- Java: you can now use a metavariable in a package directive (#5420),
+  for example, `package $X`, which is useful to bind the package
+  name and use it in the error message.
+
+## Unreleased
 
 ### Added
 
@@ -23,6 +40,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Generic mode: new option `generic_comment_style` for ignoring
   comments that follow the specified syntax (C style, C++ style, or
   Shell style) (#3428)
+- Dataflow: XML elements (e.g. JSX elements) have now a basic translation to the
+  Dataflow IL, meaning that dataflow analysis (constant propagation, taint tracking)
+  can now operate inside these elements (#5115)
 - taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
   Previously, if a variable became tainted outside a lambda, and this variable was
   used inside the lambda causing the taint to reach a sink, this was not being
