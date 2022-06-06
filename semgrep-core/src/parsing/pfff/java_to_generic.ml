@@ -156,6 +156,8 @@ let rec modifier (x, tok) =
   | Synchronized -> G.unhandled_keywordattr (s, tok)
   | Native -> G.unhandled_keywordattr (s, tok)
   | DefaultModifier -> G.unhandled_keywordattr (s, tok)
+  | Sealed -> G.attr G.SealedClass tok
+  | NonSealed -> G.unhandled_keywordattr (s, tok)
   | Annotation v1 -> annotation v1
 
 and modifiers v = list modifier v
@@ -225,6 +227,10 @@ and literal = function
       let v1 = wrap id v1 in
       G.Float v1
   | String v1 ->
+      let v1 = wrap string v1 in
+      G.String v1
+  | TextBlock v1 ->
+      (* TODO: remove enclosing triple quotes? or do that in ast_java.ml? *)
       let v1 = wrap string v1 in
       G.String v1
   | Char v1 ->
