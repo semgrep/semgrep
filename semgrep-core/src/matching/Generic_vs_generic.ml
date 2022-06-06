@@ -220,9 +220,13 @@ let m_ident a b =
   (* general case *)
   | a, b -> (m_wrap m_string) a b
 
+(* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
   match (a, b) with
-  (* TODO: [$X] should match any list *)
+  (* $X should match any list *)
+  | [ (s, t) ], b when MV.is_metavar_name s ->
+      envf (s, t) (MV.N (H.name_of_ids b))
+  (* TODO? we could allow a.b.$X to match a.b.c.d *)
   | a, b -> (m_list m_ident) a b
 
 (* This is for languages like Python where foo.arg.func is not parsed

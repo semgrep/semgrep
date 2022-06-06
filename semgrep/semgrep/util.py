@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 import click
 
 from semgrep.constants import Colors
+from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
@@ -118,13 +119,27 @@ def listendswith(l: List[T], tail: List[T]) -> bool:
 
 
 def is_config_suffix(path: Path) -> bool:
-    return any(
-        listendswith(path.suffixes, suffixes) for suffixes in YML_SUFFIXES
-    ) and not is_config_test_suffix(path)
+    return (
+        any(listendswith(path.suffixes, suffixes) for suffixes in YML_SUFFIXES)
+        and not is_config_test_suffix(path)
+        and not is_config_fixtest_suffix(path)
+    )
 
 
 def is_config_test_suffix(path: Path) -> bool:
-    return any(listendswith(path.suffixes, suffixes) for suffixes in YML_TEST_SUFFIXES)
+    return any(
+        listendswith(path.suffixes, suffixes) for suffixes in YML_TEST_SUFFIXES
+    ) and not is_config_fixtest_suffix(path)
+
+
+def is_config_fixtest_suffix(path: Path) -> bool:
+    return FIXTEST_SUFFIX in path.suffixes
+
+
+def final_suffix_matches(path: Path, path2: Path) -> bool:
+    return (is_config_test_suffix(path) and is_config_test_suffix(path2)) or (
+        path.suffixes[-1] == path2.suffixes[-1]
+    )
 
 
 def format_bytes(num: float) -> str:
