@@ -16,9 +16,6 @@ jobs:
     name: build semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
-    env:
-      DUNE_CACHE: enabled
-      DUNE_CACHE_ROOT: $HOME/.dune
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv
@@ -44,7 +41,7 @@ jobs:
             $HOME/.opam
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: DUNE_CACHE=enabled DUNE_CACHE_ROOT=$HOME/.dune ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -150,9 +147,6 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     needs: [build-core] # save some CPU time by waiting till build cache is populated in that job
-    env:
-      DUNE_CACHE: enabled
-      DUNE_CACHE_ROOT: $HOME/.dune
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv
@@ -178,7 +172,7 @@ jobs:
             $HOME/.opam
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
-        run: ./scripts/install-alpine-semgrep-core
+        run: DUNE_CACHE=enabled DUNE_CACHE_ROOT=$HOME/.dune ./scripts/install-alpine-semgrep-core
       - name: Test semgrep-core
         run: |
           eval $(opam env)
