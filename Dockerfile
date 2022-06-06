@@ -64,21 +64,18 @@ FROM python:3.10-alpine AS semgrep-cli
 
 WORKDIR /semgrep
 
-
 ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
      PIP_NO_CACHE_DIR=true \
      PYTHONIOENCODING=utf8 \
      PYTHONUNBUFFERED=1
 
+RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh
 COPY semgrep ./
 
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \
-     apk add --no-cache --virtual=.run-deps bash openssh && \
-     # we need git 2.36+ to be able to set safe.directories=*
-     apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache git && \
-     apk add --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community --no-cache git-lfs && \
      SEMGREP_SKIP_BIN=true pip install /semgrep && \
+     # running this pre-compiles some python files for faster startup times
      semgrep --version && \
      apk del .build-deps && \
      mkdir -p /tmp/.cache

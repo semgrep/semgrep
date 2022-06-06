@@ -165,6 +165,7 @@ TAGS
 
 # Do not check in compiled binaries
 /semgrep/semgrep/bin
+!/semgrep/semgrep/bin/__init__.py
 /semgrep-core/bin
 
 # Ignore bench files
