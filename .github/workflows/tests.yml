@@ -31,6 +31,16 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
+      - name: Cache OCaml build files
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pipenv
+            ~/.local/share/virtualenvs
+            ~/.dune
+            ~/.opam
+          key: ${{ runner.os }}-ocamlbuild-${{ hashFiles('semgrep-core/**') }}
+          restore-keys: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
@@ -167,7 +177,7 @@ jobs:
     needs: [build-core]
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10", "3.11-beta - 3.11"]
+        python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
     steps:
       - name: Setup Python
         uses: actions/setup-python@v3
