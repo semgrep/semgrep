@@ -446,3 +446,67 @@ jobs:
         run: |
           perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings semgrep/findings.json
+
+  build-macos-release:
+    name: build macOS release
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v3
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
+      - name: Run OSX build
+        run: ./scripts/osx-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-osx
+          path: artifacts
+
+  test-macos-release:
+    name: test macOS release
+    runs-on: macos-10.15
+    needs: [build-macos-release]
+    steps:
+      - name: download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: semgrep-osx
+          path: artifacts
+      - name: Remove pcre dynamic lib
+        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+      - name: test build artifacts
+        run: |
+          chmod +x ./artifacts/semgrep-core
+          ./artifacts/semgrep-core -help
+
+  build-ubuntu:
+    name: build Ubuntu release
+    needs: [build-core]
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:ubuntu-16.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts.tgz
+          mkdir -p semgrep-files
+          cp ocaml-build-artifacts/bin/* semgrep-files
+      - name: Run Ubuntu build script
+        run: ./scripts/ubuntu-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: artifacts.tar.gz
