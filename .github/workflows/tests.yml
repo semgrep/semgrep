@@ -39,8 +39,7 @@ jobs:
             ~/.local/share/virtualenvs
             ~/.dune
             ~/.opam
-          key: ${{ runner.os }}-ocamlbuild-${{ hashFiles('semgrep-core/**') }}
-          restore-keys: ${{ runner.os }}-ocamlbuild
+          key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
