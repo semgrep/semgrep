@@ -47,6 +47,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 - Sarif output format now includes `fixes` section
+- `--test` flag will now seach for code files with `.fixed` suffix and use
+  these to test the behaviour of autofixes of the rules.
 - Rust: added support for method chaining patterns.
 - `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
 - M1 Mac support added to PyPi
