@@ -1,12 +1,14 @@
 {
-  "config_missing_fixtests": [],
+  "config_missing_fixtests": [
+    "rules/fixtest/test2.yaml"
+  ],
   "config_missing_tests": [],
   "config_with_errors": [],
   "fixtest_results": {},
   "results": {
-    "rules/cli_test/suffixes/this.that.check.yaml": {
+    "rules/fixtest/test2.yaml": {
       "checks": {
-        "basic-test": {
+        "test2": {
           "matches": "<masked in tests>",
           "passed": true
         }
