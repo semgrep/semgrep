@@ -1252,7 +1252,7 @@ and keyword_attribute =
   | Private
   | Protected
   | Abstract (* a.k.a virtual in C++/Solidity *)
-  (* for fields/methods in classes and also classes *)
+  (* for fields/methods in classes and also for classes themselves *)
   | Final
   | Override
   | Mutable (* 'var' in Scala *)
@@ -1263,6 +1263,7 @@ and keyword_attribute =
   (* '@interface' in Java, 'annotation class' in Kotlin *)
   | AnnotationClass
   | EnumClass
+  (* for Scala and Java *)
   | SealedClass
   (* for variables (JS) *)
   | Var
