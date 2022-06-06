@@ -146,8 +146,10 @@ jobs:
     name: test semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
-    needs: [build-core]
+    needs: [build-core] # save some CPU time by waiting till build cache is populated in that job
     steps:
+      - name: Install pipenv
+        run: sudo pip install pipenv
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -160,18 +162,17 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Setup Python
-        uses: actions/setup-python@v3
+      - name: Cache OCaml build files
+        uses: actions/cache@v3
         with:
-          python-version: ${{ matrix.python }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+          path: |
+            ~/.cache/pipenv
+            ~/.local/share/virtualenvs
+            ~/.dune
+            ~/.opam
+          key: ${{ runner.os }}-ocamlbuild
+      - name: Build semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
       - name: Test semgrep-core
         run: |
           eval $(opam env)
