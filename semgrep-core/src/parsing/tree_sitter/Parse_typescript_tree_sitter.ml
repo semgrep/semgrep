@@ -976,11 +976,7 @@ and variable_declarator (env : env) (x : CST.variable_declarator) =
         | Some x -> Some (type_annotation env x |> snd)
         | None -> None
       in
-      let default =
-        match v3 with
-        | Some x -> Some (initializer_ env x)
-        | None -> None
-      in
+      let default = initializer_opt env v3 in
       (id_or_pat, type_, default)
   | `Id_BANG_type_anno (v1, v2, v3) ->
       let id_or_pat = Left (identifier env v1 (* identifier *)) in
@@ -1161,6 +1157,11 @@ and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
   let _v1 = token env v1 (* "=" *) in
   let v2 = expression env v2 in
   v2
+
+and initializer_opt env v =
+  match v with
+  | Some x -> Some (initializer_ env x)
+  | None -> None
 
 and primary_expression (env : env) (x : CST.primary_expression) : expr =
   match x with
@@ -1537,26 +1538,26 @@ and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) : for_header
     | `Choice_choice_choice_member_exp x ->
         let expr = paren_expr_or_lhs_expr env x in
         Right expr
-    | `Var_choice_id_opt_init (_v1, _v2, _v3) -> failwith "TODO"
-    (* TODO
-            let var_kind =
-              match v1 with
-              | `Var tok -> (Var, token env tok) (* "var" *)
-              | `Let tok -> (Let, token env tok) (* "let" *)
-              | `Const tok -> (Const, token env tok)
-              (* "const" *)
-            in
-            let id_or_pat = id_or_destructuring_pattern env v2 in
-            let pat =
-              match id_or_pat with
-              | Left id -> idexp id
-              | Right pat -> pat
-            in
-            let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) None in
-            Left var
-    *)
-    | `Choice_let_choice_id (_v1, _v2) -> failwith "TODO"
+    | `Var_choice_id_opt_init (v1, v2, v3) ->
+        let var_kind = (Var, token env v1) in
+        let id_or_pat = id_or_destructuring_pattern env v2 in
+        let pat = id_or_pat |> sub_pattern in
+        let rhs = initializer_opt env v3 in
+        let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) rhs in
+        Left var
+    | `Choice_let_choice_id (v1, v2) ->
+        let var_kind =
+          match v1 with
+          | `Let tok -> (Let, token env tok) (* "let" *)
+          | `Const tok -> (Const, token env tok)
+          (* "const" *)
+        in
+        let id_or_pat = id_or_destructuring_pattern env v2 in
+        let pat = id_or_pat |> sub_pattern in
+        let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) None in
+        Left var
   in
+
   let exprs = expressions env v4 in
   let for_header =
     match v3 with
@@ -1972,11 +1973,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
           | Some x -> Some (type_annotation env x |> snd)
           | None -> None
         in
-        let default =
-          match v3 with
-          | Some x -> Some (initializer_ env x)
-          | None -> None
-        in
+        let default = initializer_opt env v3 in
         (id_or_pat, type_, default)
     | `Opt_param (v1, v2, v3, v4) ->
         (* optional_parameter *)
@@ -1987,11 +1984,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
           | Some x -> Some (type_annotation env x |> snd)
           | None -> None
         in
-        let opt_default =
-          match v4 with
-          | Some x -> Some (initializer_ env x)
-          | None -> None
-        in
+        let opt_default = initializer_opt env v4 in
         (id_or_pat, opt_type, opt_default)
   in
   match id_or_pat with
@@ -2566,11 +2559,7 @@ and public_field_definition (env : env)
     | Some x -> Some (type_annotation env x |> snd)
     | None -> None
   in
-  let opt_init =
-    match v7 with
-    | Some x -> Some (initializer_ env x)
-    | None -> None
-  in
+  let opt_init = initializer_opt env v7 in
   let attrs = attributes |> Common.map attr in
   Field
     {
