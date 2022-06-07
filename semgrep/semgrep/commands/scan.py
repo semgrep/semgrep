@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import tempfile
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -47,7 +48,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.synthesize_patterns import synthesize
-from semgrep.target_manager import converted_pipe_targets
+from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -815,7 +816,8 @@ def scan(
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with converted_pipe_targets(targets) as targets:
+    with tempfile.TemporaryDirectory() as pipes_dir:
+        targets = write_pipes_to_disk(targets, Path(pipes_dir))
         output_handler = OutputHandler(output_settings)
         return_data: ScanReturn = None
 
