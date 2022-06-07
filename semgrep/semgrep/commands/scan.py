@@ -137,7 +137,7 @@ class MetricsStateType(click.ParamType):
         return "[auto|on|off]"
 
     def shell_complete(
-        self, context: click.Context, param: str, incomplete: str
+        self, context: click.Context, param: click.Parameter, incomplete: str
     ) -> List[Any]:
         return [
             CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
@@ -169,7 +169,7 @@ METRICS_STATE_TYPE = MetricsStateType()
 # Slightly increase the help width from default 80 characters, to improve readability
 CONTEXT_SETTINGS = {"max_content_width": 90}
 
-_scan_options = [
+_scan_options: List[Callable] = [
     click.help_option("--help", "-h", help=("Show this message and exit.")),
     click.option(
         "-a",
@@ -187,7 +187,7 @@ _scan_options = [
             Only show results that are not found in this commit hash. Aborts run if not currently
             in a git directory, there are unstaged changes, or given baseline hash doesn't exist
         """,
-        envvar="SEMGREP_BASELINE_COMMIT",
+        envvar=["SEMGREP_BASELINE_COMMIT", "SEMGREP_BASELINE_REF"],
     ),
     click.option(
         "--metrics",
@@ -920,6 +920,7 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 severities=shown_severities,
+                print_summary=True,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())

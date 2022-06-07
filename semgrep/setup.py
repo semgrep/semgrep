@@ -37,7 +37,10 @@ if WHEEL_CMD in sys.argv:
             _, _, plat = bdist_wheel.get_tag(self)
             python = "cp37.cp38.cp39.py37.py38.py39"
             abi = "none"
-            plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
+            if "macosx" in plat:
+                plat = "macosx_11_0_arm64" if "arm" in plat else "macosx_10_14_x86_64"
+            else:
+                plat = "any"
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
@@ -130,6 +133,7 @@ install_requires = [
     "peewee~=3.14",
     "defusedxml~=0.7.1",
     "urllib3~=1.26",
+    "typing-extensions~=4.2",
 ]
 
 setuptools.setup(

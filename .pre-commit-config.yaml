@@ -85,8 +85,11 @@ repos:
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-jsonschema~=3.2
-          - types-all
+          - types-requests
           - types-setuptools
+          - types-freezegun
+          - types-python-dateutil
+          - types-Jinja2
       - id: mypy
         alias: mypy-test
         name: mypy (test files)

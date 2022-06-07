@@ -10,7 +10,6 @@ from semgrep.commands.login import logout
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.commands.shouldafound import shouldafound
-from semgrep.constants import IN_DOCKER
 from semgrep.default_group import DefaultGroup
 from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.state import get_state
@@ -31,7 +30,8 @@ def maybe_set_git_safe_directories() -> None:
     - https://github.blog/2022-04-12-git-security-vulnerability-announced/
     - https://github.com/actions/checkout/issues/766
     """
-    if not IN_DOCKER:
+    env = get_state().env
+    if not env.in_docker:
         return
 
     try:
@@ -57,12 +57,15 @@ def cli(ctx: click.Context) -> None:
     """
     state = get_state()
 
-    state.app_session.authenticate()
-    state.app_session.user_agent.tags.add(
-        f"command/{ctx.invoked_subcommand}"
+    subcommand: str = (
+        ctx.invoked_subcommand
         if ctx.invoked_subcommand in ctx.command.commands  # type: ignore
-        else "command/unset"
+        else "unset"
     )
+
+    state.app_session.authenticate()
+    state.app_session.user_agent.tags.add(f"command/{subcommand}")
+    state.metrics.add_feature("subcommand", subcommand)
 
     maybe_set_git_safe_directories()
 

@@ -96,6 +96,14 @@ let ( let/ ) o f = Option.iter f o
 (* Environment Helpers *)
 (*****************************************************************************)
 
+let is_global = function
+  | Global -> true
+  | _ -> false
+
+let is_resolved_name = function
+  | ResolvedName _ -> true
+  | _ -> false
+
 let is_lang env l2 =
   match env.lang with
   | None -> false
@@ -630,7 +638,7 @@ let propagate_basic lang prog =
                            (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
                            && (is_lang env Lang.Python || is_lang env Lang.Ruby
                              || is_lang env Lang.Php || is_js env)
-                           && kind = Global
+                           && (is_global kind || is_resolved_name kind)
                          then add_constant_env id (sid, svalue) env
                      | None ->
                          logger#debug "No stats for (%s,%d)" (H.str_of_ident id)

@@ -24,3 +24,4 @@
 let exit = ref []
 let get_type = ref (fun _id -> None)
 let get_def = ref (fun _id -> None)
+let metatypes = ref None

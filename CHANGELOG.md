@@ -4,18 +4,72 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
+
+### Changed
+
+- The output summarizing a scan's results has been simplified.
+
 ### Added
 
 - Sarif output format now includes `fixes` section
 - Rust: added support for method chaining patterns.
+- `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
+- M1 Mac support added to PyPi
+- Accept `SEMGREP_BASELINE_REF` as alias for `SEMGREP_BASELINE_COMMIT`
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
   - support for poetry and gradle lockfiles
+- Generic mode: new option `generic_ellipsis_max_span` for controlling
+  how many lines an ellipsis can match (#5211)
+- Generic mode: new option `generic_comment_style` for ignoring
+  comments that follow the specified syntax (C style, C++ style, or
+  Shell style) (#3428)
+- taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
+  Previously, if a variable became tainted outside a lambda, and this variable was
+  used inside the lambda causing the taint to reach a sink, this was not being
+  detected because any nested lambdas were "opaque" to the analysis. (Taint tracking
+  looked at lambdas but as isolated functions.) Now lambas are simply analyzed as if
+  they were statement blocks. However, taint tracking still does not follow the flow
+  of taint through the lambda's arguments!
+- Metrics now include an anonymous Event ID. This is an ID generated at send-time
+  and will be used to de-duplicate events that potentially get duplicated during transmission.
+- Metrics now include an anonymous User ID. This ID is stored in the ~/.semgrep/settings.yml file. If the ID disappears, the next run will generate a new one randomly. See the [Anonymous User ID in PRIVACY.md](PRIVACY.md#anonymous-user-id) for more details.
+- Metrics now include a list of features used during an execution.
+  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
+  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
 
 ### Changed
 
 - The `ci` CLI command will now include ignored matches in output formats
   that dictate they should always be included
+- Previously, you could use `$X` in a message to interpolate the variable captured
+  by a metavariable named `$X`, but there was no way to access the underlying value.
+  However, sometimes that value is more important than the captured variable.
+  Now you can use the syntax `value($X)` to interpolate the underlying
+  propagated value if it exists (if not, it will just use the variable name).
+
+  Example:
+
+  Take a target file that looks like
+
+  ```py
+  x = 42
+  log(x)
+  ```
+
+  Now take a rule to find that log command:
+
+  ```yaml
+  - id: example_log
+    message: Logged $SECRET: value($SECRET)
+    pattern: log(42)
+    languages: [python]
+  ```
+
+  Before, this would have given you the message `Logged x: value(x)`. Now, it
+  will give the message `Logged x: 42`.
+
 - A parameter pattern without a default value can now match a parameter
   with a default value (#5021)
 
@@ -29,6 +83,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - When a rule from the registry fails to parse, suggest user upgrade to
   latest version of semgrep
 - Scala: correctly handle `return` for taint analysis (#4975)
+- PHP: correctly handle namespace use declarations when they don't rename
+  the imported name (#3964)
+- Constant propagation is now faster and memory efficient when analyzing
+  large functions with lots of variables.
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
@@ -63,6 +121,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   but please report any regressions that you may find.
 - The dot access ellipsis now matches field accesses in addition to method
   calls.
+- pattern-regex, pattern-not-regex, metavariable-regex: `^` and `$`
+  now match at the beginning and end of each line, respectively,
+  rather than previously just at the beginning and end of the input
+  file. This corresponds to PCRE's multiline mode. To get the old
+  behavior back, use `\A` instead of '^' and `\Z` instead of `$`. See
+  the [PCRE
+  manual](https://www.pcre.org/original/doc/html/pcrepattern.html#smallassertions)
+  for details.
 - Made error message for resource exhausion (exit code -11/-9) more actionable
 - Made error message for rules with patterns missing positive terms
   more actionable (#5234)

@@ -1,0 +1,8 @@
+rules:
+  - id: test-regex-multiline-mode
+    # Since semgrep 0.94, '^' and '$' match at the beginning and end of
+    # each line.
+    pattern-regex: "^hello$"
+    message: "This rule matches the word 'hello' alone on a line."
+    languages: [regex]
+    severity: ERROR

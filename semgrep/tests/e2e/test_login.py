@@ -1,14 +1,12 @@
 import pytest
 from click.testing import CliRunner
 
-from semgrep.app import auth
 from semgrep.cli import cli
-from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 
 
 @pytest.mark.slow
 def test_login(tmp_path, mocker):
-    runner = CliRunner(env={SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path)})
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
 
     expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
     fake_key = "key123"
@@ -38,7 +36,7 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         ["login"],
-        env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
+        env={"SEMGREP_APP_TOKEN": fake_key},
     )
     print(result.output)
     assert result.exit_code == 0
@@ -49,7 +47,7 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         ["login"],
-        env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
+        env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 2
     assert "API token already exists in" in result.output
@@ -74,7 +72,7 @@ def test_login(tmp_path, mocker):
     result = runner.invoke(
         cli,
         ["login"],
-        env={auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: fake_key},
+        env={"SEMGREP_APP_TOKEN": fake_key},
     )
     assert result.exit_code == 0
     assert result.output.startswith("Saved login token")

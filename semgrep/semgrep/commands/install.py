@@ -9,7 +9,6 @@ import click
 from tqdm import tqdm
 
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import SEMGREP_URL
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.semgrep_core import SemgrepCore
@@ -63,7 +62,7 @@ def install_deep_semgrep() -> None:
             "Running on potentially unsupported platform. Installing linux compatible binary"
         )
 
-    url = f"{SEMGREP_URL}/api/agent/deployments/deepbinary/{platform}"
+    url = f"{state.env.semgrep_url}/api/agent/deployments/deepbinary/{platform}"
 
     with state.app_session.get(url, timeout=60, stream=True) as r:
         if r.status_code == 401:

@@ -1,11 +1,24 @@
 """
 Tests for semgrep.metrics and associated command-line arguments.
 """
+import json
+import os
+import re
+import sys
+import time
+import uuid
 from typing import Iterator
 
+import dateutil.tz
+import freezegun.api
 import pytest
+from click.testing import CliRunner
 from pytest import mark
 from pytest import MonkeyPatch
+
+from semgrep.cli import cli
+from semgrep.profiling import ProfilingData
+from tests.conftest import TESTS_PATH
 
 
 # Test data to avoid making web calls in test code
@@ -121,14 +134,12 @@ def test_flags(
         options=[*options, "--debug"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
     )
-    print(output)
-    # Test that we try to send metrics. Even if it fails sending
-    assert (
-        "Sent pseudonymous metrics" in output
-        or "Failed to send pseudonymous metrics" in output
-        if should_send
-        else "Sent pseudonymous metrics" not in output
-    )
+    if should_send:
+        assert "Sending pseudonymous metrics" in output
+        assert "Not sending pseudonymous metrics" not in output
+    else:
+        assert "Sending pseudonymous metrics" not in output
+        assert "Not sending pseudonymous metrics" in output
 
 
 @pytest.mark.kinda_slow
@@ -149,8 +160,7 @@ def test_flags_actual_send(
         options=[*options, "--debug"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
     )
-    print(output)
-    assert "Sent pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in output
     assert "Failed to send pseudonymous metrics" not in output
 
 
@@ -164,21 +174,21 @@ def test_legacy_flags(run_semgrep_in_tmp):
         options=["--debug", "--enable-metrics"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing"},
     )
-    assert "Sent pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in output
 
     _, output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--enable-metrics"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": ""},
     )
-    assert "Sent pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in output
 
     _, output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--disable-metrics"],
         env={"SEMGREP_USER_AGENT_APPEND": "testing"},
     )
-    assert "Sent pseudonymous metrics" not in output
+    assert "Sending pseudonymous metrics" not in output
 
     _, output = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -212,3 +222,56 @@ def test_legacy_flags(run_semgrep_in_tmp):
         "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
         not in output
     )
+
+
+def _mask_version(value: str) -> str:
+    return re.sub(r"\d+", "x", value)
+
+
+@pytest.mark.quick
+@pytest.mark.freeze_time("2017-03-03")
+@pytest.mark.skipif(
+    sys.version_info < (3, 8),
+    reason="snapshotting mock call kwargs doesn't work on py3.7",
+)
+def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch):
+    # make the formatted timestamp strings deterministic
+    mocker.patch.object(
+        freezegun.api, "tzlocal", return_value=dateutil.tz.gettz("Asia/Tokyo")
+    )
+    original_tz = os.environ.get("TZ")
+    os.environ["TZ"] = "Asia/Tokyo"
+    time.tzset()
+
+    # make the rule and file timings deterministic
+    mocker.patch.object(ProfilingData, "set_file_times")
+    mocker.patch.object(ProfilingData, "set_rules_parse_time")
+
+    # make the event ID deterministic
+    mocker.patch("uuid.uuid4", return_value=uuid.UUID("0" * 32))
+
+    mock_post = mocker.patch("requests.post")
+
+    (tmp_path / ".settings.yaml").write_text(
+        f"anonymous_user_id: {str(uuid.UUID('1' * 32))}"
+    )
+    (tmp_path / "code.py").write_text("5 == 5")
+    (tmp_path / "rule.yaml").symlink_to(TESTS_PATH / "e2e" / "rules" / "eqeq.yaml")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
+    runner.invoke(cli, ["scan", "--config=rule.yaml", "--metrics=on", "code.py"])
+
+    payload = json.loads(mock_post.call_args.kwargs["data"])
+    payload["environment"]["version"] = _mask_version(payload["environment"]["version"])
+    payload["environment"]["isAuthenticated"] = False
+
+    snapshot.assert_match(
+        json.dumps(payload, indent=2, sort_keys=True), "metrics-payload.json"
+    )
+
+    if original_tz is not None:
+        os.environ["TZ"] = original_tz
+    else:
+        del os.environ["TZ"]
+    time.tzset()

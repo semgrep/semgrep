@@ -10,12 +10,10 @@ import pytest
 from click.testing import CliRunner
 
 from semgrep import __VERSION__
-from semgrep.app import auth
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
 from semgrep.cli import cli
 from semgrep.config_resolver import ConfigPath
-from semgrep.constants import SEMGREP_SETTING_ENVVAR_NAME
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from tests.conftest import CLEANERS
@@ -266,11 +264,11 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix, mo
     runner = CliRunner(
         env={
             **env,
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
 
     # Remove commit hashes from output
     sanitized_output = (
@@ -327,11 +325,11 @@ def test_full_run(tmp_path, git_tmp_path_with_commit, snapshot, env, autofix, mo
 def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "",
         }
     )
-    result = runner.invoke(cli, ["ci", "--config", "p/something"], env={})
+    result = runner.invoke(cli, ["ci", "--config", "p/something"])
     sanitized_output = result.output.replace(__VERSION__, "<sanitized semgrep_version>")
     sanitized_output = re.sub(
         r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
@@ -347,12 +345,12 @@ def test_config_run(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
 def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix, format):
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         },
         mix_stderr=False,
     )
-    result = runner.invoke(cli, ["ci", format], env={})
+    result = runner.invoke(cli, ["ci", format])
     sanitized_output = result.stdout
     sanitized_output = re.sub(
         r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
@@ -369,11 +367,11 @@ def test_outputs(tmp_path, git_tmp_path_with_commit, snapshot, autofix, format):
 def test_nosem(tmp_path, git_tmp_path_with_commit, snapshot, autofix, nosem):
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "",
         }
     )
-    result = runner.invoke(cli, ["ci", "--config", "p/something", nosem], env={})
+    result = runner.invoke(cli, ["ci", "--config", "p/something", nosem])
     sanitized_output = result.output.replace(__VERSION__, "<sanitized semgrep_version>")
     sanitized_output = re.sub(
         r"python 3\.\d+\.\d+", "python <sanitized_version>", sanitized_output
@@ -386,11 +384,11 @@ def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, autofix):
 
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci", "--dry-run", "--disable-metrics"], env={})
+    result = runner.invoke(cli, ["ci", "--dry-run", "--disable-metrics"])
 
     AppSession.post.assert_not_called()  # type: ignore
     sanitized_output = (
@@ -424,22 +422,22 @@ def test_fail_auth(tmp_path, mocker):
 
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
     assert result.exit_code == 13
 
     mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
 
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
     assert result.exit_code == 2
 
 
@@ -454,11 +452,11 @@ def test_fail_start_scan(tmp_path, mocker):
     )
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
     assert result.exit_code == 2
 
 
@@ -479,11 +477,11 @@ def test_bad_config(tmp_path, mocker):
 
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
     assert "Invalid rule schema" in result.stdout
     assert result.exit_code == 7
 
@@ -495,11 +493,11 @@ def test_fail_finish_scan(tmp_path, git_tmp_path_with_commit, mocker):
     mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
     assert result.exit_code == 2
 
 
@@ -510,9 +508,9 @@ def test_git_failure(tmp_path, git_tmp_path_with_commit, mocker):
     mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
     runner = CliRunner(
         env={
-            SEMGREP_SETTING_ENVVAR_NAME: str(tmp_path),
-            auth.SEMGREP_LOGIN_TOKEN_ENVVAR_NAME: "fake_key",
+            "SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml"),
+            "SEMGREP_APP_TOKEN": "fake_key",
         }
     )
-    result = runner.invoke(cli, ["ci"], env={})
+    result = runner.invoke(cli, ["ci"])
     assert result.exit_code == 2
