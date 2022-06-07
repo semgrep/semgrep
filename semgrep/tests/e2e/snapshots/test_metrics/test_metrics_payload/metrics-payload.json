@@ -61,7 +61,7 @@
     "features": [
       "cli-flag/config",
       "cli-flag/metrics",
-      "cli-flag/target",
+      "cli-flag/targets",
       "config/local",
       "subcommand/scan"
     ],
