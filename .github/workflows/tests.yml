@@ -37,13 +37,16 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            $HOME/.cache/pipenv
-            $HOME/.local/share/virtualenvs
-            $HOME/.dune
-            $HOME/.opam
+            /home/user/.cache/pipenv
+            /home/user/.local/share/virtualenvs
+            /home/user/.dune
+            /home/user/.opam
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
-        run: DUNE_CACHE=enabled DUNE_CACHE_ROOT=$HOME/.dune ./scripts/install-alpine-semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
+        env:
+          DUNE_CACHE: enabled
+          DUNE_CACHE_ROOT: /home/user/.dune
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -172,13 +175,16 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            $HOME/.cache/pipenv
-            $HOME/.local/share/virtualenvs
-            $HOME/.dune
-            $HOME/.opam
+            /home/user/.cache/pipenv
+            /home/user/.local/share/virtualenvs
+            /home/user/.dune
+            /home/user/.opam
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
-        run: DUNE_CACHE=enabled DUNE_CACHE_ROOT=$HOME/.dune ./scripts/install-alpine-semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
+        env:
+          DUNE_CACHE: enabled
+          DUNE_CACHE_ROOT: /home/user/.dune
       - name: Test semgrep-core
         run: |
           eval $(opam env)
