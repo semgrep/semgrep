@@ -77,7 +77,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     so we need to reset the head to the actual PR branch head before continuing.
 
     Assumes cwd is a valid git project and that if we are in github-actions pull_request,
-    that metadata.base_commit_ref and metadata.head_ref point are the head commits of
+    that metadata.merge_base_ref and metadata.head_ref point are the head commits of
     the target merge branch and current branch respectively
     """
     if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
@@ -85,7 +85,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
 
         logger.info("Fixing git state for github action pull request")
         logger.debug(
-            f"base_commit_ref: {metadata.base_commit_ref}, head_ref: {metadata.head_ref}"
+            f"merge_base_ref: {metadata.merge_base_ref}, head_ref: {metadata.head_ref}"
         )
         logger.debug("Calling git rev-parse HEAD")
         rev_parse = subprocess.run(
@@ -366,7 +366,7 @@ def ci(
                 timeout_threshold=timeout_threshold,
                 skip_unknown_extensions=(not scan_unknown_extensions),
                 optimizations=optimizations,
-                baseline_commit=metadata.base_commit_ref,
+                baseline_commit=metadata.merge_base_ref,
             )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])
