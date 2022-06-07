@@ -206,14 +206,22 @@ jobs:
     name: test semgrep-cli
     runs-on: ubuntu-latest
     needs: [build-core]
+    permissions:
+      contents: write
+      pull-requests: write
     strategy:
       matrix:
         python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
     steps:
+      - name: Install tox
+        run: pipx install tox==3.25.0
+      - name: Install pipenv
+        run: pipx install pipenv==2022.5.2 tox==3.25.0
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
+          cache: pipenv
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - name: Checkout
@@ -228,69 +236,14 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Test semgrep-core
-        run: semgrep-core -version
-      - name: Install Tox and any other packages
-        run: pip install pipenv==2022.5.2 tox==3.25.0
       - name: Run Tox
+        working-directory: /semgrep
         env:
           SEMGREP_SKIP_BIN: true
-        run: |
-          cd semgrep
-
-          # See tox.ini for pytest command being run
-          tox -e py  # Run tox using the version of Python in `PATH`
-
-  test-cli-legacy:
-    name: test semgrep-cli (legacy job)
-    runs-on: ubuntu-latest
-    needs: [build-core]
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Setup Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.7"
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts.tgz
-          sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install semgrep
-        run: |
-          cd semgrep
-          pip install pipenv==2021.5.29
-          pipenv install --dev
-      - name: Test semgrep
-        run: |
-          cd semgrep
-
-          # tests should simulate CI environment iff they need one
-          unset CI
-          unset "${!GITHUB_@}"
-
-          make check-markers
-          pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -vv --tb=short --durations=0 --snapshot-update tests/
-      - name: Generate cheatsheets for semgrep.dev
-        run: ./scripts/generate-cheatsheet
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: cheatsheet
-          path: cheatsheet.json
+        run: tox -e py # Run tox using the version of Python in `PATH`
+      # because of the fail-fast setting, we expect only the fastest failing job to get to the steps below
       - name: Prepare repo for snapshot commit
-        if: ${{ failure() }}
+        if: failure()
         run: |
           # the commit step that follows will fail to fetch the pfff submodule
           # (perhaps because of the github token's permissions)
@@ -298,7 +251,7 @@ jobs:
           git config fetch.recurseSubmodules false
       - name: Commit snapshot updates
         id: snapshot-commit
-        if: ${{ failure() && github.event_name == 'pull_request' }}
+        if: failure() && github.event_name == 'pull_request'
         uses: EndBug/add-and-commit@v8
         with:
           add: semgrep/tests/e2e/snapshots
@@ -306,7 +259,7 @@ jobs:
           message: "Update pytest snapshots"
           new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Comment about any snapshot updates
-        if: ${{ failure() && steps.snapshot-commit.outputs.pushed == 'true' }}
+        if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
         run: |
           echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
           echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
@@ -320,8 +273,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  test-public-repos:
-    name: test on public repos
+  test-qa:
+    name: quality assurance on semgrep
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
@@ -334,7 +287,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: "3.7"
+          python-version: "3.11.0beta - 3.11.0"
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -344,8 +297,8 @@ jobs:
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
+        working-directory: semgrep
         run: |
-          cd semgrep
           export PATH=/github/home/.local/bin:$PATH
           pip3 install pipenv==2021.5.29
           pipenv install --dev
@@ -353,16 +306,23 @@ jobs:
         with:
           path: ~/.cache/semgrep-cache
           key: semgrep-repo-cache-test
-      - name: create cache dir if not exists
-        run: mkdir -p ~/.cache/semgrep-cache
-      - run: touch ~/.cache/semgrep-cache/ok
+      - run: |
+          mkdir -p ~/.cache/semgrep-cache
+          touch ~/.cache/semgrep-cache/ok
       - name: Test semgrep
+        working-directory: semgrep
         run: |
-          cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_public_repos.py
+          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
+      - name: Generate cheatsheets for semgrep.dev
+        run: ./scripts/generate-cheatsheet
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cheatsheet
+          path: cheatsheet.json
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
