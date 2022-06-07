@@ -26,6 +26,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   for 'abstract' modifier in more places
 - Scala: stop parsing parenthesized expressions as unary tuples
 - `yarn.lock` files with no depenencies, and with dependencies that lack URLs, now parse
+- Scala: fixed bug where typed patterns inside classes caused an exception during name resolution
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 
