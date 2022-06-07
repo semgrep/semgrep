@@ -455,7 +455,7 @@ def ci(
             logger.info("  Has findings for blocking rules so exiting with code 1")
             exit_code = 1
     else:
-        logger.info("  No findings so exiting with code 0")
+        logger.info("  No blocking findings so exiting with code 0")
         exit_code = 0
 
     if enable_version_check:

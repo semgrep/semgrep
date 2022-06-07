@@ -20,6 +20,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- The output of `semgrep ci` should be clear it is exiting with error code 0
+  when there are findings but none of them being blockers
 - Java: support for Sealed classes and Text Blocks via tree-sitter-java
   (#3787, #4644)
 - Typescript: update to latest tree-sitter-typescript, with support
