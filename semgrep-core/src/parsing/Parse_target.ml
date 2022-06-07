@@ -81,7 +81,7 @@ let errors_from_skipped_tokens xs =
   | x :: _ ->
       let exn = exn_of_loc x in
       let err = E.exn_to_error x.PI.file exn in
-      let locs = xs |> List.map OutH.location_of_token_location in
+      let locs = xs |> Common.map OutH.location_of_token_location in
       [ { err with typ = Out.PartialParsing locs } ]
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
