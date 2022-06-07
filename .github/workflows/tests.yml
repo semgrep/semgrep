@@ -48,6 +48,7 @@ jobs:
         run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
+          DUNE_CACHE_STORAGE_MODE: copy
           DUNE_CACHE_ROOT: /home/user/.dune
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
