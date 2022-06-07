@@ -77,16 +77,24 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     so we need to reset the head to the actual PR branch head before continuing.
 
     Assumes cwd is a valid git project and that if we are in github-actions pull_request,
-    that metadata.merge_base_ref and metadata.head_ref point are the head commits of
-    the target merge branch and current branch respectively
+    metadata.head_ref point to head commit of current branch
     """
     if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
         assert metadata.head_ref is not None  # Not none when github action PR
 
         logger.info("Fixing git state for github action pull request")
-        logger.debug(
-            f"merge_base_ref: {metadata.merge_base_ref}, head_ref: {metadata.head_ref}"
+
+        head_branch_rev_parse = subprocess.run(
+            ["git", "rev-parse", metadata.head_ref],
+            encoding="utf-8",
+            check=True,
+            timeout=GIT_SH_TIMEOUT,
+            capture_output=True,
+        ).stdout.rstrip()
+        logger.info(
+            f"Switching to branch {metadata.head_ref} with commit {head_branch_rev_parse}"
         )
+
         logger.debug("Calling git rev-parse HEAD")
         rev_parse = subprocess.run(
             ["git", "rev-parse", "HEAD"],
