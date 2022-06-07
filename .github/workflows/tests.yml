@@ -238,7 +238,7 @@ jobs:
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Run Tox
-        working-directory: /semgrep
+        working-directory: semgrep
         env:
           SEMGREP_SKIP_BIN: true
         run: tox -e py # Run tox using the version of Python in `PATH`
@@ -333,6 +333,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
+      - name: Install pipenv
+        run: pipx install pipenv==2022.5.2
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - name: Checkout
@@ -343,6 +345,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: "3.7"
+          cache: pipenv
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -352,12 +355,10 @@ jobs:
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
-        run: |
-          cd semgrep
-          pip3 install pipenv==2021.5.29
-          pipenv install --dev
+        working-directory: semgrep
+        run: pipenv install --dev
       - name: Test dummy benchmarks on latest
-        working-directory: ./semgrep
+        working-directory: semgrep
         run: |
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
@@ -370,6 +371,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
+      - name: Install pipenv
+        run: pipx install pipenv==2022.5.2
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - name: Checkout
@@ -380,6 +383,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: "3.7"
+          cache: pipenv
       - name: Run timing benchmark
         run: |
           pip3 install semgrep==0.94.0
@@ -401,13 +405,11 @@ jobs:
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
       - name: Install semgrep
-        run: |
-          cd semgrep
-          pip3 install pipenv==2021.5.29
-          pipenv install --dev
+        working-directory: semgrep
+        run: pipenv install --dev
       - name: Get timing for latest semgrep
+        working-directory: semgrep
         run: |
-          cd semgrep
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
