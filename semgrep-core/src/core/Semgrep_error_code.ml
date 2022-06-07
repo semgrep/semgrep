@@ -37,7 +37,6 @@ type error = {
   loc : Parse_info.token_location;
   msg : string;
   details : string option;
-  yaml_path : string list option;
 }
 
 (* TODO: define also in Output_from_core.atd *)
@@ -63,7 +62,7 @@ let mk_error ?(rule_id = None) loc msg err =
         Printf.sprintf "%s\n\n%s" please_file_issue_text msg
     | _ -> msg
   in
-  { rule_id; loc; typ = err; msg; details = None; yaml_path = None }
+  { rule_id; loc; typ = err; msg; details = None }
 
 let mk_error_tok ?(rule_id = None) tok msg err =
   let loc = PI.unsafe_token_location_of_info tok in
@@ -94,7 +93,7 @@ let exn_to_error ?(rule_id = None) file exn =
     ->
       {
         rule_id = Some rule_id;
-        typ = Out.PatternParseError;
+        typ = Out.PatternParseError yaml_path;
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
@@ -106,7 +105,6 @@ let exn_to_error ?(rule_id = None) file exn =
              Pattern error: %s\n"
             (Xlang.to_string xlang) pattern message;
         details = None;
-        yaml_path = Some yaml_path;
       }
   | Rule.InvalidRule (kind, rule_id, pos) ->
       let str = Rule.string_of_invalid_rule_error_kind kind in
@@ -138,7 +136,6 @@ let exn_to_error ?(rule_id = None) file exn =
         loc;
         msg = Common.exn_to_s exn;
         details = Some trace;
-        yaml_path = None;
       }
 
 (*****************************************************************************)
@@ -173,7 +170,7 @@ let severity_of_error typ =
   | Out.SpecifiedParseError -> Warning
   | Out.AstBuilderError -> Error
   | Out.RuleParseError -> Error
-  | Out.PatternParseError -> Error
+  | Out.PatternParseError _ -> Error
   | Out.InvalidYaml -> Warning
   | Out.FatalError -> Error
   | Out.Timeout -> Warning
