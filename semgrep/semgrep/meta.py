@@ -96,10 +96,6 @@ class GitMeta:
 
         return git_check_output(["git", "rev-parse", "HEAD"])
 
-    @property
-    def head_ref(self) -> Optional[str]:
-        return None
-
     @cachedproperty
     def base_commit_ref(self) -> Optional[str]:
         return self.cli_baseline_ref
@@ -127,9 +123,6 @@ class GitMeta:
         except Exception as e:
             logger.debug(f"Could not get branch name using git: {e}")
             return None
-
-    def initialize_repo(self) -> None:
-        return
 
     @property
     def commit_datetime(self) -> str:
@@ -217,14 +210,25 @@ class GithubMeta(GitMeta):
 
     @property
     def head_ref(self) -> Optional[str]:
-        if self.is_pull_request_event:
-            return self.commit_sha
-        else:
-            return None
+        """
+        Branch ref name of head branch of PR being merged pulled from github
+
+        Ref not guaranteed to exist locally
+
+        Assumes we are in PR context
+        """
+        return self.glom_event(T["pull_request"]["head"]["ref"])  # type: ignore
 
     @property
-    def base_branch_tip(self) -> Optional[str]:
-        return self.glom_event(T["pull_request"]["base"]["sha"])  # type: ignore
+    def _base_ref(self) -> Optional[str]:
+        """
+        Branch ref name of the base branch of PR is being merged to
+
+        Ref not guaranteed to exist locally
+
+        Assumes we are in PR context
+        """
+        return self.glom_event(T["pull_request"]["base"]["ref"])  # type: ignore
 
     def _find_branchoff_point(self, attempt_count: int = 0) -> str:
         """
@@ -233,7 +237,7 @@ class GithubMeta(GitMeta):
         """
         # Should only be called if head_ref is defined
         assert self.head_ref is not None
-        assert self.base_branch_tip is not None
+        assert self._base_ref is not None
 
         # fetch 0, 4, 16, 64, 256, 1024, ...
         fetch_depth = 4**attempt_count if attempt_count else 0
@@ -252,7 +256,7 @@ class GithubMeta(GitMeta):
                     "origin",
                     "--depth",
                     str(fetch_depth),
-                    self.base_branch_tip,
+                    f"{self._base_ref}:{self._base_ref}",
                 ],
                 check=True,
                 capture_output=True,
@@ -263,7 +267,14 @@ class GithubMeta(GitMeta):
                 f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
             process = subprocess.run(
-                ["git", "fetch", "origin", "--depth", str(fetch_depth), self.head_ref],
+                [
+                    "git",
+                    "fetch",
+                    "origin",
+                    "--depth",
+                    str(fetch_depth),
+                    f"{self.head_ref}:{self.head_ref}",
+                ],
                 check=True,
                 encoding="utf-8",
                 capture_output=True,
@@ -275,7 +286,7 @@ class GithubMeta(GitMeta):
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
             process = subprocess.run(
-                ["git", "merge-base", self.base_branch_tip, self.head_ref],
+                ["git", "merge-base", self._base_ref, self.head_ref],
                 encoding="utf-8",
                 capture_output=True,
                 check=True,
@@ -291,7 +302,7 @@ class GithubMeta(GitMeta):
 
             if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:
                 raise Exception(
-                    f"Could not find branch-off point between the baseline tip {self.base_branch_tip} and current head '{self.head_ref}' "
+                    f"Could not find branch-off point between the baseline tip {self._base_ref} and current head '{self.head_ref}' "
                 )
 
             return self._find_branchoff_point(attempt_count + 1)
@@ -354,11 +365,6 @@ class GithubMeta(GitMeta):
         if self.event_name == "pull_request_target":
             return os.getenv("GITHUB_HEAD_REF")
         return os.getenv("GITHUB_REF")
-
-    def initialize_repo(self) -> None:
-        if self.is_pull_request_event and self.head_ref is not None:
-            self._find_branchoff_point()
-        return
 
     def to_dict(self) -> Dict[str, Any]:
         return {
