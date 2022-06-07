@@ -7,15 +7,13 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import appdirs
 import pytest
 
 from ..conftest import chdir
 from ..conftest import TESTS_PATH
-from ..public_repos import ALL_LANGUAGES
-from ..public_repos import ALL_REPOS
+from .public_repos import REPOS
 
 # Some improbable string that was implanted in test targets [how?] [why?].
 #
@@ -42,12 +40,7 @@ LANGUAGE_SENTINELS = {
 SENTINEL_PATTERN = f"$SENTINEL = {SENTINEL_VALUE}"
 
 
-def _assert_sentinel_results(
-    repo_url, repo_path, sentinel_path, language, excludes=None
-):
-    """
-    EXCLUDES: Optional[List[str]] : Each element is passed to semgrep cli as --exclude flag
-    """
+def assert_sentinel_results(repo_path, sentinel_path, language):
     cmd = [
         sys.executable,
         "-m",
@@ -59,65 +52,35 @@ def _assert_sentinel_results(
         language,
         "--json",
         repo_path,
-        "--metrics",
-        "off",
-        "--optimizations",
-        "none",  # Turn off optimizations since it skips parsing when it can and this test is testing parsing
+        "--metrics=off",
+        # Turn off optimizations since it skips parsing when it can and this test is testing parsing
+        "--optimizations=none",
     ]
 
-    if excludes:
-        for exclude in excludes:
-            cmd.extend(["--exclude", exclude])
-
-    semgrep_run = subprocess.run(
-        cmd,
-        capture_output=True,
-        encoding="utf-8",
-    )
-
+    semgrep_run = subprocess.run(cmd, capture_output=True, encoding="utf-8")
     assert semgrep_run.returncode == 0
-    try:
-        output = json.loads(semgrep_run.stdout)
-    except json.JSONDecodeError:
-        pytest.fail(
-            f"Failed to parse JSON from semgrep output ({semgrep_run.args}):\n"
-            + semgrep_run.stdout
-            + semgrep_run.stderr
-        )
 
-    if output["errors"]:
-        pytest.fail(
-            f"Running on {repo_url} (cached in {repo_path}) with lang {language} had errors ({semgrep_run.args}): "
-            + json.dumps(output["errors"], indent=4)
-        )
-
-    if len(output["results"]) != 1 or output["results"][0]["path"] != str(
-        sentinel_path
-    ):
-        pytest.fail(
-            f"Running on {repo_url} with lang {language} expected to have one results instead found result ({semgrep_run.args}): "
-            + json.dumps(output["results"], indent=4)
-        )
+    output = json.loads(semgrep_run.stdout)
+    assert output["errors"] == []
+    assert len(output["results"]) == 1
+    assert output["results"][0]["path"] == str(sentinel_path)
 
 
 REPO_CACHE = Path(
-    os.path.expanduser(
-        os.environ.get("GITHUB_REPO_CACHE", appdirs.user_cache_dir("semgrep-tests"))
-    )
+    os.environ.get("QA_TESTS_CACHE_PATH", appdirs.user_cache_dir("semgrep-qa-tests"))
 )
 
 
-def clone_github_repo(repo_url: str, sha: Optional[str] = None, retries: int = 3):
+def clone_github_repo(repo_url: str, retries: int = 3):
     """
     Internal fixture function. Do not use directly, use the `clone_github_repo` fixture.
     Wraps `_github_repo` function with retries. If the `_github_repo` throws an exception,
     it will delete `repo_destination` and retry up to `retries` times.
     """
-    sha_str = sha or "latest"
-    repo_dir = "-".join(repo_url.split("/")[-2:]) + "-" + sha_str
+    repo_dir = "-".join(repo_url.split("/")[-2:])
     repo_destination = REPO_CACHE / repo_dir
     try:
-        return _github_repo(repo_url, sha, repo_destination)
+        return _github_repo(repo_url, repo_destination)
     except (GitError, subprocess.CalledProcessError) as ex:
         print(f"Failed to clone github repo for tests {ex}")
         if repo_destination.exists():
@@ -125,14 +88,14 @@ def clone_github_repo(repo_url: str, sha: Optional[str] = None, retries: int = 3
         if retries == 0:
             raise
         else:
-            return clone_github_repo(repo_url, sha, retries - 1)
+            return clone_github_repo(repo_url, retries - 1)
 
 
-class GitError(BaseException):
+class GitError(Exception):
     pass
 
 
-def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
+def _github_repo(repo_url: str, repo_destination: Path):
     """
     Internal fixture function. Use the `clone_github_repo` fixture.
     Clones the github repo at repo_url into `repo_destination` and checks out `sha`.
@@ -140,67 +103,43 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
     If `repo_destination` already exists, it will validate that the correct repo is present at that location.
     """
     if not repo_destination.exists():
-        if sha is None:
-            subprocess.check_output(
-                ["git", "clone", "--depth=1", repo_url, repo_destination]
-            )
-        else:
-            repo_destination.mkdir()
-            # Sadly, no fast way to clone a specific commit without a super
-            # modern git client
-            subprocess.check_output(["git", "clone", repo_url, repo_destination])
-            with chdir(repo_destination):
-                subprocess.check_output(["git", "checkout", sha])
+        subprocess.check_output(
+            ["git", "clone", "--depth=1", repo_url, repo_destination]
+        )
 
     # validate that the repo seems setup properly
     with chdir(repo_destination):
         # some tests modify it, lets put everything back to normal
         subprocess.check_output(["git", "clean", "-fd"])
         subprocess.check_output(["git", "reset", "--hard"])
-        all_clean = (
+        assert (
             subprocess.check_output(["git", "status", "--porcelain"]).strip() == b""
-        )
-        if not all_clean:
-            raise GitError("Couldn't clean the repo, something is wrong. Deleting.")
-        repo_sha = subprocess.check_output(["git", "rev-parse", "HEAD"])
-        if sha:
-            if not repo_sha.startswith(sha.encode("utf-8")):
-                shutil.rmtree(repo_destination)
-                raise GitError(
-                    f"Github repo is broken (not set to correct sha: {repo_sha.decode('utf-8', errors='replace')}"
-                )
+        ), "repo must be clean"
 
     return repo_destination
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("repo_object", ALL_REPOS)
+@pytest.mark.parametrize("repo", [repo.as_param() for repo in REPOS])
 #
 # This test runs [which checks?] against one public git repo.
 # See the list of repos in public_repos.py.
 # Those repos, once downloaded are cached locally in ~/.cache.
 # You may have to clear the cache manually if some tests start failing.
 #
-# A repo_object is a GitHub URL, a list of applicable languages, and whether
-# the test is supposed to pass or fail. The expectation ok/xfail is
-# consulted outside of this function. [where?]
-#
-def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
+def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "qa" / "rules").resolve())
 
     monkeypatch.chdir(tmp_path)
 
-    repo_url = repo_object["repo"]
-    languages = repo_object["languages"]
-    excludes = repo_object.get("excludes")
-    repo_path = clone_github_repo(repo_url=repo_url)
+    repo_path = clone_github_repo(repo_url=repo.url)
     repo_languages = (
         LANGUAGE_SENTINELS
-        if languages == ALL_LANGUAGES
+        if repo.languages is None
         else {
             language: sentinel_info
             for language, sentinel_info in LANGUAGE_SENTINELS.items()
-            if language in languages
+            if language in repo.languages
         }
     )
 
@@ -209,7 +148,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
         with sentinel_path.open("w") as sentinel_file:
             sentinel_file.write(sentinel_info["file_contents"])
 
-        _assert_sentinel_results(repo_url, repo_path, sentinel_path, language, excludes)
+        assert_sentinel_results(repo_path, sentinel_path, language)
 
     cmd = [
         sys.executable,
@@ -219,43 +158,24 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
         "--config=rules/regex-sentinel.yaml",
         "--strict",
         "--json",
-        "--metrics",
-        "off",
-        "--optimizations",
-        "none",  # Turn off optimizations since it skips parsing when it can and this test is testing parsing
+        "--metrics=off",
+        # Turn off optimizations since it skips parsing when it can and this test is testing parsing
+        "--optimizations=none",
         repo_path,
     ]
 
-    if excludes:
-        for exclude in excludes:
-            cmd.extend(["--exclude", exclude])
-
     print(f"semgrep command: {cmd}")
 
-    res = subprocess.run(
-        cmd,
-        encoding="utf-8",
-        capture_output=True,
-    )
-    returncode = res.returncode
+    res = subprocess.run(cmd, encoding="utf-8", capture_output=True)
     print("--- semgrep error output ---")
     print(res.stderr)
     print("----------------------------")
     print("--- semgrep standard output ---")
     print(res.stdout)
     print("-------------------------------")
-    if returncode != 0:
-        # Fail regardless of the expected status "ok" or "xfail".
-        raise subprocess.SubprocessError(
-            f"Semgrep exited with non-zero status: {returncode}"
-        )
+    assert res.returncode == 0
+
     output = json.loads(res.stdout)
-
-    expected_results_count = len(repo_languages)
-    if len(output["results"]) != expected_results_count or len(output["errors"]) != 0:
-        pytest.fail(
-            f"Running on {repo_url} with regex rules. Expect {expected_results_count} results and no errors but got: "
-            + json.dumps(output, indent=4)
-        )
-
-    print(f"Run on {repo_url} with regex rules: success")
+    assert output["results"]
+    assert len(output["results"]) == len(repo_languages)
+    assert output["errors"] == []
