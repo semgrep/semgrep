@@ -59,9 +59,6 @@ jobs:
     name: build docker image
     runs-on: ubuntu-latest
     steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -130,7 +127,6 @@ jobs:
         uses: docker/build-push-action@v3
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         with:
-          context: .
           push: true
           file: dockerfiles/semgrep-dev.Dockerfile
           platforms: ${{ matrix.platform }}

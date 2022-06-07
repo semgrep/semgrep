@@ -98,7 +98,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           load: true
-          tags: image-to-test
+          tags: candidate-image
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Check the semgrep Docker image
-        run: ./scripts/validate-docker-build.sh image-to-test
+        run: ./scripts/validate-docker-build.sh candidate-image
 
       - name: Login to Docker Hub
         uses: docker/login-action@v1
@@ -146,6 +146,8 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -168,6 +170,8 @@ jobs:
     steps:
       - name: Install pipenv
         run: sudo python3 -m pip install pipenv
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
