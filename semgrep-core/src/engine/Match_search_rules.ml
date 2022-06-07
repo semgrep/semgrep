@@ -245,10 +245,10 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
   in
   match xlang with
   | Xlang.L (lang, _) ->
-      let (ast, errors), parse_time =
+      let (ast, skipped_tokens), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in
-      let (matches, errors), match_time =
+      let matches, match_time =
         Common.with_time (fun () ->
             let mini_rules =
               patterns |> Common.map (mini_rule_of_pattern xlang)
@@ -256,14 +256,14 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
 
             if !debug_timeout || !debug_matches then
               (* debugging path *)
-              (debug_semgrep config mini_rules file lang ast, errors)
+              debug_semgrep config mini_rules file lang ast
             else
               (* regular path *)
-              ( Match_patterns.check
-                  ~hook:(fun _ _ -> ())
-                  ?range_filter config mini_rules (file, lang, ast),
-                errors ))
+              Match_patterns.check
+                ~hook:(fun _ _ -> ())
+                ?range_filter config mini_rules (file, lang, ast))
       in
+      let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       {
         RP.matches;
         errors;
