@@ -78,3 +78,75 @@ let anchored_match =
   fun (_, re) str -> SPcre.pmatch_noerr ~iflags ~rex:re str
 
 let unanchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
+
+let may_contain_end_of_string_assertions =
+  let rex = SPcre.regexp {|[$^]|\\[AZz]|} in
+  fun s -> SPcre.pmatch_noerr ~rex s
+
+(* Any string that may still contain a end-of-string assertions must go
+   through this. *)
+let finish src =
+  if may_contain_end_of_string_assertions src then None else Some src
+
+(*
+   Remove beginning-of-string and end-of-string constraints.
+   Fail if some of them may remain e.g. if we find '^' in the middle of
+   the pattern.
+*)
+let remove_end_of_string_assertions_from_string src : string option =
+  (*
+     a0 and a1 are the first two characters.
+     z0 and z1 are the last two characters.
+  *)
+  let len = String.length src in
+  if len = 0 then (* "" *)
+    Some src
+  else
+    (* "X" *)
+    let a0 = src.[0] in
+    if len = 1 then
+      Some
+        (match a0 with
+        | '^' -> ""
+        | '$' -> ""
+        | _ -> src)
+    else
+      (* "XX" *)
+      let a1 = src.[1] in
+      if len = 2 then
+        match (a0, a1) with
+        | '^', '$' -> Some ""
+        | '^', c -> String.make 1 c |> finish
+        | c, '$' -> String.make 1 c |> finish
+        | '\\', ('A' | 'Z' | 'z') -> Some ""
+        | _, _ -> src |> finish
+      else
+        (* "XXX" or longer *)
+        let src =
+          match (a0, a1) with
+          | '^', _ -> String.sub src 1 (len - 1)
+          | '\\', 'A' -> String.sub src 2 (len - 2)
+          | _ -> src
+        in
+        (* "X" or longer *)
+        let len = String.length src in
+        let z1 = src.[len - 1] in
+        if len = 1 then
+          match z1 with
+          | '$' -> Some ""
+          | _ -> src |> finish
+        else
+          (* "XX" or longer *)
+          let z0 = src.[len - 2] in
+          let src =
+            match (z0, z1) with
+            | _, '$' -> String.sub src 0 (len - 1)
+            | '\\', ('Z' | 'z') -> String.sub src 0 (len - 2)
+            | _ -> src
+          in
+          finish src
+
+let remove_end_of_string_assertions (src_pat, _old) =
+  match remove_end_of_string_assertions_from_string src_pat with
+  | None -> None
+  | Some pat -> Some (pcre_compile pat)
