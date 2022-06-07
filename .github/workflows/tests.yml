@@ -84,7 +84,7 @@ jobs:
 
       - id: meta
         name: Set tags and labels
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: ${{ github.repository }}
           # :latest is also added automatically
@@ -108,7 +108,7 @@ jobs:
 
       - id: dev-meta
         name: Set tags and labels
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: ${{ github.repository }}-dev
           # :latest is also added automatically
