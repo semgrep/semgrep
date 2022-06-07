@@ -299,6 +299,8 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   check_stmt ?name ~in_env lang fun_env taint_config
     (H.funcbody_to_stmt fdef.G.fbody)
 
+(* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
+ * recomputing the CFG for each taint rule. *)
 module PMtbl = Hashtbl.Make (struct
   type t = PM.t
 
@@ -311,19 +313,6 @@ module PMtbl = Hashtbl.Make (struct
 end)
 
 let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
-  (* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
-   * recomputing the CFG for each taint rule. *)
-  let module PMtbl = Hashtbl.Make (struct
-    type t = PM.t
-
-    let hash (pm : PM.t) =
-      Hashtbl.hash (pm.rule_id, pm.file, pm.range_loc, pm.env)
-
-    (* TODO: Shouldn't be the PM.equal that does the right thing? Instead of
-     * deriving `equal` for `Metavariable.bindings` via ppx_deriving, perhaps
-     * we need to have a custom definition that relies on AST_utils there. *)
-    let equal = AST_utils.with_structural_equal PM.equal
-  end) in
   let matches = ref [] in
   let pm2finding = PMtbl.create 10 in
 
@@ -335,7 +324,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
     | LRegex ->
         failwith "taint-mode and generic/regex matching are incompatible"
   in
-  let (ast, errors), parse_time =
+  let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
   let taint_config, debug_taint =
@@ -397,6 +386,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
     |> Common.map (fun m ->
            { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
+  let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   ( {
       RP.matches;
       errors;

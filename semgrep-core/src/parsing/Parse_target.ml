@@ -37,7 +37,7 @@ let debug_exn = ref false
 type parsing_result = {
   ast : AST_generic.program;
   (* partial errors tree-sitter was able to recover from *)
-  skipped_tokens : Semgrep_error_code.error list;
+  skipped_tokens : PI.token_location list;
   stat : Parse_info.parsing_stat;
 }
 
@@ -51,23 +51,34 @@ type 'ast parser =
 
 type 'ast internal_result =
   | Ok of ('ast * Parse_info.parsing_stat)
-  | Partial of 'ast * Semgrep_error_code.error list * Parse_info.parsing_stat
+  | Partial of 'ast * PI.token_location list * Parse_info.parsing_stat
   | Error of exn * Printexc.raw_backtrace
 
-let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
-  let loc =
-    {
-      PI.str = err.substring;
-      charpos = 0;
-      (* fake *)
-      line = start.row + 1;
-      column = start.column;
-      file = err.file.name;
-    }
-  in
+  {
+    PI.str = err.substring;
+    charpos = 0;
+    (* fake *)
+    line = start.row + 1;
+    column = start.column;
+    file = err.file.name;
+  }
+
+let exn_of_loc loc =
   let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
   PI.Parsing_error info
+
+let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
+  let loc = loc_of_tree_sitter_error err in
+  exn_of_loc loc
+
+let errors_from_skipped_tokens xs =
+  xs
+  |> List.map (fun x ->
+         let file = x.PI.file in
+         let exn = exn_of_loc x in
+         E.exn_to_error file exn)
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
   {
@@ -112,14 +123,14 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             logger#error "non-recoverable error (%s) with TreeSitter parser"
               (Common.exn_to_s exn);
             Error (exn, Printexc.get_callstack 100)
-        | Some ast, x :: _xs ->
-            (* let's just return the first one for now; the following one
-             * may be due to cascading effect of the first error *)
-            let exn = error_of_tree_sitter_error x in
-            logger#error "partial error (%s) with TreeSitter parser"
-              (Common.exn_to_s exn);
-            let err = E.exn_to_error file exn in
-            Partial (ast, [ err ], stat)
+        | Some ast, x :: xs ->
+            (* Note that the first error is probably the most important;
+             * the following one may be due to cascading effects *)
+            logger#error "partial errors (%d) with TreeSitter parser"
+              (List.length (x :: xs));
+            (* TODO: also xs!! *)
+            let locs = [ x ] |> Common.map loc_of_tree_sitter_error in
+            Partial (ast, locs, stat)
       with
       | Timeout _ as e -> raise e
       (* to get correct stack trace on parse error *)
@@ -189,8 +200,8 @@ let (run :
   in
   match run_either file xs with
   | Ok (ast, stat) -> { ast = fconvert ast; skipped_tokens = []; stat }
-  | Partial (ast, errs, stat) ->
-      { ast = fconvert ast; skipped_tokens = errs; stat }
+  | Partial (ast, skipped_tokens, stat) ->
+      { ast = fconvert ast; skipped_tokens; stat }
   | Error (exn, trace) -> Printexc.raise_with_backtrace exn trace
 
 let throw_tokens f file =
