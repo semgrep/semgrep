@@ -217,7 +217,7 @@ jobs:
       - name: Install tox
         run: pipx install tox==3.25.0
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2 tox==3.25.0
+        run: pipx install pipenv==2022.5.2
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
