@@ -2050,9 +2050,8 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v3 =
         match v3 with
-        (* TODO interfaces can extend multiple other interfaces, but we throw away everything but the first base interface here. *)
-        | Some x -> Some (List.hd (map_base_clause env x))
-        | None -> None
+        | Some x -> map_base_clause env x
+        | None -> []
       in
       let v4 = map_declaration_list env v4 in
       let opn, decls, cls = v4 in
@@ -2061,8 +2060,8 @@ and map_statement (env : env) (x : CST.statement) =
         {
           c_name = v2;
           c_kind = (A.Interface, v1);
-          c_extends = v3;
-          c_implements = [];
+          c_extends = None;
+          c_implements = v3;
           c_uses = uses;
           c_enum_type = None;
           c_modifiers = [];
