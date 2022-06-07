@@ -40,7 +40,9 @@ jobs:
             /home/user/.cache/pipenv
             /home/user/.local/share/virtualenvs
             /home/user/.dune
-            /home/user/.opam
+            /home/user/.opam/download-cache
+            /home/user/.opam/*/.opam-switch/packages
+            /home/user/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
@@ -178,7 +180,9 @@ jobs:
             /home/user/.cache/pipenv
             /home/user/.local/share/virtualenvs
             /home/user/.dune
-            /home/user/.opam
+            /home/user/.opam/download-cache
+            /home/user/.opam/*/.opam-switch/packages
+            /home/user/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
