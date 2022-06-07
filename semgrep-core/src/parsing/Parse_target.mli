@@ -23,10 +23,11 @@ val parse_program : Common.filename -> AST_generic.program
 val parse_and_resolve_name_warn_if_partial :
   Lang.t -> Common.filename -> AST_generic.program
 
+(* raise Failure "..." if the file was not fully parsed *)
 val parse_and_resolve_name_fail_if_partial :
   Lang.t -> Common.filename -> AST_generic.program
 
-(* TEMPORARY *)
+(* returns a Output_from_core.PartialParsing error *)
 val errors_from_skipped_tokens :
   Parse_info.token_location list -> Semgrep_error_code.error list
 

@@ -17,6 +17,8 @@ open Common
 module Flag = Flag_semgrep
 module PI = Parse_info
 module E = Semgrep_error_code
+module Out = Output_from_core_t
+module OutH = Output_from_core_util
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -74,11 +76,13 @@ let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   exn_of_loc loc
 
 let errors_from_skipped_tokens xs =
-  xs
-  |> List.map (fun x ->
-         let file = x.PI.file in
-         let exn = exn_of_loc x in
-         E.exn_to_error file exn)
+  match xs with
+  | [] -> []
+  | x :: _ ->
+      let exn = exn_of_loc x in
+      let err = E.exn_to_error x.PI.file exn in
+      let locs = xs |> List.map OutH.location_of_token_location in
+      [ { err with typ = Out.PartialParsing locs } ]
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
   {
@@ -128,8 +132,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
              * the following one may be due to cascading effects *)
             logger#error "partial errors (%d) with TreeSitter parser"
               (List.length (x :: xs));
-            (* TODO: also xs!! *)
-            let locs = [ x ] |> Common.map loc_of_tree_sitter_error in
+            let locs = x :: xs |> Common.map loc_of_tree_sitter_error in
             Partial (ast, locs, stat)
       with
       | Timeout _ as e -> raise e
