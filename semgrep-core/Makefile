@@ -19,7 +19,6 @@ export TREESITTER_LIBDIR
 .PHONY: all
 all:
 	rm -f bin
-	./scripts/make-version > ./src/cli/version.ml
 	dune build
 	dune build ./_build/default/tests/test.bc
 	# make executables easily accessible for manual testing:
