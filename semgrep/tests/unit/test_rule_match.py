@@ -268,3 +268,44 @@ def test_rule_match_set_indexes(mocker):
     assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"
     assert sorted_matches[3].index == 2, "3rd duplicate match must be assigned index 2"
     assert sorted_matches[2].index == 0, "unique match must be assigned index 0"
+
+
+@pytest.mark.quick
+def test_rule_match_to_app_finding(snapshot,mocker):
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data="foo()"))
+    dependency_match = {
+        "dependency_pattern": {
+            "namespace": "pypi",
+            "package_name": "awscli",
+            "semver_range": "== 1.11.82"
+        },
+        "found_dependency": {
+            "allowed_hashes": {
+            "sha256": [
+                "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
+                "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
+            ]
+            },
+            "name": "awscli",
+            "namespace": "pypi",
+            "resolved_url": None,
+            "version": "1.11.82"
+        },
+        "lockfile": "targets/dependency_aware/Pipfile.lock"
+    }
+    match = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule.id"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(0, 0, 0),
+                end=core.Position(0, 0, 0),
+            ),
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+        extra={"dependency_match_only":False, "dependency_matches":[dependency_match]}
+    )
+    app_finding = match.to_app_finding_format("0").to_json_string()
+    snapshot.assert_match(app_finding,"results.json")
