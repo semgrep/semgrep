@@ -20,12 +20,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
+- The output of `semgrep ci` should be clear it is exiting with error code 0
+  when there are findings but none of them being blockers
 - Java: support for Sealed classes and Text Blocks via tree-sitter-java
   (#3787, #4644)
 - Typescript: update to latest tree-sitter-typescript, with support
   for 'abstract' modifier in more places
 - Scala: stop parsing parenthesized expressions as unary tuples
 - `yarn.lock` files with no depenencies, and with dependencies that lack URLs, now parse
+- Scala: fixed bug where typed patterns inside classes caused an exception during name resolution
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 

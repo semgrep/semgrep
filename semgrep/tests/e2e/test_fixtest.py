@@ -1,7 +1,6 @@
 import pytest
 
 from semgrep.constants import OutputFormat
-from tests.conftest import _clean_stdout
 
 
 @pytest.mark.kinda_slow

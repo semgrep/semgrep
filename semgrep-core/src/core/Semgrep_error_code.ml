@@ -169,6 +169,7 @@ let severity_of_error typ =
   | Out.TooManyMatches -> Warning
   | Out.LexicalError -> Warning
   | Out.ParseError -> Warning
+  | Out.PartialParsing _ -> Warning
   | Out.SpecifiedParseError -> Warning
   | Out.AstBuilderError -> Error
   | Out.RuleParseError -> Error
