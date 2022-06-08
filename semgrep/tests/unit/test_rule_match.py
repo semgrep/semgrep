@@ -311,7 +311,8 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             "dependency_matches": [dependency_match],
         },
     )
-    app_finding = json.dumps(
-        match.to_app_finding_format("0").to_json(), indent=2, sort_keys=True
-    )
+    app_finding = (
+        json.dumps(match.to_app_finding_format("0").to_json(), indent=2, sort_keys=True)
+        + "\n"
+    )  # Needed because pre-commit always adds a newline, seems weird
     snapshot.assert_match(app_finding, "results.json")
