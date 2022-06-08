@@ -82,6 +82,9 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
         assert metadata.head_ref is not None  # Not none when github action PR
 
+        # TODO Hack to load branches
+        metadata.merge_base_ref
+
         logger.info("Fixing git state for github action pull request")
 
         head_branch_rev_parse = subprocess.run(
