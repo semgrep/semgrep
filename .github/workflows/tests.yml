@@ -12,10 +12,38 @@ on:
       - "**.md"
 
 jobs:
+  restore-core-cache:
+    name: restore cached semgrep-core
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.core-cache.outputs.cache-hit }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - id: submodule-status
+        name: Get submodule version
+        run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
+      - name: Remove broken symlinks
+        run: find -L . -type l -exec rm {} \;
+      - id: core-cache
+        name: Check if this semgrep-core binary is cached
+        uses: actions/cache@v3
+        with:
+          path: ocaml-build-artifacts.tgz
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: steps.core-cache.outputs.cache-hit == 'true'
+        with:
+          name: ocaml-build-artifacts
+          path: ocaml-build-artifacts.tgz
+
   build-core:
     name: build semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
+    needs: [restore-core-cache]
+    if: needs.restore-core-cache.outputs.cache-hit != 'true'
     steps:
       - name: Pre-checkout fixes
         run: |
