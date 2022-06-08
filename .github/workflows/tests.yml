@@ -27,6 +27,9 @@ jobs:
         run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
+      - id: submodule-status
+        name: Get submodule version
+        run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Remove broken symlinks
@@ -36,7 +39,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**') }}-${{ hashFiles('.gitmodules') }}-${{ hashFiles('.github/workflows/**') }}"
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**') }}-${{ steps.submodule-status.outputs.versions-hash }}-${{ hashFiles('.github/workflows/**') }}"
       - name: Checkout
         uses: actions/checkout@v3
         if: steps.core-cache.outputs.cache-hit != 'true'
