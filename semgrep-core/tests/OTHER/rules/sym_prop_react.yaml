@@ -1,0 +1,10 @@
+rules:
+- id: dlukeomalley.use-absolute-paths-for-routing
+  options:
+    symbolic_propagation: true
+  patterns:
+    - pattern: useHistory().push($X)
+  message: Luke test.
+  languages:
+    - js
+  severity: WARNING

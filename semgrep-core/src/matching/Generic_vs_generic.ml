@@ -220,9 +220,13 @@ let m_ident a b =
   (* general case *)
   | a, b -> (m_wrap m_string) a b
 
+(* see also m_dotted_name_prefix_ok *)
 let m_dotted_name a b =
   match (a, b) with
-  (* TODO: [$X] should match any list *)
+  (* $X should match any list *)
+  | [ (s, t) ], b when MV.is_metavar_name s ->
+      envf (s, t) (MV.N (H.name_of_ids b))
+  (* TODO? we could allow a.b.$X to match a.b.c.d *)
   | a, b -> (m_list m_ident) a b
 
 (* This is for languages like Python where foo.arg.func is not parsed
@@ -407,16 +411,17 @@ let rec m_name a b =
             _;
           } ) ) -> (
       m_name a (B.Id (idb, B.empty_id_info ()))
-      >||> (* try this time a match with the resolved entity *)
-      m_name a (H.name_of_ids dotted)
       >||>
-      (* Try the parents *)
+      (* Try the resolved entity and parents *)
       match a with
       (* If we're matching against a metavariable, don't bother checking
-       * parents. It will only cause duplicate matches that can't be deduped,
-       * since the captured metavariable will be different. *)
+       * the resolved entity or parents. It will only cause duplicate matches
+       * that can't be deduped, since the captured metavariable will be
+       * different. *)
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-      | _ -> try_parents dotted)
+      | _ ->
+          (* try this time a match with the resolved entity *)
+          m_name a (H.name_of_ids dotted) >||> try_parents dotted)
   (* extension: metatypes *)
   | G.Id (((str, t) as a1), a_info), B.Id (b1, b2) -> (
       (* this will handle metavariables in Id *)
