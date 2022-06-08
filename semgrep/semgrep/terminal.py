@@ -28,7 +28,7 @@ class Terminal:
         *,
         verbose: bool = False,
         debug: bool = False,
-        quiet: bool = False,
+        quiet: bool = True,
         force_color: bool = False,
     ) -> None:
         """Set the relevant logging levels"""

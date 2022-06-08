@@ -151,25 +151,18 @@ def test_flags(
 
 
 @pytest.mark.kinda_slow
-@mark.parametrize(
-    "config,options,env",
-    [
-        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}),
-    ],
-)
-def test_flags_actual_send(
-    run_semgrep_in_tmp, mock_config_request, config, options, env
-):
+def test_flags_actual_send(run_semgrep_in_tmp):
     """
     Test that the server for metrics sends back success
     """
-    _, output = run_semgrep_in_tmp(
-        config,
-        options=[*options, "--debug"],
+    _, stderr = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        options=["--debug"],
+        env={"SEMGREP_SEND_METRICS": "on"},
         force_metrics_off=False,
     )
-    assert "Sending pseudonymous metrics" in output
-    assert "Failed to send pseudonymous metrics" not in output
+    assert "Sending pseudonymous metrics" in stderr
+    assert "Failed to send pseudonymous metrics" not in stderr
 
 
 @pytest.mark.slow
