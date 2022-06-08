@@ -30,7 +30,7 @@ jobs:
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - name: Remove broken symlinks
-        run: find -L . -type l -exec rm -i {} \;
+        run: find -L . -type l -exec rm {} \;
       - id: core-cache
         name: Check if this semgrep-core binary is cached
         uses: actions/cache@v3
