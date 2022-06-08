@@ -23,6 +23,10 @@ class Terminal:
         # provision with default config so that tests can immediately capture logging output
         self.configure()
 
+    def init_for_cli(self) -> None:
+        """Call this when semgrep is invoked as a CLI as opposed to a library."""
+        self.configure(quiet=False)
+
     def configure(
         self,
         *,

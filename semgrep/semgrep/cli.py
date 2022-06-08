@@ -56,6 +56,7 @@ def cli(ctx: click.Context) -> None:
     To get started quickly, run `semgrep scan --config auto`
     """
     state = get_state()
+    state.terminal.init_for_cli()
 
     subcommand: str = (
         ctx.invoked_subcommand
