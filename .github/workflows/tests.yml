@@ -241,6 +241,8 @@ jobs:
       - name: Install Python dependencies
         working-directory: semgrep
         run: pipenv install --dev
+        env:
+          SEMGREP_SKIP_BIN: true
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
