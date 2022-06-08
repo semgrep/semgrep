@@ -1,17 +1,15 @@
 {
   "check_id": "rule.id",
-  "path": "foo.py",
-  "line": 0,
   "column": 0,
-  "end_line": 0,
-  "end_column": 0,
-  "message": "message",
-  "severity": 2,
-  "index": 0,
   "commit_date": "1969-12-31T16:00:00",
-  "syntactic_id": "0639a4883ba9b83e767a5dc4c09e001a",
-  "metadata": {},
+  "end_column": 0,
+  "end_line": 0,
+  "index": 0,
   "is_blocking": true,
+  "line": 0,
+  "message": "message",
+  "metadata": {},
+  "path": "foo.py",
   "sca_info": {
     "dependency_match_only": false,
     "dependency_matches": [
@@ -36,5 +34,7 @@
         "lockfile": "targets/dependency_aware/Pipfile.lock"
       }
     ]
-  }
+  },
+  "severity": 2,
+  "syntactic_id": "0639a4883ba9b83e767a5dc4c09e001a"
 }

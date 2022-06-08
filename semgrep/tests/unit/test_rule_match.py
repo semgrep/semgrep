@@ -7,6 +7,7 @@ import semgrep.output_from_core as core
 from semgrep.constants import RuleSeverity
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
+from tests.conftest import _clean_output_json
 
 
 @pytest.mark.quick
@@ -310,5 +311,5 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             "dependency_matches": [dependency_match],
         },
     )
-    app_finding = match.to_app_finding_format("0").to_json_string()
+    app_finding = _clean_output_json(match.to_app_finding_format("0").to_json_string())
     snapshot.assert_match(app_finding, "results.json")
