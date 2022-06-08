@@ -733,6 +733,9 @@ def scan(
 
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
+    state.terminal.configure(
+        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+    )
 
     if include and exclude:
         logger.warning(
@@ -756,10 +759,6 @@ def scan(
         )
 
     output_time = time_flag or json_time
-
-    state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
-    )
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
