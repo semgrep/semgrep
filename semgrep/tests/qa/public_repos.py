@@ -24,7 +24,7 @@ class Repo(NamedTuple):
 
 
 REPOS = [
-    Repo("https://github.com/apache/airflow", xfail_reason="TSX parse failures"),
+    Repo("https://github.com/apache/airflow"),
     Repo("https://github.com/zulip/zulip"),
     Repo("https://github.com/coinbase/bifrost"),
     Repo("https://github.com/coinbase/bip38"),
@@ -112,13 +112,13 @@ REPOS = [
     Repo("https://github.com/returntocorp/badwords"),
     Repo("https://github.com/returntocorp/bento-report"),
     Repo("https://github.com/returntocorp/check-docs"),
-    Repo("https://github.com/returntocorp/cli"),
+    Repo("https://github.com/returntocorp/cli", xfail_reason="unknown"),
     Repo("https://github.com/returntocorp/flake8-click"),
     Repo("https://github.com/returntocorp/flake8-flask"),
     Repo("https://github.com/returntocorp/flake8-requests"),
     Repo("https://github.com/returntocorp/inputset-generator"),
     Repo("https://github.com/returntocorp/semgrep-action"),
-    Repo("https://github.com/returntocorp/semgrep-rules"),
+    Repo("https://github.com/returntocorp/semgrep-rules", xfail_reason="unknown"),
     Repo("https://github.com/seemoo-lab/opendrop"),
     Repo("https://github.com/lightstep/lightstep-tracer-python"),
     Repo("https://github.com/draios/sysdig-inspect"),
@@ -151,15 +151,7 @@ REPOS = [
     Repo("https://github.com/coinbase/gtt-ui"),
     Repo("https://github.com/DevSlop/Pixi"),
     Repo("https://github.com/home-assistant/home-assistant"),
-    Repo(
-        "https://github.com/coinbase/coinbase-pro-node",
-        ["javascript", "typescript"],
-        xfail_reason=("Failure to parse typescript"),
-    ),
-    Repo(
-        "https://github.com/we45/Vulnerable-Flask-App",
-        xfail_reason="MatchTimeout error but happens only in CI",
-    ),
+    Repo("https://github.com/we45/Vulnerable-Flask-App"),
     Repo(
         "https://github.com/rails/rails",
         ["ruby"],
@@ -205,10 +197,7 @@ REPOS = [
         ["javascript", "typescript"],
         xfail_reason="Failure to parse typescript",
     ),
-    Repo(
-        "https://github.com/dropbox/changes",
-        xfail_reason="react",
-    ),
+    Repo("https://github.com/dropbox/changes"),
     Repo(
         "https://github.com/dropbox/pyston-perf",
         xfail_reason="templates",
