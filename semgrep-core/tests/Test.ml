@@ -6,7 +6,7 @@
  *
  * From semgrep-core you can do
  *
- *   $./test test foo
+ *   $./test foo
  *
  * to run all the tests containing foo in their description.
  *)
@@ -50,7 +50,8 @@ let tests () = List.flatten [
 
   Unit_guess_lang.tests;
   Unit_memory_limit.tests;
-  Unit_pcre_settings.tests;
+  Unit_SPcre.tests;
+  Unit_regexp_engine.tests;
 
   Unit_synthesizer.tests;
   Unit_synthesizer_targets.tests;

@@ -14,7 +14,6 @@
  *)
 module Flag = Flag_semgrep
 module R = Mini_rule
-module Re = Regexp_engine.Str_engine
 
 (*****************************************************************************)
 (* Prelude *)
@@ -54,9 +53,8 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
             *)
            xs
            |> List.for_all (fun x ->
-                  let re = Re.matching_exact_string x in
-                  (* let re = Regexp_engine.compile_regexp t in *)
-                  Re.run re str)
+                  let re = Regexp_engine.matching_exact_string x in
+                  Regexp_engine.unanchored_match re str)
          in
 
          if not match_ then logger#info "filtering rule %s" rule.R.id;

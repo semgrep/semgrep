@@ -11,5 +11,14 @@
 
 # TODO: merge spacegrep tests into one test executable
 
+# 'test' for running the tests or 'list' for only printing the list of tests
+subcommand=test
+case "$(basename "$0")" in
+  test)
+    ;;
+  *)
+    subcommand=list
+esac
+
 cd _build/default/tests
-./test.exe test "$@"
+./test.exe "$subcommand" "$@"
