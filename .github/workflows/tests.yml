@@ -297,6 +297,10 @@ jobs:
     name: quality assurance on semgrep
     runs-on: ubuntu-latest
     needs: [build-core]
+    strategy:
+      fail-fast: false
+      matrix:
+        test_name: ["public_repos", "semgrep_rules_repo"]
     steps:
       - name: Install pipenv
         run: pipx install pipenv==2022.5.2
@@ -333,7 +337,7 @@ jobs:
         working-directory: semgrep
         run: |
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa
+          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_${{ matrix.test_name }}.py
         env:
           QA_TESTS_CACHE_PATH: ~/.cache/semgrep-cache
 
