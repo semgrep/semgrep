@@ -214,9 +214,10 @@ jobs:
     strategy:
       matrix:
         python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
+    defaults:
+      run:
+        working-directory: semgrep
     steps:
-      - name: Install tox
-        run: pipx install tox==3.25.0
       - name: Install pipenv
         run: pipx install pipenv==2022.5.2
       - name: Make checkout speedy
@@ -230,6 +231,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
+      - name: Install Python dependencies
+        run: pipenv install --dev
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -238,11 +241,11 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Run Tox
+      - name: Run pytest
         working-directory: semgrep
         env:
           SEMGREP_SKIP_BIN: true
-        run: tox -e py # Run tox using the version of Python in `PATH`
+        run: pipenv run pytest -n auto -vv
       # because of the fail-fast setting, we expect only the fastest failing job to get to the steps below
       - name: Prepare repo for snapshot commit
         if: failure()
