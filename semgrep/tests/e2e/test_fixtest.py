@@ -1,5 +1,3 @@
-from subprocess import CalledProcessError
-
 import pytest
 
 from semgrep.constants import OutputFormat
@@ -85,33 +83,30 @@ def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.xfail(reason="depends on absolute path in output")
 def test_fixtest_test4_no_json(run_semgrep_in_tmp, snapshot):
-
-    results = ""
-    with pytest.raises(CalledProcessError) as excinfo:
-        results, _ = run_semgrep_in_tmp(
-            "rules/fixtest/test4.yaml",
-            target_name="fixtest/test4.py",
-            options=["--test"],
-            output_format=OutputFormat.TEXT,
-        )
-    assert excinfo.value.returncode == 1
-    snapshot.assert_match(excinfo.value.stdout, "error.txt")
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/fixtest/test4.yaml",
+        target_name="fixtest/test4.py",
+        options=["--test"],
+        output_format=OutputFormat.TEXT,
+        assert_exit_code=1,
+    )
+    snapshot.assert_match(stdout, "error.txt")
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.xfail(reason="depends on absolute path in output")
 def test_fixtest_test4_json(run_semgrep_in_tmp, snapshot):
-    stdout = ""
-    with pytest.raises(CalledProcessError) as excinfo:
-        stdout, _ = run_semgrep_in_tmp(
-            "rules/fixtest/test4.yaml",
-            target_name="fixtest/test4.py",
-            options=["--test"],
-            output_format=OutputFormat.JSON,
-        )
-    assert excinfo.value.returncode == 1
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
-    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
+    stdout, stderr = run_semgrep_in_tmp(
+        "rules/fixtest/test4.yaml",
+        target_name="fixtest/test4.py",
+        options=["--test"],
+        output_format=OutputFormat.JSON,
+        assert_exit_code=1,
+    )
+    snapshot.assert_match(stderr, "error.txt")
+    snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
 
 @pytest.mark.kinda_slow

@@ -1,6 +1,7 @@
 #
 # TODO: explain what these tests are for if you happen to know.
 #
+import contextlib
 import json
 import os
 import shutil
@@ -11,7 +12,6 @@ from pathlib import Path
 import appdirs
 import pytest
 
-from ..conftest import chdir
 from ..conftest import TESTS_PATH
 from .public_repos import REPOS
 
@@ -38,6 +38,17 @@ LANGUAGE_SENTINELS = {
     },
 }
 SENTINEL_PATTERN = f"$SENTINEL = {SENTINEL_VALUE}"
+
+
+@contextlib.contextmanager
+def chdir(dirname=None):
+    curdir = os.getcwd()
+    try:
+        if dirname is not None:
+            os.chdir(dirname)
+        yield
+    finally:
+        os.chdir(curdir)
 
 
 def assert_sentinel_results(repo_path, sentinel_path, language):
