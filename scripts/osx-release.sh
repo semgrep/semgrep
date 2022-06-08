@@ -12,7 +12,9 @@ eval "$(opam env)"
 # This needs to be done before make setup since it is used there
 rm /usr/local/opt/pcre/lib/libpcre.1.dylib
 
-make setup
+./scripts/install-tree-sitter-runtime
+opam install -y --deps-only ./semgrep-core/src/pfff ./semgrep-core/src/ocaml-tree-sitter-core ./semgrep-core
+
 make config
 
 # Remove dynamically linked libraries to force MacOS to use static ones

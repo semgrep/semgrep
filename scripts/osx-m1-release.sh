@@ -8,7 +8,9 @@ eval "$(opam env)"
 # Needed so we don't make config w/ sudo
 export HOMEBREW_SYSTEM=1
 
-make setup
+./scripts/install-tree-sitter-runtime
+opam install -y --deps-only ./semgrep-core/src/pfff ./semgrep-core/src/ocaml-tree-sitter-core ./semgrep-core
+
 make config
 
 # Remove dynamically linked libraries to force MacOS to use static ones
