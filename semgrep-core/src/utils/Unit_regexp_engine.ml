@@ -34,6 +34,9 @@ let test_remove_eos_assertions () =
       ("[$]*", None);
       ("(?:^)", None);
       ({|\\A|}, None);
+      ({|(?<!.|\n)|}, None);
+      (* DIY beginning-of-string assertion = \A *)
+      ({|(?!.|\n)|}, None) (* DIY end-of-string assertion = \z *);
     ]
 
 let tests =

@@ -80,7 +80,18 @@ let anchored_match =
 let unanchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
 
 let may_contain_end_of_string_assertions =
-  let rex = SPcre.regexp {|[$^]|\\[AZz]|} in
+  (* The absence of the following guarantees (to the best of our knowledge)
+     that a regexp does not try to match the beginning or the end of
+     the string:
+       ^
+       $
+       \A
+       \Z
+       \z
+       (?<!   negative lookbehind assertion, which could be a DIY \A
+       (?!    negative lookahead assertion, which could be a DIY \z
+  *)
+  let rex = SPcre.regexp {|[$^]|\\[AZz]|\(\?<!|\(\?!|} in
   fun s -> SPcre.pmatch_noerr ~rex s
 
 (* Any string that may still contain a end-of-string assertions must go

@@ -363,7 +363,15 @@ let or_step2 (Or xs) =
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re -> Regexp2_search re
-      | MvarRegexp (_mvar, re, _const_prop) -> Regexp2_search re)
+      | MvarRegexp (_mvar, re, _const_prop) ->
+          (* The original regexp is meant to apply on a substring.
+             We rewrite them to remove end-of-string anchors if possible. *)
+          let re =
+            match Regexp_engine.remove_end_of_string_assertions re with
+            | None -> raise GeneralPattern
+            | Some re -> re
+          in
+          Regexp2_search re)
   in
   (* Remove or cases where any of the possibilities is a general pattern *)
   (* We need to do this because later, in the final regex generation,
