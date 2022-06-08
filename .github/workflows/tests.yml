@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**')}-${{ hashFiles('**/.github/workflows/**') }}"
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}-${{ hashFiles('**/.github/workflows/**') }}"
       - name: Install pipenv
         if: steps.core-cache.outputs.cache-hit != 'true'
         run: sudo pip install pipenv
