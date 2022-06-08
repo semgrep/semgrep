@@ -190,7 +190,7 @@ def core_matches_to_rule_matches(
         )
 
     # TODO: Dict[core.RuleId, RuleMatchSet]
-    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet() for rule in rules}
+    findings: Dict[Rule, RuleMatchSet] = {rule: RuleMatchSet(rule) for rule in rules}
     seen_cli_unique_keys: Set[Tuple] = set()
     for match in res.matches:
         rule = rule_table[match.rule_id.value]

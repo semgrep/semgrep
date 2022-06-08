@@ -1,6 +1,8 @@
+import collections
 import hashlib
 import json
 from typing import Any
+from typing import AnyStr
 from typing import cast
 from typing import Dict
 from typing import List
@@ -247,6 +249,47 @@ class Rule:
             return False
 
         return has_runnable_rule(self._raw)
+
+    @property
+    def formula_string(self) -> str:
+        """
+        Used to calculate a pattern based ID, works through DFS of all
+        PATTERN KEYS, and additionally, if the key is 'join' we include the 'on' field also
+        """
+
+        def get_subrules(raw: Union[AnyStr, Dict, List]) -> str:
+            patterns = ""
+            if isinstance(raw, str):
+                return raw
+            elif isinstance(raw, dict):
+                for k in RuleValidation.PATTERN_KEYS:
+                    next_raw = raw.get(k)
+                    if next_raw is not None:
+                        patterns += get_subrules(next_raw)
+                        # We want to make sure if this a join, we actually include
+                        # the "on" field
+                        if k == "join" and "on" in next_raw:
+                            patterns += get_subrules(next_raw["on"])
+                return patterns
+            elif isinstance(raw, list):
+                for p in raw:
+                    patterns += get_subrules(p)
+            else:
+                raise ValueError(
+                    f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"
+                )
+            return patterns
+
+        try:
+            res = get_subrules(collections.OrderedDict(self.raw))
+            if not res:
+                raise ValueError(f"This rule contains no hashable patterns: {self.id}")
+        # In the scenario where we don't have patterns to hash (this would be
+        # /weird/), just return the empty string, and we'll hash based on rule id +
+        # index + file path
+        except ValueError:
+            res = ""
+        return res
 
 
 def rule_without_metadata(rule: Rule) -> Rule:

@@ -1,4 +1,5 @@
 import binascii
+import hashlib
 import itertools
 import textwrap
 from collections import Counter
@@ -25,6 +26,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
+from semgrep.rule import Rule
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
@@ -72,6 +74,13 @@ class RuleMatch:
     # ???
     index: int = 0
 
+    # This is the accompanying formula from the rule that created the match
+    # Used for pattern_based_id
+    #
+    # This could be derived, if we wanted to keep the rule as a field of the
+    # match. Seems easier to just calculate it w/index
+    match_formula_string: str = ""
+
     # None means we didn't check; ignore status is unknown
     is_ignored: Optional[bool] = field(default=None)
 
@@ -83,6 +92,7 @@ class RuleMatch:
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
+    pattern_based_id: str = field(init=False, repr=False)
 
     # TODO: return a out.RuleId
     @property
@@ -246,6 +256,23 @@ class RuleMatch:
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
+    @pattern_based_id.default
+    def get_pattern_based_id(self) -> str:
+        try:
+            path = self.path.relative_to(Path.cwd())
+        except ValueError:
+            path = self.path
+        patterns_str = self.match_formula_string
+        if self.extra.get("metavars") is not None:
+            metavars = self.extra["metavars"]
+            for metavar in metavars:
+                patterns_str = patterns_str.replace(
+                    metavar, metavars[metavar]["abstract_content"]
+                )
+        pattern_id = (patterns_str, path, self.rule_id)
+        pattern_id_str = str(pattern_id)
+        return f"{hashlib.blake2b(str.encode(pattern_id_str)).hexdigest()}_{str(self.index)}"
+
     @property
     def uuid(self) -> UUID:
         """
@@ -287,6 +314,7 @@ class RuleMatch:
             index=self.index,
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
+            pattern_based_id=self.pattern_based_id,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
         )
@@ -324,8 +352,11 @@ class RuleMatchSet(Set[RuleMatch]):
     It also automagically adds the correct finding index when adding elements.
     """
 
-    def __init__(self, __iterable: Optional[Iterable[RuleMatch]] = None) -> None:
+    def __init__(
+        self, rule: Rule, __iterable: Optional[Iterable[RuleMatch]] = None
+    ) -> None:
         self._ci_key_counts: CounterType[Tuple] = Counter()
+        self._rule = rule
         if __iterable is None:
             super().__init__()
         else:
@@ -341,6 +372,7 @@ class RuleMatchSet(Set[RuleMatch]):
         """
         self._ci_key_counts[match.ci_unique_key] += 1
         match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
+        match = evolve(match, match_formula_string=self._rule.formula_string)
         super().add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:

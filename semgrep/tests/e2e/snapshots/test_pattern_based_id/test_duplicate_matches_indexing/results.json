@@ -1,0 +1,341 @@
+{
+  "errors": [],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": [
+      "targets/pattern-based-id/duplicates/duplicate1.py",
+      "targets/pattern-based-id/duplicates/duplicate2.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad",
+      "end": {
+        "col": 10,
+        "line": 1,
+        "offset": 9
+      },
+      "extra": {
+        "fingerprint": "9ce8d468a8cbcbf498e906fad22eec480f4146989bcd8d55327080d381246eb0948ea4af188cd5af4029350481cfba2331b55ad8b293c88cccdd0b51d4d604ed_0",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            },
+            "start": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate1.py",
+      "start": {
+        "col": 4,
+        "line": 1,
+        "offset": 3
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad",
+      "end": {
+        "col": 10,
+        "line": 4,
+        "offset": 40
+      },
+      "extra": {
+        "fingerprint": "9ce8d468a8cbcbf498e906fad22eec480f4146989bcd8d55327080d381246eb0948ea4af188cd5af4029350481cfba2331b55ad8b293c88cccdd0b51d4d604ed_1",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 4,
+              "offset": 35
+            },
+            "start": {
+              "col": 4,
+              "line": 4,
+              "offset": 34
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate1.py",
+      "start": {
+        "col": 4,
+        "line": 4,
+        "offset": 34
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad",
+      "end": {
+        "col": 10,
+        "line": 1,
+        "offset": 9
+      },
+      "extra": {
+        "fingerprint": "61e8d0c681e2f5804833f1bd0e41e24edf98f93778b2bb8c62647d4e23acee42b9ab5c73c114b5665974c016be94b4d9da03808bacfbee51339a8aa375c5b11f_0",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            },
+            "start": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate2.py",
+      "start": {
+        "col": 4,
+        "line": 1,
+        "offset": 3
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad",
+      "end": {
+        "col": 10,
+        "line": 4,
+        "offset": 40
+      },
+      "extra": {
+        "fingerprint": "61e8d0c681e2f5804833f1bd0e41e24edf98f93778b2bb8c62647d4e23acee42b9ab5c73c114b5665974c016be94b4d9da03808bacfbee51339a8aa375c5b11f_1",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 4,
+              "offset": 35
+            },
+            "start": {
+              "col": 4,
+              "line": 4,
+              "offset": 34
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate2.py",
+      "start": {
+        "col": 4,
+        "line": 4,
+        "offset": 34
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad-dup",
+      "end": {
+        "col": 10,
+        "line": 1,
+        "offset": 9
+      },
+      "extra": {
+        "fingerprint": "b5a28d1e54b437a4fa5f374b8c7374007750656c5e73d1b5445b30c4efc7b3b7f070f14bc2d2f1486daa2e27e37c9cf64fb1c52f3b600d7f5e3d103996c34542_0",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            },
+            "start": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate1.py",
+      "start": {
+        "col": 4,
+        "line": 1,
+        "offset": 3
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad-dup",
+      "end": {
+        "col": 10,
+        "line": 4,
+        "offset": 40
+      },
+      "extra": {
+        "fingerprint": "b5a28d1e54b437a4fa5f374b8c7374007750656c5e73d1b5445b30c4efc7b3b7f070f14bc2d2f1486daa2e27e37c9cf64fb1c52f3b600d7f5e3d103996c34542_1",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 4,
+              "offset": 35
+            },
+            "start": {
+              "col": 4,
+              "line": 4,
+              "offset": 34
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate1.py",
+      "start": {
+        "col": 4,
+        "line": 4,
+        "offset": 34
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad-dup",
+      "end": {
+        "col": 10,
+        "line": 1,
+        "offset": 9
+      },
+      "extra": {
+        "fingerprint": "7291c6078b61fb110b18aa57a17297c0b0b3d66899537202cdf915e15df0365e1e5db3798e4999136aa544b5963365a0cccd18c0e36729a28f59b953381687fd_0",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            },
+            "start": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate2.py",
+      "start": {
+        "col": 4,
+        "line": 1,
+        "offset": 3
+      }
+    },
+    {
+      "check_id": "rules.pattern_based_id.eqeq-bad-dup",
+      "end": {
+        "col": 10,
+        "line": 4,
+        "offset": 40
+      },
+      "extra": {
+        "fingerprint": "7291c6078b61fb110b18aa57a17297c0b0b3d66899537202cdf915e15df0365e1e5db3798e4999136aa544b5963365a0cccd18c0e36729a28f59b953381687fd_1",
+        "is_ignored": false,
+        "lines": "if 5 == 5:",
+        "message": "useless comparison",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "5",
+            "end": {
+              "col": 5,
+              "line": 4,
+              "offset": 35
+            },
+            "start": {
+              "col": 4,
+              "line": 4,
+              "offset": 34
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/pattern-based-id/duplicates/duplicate2.py",
+      "start": {
+        "col": 4,
+        "line": 4,
+        "offset": 34
+      }
+    }
+  ],
+  "version": "0.42"
+}

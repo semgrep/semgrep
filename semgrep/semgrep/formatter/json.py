@@ -25,7 +25,7 @@ class JsonFormatter(BaseFormatter):
             message=rule_match.message,
             metadata=out.RawJson(rule_match.metadata),
             severity=rule_match.severity.value,
-            fingerprint=rule_match.syntactic_id,
+            fingerprint=rule_match.pattern_based_id,
             # 'lines' already contains '\n' at the end of each line
             lines="".join(rule_match.lines).rstrip(),
             metavars=rule_match.match.extra.metavars,

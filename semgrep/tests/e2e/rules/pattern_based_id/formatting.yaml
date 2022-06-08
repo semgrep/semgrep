@@ -1,0 +1,7 @@
+rules:
+  - id: formatting-change
+    patterns:
+      - pattern: $X = 1+1;... $X = 2+2;
+    message: "useless comparison"
+    languages: [c]
+    severity: ERROR

@@ -1,0 +1,17 @@
+rules:
+  - id: join-rule
+    languages: [python]
+    mode: join
+    join:
+      rules:
+        - id: first-rule
+          pattern: $X = $Z+$Z
+          languages: [python]
+        - id: second-rule
+          pattern: $X == $Y
+          languages: [python]
+      on:
+        - 'first-rule.$X == second-rule.$Y'
+        - 'first-rule.$Z == second-rule.$X'
+    message: "Fix me!"
+    severity: ERROR
