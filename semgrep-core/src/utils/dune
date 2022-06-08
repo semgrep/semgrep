@@ -2,7 +2,9 @@
  (public_name semgrep_utils)
  (wrapped false)
  (libraries
-   re pcre
+   re
+   alcotest
+   pcre
 
    commons
    ;note: you should not depend on any other semgrep libraries here

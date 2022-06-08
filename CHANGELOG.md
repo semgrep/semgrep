@@ -6,11 +6,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- Generic mode: new option `generic_ellipsis_max_span` for controlling
-  how many lines an ellipsis can match (#5211)
-- Generic mode: new option `generic_comment_style` for ignoring
-  comments that follow the specified syntax (C style, C++ style, or
-  Shell style) (#3428)
 - Dataflow: XML elements (e.g. JSX elements) have now a basic translation to the
   Dataflow IL, meaning that dataflow analysis (constant propagation, taint tracking)
   can now operate inside these elements (#5115)
@@ -29,6 +24,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: stop parsing parenthesized expressions as unary tuples
 - `yarn.lock` files with no depenencies, and with dependencies that lack URLs, now parse
 - Scala: fixed bug where typed patterns inside classes caused an exception during name resolution
+- metavariable-regex: patterns are now unanchored as specified by the
+  documentation (#4807)
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 

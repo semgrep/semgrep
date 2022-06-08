@@ -38,8 +38,8 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     level = Level[level_str.upper()]
 
     spans: Optional[List[out.ErrorSpan]] = None
-    if err.yaml_path:
-        yaml_path = err.yaml_path[::-1]
+    if isinstance(err.error_type.value, core.PatternParseError):
+        yaml_path = err.error_type.value.value[::-1]
         start = out.PositionBis(
             line=err.location.start.line, col=err.location.start.col
         )
@@ -59,16 +59,12 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
                 config_path=yaml_path,
             )
         ]
-    # convert PartialParsing in ParseError for now
-    # TODO: extend SemgrepCoreError (in error.py) or cli_error (in Semgrep_output_v0.atd)
-    # to return a better error message to the user about PartialParsing
-    if isinstance(err.error_type.value, core.PartialParsing):
-        err = replace(err, error_type=core.CoreErrorKind(core.ParseError()))
-
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-    if isinstance(err.error_type.value, core.ParseError) or isinstance(
-        err.error_type.value, core.LexicalError
+    if (
+        isinstance(err.error_type.value, core.ParseError)
+        or isinstance(err.error_type.value, core.LexicalError)
+        or isinstance(err.error_type.value, core.PartialParsing)
     ):
         code = 3
         err = replace(err, rule_id=None)  # Rule id not important for parse errors
