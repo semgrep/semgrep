@@ -102,22 +102,20 @@ def test_rules_hash(first, second, is_equal) -> None:
         assert first_metrics != second_metrics
 
 
+class NetworkBlockedInTests(Exception):
+    pass
+
+
 @pytest.mark.quick
-def test_send(metrics) -> None:
+def test_send(metrics, mocker) -> None:
     """
     Check that no network does not cause failures
     """
-    import socket
+    mocker.patch("socket.socket", side_effect=NetworkBlockedInTests)
     import requests
 
-    class block_network(socket.socket):
-        def __init__(self, *args, **kwargs):
-            raise Exception("Network call blocked")
-
-    socket.socket = block_network  # type: ignore
-
-    # test that network is blocked
-    with pytest.raises(Exception):
+    # verify that network is blocked
+    with pytest.raises(NetworkBlockedInTests):
         _ = requests.get("https://semgrep.dev", timeout=2)
 
     metrics.configure(MetricsState.ON, None)
