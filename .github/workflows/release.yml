@@ -166,16 +166,19 @@ jobs:
 
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: macos-10.15
+    runs-on: macos-latest
     steps:
       - name: Install pipenv
-        run: sudo python3 -m pip install pipenv
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
+        run: pipx install pipenv==2022.5.2
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.12.0
+          dune-cache: true
       - name: Setup Python
         uses: actions/setup-python@v3
       - name: Run OSX release script
@@ -207,9 +210,9 @@ jobs:
     if: ${{needs.check-m1-build.outputs.m1_support == 'true'}}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          submodules: true
+          submodules: recursive
       - name: Run OSX release script
         run: ./scripts/osx-m1-release.sh
       - name: Upload artifacts
@@ -245,7 +248,7 @@ jobs:
           path: artifacts.tar.gz
 
   build-wheels-osx:
-    runs-on: macos-10.15
+    runs-on: macos-latest
     needs: [build-core-osx]
     steps:
       - name: Checkout
@@ -416,7 +419,7 @@ jobs:
     name: Update on Homebrew-Core
     needs: [sleep-before-homebrew] # Needs to run after pypi released so brew can update pypi dependency hashes
 
-    runs-on: macos-10.15
+    runs-on: macos-latest
     if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - name: Setup Python
