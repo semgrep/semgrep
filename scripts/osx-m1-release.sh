@@ -16,6 +16,11 @@ export HOMEBREW_SYSTEM=1
 make setup
 make config
 
+# Remove dynamically linked libraries to force MacOS to use static ones
+# This needs to be done after make setup but before make build-*
+rm /usr/local/lib/libtree-sitter.0.0.dylib || true
+rm /usr/local/lib/libtree-sitter.dylib || true
+
 make build-core
 
 mkdir -p artifacts

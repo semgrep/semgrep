@@ -13,7 +13,7 @@ on:
 
 jobs:
   build-core:
-    name: Build and Test semgrep-core
+    name: build semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     steps:
@@ -25,19 +25,155 @@ jobs:
           github_cache_dir="/__w"
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
+      - name: Cache OCaml build files
+        uses: actions/cache@v3
+        with:
+          path: |
+            /home/user/.cache/pipenv
+            /home/user/.local/share/virtualenvs
+            /home/user/.dune
+            /home/user/.opam/download-cache
+            /home/user/.opam/*/.opam-switch/packages
+            /home/user/.opam/*/.opam-switch/sources
+          key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
+        env:
+          DUNE_CACHE: enabled
+          DUNE_CACHE_ROOT: /home/user/.dune
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
+
+  build-docker:
+    name: build docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build image
+        uses: docker/build-push-action@v3
+        with:
+          load: true
+          tags: candidate-image
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Check the semgrep Docker image
+        run: ./scripts/validate-docker-build.sh candidate-image
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        if: github.actor != 'dependabot[bot]' && (github.event.pull_request.head.repo.full_name == github.repository || github.ref == 'refs/heads/develop')
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - id: meta
+        name: Set tags and labels
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ github.repository }}
+          # :latest is also added automatically
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=pr
+            type=ref,event=branch
+            type=sha,event=branch
+            type=edge
+
+      - name: Push image
+        uses: docker/build-push-action@v3
+        if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+
+      - id: dev-meta
+        name: Set tags and labels
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ github.repository }}-dev
+          # :latest is also added automatically
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=pr
+            type=ref,event=branch
+            type=sha,event=branch
+            type=edge
+
+      # Extend the semgrep image, changing the entry point to bash and
+      # adding some utilities. This image is meant for internal uses
+      # such as benchmarks.
+      - name: Push dev image
+        uses: docker/build-push-action@v3
+        if: github.ref == 'refs/heads/develop'
+        with:
+          push: true
+          file: dockerfiles/semgrep-dev.Dockerfile
+          platforms: ${{ matrix.platform }}
+          tags: ${{ steps.dev-meta.outputs.tags }}
+          labels: ${{ steps.dev-meta.outputs.labels }}
+          cache-from: type=gha,src=/tmp/.buildx-cache
+          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
+
+  test-core:
+    name: test semgrep-core
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine
+    needs: [build-core] # save some CPU time by waiting till build cache is populated in that job
+    steps:
+      - name: Install pipenv
+        run: sudo pip install pipenv
+      - name: Pre-checkout fixes
+        run: |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
+      - name: Cache OCaml build files
+        uses: actions/cache@v3
+        with:
+          path: |
+            /home/user/.cache/pipenv
+            /home/user/.local/share/virtualenvs
+            /home/user/.dune
+            /home/user/.opam/download-cache
+            /home/user/.opam/*/.opam-switch/packages
+            /home/user/.opam/*/.opam-switch/sources
+          key: ${{ runner.os }}-ocamlbuild
+      - name: Build semgrep-core
+        run: ./scripts/install-alpine-semgrep-core
+        env:
+          DUNE_CACHE: enabled
+          DUNE_CACHE_ROOT: /home/user/.dune
       - name: Test semgrep-core
         run: |
           eval $(opam env)
@@ -67,98 +203,20 @@ jobs:
           #
           opam exec -- make -C semgrep-core report-perf
 
-  build-docker:
-    name: Build and push Semgrep Docker image
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [linux/amd64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        if: matrix.platform == 'linux/arm64'
-        with:
-          platforms: arm64
-
-      - name: Build image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          load: true
-          platforms: ${{ matrix.platform }}
-          tags: image-to-test
-
-      - name: Check the semgrep Docker image
-        run: ./scripts/validate-docker-build.sh image-to-test
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - id: meta
-        name: Set tags and labels
-        uses: docker/metadata-action@v3
-        with:
-          images: ${{ github.repository }}
-          # :latest is also added automatically
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=ref,event=pr
-            type=ref,event=branch
-            type=sha,event=branch
-            type=edge
-
-      - name: Push image
-        uses: docker/build-push-action@v3
-        if: github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository)
-        with:
-          context: .
-          push: true
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
-      # Extend the semgrep image, changing the entry point to bash and
-      # adding some utilities. This image is meant for internal uses
-      # such as benchmarks.
-      - name: Push dev image
-        uses: docker/build-push-action@v3
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        with:
-          context: .
-          push: true
-          file: dockerfiles/semgrep-dev.Dockerfile
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,src=/tmp/.buildx-cache
-          cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
-
-  tox-tests:
-    name: semgrep tests with different python envs
+  test-cli:
+    name: test semgrep-cli
     runs-on: ubuntu-latest
     needs: [build-core]
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9"]
+        python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
     steps:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -174,7 +232,7 @@ jobs:
       - name: Test semgrep-core
         run: semgrep-core -version
       - name: Install Tox and any other packages
-        run: pip install pipenv==2018.11.26 tox==3.15.0
+        run: pip install pipenv==2022.5.2 tox==3.25.0
       - name: Run Tox
         env:
           SEMGREP_SKIP_BIN: true
@@ -184,17 +242,16 @@ jobs:
           # See tox.ini for pytest command being run
           tox -e py  # Run tox using the version of Python in `PATH`
 
-  build-test:
-    name: semgrep unit and e2e tests
+  test-cli-legacy:
+    name: test semgrep-cli (legacy job)
     runs-on: ubuntu-latest
     needs: [build-core]
     permissions:
       contents: write
       pull-requests: write
-    strategy:
-      matrix:
-        python: [3.7]
     steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -202,7 +259,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.7"
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -264,14 +321,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  public-repos-test:
-    name: run semgrep on public repos
+  test-public-repos:
+    name: test on public repos
     runs-on: ubuntu-latest
     needs: [build-core]
-    strategy:
-      matrix:
-        python: [3.7]
     steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -279,7 +335,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.7"
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -310,14 +366,13 @@ jobs:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
   # Run abbreviated version of benchmarks to check that they work
-  dummy-benchmarks:
-    name: semgrep dummy benchmarks
+  benchmarks-lite:
+    name: benchmarks (lite)
     runs-on: ubuntu-latest
     needs: [build-core]
-    strategy:
-      matrix:
-        python: [3.7]
     steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -325,7 +380,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.7"
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -348,14 +403,13 @@ jobs:
           pipenv run python3 ../perf/run-benchmarks --dummy
 
   # Run each benchmark twice to decrease effect of natural variance
-  benchmark-test:
-    name: semgrep benchmark tests
+  benchmarks-full:
+    name: benchmarks (full)
     runs-on: ubuntu-latest
     needs: [build-core]
-    strategy:
-      matrix:
-        python: [3.7]
     steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -363,7 +417,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.7"
       - name: Run timing benchmark
         run: |
           pip3 install semgrep==0.94.0
@@ -404,3 +458,71 @@ jobs:
         run: |
           perf/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
           perf/compare-bench-findings semgrep/findings.json
+
+  build-macos-release:
+    name: build macOS release
+    runs-on: macos-10.15
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v3
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
+      - name: Run OSX build
+        run: ./scripts/osx-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-osx
+          path: artifacts
+
+  test-macos-release:
+    name: test macOS release
+    runs-on: macos-10.15
+    needs: [build-macos-release]
+    steps:
+      - name: download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: semgrep-osx
+          path: artifacts
+      - name: Remove pcre dynamic lib
+        run: rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+      - name: test build artifacts
+        run: |
+          chmod +x ./artifacts/semgrep-core
+          ./artifacts/semgrep-core -help
+
+  build-ubuntu:
+    name: build Ubuntu release
+    needs: [build-core]
+    runs-on: ubuntu-latest
+    container: returntocorp/sgrep-build:ubuntu-16.04
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts.tgz
+          mkdir -p semgrep-files
+          cp ocaml-build-artifacts/bin/* semgrep-files
+      - name: Run Ubuntu build script
+        run: ./scripts/ubuntu-release.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-ubuntu-16.04-${{ github.sha }}
+          path: artifacts.tar.gz

@@ -73,7 +73,7 @@ and xpattern_kind =
   | Regexp of regexp
   | Comby of string
 
-and regexp = Regexp_engine.Pcre_engine.t
+and regexp = Regexp_engine.t
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 and pattern_id = int [@@deriving show, eq]
@@ -394,8 +394,7 @@ let remove_noop (e : formula_old) : formula_old =
     | PatFilteredInPythonTodo t ->
         (* If a PatFilteredInPythonTodo key is the only thing on the top
            level, return no matches *)
-        let any = "a^" in
-        Pat (mk_xpat (Regexp (any, SPcre.regexp any)) (any, t))
+        PatEither (t, [])
     | _ -> e
   in
   aux e

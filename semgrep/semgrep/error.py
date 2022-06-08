@@ -90,12 +90,26 @@ class SemgrepError(Exception):
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
+    # TODO: spans are used only for PatternParseError
     spans: Optional[List[out.ErrorSpan]]
     core: core.CoreError
 
+    # TODO: we should return a proper variant instead of converting to a str
+    def _error_type_string(self) -> str:
+        type_ = self.core.error_type
+        # convert to the same string of core.ParseError for now
+        if isinstance(type_.value, core.PartialParsing):
+            return "Syntax error"
+        if isinstance(type_.value, core.PatternParseError):
+            return "Pattern parse error"
+        # All the other cases don't have arguments in Semgrep_output_v0.atd
+        # and have some <json name="..."> annotations to generate the right string
+        else:
+            return str(type_.to_json())
+
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(
-            base, type_=self.core.error_type.to_json(), message=str(self)
+            base, type_=self._error_type_string(), message=str(self)
         )
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
@@ -118,7 +132,7 @@ class SemgrepCoreError(SemgrepError):
         return isinstance(self.core.error_type.value, core.Timeout)
 
     def semgrep_error_type(self) -> str:
-        return f"{type(self).__name__}: {self.core.error_type.to_json()}"
+        return f"{type(self).__name__}: {self._error_type_string()}"
 
     @property
     def _error_message(self) -> str:
@@ -138,9 +152,7 @@ class SemgrepCoreError(SemgrepError):
                 f"at line {self.core.location.path}:{self.core.location.start.line}"
             )
 
-        return (
-            f"{self.core.error_type.to_json()} {error_context}:\n {self.core.message}"
-        )
+        return f"{self._error_type_string()} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:

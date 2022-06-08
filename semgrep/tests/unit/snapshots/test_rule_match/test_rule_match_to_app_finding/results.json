@@ -1,0 +1,40 @@
+{
+  "check_id": "rule.id",
+  "column": 0,
+  "commit_date": "1970-01-01T00:00:00",
+  "end_column": 0,
+  "end_line": 0,
+  "index": 0,
+  "is_blocking": true,
+  "line": 0,
+  "message": "message",
+  "metadata": {},
+  "path": "foo.py",
+  "sca_info": {
+    "dependency_match_only": false,
+    "dependency_matches": [
+      {
+        "dependency_pattern": {
+          "namespace": "pypi",
+          "package_name": "awscli",
+          "semver_range": "== 1.11.82"
+        },
+        "found_dependency": {
+          "allowed_hashes": {
+            "sha256": [
+              "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
+              "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
+            ]
+          },
+          "name": "awscli",
+          "namespace": "pypi",
+          "resolved_url": null,
+          "version": "1.11.82"
+        },
+        "lockfile": "targets/dependency_aware/Pipfile.lock"
+      }
+    ]
+  },
+  "severity": 2,
+  "syntactic_id": "0639a4883ba9b83e767a5dc4c09e001a"
+}

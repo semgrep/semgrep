@@ -296,9 +296,8 @@ class RuleMatch:
         if "dependency_match_only" in self.extra and "dependency_matches" in self.extra:
             ret.sca_info = out.ScaInfo(
                 dependency_match_only=self.extra["dependency_match_only"],
-                dependency_matches=self.extra["dependency_matches"],
+                dependency_matches=out.RawJson(self.extra["dependency_matches"]),
             )
-
         return ret
 
     def __hash__(self) -> int:

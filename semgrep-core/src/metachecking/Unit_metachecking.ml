@@ -27,7 +27,7 @@ let tests_path = "../../../tests"
  * from the metachecker checks, but simpler to consider all of that
  * as just errors.
  *)
-let metachecker_checks_tests =
+let metachecker_checks_tests () =
   pack_tests "metachecker checks testing"
     (let dir = Filename.concat tests_path "OTHER/errors" in
      let files = Common2.glob (spf "%s/*.yaml" dir) in
@@ -47,7 +47,7 @@ let metachecker_checks_tests =
                 E.compare_actual_to_expected_for_alcotest actual expected )))
 
 (* Test the entire `-test_check` path *)
-let metachecker_regression_tests =
+let metachecker_regression_tests () =
   [
     ( "metachecker regresion testing",
       fun () ->
@@ -61,5 +61,5 @@ let metachecker_regression_tests =
 (* All tests *)
 (*****************************************************************************)
 
-let tests =
-  List.flatten [ metachecker_checks_tests; metachecker_regression_tests ]
+let tests () =
+  List.flatten [ metachecker_checks_tests (); metachecker_regression_tests () ]

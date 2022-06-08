@@ -137,7 +137,7 @@ let language_exceptions =
     (Lang.Scala, [ "regexp_string" ]);
   ]
 
-let maturity_tests =
+let maturity_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let check_maturity lang dir ext maturity =
     pack_tests
@@ -349,7 +349,7 @@ let lang_regression_tests ~with_caching =
 (* Eval_generic tests *)
 (*****************************************************************************)
 
-let eval_regression_tests =
+let eval_regression_tests () =
   [
     ( "eval regression testing",
       fun () ->
@@ -404,7 +404,7 @@ let test_irrelevant_rule_file target_file =
    any files, place the rule/target pair in the rules folder but annotate
    in a comment that the test targets filter_irrelevant_rules to help
    future debuggers. *)
-let filter_irrelevant_rules_tests =
+let filter_irrelevant_rules_tests () =
   pack_tests "filter irrelevant rules testing"
     (let dir = Filename.concat tests_path "OTHER/irrelevant_rules" in
      let target_files =
@@ -472,7 +472,6 @@ let tainting_test lang rules_file file =
              loc = fst m.range_loc;
              msg = m.P.rule_id.message;
              details = None;
-             yaml_path = None;
            })
   in
   let expected = E.expected_error_lines_of_files [ file ] in
@@ -492,7 +491,7 @@ let tainting_tests_for_lang files lang =
              in
              tainting_test lang rules_file file ))
 
-let lang_tainting_tests =
+let lang_tainting_tests () =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
   pack_suites "lang tainting rules testing"
     [
@@ -537,7 +536,7 @@ let lang_tainting_tests =
 (* Full rule tests *)
 (*****************************************************************************)
 
-let full_rule_regression_tests =
+let full_rule_regression_tests () =
   let path = Filename.concat tests_path "OTHER/rules" in
   pack_tests "full rule"
     (let tests, _print_summary =
@@ -559,7 +558,7 @@ let full_rule_regression_tests =
  * alt: do like in deep-semgrep and call the toplevel engine
  * in a Unit_runner.ml instead of using Test_engine.make_tests
  *)
-let full_rule_semgrep_rules_regression_tests =
+let full_rule_semgrep_rules_regression_tests () =
   let path = Filename.concat tests_path "semgrep-rules" in
   let tests, _print_summary =
     Test_engine.make_tests ~unit_testing:true [ path ]
@@ -651,16 +650,16 @@ let full_rule_semgrep_rules_regression_tests =
 (* All tests *)
 (*****************************************************************************)
 
-let tests =
+let tests () =
   List.flatten
     [
       (* full testing for many languages *)
       lang_regression_tests ~with_caching:false;
       lang_regression_tests ~with_caching:true;
-      eval_regression_tests;
-      filter_irrelevant_rules_tests;
-      lang_tainting_tests;
-      maturity_tests;
-      full_rule_regression_tests;
-      full_rule_semgrep_rules_regression_tests;
+      eval_regression_tests ();
+      filter_irrelevant_rules_tests ();
+      lang_tainting_tests ();
+      maturity_tests ();
+      full_rule_regression_tests ();
+      full_rule_semgrep_rules_regression_tests ();
     ]

@@ -1,39 +1,56 @@
-module Str_engine : sig
-  type t = string * Str.regexp
+(*
+   Type that holds the original pattern in PCRE syntax as well as its
+   compiled form.
+*)
+type t
 
-  val show : t -> string
-  val regexp : string -> t
-  val matching_exact_string : string -> t
-  val run : t -> string -> bool
-end
+(* Extract the pattern in PCRE syntax *)
+val pcre_pattern : t -> string
 
-module Pcre_engine : sig
-  type t = string * Pcre.regexp
+(* Extract the compiled regexp *)
+val pcre_regexp : t -> Pcre.regexp
+val show : t -> string
+val equal : t -> t -> bool
+val pp : Format.formatter -> t -> unit
 
-  val show : t -> string
-  val equal : t -> t -> bool
-  val pp : Format.formatter -> t -> unit
+(* will quote special chars in the string *)
+val matching_exact_string : string -> t
 
-  (* will quote special chars in the string *)
-  val matching_exact_string : string -> t
+(* add the \b around the quoted string *)
+val matching_exact_word : string -> t
 
-  (* add the \b around the quoted string *)
-  val matching_exact_word : string -> t
-  val run : t -> string -> bool
-end
+(* Compile a regexp in PCRE syntax. *)
+val pcre_compile : string -> t
 
-module Re_engine : sig
-  type t = string * Re.t
+(* Match the pattern at the beginning of the string (anchored match) *)
+val anchored_match : t -> string -> bool
 
-  val show : t -> string
-  val pp : Format.formatter -> t -> unit
-  val matching_exact_string : string -> t
-  val regexp : string -> t
+(* Match the pattern at any position in the string (unanchored match) *)
+val unanchored_match : t -> string -> bool
 
-  (* nice! *)
-  val alt : t -> t -> t
+(*
+   Hack used for -filter_irrelevant_rules and metavariable-regex.
 
-  (* Warning: Returns false in case of an exception. This is not necessarily
-     always desired. *)
-  val run : t -> string -> bool
-end
+   We want to translate a regexp meant to match a metavariable into a regexp
+   that matches at least in the same spots when applied to the whole
+   target file. It may match more but not less.
+
+   Rewrite a pattern to remove assertions that match the beginning or the
+   end of strings. This is done to patterns that apply to a substring
+   of the target file (the value of a metavariable) because e.g. ^
+   matches at the beginning of the substring but not match at the same
+   location in the target file.
+
+   The built-in assertions that match the beginning or the end of a string
+   are: ^ $ \A \Z \z
+   If we're not sure whether these assertions were removed, the result
+   is None. For example the pattern '(?:a|^)' requires proper parsing
+   and analysis to rewrite it as '(?:a|(?<=\n))', while '[^x]' and
+   '[a-z^]' should be left untouched. In those cases where '^' is present but
+   not at the beginning or end of the pattern, the result of the function
+   will be None.
+*)
+val remove_end_of_string_assertions : t -> t option
+
+(* for testing *)
+val remove_end_of_string_assertions_from_string : string -> string option

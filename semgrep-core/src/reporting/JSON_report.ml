@@ -24,6 +24,7 @@ module RP = Report
 open Pattern_match
 module SJ = Output_from_core_j (* JSON conversions *)
 module Out = Output_from_core_t (* atdgen definitions *)
+module OutH = Output_from_core_util
 
 (*****************************************************************************)
 (* Unique ID *)
@@ -60,30 +61,6 @@ let unique_id any =
 (* JSON *)
 (*****************************************************************************)
 
-(* pfff (and Emacs) have the first column at index 0, but not r2c *)
-let adjust_column x = x + 1
-
-let position_of_token_location loc =
-  {
-    Out.line = loc.PI.line;
-    col = adjust_column loc.PI.column;
-    offset = loc.PI.charpos;
-  }
-
-let position_range min_loc max_loc =
-  let len_max = String.length max_loc.PI.str in
-  (* alt: could call position_of_token_location but more symetric like that*)
-  ( {
-      Out.line = min_loc.PI.line;
-      col = adjust_column min_loc.PI.column;
-      offset = min_loc.PI.charpos;
-    },
-    {
-      Out.line = max_loc.PI.line;
-      col = adjust_column (max_loc.PI.column + len_max);
-      offset = max_loc.PI.charpos + len_max;
-    } )
-
 let range_of_any_opt startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
   match any with
@@ -98,7 +75,7 @@ let range_of_any_opt startp_of_match_range any =
   | _ ->
       let ( let* ) = Common.( >>= ) in
       let* min_loc, max_loc = V.range_of_any_opt any in
-      let startp, endp = position_range min_loc max_loc in
+      let startp, endp = OutH.position_range min_loc max_loc in
       Some (startp, endp)
 
 let metavar_string_of_any any =
@@ -164,7 +141,7 @@ let metavars startp_of_match_range (s, mval) =
 let match_to_match x =
   try
     let min_loc, max_loc = x.range_loc in
-    let startp, endp = position_range min_loc max_loc in
+    let startp, endp = OutH.position_range min_loc max_loc in
     Left
       ({
          Out.rule_id = x.rule_id.id;
@@ -200,13 +177,12 @@ let error_to_error err =
     | E.Warning -> SJ.Warning
   in
   let file = err.E.loc.PI.file in
-  let startp, endp = position_range err.E.loc err.E.loc in
+  let startp, endp = OutH.position_range err.E.loc err.E.loc in
   let rule_id = err.E.rule_id in
   let error_type = err.E.typ in
   let severity = severity_of_severity (E.severity_of_error err.E.typ) in
   let message = err.E.msg in
   let details = err.E.details in
-  let yaml_path = err.E.yaml_path in
   {
     Out.error_type;
     rule_id;
@@ -214,7 +190,6 @@ let error_to_error err =
     location = { path = file; start = startp; end_ = endp };
     message;
     details;
-    yaml_path;
   }
 
 let json_time_of_profiling_data profiling_data =
@@ -263,7 +238,7 @@ let match_results_of_matches_and_errors files res =
                    {
                      Out.rule_id;
                      details = Rule.string_of_invalid_rule_error_kind kind;
-                     position = position_of_token_location loc;
+                     position = OutH.position_of_token_location loc;
                    })));
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.final_profiling |> Option.map json_time_of_profiling_data;

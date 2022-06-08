@@ -150,88 +150,62 @@ let literal (env : env) (x : CST.literal) =
   | `False tok -> Bool (false, token env tok) (* "false" *)
   | `Char_lit tok -> Char (str env tok) (* character_literal *)
   | `Str_lit tok -> String (string_literal env tok) (* string_literal *)
-  | `Null_lit tok -> Null (token env tok)
+  | `Null_lit tok -> Null (token env tok) (* "null" *)
+  (* TODO: remove enclosing triple quotes? *)
+  | `Text_blk tok -> TextBlock (str env tok)
 
-(* "null" *)
+(* TODO: add in AST *)
+let module_directive (env : env) (v : CST.module_directive) : unit =
+  match v with
+  | `Requis_module_dire (v1, v2, v3, v4) ->
+      let _v1 = token env v1 (* "requires" *) in
+      let _v2 = Common.map (requires_modifier env) v2 in
+      let _v3 = qualifier_extra env v3 in
+      let _v4 = token env v4 (* ";" *) in
+      ()
+  | `Exports_module_dire (v1, v2, v3, v4) ->
+      let _v1 = token env v1 (* "exports" *) in
+      let _v2 = qualifier_extra env v2 in
+      let _v3 =
+        match v3 with
+        | Some _TODO -> Some () (* "to" *)
+        | None -> None
+      in
+      let _v4 = token env v4 (* ";" *) in
+      ()
+  | `Opens_module_dire (v1, v2, v3, v4) ->
+      let _v1 = token env v1 (* "opens" *) in
+      let _v2 = qualifier_extra env v2 in
+      let _v3 =
+        match v3 with
+        | Some _ -> Some () (* "to" *)
+        | None -> None
+      in
+      let _v4 = token env v4 (* ";" *) in
+      ()
+  | `Uses_module_dire (v1, v2, v3) ->
+      let _v1 = token env v1 (* "uses" *) in
+      let _v2 = qualifier_extra env v2 in
+      let _v3 = token env v3 (* ";" *) in
+      ()
+  | `Provis_module_dire (v1, v2, v3, v4, v5, v6) ->
+      let _v1 = token env v1 (* "provides" *) in
+      let _v2 = qualifier_extra env v2 in
+      let _v3 = token env v3 (* "with" *) in
+      let _v4 = qualifier_extra env v4 in
+      let _v5 =
+        Common.map
+          (fun (v1, v2) ->
+            let _v1 = token env v1 (* "," *) in
+            let v2 = qualifier_extra env v2 in
+            v2)
+          v5
+      in
+      let _v6 = token env v6 (* ";" *) in
+      ()
 
-let module_directive (env : env) ((v1, v2) : CST.module_directive) =
-  let _v1 =
-    match v1 with
-    | `Requis_rep_requis_modi_choice_id (v1, v2, v3) ->
-        let _v1 = token env v1 (* "requires" *) in
-        let _v2 = Common.map (requires_modifier env) v2 in
-        let _v3 = qualifier_extra env v3 in
-        ()
-    | `Exports_choice_id_opt_to_opt_choice_id_rep_COMMA_choice_id
-        (v1, v2, v3, v4, v5) ->
-        let _v1 = token env v1 (* "exports" *) in
-        let _v2 = qualifier_extra env v2 in
-        let _v3 =
-          match v3 with
-          | Some tok -> Some (token env tok) (* "to" *)
-          | None -> None
-        in
-        let _v4 =
-          match v4 with
-          | Some x -> Some (qualifier_extra env x)
-          | None -> None
-        in
-        let _v5 =
-          Common.map
-            (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = qualifier_extra env v2 in
-              v2)
-            v5
-        in
-        ()
-    | `Opens_choice_id_opt_to_opt_choice_id_rep_COMMA_choice_id
-        (v1, v2, v3, v4, v5) ->
-        let _v1 = token env v1 (* "opens" *) in
-        let _v2 = qualifier_extra env v2 in
-        let _v3 =
-          match v3 with
-          | Some tok -> Some (token env tok) (* "to" *)
-          | None -> None
-        in
-        let _v4 =
-          match v4 with
-          | Some x -> Some (qualifier_extra env x)
-          | None -> None
-        in
-        let _v5 =
-          Common.map
-            (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = qualifier_extra env v2 in
-              v2)
-            v5
-        in
-        ()
-    | `Uses_choice_id (v1, v2) ->
-        let _v1 = token env v1 (* "uses" *) in
-        let _v2 = qualifier_extra env v2 in
-        ()
-    | `Provis_choice_id_with_choice_id_rep_COMMA_choice_id (v1, v2, v3, v4, v5)
-      ->
-        let _v1 = token env v1 (* "provides" *) in
-        let _v2 = qualifier_extra env v2 in
-        let _v3 = token env v3 (* "with" *) in
-        let _v4 = qualifier_extra env v4 in
-        let _v5 =
-          Common.map
-            (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = qualifier_extra env v2 in
-              v2)
-            v5
-        in
-        ()
-  in
-  let _v2 = token env v2 (* ";" *) in
-  ()
-
-let module_body (env : env) ((v1, v2, v3) : CST.module_body) =
+(* TODO: add in AST *)
+let module_body (env : env) ((v1, v2, v3) : CST.module_body) : unit =
   let _v1 = token env v1 (* "{" *) in
   let _v2 = Common.map (module_directive env) v2 in
   let _v3 = token env v3 (* "}" *) in
@@ -1285,7 +1259,7 @@ and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
   (v2, v3, v4)
 
 and class_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) : class_decl =
+    ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.class_declaration) : class_decl =
   let v1 =
     match v1 with
     | Some x -> modifiers env x
@@ -1308,7 +1282,12 @@ and class_declaration (env : env)
     | Some x -> super_interfaces env x
     | None -> []
   in
-  let v7 = class_body env v7 in
+  let _v7 =
+    match v7 with
+    | Some x -> map_permits env x
+    | None -> []
+  in
+  let v8 = class_body env v8 in
   {
     cl_name = v3;
     cl_kind = (ClassRegular, v2);
@@ -1317,8 +1296,13 @@ and class_declaration (env : env)
     cl_extends = v5;
     cl_impls = v6;
     cl_formals = [];
-    cl_body = v7;
+    cl_body = v8;
   }
+
+and map_permits (env : env) ((v1, v2) : CST.permits) =
+  let _v1 = (* "permits" *) token env v1 in
+  let v2 = interface_type_list env v2 in
+  v2
 
 and modifiers (env : env) (xs : CST.modifiers) =
   Common.map
@@ -1338,8 +1322,9 @@ and modifiers (env : env) (xs : CST.modifiers) =
       | `Sync tok -> (Synchronized, token env tok) (* "synchronized" *)
       | `Native tok -> (Native, token env tok) (* "native" *)
       | `Tran tok -> (Transient, token env tok) (* "transient" *)
-      | `Vola tok -> (Volatile, token env tok)
-      (* "volatile" *))
+      | `Vola tok -> (Volatile, token env tok) (* "volatile" *)
+      | `NonD tok -> (NonSealed, token env tok)
+      | `Sealed tok -> (Sealed, token env tok))
     xs
 
 and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
@@ -1390,7 +1375,8 @@ and super_interfaces (env : env) ((v1, v2) : CST.super_interfaces) =
   let v2 = interface_type_list env v2 in
   v2
 
-and interface_type_list (env : env) ((v1, v2) : CST.interface_type_list) =
+(* called just type_list now in grammar.js after 'permits' introduction *)
+and interface_type_list (env : env) ((v1, v2) : CST.type_list) =
   let v1 = type_ env v1 in
   let v2 =
     Common.map
@@ -1560,7 +1546,7 @@ and default_value (env : env) ((v1, v2) : CST.default_value) =
   ((DefaultModifier, v1), v2)
 
 and interface_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6) : CST.interface_declaration) : class_decl =
+    ((v1, v2, v3, v4, v5, v6, v7) : CST.interface_declaration) : class_decl =
   let v1 =
     match v1 with
     | Some x -> modifiers env x
@@ -1578,7 +1564,12 @@ and interface_declaration (env : env)
     | Some x -> extends_interfaces env x
     | None -> []
   in
-  let v6 = interface_body env v6 in
+  let _v6TODO =
+    match v6 with
+    | Some x -> map_permits env x
+    | None -> []
+  in
+  let v7 = interface_body env v7 in
   {
     cl_name = v3;
     cl_kind = (Interface, v2);
@@ -1587,7 +1578,7 @@ and interface_declaration (env : env)
     cl_extends = None;
     cl_impls = v5;
     cl_formals = [];
-    cl_body = v6;
+    cl_body = v7;
   }
 
 and extends_interfaces (env : env) ((v1, v2) : CST.extends_interfaces) =
