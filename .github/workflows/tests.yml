@@ -99,7 +99,7 @@ jobs:
 
       - name: Push image
         uses: docker/build-push-action@v3
-        if: github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository)
+        if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
