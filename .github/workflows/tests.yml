@@ -27,8 +27,6 @@ jobs:
         run: git config --global fetch.parallel 50
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
       - id: core-cache
@@ -36,7 +34,12 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**') }}-${{ hashFiles('**/.github/workflows/**') }}"
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**') }}-${{ hashFiles('.github/workflows/**') }}"
+      - name: Checkout
+        uses: actions/checkout@v3
+        if: steps.core-cache.outputs.cache-hit != 'true'
+        with:
+          submodules: recursive
       - name: Install pipenv
         if: steps.core-cache.outputs.cache-hit != 'true'
         run: sudo pip install pipenv
