@@ -28,6 +28,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: fixed bug where typed patterns inside classes caused an exception during name resolution
 - metavariable-regex: patterns are now unanchored as specified by the
   documentation (#4807)
+- When a logged in CI scan encounters a Git failure,
+  we now print a helpful error message instead of a traceback.
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 

@@ -5,9 +5,11 @@ import urllib.parse
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
+from textwrap import dedent
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import Sequence
 
 from boltons.cacheutils import cachedproperty
 from glom import glom
@@ -15,10 +17,35 @@ from glom import T
 from glom.core import TType
 
 from semgrep import __VERSION__
+from semgrep.error import SemgrepError
 from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def git_check_output(command: Sequence[str]) -> str:
+    try:
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+        return subprocess.check_output(
+            command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
+        ).strip()
+    except subprocess.CalledProcessError:
+        command_str = " ".join(command)
+        raise SemgrepError(
+            dedent(
+                f"""
+                Failed to run '{command_str}'. Possible reasons:
+
+                - the git binary is not available
+                - the current working directory is not a git repository
+                - the current working directory is not marked as safe
+                    (fix with `git config --global --add safe.directory $(pwd)`)
+
+                Try running the command yourself to debug the issue.
+                """
+            ).strip()
+        )
 
 
 @dataclass
@@ -67,9 +94,7 @@ class GitMeta:
         if commit:
             return commit
 
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], encoding="utf-8", timeout=GIT_SH_TIMEOUT
-        ).strip()
+        return git_check_output(["git", "rev-parse", "HEAD"])
 
     @property
     def head_ref(self) -> Optional[str]:
@@ -98,13 +123,7 @@ class GitMeta:
             return branch
 
         try:
-            rev_parse = subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                capture_output=True,
-                encoding="utf-8",
-                timeout=GIT_SH_TIMEOUT,
-            )
-            return rev_parse.stdout.strip()
+            return git_check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
         except Exception as e:
             logger.debug(f"Could not get branch name using git: {e}")
             return None
@@ -117,32 +136,12 @@ class GitMeta:
         """
         Returns epoch time as str of head commit
         """
-        return subprocess.check_output(
-            ["git", "show", "-s", "--format=%ct"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
+        return git_check_output(["git", "show", "-s", "--format=%ct"])
 
     def to_dict(self) -> Dict[str, Any]:
-        commit_title = subprocess.check_output(
-            ["git", "show", "-s", "--format=%B"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
-        commit_author_email = subprocess.check_output(
-            ["git", "show", "-s", "--format=%ae"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
-        commit_author_name = subprocess.check_output(
-            ["git", "show", "-s", "--format=%an"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
+        commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
+        commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
+        commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
 
         return {
             "semgrep_version": __VERSION__,
