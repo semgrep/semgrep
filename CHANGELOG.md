@@ -19,6 +19,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   when there are findings but none of them being blockers
 - Java: support for Sealed classes and Text Blocks via tree-sitter-java
   (#3787, #4644)
+- The JUnit XML output should serialize the failure messages as a single
+  string instead of a python list of strings.
 - Typescript: update to latest tree-sitter-typescript, with support
   for 'abstract' modifier in more places
 - Scala: stop parsing parenthesized expressions as unary tuples
@@ -122,8 +124,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the imported name (#3964)
 - Constant propagation is now faster and memory efficient when analyzing
   large functions with lots of variables.
-- The JUnit XML output should serialize the failure messages as a single
-  string instead of a python list of strings.
 
 ## [0.94.0](https://github.com/returntocorp/semgrep/releases/tag/v0.94.0) - 2022-05-25
 
