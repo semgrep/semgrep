@@ -1,5 +1,4 @@
 import json
-from subprocess import CalledProcessError
 
 import pytest
 
@@ -17,10 +16,9 @@ from tests.conftest import _clean_stdout
     ],
 )
 def test_validation_of_invalid_rules(run_semgrep_in_tmp, snapshot, rule, target):
-    with pytest.raises(CalledProcessError) as exc_info:
-        run_semgrep_in_tmp(rule, target_name=target)
+    stdout, _ = run_semgrep_in_tmp(rule, target_name=target, assert_exit_code={2, 7})
 
-    semgrep_json_output = json.loads(_clean_stdout(exc_info.value.stdout))
+    semgrep_json_output = json.loads(_clean_stdout(stdout))
 
     snapshot.assert_match(
         json.dumps(semgrep_json_output, indent=2, sort_keys=True), "results.json"

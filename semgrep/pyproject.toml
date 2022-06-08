@@ -1,0 +1,27 @@
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = [
+    "tests/unit",
+    "tests/e2e",
+    "tests/consistency",
+]
+markers = [
+    "quick: test takes less than 100 ms",
+    "kinda_slow: test takes up to 2s",
+    "slow: test takes more than 2s",
+]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py37, py38, py39, py310, py311
+
+[testenv]
+allowlist_externals = pipenv
+commands =
+    pipenv install --dev
+    pipenv run pytest -n auto -vv --tb=short
+setenv =
+    # suppress a pipenv warning about using the active env
+    PIPENV_VERBOSITY = -1
+"""

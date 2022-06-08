@@ -17,6 +17,6 @@ def test_dump_ast_no_lang(run_semgrep_in_tmp, snapshot):
         "rules/eqeq.yaml",
         target_name="basic/stupid.py",
         options=["--dump-ast", "python"],
-        fail_on_nonzero=False,
+        assert_exit_code=2,
     )
     snapshot.assert_match(stderr, "error.txt")

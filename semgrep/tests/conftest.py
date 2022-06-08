@@ -1,9 +1,6 @@
-import contextlib
 import json
 import os
-import re
-import subprocess
-import sys
+import shlex
 import tempfile
 from pathlib import Path
 from shutil import copytree
@@ -13,28 +10,22 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from typing import Tuple
 from typing import Union
 
 import pytest
+from click.testing import CliRunner
 
 from semgrep import __VERSION__
+from semgrep.cli import cli
 from semgrep.constants import OutputFormat
 
 TESTS_PATH = Path(__file__).parent
 
-MASKED_KEYS = [
-    "tool.driver.semanticVersion",
-    "results.extra.metavars.*.unique_id.md5sum",
-    "results.*.checks.*.matches",
-]
-
 
 def mark_masked(obj, path):
-    _mark_masked(obj, path.split("."))
-
-
-def _mark_masked(obj, path_items):
+    path_items = path.split(".")
     key = path_items[0]
     if len(path_items) == 1 and key in obj:
         obj[key] = "<masked in tests>"
@@ -51,7 +42,7 @@ def _mark_masked(obj, path_items):
             next_objs = next_obj
         for o in next_objs:
             if isinstance(o, dict):
-                _mark_masked(o, path_items[1:])
+                mark_masked(o, ".".join(path_items[1:]))
 
 
 def _clean_stdout(out):
@@ -75,7 +66,13 @@ def _clean_stdout(out):
 def _clean_output_json(output_json: str) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     output = json.loads(output_json)
-    for path in MASKED_KEYS:
+
+    masked_keys = [
+        "tool.driver.semanticVersion",
+        "results.extra.metavars.*.unique_id.md5sum",
+        "results.*.checks.*.matches",
+    ]
+    for path in masked_keys:
         mark_masked(output, path)
 
     # Remove temp file paths
@@ -135,29 +132,6 @@ CLEANERS: Mapping[str, Callable[[str], str]] = {
 }
 
 
-def _mask_times(result_json: str) -> str:
-    result = json.loads(result_json)
-
-    def zero_times(value):
-        if type(value) == float:
-            return 2.022
-        elif type(value) == list:
-            return [zero_times(val) for val in value]
-        elif type(value) == dict:
-            return {k: zero_times(v) for k, v in value.items()}
-        else:
-            return value
-
-    if "time" in result:
-        result["time"] = zero_times(result["time"])
-    return json.dumps(result, indent=2, sort_keys=True)
-
-
-def _mask_floats(text_output: str) -> str:
-    FLOATS = re.compile("([0-9]+).([0-9]+)")
-    return re.sub(FLOATS, "x.xxx", text_output)
-
-
 def _run_semgrep(
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
@@ -167,10 +141,11 @@ def _run_semgrep(
     strict: bool = True,
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
-    fail_on_nonzero: bool = True,
+    assert_exit_code: Union[None, int, Set[int]] = 0,
     settings_file: Optional[str] = None,
     force_color: Optional[bool] = None,
     assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
+    force_metrics_off: bool = True,
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -186,15 +161,13 @@ def _run_semgrep(
     # If delete_setting_file is false and a settings file doesnt exist, put a default
     # as we are not testing said setting. Note that if Settings file exists we want to keep it
     # Use a unique settings file so multithreaded pytest works well
-
-    if not env:
-        env = {}
+    env = {} if not env else env.copy()
 
     if force_color:
         env["SEMGREP_FORCE_COLOR"] = "true"
 
     if "SEMGREP_USER_AGENT_APPEND" not in env:
-        env["SEMGREP_USER_AGENT_APPEND"] = "testing"
+        env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
 
     if not settings_file:
         unique_settings_file = tempfile.NamedTemporaryFile().name
@@ -214,6 +187,8 @@ def _run_semgrep(
         options.append("--quiet")
 
     options.append("--disable-version-check")
+    if force_metrics_off:
+        options.append("--metrics=off")
 
     if config is not None:
         if isinstance(config, list):
@@ -233,56 +208,35 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "semgrep",
-        *options,
-        (Path("targets") / target_name if assume_targets_dir else Path(target_name)),
-    ]
-    # join here so that one can easily copy-paste the command
-    str_cmd = " ".join(str(c) for c in cmd)
-    print(f"current directory: {os.getcwd()}")
-    print(f"semgrep command: {str_cmd}")
-    output = subprocess.run(
-        cmd,
-        encoding="utf-8",
-        capture_output=True,
-        env=env,
-    )
+    target = Path("targets") / target_name if assume_targets_dir else Path(target_name)
+    args = " ".join(shlex.quote(str(c)) for c in [*options, target])
 
-    if fail_on_nonzero and output.returncode > 0:
-        print("--- stdout from semgrep process ---")
-        print(output.stdout)
-        print("--- end semgrep stdout ---")
-        print("--- stderr from semgrep process ---")
-        print(output.stderr)
-        print("--- end semgrep stderr ---")
-        raise subprocess.CalledProcessError(
-            returncode=output.returncode,
-            cmd=str_cmd,
-            output=output.stdout,
-            stderr=output.stderr,
-        )
+    runner = CliRunner(env=env, mix_stderr=False)
+    result = runner.invoke(cli, args)
+
+    # some helpful output for reproducing issues
+    env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
+    print(f"### COMMANDS")
+    print(f"$ cd {os.getcwd()}")
+    print(f"$ {env_string} semgrep {args}")
+    print("### STDOUT")
+    print(result.stdout)
+    print("### STDERR")
+    print(result.stderr)
+    print("### END\n")
+
+    if isinstance(assert_exit_code, set):
+        assert result.exit_code in assert_exit_code
+    elif isinstance(assert_exit_code, int):
+        assert result.exit_code == assert_exit_code
 
     stdout = (
-        _clean_output_json(output.stdout)
-        if output.stdout and output_format.is_json()
-        else output.stdout
+        _clean_output_json(result.stdout)
+        if result.stdout and output_format.is_json()
+        else result.stdout
     )
 
-    return stdout, output.stderr
-
-
-@contextlib.contextmanager
-def chdir(dirname=None):
-    curdir = os.getcwd()
-    try:
-        if dirname is not None:
-            os.chdir(dirname)
-        yield
-    finally:
-        os.chdir(curdir)
+    return stdout, result.stderr
 
 
 @pytest.fixture

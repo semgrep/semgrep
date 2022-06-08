@@ -17,6 +17,6 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
         options=["--verbose"],
         output_format=OutputFormat.TEXT,
         force_color=True,
-        fail_on_nonzero=False,
+        assert_exit_code=3,
     )
     snapshot.assert_match(stderr, "error.txt")

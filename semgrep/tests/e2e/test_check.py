@@ -2,14 +2,31 @@ import json
 import subprocess
 import tempfile
 from pathlib import Path
-from subprocess import CalledProcessError
 
 import pytest
 
 from semgrep.constants import OutputFormat
 from tests.conftest import _clean_output_json
 from tests.conftest import _clean_stdout
-from tests.conftest import _mask_times
+
+
+def _mask_times(result_json: str) -> str:
+    result = json.loads(result_json)
+
+    def zero_times(value):
+        if type(value) == float:
+            return 2.022
+        elif type(value) == list:
+            return [zero_times(val) for val in value]
+        elif type(value) == dict:
+            return {k: zero_times(v) for k, v in value.items()}
+        else:
+            return value
+
+    if "time" in result:
+        result["time"] = zero_times(result["time"])
+    return json.dumps(result, indent=2, sort_keys=True)
+
 
 GITHUB_TEST_GIST_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -213,11 +230,14 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_auto_config(run_semgrep_in_tmp):
+def test_auto_config(run_semgrep_in_tmp, mocker):
     # --config auto will change over time, so lets just make sure this doesn't error out
     # TODO: Mock config response for more detailed testing
     # Use --no-strict to avoid error from unmatched nosem comment
-    run_semgrep_in_tmp("auto", strict=False)
+    mocker.patch("semgrep.metrics.Metrics.send")
+    run_semgrep_in_tmp(
+        "auto", target_name="auto", force_metrics_off=False, strict=False
+    )
     assert True
 
 
@@ -228,15 +248,13 @@ def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
 
 @pytest.mark.kinda_slow
 def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/hidden")[0]
-    assert excinfo.value.returncode == 7
-    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
+    stdout, _ = run_semgrep_in_tmp("rules/hidden", assert_exit_code=7)
+    snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/hidden", output_format=OutputFormat.TEXT)[0]
-    assert excinfo.value.returncode == 7
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    _, stderr = run_semgrep_in_tmp(
+        "rules/hidden", output_format=OutputFormat.TEXT, assert_exit_code=7
+    )
+    snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow
@@ -329,11 +347,9 @@ def test_regex_rule__issue2465(run_semgrep_in_tmp, snapshot):
 
 @pytest.mark.kinda_slow
 def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/regex-invalid.yaml")[0]
-    assert excinfo.value.returncode == 2
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
-    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
+    stdout, stderr = run_semgrep_in_tmp("rules/regex-invalid.yaml", assert_exit_code=2)
+    snapshot.assert_match(stderr, "error.txt")
+    snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
 
 @pytest.mark.kinda_slow
@@ -396,14 +412,13 @@ def test_regex_with_any_language_multiple_rule(run_semgrep_in_tmp, snapshot):
 
 @pytest.mark.kinda_slow
 def test_invalid_regex_with_any_language_rule(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(
-            "rules/regex-any-language-invalid.yaml",
-            target_name="basic/regex-any-language.html",
-        )
-    assert excinfo.value.returncode not in (0, 1)
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
-    snapshot.assert_match(_clean_stdout(excinfo.value.stdout), "error.json")
+    stdout, stderr = run_semgrep_in_tmp(
+        "rules/regex-any-language-invalid.yaml",
+        target_name="basic/regex-any-language.html",
+        assert_exit_code=7,
+    )
+    snapshot.assert_match(stderr, "error.txt")
+    snapshot.assert_match(_clean_stdout(stdout), "error.json")
 
 
 @pytest.mark.kinda_slow
@@ -456,14 +471,7 @@ def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
     stdout, stderr = run_semgrep_in_tmp(
         config=None,
         target_name="spacegrep_timeout/gnu-lgplv2.txt",
-        options=[
-            "--lang",
-            "generic",
-            "--pattern",
-            pattern,
-            "--timeout",
-            "1",
-        ],
+        options=["--lang=generic", "--pattern", pattern, "--timeout=1"],
         output_format=OutputFormat.TEXT,
         strict=False,  # don't fail due to timeout
     )

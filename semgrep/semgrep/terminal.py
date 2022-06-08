@@ -19,8 +19,21 @@ class Terminal:
     force_color_off: bool = False
     log_level: int = logging.INFO
 
+    def __attrs_post_init__(self) -> None:
+        # provision with default config so that tests can immediately capture logging output
+        self.configure()
+
+    def init_for_cli(self) -> None:
+        """Call this when semgrep is invoked as a CLI as opposed to a library."""
+        self.configure(quiet=False)
+
     def configure(
-        self, *, verbose: bool, debug: bool, quiet: bool, force_color: bool
+        self,
+        *,
+        verbose: bool = False,
+        debug: bool = False,
+        quiet: bool = True,
+        force_color: bool = False,
     ) -> None:
         """Set the relevant logging levels"""
         # Assumes only one of verbose, debug, quiet is True

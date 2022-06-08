@@ -63,105 +63,106 @@ def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
 
 @pytest.mark.kinda_slow
 @mark.parametrize(
-    "config,options,env,should_send",
+    "config,metrics_flag,metrics_env,should_send",
     [
-        ("rules/eqeq.yaml", [], {}, False),
-        ("r/python.lang.correctness.useless-eqeq.useless-eqeq", [], {}, True),
-        ("rules/eqeq.yaml", ["--metrics", "auto"], {}, False),
+        ("rules/eqeq.yaml", None, None, False),
+        ("r/python.lang.correctness.useless-eqeq.useless-eqeq", None, None, True),
+        ("rules/eqeq.yaml", "auto", None, False),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            ["--metrics", "auto"],
-            {},
+            "auto",
+            None,
             True,
         ),
-        ("rules/eqeq.yaml", ["--metrics", "on"], {}, True),
+        ("rules/eqeq.yaml", "on", None, True),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            ["--metrics", "on"],
-            {},
+            "on",
+            None,
             True,
         ),
-        ("rules/eqeq.yaml", ["--metrics", "off"], {}, False),
+        ("rules/eqeq.yaml", "off", None, False),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            ["--metrics", "off"],
-            {},
+            "off",
+            None,
             False,
         ),
-        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "auto"}, False),
+        ("rules/eqeq.yaml", None, "auto", False),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            [],
-            {"SEMGREP_SEND_METRICS": "auto"},
+            None,
+            "auto",
             True,
         ),
-        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "off"}, False),
+        ("rules/eqeq.yaml", None, "off", False),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            [],
-            {"SEMGREP_SEND_METRICS": "off"},
+            None,
+            "off",
             False,
         ),
-        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}, True),
+        ("rules/eqeq.yaml", None, "on", True),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            [],
-            {"SEMGREP_SEND_METRICS": "on"},
+            None,
+            "on",
             True,
         ),
         (
             "rules/eqeq.yaml",
-            ["--metrics", "auto"],
-            {"SEMGREP_SEND_METRICS": "on"},
+            "auto",
+            "on",
             False,
         ),
         (
             "r/python.lang.correctness.useless-eqeq.useless-eqeq",
-            ["--metrics", "auto"],
-            {"SEMGREP_SEND_METRICS": "off"},
+            "auto",
+            "off",
             True,
         ),
     ],
 )
 def test_flags(
-    run_semgrep_in_tmp, mock_config_request, config, options, env, should_send
+    run_semgrep_in_tmp,
+    mock_config_request,
+    config,
+    metrics_flag,
+    metrics_env,
+    should_send,
 ):
     """
     Test that we try to send metrics when we should be
     """
-    _, output = run_semgrep_in_tmp(
+    options = ["--metrics", metrics_flag] if metrics_flag is not None else []
+    env = {"SEMGREP_SEND_METRICS": metrics_env} if metrics_env is not None else {}
+    _, stderr = run_semgrep_in_tmp(
         config,
         options=[*options, "--debug"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
+        force_metrics_off=False,
+        env=env,
     )
     if should_send:
-        assert "Sending pseudonymous metrics" in output
-        assert "Not sending pseudonymous metrics" not in output
+        assert "Sending pseudonymous metrics" in stderr
+        assert "Not sending pseudonymous metrics" not in stderr
     else:
-        assert "Sending pseudonymous metrics" not in output
-        assert "Not sending pseudonymous metrics" in output
+        assert "Sending pseudonymous metrics" not in stderr
+        assert "Not sending pseudonymous metrics" in stderr
 
 
 @pytest.mark.kinda_slow
-@mark.parametrize(
-    "config,options,env",
-    [
-        ("rules/eqeq.yaml", [], {"SEMGREP_SEND_METRICS": "on"}),
-    ],
-)
-def test_flags_actual_send(
-    run_semgrep_in_tmp, mock_config_request, config, options, env
-):
+def test_flags_actual_send(run_semgrep_in_tmp):
     """
     Test that the server for metrics sends back success
     """
-    _, output = run_semgrep_in_tmp(
-        config,
-        options=[*options, "--debug"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing", **env},
+    _, stderr = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        options=["--debug"],
+        env={"SEMGREP_SEND_METRICS": "on"},
+        force_metrics_off=False,
     )
-    assert "Sending pseudonymous metrics" in output
-    assert "Failed to send pseudonymous metrics" not in output
+    assert "Sending pseudonymous metrics" in stderr
+    assert "Failed to send pseudonymous metrics" not in stderr
 
 
 @pytest.mark.slow
@@ -169,58 +170,60 @@ def test_legacy_flags(run_semgrep_in_tmp):
     """
     Test metrics sending respects legacy flags. Flags take precedence over envvar
     """
-    _, output = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--enable-metrics"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing"},
+        force_metrics_off=False,
     )
-    assert "Sending pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in stderr
 
-    _, output = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--enable-metrics"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": ""},
+        env={"SEMGREP_SEND_METRICS": ""},
+        force_metrics_off=False,
     )
-    assert "Sending pseudonymous metrics" in output
+    assert "Sending pseudonymous metrics" in stderr
 
-    _, output = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--debug", "--disable-metrics"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing"},
+        force_metrics_off=False,
     )
-    assert "Sending pseudonymous metrics" not in output
+    assert "Sending pseudonymous metrics" not in stderr
 
-    _, output = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--disable-metrics"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": "1"},
-        fail_on_nonzero=False,
+        env={"SEMGREP_SEND_METRICS": "1"},
+        force_metrics_off=False,
+        assert_exit_code=2,
     )
     assert (
         "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        in output
+        in stderr
     )
 
-    _, output = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--disable-metrics"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": "off"},
-        fail_on_nonzero=False,
+        env={"SEMGREP_SEND_METRICS": "off"},
+        force_metrics_off=False,
     )
     assert (
         "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        not in output
+        not in stderr
     )
 
-    _, output = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--enable-metrics"],
-        env={"SEMGREP_USER_AGENT_APPEND": "testing", "SEMGREP_SEND_METRICS": "on"},
-        fail_on_nonzero=False,
+        env={"SEMGREP_SEND_METRICS": "on"},
+        force_metrics_off=False,
     )
     assert (
         "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
-        not in output
+        not in stderr
     )
 
 
