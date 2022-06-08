@@ -17,8 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     steps:
-      - name: Install pipenv
-        run: sudo pip install pipenv
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -33,7 +31,17 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
+      - id: core-cache
+        name: Check if this semgrep-core binary is cached
+        uses: actions/cache@v3
+        with:
+          path: ocaml-build-artifacts.tgz
+          key: "${{ runner.os }}-core-binary-${{ hashFiles('**/semgrep-core/**')}-${{ hashFiles('**/.github/workflows/**') }}"
+      - name: Install pipenv
+        if: steps.core-cache.outputs.cache-hit != 'true'
+        run: sudo pip install pipenv
       - name: Cache OCaml build files
+        if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         with:
           path: |
@@ -46,6 +54,7 @@ jobs:
             semgrep-core/_build
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
+        if: steps.core-cache.outputs.cache-hit != 'true'
         run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
