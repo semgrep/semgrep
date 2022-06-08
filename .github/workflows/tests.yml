@@ -336,13 +336,6 @@ jobs:
           pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa
         env:
           QA_TESTS_CACHE_PATH: ~/.cache/semgrep-cache
-      - name: Generate cheatsheets for semgrep.dev
-        run: ./scripts/generate-cheatsheet
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: cheatsheet
-          path: cheatsheet.json
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
