@@ -107,7 +107,7 @@ fi
 
 bump
 
-if git status -s | grep -vq 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py\|semgrep-core/src/cli/version.ml; then
+if git status -s | grep -vq 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py\|semgrep-core/src/cli/version.ml'; then
   error <<EOF
 The release branch contains unexpected changes, cancelling release.
 EOF
