@@ -28,7 +28,6 @@ logger = getLogger(__name__)
 
 
 def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
-    final_rule_id = err.rule_id
 
     # Hackily convert the level string to Semgrep expectations
     level_str = err.severity.kind
@@ -60,6 +59,11 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
                 config_path=yaml_path,
             )
         ]
+    # convert PartialParsing in ParseError for now
+    # TODO: extend SemgrepCoreError (in error.py) or cli_error (in Semgrep_output_v0.atd)
+    # to return a better error message to the user about PartialParsing
+    if isinstance(err.error_type.value, core.PartialParsing):
+        err = replace(err, error_type=core.CoreErrorKind(core.ParseError()))
 
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
@@ -67,11 +71,11 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
         err.error_type.value, core.LexicalError
     ):
         code = 3
-        final_rule_id = None  # Rule id not important for parse errors
+        err = replace(err, rule_id=None)  # Rule id not important for parse errors
     else:
         code = 2
 
-    return SemgrepCoreError(code, level, spans, replace(err, rule_id=final_rule_id))
+    return SemgrepCoreError(code, level, spans, err)
 
 
 def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:

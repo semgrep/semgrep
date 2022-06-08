@@ -26,12 +26,8 @@ let parsing_tests_for_lang files lang =
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
-             let { Parse_target.skipped_tokens = errs; _ } =
-               Parse_target.parse_and_resolve_name lang file
-             in
-             if errs <> [] then
-               Alcotest.fail
-                 (String.concat ";" (Common.map E.string_of_error errs)) ))
+             Parse_target.parse_and_resolve_name_fail_if_partial lang file
+             |> ignore ))
 
 let partial_parsing_tests_for_lang files lang =
   files

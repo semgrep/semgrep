@@ -411,16 +411,17 @@ let rec m_name a b =
             _;
           } ) ) -> (
       m_name a (B.Id (idb, B.empty_id_info ()))
-      >||> (* try this time a match with the resolved entity *)
-      m_name a (H.name_of_ids dotted)
       >||>
-      (* Try the parents *)
+      (* Try the resolved entity and parents *)
       match a with
       (* If we're matching against a metavariable, don't bother checking
-       * parents. It will only cause duplicate matches that can't be deduped,
-       * since the captured metavariable will be different. *)
+       * the resolved entity or parents. It will only cause duplicate matches
+       * that can't be deduped, since the captured metavariable will be
+       * different. *)
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-      | _ -> try_parents dotted)
+      | _ ->
+          (* try this time a match with the resolved entity *)
+          m_name a (H.name_of_ids dotted) >||> try_parents dotted)
   (* extension: metatypes *)
   | G.Id (((str, t) as a1), a_info), B.Id (b1, b2) -> (
       (* this will handle metavariables in Id *)

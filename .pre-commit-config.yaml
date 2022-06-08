@@ -166,6 +166,12 @@ repos:
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
+      - id: gitignore-to-dockerignore
+        name: Convert .gitignore to .dockerignore
+        language: node
+        entry: gitignore-to-dockerignore
+        files: ^.(git|docker)ignore$
+        additional_dependencies: ["gitignore-to-dockerignore@2.0.0"]
 
   # Reformat YAML, JSON, and Markdown files
   - repo: https://github.com/pre-commit/mirrors-prettier
