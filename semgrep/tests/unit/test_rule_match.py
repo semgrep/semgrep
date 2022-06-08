@@ -271,27 +271,27 @@ def test_rule_match_set_indexes(mocker):
 
 
 @pytest.mark.quick
-def test_rule_match_to_app_finding(snapshot,mocker):
-    mocker.patch.object(Path, "open", mocker.mock_open(read_data="foo()"))
+def test_rule_match_to_app_finding(snapshot, mocker):
+    mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
     dependency_match = {
         "dependency_pattern": {
             "namespace": "pypi",
             "package_name": "awscli",
-            "semver_range": "== 1.11.82"
+            "semver_range": "== 1.11.82",
         },
         "found_dependency": {
             "allowed_hashes": {
-            "sha256": [
-                "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
-                "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
-            ]
+                "sha256": [
+                    "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
+                    "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb",
+                ]
             },
             "name": "awscli",
             "namespace": "pypi",
             "resolved_url": None,
-            "version": "1.11.82"
+            "version": "1.11.82",
         },
-        "lockfile": "targets/dependency_aware/Pipfile.lock"
+        "lockfile": "targets/dependency_aware/Pipfile.lock",
     }
     match = RuleMatch(
         message="message",
@@ -305,7 +305,10 @@ def test_rule_match_to_app_finding(snapshot,mocker):
             ),
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
-        extra={"dependency_match_only":False, "dependency_matches":[dependency_match]}
+        extra={
+            "dependency_match_only": False,
+            "dependency_matches": [dependency_match],
+        },
     )
     app_finding = match.to_app_finding_format("0").to_json_string()
-    snapshot.assert_match(app_finding,"results.json")
+    snapshot.assert_match(app_finding, "results.json")

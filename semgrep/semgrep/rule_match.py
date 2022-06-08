@@ -293,6 +293,11 @@ class RuleMatch:
 
         if self.extra.get("fixed_lines"):
             ret.fixed_lines = self.extra.get("fixed_lines")
+        if "dependency_match_only" in self.extra and "dependency_matches" in self.extra:
+            ret.sca_info = out.ScaInfo(
+                dependency_match_only=self.extra["dependency_match_only"],
+                dependency_matches=out.RawJson(self.extra["dependency_matches"]),
+            )
         return ret
 
     def __hash__(self) -> int:
