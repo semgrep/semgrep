@@ -225,9 +225,6 @@ jobs:
     strategy:
       matrix:
         python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
-    defaults:
-      run:
-        working-directory: semgrep
     steps:
       - name: Install pipenv
         run: pipx install pipenv==2022.5.2
@@ -243,6 +240,7 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pipenv
       - name: Install Python dependencies
+        working-directory: semgrep
         run: pipenv install --dev
       - name: Download artifacts
         uses: actions/download-artifact@v3
