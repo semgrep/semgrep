@@ -230,11 +230,14 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.slow
-def test_auto_config(run_semgrep_in_tmp):
+def test_auto_config(run_semgrep_in_tmp, mocker):
     # --config auto will change over time, so lets just make sure this doesn't error out
     # TODO: Mock config response for more detailed testing
     # Use --no-strict to avoid error from unmatched nosem comment
-    run_semgrep_in_tmp("auto", force_metrics_off=False, strict=False)
+    mocker.patch("semgrep.metrics.Metrics.send")
+    run_semgrep_in_tmp(
+        "auto", target_name="auto", force_metrics_off=False, strict=False
+    )
     assert True
 
 
