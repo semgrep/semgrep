@@ -12,6 +12,8 @@ on:
       - "**.md"
 
 jobs:
+  # this job completes in 8s while build-core has a ~50s startup time due to its base image
+  # which is why we have this separate job that attempts to skip build-core altogether
   restore-core-cache:
     name: restore cached semgrep-core
     runs-on: ubuntu-latest
