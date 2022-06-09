@@ -41,8 +41,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   comments that follow the specified syntax (C style, C++ style, or
   Shell style) (#3428)
 - Metrics now include a list of features used during an execution.
-  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
-  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
+  Examples of such features are: languages scanned, CLI options passed, keys used in rules,
+  or certain code paths reached, such as using an `:include` instruction in
+  a `.semgrepignore` file.
+  These strings will NOT include user data or specific settings. As an example,
+  with `semgrep scan --output=secret.txt` we might send `"option/output"` but
+  will NOT send `"option/output=secret.txt"`.
 
 ### Changed
 
