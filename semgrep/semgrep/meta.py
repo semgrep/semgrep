@@ -479,7 +479,7 @@ class GitlabMeta(GitMeta):
 class CircleCIMeta(GitMeta):
     """Gather metadata from Circle CI."""
 
-    environment: str = field(default="circle-ci", init=False)
+    environment: str = field(default="circleci", init=False)
 
     @property
     def repo_name(self) -> str:

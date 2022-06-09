@@ -276,7 +276,7 @@ def autofix(request, mocker):
         "github-pr",
         "gitlab",
         "gitlab-push",
-        "circle-ci",
+        "circleci",
         "jenkins",
         "bitbucket",
         "azure-pipelines",
