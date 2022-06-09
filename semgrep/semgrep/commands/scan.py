@@ -845,14 +845,17 @@ def scan(
 
                 # Run metachecks specifically on the config files
                 if config:
-                    metacheck_errors = CoreRunner(
-                        jobs=jobs,
-                        timeout=timeout,
-                        max_memory=max_memory,
-                        timeout_threshold=timeout_threshold,
-                        optimizations=optimizations,
-                        core_opts_str=core_opts,
-                    ).validate_configs(config)
+                    try:
+                        metacheck_errors = CoreRunner(
+                            jobs=jobs,
+                            timeout=timeout,
+                            max_memory=max_memory,
+                            timeout_threshold=timeout_threshold,
+                            optimizations=optimizations,
+                            core_opts_str=core_opts,
+                        ).validate_configs(config)
+                    except SemgrepError as e:
+                        metacheck_errors = [e]
 
                 config_errors = list(chain(config_errors, metacheck_errors))
 
