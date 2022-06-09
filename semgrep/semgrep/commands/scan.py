@@ -297,6 +297,7 @@ _scan_options: List[Callable] = [
         "--enable-version-check/--disable-version-check",
         is_flag=True,
         default=True,
+        envvar="SEMGREP_ENABLE_VERSION_CHECK",
         help="""
             Checks Semgrep servers to see if the latest version is run; disabling this
             may reduce exit time after returning results.

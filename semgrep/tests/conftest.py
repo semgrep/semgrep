@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import shlex
 import tempfile
@@ -161,6 +162,7 @@ ALWAYS_MASK: Maskers = (
     re.compile(r"python (\d+[.]\d+[.]\d+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
+    _clean_output_json,
 )
 
 
@@ -212,6 +214,19 @@ class SemgrepResult:
             for title, text in sections.items()
         )
 
+    def print_debug_info(self) -> None:
+        print(
+            "=== to reproduce (run with `pytest --pdb` to suspend while temp dirs exist)"
+        )
+        print(f"$ cd {os.getcwd()}")
+        print(f"$ {self.command}")
+        print("=== exit code")
+        print(self.exit_code)
+        print("=== stdout")
+        print(self.stdout)
+        print("=== stderr")
+        print(self.stderr)
+
     def __iter__(self):
         """For backwards compat with usages like `stdout, stderr = run_semgrep(...)`"""
         yield self.stdout
@@ -228,10 +243,10 @@ def _run_semgrep(
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
     assert_exit_code: Union[None, int, Set[int]] = 0,
-    settings_file: Optional[str] = None,
     force_color: Optional[bool] = None,
     assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
     force_metrics_off: bool = True,
+    stdin: Optional[str] = None,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -254,15 +269,17 @@ def _run_semgrep(
     # If delete_setting_file is false and a settings file doesnt exist, put a default
     # as we are not testing said setting. Note that if Settings file exists we want to keep it
     # Use a unique settings file so multithreaded pytest works well
-    if not settings_file:
+    if "SEMGREP_SETTINGS_FILE" not in env:
         unique_settings_file = tempfile.NamedTemporaryFile().name
         Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
 
         env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
-    else:
-        env["SEMGREP_SETTINGS_FILE"] = settings_file
     if "SEMGREP_VERSION_CACHE_PATH" not in env:
         env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
+    if "SEMGREP_ENABLE_VERSION_CHECK" not in env:
+        env["SEMGREP_ENABLE_VERSION_CHECK"] = "0"
+    if force_metrics_off and "SEMGREP_SEND_METRICS" not in env:
+        env["SEMGREP_SEND_METRICS"] = "off"
 
     if options is None:
         options = []
@@ -272,10 +289,6 @@ def _run_semgrep(
 
     if quiet:
         options.append("--quiet")
-
-    options.append("--disable-version-check")
-    if force_metrics_off:
-        options.append("--metrics=off")
 
     if config is not None:
         if isinstance(config, list):
@@ -301,29 +314,29 @@ def _run_semgrep(
             Path("targets") / target_name if assume_targets_dir else Path(target_name)
         )
     args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
+    env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
 
     runner = CliRunner(env=env, mix_stderr=False)
-    result = runner.invoke(cli, args)
+    click_result = runner.invoke(cli, args, input=stdin)
+    result = SemgrepResult(
+        f"$ {env_string} semgrep {args}",
+        click_result.stdout,
+        click_result.stderr,
+        click_result.exit_code,
+    )
+    result.print_debug_info()
 
     if isinstance(assert_exit_code, set):
         assert result.exit_code in assert_exit_code
     elif isinstance(assert_exit_code, int):
         assert result.exit_code == assert_exit_code
 
-    stdout = (
-        _clean_output_json(result.stdout)
-        if result.stdout and output_format and output_format.is_json()
-        else result.stdout
-    )
-    env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
-    return SemgrepResult(
-        f"$ {env_string} semgrep {args}", stdout, result.stderr, result.exit_code
-    )
+    return result
 
 
 @pytest.fixture
 def run_semgrep():
-    yield partial(_run_semgrep, target_name=None)
+    yield partial(_run_semgrep, strict=False, target_name=None, output_format=None)
 
 
 @pytest.fixture

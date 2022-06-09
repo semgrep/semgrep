@@ -120,7 +120,7 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
         "rules/eqeq.yaml",
         output_format=OutputFormat.TEXT,
         force_color=True,
-        settings_file=settings_file,
+        env={"SEMGREP_SETTINGS_FILE": settings_file},
     )
     snapshot.assert_match(text_output[0], "output.txt")
     snapshot.assert_match(text_output[1], "error.txt")
@@ -130,7 +130,7 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
         "rules/eqeq.yaml",
         output_format=OutputFormat.TEXT,
         force_color=True,
-        settings_file=settings_file,
+        env={"SEMGREP_SETTINGS_FILE": settings_file},
     )
     snapshot.assert_match(text_output[0], "output_second.txt")
     snapshot.assert_match(text_output[1], "error_second.txt")
@@ -148,7 +148,7 @@ def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
         quiet=True,
         # Pass named temporary file to force metric notice behavior on first scan
         # (but should not see anything cause of --quiet)
-        settings_file=tempfile.NamedTemporaryFile().name,
+        env={"SEMGREP_SETTINGS_FILE": tempfile.NamedTemporaryFile().name},
     )
     snapshot.assert_match(text_output[0], "output.txt")
     snapshot.assert_match(text_output[1], "error.txt")
