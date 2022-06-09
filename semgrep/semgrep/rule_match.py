@@ -92,7 +92,7 @@ class RuleMatch:
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
-    pattern_based_id: str = field(init=False, repr=False)
+    match_based_id: str = field(init=False, repr=False)
 
     # TODO: return a out.RuleId
     @property
@@ -261,22 +261,24 @@ class RuleMatch:
     # metavariable content itself, we remain sensitive to modifications to a
     # match, but we no longer count formatting + line number changs + other
     # things as new findings
-    @pattern_based_id.default
-    def get_pattern_based_id(self) -> str:
+    @match_based_id.default
+    def get_match_based_id(self) -> str:
         try:
             path = self.path.relative_to(Path.cwd())
         except ValueError:
             path = self.path
-        patterns_str = self.match_formula_string
+        match_formula_str = self.match_formula_string
         if self.extra.get("metavars") is not None:
             metavars = self.extra["metavars"]
             for metavar in metavars:
-                patterns_str = patterns_str.replace(
+                match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
-        pattern_id = (patterns_str, path, self.rule_id)
-        pattern_id_str = str(pattern_id)
-        return f"{hashlib.blake2b(str.encode(pattern_id_str)).hexdigest()}_{str(self.index)}"
+        match_id = (match_formula_str, path, self.rule_id)
+        match_id_str = str(match_id)
+        return (
+            f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.index)}"
+        )
 
     @property
     def uuid(self) -> UUID:
@@ -319,7 +321,7 @@ class RuleMatch:
             index=self.index,
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
-            pattern_based_id=self.pattern_based_id,
+            match_based_id=self.match_based_id,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
         )
