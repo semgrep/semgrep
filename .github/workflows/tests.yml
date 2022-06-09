@@ -23,11 +23,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Remove broken symlinks
+        run: find -L . -type l -exec rm {} \;
       - id: cache-key
         name: Get cache key
         run: echo ::set-output name=key::${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-$(git submodule status --cached | sha256sum | cut -d" " -f1)
-      - name: Remove broken symlinks
-        run: find -L . -type l -exec rm {} \;
       - id: core-cache
         name: Check if this semgrep-core binary is cached
         uses: actions/cache@v3
