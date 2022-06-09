@@ -1,6 +1,0 @@
-foo.py:4:5:E:eqeq-bad:useless comparison
-foo.py:5:5:E:eqeq-bad:useless comparison
-foo.py:7:5:E:eqeq-bad:useless comparison
-foo.py:11:5:E:eqeq-bad:useless comparison
-foo.py:19:5:E:eqeq-four:useless comparison to 4
-foo.py:15:5:E:eqeq-five:useless comparison to 5

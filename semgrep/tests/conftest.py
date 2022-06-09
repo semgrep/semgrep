@@ -1,19 +1,23 @@
 import json
-import os
+import re
 import shlex
 import tempfile
+from dataclasses import dataclass
+from functools import partial
+from io import StringIO
 from pathlib import Path
 from shutil import copytree
 from typing import Callable
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
-from typing import Tuple
 from typing import Union
 
+import colorama
 import pytest
 from click.testing import CliRunner
 
@@ -65,7 +69,10 @@ def _clean_stdout(out):
 
 def _clean_output_json(output_json: str) -> str:
     """Make semgrep's output deterministic and nicer to read."""
-    output = json.loads(output_json)
+    try:
+        output = json.loads(output_json)
+    except json.decoder.JSONDecodeError:
+        return output_json
 
     masked_keys = [
         "tool.driver.semanticVersion",
@@ -107,7 +114,12 @@ def _clean_output_json(output_json: str) -> str:
     return json.dumps(output, indent=2, sort_keys=True)
 
 
-def _clean_output_sarif(output):
+def _clean_output_sarif(output_json: str) -> str:
+    try:
+        output = json.loads(output_json)
+    except json.decoder.JSONDecodeError:
+        return output_json
+
     # Rules are logically a set so the JSON list's order doesn't matter
     # we make the order deterministic here so that snapshots match across runs
     # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
@@ -121,23 +133,96 @@ def _clean_output_sarif(output):
     assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
     output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
 
-    return output
+    return json.dumps(output, indent=2, sort_keys=True)
 
 
 CLEANERS: Mapping[str, Callable[[str], str]] = {
-    "--sarif": lambda s: json.dumps(_clean_output_sarif(json.loads(s))),
+    "--sarif": _clean_output_sarif,
     "--gitlab-sast": _clean_output_json,
     "--gitlab-secrets": _clean_output_json,
     "--json": _clean_output_json,
 }
 
 
+Maskers = Iterable[Union[str, re.Pattern, Callable[[str], str]]]
+
+
+def mask_capture_group(match: re.Match) -> str:
+    if not match.groups():
+        return "<MASKED>"
+    text: str = match.group()
+    for group in match.groups():
+        text = text.replace(group, "<MASKED>")
+    return text
+
+
+ALWAYS_MASK: Maskers = (
+    __VERSION__,
+    re.compile(r"python (\d+[.]\d+[.]\d+)"),
+    re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
+)
+
+
+@dataclass
+class SemgrepResult:
+    command: str
+    stdout: str
+    stderr: str
+    exit_code: int
+
+    def strip_color(self, text: str) -> str:
+        stream = StringIO()
+        desaturator = colorama.AnsiToWin32(stream, strip=True)
+        desaturator.write(text)
+        stream.seek(0)
+        return stream.read()
+
+    def mask_text(self, text: str, mask: Optional[Maskers]) -> str:
+        if mask is None:
+            mask = []
+        for pattern in [*mask, *ALWAYS_MASK]:
+            if isinstance(pattern, str):
+                text = text.replace(pattern, "<MASKED>")
+            elif isinstance(pattern, re.Pattern):
+                text = pattern.sub(mask_capture_group, text)
+            elif callable(pattern):
+                text = pattern(text)
+        return text
+
+    def as_snapshot(self, mask: Optional[Maskers] = None):
+        stdout = self.mask_text(self.stdout, mask)
+        stderr = self.mask_text(self.stderr, mask)
+        sections = {
+            "command": self.mask_text(self.command, mask),
+            "exit code": self.exit_code,
+            "stdout - plain": self.strip_color(stdout),
+            "stderr - plain": self.strip_color(stderr),
+            "stdout - color": stdout,
+            "stderr - color": stderr,
+        }
+        if (
+            sections["stdout - plain"] == sections["stdout - color"]
+            and sections["stderr - plain"] == sections["stderr - color"]
+        ):
+            del sections["stdout - color"]
+            del sections["stderr - color"]
+        return "\n\n".join(
+            f"=== {title}\n{text}\n=== end of {title}"
+            for title, text in sections.items()
+        )
+
+    def __iter__(self):
+        """For backwards compat with usages like `stdout, stderr = run_semgrep(...)`"""
+        yield self.stdout
+        yield self.stderr
+
+
 def _run_semgrep(
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
-    target_name: str = "basic",
+    target_name: Optional[str] = "basic",
     options: Optional[List[Union[str, Path]]] = None,
-    output_format: OutputFormat = OutputFormat.JSON,
+    output_format: Optional[OutputFormat] = OutputFormat.JSON,
     strict: bool = True,
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
@@ -146,7 +231,7 @@ def _run_semgrep(
     force_color: Optional[bool] = None,
     assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
     force_metrics_off: bool = True,
-) -> Tuple[str, str]:
+) -> SemgrepResult:
     """Run the semgrep CLI.
 
     :param config: what to pass as --config's value
@@ -157,10 +242,6 @@ def _run_semgrep(
     :param settings_file: what setting file for semgrep to use. If None, a random temp file is generated
                           with default params ("has_shown_metrics_notification: true")
     """
-
-    # If delete_setting_file is false and a settings file doesnt exist, put a default
-    # as we are not testing said setting. Note that if Settings file exists we want to keep it
-    # Use a unique settings file so multithreaded pytest works well
     env = {} if not env else env.copy()
 
     if force_color:
@@ -169,6 +250,9 @@ def _run_semgrep(
     if "SEMGREP_USER_AGENT_APPEND" not in env:
         env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
 
+    # If delete_setting_file is false and a settings file doesnt exist, put a default
+    # as we are not testing said setting. Note that if Settings file exists we want to keep it
+    # Use a unique settings file so multithreaded pytest works well
     if not settings_file:
         unique_settings_file = tempfile.NamedTemporaryFile().name
         Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
@@ -208,22 +292,15 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    target = Path("targets") / target_name if assume_targets_dir else Path(target_name)
-    args = " ".join(shlex.quote(str(c)) for c in [*options, target])
+    targets = []
+    if target_name is not None:
+        targets.append(
+            Path("targets") / target_name if assume_targets_dir else Path(target_name)
+        )
+    args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
 
     runner = CliRunner(env=env, mix_stderr=False)
     result = runner.invoke(cli, args)
-
-    # some helpful output for reproducing issues
-    env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
-    print(f"### COMMANDS")
-    print(f"$ cd {os.getcwd()}")
-    print(f"$ {env_string} semgrep {args}")
-    print("### STDOUT")
-    print(result.stdout)
-    print("### STDERR")
-    print(result.stderr)
-    print("### END\n")
 
     if isinstance(assert_exit_code, set):
         assert result.exit_code in assert_exit_code
@@ -232,11 +309,18 @@ def _run_semgrep(
 
     stdout = (
         _clean_output_json(result.stdout)
-        if result.stdout and output_format.is_json()
+        if result.stdout and output_format and output_format.is_json()
         else result.stdout
     )
+    env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
+    return SemgrepResult(
+        f"$ {env_string} semgrep {args}", stdout, result.stderr, result.exit_code
+    )
 
-    return stdout, result.stderr
+
+@pytest.fixture
+def run_semgrep():
+    yield partial(_run_semgrep, target_name=None)
 
 
 @pytest.fixture
