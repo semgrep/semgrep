@@ -208,7 +208,7 @@ and exp_kind =
    * with Dot? simpler?
    * This could also be used for Dict.
    *)
-  | Record of (ident * exp) list
+  | Record of field list
   | Cast of G.type_ * exp
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
@@ -217,6 +217,8 @@ and exp_kind =
       fixme_kind
       * G.any (* fixme source *)
       * exp (* partial translation *) option
+
+and field = Field of ident * exp | Spread of exp
 
 and composite_kind =
   | CTuple

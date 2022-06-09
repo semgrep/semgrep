@@ -316,7 +316,12 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
     | Operator (_, es) ->
         union_map_taints_and_vars env check es
     | Record fields ->
-        union_map_taints_and_vars env (fun env (_, e) -> check env e) fields
+        union_map_taints_and_vars env
+          (fun env -> function
+            | Field (_, e)
+            | Spread e ->
+                check env e)
+          fields
     | Cast (_, e) -> check env e
   in
   match exp_is_sanitized env exp with
