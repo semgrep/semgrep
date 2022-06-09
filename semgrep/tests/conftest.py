@@ -160,6 +160,7 @@ ALWAYS_MASK: Maskers = (
     __VERSION__,
     re.compile(r"python (\d+[.]\d+[.]\d+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
+    re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
 )
 
 
@@ -260,6 +261,8 @@ def _run_semgrep(
         env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     else:
         env["SEMGREP_SETTINGS_FILE"] = settings_file
+    if "SEMGREP_VERSION_CACHE_PATH" not in env:
+        env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
 
     if options is None:
         options = []

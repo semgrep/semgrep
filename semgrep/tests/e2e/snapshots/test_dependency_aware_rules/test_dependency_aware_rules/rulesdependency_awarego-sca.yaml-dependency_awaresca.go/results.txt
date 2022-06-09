@@ -1,3 +1,12 @@
+=== command
+$ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" semgrep --strict --disable-version-check --metrics=off --config rules/dependency_aware/go-sca.yaml --json targets/dependency_aware/sca.go
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
 {
   "errors": [],
   "paths": {
@@ -78,3 +87,14 @@
   ],
   "version": "0.42"
 }
+=== end of stdout - plain
+
+=== stderr - plain
+Scanning 1 file.
+
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - plain
