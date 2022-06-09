@@ -254,9 +254,14 @@ class Rule:
     def formula_string(self) -> str:
         """
         Used to calculate a pattern based ID, works through DFS of all
-        PATTERN KEYS, and additionally, if the key is 'join' we include the 'on' field also
+        PATTERN KEYS, and additionally, if the key is 'join' we include the
+        'on' field also.
         """
 
+        # Depth first traversal of formula, where we first sort by pattern keys
+        # and where that is not applicable, we do a DFS of two equal keys and
+        # sort them by their resulting strings. I.e. sort by pattern key first
+        # then any conflicts are resoled by the whole content of the pattern
         def get_subrules(raw: Union[AnyStr, Dict, List]) -> str:
             patterns = ""
             if isinstance(raw, str):
@@ -272,8 +277,11 @@ class Rule:
                             patterns += get_subrules(next_raw["on"])
                 return patterns
             elif isinstance(raw, list):
+                patterns_to_add = []
                 for p in raw:
-                    patterns += get_subrules(p)
+                    patterns_to_add.append(get_subrules(p))
+                # Ensure we are sorting before we add patterns
+                patterns += " ".join(sorted(patterns_to_add))
             else:
                 raise ValueError(
                     f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"

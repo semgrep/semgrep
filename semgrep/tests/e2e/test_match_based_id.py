@@ -40,13 +40,11 @@ def test_id_change(run_semgrep_in_tmp, snapshot, rule, target, change):
         tf.seek(
             0
         )  # Seek to beginning since Semgrep will be reading from it. Just in case.
-        print(rule, tf.name)
         before_results, _errors = run_semgrep_in_tmp(
             rule,
             target_name=tf.name,
             output_format=OutputFormat.JSON,
         )
-        print(before_results, _errors)
         before_id = json.loads(before_results)["results"][0]["extra"]["fingerprint"]
         tf.seek(0)  # Seek to beginning again so we can read after file
         tf.truncate()  # delete before content
@@ -57,21 +55,11 @@ def test_id_change(run_semgrep_in_tmp, snapshot, rule, target, change):
         tf.seek(
             0
         )  # Seek to beginning since Semgrep will be reading from it. Just in case.
-        print(tf.read())
         after_results, _errors = run_semgrep_in_tmp(
             rule,
             target_name=tf.name,
             output_format=OutputFormat.JSON,
         )
-        print(after_results, _errors)
         after_id = json.loads(after_results)["results"][0]["extra"]["fingerprint"]
 
-        print(before_id, after_id)
         assert (after_id != before_id) == change
-
-
-# def test_taint_change():
-#    assert True
-
-# def test_metavariable_focus_change():
-#    assert True
