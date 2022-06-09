@@ -136,7 +136,7 @@ jobs:
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test
     runs-on: ubuntu-latest
-    container: returntocorp/ocaml:alpine
+    container: returntocorp/ocaml:alpine-2022-04-14
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv
