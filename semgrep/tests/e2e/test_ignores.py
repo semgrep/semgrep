@@ -14,7 +14,7 @@ def test_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
     )
 
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores")[0],
+        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores").stdout,
         "results.json",
     )
 
@@ -23,7 +23,9 @@ def test_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot):
 @pytest.mark.kinda_slow
 def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores_default")[0],
+        run_semgrep_in_tmp(
+            "rules/eqeq-basic.yaml", target_name="ignores_default"
+        ).stdout,
         "results.json",
     )
 
@@ -70,6 +72,8 @@ def test_internal_explicit_semgrepignore(run_semgrep_in_tmp, tmp_path, snapshot)
 
     env = {"SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE": str(explicit_ignore_file)}
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq-basic.yaml", target_name="ignores", env=env)[0],
+        run_semgrep_in_tmp(
+            "rules/eqeq-basic.yaml", target_name="ignores", env=env
+        ).stdout,
         "results.json",
     )

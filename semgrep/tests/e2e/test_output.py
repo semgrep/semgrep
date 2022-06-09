@@ -139,7 +139,7 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
             "rules/regex-nosemgrep.yaml",
             target_name="basic/regex-nosemgrep.txt",
             output_format=OutputFormat.SARIF,
-        )[0]
+        ).stdout
     )
 
     sarif_output = _clean_output_sarif(sarif_output)
@@ -152,7 +152,9 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
-        run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)[0]
+        run_semgrep_in_tmp(
+            "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
+        ).stdout
     )
 
     sarif_output = _clean_output_sarif(sarif_output)
@@ -169,7 +171,9 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
-        run_semgrep_in_tmp("rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF)[0]
+        run_semgrep_in_tmp(
+            "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF
+        ).stdout
     )
 
     sarif_output = _clean_output_sarif(sarif_output)
@@ -191,7 +195,7 @@ def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
             target_name="nosemgrep/eqeq-nosemgrep.py",
             output_format=OutputFormat.SARIF,
             options=["--error"],
-        )[0]
+        ).stdout
     )
 
     sarif_output = _clean_output_sarif(sarif_output)
@@ -209,7 +213,7 @@ def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
             target_name="autofix/autofix.py",
             output_format=OutputFormat.SARIF,
             options=["--autofix", "--dryrun"],
-        )[0]
+        ).stdout
     )
 
     sarif_output = _clean_output_sarif(sarif_output)

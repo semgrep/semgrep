@@ -36,9 +36,9 @@ def test_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
         # Need --autofix --dryrun so that the `fixed_lines` field will appear in output
-        run_semgrep_in_tmp(rule, target_name=target, options=["--autofix", "--dryrun"])[
-            0
-        ],
+        run_semgrep_in_tmp(
+            rule, target_name=target, options=["--autofix", "--dryrun"]
+        ).stdout,
         "results.json",
     )
     # Make a copy of the target file b/c autofixes are inline. We
