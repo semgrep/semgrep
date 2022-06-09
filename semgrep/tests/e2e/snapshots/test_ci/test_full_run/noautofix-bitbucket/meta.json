@@ -2,9 +2,9 @@
     "meta": {
         "semgrep_version": "<sanitized version>",
         "repository": "project_name/project_name",
-        "repo_url": "https://github.com/project_name/project_name.git",
+        "repo_url": "git@bitbucket.org/project_name/project_name.git",
         "branch": "some/branch-name",
-        "ci_job_url": "https://github.com/project_name/project_name.git/addon/pipelines/home#!/results/a-uuid",
+        "ci_job_url": "http://bitbucket.org/project_name/project_name/addon/pipelines/home#!/results/a-uuid",
         "commit": "sanitized",
         "commit_author_email": "test_environment@test.r2c.dev",
         "commit_author_name": "Environment Test",
