@@ -18,13 +18,14 @@ jobs:
     name: restore cached semgrep-core
     runs-on: ubuntu-latest
     outputs:
-      cache-hit: ${{ steps.core-cache.outputs.cache-hit }}
+      hit: ${{ steps.core-cache.outputs.cache-hit }}
+      key: ${{ steps.cache-key.outputs.key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - id: submodule-status
-        name: Get submodule version
-        run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
+      - id: cache-key
+        name: Get cache key
+        run: echo ::set-output name=key::${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-$(git submodule status --cached | sha256sum | cut -d" " -f1)
       - name: Remove broken symlinks
         run: find -L . -type l -exec rm {} \;
       - id: core-cache
@@ -32,7 +33,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
+          key: "${{ steps.cache-key.outputs.key }}"
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         if: steps.core-cache.outputs.cache-hit == 'true'
@@ -45,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
     needs: [restore-core-cache]
-    if: needs.restore-core-cache.outputs.cache-hit != 'true'
+    if: needs.restore-core-cache.outputs.hit != 'true'
     steps:
       - name: Pre-checkout fixes
         run: |
@@ -55,29 +56,18 @@ jobs:
           sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
         uses: actions/checkout@v3
-      - id: submodule-status
-        name: Get submodule version
-        run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
+        with:
+          submodules: recursive
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Remove broken symlinks
-        run: find -L . -type l -exec rm {} \;
-      - id: core-cache
-        name: Check if this semgrep-core binary is cached
+      - name: Prepare to cache this semgrep-core binary
         uses: actions/cache@v3
         with:
           path: ocaml-build-artifacts.tgz
-          key: "${{ runner.os }}-core-binary-${{ hashFiles('semgrep-core/**', '.github/workflows/tests.yml', 'scripts/install-alpine-semgrep-core') }}-${{ steps.submodule-status.outputs.versions-hash }}"
-      - name: Checkout
-        uses: actions/checkout@v3
-        if: steps.core-cache.outputs.cache-hit != 'true'
-        with:
-          submodules: recursive
+          key: "${{ needs.restore-core-cache.outputs.key }}"
       - name: Install pipenv
-        if: steps.core-cache.outputs.cache-hit != 'true'
         run: sudo pip install pipenv
       - name: Cache OCaml build files
-        if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         with:
           path: |
@@ -89,7 +79,6 @@ jobs:
             /home/user/.opam/*/.opam-switch/sources
           key: ${{ runner.os }}-ocamlbuild
       - name: Build semgrep-core
-        if: steps.core-cache.outputs.cache-hit != 'true'
         run: ./scripts/install-alpine-semgrep-core
         env:
           DUNE_CACHE: enabled
