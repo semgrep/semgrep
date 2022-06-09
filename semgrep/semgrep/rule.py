@@ -262,7 +262,7 @@ class Rule:
             if isinstance(raw, str):
                 return raw
             elif isinstance(raw, dict):
-                for k in RuleValidation.PATTERN_KEYS:
+                for k in sorted(RuleValidation.PATTERN_KEYS):
                     next_raw = raw.get(k)
                     if next_raw is not None:
                         patterns += get_subrules(next_raw)

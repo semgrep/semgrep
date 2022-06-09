@@ -256,6 +256,11 @@ class RuleMatch:
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
+    # This will supercede syntactic id, as currently that will change even if
+    # things formatting + line numbers change. By using the formula +
+    # metavariable content itself, we remain sensitive to modifications to a
+    # match, but we no longer count formatting + line number changs + other
+    # things as new findings
     @pattern_based_id.default
     def get_pattern_based_id(self) -> str:
         try:
