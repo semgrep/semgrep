@@ -58,10 +58,10 @@
 
 ; this is just used in Unit_reporting.ml
 (rule
- (targets Semgrep_output_v0_j.ml Semgrep_output_v0_j.mli)
- (deps    Semgrep_output_v0.atd)
+ (targets semgrep_output_v0_j.ml semgrep_output_v0_j.mli)
+ (deps    semgrep_output_v0.atd)
  (action  (run atdgen -j -j-std %{deps})))
 (rule
- (targets Semgrep_output_v0_t.ml Semgrep_output_v0_t.mli)
- (deps    Semgrep_output_v0.atd)
+ (targets semgrep_output_v0_t.ml semgrep_output_v0_t.mli)
+ (deps    semgrep_output_v0.atd)
  (action  (run atdgen -t %{deps})))

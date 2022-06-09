@@ -16,7 +16,7 @@ open Common
 open OCaml (* map_of_string, ... *)
 open AST_generic
 module G = AST_generic
-module B = AST_generic_v1_t
+module B = Ast_generic_v0_t
 module PI = Parse_info
 module H = AST_generic_helpers
 
