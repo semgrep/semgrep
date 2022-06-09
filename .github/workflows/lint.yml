@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # ocaml code (must be the same than the one in semgrep-core/dev/dev.opam)
-    container: returntocorp/ocaml:ubuntu
+    container: returntocorp/ocaml:ubuntu-2022-04-14
     steps:
       - name: Pre-checkout fixes
         run: |
