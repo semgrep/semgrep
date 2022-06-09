@@ -241,7 +241,7 @@ let dump_ast ?(naming = false) lang file =
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
-let dump_v1_json file =
+let dump_v0_json file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
@@ -249,8 +249,8 @@ let dump_v1_json file =
           let { Parse_target.ast; skipped_tokens; _ } =
             Parse_target.parse_and_resolve_name lang file
           in
-          let v1 = AST_generic_to_v1.program ast in
-          let s = AST_generic_v1_j.string_of_program v1 in
+          let v1 = AST_generic_to_v0.program ast in
+          let s = Ast_generic_v0_j.string_of_program v1 in
           pr s;
           if skipped_tokens <> [] then
             pr2 (spf "WARNING: fail to fully parse %s" file))
@@ -341,7 +341,7 @@ let all_actions () =
         Common.mk_action_1_arg
           (dump_ast ~naming:true (Xlang.lang_of_opt_xlang !lang))
           file );
-    ("-dump_v1_json", " <file>", Common.mk_action_1_arg dump_v1_json);
+    ("-dump_v0_json", " <file>", Common.mk_action_1_arg dump_v0_json);
     ("-dump_equivalences", " <file>", Common.mk_action_1_arg dump_equivalences);
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
     ( "-dump_tree_sitter_cst",
