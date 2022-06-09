@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -6,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from semgrep.constants import OutputFormat
-from tests.conftest import _clean_output_json
 from tests.conftest import _clean_stdout
 
 
@@ -116,24 +116,22 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
     # Have shared settings file to test second run doesnt show metric output
     settings_file = tempfile.NamedTemporaryFile().name
 
-    text_output = run_semgrep_in_tmp(
+    results = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         output_format=OutputFormat.TEXT,
         force_color=True,
         env={"SEMGREP_SETTINGS_FILE": settings_file},
     )
-    snapshot.assert_match(text_output[0], "output.txt")
-    snapshot.assert_match(text_output[1], "error.txt")
+    snapshot.assert_match(results.as_snapshot(), "results.txt")
 
     # Metric message should not appear in second output
-    text_output = run_semgrep_in_tmp(
+    results = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         output_format=OutputFormat.TEXT,
         force_color=True,
         env={"SEMGREP_SETTINGS_FILE": settings_file},
     )
-    snapshot.assert_match(text_output[0], "output_second.txt")
-    snapshot.assert_match(text_output[1], "error_second.txt")
+    snapshot.assert_match(results.as_snapshot(), "results_second.txt")
 
 
 @pytest.mark.kinda_slow
@@ -141,7 +139,7 @@ def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
     """
     Quiet output should just have finding output
     """
-    text_output = run_semgrep_in_tmp(
+    results = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         output_format=OutputFormat.TEXT,
         force_color=True,
@@ -150,59 +148,72 @@ def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
         # (but should not see anything cause of --quiet)
         env={"SEMGREP_SETTINGS_FILE": tempfile.NamedTemporaryFile().name},
     )
-    snapshot.assert_match(text_output[0], "output.txt")
-    snapshot.assert_match(text_output[1], "error.txt")
+    snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
 @pytest.mark.kinda_slow
 def test_stdin_input(snapshot):
+    settings_file = tempfile.NamedTemporaryFile().name
+    Path(settings_file).write_text("has_shown_metrics_notification: true")
     process = subprocess.Popen(
-        [
-            "python3",
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "--json",
-            "-e",
-            "a",
-            "--lang",
-            "js",
-            "-",
-        ],
+        ["python3", "-m", "semgrep", "--json", "-e", "a", "--lang", "js", "-"],
         encoding="utf-8",
+        env={
+            **os.environ,
+            "SEMGREP_SETTINGS_FILE": settings_file,
+            "SEMGREP_VERSION_CACHE_PATH": tempfile.TemporaryDirectory().name,
+            "SEMGREP_ENABLE_VERSION_CHECK": "0",
+            "SEMGREP_SEND_METRICS": "off",
+        },
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
     )
     stdout, _ = process.communicate("a")
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    snapshot.assert_match(stdout, "results.json")
 
 
 @pytest.mark.kinda_slow
 def test_subshell_input(snapshot):
+    settings_file = tempfile.NamedTemporaryFile().name
+    Path(settings_file).write_text("has_shown_metrics_notification: true")
     stdout = subprocess.check_output(
         [
             "bash",
             "-c",
-            "python3 -m semgrep --disable-version-check --metrics off --json -e 'a' --lang js <(echo 'a')",
+            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a')",
         ],
         encoding="utf-8",
+        env={
+            **os.environ,
+            "SEMGREP_SETTINGS_FILE": settings_file,
+            "SEMGREP_VERSION_CACHE_PATH": tempfile.TemporaryDirectory().name,
+            "SEMGREP_ENABLE_VERSION_CHECK": "0",
+            "SEMGREP_SEND_METRICS": "off",
+        },
     )
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    snapshot.assert_match(stdout, "results.json")
 
 
 @pytest.mark.kinda_slow
 def test_multi_subshell_input(snapshot):
+    settings_file = tempfile.NamedTemporaryFile().name
+    Path(settings_file).write_text("has_shown_metrics_notification: true")
     stdout = subprocess.check_output(
         [
             "bash",
             "-c",
-            "python3 -m semgrep --disable-version-check --metrics off --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
+            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
         ],
         encoding="utf-8",
+        env={
+            **os.environ,
+            "SEMGREP_SETTINGS_FILE": settings_file,
+            "SEMGREP_VERSION_CACHE_PATH": tempfile.TemporaryDirectory().name,
+            "SEMGREP_ENABLE_VERSION_CHECK": "0",
+            "SEMGREP_SEND_METRICS": "off",
+        },
     )
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    snapshot.assert_match(stdout, "results.json")
 
 
 @pytest.mark.kinda_slow

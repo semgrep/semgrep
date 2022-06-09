@@ -6,5 +6,3 @@ Some files were skipped or only partially analyzed.
   For a full list of skipped files, run semgrep with the --verbose flag.
 
 Ran 4 rules on 0 files: 0 findings.
-If Semgrep missed a finding, please send us feedback to let us know!
-  $ semgrep shouldafound --help

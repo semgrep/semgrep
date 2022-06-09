@@ -1,7 +1,7 @@
 0/1: 1 unit tests did not pass:
 --------------------------------------------------------------------------------
 	✖ test4                                                        expected lines: [2, 5], reported lines: [] 
-	test file path: /home/runner/work/semgrep/semgrep/semgrep/tests/e2e/targets/fixtest/test4.py
+	test file path: /Users/underyx/r2c/cli/semgrep/tests/e2e/targets/fixtest/test4.py
 
 
 0/1: 1 fix tests did not pass: 

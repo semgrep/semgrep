@@ -14,7 +14,6 @@ from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigPath
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
-from tests.conftest import CLEANERS
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -419,10 +418,7 @@ def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_s
         output_format=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
     )
-    snapshot.assert_match(
-        result.as_snapshot(mask=[CLEANERS.get(format, lambda s: s)]),
-        "results.txt",
-    )
+    snapshot.assert_match(result.as_snapshot(), "results.txt")
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
@@ -522,7 +518,7 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
         assert_exit_code=7,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
-    assert "Invalid rule schema" in result.stdout
+    assert "Invalid rule schema" in result.stderr
 
 
 def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):

@@ -1,9 +1,7 @@
-import subprocess
 from pathlib import Path
 
 import pytest
 
-from ..conftest import _clean_output_json
 from ..conftest import TESTS_PATH
 
 
@@ -32,32 +30,9 @@ def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
 
 # Input from stdin will not have a path that is relative to tmp_path, where we're running semgrep
 @pytest.mark.kinda_slow
-def test_file_not_relative_to_base_path(tmp_path, monkeypatch, snapshot):
-    (tmp_path / ".semgrepignore").symlink_to(
-        Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".semgrepignore").resolve()
-    )
-    monkeypatch.chdir(tmp_path)
-    process = subprocess.Popen(
-        [
-            "python3",
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "--json",
-            "-e",
-            "a",
-            "--lang",
-            "js",
-            "-",
-        ],
-        encoding="utf-8",
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    )
-    stdout, _ = process.communicate("a")
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+def test_file_not_relative_to_base_path(run_semgrep, snapshot):
+    results = run_semgrep(options=["--json", "-e", "a", "--lang", "js", "-"], stdin="a")
+    snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
 @pytest.mark.kinda_slow

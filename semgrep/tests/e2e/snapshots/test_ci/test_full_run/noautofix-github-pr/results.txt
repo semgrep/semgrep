@@ -1,5 +1,5 @@
 === command
-$ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_SHA="<MASKED>" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" semgrep ci --disable-version-check --metrics=off --json
+CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_SHA="<MASKED>" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci
 === end of command
 
 === exit code
@@ -7,271 +7,32 @@ $ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSI
 === end of exit code
 
 === stdout - plain
-{
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "foo.py"
-    ]
-  },
-  "results": [
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 4,
-        "offset": 43
-      },
-      "extra": {
-        "fingerprint": "8c695a6a4ab5ffff33d0103309a310c1",
-        "is_ignored": false,
-        "lines": "    a == a",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a",
-            "end": {
-              "col": 6,
-              "line": 4,
-              "offset": 38
-            },
-            "start": {
-              "col": 5,
-              "line": 4,
-              "offset": 37
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 4,
-        "offset": 37
-      }
-    },
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 5,
-        "offset": 54
-      },
-      "extra": {
-        "fingerprint": "8abb389b2f01d0e52d663251e1d24ba7",
-        "is_ignored": false,
-        "lines": "    a == a",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a",
-            "end": {
-              "col": 6,
-              "line": 5,
-              "offset": 49
-            },
-            "start": {
-              "col": 5,
-              "line": 5,
-              "offset": 48
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 5,
-        "offset": 48
-      }
-    },
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 7,
-        "offset": 89
-      },
-      "extra": {
-        "fingerprint": "f6c666e6921a44028a2015d0de15cc14",
-        "is_ignored": false,
-        "lines": "    a == a",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a",
-            "end": {
-              "col": 6,
-              "line": 7,
-              "offset": 84
-            },
-            "start": {
-              "col": 5,
-              "line": 7,
-              "offset": 83
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 7,
-        "offset": 83
-      }
-    },
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 11,
-        "offset": 126
-      },
-      "extra": {
-        "fingerprint": "d44049421636e370e7906a6bed5fce54",
-        "is_ignored": false,
-        "lines": "    y == y",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "y",
-            "end": {
-              "col": 6,
-              "line": 11,
-              "offset": 121
-            },
-            "start": {
-              "col": 5,
-              "line": 11,
-              "offset": 120
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 11,
-        "offset": 120
-      }
-    },
-    {
-      "check_id": "eqeq-four",
-      "end": {
-        "col": 13,
-        "line": 19,
-        "offset": 227
-      },
-      "extra": {
-        "fingerprint": "87cd1247dfc84bbd502c872035c71a63",
-        "is_ignored": false,
-        "lines": "    baz == 4",
-        "message": "useless comparison to 4",
-        "metadata": {
-          "dev.semgrep.actions": [
-            "block"
-          ]
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "baz",
-            "end": {
-              "col": 8,
-              "line": 19,
-              "offset": 222
-            },
-            "start": {
-              "col": 5,
-              "line": 19,
-              "offset": 219
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 19,
-        "offset": 219
-      }
-    },
-    {
-      "check_id": "eqeq-five",
-      "end": {
-        "col": 11,
-        "line": 15,
-        "offset": 163
-      },
-      "extra": {
-        "fingerprint": "8646a2dfc020913606969dcfe84e53c0",
-        "fix": "x == 2",
-        "is_ignored": false,
-        "lines": "    x == 5",
-        "message": "useless comparison to 5",
-        "metadata": {
-          "dev.semgrep.actions": []
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 6,
-              "line": 15,
-              "offset": 158
-            },
-            "start": {
-              "col": 5,
-              "line": 15,
-              "offset": 157
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 15,
-        "offset": 157
-      }
-    }
-  ],
-  "version": "0.42"
-}
+
+Findings:
+
+  foo.py 
+     eqeq-bad
+        useless comparison
+
+          4┆ a == a
+          ⋮┆----------------------------------------
+          5┆ a == a
+          ⋮┆----------------------------------------
+          7┆ a == a
+          ⋮┆----------------------------------------
+         11┆ y == y
+          ⋮┆----------------------------------------
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ x == 2
+         15┆ x == 5
+          ⋮┆----------------------------------------
+     eqeq-four
+        useless comparison to 4
+
+         19┆ baz == 4
+
 === end of stdout - plain
 
 === stderr - plain

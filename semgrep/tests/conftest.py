@@ -12,7 +12,6 @@ from typing import Callable
 from typing import Dict
 from typing import Iterable
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -112,6 +111,15 @@ def _clean_output_json(output_json: str) -> str:
             for skip in paths["skipped"]
         ]
 
+    # Necessary because some tests produce temp files
+    if output.get("errors"):
+        for error in output.get("errors"):
+            if error.get("spans"):
+                for span in error.get("spans"):
+                    if span.get("file"):
+                        file = span.get("file")
+                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
+
     return json.dumps(output, indent=2, sort_keys=True)
 
 
@@ -124,25 +132,23 @@ def _clean_output_sarif(output_json: str) -> str:
     # Rules are logically a set so the JSON list's order doesn't matter
     # we make the order deterministic here so that snapshots match across runs
     # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
+    try:
+        output["runs"][0]["tool"]["driver"]["rules"] = sorted(
+            output["runs"][0]["tool"]["driver"]["rules"],
+            key=lambda rule: str(rule["id"]),
+        )
+    except (KeyError, IndexError):
+        pass
 
     # Semgrep version is included in sarif output. Verify this independently so
     # snapshot does not need to be updated on version bump
-    assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+    try:
+        assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+        output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+    except (KeyError, IndexError):
+        pass
 
     return json.dumps(output, indent=2, sort_keys=True)
-
-
-CLEANERS: Mapping[str, Callable[[str], str]] = {
-    "--sarif": _clean_output_sarif,
-    "--gitlab-sast": _clean_output_json,
-    "--gitlab-secrets": _clean_output_json,
-    "--json": _clean_output_json,
-}
 
 
 Maskers = Iterable[Union[str, re.Pattern, Callable[[str], str]]]
@@ -158,19 +164,20 @@ def mask_capture_group(match: re.Match) -> str:
 
 
 ALWAYS_MASK: Maskers = (
+    _clean_output_json,
+    _clean_output_sarif,
     __VERSION__,
     re.compile(r"python (\d+[.]\d+[.]\d+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),
     re.compile(r'SEMGREP_VERSION_CACHE_PATH="(.+?)"'),
-    _clean_output_json,
 )
 
 
 @dataclass
 class SemgrepResult:
     command: str
-    stdout: str
-    stderr: str
+    raw_stdout: str
+    raw_stderr: str
     exit_code: int
 
     def strip_color(self, text: str) -> str:
@@ -180,7 +187,7 @@ class SemgrepResult:
         stream.seek(0)
         return stream.read()
 
-    def mask_text(self, text: str, mask: Optional[Maskers]) -> str:
+    def mask_text(self, text: str, mask: Optional[Maskers] = None) -> str:
         if mask is None:
             mask = []
         for pattern in [*mask, *ALWAYS_MASK]:
@@ -192,9 +199,17 @@ class SemgrepResult:
                 text = pattern(text)
         return text
 
+    @property
+    def stdout(self) -> str:
+        return self.mask_text(self.raw_stdout)
+
+    @property
+    def stderr(self) -> str:
+        return self.mask_text(self.raw_stderr)
+
     def as_snapshot(self, mask: Optional[Maskers] = None):
-        stdout = self.mask_text(self.stdout, mask)
-        stderr = self.mask_text(self.stderr, mask)
+        stdout = self.mask_text(self.raw_stdout, mask)
+        stderr = self.mask_text(self.raw_stderr, mask)
         sections = {
             "command": self.mask_text(self.command, mask),
             "exit code": self.exit_code,
@@ -319,7 +334,7 @@ def _run_semgrep(
     runner = CliRunner(env=env, mix_stderr=False)
     click_result = runner.invoke(cli, args, input=stdin)
     result = SemgrepResult(
-        f"$ {env_string} semgrep {args}",
+        f"{env_string} semgrep {args}",
         click_result.stdout,
         click_result.stderr,
         click_result.exit_code,
