@@ -1,5 +1,5 @@
 === command
-$ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_SHA="<MASKED>" GITHUB_EVENT_PATH="/private/var/folders/6m/1krt8ck117x_k5_yhh71sb5m0000gn/T/pytest-of-underyx/pytest-550/test_full_run_noautofix_github2/event_path.json" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" semgrep ci --disable-version-check --metrics=off --json
+$ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_SHA="<MASKED>" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" semgrep ci --disable-version-check --metrics=off --json
 === end of command
 
 === exit code

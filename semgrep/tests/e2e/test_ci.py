@@ -343,7 +343,14 @@ def test_full_run(
     result = run_semgrep(options=["ci"], strict=False, assert_exit_code=None, env=env)
 
     snapshot.assert_match(
-        result.as_snapshot(mask=[head_commit, head_commit[:7], base_commit]),
+        result.as_snapshot(
+            mask=[
+                head_commit,
+                head_commit[:7],
+                base_commit,
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+            ]
+        ),
         "results.txt",
     )
 
