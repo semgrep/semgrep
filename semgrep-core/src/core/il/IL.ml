@@ -277,7 +277,6 @@ and call_special =
 and anonymous_entity =
   | Lambda of function_definition
   | AnonClass of G.class_definition
-[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Statement *)
@@ -312,7 +311,7 @@ and other_stmt =
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string
 
-and label = ident * G.sid [@@deriving show { with_path = false }]
+and label = ident * G.sid
 
 (*****************************************************************************)
 (* Defs *)
@@ -323,6 +322,7 @@ and function_definition = {
   frettype : G.type_ option;
   fbody : stmt list;
 }
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)

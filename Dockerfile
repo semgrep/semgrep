@@ -6,17 +6,17 @@
 # of the 'semgrep-python' wrapping.
 #
 
-# The docker base image below in the FROM currently uses OCaml 4.12.0
+# The docker base image below in the FROM currently uses OCaml 4.14.0
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 #
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
-# - scripts/osx-release.sh
+# - scripts/{osx-release,osx-m1-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 # Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
 # be the latest, but may differ from this one.
-FROM returntocorp/ocaml:alpine-2022-03-31@sha256:4a42d4c82000df13148a4162d1689b32e8568bc256bf12faa5d8669570ffe8b7 as semgrep-core
+FROM returntocorp/ocaml:alpine-2022-06-09@sha256:99b453a838c9d94414991c0fd7be4711aa1bcc120f576e0f0653c7b921ea9718 as semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core

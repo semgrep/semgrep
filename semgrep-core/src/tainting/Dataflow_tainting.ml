@@ -121,7 +121,7 @@ let unify_mvars_sets mvars1 mvars2 =
   let xs =
     List.fold_left
       (fun xs (mvar, mval) ->
-        let* xs = xs in
+        xs >>= fun xs ->
         match List.assoc_opt mvar mvars2 with
         | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->

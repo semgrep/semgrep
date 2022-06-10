@@ -9,6 +9,7 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 
+from semgrep.error import SemgrepError
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
@@ -74,14 +75,16 @@ class BaselineHandler:
                     capture_output=True,
                 )
             except subprocess.CalledProcessError:
-                raise Exception(
+                raise SemgrepError(
                     dedent(
                         f"""
                         Cannot find a commit with reference '{base_commit}'. Possible reasons:
 
                         - the referenced commit does not exist
-                        - the current working directory is not a git repository
                         - the git binary is not available
+                        - the current working directory is not a git repository
+                        - the current working directory is not marked as safe
+                            (fix with `git config --global --add safe.directory $(pwd)`)
 
                         Try running `git show {base_commit}` to debug the issue.
                         """

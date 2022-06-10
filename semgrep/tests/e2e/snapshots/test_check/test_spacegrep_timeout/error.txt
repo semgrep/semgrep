@@ -6,5 +6,3 @@ Some files were skipped or only partially analyzed.
   Partially scanned: 1 files only partially analyzed due to a parsing or internal Semgrep error
 
 Ran 1 rule on 1 file: 0 findings.
-If Semgrep missed a finding, please send us feedback to let us know!
-  $ semgrep shouldafound --help

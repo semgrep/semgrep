@@ -297,6 +297,7 @@ _scan_options: List[Callable] = [
         "--enable-version-check/--disable-version-check",
         is_flag=True,
         default=True,
+        envvar="SEMGREP_ENABLE_VERSION_CHECK",
         help="""
             Checks Semgrep servers to see if the latest version is run; disabling this
             may reduce exit time after returning results.
@@ -812,6 +813,8 @@ def scan(
             deep=deep,
         )
 
+    run_has_findings = False
+
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
@@ -919,11 +922,6 @@ def scan(
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())
-            if not run_has_findings:
-                msg = get_no_findings_msg()
-                # decouple CLI from app - if functionality removed, do not fail
-                if msg:
-                    logger.info(msg)
 
             return_data = (
                 filtered_matches_by_rule,
@@ -936,5 +934,11 @@ def scan(
         from semgrep.app.version import version_check
 
         version_check()
+
+    if not run_has_findings and enable_version_check:
+        msg = get_no_findings_msg()
+        # decouple CLI from app - if functionality removed, do not fail
+        if msg:
+            logger.info(msg)
 
     return return_data

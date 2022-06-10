@@ -5,7 +5,7 @@
 set -e
 brew update # Needed to sidestep bintray brownout
 #coupling: this should be the same version than in our Dockerfile
-opam switch 4.12.0;
+opam switch 4.14.0;
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"

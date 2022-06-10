@@ -15,11 +15,11 @@
 )
 
 (rule
- (targets AST_generic_v1_j.ml AST_generic_v1_j.mli)
- (deps    AST_generic_v1.atd)
+ (targets ast_generic_v0_j.ml ast_generic_v0_j.mli)
+ (deps    ast_generic_v0.atd)
  (action  (run atdgen -j -j-std %{deps})))
 
 (rule
- (targets AST_generic_v1_t.ml AST_generic_v1_t.mli)
- (deps    AST_generic_v1.atd)
+ (targets ast_generic_v0_t.ml ast_generic_v0_t.mli)
+ (deps    ast_generic_v0.atd)
  (action  (run atdgen -t %{deps})))

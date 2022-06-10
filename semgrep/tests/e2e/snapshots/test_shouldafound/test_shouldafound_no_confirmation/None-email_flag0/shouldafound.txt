@@ -1,1 +1,0 @@
-Could not parse git email. Please use the --email flag to report this false negative.
