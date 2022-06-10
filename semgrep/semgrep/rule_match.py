@@ -377,6 +377,8 @@ class RuleMatchSet(Set[RuleMatch]):
         The index lets us still notify when some code with findings is duplicated,
         even though we'd otherwise deduplicate the findings.
         """
+        if match.rule_id != self._rule.id:
+            raise ValueError("Added match must have identical rule id to set rule")
         self._ci_key_counts[match.ci_unique_key] += 1
         match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         match = evolve(match, match_formula_string=self._rule.formula_string)
