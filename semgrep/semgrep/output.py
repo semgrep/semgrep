@@ -352,7 +352,7 @@ class OutputHandler:
                 suggestion_line = "\n(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
             stats_line = ""
             if print_summary:
-                stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+                stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'bleep-bloop')}."
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
             output_text = "\n" + ignores_line + suggestion_line + stats_line
