@@ -449,7 +449,7 @@ jobs:
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.12.0
+          ocaml-compiler: 4.14.0
           dune-cache: true
           opam-depext: false
       - name: Setup Python
