@@ -15,6 +15,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Fixed a bug where `--disable-version-check` would still send a request
   when a scan resulted in zero findings.
+- Fixed a regression in 0.97 where the Docker image's working directory changed from `/src` without notice.
+  This also could cause permission issues when running the image.
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 
