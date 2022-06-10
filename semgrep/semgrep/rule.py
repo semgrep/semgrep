@@ -1,4 +1,3 @@
-import collections
 import hashlib
 import json
 from typing import Any
@@ -263,33 +262,32 @@ class Rule:
         # sort them by their resulting strings. I.e. sort by pattern key first
         # then any conflicts are resoled by the whole content of the pattern
         def get_subrules(raw: Union[AnyStr, Dict, List]) -> str:
-            patterns = ""
+            patterns_to_add = []
             if isinstance(raw, str):
-                return raw
+                patterns_to_add.append(raw)
             elif isinstance(raw, dict):
-                for k in sorted(RuleValidation.PATTERN_KEYS):
-                    next_raw = raw.get(k)
+                for key in sorted(raw.keys()):
+                    next_raw = raw.get(key)
                     if next_raw is not None:
-                        patterns += get_subrules(next_raw)
-                        # We want to make sure if this a join, we actually include
-                        # the "on" field
-                        if k == "join" and "on" in next_raw:
-                            patterns += get_subrules(next_raw["on"])
-                return patterns
+                        patterns_to_add.append(get_subrules(next_raw))
             elif isinstance(raw, list):
-                patterns_to_add = []
                 for p in raw:
                     patterns_to_add.append(get_subrules(p))
-                # Ensure we are sorting before we add patterns
-                patterns += " ".join(sorted(patterns_to_add))
             else:
                 raise ValueError(
                     f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"
                 )
-            return patterns
+            return " ".join(sorted(patterns_to_add))
 
         try:
-            res = get_subrules(collections.OrderedDict(self.raw))
+            patterns_to_add = []
+            for k in sorted(RuleValidation.PATTERN_KEYS):
+                next_raw = self.raw.get(k)
+                if next_raw is not None:
+                    patterns_to_add.append(get_subrules(next_raw))
+                    if k == "join" and "on" in next_raw:
+                        patterns_to_add += get_subrules(next_raw["on"])
+            res = " ".join(sorted(patterns_to_add))
             if not res:
                 raise ValueError(f"This rule contains no hashable patterns: {self.id}")
         # In the scenario where we don't have patterns to hash (this would be
