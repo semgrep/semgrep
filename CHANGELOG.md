@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   and Travis CI in addition to GitHub and GitLab
 - You can now disable version checks with an environment variable by setting
   `SEMGREP_ENABLE_VERSION_CHECK=0`
+- Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 
 ### Fixed
 

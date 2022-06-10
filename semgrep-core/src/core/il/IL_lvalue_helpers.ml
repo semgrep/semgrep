@@ -56,7 +56,13 @@ let rec lvals_of_exp e =
   | Composite (_, (_, xs, _))
   | Operator (_, xs) ->
       lvals_of_exps xs
-  | Record ys -> lvals_of_exps (ys |> Common.map snd)
+  | Record ys ->
+      lvals_of_exps
+        (ys
+        |> Common.map @@ function
+           | Field (_, e)
+           | Spread e ->
+               e)
   | FixmeExp (_, _, Some e) -> lvals_of_exp e
   | FixmeExp (_, _, None) -> []
 
