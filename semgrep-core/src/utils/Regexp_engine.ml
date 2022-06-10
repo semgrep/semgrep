@@ -41,73 +41,123 @@
  *
  * TODO:
  *  - move the regexp-related code in Generic_vs_generic here!
- *  - switch everything to PCRE? use Re.Glob just for globbing?
- *  - make internal modules so easy to test and switch implem?
+ *  - use Re.Glob just for globbing?
  *
  *)
 
 (*****************************************************************************)
 (* Helpers  *)
 (*****************************************************************************)
-module Re_engine = struct
-  type t = string * Re.t (* not compiled *)
 
-  let show (s, _) = s
+(* keep the string around for show *)
+type t = string * Pcre.regexp
 
-  (* calling pp on Re.t is really slow, so better just print the string *)
-  let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-  let matching_exact_string s = ("exact:" ^ s, Re.str s)
-  let regexp s = (s, Re.Pcre.re s)
-  let compile t = Re.compile t [@@profiling]
+let pcre_pattern = fst
+let pcre_regexp = snd
+let show (s, _) = s
+let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
+let equal (s1, _) (s2, _) = s1 = s2
 
-  (* nice! *)
-  let alt (s1, t1) (s2, t2) = (s1 ^ "|" ^ s2, Re.alt [ t1; t2 ])
+let matching_exact_string s =
+  let quoted = Pcre.quote s in
+  (quoted, SPcre.regexp quoted)
 
-  let run (_, t) str =
-    let re = compile t in
-    Re.execp re str
-    [@@profiling]
-end
+let matching_exact_word s =
+  let re = "\b" ^ Pcre.quote s ^ "\b" in
+  (re, SPcre.regexp re)
 
-module Str_engine = struct
-  (* keep the string around for show *)
-  type t = string * Str.regexp
+(*
+   MULTILINE = ^ and $ match at the beginning and end of lines rather than
+               just at the beginning and end of input.
+*)
+let pcre_compile pat = (pat, SPcre.regexp ~flags:[ `MULTILINE ] pat)
 
-  let show (s, _) = s
-  let matching_exact_string s = ("!exact:s!", Str.regexp_string s)
-  let regexp s = (s, Str.regexp s)
+let anchored_match =
+  (* ~iflags are precompiled flags for better performance compared to ~flags *)
+  let iflags = Pcre.rflags [ `ANCHORED ] in
+  fun (_, re) str -> SPcre.pmatch_noerr ~iflags ~rex:re str
 
-  (* this is not anchored! *)
-  let run (_, re) str =
-    (* bugfix:
-     * this does not work!:  Str.string_match re str 0
-     * because you need to add ".*" in front to make it work,
-     * (but then you can not use regexp_string above)
-     * => use Str.search_forward instead.
-     *)
-    try
-      Str.search_forward re str 0 |> ignore;
-      true
-    with
-    | Not_found -> false
-    [@@profiling]
-end
+let unanchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
 
-module Pcre_engine = struct
-  (* keep the string around for show *)
-  type t = string * Pcre.regexp
+let may_contain_end_of_string_assertions =
+  (* The absence of the following guarantees (to the best of our knowledge)
+     that a regexp does not try to match the beginning or the end of
+     the string:
+       ^
+       $
+       \A
+       \Z
+       \z
+       (?<!   negative lookbehind assertion, which could be a DIY \A
+       (?!    negative lookahead assertion, which could be a DIY \z
+  *)
+  let rex = SPcre.regexp {|[$^]|\\[AZz]|\(\?<!|\(\?!|} in
+  fun s -> SPcre.pmatch_noerr ~rex s
 
-  let show (s, _) = s
-  let pp fmt (s, _) = Format.fprintf fmt "\"%s\"" s
-  let equal (s1, _) (s2, _) = s1 = s2
+(* Any string that may still contain a end-of-string assertions must go
+   through this. *)
+let finish src =
+  if may_contain_end_of_string_assertions src then None else Some src
 
-  let matching_exact_string s =
-    let quoted = Pcre.quote s in
-    (quoted, SPcre.regexp quoted)
+(*
+   Remove beginning-of-string and end-of-string constraints.
+   Fail if some of them may remain e.g. if we find '^' in the middle of
+   the pattern.
+*)
+let remove_end_of_string_assertions_from_string src : string option =
+  (*
+     a0 and a1 are the first two characters.
+     z0 and z1 are the last two characters.
+  *)
+  let len = String.length src in
+  if len = 0 then (* "" *)
+    Some src
+  else
+    (* "X" *)
+    let a0 = src.[0] in
+    if len = 1 then
+      Some
+        (match a0 with
+        | '^' -> ""
+        | '$' -> ""
+        | _ -> src)
+    else
+      (* "XX" *)
+      let a1 = src.[1] in
+      if len = 2 then
+        match (a0, a1) with
+        | '^', '$' -> Some ""
+        | '^', c -> String.make 1 c |> finish
+        | c, '$' -> String.make 1 c |> finish
+        | '\\', ('A' | 'Z' | 'z') -> Some ""
+        | _, _ -> src |> finish
+      else
+        (* "XXX" or longer *)
+        let src =
+          match (a0, a1) with
+          | '^', _ -> String.sub src 1 (len - 1)
+          | '\\', 'A' -> String.sub src 2 (len - 2)
+          | _ -> src
+        in
+        (* "X" or longer *)
+        let len = String.length src in
+        let z1 = src.[len - 1] in
+        if len = 1 then
+          match z1 with
+          | '$' -> Some ""
+          | _ -> src |> finish
+        else
+          (* "XX" or longer *)
+          let z0 = src.[len - 2] in
+          let src =
+            match (z0, z1) with
+            | _, '$' -> String.sub src 0 (len - 1)
+            | '\\', ('Z' | 'z') -> String.sub src 0 (len - 2)
+            | _ -> src
+          in
+          finish src
 
-  let matching_exact_word s =
-    let re = "\b" ^ Pcre.quote s ^ "\b" in
-    (re, SPcre.regexp re)
-
-  let run (_, re) str = SPcre.pmatch_noerr ~rex:re str
-end
+let remove_end_of_string_assertions (src_pat, _old) =
+  match remove_end_of_string_assertions_from_string src_pat with
+  | None -> None
+  | Some pat -> Some (pcre_compile pat)

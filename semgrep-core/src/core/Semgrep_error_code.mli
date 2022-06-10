@@ -5,8 +5,6 @@ type error = {
   msg : string;
   (* ?? diff with msg? *)
   details : string option;
-  (* ??? error in yaml rule? *)
-  yaml_path : string list option;
 }
 
 type severity = Error | Warning

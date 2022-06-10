@@ -20,6 +20,7 @@ SETTINGS_FILENAME = "settings.yml"
 YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
 YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
+FIXTEST_SUFFIX = ".fixed"
 
 RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=json"
 

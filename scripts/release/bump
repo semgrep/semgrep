@@ -50,6 +50,14 @@ update_init_py() {
   git add "$target"
 }
 
+update_version_ml() {
+  target=semgrep-core/src/cli/version.ml
+  targets+=" $target"
+  echo "Updating $target"
+  sed_in_place 's/let version = ".*"/let version = "'"$release"'"/g' "$target"
+  git add "$target"
+}
+
 update_setup_py() {
   target=setup.py
   targets+=" $target"
@@ -68,6 +76,7 @@ bump() {
   update_changelog
   update_init_py
   update_setup_py
+  update_version_ml
 }
 
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
@@ -98,7 +107,7 @@ fi
 
 bump
 
-if git status -s | grep -vq 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py'; then
+if git status -s | grep -vq 'CHANGELOG.md\|semgrep/semgrep/__init__.py\|setup.py\|semgrep-core/src/cli/version.ml'; then
   error <<EOF
 The release branch contains unexpected changes, cancelling release.
 EOF

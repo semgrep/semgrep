@@ -90,11 +90,11 @@ def _get_version_from_cache(version_cache_path: Path) -> Optional[JsonObject]:
     return res
 
 
-def _get_latest_version() -> Optional[JsonObject]:
+def _get_latest_version(allow_fetch: bool = True) -> Optional[JsonObject]:
     env = get_state().env
     latest_version = _get_version_from_cache(env.version_check_cache_path)
 
-    if latest_version is None:
+    if latest_version is None and allow_fetch:
         latest_version = _fetch_latest_version()
 
     if latest_version is None:
@@ -154,9 +154,13 @@ def version_check() -> None:
 
 def get_no_findings_msg() -> Optional[str]:
     """
-    Gets and returns the latest no_findings message from the backend, using cache if possible.
+    Gets and returns the latest no_findings message from the backend from cache.
+
+    Will only ever return a response if version_check finished before this call.
     """
-    latest_version_object = _get_latest_version()
+    # only the real version_check request should be allowed to send a request to semgrep.dev
+    # so that we can gate only the version checks behind `not --disable-version-check` conditions
+    latest_version_object = _get_latest_version(allow_fetch=False)
     if latest_version_object is None or "no_findings_msg" not in latest_version_object:
         return None
 

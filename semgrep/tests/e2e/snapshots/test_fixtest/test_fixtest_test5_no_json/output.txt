@@ -1,0 +1,2 @@
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
+No tests for fixes found.

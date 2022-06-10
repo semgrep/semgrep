@@ -7,7 +7,7 @@ def test_max_target_bytes(run_semgrep_in_tmp, snapshot, max_bytes):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         options=["--max-target-bytes", max_bytes],
-        fail_on_nonzero=False,
+        assert_exit_code=None,
     )
     snapshot.assert_match(stdout, "results.json")
     snapshot.assert_match(stderr, "error.txt")

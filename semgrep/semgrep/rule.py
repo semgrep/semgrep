@@ -222,10 +222,14 @@ class Rule:
     @property
     def full_hash(self) -> str:
         """
-        sha256 hash of the whole rule object instead of just the id
+        sha256 hash of the whole rule object instead of just the id.
+
+        We remove metadata cause it can contain user-specific data when connected to Semgrep App.
         """
+        rule_dict = self._raw.copy()
+        rule_dict.pop("metadata", None)
         return hashlib.sha256(
-            json.dumps(self._raw, sort_keys=True).encode()
+            json.dumps(rule_dict, sort_keys=True).encode()
         ).hexdigest()
 
     @property

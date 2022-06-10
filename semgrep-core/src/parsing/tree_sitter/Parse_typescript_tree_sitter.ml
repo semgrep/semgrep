@@ -174,7 +174,7 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let toks = (v2 |> Common.map snd) @ [ close ] in
       (str, PI.combine_infos open_ toks)
 
-let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
+let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import_export) =
   let star = token env v1 (* "*" *) in
   let _as = token env v2 (* "as" *) in
   let id = identifier env v3 (* identifier *) in
@@ -464,11 +464,11 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
 
 let import_clause (env : env) (x : CST.import_clause) =
   match x with
-  | `Name_import x ->
+  | `Name_import_export x ->
       let _star, id = namespace_import env x in
       fun tok path -> [ ModuleAlias (tok, id, path) ]
   | `Named_imports x -> named_imports env x
-  | `Id_opt_COMMA_choice_name_import (v1, v2) ->
+  | `Id_opt_COMMA_choice_name_import_export (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 =
         match v2 with
@@ -476,7 +476,7 @@ let import_clause (env : env) (x : CST.import_clause) =
             let _v1 = token env v1 (* "," *) in
             let v2 =
               match v2 with
-              | `Name_import x ->
+              | `Name_import_export x ->
                   let _star, id = namespace_import env x in
                   fun tok path -> [ ModuleAlias (tok, id, path) ]
               | `Named_imports x -> named_imports env x
@@ -674,12 +674,14 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
 
 and pattern (env : env) (x : CST.pattern) : (a_ident, a_pattern) either =
   match x with
-  | `Id tok -> Left (identifier env tok)
-  | `Choice_decl x -> Left (reserved_identifier env x)
-  | `Dest_pat x -> Right (destructuring_pattern env x)
+  | `Choice_choice_member_exp e -> (
+      let lhs = lhs_expression env e in
+      match lhs with
+      | Id x -> Left x
+      | _ -> Right lhs)
   | `Rest_pat (v1, v2) ->
       let tok = token env v1 (* "..." *) in
-      let _id_or_pat_TODO = id_or_destructuring_pattern env v2 in
+      let _lhs_TODO = lhs_expression env v2 in
       Right (IdSpecial (Spread, tok))
 
 (*
@@ -693,7 +695,7 @@ and object_property_pattern (env : env) (x : CST.anon_choice_pair_pat_3ff9cbe) :
   | `Pair_pat (v1, v2, v3) ->
       let v1 = property_name env v1 in
       let _v2 = token env v2 (* ":" *) in
-      let body = pattern env v3 |> sub_pattern in
+      let body = pat_or_assign_pat env v3 |> sub_pattern in
       let ty = None in
       FieldColon
         { fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some body }
@@ -973,11 +975,7 @@ and variable_declarator (env : env) (x : CST.variable_declarator) =
         | Some x -> Some (type_annotation env x |> snd)
         | None -> None
       in
-      let default =
-        match v3 with
-        | Some x -> Some (initializer_ env x)
-        | None -> None
-      in
+      let default = initializer_opt env v3 in
       (id_or_pat, type_, default)
   | `Id_BANG_type_anno (v1, v2, v3) ->
       let id_or_pat = Left (identifier env v1 (* identifier *)) in
@@ -1158,6 +1156,11 @@ and initializer_ (env : env) ((v1, v2) : CST.initializer_) =
   let _v1 = token env v1 (* "=" *) in
   let v2 = expression env v2 in
   v2
+
+and initializer_opt env v =
+  match v with
+  | Some x -> Some (initializer_ env x)
+  | None -> None
 
 and primary_expression (env : env) (x : CST.primary_expression) : expr =
   match x with
@@ -1534,23 +1537,26 @@ and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) : for_header
     | `Choice_choice_choice_member_exp x ->
         let expr = paren_expr_or_lhs_expr env x in
         Right expr
-    | `Choice_var_choice_id (v1, v2) ->
+    | `Var_choice_id_opt_init (v1, v2, v3) ->
+        let var_kind = (Var, token env v1) in
+        let id_or_pat = id_or_destructuring_pattern env v2 in
+        let pat = id_or_pat |> sub_pattern in
+        let rhs = initializer_opt env v3 in
+        let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) rhs in
+        Left var
+    | `Choice_let_choice_id (v1, v2) ->
         let var_kind =
           match v1 with
-          | `Var tok -> (Var, token env tok) (* "var" *)
           | `Let tok -> (Let, token env tok) (* "let" *)
           | `Const tok -> (Const, token env tok)
           (* "const" *)
         in
         let id_or_pat = id_or_destructuring_pattern env v2 in
-        let pat =
-          match id_or_pat with
-          | Left id -> idexp id
-          | Right pat -> pat
-        in
+        let pat = id_or_pat |> sub_pattern in
         let var = Ast_js.var_pattern_to_var var_kind pat (snd var_kind) None in
         Left var
   in
+
   let exprs = expressions env v4 in
   let for_header =
     match v3 with
@@ -1713,6 +1719,24 @@ and paren_expr_or_lhs_expr (env : env)
 
 and primary_type (env : env) (x : CST.primary_type) : type_ =
   match x with
+  | `Union_type (v1, v2, v3) -> (
+      let v2 = token env v2 (* "|" *) in
+      let v3 = type_ env v3 in
+      match v1 with
+      | Some x ->
+          let x = type_ env x in
+          TyOr (x, v2, v3)
+      | None -> v3
+      (* ?? *))
+  | `Inte_type (v1, v2, v3) -> (
+      let v2 = token env v2 (* "&" *) in
+      let v3 = type_ env v3 in
+      match v1 with
+      | Some x ->
+          let x = type_ env x in
+          TyAnd (x, v2, v3)
+      | None -> v3
+      (* ?? *))
   | `Temp_lit_type x -> map_template_literal_type env x
   | `Paren_type (v1, v2, v3) ->
       let _v1 = token env v1 (* "(" *) in
@@ -1902,35 +1926,29 @@ and map_type_query_subscript_expression (env : env)
   let rbra = (* "]" *) token env v5 in
   ArrAccess (e, (lbra, arg, rbra))
 
-and unary_expression (env : env) (x : CST.unary_expression) =
-  match x with
-  | `BANG_exp (v1, v2) ->
+and unary_expression (env : env) ((v1, v2) : CST.unary_expression) =
+  let v2 = expression env v2 in
+  match v1 with
+  | `BANG v1 ->
       let v1 = token env v1 (* "!" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (ArithOp G.Not, v1), fb [ v2 ])
-  | `TILDE_exp (v1, v2) ->
+  | `TILDE v1 ->
       let v1 = token env v1 (* "~" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (ArithOp G.BitNot, v1), fb [ v2 ])
-  | `DASH_exp (v1, v2) ->
+  | `DASH v1 ->
       let v1 = token env v1 (* "-" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (ArithOp G.Minus, v1), fb [ v2 ])
-  | `PLUS_exp (v1, v2) ->
+  | `PLUS v1 ->
       let v1 = token env v1 (* "+" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (ArithOp G.Plus, v1), fb [ v2 ])
-  | `Typeof_exp (v1, v2) ->
+  | `Typeof v1 ->
       let v1 = token env v1 (* "typeof" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (Typeof, v1), fb [ v2 ])
-  | `Void_exp (v1, v2) ->
+  | `Void v1 ->
       let v1 = token env v1 (* "void" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (Void, v1), fb [ v2 ])
-  | `Delete_exp (v1, v2) ->
+  | `Delete v1 ->
       let v1 = token env v1 (* "delete" *) in
-      let v2 = expression env v2 in
       Apply (IdSpecial (Delete, v1), fb [ v2 ])
 
 and pat_or_assign_pat (env : env) (x : CST.anon_choice_pat_3297d92) :
@@ -1954,11 +1972,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
           | Some x -> Some (type_annotation env x |> snd)
           | None -> None
         in
-        let default =
-          match v3 with
-          | Some x -> Some (initializer_ env x)
-          | None -> None
-        in
+        let default = initializer_opt env v3 in
         (id_or_pat, type_, default)
     | `Opt_param (v1, v2, v3, v4) ->
         (* optional_parameter *)
@@ -1969,11 +1983,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
           | Some x -> Some (type_annotation env x |> snd)
           | None -> None
         in
-        let opt_default =
-          match v4 with
-          | Some x -> Some (initializer_ env x)
-          | None -> None
-        in
+        let opt_default = initializer_opt env v4 in
         (id_or_pat, opt_type, opt_default)
   in
   match id_or_pat with
@@ -2299,7 +2309,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 let from, path = from_clause env v2 in
                 let _v3 = semicolon env v3 in
                 [ M (ReExportNamespace (export_tok, star, None, from, path)) ]
-            | `Name_import_from_clause_choice_auto_semi (v1, v2, v3) ->
+            | `Name_import_export_from_clause_choice_auto_semi (v1, v2, v3) ->
                 (* export * as foo from "module"; *)
                 let star, alias = namespace_import env v1 (* * as foo *) in
                 let from, path = from_clause env v2 (* from "module" *) in
@@ -2392,16 +2402,19 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                     [ DefStmt def; M (Export (export_tok, n)) ])
           in
           v3)
-  | `Export_type_export_clause (v1, v2, v3) ->
+  | `Export_type_export_clause_opt_from_clause_choice_auto_semi
+      (v1, v2, v3, _v4, v5) ->
       let _export = token env v1 (* "export" *) in
       let _type = token env v2 (* "type" *) in
       let _exported_types = export_clause env v3 in
+      (* TODO v4 from_clause *)
+      let _sc = semicolon env v5 in
       (* TODO: 'export type { foo, type bar, typeof thing };' *)
       []
-  | `Export_EQ_id_choice_auto_semi (v1, v2, v3, v4) ->
+  | `Export_EQ_exp_choice_auto_semi (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "export" *) in
       let _v2 = token env v2 (* "=" *) in
-      let _v3 = token env v3 (* identifier *) in
+      let _v3 = expression env v3 in
       let _v4 = semicolon env v4 in
       (* TODO 'export = ZipCodeValidator;' *)
       []
@@ -2484,7 +2497,8 @@ and anon_choice_export_stmt_f90d83f (env : env)
         { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None }
       in
       Left (Field fld)
-  | `Cons_sign (v1, v2, v3, v4) ->
+  | `Cons_sign (v0, v1, v2, v3, v4) ->
+      let v0 = kwd_attr_opt_to_list env Abstract v0 in
       let v1 = token env v1 (* "new" *) in
       let _tparams =
         match v2 with
@@ -2498,10 +2512,9 @@ and anon_choice_export_stmt_f90d83f (env : env)
         | None -> None
       in
       let ty = mk_functype (v3, v4) in
-      let name = PN ("new", v1) in
-      let fld =
-        { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None }
-      in
+      let fld_name = PN ("new", v1) in
+      let fld_attrs = v0 |> Common.map attr in
+      let fld = { fld_name; fld_attrs; fld_type = Some ty; fld_body = None } in
       Left (Field fld)
   | `Index_sign x ->
       let ty = index_signature env x in
@@ -2545,11 +2558,7 @@ and public_field_definition (env : env)
     | Some x -> Some (type_annotation env x |> snd)
     | None -> None
   in
-  let opt_init =
-    match v7 with
-    | Some x -> Some (initializer_ env x)
-    | None -> None
-  in
+  let opt_init = initializer_opt env v7 in
   let attrs = attributes |> Common.map attr in
   Field
     {
@@ -2765,24 +2774,6 @@ and type_predicate (env : env) ((v1, v2, v3) : CST.type_predicate) : type_ =
 and type_ (env : env) (x : CST.type_) : type_ =
   match x with
   | `Prim_type x -> primary_type env x
-  | `Union_type (v1, v2, v3) -> (
-      let v2 = token env v2 (* "|" *) in
-      let v3 = type_ env v3 in
-      match v1 with
-      | Some x ->
-          let x = type_ env x in
-          TyOr (x, v2, v3)
-      | None -> v3
-      (* ?? *))
-  | `Inte_type (v1, v2, v3) -> (
-      let v2 = token env v2 (* "&" *) in
-      let v3 = type_ env v3 in
-      match v1 with
-      | Some x ->
-          let x = type_ env x in
-          TyAnd (x, v2, v3)
-      | None -> v3
-      (* ?? *))
   | `Func_type (v1, v2, v3, v4) ->
       let _tparams =
         match v1 with
@@ -2803,7 +2794,8 @@ and type_ (env : env) (x : CST.type_) : type_ =
       let _TODOreadonly = token env v1 (* "readonly" *) in
       let type_ = type_ env v2 in
       type_
-  | `Cons_type (v1, v2, v3, v4, v5) ->
+  | `Cons_type (v0, v1, v2, v3, v4, v5) ->
+      let _v0TODO = kwd_attr_opt_to_list env Abstract v0 in
       let v1 = token env v1 (* "new" *) in
       let _tparams =
         match v2 with
@@ -2906,11 +2898,12 @@ and anon_choice_type_id_940079a (env : env)
 and id_or_destructuring_pattern env x : (a_ident, a_pattern) either =
   anon_choice_type_id_940079a env x
 
+(* TODO: change type signature, return just a_pattern *)
 and rest_pattern (env : env) ((v1, v2) : CST.rest_pattern) :
     tok * (a_ident, a_pattern) either =
   let dots = token env v1 (* "..." *) in
-  let id_or_pat = id_or_destructuring_pattern env v2 in
-  (dots, id_or_pat)
+  let e = lhs_expression env v2 in
+  (dots, Right e)
 
 and tuple_type_member (env : env) (x : CST.tuple_type_member) :
     tuple_type_member =

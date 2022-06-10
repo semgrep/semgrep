@@ -6,7 +6,73 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Autodetection of CI env now supports Azure Pipelines, Bitbucket, Buildkite, Circle CI, Jenkins,
+  and Travis CI in addition to GitHub and GitLab
+- You can now disable version checks with an environment variable by setting
+  `SEMGREP_ENABLE_VERSION_CHECK=0`
+
+### Fixed
+
+- Fixed a bug where `--disable-version-check` would still send a request
+  when a scan resulted in zero findings.
+
+## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
+
+### Added
+
+- Dataflow: XML elements (e.g. JSX elements) have now a basic translation to the
+  Dataflow IL, meaning that dataflow analysis (constant propagation, taint tracking)
+  can now operate inside these elements (#5115)
+- Java: you can now use a metavariable in a package directive (#5420),
+  for example, `package $X`, which is useful to bind the package
+  name and use it in the error message.
+
+### Fixed
+
+- The output of `semgrep ci` should be clear it is exiting with error code 0
+  when there are findings but none of them being blockers
+- Java: support for Sealed classes and Text Blocks via tree-sitter-java
+  (#3787, #4644)
+- The JUnit XML output should serialize the failure messages as a single
+  string instead of a python list of strings.
+- Typescript: update to latest tree-sitter-typescript, with support
+  for 'abstract' modifier in more places
+- Scala: stop parsing parenthesized expressions as unary tuples
+- `yarn.lock` files with no depenencies, and with dependencies that lack URLs, now parse
+- Scala: fixed bug where typed patterns inside classes caused an exception during name resolution
+- metavariable-regex: patterns are now unanchored as specified by the
+  documentation (#4807)
+- When a logged in CI scan encounters a Git failure,
+  we now print a helpful error message instead of a traceback.
+
+## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
+
+### Added
+
+- Generic mode: new option `generic_ellipsis_max_span` for controlling
+  how many lines an ellipsis can match (#5211)
+- Generic mode: new option `generic_comment_style` for ignoring
+  comments that follow the specified syntax (C style, C++ style, or
+  Shell style) (#3428)
+- Metrics now include a list of features used during an execution.
+  Examples of such features are: languages scanned, CLI options passed, keys used in rules,
+  or certain code paths reached, such as using an `:include` instruction in
+  a `.semgrepignore` file.
+  These strings will NOT include user data or specific settings. As an example,
+  with `semgrep scan --output=secret.txt` we might send `"option/output"` but
+  will NOT send `"option/output=secret.txt"`.
+
+### Changed
+
+- The output summarizing a scan's results has been simplified.
+
+## [0.95.0](https://github.com/returntocorp/semgrep/releases/tag/v0.95.0) - 2022-06-02
+
+### Added
+
 - Sarif output format now includes `fixes` section
+- `--test` flag will now seach for code files with `.fixed` suffix and use
+  these to test the behaviour of autofixes of the rules.
 - Rust: added support for method chaining patterns.
 - `r2c-internal-project-depends-on`: support for poetry and gradle lockfiles
 - M1 Mac support added to PyPi
@@ -14,11 +80,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `r2c-internal-project-depends-on`:
   - pretty printing for SCA results
   - support for poetry and gradle lockfiles
-- Generic mode: new option `generic_ellipsis_max_span` for controlling
-  how many lines an ellipsis can match (#5211)
-- Generic mode: new option `generic_comment_style` for ignoring
-  comments that follow the specified syntax (C style, C++ style, or
-  Shell style) (#3428)
 - taint-mode: Taint tracking will now analyze lambdas in their surrounding context.
   Previously, if a variable became tainted outside a lambda, and this variable was
   used inside the lambda causing the taint to reach a sink, this was not being
@@ -29,9 +90,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metrics now include an anonymous Event ID. This is an ID generated at send-time
   and will be used to de-duplicate events that potentially get duplicated during transmission.
 - Metrics now include an anonymous User ID. This ID is stored in the ~/.semgrep/settings.yml file. If the ID disappears, the next run will generate a new one randomly. See the [Anonymous User ID in PRIVACY.md](PRIVACY.md#anonymous-user-id) for more details.
-- Metrics now include a list of features used during an execution.
-  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
-  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
+
+### Fixed
+
+- M1 Mac installed via pip now links tree-sitter properly
+- Restore `--sca`
 
 ### Changed
 

@@ -5,7 +5,7 @@
 set -e
 brew update # Needed to sidestep bintray brownout
 #coupling: this should be the same version than in our Dockerfile
-opam switch 4.12.0;
+opam switch 4.14.0;
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
@@ -15,6 +15,11 @@ export HOMEBREW_SYSTEM=1
 
 make setup
 make config
+
+# Remove dynamically linked libraries to force MacOS to use static ones
+# This needs to be done after make setup but before make build-*
+rm /usr/local/lib/libtree-sitter.0.0.dylib || true
+rm /usr/local/lib/libtree-sitter.dylib || true
 
 make build-core
 

@@ -29,7 +29,7 @@ def test_exclude_include(run_semgrep_in_tmp, snapshot, options):
         "rules/eqeq.yaml",
         options=options,
         target_name="exclude_include",
-        fail_on_nonzero=False,
+        assert_exit_code=None,
     )
     snapshot.assert_match(stdout, "results.json")
     snapshot.assert_match(stderr, "err.out")

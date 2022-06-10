@@ -271,6 +271,7 @@ class OutputHandler:
         profiler: Optional[ProfileManager] = None,
         profiling_data: Optional[ProfilingData] = None,  # (rule, target) -> duration
         severities: Optional[Collection[RuleSeverity]] = None,
+        print_summary: bool = False,
     ) -> None:
         state = get_state()
         self.has_output = True
@@ -340,6 +341,7 @@ class OutputHandler:
             num_rules = len(self.filtered_rules)
 
             ignores_line = str(ignore_log or "No ignore information available")
+            suggestion_line = ""
             if (
                 num_findings == 0
                 and num_targets > 0
@@ -347,13 +349,13 @@ class OutputHandler:
                 and state.metrics.is_using_registry
                 and state.app_session.token is None
             ):
-                suggestion_line = "(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
-            else:
-                suggestion_line = ""
-            stats_line = f"Ran {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
+                suggestion_line = "\n(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
+            stats_line = ""
+            if print_summary:
+                stats_line = f"\nRan {unit_str(num_rules, 'rule')} on {unit_str(num_targets, 'file')}: {unit_str(num_findings, 'finding')}."
             if ignore_log is not None:
                 logger.verbose(ignore_log.verbose_output())
-            output_text = "\n" + ignores_line + "\n" + suggestion_line + stats_line
+            output_text = "\n" + ignores_line + suggestion_line + stats_line
             logger.info(output_text)
 
         self._final_raise(final_error)

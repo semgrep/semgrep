@@ -12,7 +12,7 @@ val taint_config_of_rule :
   Config_semgrep_t.t ->
   Equivalence.equivalences ->
   Common.filename ->
-  AST_generic.program * Semgrep_error_code.error list ->
+  AST_generic.program * Parse_info.token_location list ->
   Rule.rule ->
   Rule.taint_spec ->
   (Dataflow_tainting.var option ->

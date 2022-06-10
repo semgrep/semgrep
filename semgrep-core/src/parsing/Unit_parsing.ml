@@ -26,12 +26,8 @@ let parsing_tests_for_lang files lang =
   |> Common.map (fun file ->
          ( Filename.basename file,
            fun () ->
-             let { Parse_target.skipped_tokens = errs; _ } =
-               Parse_target.parse_and_resolve_name lang file
-             in
-             if errs <> [] then
-               Alcotest.fail
-                 (String.concat ";" (Common.map E.string_of_error errs)) ))
+             Parse_target.parse_and_resolve_name_fail_if_partial lang file
+             |> ignore ))
 
 let partial_parsing_tests_for_lang files lang =
   files
@@ -52,7 +48,7 @@ let partial_parsing_tests_for_lang files lang =
 (* This differs from pfff/tests/<lang>/parsing because here we also use
  * tree-sitter to parse; certain files do not parse with pfff but parses here
  *)
-let lang_parsing_tests =
+let lang_parsing_tests () =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let pack_parsing_tests_for_lang lang dir ext =
     let slang = Lang.show lang in
@@ -96,7 +92,7 @@ let lang_parsing_tests =
  * exns (e.g., Parsing_error, Lexical_error), otherwise semgrep
  * will report some "Fatal error" and abort.
  *)
-let parsing_error_tests =
+let parsing_error_tests () =
   let dir = Filename.concat tests_path "OTHER/parsing_errors" in
   pack_tests "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" dir) in
@@ -116,7 +112,7 @@ let parsing_error_tests =
                 | Parse_info.Parsing_error _ ->
                     () )))
 
-let parsing_rules_tests =
+let parsing_rules_tests () =
   let dir = Filename.concat tests_path "OTHER/rule_formats" in
   pack_tests "Parsing rules"
     (let tests =
@@ -133,5 +129,6 @@ let parsing_rules_tests =
 (* Tests *)
 (*****************************************************************************)
 
-let tests =
-  List.flatten [ lang_parsing_tests; parsing_error_tests; parsing_rules_tests ]
+let tests () =
+  List.flatten
+    [ lang_parsing_tests (); parsing_error_tests (); parsing_rules_tests () ]

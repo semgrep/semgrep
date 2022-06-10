@@ -17,3 +17,8 @@ lodash@4.17.20:
 ansi-html@0.0.7:
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz#813584021962a9e9e6fd039f940d12f56ca7859e"
+
+lodash-other@4.17.20:
+  version "4.17.20"
+  dependencies:
+    "@jridgewell/trace-mapping" "^0.3.0"

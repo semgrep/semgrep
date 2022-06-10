@@ -6,7 +6,7 @@
  *
  * From semgrep-core you can do
  *
- *   $./test test foo
+ *   $./test foo
  *
  * to run all the tests containing foo in their description.
  *)
@@ -34,16 +34,24 @@ let any_gen_of_string str =
 (* All tests *)
 (*****************************************************************************)
 
-let tests = List.flatten [
-  Unit_parsing.tests;
-  Unit_reporting.tests;
+(*
+   Some test suites are created from files present in file system.
+   To avoid errors during module initialization when running 'dune utop'
+   from an arbitrary location, these test suites must be created
+   explicitly by calling a function. These functions are roughly those
+   that call 'Common2.glob'.
+*)
+let tests () = List.flatten [
+  Unit_parsing.tests ();
+  Unit_reporting.tests ();
 
   Unit_entropy.tests;
   Unit_ReDoS.tests;
 
   Unit_guess_lang.tests;
   Unit_memory_limit.tests;
-  Unit_pcre_settings.tests;
+  Unit_SPcre.tests;
+  Unit_regexp_engine.tests;
 
   Unit_synthesizer.tests;
   Unit_synthesizer_targets.tests;
@@ -58,7 +66,8 @@ let tests = List.flatten [
   Unit_matcher.tests ~any_gen_of_string;
   (* TODO Unit_matcher.spatch_unittest ~xxx *)
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-  Unit_engine.tests;
+  Unit_engine.tests ();
+  Unit_metachecking.tests ();
 ]
 
 (*****************************************************************************)
@@ -66,7 +75,7 @@ let tests = List.flatten [
 (*****************************************************************************)
 
 let main () =
-  let alcotest_tests = Testutil.to_alcotest tests in
+  let alcotest_tests = Testutil.to_alcotest (tests ()) in
   Alcotest.run "semgrep-core" alcotest_tests
 
 let () = main ()

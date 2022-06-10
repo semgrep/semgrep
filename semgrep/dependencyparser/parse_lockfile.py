@@ -64,13 +64,18 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
 
     _comment, all_deps_text = lockfile_text.split("\n\n\n")
     dep_texts = all_deps_text.split("\n\n")
+    if dep_texts == [""]:  # No dependencies
+        yield from []
     for dep_text in dep_texts:
         lines = dep_text.split("\n")
         package_name = extract_yarn_name(lines[0])
         version = remove_quotes(lines[1].split()[1])
-        resolved = remove_trailing_octothorpe(
-            remove_quotes(lines[2].split()[1]).strip()
-        )
+        if len(lines) >= 3 and lines[2].strip().startswith("resolved"):
+            resolved = [
+                remove_trailing_octothorpe(remove_quotes(lines[2].split()[1]).strip())
+            ]
+        else:
+            resolved = []
         integrity = (
             lines[3].split()[1]
             if len(lines) > 3 and lines[3].strip().startswith("integrity")
@@ -81,7 +86,7 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
             version,
             PackageManagers.NPM,
             allowed_hashes=extract_npm_lockfile_hash(integrity) if integrity else {},
-            resolved_url=[resolved],
+            resolved_url=resolved,
         )
 
 

@@ -1,7 +1,15 @@
+import re
+
 import pytest
 
 from semgrep.constants import OutputFormat
-from tests.conftest import _mask_floats
+
+
+FLOATS = re.compile("([0-9]+).([0-9]+)")
+
+
+def _mask_floats(text_output: str) -> str:
+    return re.sub(FLOATS, "x.xxx", text_output)
 
 
 @pytest.mark.kinda_slow

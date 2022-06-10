@@ -245,10 +245,10 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
   in
   match xlang with
   | Xlang.L (lang, _) ->
-      let (ast, errors), parse_time =
+      let (ast, skipped_tokens), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in
-      let (matches, errors), match_time =
+      let matches, match_time =
         Common.with_time (fun () ->
             let mini_rules =
               patterns |> Common.map (mini_rule_of_pattern xlang)
@@ -256,14 +256,14 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
 
             if !debug_timeout || !debug_matches then
               (* debugging path *)
-              (debug_semgrep config mini_rules file lang ast, errors)
+              debug_semgrep config mini_rules file lang ast
             else
               (* regular path *)
-              ( Match_patterns.check
-                  ~hook:(fun _ _ -> ())
-                  ?range_filter config mini_rules (file, lang, ast),
-                errors ))
+              Match_patterns.check
+                ~hook:(fun _ _ -> ())
+                ?range_filter config mini_rules (file, lang, ast))
       in
+      let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       {
         RP.matches;
         errors;
@@ -453,7 +453,9 @@ let matches_of_spacegrep config spacegreps file =
 (*-------------------------------------------------------------------*)
 (* Regexps *)
 (*-------------------------------------------------------------------*)
-let regexp_matcher big_str file (re_str, re) =
+let regexp_matcher big_str file regexp =
+  let re_src = Regexp_engine.pcre_pattern regexp in
+  let re = Regexp_engine.pcre_regexp regexp in
   let subs = SPcre.exec_all_noerr ~rex:re big_str in
   subs |> Array.to_list
   |> Common.map (fun sub ->
@@ -487,7 +489,7 @@ let regexp_matcher big_str file (re_str, re) =
                       with
                       | Not_found ->
                           logger#debug "not found %d substring of %s in %s" n
-                            re_str matched_str;
+                            re_src matched_str;
                           None)
          in
          ((loc1, loc2), env))
@@ -660,7 +662,7 @@ let rec filter_ranges env xs cond =
           * which may not always be a string. The regexp is really done on
           * the text representation of the metavar content.
           *)
-         | R.CondRegexp (mvar, (re_str, _re), const_prop) ->
+         | R.CondRegexp (mvar, re, const_prop) ->
              let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
@@ -668,6 +670,7 @@ let rec filter_ranges env xs cond =
                 * but too many possible escaping problems, so easier to build
                 * an expression manually.
                 *)
+               let re_str = Regexp_engine.pcre_pattern re in
                G.Call
                  ( G.DotAccess
                      ( G.N (G.Id (("re", fk), fki)) |> G.e,

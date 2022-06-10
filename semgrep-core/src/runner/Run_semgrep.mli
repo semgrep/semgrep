@@ -57,6 +57,9 @@ val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
+val mk_rule_table : Rule.rule list -> (Rule.rule_id, Rule.rule) Hashtbl.t
+(** Helper to create the table of rules to run for each file **)
+
 val targets_of_config :
   Runner_config.t ->
   Rule.rule_id list ->

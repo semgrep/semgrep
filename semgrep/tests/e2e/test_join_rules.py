@@ -25,7 +25,7 @@ import pytest
 )
 def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target)[0],
+        run_semgrep_in_tmp(rule, target_name=target).stdout,
         "results.json",
     )
 
@@ -50,5 +50,5 @@ def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
 )
 def test_recursive_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target)[0], "results.json"
+        run_semgrep_in_tmp(rule, target_name=target).stdout, "results.json"
     )

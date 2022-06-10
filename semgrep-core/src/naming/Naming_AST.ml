@@ -365,7 +365,8 @@ let is_resolvable_name_ctx env lang =
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
       | Lang.Ts
-      | Lang.Php ->
+      | Lang.Php
+      | Lang.Scala ->
           true
       | _ -> false)
 
@@ -382,7 +383,8 @@ let resolved_name_kind env lang =
       (* true for JS/TS to resolve class methods. *)
       | Lang.Js
       | Lang.Ts
-      | Lang.Php ->
+      | Lang.Php
+      | Lang.Scala ->
           EnclosedVar
       | _ -> raise Impossible)
 
@@ -632,7 +634,8 @@ let resolve lang prog =
                *)
               declare_var env lang id id_info ~explicit:true None None;
               k x
-          | PatTyped (PatId (id, id_info), ty) ->
+          | PatTyped (PatId (id, id_info), ty)
+            when is_resolvable_name_ctx env lang ->
               declare_var env lang id id_info ~explicit:true None (Some ty)
           (* do not recurse here, we don't want the PatId case above
            * to overwrite the job done here

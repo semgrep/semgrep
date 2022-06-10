@@ -1,8 +1,6 @@
-import contextlib
 import os
 import subprocess
 import sys
-import tempfile
 from collections import defaultdict
 from functools import lru_cache
 from functools import partial
@@ -66,33 +64,30 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
 }
 
 
-@contextlib.contextmanager
-def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
+def write_pipes_to_disk(targets: Sequence[str], temp_dir: Path) -> Sequence[str]:
     """
-    Provides a context in which FIFOs have been copied into temp files
+    Writes FIFOs into temp files
 
     This is necessary as we can not easily rewire these pipes into the called semgrep-core
     process.
 
     :param targets: Input target specifiers
-    :return: A sequence of non-pipe specifiers (Path(t).is_file() returns true)
     """
 
     out_targets = []
-    with tempfile.TemporaryDirectory() as temp_dir:
-        for t in targets:
-            if t == "-":
-                with (Path(temp_dir) / "stdin").open("wb") as fd:
-                    fd.write(sys.stdin.buffer.read())
-                out_targets.append(fd.name)
-            elif Path(t).is_fifo():
-                with (Path(temp_dir) / t[1:].replace("/", "_")).open("wb") as fd:
-                    with Path(t).open("rb") as td:
-                        fd.write(td.read())
-                out_targets.append(fd.name)
-            else:
-                out_targets.append(t)
-        yield out_targets
+    for t in targets:
+        if t == "-":
+            with (temp_dir / "stdin").open("wb") as fd:
+                fd.write(sys.stdin.buffer.read())
+            out_targets.append(fd.name)
+        elif Path(t).is_fifo():
+            with (temp_dir / t[1:].replace("/", "_")).open("wb") as fd:
+                with Path(t).open("rb") as td:
+                    fd.write(td.read())
+            out_targets.append(fd.name)
+        else:
+            out_targets.append(t)
+    return out_targets
 
 
 @define

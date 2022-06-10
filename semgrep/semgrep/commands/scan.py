@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import tempfile
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -47,7 +48,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
 from semgrep.synthesize_patterns import synthesize
-from semgrep.target_manager import converted_pipe_targets
+from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -296,6 +297,7 @@ _scan_options: List[Callable] = [
         "--enable-version-check/--disable-version-check",
         is_flag=True,
         default=True,
+        envvar="SEMGREP_ENABLE_VERSION_CHECK",
         help="""
             Checks Semgrep servers to see if the latest version is run; disabling this
             may reduce exit time after returning results.
@@ -472,7 +474,7 @@ def scan_options(func: Callable) -> Callable:
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
+@click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--apply",
     is_flag=True,
@@ -681,7 +683,7 @@ def scan(
     show_supported_languages: bool,
     strict: bool,
     synthesize_patterns: str,
-    target: Tuple[str, ...],
+    targets: Sequence[str],
     test: bool,
     test_ignore_todo: bool,
     time_flag: bool,
@@ -730,10 +732,11 @@ def scan(
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
 
-    target_sequence: Sequence[str] = list(target) if target else [os.curdir]
-
     state = get_state()
     state.metrics.configure(metrics, metrics_legacy)
+    state.terminal.configure(
+        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+    )
 
     if include and exclude:
         logger.warning(
@@ -758,19 +761,13 @@ def scan(
 
     output_time = time_flag or json_time
 
-    state.terminal.configure(
-        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
-    )
-
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
 
     # change cwd if using docker
-    try:
+    if not targets:
         semgrep.config_resolver.adjust_for_docker()
-    except SemgrepError as e:
-        logger.exception(str(e))
-        raise e
+        targets = (os.curdir,)
 
     output_format = OutputFormat.TEXT
     if json or json_time or debugging_json:
@@ -806,7 +803,7 @@ def scan(
         # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
         # uses managed_output internally
         semgrep.test.test_main(
-            target=target_sequence,
+            target=targets,
             config=config,
             test_ignore_todo=test_ignore_todo,
             strict=strict,
@@ -816,22 +813,23 @@ def scan(
             deep=deep,
         )
 
+    run_has_findings = False
+
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with converted_pipe_targets(target_sequence) as target_sequence:
+    with tempfile.TemporaryDirectory() as pipes_dir:
+        targets = write_pipes_to_disk(targets, Path(pipes_dir))
         output_handler = OutputHandler(output_settings)
         return_data: ScanReturn = None
 
         if dump_ast:
-            dump_parsed_ast(
-                json, __validate_lang("--dump-ast", lang), pattern, target_sequence
-            )
+            dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
         elif synthesize_patterns:
             synthesize(
                 __validate_lang("--synthesize-patterns", lang),
                 synthesize_patterns,
-                target_sequence,
+                targets,
             )
         elif validate:
             if not (pattern or lang or config):
@@ -884,7 +882,7 @@ def scan(
                     dump_command_for_core=dump_command_for_core,
                     deep=deep,
                     output_handler=output_handler,
-                    target=target_sequence,
+                    target=targets,
                     pattern=pattern,
                     lang=lang,
                     configs=(config or []),
@@ -920,14 +918,10 @@ def scan(
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
                 severities=shown_severities,
+                print_summary=True,
             )
 
             run_has_findings = any(filtered_matches_by_rule.values())
-            if not run_has_findings:
-                msg = get_no_findings_msg()
-                # decouple CLI from app - if functionality removed, do not fail
-                if msg:
-                    logger.info(msg)
 
             return_data = (
                 filtered_matches_by_rule,
@@ -940,5 +934,11 @@ def scan(
         from semgrep.app.version import version_check
 
         version_check()
+
+    if not run_has_findings and enable_version_check:
+        msg = get_no_findings_msg()
+        # decouple CLI from app - if functionality removed, do not fail
+        if msg:
+            logger.info(msg)
 
     return return_data

@@ -667,7 +667,7 @@ and expr_aux env ?(void = false) e_gen =
       let es = esorig |> Common.map (fun eiorig -> expr env eiorig) in
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.ParenExpr (_, e, _) -> expr env e
-  | G.Xml _ -> todo (G.E e_gen)
+  | G.Xml xml -> xml_expr env xml
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
@@ -789,6 +789,38 @@ and record env ((_tok, origfields, _) as record_def) =
          | G.F _ -> todo (G.E e_gen))
   in
   mk_e (Record fields) (SameAs e_gen)
+
+and xml_expr env xml =
+  let attrs =
+    xml.G.xml_attrs
+    |> List.filter_map (function
+         | G.XmlAttr (_, tok, eorig)
+         | G.XmlAttrExpr (tok, eorig, _) ->
+             let exp = expr env eorig in
+             let _, lval = mk_aux_var env tok exp in
+             Some (mk_e (Fetch lval) (SameAs eorig))
+         | _ -> None)
+  in
+  let body =
+    xml.G.xml_body
+    |> List.filter_map (function
+         | G.XmlExpr (tok, Some eorig, _) ->
+             let exp = expr env eorig in
+             let _, lval = mk_aux_var env tok exp in
+             Some (mk_e (Fetch lval) (SameAs eorig))
+         | G.XmlXml xml' -> Some (xml_expr env xml')
+         | _ -> None)
+  in
+  let tok =
+    match xml.G.xml_kind with
+    | G.XmlClassic (tok, _, _, _)
+    | G.XmlSingleton (tok, _, _)
+    | G.XmlFragment (tok, _) ->
+        tok
+  in
+  mk_e
+    (Composite (CTuple, (tok, List.rev_append attrs body, tok)))
+    (Related (G.Xmls xml.G.xml_body))
 
 and stmt_expr env ?e_gen st =
   let todo () =

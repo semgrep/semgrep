@@ -1,4 +1,0 @@
-Usage: semgrep shouldafound [OPTIONS] PATH
-Try 'semgrep shouldafound --help' for help.
-
-Error: Missing argument 'PATH'.

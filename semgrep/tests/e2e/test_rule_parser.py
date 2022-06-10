@@ -1,5 +1,4 @@
 import json
-from subprocess import CalledProcessError
 
 import pytest
 
@@ -24,122 +23,90 @@ def test_rule_parser__success(run_semgrep_in_tmp, snapshot, filename):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
-    assert excinfo.value.returncode != 0
-    snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
+    run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8})
 
 
 @pytest.mark.kinda_slow
 def test_regex_with_bad_language(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/badlanguage.yaml")
-    assert excinfo.value.returncode != 0
+    run_semgrep_in_tmp("rules/badlanguage.yaml", assert_exit_code=7)
 
 
 @pytest.mark.kinda_slow
 def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(f"rules/syntax/empty.yaml")
-    assert excinfo.value.returncode != 0
-    snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
-
-
-# similar to _clean_output_json in conftest.py
-def _clean_output_json(output):
-    """Make semgrep's output deterministic."""
-    if output.get("version"):
-        output["version"] = "0.42"
-
-    # Necessary because some tests produce temp files
-    if output.get("errors"):
-        for error in output.get("errors"):
-            if error.get("spans"):
-                for span in error.get("spans"):
-                    if span.get("file"):
-                        file = span.get("file")
-                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
+    run_semgrep_in_tmp(f"rules/syntax/empty.yaml", assert_exit_code=7)
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml")
-
-    json_output = json.loads(excinfo.value.stdout)
-    # Something went wrong, so there had better be an error, and we asked for JSON so there had better be some output...
-    assert json_output["errors"] != []
-    _clean_output_json(json_output)
-
-    with pytest.raises(CalledProcessError) as excinfo_in_color:
-        run_semgrep_in_tmp(
-            f"rules/syntax/{filename}.yaml",
-            options=["--force-color"],
-            output_format=OutputFormat.TEXT,
-            force_color=True,
-        )
-
-    snapshot.assert_match(
-        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
+    stdout, _ = run_semgrep_in_tmp(
+        f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8}
     )
 
-    if excinfo_in_color.value.stderr != excinfo.value.stderr:
-        snapshot.assert_match(excinfo_in_color.value.stderr, "error-in-color.txt")
+    json_output = json.loads(stdout)
+    # Something went wrong, so there had better be an error, and we asked for JSON so there had better be some output...
+    assert json_output["errors"] != []
+
+    snapshot.assert_match(stdout, "error.json")
+    _, stderr = run_semgrep_in_tmp(
+        f"rules/syntax/{filename}.yaml",
+        options=["--force-color"],
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        assert_exit_code={2, 7, 8},
+    )
+
+    snapshot.assert_match(stderr, "error-in-color.txt")
 
 
 # https://github.com/returntocorp/semgrep/issues/1095
 @pytest.mark.kinda_slow
 def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
     # Check json output
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(options=["-e", "#include<asdf><<>>><$X>", "-l", "c"])
-    json_output = json.loads(excinfo.value.stdout)
-    _clean_output_json(json_output)
-    snapshot.assert_match(
-        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
+    stdout, _ = run_semgrep_in_tmp(
+        options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=2
     )
+    snapshot.assert_match(stdout, "error.json")
 
     # Check pretty print output
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(
-            options=["-e", "#include<asdf><<>>><$X>", "-l", "c"],
-            output_format=OutputFormat.TEXT,
-            force_color=True,
-        )
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    _, stderr = run_semgrep_in_tmp(
+        options=["-e", "#include<asdf><<>>><$X>", "-l", "c"],
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        assert_exit_code=2,
+    )
+    snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow
 def test_rule_parser_error_key_name_text(run_semgrep_in_tmp, snapshot):
     # Check pretty print output
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(
-            f"rules/syntax/invalid-key-name.yml",
-            output_format=OutputFormat.TEXT,
-            force_color=True,
-        )
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    _, stderr = run_semgrep_in_tmp(
+        f"rules/syntax/invalid-key-name.yml",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        assert_exit_code=7,
+    )
+    snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow
 def test_rule_parser_error_metavariable_text(run_semgrep_in_tmp, snapshot):
-
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(
-            f"rules/syntax/invalid-metavariable-regex.yml",
-            output_format=OutputFormat.TEXT,
-            force_color=True,
-        )
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    _, stderr = run_semgrep_in_tmp(
+        f"rules/syntax/invalid-metavariable-regex.yml",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        assert_exit_code=7,
+    )
+    snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow
 def test_rule_parser_error_invalid_key_name_text(run_semgrep_in_tmp, snapshot):
-    with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp(
-            f"rules/syntax/invalid-patterns-key.yml",
-            output_format=OutputFormat.TEXT,
-            force_color=True,
-        )
-    snapshot.assert_match(excinfo.value.stderr, "error.txt")
+    _, stderr = run_semgrep_in_tmp(
+        f"rules/syntax/invalid-patterns-key.yml",
+        output_format=OutputFormat.TEXT,
+        force_color=True,
+        assert_exit_code=7,
+    )
+    snapshot.assert_match(stderr, "error.txt")
