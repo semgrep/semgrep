@@ -58,3 +58,7 @@ docker run "$image" publish --help
 echo "if 1 == 1: pass" \
     | docker run -i "$image" semgrep -l python -e '$X == $X' - \
     | grep -q "1 == 1"
+
+TEMP_DIR=$(mktemp -d)
+echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
+docker run -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X' | grep -q "1 == 1"

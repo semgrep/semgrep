@@ -416,11 +416,15 @@ def adjust_for_docker() -> None:
     """change into this folder so that all paths are relative to it"""
     env = get_state().env
     if env.in_docker and not env.in_gh_action:
-        if not env.src_directory.exists():
+        try:
+            # check if there's at least one file in /src
+            next(env.src_directory.iterdir())
+        except (NotADirectoryError, StopIteration):
             raise SemgrepError(
                 f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{env.src_directory}\"'"
             )
-        os.chdir(env.src_directory)
+        else:
+            os.chdir(env.src_directory)
 
 
 def indent(msg: str) -> str:

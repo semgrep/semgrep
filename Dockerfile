@@ -92,6 +92,8 @@ ENV SEMGREP_IN_DOCKER=1 \
      SEMGREP_VERSION_CACHE_PATH=/tmp/.cache/semgrep_version \
      SEMGREP_USER_AGENT_APPEND="Docker"
 
+WORKDIR /src
+
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@r2c.dev"
