@@ -458,6 +458,8 @@ jobs:
           cache: pipenv
       - name: Run OSX build
         run: ./scripts/osx-release.sh
+        env:
+          DUNE_BUILD_ARGS: "-j2"
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
