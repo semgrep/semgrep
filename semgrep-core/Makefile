@@ -19,7 +19,7 @@ export TREESITTER_LIBDIR
 .PHONY: all
 all:
 	rm -f bin
-	dune build ${DUNE_BUILD_ARGS}
+	dune build ${DUNE_BUILD_ARGS-}
 	dune build ./_build/default/tests/test.bc
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
