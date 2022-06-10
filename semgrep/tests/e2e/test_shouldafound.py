@@ -5,9 +5,7 @@ from shutil import copytree
 from unittest.mock import ANY
 
 import pytest
-from click.testing import CliRunner
 
-from semgrep.cli import cli
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
 
@@ -16,18 +14,19 @@ TESTS_PATH = Path(__file__).parent.parent
 
 
 @pytest.mark.quick
-def test_shouldafound_no_args(tmp_path, snapshot):
+def test_shouldafound_no_args(run_semgrep, tmp_path, snapshot):
     """
     Test for shouldafound usage output
     """
-    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
-    result = runner.invoke(cli, ["shouldafound"])
-    snapshot.assert_match(result.output, "shouldafound.txt")
+    snapshot.assert_match(
+        run_semgrep(options=["shouldafound"], assert_exit_code=None).as_snapshot(),
+        "results.txt",
+    )
 
 
 @pytest.mark.quick
 @pytest.mark.parametrize(
-    "email_flag",
+    "email_args",
     [
         [],
         [
@@ -37,7 +36,7 @@ def test_shouldafound_no_args(tmp_path, snapshot):
     ],
 )
 @pytest.mark.parametrize(
-    "message_flag",
+    "message_args",
     [
         [],
         [
@@ -48,19 +47,22 @@ def test_shouldafound_no_args(tmp_path, snapshot):
 )
 @pytest.mark.parametrize("git_return_error", [True, False])
 def test_shouldafound_no_confirmation(
-    monkeypatch, git_return_error, email_flag, message_flag, snapshot, mocker, tmp_path
+    monkeypatch,
+    run_semgrep,
+    git_return_error,
+    email_args,
+    message_args,
+    snapshot,
+    mocker,
+    tmp_path,
 ):
     """
     Test that the -y flag allows seamless submission
     """
-    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
-
-    api_content = "https://foo.bar.semgrep.dev/playground/asdf"
-
-    request_mocker = mocker.patch.object(
+    request_mock = mocker.patch.object(
         shouldafound,
         "_make_shouldafound_request",
-        return_value=api_content,
+        return_value="https://foo.bar.semgrep.dev/playground/asdf",
     )
 
     path = "targets/basic/stupid.py"
@@ -80,50 +82,36 @@ def test_shouldafound_no_confirmation(
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    should_prompt_for_email = len(email_flag) == 0
+    results = run_semgrep(
+        options=["shouldafound", path, "-y", *email_args, *message_args],
+        stdin=f"{message}\n",
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
+        assert_exit_code=None,
+    )
 
-    args = [
-        "shouldafound",
-        path,
-        "-y",
-    ]
+    request_mock.assert_called_with(
+        {
+            # unit tests covering reading specific lines exist, don't test here
+            "lines": ANY,
+            "message": message,
+            "path": path,
+            "email": expected_email if not git_return_error or email_args else None,
+        }
+    )
 
-    args.extend(email_flag)
-    args.extend(message_flag)
-
-    result = runner.invoke(cli, args, input=f"{message}\n")
-
-    expected = {
-        # unit tests covering reading specific lines exist, don't test here
-        "lines": ANY,
-        "message": message,
-        "path": path,
-    }
-
-    if git_return_error and len(email_flag) == 0:
-        expected["email"] = None
-    else:
-        expected["email"] = expected_email
-
-    request_mocker.assert_called_with(expected)
-
-    snapshot.assert_match(result.output, "shouldafound.txt")
+    snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 
 @pytest.mark.quick
 @pytest.mark.parametrize("pattern", ["11512123123", "$X == $X"])
 @pytest.mark.parametrize("message", [None, "foobar"])
 def test_shouldafound_findings_output(
-    mocker, monkeypatch, tmp_path, snapshot, pattern, message
+    run_semgrep, mocker, monkeypatch, tmp_path, snapshot, pattern, message
 ):
     """
     Test to ensure that semgrep scan with no findings DOES NOT show the
     """
-    mocker.patch.object(
-        scan,
-        "get_no_findings_msg",
-        return_value=message,
-    )
+    mocker.patch.object(scan, "get_no_findings_msg", return_value=message)
 
     copy(
         TESTS_PATH / "e2e" / "targets" / "basic" / "stupid.py",
@@ -134,14 +122,10 @@ def test_shouldafound_findings_output(
 
     mocker.patch.object(scan, "possibly_notify_user", return_value=None)
 
-    runner = CliRunner(env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")})
-
-    result = runner.invoke(
-        cli,
-        ["-e", pattern, "-l", "python"],
+    results = run_semgrep(
+        options=["scan", "-e", pattern, "-l", "python"],
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
+        assert_exit_code=None,
     )
 
-    assert result.exception == None
-    assert result.exit_code == 0
-
-    snapshot.assert_match(result.output, "output.txt")
+    snapshot.assert_match(results.as_snapshot(), "results.txt")

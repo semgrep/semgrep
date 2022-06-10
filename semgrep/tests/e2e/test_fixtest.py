@@ -1,7 +1,8 @@
+import re
+
 import pytest
 
 from semgrep.constants import OutputFormat
-from tests.conftest import _clean_stdout
 
 
 @pytest.mark.kinda_slow
@@ -83,30 +84,37 @@ def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.xfail(reason="depends on absolute path in output")
 def test_fixtest_test4_no_json(run_semgrep_in_tmp, snapshot):
-    stdout, _ = run_semgrep_in_tmp(
+    results = run_semgrep_in_tmp(
         "rules/fixtest/test4.yaml",
         target_name="fixtest/test4.py",
         options=["--test"],
         output_format=OutputFormat.TEXT,
         assert_exit_code=1,
     )
-    snapshot.assert_match(stdout, "error.txt")
+    snapshot.assert_match(
+        results.as_snapshot(
+            mask=[re.compile(r"test file path: (.+?)/fixtest/test4.py")]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.xfail(reason="depends on absolute path in output")
 def test_fixtest_test4_json(run_semgrep_in_tmp, snapshot):
-    stdout, stderr = run_semgrep_in_tmp(
+    results = run_semgrep_in_tmp(
         "rules/fixtest/test4.yaml",
         target_name="fixtest/test4.py",
         options=["--test"],
         output_format=OutputFormat.JSON,
         assert_exit_code=1,
     )
-    snapshot.assert_match(stderr, "error.txt")
-    snapshot.assert_match(_clean_stdout(stdout), "error.json")
+    snapshot.assert_match(
+        results.as_snapshot(
+            mask=[re.compile(r"test file path: (.+?)/fixtest/test4.py")]
+        ),
+        "results.txt",
+    )
 
 
 @pytest.mark.kinda_slow

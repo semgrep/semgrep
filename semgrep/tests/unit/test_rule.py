@@ -1,9 +1,12 @@
 from textwrap import dedent
 
+import pytest
+
 from semgrep.config_resolver import parse_config_string
 from semgrep.rule import Rule
 
 
+@pytest.mark.quick
 def test_rule_full_hash_equivalency():
     config = parse_config_string(
         "testfile",

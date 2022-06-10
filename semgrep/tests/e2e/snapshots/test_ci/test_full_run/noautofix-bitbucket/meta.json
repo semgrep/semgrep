@@ -1,23 +1,23 @@
 {
-    "meta": {
-        "semgrep_version": "<sanitized version>",
-        "repository": "project_name/project_name",
-        "repo_url": "git@bitbucket.org/project_name/project_name.git",
-        "branch": "some/branch-name",
-        "ci_job_url": "http://bitbucket.org/project_name/project_name/addon/pipelines/home#!/results/a-uuid",
-        "commit": "sanitized",
-        "commit_author_email": "test_environment@test.r2c.dev",
-        "commit_author_name": "Environment Test",
-        "commit_author_username": null,
-        "commit_author_image_url": null,
-        "commit_title": "Some other commit/ message",
-        "on": "pull_request",
-        "pull_request_author_username": null,
-        "pull_request_author_image_url": null,
-        "pull_request_id": "35",
-        "pull_request_title": null,
-        "scan_environment": "bitbucket",
-        "is_full_scan": true,
-        "is_sca_scan": false
-    }
+  "meta": {
+    "semgrep_version": "<sanitized version>",
+    "repository": "project_name/project_name",
+    "repo_url": "git@bitbucket.org/project_name/project_name.git",
+    "branch": "some/branch-name",
+    "ci_job_url": "http://bitbucket.org/project_name/project_name/addon/pipelines/home#!/results/a-uuid",
+    "commit": "sanitized",
+    "commit_author_email": "test_environment@test.r2c.dev",
+    "commit_author_name": "Environment Test",
+    "commit_author_username": null,
+    "commit_author_image_url": null,
+    "commit_title": "Some other commit/ message",
+    "on": "pull_request",
+    "pull_request_author_username": null,
+    "pull_request_author_image_url": null,
+    "pull_request_id": "35",
+    "pull_request_title": null,
+    "scan_environment": "bitbucket",
+    "is_full_scan": true,
+    "is_sca_scan": false
+  }
 }

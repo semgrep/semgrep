@@ -8,6 +8,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Autodetection of CI env now supports Azure Pipelines, Bitbucket, Buildkite, Circle CI, Jenkins,
   and Travis CI in addition to GitHub and GitLab
+- You can now disable version checks with an environment variable by setting
+  `SEMGREP_ENABLE_VERSION_CHECK=0`
+
+### Fixed
+
+- Fixed a bug where `--disable-version-check` would still send a request
+  when a scan resulted in zero findings.
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 
