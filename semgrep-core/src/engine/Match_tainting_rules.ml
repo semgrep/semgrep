@@ -206,28 +206,26 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       sinks = sinks_ranges;
     } )
 
-let pm_of_finding file finding =
+let pm_of_finding finding =
   match finding with
-  | T.SrcToSink { source = _; tokens = _; sink; merged_env } -> (
-      match sink with
-      | T.PM sink_pm -> Some { sink_pm with env = merged_env }
-      | T.Call (fun_call, _trace, _) -> (
-          let code = G.E fun_call in
-          match V.range_of_any_opt code with
-          | None ->
-              logger#error
-                "Cannot report taint finding because we lack range info";
-              None
-          | Some range_loc ->
-              let tokens = lazy (V.ii_of_any code) in
-              Some
-                {
-                  PM.rule_id = (T.pm_of_trace sink).rule_id;
-                  file;
-                  range_loc;
-                  tokens;
-                  env = merged_env;
-                }))
+  | T.SrcToSink { source = _; tokens = _; sink; merged_env } ->
+      (* We always report the finding on the sink that gets tainted, the call trace
+       * must be used to explain how exactly the taint gets there. At some point
+       * we experimented with reporting the match on the `sink`'s function call that
+       * leads to the actual sink. E.g.:
+       *
+       *     def f(x):
+       *       sink(x)
+       *
+       *     def g():
+       *       f(source)
+       *
+       * Here we tried reporting the match on `f(source)` as "the line to blame"
+       * for the injection bug... but most users seem to be confused about this. They
+       * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+       *)
+      let sink_pm = T.pm_of_trace sink in
+      Some { sink_pm with env = merged_env }
   | T.SrcToReturn _
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
@@ -331,7 +329,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
-             pm_of_finding file finding
+             pm_of_finding finding
              |> Option.iter (fun pm ->
                     Common.push pm matches;
                     PMtbl.add pm2finding pm finding))
