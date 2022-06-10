@@ -15,7 +15,7 @@
         "offset": 71
       },
       "extra": {
-        "fingerprint": "e314f95a685e996fe84fb16617cd32e7",
+        "fingerprint": "136cecff8c5375af75f47c7f358d37b416d5cd588d06953625ed3c15b6d8dd5a250eb17f0e744ec910c2e14ed7cc711aef10a0b5c80732f792f67df1fa036c20_0",
         "is_ignored": false,
         "lines": "aws_account_id:123456789012",
         "message": "AWS Account ID detected",

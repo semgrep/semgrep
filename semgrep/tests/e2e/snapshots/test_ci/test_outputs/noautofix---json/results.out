@@ -15,7 +15,7 @@
         "offset": 43
       },
       "extra": {
-        "fingerprint": "8c695a6a4ab5ffff33d0103309a310c1",
+        "fingerprint": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0",
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
@@ -56,7 +56,7 @@
         "offset": 54
       },
       "extra": {
-        "fingerprint": "8abb389b2f01d0e52d663251e1d24ba7",
+        "fingerprint": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1",
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
@@ -97,7 +97,7 @@
         "offset": 89
       },
       "extra": {
-        "fingerprint": "f6c666e6921a44028a2015d0de15cc14",
+        "fingerprint": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3",
         "is_ignored": false,
         "lines": "    a == a",
         "message": "useless comparison",
@@ -138,7 +138,7 @@
         "offset": 126
       },
       "extra": {
-        "fingerprint": "d44049421636e370e7906a6bed5fce54",
+        "fingerprint": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0",
         "is_ignored": false,
         "lines": "    y == y",
         "message": "useless comparison",
@@ -179,7 +179,7 @@
         "offset": 227
       },
       "extra": {
-        "fingerprint": "87cd1247dfc84bbd502c872035c71a63",
+        "fingerprint": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
         "is_ignored": false,
         "lines": "    baz == 4",
         "message": "useless comparison to 4",
@@ -224,7 +224,7 @@
         "offset": 163
       },
       "extra": {
-        "fingerprint": "8646a2dfc020913606969dcfe84e53c0",
+        "fingerprint": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
         "fix": "x == 2",
         "is_ignored": false,
         "lines": "    x == 5",

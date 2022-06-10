@@ -49,3 +49,5 @@ CI scan completed successfully.
   Found 6 findings (5 blocking) from 3 rules.
   Uploading findings to Semgrep App.
   Has findings for blocking rules so exiting with code 1
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading

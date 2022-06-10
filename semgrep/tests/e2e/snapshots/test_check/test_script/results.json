@@ -15,7 +15,7 @@
         "offset": 26
       },
       "extra": {
-        "fingerprint": "5b6cc72db824f7a16a518e282c4e9854",
+        "fingerprint": "aa88e43311adcbad4dca1c711daf068f9629c652e1c15c0d8d92b70053c08b612121a05420ef79295da10120e2fc185a50f373d308862e9caaae04f06e28429f_0",
         "is_ignored": false,
         "lines": "4 == 4",
         "message": "useless comparison operation `4 == 4` or `4 != 4`; possible bug?",

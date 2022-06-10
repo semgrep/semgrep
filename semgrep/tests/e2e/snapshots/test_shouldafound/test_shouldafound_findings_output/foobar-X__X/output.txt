@@ -13,3 +13,5 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 Ran 1 rule on 1 file: 3 findings.
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading

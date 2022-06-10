@@ -49,3 +49,5 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 11 findings (9 blocking) from 3 rules.
   Has findings for blocking rules so exiting with code 1
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading

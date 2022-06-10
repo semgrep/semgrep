@@ -5,3 +5,5 @@ Some files were skipped or only partially analyzed.
 
 Ran 1 rule on 1 file: 0 findings.
 foobar
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading

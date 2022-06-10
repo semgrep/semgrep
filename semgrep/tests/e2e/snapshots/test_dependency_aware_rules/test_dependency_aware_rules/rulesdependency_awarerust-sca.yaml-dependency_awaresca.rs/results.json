@@ -37,7 +37,7 @@
             "lockfile": "targets/dependency_aware/Cargo.lock"
           }
         ],
-        "fingerprint": "3af766253c433df522d5b6e84d4f5f8b",
+        "fingerprint": "cda595027c538bc19625f3c6ea1c7307840a2283a240bc93c11915aad45505505f6a1db6216589a076cbb1bac1b327f840d7bdfd8fcca4f8ee1eebe57670a3b0_0",
         "is_ignored": false,
         "lines": "let x = bad()",
         "message": "oh no",

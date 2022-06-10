@@ -15,7 +15,7 @@
         "offset": 38
       },
       "extra": {
-        "fingerprint": "1d361e3ba8e0886e552896d37f2b0099",
+        "fingerprint": "2eebc4dac7d402148a5565787d195bafb27e2902a43519614d0eae483689a085fd841aa534bdac28a09684809a42ae9bc516ec4e79c804dd138efcc905f0a760_0",
         "fix": "a_function_call (wrap (the_argument))",
         "fixed_lines": [
           "let one = a_function_call (wrap (the_argument))"
@@ -60,7 +60,7 @@
         "offset": 80
       },
       "extra": {
-        "fingerprint": "e69c022a8fc6398980f399d8cff906b1",
+        "fingerprint": "160b7c0475d9423f449797c1b3ad86bfee51e1c0fe60989a120481ca92f70c270a99be5387fd20593e5b6f467c3fda830b2678e4a1a236389f29f7ef5c07df24_0",
         "fix": "a_function_call (wrap ((the_argument)))",
         "fixed_lines": [
           "let two = a_function_call (wrap ((the_argument)))"
@@ -105,7 +105,7 @@
         "offset": 137
       },
       "extra": {
-        "fingerprint": "c6acfb2704f56a50d2af4ec1ed96061e",
+        "fingerprint": "6df85294f747752d911dc7312d6a7c4cf9237ad45297093bfbaf316360c22502deb76ff41713eaaefa42ff75100a89abb9996b4c667ec416f393e17ed6d882d5_0",
         "fix": "a_function_call (wrap ((another_func the_argument)))",
         "fixed_lines": [
           "let three = a_function_call (wrap ((another_func the_argument)))"
@@ -150,7 +150,7 @@
         "offset": 198
       },
       "extra": {
-        "fingerprint": "1ece2ca01a0a038c3b553abf76491b42",
+        "fingerprint": "eec5907e334a3cface44f3f4ddd6ccfffaff33d2a8af7e566b58457c8b2b13db2729e242053f31455d89c9f85ba5547c8c46808a101afeaa0135b40bd06632b7_0",
         "fix": "a_function_call (wrap ((tuple_member, threeple_member)))",
         "fixed_lines": [
           "let three = a_function_call (wrap ((tuple_member, threeple_member)))"

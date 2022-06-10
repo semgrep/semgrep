@@ -15,7 +15,7 @@
         "offset": 52
       },
       "extra": {
-        "fingerprint": "2ca56c3f0400f7e2b8f57fc113dcdce0",
+        "fingerprint": "e5002706f4a47ec1426dbf547dd222507334ffa884506e66d0a86a4a96273f49a23ca5c5bfade9187a8520ac36a40df4d9e13928c159c85d18e1fbb02078cb5e_0",
         "fix": "wrap(\"a\")",
         "fixed_lines": [
           "        return wrap(\"a\") + \"b\";"
@@ -60,7 +60,7 @@
         "offset": 58
       },
       "extra": {
-        "fingerprint": "9af220ae02bffe7a9e310af3bb6caadf",
+        "fingerprint": "9bea0af7038080d9689cbcddeba562ce5b15d36e7baaba682812eb4ac7b9c431b8f10715c399e56cf070bd526fed6502f2587d7209ce4f9f0121e4ef1b8c75e4_1",
         "fix": "wrap(\"b\")",
         "fixed_lines": [
           "        return \"a\" + wrap(\"b\");"

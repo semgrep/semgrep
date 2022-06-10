@@ -15,7 +15,7 @@
         "offset": 57
       },
       "extra": {
-        "fingerprint": "ae5309084192b861e962bf778e5f5fa8",
+        "fingerprint": "956a63e00ca2c8e28fb6c8f7409bbcb51b07b3e6d6a0226b174ee86af4f0dece02e6dbc165ec07742903d11b3e64f940d69df191c114b297abd67c9b88684f0c_0",
         "is_ignored": false,
         "lines": "       return x == 0",
         "message": "equal comparison of x (0) in A",
@@ -86,7 +86,7 @@
         "offset": 93
       },
       "extra": {
-        "fingerprint": "501352331eb6f6e931d78399f4bb4929",
+        "fingerprint": "fa6a721fefcc5057147e4230b5377e8cb97136a1aff8c169ca63c3dd74e0553b1199b832c978bc01874c4f65848ce44a34bcdb954eea256d4bc599754fccec6d_0",
         "is_ignored": false,
         "lines": "       return 0 == 0",
         "message": "equal comparison of 0 (0) in A",

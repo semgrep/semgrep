@@ -15,7 +15,7 @@
         "offset": 230
       },
       "extra": {
-        "fingerprint": "6a3bc098eea151adfa947d7b48b51996",
+        "fingerprint": "2906e87c95c35b5aee1119a375ee2a23e63b5796675037b98190120edbccaf11acf01d42a319fda7fa11ee85731ab4c4c964b8b8bb58c9acf211b65f2f491d1b_0",
         "is_ignored": false,
         "lines": "    {% autoescape off %}",
         "message": "Detected a segment of a Flask template where autoescaping is explicitly\ndisabled with '{% autoescape off %}'. This allows rendering of raw HTML\nin this segment. Ensure no user data is rendered here, otherwise this\nis a cross-site scripting (XSS) vulnerability.\n",

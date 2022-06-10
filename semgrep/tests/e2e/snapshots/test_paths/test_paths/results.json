@@ -17,7 +17,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "482df5917317c1d5798e55dc0448f6c3",
+        "fingerprint": "7d74861d973a54f55a1fc3eb0f746583f864b6d75bec8e18b52416708bc3bbfb7ff066b0284c521f3f7936ae16bd4cbe066f64d5fc7b12ed1adad4f1724bc131_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -71,7 +71,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "900f2efd196ac4f4f506a309bd8a9df8",
+        "fingerprint": "f2fbe68afdadc1e70bae2941c2431408b43df456245ebee0557836b475fc4c9fd7ce19c40fe918b3dc32150ba3f79432fcc8f0496f21e9af1777a78d8aaf6d8e_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -125,7 +125,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "aedb5fdbecd5b50cac21a0c33b4367b0",
+        "fingerprint": "75e2b487c935e1688a09c67015a1aa78f727e9e974ff950b0f281da08961b42e84ce651ad08bfaf4c45a4148007bec65676b607b4b63b80b684cbf0164167bfc_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -179,7 +179,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "8b0440e3490ed0bba7873bee575a5aea",
+        "fingerprint": "2069b3e87e1edf647ab506b5c9326ea1e5f8ab05ddeadc253bb253fc271ab293dd9d4a96883dd9db2f2cd3ca08866f794acdf2318b3cd13e8473b52ee33b9a00_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -233,7 +233,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "bca58467cfe2d8145dbd85e5e2bbd8d5",
+        "fingerprint": "fcc7bf40a229684f098f85201f40e74685664f606eb57a46ccc6d4918c86e25df87a03826a106ee9dbac98c08c1a0990232038211b423f59716076fc7460a404_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -287,7 +287,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "4306866fcd63fb557c7c99dc9938cfd0",
+        "fingerprint": "bdb2c02b8bd6317f690b523d385503822d864b78e54eb56248a7170e85af7e8db7f970ed2a574354366cf5b3592a8f7df8a073d198d749511fcf6158e89427e1_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -341,7 +341,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "228adac48db4798e36818e66ab5da8bf",
+        "fingerprint": "0e926930ae968b6c0249f2f9dc979214d26fe55fe0a32ebd88b5e2b45f813c96977dc2be0651e70b278f4caf69c21cf96f87d9c6c2baf0420cf4ba96c7b5a758_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -395,7 +395,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "7c17b3f01167a9db941d797ee389d253",
+        "fingerprint": "5c92fc7f09110b8016fb3c0c2350374fbfc3fffee6d570bf0b5bd7bb08abaac07842fecc52c4e1839f08b7875e005e35f996367aaa37fee808351fd9f658593a_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -449,7 +449,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "1e6b140ff4b9db6e6a4dbbb91f6c25c5",
+        "fingerprint": "20e714590e949be8b3ec91c6caf44d0a1e863576a4966a8816842ab949b0e1a74efe3f1db9bc6987b6ec64db31a65f8d6d1e05aa4406682050121e752959915d_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -503,7 +503,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "8ca51ec49d92f0a66256bf1a0733ab56",
+        "fingerprint": "bb21fabe009629d4d6455da6fc2397acb6ede9ecd7621c9c72fd8774ee9d983dccf579e606dc8b05484b33f2b975a7d5e76acfc219ff11d31dde2375f7b42933_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -557,7 +557,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "27f900541234ae9554551a81b2b25b99",
+        "fingerprint": "163cf220d967bd530320404d989300698b248839cea31c98cc419063c007b8a29005de177ceeb302f81d530fcd6d90d0a14a5bf10ec61f8ef4de3d7706ed0c5f_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -611,7 +611,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "909da2dc57ec17b15efe91f87190dd88",
+        "fingerprint": "60c3a29f03d9fd28a57013e26f2f046df834dd2981f6fff4e8a8893ec345d4b0832fef995f2be4566752ea2307cfbd3c016f1dc43c3cf4cc6b5161c56b03e38d_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -665,7 +665,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "97ac2c9e772e5b0f6ed830d2678a7722",
+        "fingerprint": "faaf8f8e971dd577e44f042a0054979cd921e89c2edfc739945357eda15406517d2707265f85d394e3da4f695769f8070a5e9c74bf513ab2c596a1fbba1bc73f_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
@@ -719,7 +719,7 @@
         "offset": 30
       },
       "extra": {
-        "fingerprint": "87ac04950fdcebaa14a493c3db7aab18",
+        "fingerprint": "b05932297caaf375186491ef7616e18bddabb60a150c473acca7901629f53b6ef996eb19d270d69778c04879fc21223265ec8a1b4591415a61c1755012083ac7_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",

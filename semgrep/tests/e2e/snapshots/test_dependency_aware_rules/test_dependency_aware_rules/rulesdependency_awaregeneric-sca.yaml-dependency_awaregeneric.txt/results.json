@@ -39,7 +39,7 @@
             "lockfile": "targets/dependency_aware/package-lock.json"
           }
         ],
-        "fingerprint": "c505faced673ad23383c117ae4f664c5",
+        "fingerprint": "3bb719f115c6b54cf7c336c8bd8e9c1d07724387fd6de97f6fedb56aeb6ac9569ad34e1181bcf22db5cf94db46345d8474dfbbf7cbfee978e526957575edb05b_0",
         "is_ignored": false,
         "lines": "foobar",
         "message": "oh no",

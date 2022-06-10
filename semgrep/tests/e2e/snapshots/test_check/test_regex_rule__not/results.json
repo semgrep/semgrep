@@ -15,7 +15,7 @@
         "offset": 69
       },
       "extra": {
-        "fingerprint": "00e1bcdf6d5c1deb991b9b643ad97d24",
+        "fingerprint": "059f1e71e427cd32e3904731769a3e775d3cbc8679f210885b6d9ada807943a8bc9b7c07bbe10588e1e15818d7831b40d76863edbde69857d7cb5131641702ec_0",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "test regex message",

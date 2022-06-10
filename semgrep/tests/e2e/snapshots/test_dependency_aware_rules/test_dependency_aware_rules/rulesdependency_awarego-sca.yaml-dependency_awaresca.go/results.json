@@ -60,7 +60,7 @@
             "lockfile": "targets/dependency_aware/go.sum"
           }
         ],
-        "fingerprint": "5c136ae7599499d8a4779d6ddbe0a3cf",
+        "fingerprint": "d7eafab16b9856f3563a4bc407a1352de83e5a800303f66fee4b13f2e7127a8b3ee6fac98451d23669110c0098abe4b13dbb090fa84c6b366c77a6203e07eb48_0",
         "is_ignored": false,
         "lines": "\treturn bad()",
         "message": "oh no",

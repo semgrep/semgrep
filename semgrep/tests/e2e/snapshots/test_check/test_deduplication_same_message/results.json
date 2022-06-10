@@ -15,7 +15,7 @@
         "offset": 8
       },
       "extra": {
-        "fingerprint": "82306a9c04e2c9f926e1b663037035cc",
+        "fingerprint": "e9b2db0fbdbe073bb939ecc8419d1adc3e82526172194561b844798cfb3aa28d8ad5933761e64965422c71c3c25f989940ba43ae4cf7cb078d70001f4eb200ee_0",
         "is_ignored": false,
         "lines": "foo(1,2)",
         "message": "Some error message with only one metavar foo",

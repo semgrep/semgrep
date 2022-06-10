@@ -15,7 +15,7 @@
         "offset": 69
       },
       "extra": {
-        "fingerprint": "42f3118d2b50f9030ede7eb8eebda584",
+        "fingerprint": "4eb98930a18d8f54cc169a41c367f3cc9f01bb8b4811d8d35b37ea15559e59a84761318d98efa7b5f7e0b3b5459580ad2ad49f09998a6b091aea3bf987844326_0",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "Found redundant comparison",
@@ -80,7 +80,7 @@
         "offset": 174
       },
       "extra": {
-        "fingerprint": "f31d32036a8dcc3fbaf8579524eb0646",
+        "fingerprint": "199b9d02c882626b8f9329be514a310db00edc2f7b0569beb7d2758f5a3c0cb7d7e4eeaa3909dd5b1cc75d6af8558e59187409030e6cd15274f7663c8079a079_0",
         "is_ignored": false,
         "lines": "    x == x",
         "message": "Found redundant comparison",
@@ -145,7 +145,7 @@
         "offset": 266
       },
       "extra": {
-        "fingerprint": "19e93d4220daad78e417208b42bb6c4c",
+        "fingerprint": "199b9d02c882626b8f9329be514a310db00edc2f7b0569beb7d2758f5a3c0cb7d7e4eeaa3909dd5b1cc75d6af8558e59187409030e6cd15274f7663c8079a079_0",
         "is_ignored": false,
         "lines": "assertTrue(x == x)",
         "message": "Found redundant comparison",
