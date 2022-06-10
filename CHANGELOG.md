@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   and Travis CI in addition to GitHub and GitLab
 - You can now disable version checks with an environment variable by setting
   `SEMGREP_ENABLE_VERSION_CHECK=0`
+- Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 
 ### Fixed
 
@@ -26,7 +27,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java: you can now use a metavariable in a package directive (#5420),
   for example, `package $X`, which is useful to bind the package
   name and use it in the error message.
-- Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 
 ### Fixed
 
