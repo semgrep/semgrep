@@ -1,5 +1,4 @@
 import json
-from itertools import tee
 from typing import Any
 from typing import Iterable
 from typing import Mapping
@@ -42,6 +41,12 @@ class SarifFormatter(BaseFormatter):
         }
         if rule_match.is_ignored:
             rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
+
+        fix = SarifFormatter._rule_match_to_sarif_fix(rule_match)
+
+        if fix is not None:
+            rule_match_sarif["fixes"] = [fix]
+
         return rule_match_sarif
 
     @staticmethod
@@ -67,7 +72,7 @@ class SarifFormatter(BaseFormatter):
                                 "endLine": rule_match.end.line,
                                 "endColumn": rule_match.end.col,
                             },
-                            "insertedContent": {"text": fixed_lines},
+                            "insertedContent": {"text": "\n".join(fixed_lines)},
                         }
                     ],
                 }
@@ -185,17 +190,8 @@ class SarifFormatter(BaseFormatter):
             https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
         """
 
-        # Check each rule match for any fixes
-        rule_matches, rule_matches_fixes = tee(rule_matches)
-        fixes = [
-            self._rule_match_to_sarif_fix(rule_match)
-            for rule_match in rule_matches_fixes
-        ]
-        # Filter out rule matches w/no fixes
-        fixes = list(filter(None, fixes))
-
         output_dict = {
-            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
             "version": "2.1.0",
             "runs": [
                 {
@@ -221,7 +217,6 @@ class SarifFormatter(BaseFormatter):
                     ],
                 },
             ],
-            "fixes": fixes,
         }
 
         # Sort keys for predictable output. This helps with snapshot tests, etc.
