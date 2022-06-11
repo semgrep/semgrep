@@ -1,0 +1,16 @@
+#! /usr/bin/env bash
+#
+# Run the semgrep-core program with ocamldebug.
+#
+# Example of use:
+#  $ ./debug
+#  ...
+#  (ocd) set arguments -debugger -e 'foo($X, $Y)' -l java tests/java/concrete_syntax.java
+#  (ocd) run
+#  ...
+# The -debugger arguments to semgrep-core is to change the behavior of
+# Common.finalize to let the exn bubble up, for a better debugging experience
+
+set -eu
+
+./scripts/run-ocamldebug.sh ./_build/default/src/cli/Main.bc
