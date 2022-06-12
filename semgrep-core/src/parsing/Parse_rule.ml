@@ -585,9 +585,10 @@ let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "metavariable-analysis"
   | "metavariable-regex"
   | "metavariable-pattern"
-  | "metavariable-comparison"
-  | "pattern-where-python" ->
+  | "metavariable-comparison" ->
       R.PatExtra (t, parse_extra env key value)
+  | "pattern-where-python" ->
+      raise (R.InvalidRule (R.DeprecatedFeature (fst key), env.id, t))
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key env key
@@ -744,7 +745,6 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       in
       let comparison = parse_metavar_cond env key comparison in
       R.MetavarComparison { R.metavariable; comparison; strip; base }
-  | "pattern-where-python" -> R.PatWherePython (parse_string env key value)
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
 let parse_languages ~id langs : Xlang.t =
