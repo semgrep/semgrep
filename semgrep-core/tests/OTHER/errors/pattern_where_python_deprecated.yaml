@@ -1,0 +1,22 @@
+rules:
+  - id: integer-overflow-int16
+    message:
+      Detected conversion of the result of a strconv.Atoi command to an int16. This could lead to an integer overflow,
+      which could possibly result in unexpected behavior and even privilege escalation. Instead, use `strconv.ParseInt`.
+    languages: [go]
+    severity: WARNING
+    patterns:
+      - pattern: |
+          $F, $ERR := strconv.Atoi($NUM)
+          ...
+          int16($F)
+      #ERROR: deprecated feature
+      - pattern-where-python: int(vars['$NUM'].replace('"', '')) > 32767 or int(vars['$NUM'].replace('"', '')) < -32768
+#      - metavariable-comparison:
+#          metavariable: $NUM
+#          comparison: $NUM > 32767 or $NUM < -32768
+#          strip: true
+    metadata:
+      category: correctness
+      technology:
+        - go

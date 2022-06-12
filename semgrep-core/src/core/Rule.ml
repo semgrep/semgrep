@@ -23,8 +23,6 @@ module MV = Metavariable
  *
  * See also Mini_rule.ml where formula and many other features disappear.
  *
- * TODO:
- *  - parse equivalences
  *)
 
 (*****************************************************************************)
@@ -187,8 +185,9 @@ and extra =
   | MetavarPattern of MV.mvar * Xlang.t option * formula_old
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
-  (* arbitrary code! dangerous! *)
-  | PatWherePython of string
+(* old: | PatWherePython of string, but it was too dangerous.
+ * MetavarComparison is not as powerful, but safer.
+ *)
 
 (* See also engine/Eval_generic.ml *)
 and metavariable_comparison = {
@@ -201,19 +200,16 @@ and metavariable_comparison = {
 }
 [@@deriving show, eq]
 
+(*****************************************************************************)
+(* Final formula *)
+(*****************************************************************************)
+
 (* pattern formula *)
 type pformula = New of formula | Old of formula_old [@@deriving show, eq]
 
 (*****************************************************************************)
-(* The rule *)
+(* Taint-specific types *)
 (*****************************************************************************)
-
-(* alt:
- *     type common = { id : string; ... }
- *     type search = { common : common; formula : pformula; }
- *     type taint  = { common : common; spec : taint_spec; }
- *     type rule   = Search of search | Taint of taint
- *)
 
 type sanitizer_spec = {
   not_conflicting : bool;
@@ -234,6 +230,16 @@ type taint_spec = {
 }
 [@@deriving show]
 
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
+
+(* alt:
+ *     type common = { id : string; ... }
+ *     type search = { common : common; formula : pformula; }
+ *     type taint  = { common : common; spec : taint_spec; }
+ *     type rule   = Search of search | Taint of taint
+ *)
 type mode = Search of pformula | Taint of taint_spec [@@deriving show]
 
 (* TODO? just reuse Error_code.severity *)
@@ -296,8 +302,9 @@ and invalid_rule_error_kind =
       * string (* exn *)
       * string list (* yaml path *)
   | InvalidRegexp of string (* PCRE error message *)
-  | InvalidOther of string
+  | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | InvalidOther of string
 
 let string_of_invalid_rule_error_kind = function
   | InvalidLanguage language -> spf "invalid language %s" language
@@ -309,6 +316,7 @@ let string_of_invalid_rule_error_kind = function
       spf "Invalid pattern for %s" (Xlang.to_string xlang)
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
+  | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | InvalidOther s -> s
 
 exception InvalidRule of invalid_rule_error
@@ -480,12 +488,6 @@ and convert_extra ~rule_id x =
           in
           CondEval cond)
   | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
-  | PatWherePython _ ->
-      (*
-  logger#debug "convert_extra: %s" s;
-  Parse_rule.parse_metavar_cond s
-*)
-      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
 let formula_of_pformula ?in_metavariable_pattern ~rule_id = function
   | New f -> f
