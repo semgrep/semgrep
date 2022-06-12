@@ -354,7 +354,18 @@ let top_func () =
         G.Container (G.Tuple, G.fake_bracket [ v1; v3 ]) |> G.e
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
+        (* Note that here we generate a List instead of a Dict
+         * because not all elements are InitKeyValue (some are InitExpr).
+         * TODO? we could detect if only has InitKeyValue and generate a Dict
+         * instead?
+         *)
         G.Container (G.List, v1) |> G.e
+  (* Why generating ArgKwd instead of a Record with fields? Because in Go you
+   * don't have to name every fields in a CompositeLit, so we need a case for
+   * unamed fields, hence Arg and ArgKwd.
+   * TODO? why do we generate Arg and ArgKwd for toplevel CompositeLit inits
+   * and Container(List) for nested inits (see init() abobe)?
+   *)
   and init_for_composite_lit = function
     | InitExpr v1 ->
         let v1 = expr v1 in
