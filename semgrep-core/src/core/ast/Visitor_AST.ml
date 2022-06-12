@@ -277,6 +277,9 @@ let (mk_visitor :
           ()
       | Container (v1, v2) ->
           (match v1 with
+          (* less: could factorize with case below by doing List|Dict here and
+           * below in Tuple a String|Id
+           *)
           | Dict ->
               v2 |> unbracket
               |> List.iter (fun e ->
@@ -287,7 +290,9 @@ let (mk_visitor :
                          v_partial ~recurse:false
                            (PartialSingleField (id, t, e))
                      | _ -> ())
-          (* for Go where we use List for composite literals *)
+          (* for Go where we use List for composite literals.
+           * TODO? generate Dict in go_to_generic.ml instead directly?
+           *)
           | List ->
               v2 |> unbracket
               |> List.iter (fun e ->
@@ -526,6 +531,9 @@ let (mk_visitor :
         let v1 = v_type_ v1 in
         ()
     | ArgKwd (v1, v2) ->
+        let tok = snd v1 in
+        let t = PI.fake_info tok ":" in
+        v_partial ~recurse:false (PartialSingleField (v1, t, v2));
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
     | ArgKwdOptional (v1, v2) ->
