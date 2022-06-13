@@ -103,12 +103,15 @@ let result_of_function_call_is_constant lang f args =
   (* DeepSemgrep: Look up inferred constness of the function *)
   | ( _,
       {
+        (* If there is an offset, the full resolved name will be found
+           there. Otherwise, it will be found in the base *)
         e =
-          Fetch
-            {
-              base = Var { ident; id_info = { id_resolved; _ }; _ };
-              offset = NoOffset;
-            };
+          ( Fetch { offset = Dot { ident; id_info = { id_resolved; _ }; _ }; _ }
+          | Fetch
+              {
+                base = Var { ident; id_info = { id_resolved; _ }; _ };
+                offset = NoOffset | Index _;
+              } );
         _;
       },
       _ ) -> (
