@@ -177,7 +177,7 @@ jobs:
         with:
           submodules: true
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
       - name: Run OSX release script
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
@@ -259,7 +259,7 @@ jobs:
       - name: Install artifacts
         run: unzip artifacts.zip
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           # This is just the Python version to build the wheels
           python-version: 3.7
@@ -420,7 +420,7 @@ jobs:
     if: ${{ !contains(github.ref,'-test-release') }}
     steps:
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         id: python-setup
         with:
           # Pin to python 3.9 for pipgrip issues: see https://github.com/returntocorp/semgrep/issues/4213

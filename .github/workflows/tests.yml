@@ -238,7 +238,7 @@ jobs:
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
@@ -305,7 +305,7 @@ jobs:
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.11.0beta - 3.11.0"
           cache: pipenv
@@ -357,7 +357,7 @@ jobs:
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.7"
           cache: pipenv
@@ -393,7 +393,7 @@ jobs:
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: "3.7"
           cache: pipenv
@@ -445,7 +445,7 @@ jobs:
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
       - name: Install pipenv
         run: sudo python3 -m pip install pipenv
       - name: Run OSX build
