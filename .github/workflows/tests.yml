@@ -456,10 +456,13 @@ jobs:
         uses: actions/setup-python@v3
         with:
           cache: pipenv
+      # the build would run out of memory otherwise
+      - name: Set swapfile size
+        uses: pierotofy/set-swap-space@1.0
+        with:
+          swap-size-gb: 10
       - name: Run OSX build
         run: ./scripts/osx-release.sh
-        env:
-          DUNE_BUILD_ARGS: "-j1"
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
