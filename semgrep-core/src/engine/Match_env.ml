@@ -40,7 +40,7 @@ type env = {
   config : Config_semgrep.t * Equivalence.equivalences;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
-  file_and_more : Xtarget.t;
+  xtarget : Xtarget.t;
   rule : Rule.t;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
@@ -57,7 +57,7 @@ let error env msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = PI.first_loc_of_file env.file_and_more.Xtarget.file in
+  let loc = PI.first_loc_of_file env.xtarget.Xtarget.file in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
     E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg Out.MatchingError

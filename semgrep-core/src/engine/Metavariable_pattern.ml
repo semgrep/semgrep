@@ -20,6 +20,22 @@ module G = AST_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
+  match xlang with
+  | Xlang.L (Lang.Php, _) -> "<?php " ^ content
+  | _ -> content
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
     opt_xlang formula =
   let bindings = r.RM.mvars in
@@ -92,19 +108,20 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                         Map_AST.mk_fix_token_locations fix_loc
                       in
                       let mast' = fixing_visitor.Map_AST.vprogram mast in
-                      let file_and_more =
+                      let xtarget =
                         {
-                          env.file_and_more with
+                          env.xtarget with
                           file;
                           lazy_ast_and_errors = lazy (mast', []);
                           lazy_content = lazy content;
                         }
                       in
-                      nested_formula_has_matches { env with file_and_more }
-                        formula (Some r')))
+                      nested_formula_has_matches { env with xtarget } formula
+                        (Some r')))
           | Some xlang, MV.Text (content, _tok)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
+              let content = adjust_content_for_language xlang content in
               logger#debug "nested analysis of |||%s||| with lang '%s'" content
                 (Xlang.to_string xlang);
               (* We re-parse the matched text as `xlang`. *)
@@ -131,7 +148,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                       | LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
-                  let file_and_more =
+                  let xtarget =
                     {
                       Xtarget.file;
                       xlang;
@@ -139,7 +156,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                       lazy_content = lazy content;
                     }
                   in
-                  nested_formula_has_matches { env with file_and_more } formula
+                  nested_formula_has_matches { env with xtarget } formula
                     (Some r'))
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
