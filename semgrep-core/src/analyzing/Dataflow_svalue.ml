@@ -54,7 +54,7 @@ let warning tok s =
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
 let str_of_resolved_name name =
-  let name = List.map fst name in
+  let name = Common.map fst name in
   String.concat "." name
 
 (*****************************************************************************)
@@ -68,11 +68,14 @@ let result_of_function_call_is_constant lang f args =
     match !hook_constness_table_of_functions with
     | Some constness_f -> (
         match constness_f f_name with
-        | Constant ->
+        | Some Constant ->
             logger#info "%s is always constant" f_name;
             true
-        | NotAlwaysConstant ->
+        | Some NotAlwaysConstant ->
             logger#info "%s is not always constant" f_name;
+            false
+        | None ->
+            logger#info "%s has not been read" f_name;
             false)
     | _ -> false
   in

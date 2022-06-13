@@ -1,7 +1,13 @@
 type mapping = AST_generic.svalue Dataflow_core.mapping
+
+(* Indicates guarantees on the return value of a function
+ * We could also reuse AST_generic.Cst, but this will make it easier
+ * to extend if we want function-specific types *)
 type constness_type = Constant | NotAlwaysConstant [@@deriving show]
 
-val hook_constness_table_of_functions : (string -> constness_type) option ref
+val hook_constness_table_of_functions :
+  (string -> constness_type option) option ref
+
 val union : AST_generic.svalue -> AST_generic.svalue -> AST_generic.svalue
 
 val fixpoint : Lang.t -> IL.name list -> IL.cfg -> mapping
