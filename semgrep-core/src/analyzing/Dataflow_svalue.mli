@@ -1,5 +1,7 @@
 type mapping = AST_generic.svalue Dataflow_core.mapping
+type constness_type = Constant | NotAlwaysConstant [@@deriving show]
 
+val hook_constness_table_of_functions : (string -> constness_type) option ref
 val union : AST_generic.svalue -> AST_generic.svalue -> AST_generic.svalue
 
 val fixpoint : Lang.t -> IL.name list -> IL.cfg -> mapping
