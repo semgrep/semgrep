@@ -55,7 +55,7 @@ def test_file_not_relative_to_base_path(tmp_path, monkeypatch, snapshot):
         stdout=subprocess.PIPE,
     )
     stdout, _ = process.communicate("a")
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    snapshot.assert_match(_clean_output_json(stdout, True), "results.json")
 
 
 @pytest.mark.kinda_slow

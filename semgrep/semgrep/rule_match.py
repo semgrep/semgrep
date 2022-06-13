@@ -10,9 +10,9 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Dict
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -352,7 +352,7 @@ class RuleMatch:
         return self.ordering_key < other.ordering_key
 
 
-class RuleMatchSet(Set[RuleMatch]):
+class RuleMatchSet(Iterable[RuleMatch]):
     """
     A custom set type which is aware when findings are the same.
 
@@ -365,9 +365,9 @@ class RuleMatchSet(Set[RuleMatch]):
         self._ci_key_counts: CounterType[Tuple] = Counter()
         self._rule = rule
         if __iterable is None:
-            super().__init__()
+            self._set = set()
         else:
-            super().__init__(__iterable)
+            self._set = set(__iterable)
 
     def add(self, match: RuleMatch) -> None:
         """
@@ -382,7 +382,7 @@ class RuleMatchSet(Set[RuleMatch]):
         self._ci_key_counts[match.ci_unique_key] += 1
         match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         match = evolve(match, match_formula_string=self._rule.formula_string)
-        super().add(match)
+        self._set.add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
         """
@@ -395,6 +395,9 @@ class RuleMatchSet(Set[RuleMatch]):
         for rule_matches in rule_match_iterables:
             for rule_match in rule_matches:
                 self.add(rule_match)
+
+    def __iter__(self) -> Iterator[RuleMatch]:
+        return iter(self._set)
 
 
 # Our code orders findings at one point and then just assumes they're in order.
