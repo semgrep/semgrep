@@ -1,3 +1,17 @@
+"""Keeps global execution state (e.g. settings) around.
+
+The implementation as of June 2022 uses click contexts to do this,
+which keeps state on the thread local context.
+
+Usage:
+
+>>> from semgrep.state import get_state
+>>> get_state().terminal.is_quiet
+True
+"""
+
+
+
 import click
 from attrs import Factory
 from attrs import frozen
