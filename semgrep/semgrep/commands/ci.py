@@ -77,25 +77,22 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     so we need to reset the head to the actual PR branch head before continuing.
 
     Assumes cwd is a valid git project and that if we are in github-actions pull_request,
-    metadata.head_ref point to head commit of current branch
+    metadata.head_branch_hash point to head commit of current branch
     """
     if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
-        assert metadata.head_ref is not None  # Not none when github action PR
-
-        # TODO Hack to load branches
-        metadata.merge_base_ref
+        assert metadata.head_branch_hash is not None  # Not none when github action PR
 
         logger.info("Fixing git state for github action pull request")
 
         head_branch_rev_parse = subprocess.run(
-            ["git", "rev-parse", metadata.head_ref],
+            ["git", "rev-parse", metadata.head_branch_hash],
             encoding="utf-8",
             check=True,
             timeout=GIT_SH_TIMEOUT,
             capture_output=True,
         ).stdout.rstrip()
         logger.info(
-            f"Switching to branch {metadata.head_ref} with commit {head_branch_rev_parse}"
+            f"Switching to branch {metadata.head_branch_hash} with commit {head_branch_rev_parse}"
         )
 
         logger.debug("Calling git rev-parse HEAD")
@@ -111,9 +108,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         stashed_rev = rev_parse.stdout.rstrip()
         logger.debug(f"stashed_rev: {stashed_rev}")
 
-        logger.debug(f"Not on head ref {metadata.head_ref}; checking that out now.")
+        logger.debug(
+            f"Not on head ref {metadata.head_branch_hash}; checking that out now."
+        )
         checkout = subprocess.run(
-            ["git", "checkout", metadata.head_ref],
+            ["git", "checkout", metadata.head_branch_hash],
             encoding="utf-8",
             check=True,
             capture_output=True,
