@@ -81,7 +81,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 - Pseudoanonymized hash of the scanned project’s name
 - Pseudoanonymized hash of the rule definitions run
 - Pseduoanonymized hash of the config option.
-  _(Note that when downloading rules from the https://semgrep.dev registry, the requested ruleset names get recorded separately in plain text.)_
+  _(Note that when a config option downloads a ruleset from the https://semgrep.dev registry, [feature usage metrics](#feature-usage) still include the ruleset name in plain text.)_
 
 ### Performance
 
@@ -202,7 +202,7 @@ The list of features tracked as of June 2022 is:
 - `language`: What languages were scanned
 - `cli-flag`/`cli-envvar`: What options were configured (does NOT include their value)
 - `config`: What method was used to retrieve rules (does NOT include any of the rule)
-- `registry-query`: The first word of a `--config r/foo.bar.baz` setting
+- `registry-query`: The value of a `--config r/foo.bar.baz` setting, limited to the first word (e.g. `r/foo..` in this example)
 - `ruleset`: The value of a `--config p/foobar` setting
 - `semgrepignore`: Whether an `:include` statement was used in a .semgrepignore file
 - `subcommand`: What subcommand was used (e.g. `scan` or `ci`)
