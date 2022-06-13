@@ -71,7 +71,7 @@ let test_dfg_tainting rules_file file =
   pr2 "========";
   let handle_findings _ _ _ = () in
   let config, debug_taint =
-    Match_tainting_rules.taint_config_of_rule Config_semgrep.default_config []
+    Match_tainting_mode.taint_config_of_rule Config_semgrep.default_config []
       file (ast, []) rule taint_spec handle_findings
   in
   Common.pr2 "\nSources";

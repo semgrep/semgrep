@@ -17,4 +17,4 @@ val parse : Common.filename -> Rule.rules
 val parse_metatypes : Common.filename -> (string, string list) Hashtbl.t
 
 (* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml *)
-val parse_xpattern : Xlang.t -> string Rule.wrap -> Rule.xpattern
+val parse_xpattern : Xlang.t -> string Rule.wrap -> Xpattern.t

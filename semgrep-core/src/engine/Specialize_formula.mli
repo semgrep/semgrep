@@ -13,7 +13,7 @@ type selector = {
 [@@deriving show]
 
 type sformula =
-  | Leaf of Rule.xpattern * Rule.inside option
+  | Leaf of Xpattern.t * Rule.inside option
   | And of sformula_and
   | Or of sformula list
   | Not of sformula
@@ -46,4 +46,4 @@ val formula_to_sformula : Rule.formula -> sformula
 (*****************************************************************************)
 
 val visit_sformula :
-  (Rule.xpattern -> Rule.inside option -> unit) -> sformula -> unit
+  (Xpattern.t -> Rule.inside option -> unit) -> sformula -> unit

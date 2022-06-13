@@ -14,6 +14,7 @@
  *)
 open Common
 module R = Rule
+module XP = Xpattern
 module MV = Metavariable
 module PI = Parse_info
 
@@ -161,7 +162,7 @@ let remove_not_final f =
   if Option.is_none final_opt then logger#error "no formula";
   final_opt
 
-type step0 = LPat of Rule.xpattern | LCond of Rule.metavar_cond
+type step0 = LPat of Xpattern.t | LCond of Rule.metavar_cond
 (*old: does not work: | Not of Rule.leaf | Pos of Rule.leaf *)
 [@@deriving show]
 
@@ -226,8 +227,8 @@ let rec (cnf : Rule.formula -> cnf_step0) =
 (*****************************************************************************)
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
-  | Regexp of Rule.regexp
-  | MvarRegexp of MV.mvar * Rule.regexp * bool
+  | Regexp of Xpattern.regexp
+  | MvarRegexp of MV.mvar * Xpattern.regexp * bool
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -282,17 +283,17 @@ and leaf_step1 f =
   | LCond x -> metavarcond_step1 x
 
 and xpat_step1 pat =
-  match pat.R.pat with
-  | R.Sem (pat, lang) ->
+  match pat.XP.pat with
+  | XP.Sem (pat, lang) ->
       let ids, mvars = Analyze_pattern.extract_strings_and_mvars ~lang pat in
       Some (StringsAndMvars (ids, mvars))
   (* less: could also extract ids and mvars, but maybe no need to
    * prefilter for spacegrep; it is probably fast enough already
    *)
-  | R.Regexp re -> Some (Regexp re)
+  | XP.Regexp re -> Some (Regexp re)
   (* todo? *)
-  | R.Spacegrep _ -> None
-  | R.Comby _ -> None
+  | XP.Spacegrep _ -> None
+  | XP.Comby _ -> None
 
 and metavarcond_step1 x =
   match x with
@@ -352,7 +353,7 @@ let and_step1bis_filter_general (And xs) =
 type step2 =
   | Idents of string list
   (* a And *)
-  | Regexp2_search of Rule.regexp
+  | Regexp2_search of Xpattern.regexp
 [@@deriving show]
 
 type cnf_step2 = step2 cnf [@@deriving show]
