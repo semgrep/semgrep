@@ -79,8 +79,6 @@ let special (x, tok) =
   | Module -> other_expr "Module"
   | Define -> other_expr "Define"
   | Arguments -> other_expr "Arguments"
-  (* TODO: lift up New in ast_js.ml in pfff *)
-  | New -> other_expr "New"
   | NewTarget -> other_expr "NewTarget"
   | Eval -> SR_Special (G.Eval, tok)
   | Seq -> SR_NeedArgs (fun args -> G.Seq args)
@@ -302,6 +300,11 @@ and expr (x : expr) =
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
       G.Call (v1, bracket (List.map (fun e -> G.Arg e)) v2)
+  | New (tok, e, args) ->
+      let tok = info tok in
+      let e = expr e in
+      let args = bracket (list (fun arg -> G.Arg (expr arg))) args in
+      G.New (tok, H.expr_to_type e, args)
   | Arr v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.Array, v1)

@@ -1689,9 +1689,7 @@ and expression (env : env) (x : CST.expression) : expr =
         | Some x -> arguments env x
         | None -> fb []
       in
-      (* less: we should remove the extra Apply but that's what we do in pfff*)
-      let newcall = Apply (IdSpecial (New, v1), fb [ v2 ]) in
-      Apply (newcall, (t1, xs, t2))
+      New (v1, v2, (t1, xs, t2))
   | `Yield_exp (v1, v2) ->
       let v1 = token env v1 (* "yield" *) in
       let v2 =
