@@ -458,7 +458,7 @@ jobs:
           cache: pipenv
       # the build would run out of memory otherwise
       - name: Set swapfile size
-        uses: pierotofy/set-swap-space@1.0
+        uses: pierotofy/set-swap-space@v1.0
         with:
           swap-size-gb: 10
       - name: Run OSX build
