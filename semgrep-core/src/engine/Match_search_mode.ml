@@ -262,7 +262,7 @@ let run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.config env.file_and_more patterns
+        matches_of_patterns ~range_filter env.config env.xtarget patterns
       in
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
@@ -282,7 +282,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
     let focus_match =
       {
         PM.rule_id = fake_rule_id (-1, focus_mvar);
-        PM.file = env.file_and_more.file;
+        PM.file = env.xtarget.file;
         PM.range_loc;
         PM.tokens = lazy (MV.ii_of_mval mval);
         PM.env = range.mvars;
@@ -412,7 +412,7 @@ let rec filter_ranges env xs cond =
 
 and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
-    matches_of_formula env.config env.rule env.file_and_more formula opt_context
+    matches_of_formula env.config env.rule env.xtarget formula opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
   match final_ranges with
@@ -536,13 +536,11 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
           res)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
-and matches_of_formula config rule file_and_more formula opt_context :
+and matches_of_formula config rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
-  let res =
-    matches_of_xpatterns config file_and_more xpatterns |> RP.add_rule rule
-  in
+  let res = matches_of_xpatterns config xtarget xpatterns |> RP.add_rule rule in
   logger#trace "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
@@ -551,7 +549,7 @@ and matches_of_formula config rule file_and_more formula opt_context :
     {
       config;
       pattern_matches = pattern_matches_per_id;
-      file_and_more;
+      xtarget;
       rule;
       errors = ref [];
     }

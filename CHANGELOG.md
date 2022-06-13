@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   This also could cause permission issues when running the image.
 - Go: single pattern field can now match toplevel fields in a composite
   literal (#5452)
+- PHP: metavariable-pattern: works again when used with language: php (#5443)
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 
