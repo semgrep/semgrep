@@ -307,7 +307,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11.0beta - 3.11.0"
+          python-version: latest
           cache: pipenv
       - name: Download artifacts
         uses: actions/download-artifact@v3
@@ -446,6 +446,8 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
       - name: Setup Python
         uses: actions/setup-python@v4
+        with:
+          python-version: latest
       - name: Install pipenv
         run: sudo python3 -m pip install pipenv
       - name: Run OSX build

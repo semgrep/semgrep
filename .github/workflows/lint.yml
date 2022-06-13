@@ -15,6 +15,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: true
       - uses: actions/setup-python@v4
+        with:
+          python-version: latest
       - uses: pre-commit/action@v3.0.0
 
   pre-commit-manual:
@@ -24,6 +26,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
+        with:
+          python-version: latest
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --hook-stage manual
