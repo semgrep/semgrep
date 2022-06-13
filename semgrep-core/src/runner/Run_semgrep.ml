@@ -608,7 +608,9 @@ let minirule_of_pattern lang pattern_string pattern =
 let rule_of_pattern lang pattern_string pattern =
   let fk = PI.unsafe_fake_info "" in
   let xlang = Xlang.L (lang, []) in
-  let xpat = R.mk_xpat (R.Sem (pattern, lang)) (pattern_string, fk) in
+  let xpat =
+    Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) (pattern_string, fk)
+  in
   {
     R.id = ("-e/-f", fk);
     mode = R.Search (R.New (R.P (xpat, None)));

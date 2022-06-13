@@ -129,7 +129,7 @@ let any_in_ranges_no_overlap rule any rwms =
 let range_w_metas_of_pformula config equivs file_and_more rule pformula =
   let rule_id = fst rule.R.id in
   let formula = Rule.formula_of_pformula ~rule_id pformula in
-  Match_search_rules.matches_of_formula (config, equivs) rule file_and_more
+  Match_search_mode.matches_of_formula (config, equivs) rule file_and_more
     formula None
   |> snd
 

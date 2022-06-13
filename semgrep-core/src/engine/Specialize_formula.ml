@@ -14,7 +14,7 @@ type selector = {
 [@@deriving show]
 
 type sformula =
-  | Leaf of R.xpattern * R.inside option
+  | Leaf of Xpattern.t * R.inside option
   | And of sformula_and
   | Or of sformula list
   (* There are restrictions on where a Not can appear in a formula. It
