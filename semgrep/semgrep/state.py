@@ -9,9 +9,6 @@ Usage:
 >>> get_state().terminal.is_quiet
 True
 """
-
-
-
 import click
 from attrs import Factory
 from attrs import frozen
