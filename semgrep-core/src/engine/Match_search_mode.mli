@@ -1,3 +1,4 @@
+(* main entry point *)
 val check_rule :
   Rule.t ->
   (string ->
@@ -10,6 +11,7 @@ val check_rule :
   Xtarget.t ->
   Report.rule_profiling Report.match_result
 
+(* called from check_rule above and from Match_tainting_mode *)
 val matches_of_formula :
   Config_semgrep_t.t * Equivalence.equivalences ->
   Rule.rule ->
