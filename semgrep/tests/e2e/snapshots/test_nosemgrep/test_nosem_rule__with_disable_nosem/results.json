@@ -31,7 +31,7 @@
         "offset": 65
       },
       "extra": {
-        "fingerprint": "f9bbe14a8af6a339f3cc7cdc5711cbef",
+        "fingerprint": "b8c43ff72eb068dab1059bb7c2a742b52b4a625b76c4f215d3ab4f636c0d474ff67205bb3d43b1292b742aaaf6afa0648e6231d1500c633919db703d138b7cb2_0",
         "is_ignored": true,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
@@ -54,7 +54,7 @@
         "offset": 88
       },
       "extra": {
-        "fingerprint": "67c54169efa9c748edf95241ee778bdf",
+        "fingerprint": "b8c43ff72eb068dab1059bb7c2a742b52b4a625b76c4f215d3ab4f636c0d474ff67205bb3d43b1292b742aaaf6afa0648e6231d1500c633919db703d138b7cb2_1",
         "is_ignored": true,
         "lines": "    test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -77,7 +77,7 @@
         "offset": 138
       },
       "extra": {
-        "fingerprint": "cdd4972c722e9c2d806fc2a909c86272",
+        "fingerprint": "b8c43ff72eb068dab1059bb7c2a742b52b4a625b76c4f215d3ab4f636c0d474ff67205bb3d43b1292b742aaaf6afa0648e6231d1500c633919db703d138b7cb2_2",
         "is_ignored": false,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
@@ -100,7 +100,7 @@
         "offset": 46
       },
       "extra": {
-        "fingerprint": "07e730a3e726e712edacef96fcadd56e",
+        "fingerprint": "fda8bd99832e506d310a58e464d771cf314ae6672143acbc296531daabeebddd93f2861cc13f7abbe4fa5b1cefc14e441e43293991f06b38151acd2976521756_0",
         "is_ignored": true,
         "lines": "\ttest_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -123,7 +123,7 @@
         "offset": 92
       },
       "extra": {
-        "fingerprint": "7e2705db07e96e2c9df398c0335dfe4a",
+        "fingerprint": "fda8bd99832e506d310a58e464d771cf314ae6672143acbc296531daabeebddd93f2861cc13f7abbe4fa5b1cefc14e441e43293991f06b38151acd2976521756_1",
         "is_ignored": false,
         "lines": "\ttest_nosem_func()",
         "message": "test-nosem-message",
@@ -146,7 +146,7 @@
         "offset": 119
       },
       "extra": {
-        "fingerprint": "7cac99a9ad46157d35ddc0d0d89d7de8",
+        "fingerprint": "8477d91b0d9e7a923a4a4c33adabcf45d61c05d2e8d4d38c77a56a774ca2c7c8147a545f5af496c4bd04c0e0a76d3866f6309d3bb2587a36efde000c8ed91658_0",
         "is_ignored": true,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
@@ -169,7 +169,7 @@
         "offset": 146
       },
       "extra": {
-        "fingerprint": "cc984be310f9da74059c9c360d798105",
+        "fingerprint": "8477d91b0d9e7a923a4a4c33adabcf45d61c05d2e8d4d38c77a56a774ca2c7c8147a545f5af496c4bd04c0e0a76d3866f6309d3bb2587a36efde000c8ed91658_1",
         "is_ignored": true,
         "lines": "        test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -192,7 +192,7 @@
         "offset": 200
       },
       "extra": {
-        "fingerprint": "9ef206411d344954fc75328df41aefa7",
+        "fingerprint": "8477d91b0d9e7a923a4a4c33adabcf45d61c05d2e8d4d38c77a56a774ca2c7c8147a545f5af496c4bd04c0e0a76d3866f6309d3bb2587a36efde000c8ed91658_2",
         "is_ignored": false,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
@@ -215,7 +215,7 @@
         "offset": 17
       },
       "extra": {
-        "fingerprint": "ec9b3d5c685906c78a8684d058495f78",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_0",
         "is_ignored": true,
         "lines": "test_nosem_func() // nosem",
         "message": "test-nosem-message",
@@ -238,7 +238,7 @@
         "offset": 44
       },
       "extra": {
-        "fingerprint": "6aef39817c6259d5e9829fddd6ae6a93",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_1",
         "is_ignored": true,
         "lines": "test_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -261,7 +261,7 @@
         "offset": 89
       },
       "extra": {
-        "fingerprint": "66b976f4b3279ec2c19cb4dee195ed10",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_2",
         "is_ignored": true,
         "lines": "test_nosem_func() // NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
@@ -284,7 +284,7 @@
         "offset": 180
       },
       "extra": {
-        "fingerprint": "2fdb92573a653fffb2894f37738b2d22",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_0",
         "is_ignored": false,
         "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
@@ -307,7 +307,7 @@
         "offset": 208
       },
       "extra": {
-        "fingerprint": "526b1c51ca36c835f9bbc80a64db5e2b",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_3",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -330,7 +330,7 @@
         "offset": 254
       },
       "extra": {
-        "fingerprint": "182b4c89bd71340e7acea1976b2cf35b",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_4",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -353,7 +353,7 @@
         "offset": 300
       },
       "extra": {
-        "fingerprint": "4dcfbd15e5d8c85926359575c122deac",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_5",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -376,7 +376,7 @@
         "offset": 364
       },
       "extra": {
-        "fingerprint": "80d41c62ea9c7399c0d9956641b814d5",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_0",
         "is_ignored": false,
         "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
         "message": "test-nosem-message",
@@ -399,7 +399,7 @@
         "offset": 383
       },
       "extra": {
-        "fingerprint": "76ba64e5e6fe635e3b19a13b2901a98c",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_6",
         "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -422,7 +422,7 @@
         "offset": 43
       },
       "extra": {
-        "fingerprint": "f88c97c09e92836a72616320fd134fea",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_0",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -445,7 +445,7 @@
         "offset": 88
       },
       "extra": {
-        "fingerprint": "e944dfa4ea3d36fe7febac1039edbd91",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_1",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -468,7 +468,7 @@
         "offset": 137
       },
       "extra": {
-        "fingerprint": "454771fb0eb70d5395dcc8a22b5afae8",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_2",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -491,7 +491,7 @@
         "offset": 168
       },
       "extra": {
-        "fingerprint": "0afc313752722ee35856d87c1c205c80",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_3",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -514,7 +514,7 @@
         "offset": 217
       },
       "extra": {
-        "fingerprint": "013fec9dd1e2b7840fb39e667f8b93ae",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_4",
         "is_ignored": true,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
@@ -537,7 +537,7 @@
         "offset": 236
       },
       "extra": {
-        "fingerprint": "5f4734a95268bfe00073c9f8d4c6b33c",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_5",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nosem: rules.test-nosem",
         "message": "test-nosem-message",
@@ -560,7 +560,7 @@
         "offset": 281
       },
       "extra": {
-        "fingerprint": "56c30decb28226e036f03cebd8b7ba66",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_6",
         "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
@@ -583,7 +583,7 @@
         "offset": 326
       },
       "extra": {
-        "fingerprint": "b8cc12220dcd35f21500a162765f9215",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_7",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nosemgrep: rules.test-nosem",
         "message": "test-nosem-message",
@@ -606,7 +606,7 @@
         "offset": 375
       },
       "extra": {
-        "fingerprint": "c870458827d89cc9912fccbb7b4cdf42",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_8",
         "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEMGREP",
         "message": "test-nosem-message",
@@ -629,7 +629,7 @@
         "offset": 406
       },
       "extra": {
-        "fingerprint": "2e4600bf47fa0531feb701b3e23e0611",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_9",
         "is_ignored": true,
         "lines": "test_nosem_func()  # nOseMgREP: rules.test-nosem",
         "message": "test-nosem-message",
@@ -652,7 +652,7 @@
         "offset": 456
       },
       "extra": {
-        "fingerprint": "b895f701da5bb89398c5c400575e9ec5",
+        "fingerprint": "371bafd59eb7f00e063daf213805fd70a3ffc6fbe675bc038618b3e18c7a533f7996860c56e39faeb46eebeb273b785274e367fb4b049fee7f95d0f78032bab6_10",
         "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",

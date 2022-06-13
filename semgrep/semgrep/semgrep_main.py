@@ -38,6 +38,7 @@ from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.rule_match import RuleMatchSet
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.target_manager import FileTargetingLog
@@ -157,7 +158,12 @@ def run_rules(
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw, [target.path for target in target_manager.targets]
             )
-            join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
+            join_rule_matches_set = RuleMatchSet(rule)
+            for m in join_rule_matches:
+                join_rule_matches_set.add(m)
+            join_rule_matches_by_rule = {
+                Rule.from_json(rule.raw): list(join_rule_matches_set)
+            }
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 

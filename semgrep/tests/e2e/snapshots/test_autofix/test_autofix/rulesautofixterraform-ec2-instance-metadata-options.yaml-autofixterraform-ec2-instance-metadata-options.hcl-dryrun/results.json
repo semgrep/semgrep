@@ -15,7 +15,7 @@
         "offset": 109
       },
       "extra": {
-        "fingerprint": "af6f45fadea8519a2d6f32290d736b56",
+        "fingerprint": "1b34b4b90c917649e9ae8294a83cc4f11a38297b8c72402bd54b3bb89ee512ffc7748a271aa7db8be75aa0d5f34a8f00c5aa7e93b5175179e99a76191c3d83ec_0",
         "fix_regex": {
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"
@@ -70,7 +70,7 @@
         "offset": 220
       },
       "extra": {
-        "fingerprint": "3451d8296c78502b4db338ff0cfdcedf",
+        "fingerprint": "6e09cd0ae5d00c5a271e22057cbed7b45fbedf7e71cf25733dc6254c63f34c258758bd949ad30cce88230ed22240f09f16dd310c2ce5ef8bb801644c481584d0_0",
         "fix_regex": {
           "regex": "(.*)\\}",
           "replacement": "\\1\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}\n"

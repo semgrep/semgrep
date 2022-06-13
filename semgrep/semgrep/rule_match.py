@@ -1,4 +1,5 @@
 import binascii
+import hashlib
 import itertools
 import textwrap
 from collections import Counter
@@ -9,9 +10,9 @@ from typing import Any
 from typing import Counter as CounterType
 from typing import Dict
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -25,6 +26,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
+from semgrep.rule import Rule
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
@@ -72,6 +74,13 @@ class RuleMatch:
     # ???
     index: int = 0
 
+    # This is the accompanying formula from the rule that created the match
+    # Used for pattern_based_id
+    #
+    # This could be derived, if we wanted to keep the rule as a field of the
+    # match. Seems easier to just calculate it w/index
+    match_formula_string: str = ""
+
     # None means we didn't check; ignore status is unknown
     is_ignored: Optional[bool] = field(default=None)
 
@@ -83,6 +92,7 @@ class RuleMatch:
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
+    match_based_id: str = field(init=False, repr=False)
 
     # TODO: return a out.RuleId
     @property
@@ -246,6 +256,30 @@ class RuleMatch:
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
+    # This will supercede syntactic id, as currently that will change even if
+    # things formatting + line numbers change. By using the formula +
+    # metavariable content itself, we remain sensitive to modifications to a
+    # match, but we no longer count formatting + line number changs + other
+    # things as new findings
+    @match_based_id.default
+    def get_match_based_id(self) -> str:
+        try:
+            path = self.path.relative_to(Path.cwd())
+        except ValueError:
+            path = self.path
+        match_formula_str = self.match_formula_string
+        if self.extra.get("metavars") is not None:
+            metavars = self.extra["metavars"]
+            for metavar in metavars:
+                match_formula_str = match_formula_str.replace(
+                    metavar, metavars[metavar]["abstract_content"]
+                )
+        match_id = (match_formula_str, path, self.rule_id)
+        match_id_str = str(match_id)
+        return (
+            f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.index)}"
+        )
+
     @property
     def uuid(self) -> UUID:
         """
@@ -287,6 +321,7 @@ class RuleMatch:
             index=self.index,
             commit_date=commit_date_app_format,
             syntactic_id=self.syntactic_id,
+            match_based_id=self.match_based_id,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
         )
@@ -317,19 +352,22 @@ class RuleMatch:
         return self.ordering_key < other.ordering_key
 
 
-class RuleMatchSet(Set[RuleMatch]):
+class RuleMatchSet(Iterable[RuleMatch]):
     """
     A custom set type which is aware when findings are the same.
 
     It also automagically adds the correct finding index when adding elements.
     """
 
-    def __init__(self, __iterable: Optional[Iterable[RuleMatch]] = None) -> None:
+    def __init__(
+        self, rule: Rule, __iterable: Optional[Iterable[RuleMatch]] = None
+    ) -> None:
         self._ci_key_counts: CounterType[Tuple] = Counter()
+        self._rule = rule
         if __iterable is None:
-            super().__init__()
+            self._set = set()
         else:
-            super().__init__(__iterable)
+            self._set = set(__iterable)
 
     def add(self, match: RuleMatch) -> None:
         """
@@ -339,9 +377,12 @@ class RuleMatchSet(Set[RuleMatch]):
         The index lets us still notify when some code with findings is duplicated,
         even though we'd otherwise deduplicate the findings.
         """
+        if match.rule_id != self._rule.id:
+            raise ValueError("Added match must have identical rule id to set rule")
         self._ci_key_counts[match.ci_unique_key] += 1
         match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
-        super().add(match)
+        match = evolve(match, match_formula_string=self._rule.formula_string)
+        self._set.add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:
         """
@@ -354,6 +395,9 @@ class RuleMatchSet(Set[RuleMatch]):
         for rule_matches in rule_match_iterables:
             for rule_match in rule_matches:
                 self.add(rule_match)
+
+    def __iter__(self) -> Iterator[RuleMatch]:
+        return iter(self._set)
 
 
 # Our code orders findings at one point and then just assumes they're in order.

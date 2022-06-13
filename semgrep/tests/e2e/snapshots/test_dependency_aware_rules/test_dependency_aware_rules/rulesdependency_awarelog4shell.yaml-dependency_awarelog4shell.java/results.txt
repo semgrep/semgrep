@@ -42,7 +42,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/pom.xml"
           }
         ],
-        "fingerprint": "2dad36618046aba1c66784346119c366",
+        "fingerprint": "6cdffff88a2f4d74d9cd7229a79675c8ab9af3f510612c759b226dac10c239c5c44fc01ebb501047aecd8fad8e499fff7dfa96fc1ef693c0b07fc153c5f3be57_0",
         "is_ignored": false,
         "lines": "            logger.error(userName);",
         "message": "log4j logger.error tainted argument",

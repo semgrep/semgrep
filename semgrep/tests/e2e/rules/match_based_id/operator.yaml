@@ -1,0 +1,8 @@
+rules:
+  - id: operator-change
+    pattern-either:
+      - pattern: $Y = 1+1
+      - pattern: $X = 2+2
+    message: "useless"
+    languages: [c]
+    severity: ERROR

@@ -170,7 +170,7 @@ def test_stdin_input(snapshot):
         stdout=subprocess.PIPE,
     )
     stdout, _ = process.communicate("a")
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    snapshot.assert_match(_clean_output_json(stdout, True), "results.json")
 
 
 @pytest.mark.kinda_slow
@@ -192,7 +192,9 @@ def test_subshell_input(snapshot):
             "SEMGREP_SEND_METRICS": "off",
         },
     )
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    # Clean fingerprint from result since it's path dependent and that changes
+    # everytime due to the way stdin works
+    snapshot.assert_match(_clean_output_json(stdout, True), "results.json")
 
 
 @pytest.mark.kinda_slow
@@ -214,7 +216,7 @@ def test_multi_subshell_input(snapshot):
             "SEMGREP_SEND_METRICS": "off",
         },
     )
-    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+    snapshot.assert_match(_clean_output_json(stdout, True), "results.json")
 
 
 @pytest.mark.kinda_slow

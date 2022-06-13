@@ -42,7 +42,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/gradle.lockfile"
           }
         ],
-        "fingerprint": "a3d9a927ab61119d8367579160aabe55",
+        "fingerprint": "285628a0ecedf3d0a50221c80471258de9efded72478da7f01cd2efa4247fc6a1b0c792976aaedf4161b1f91f40d6f4228521dd460b47ada1fed806086a4c803_0",
         "is_ignored": false,
         "lines": "        return bad()",
         "message": "oh no",

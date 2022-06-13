@@ -1,6 +1,7 @@
 import hashlib
 import json
 from typing import Any
+from typing import AnyStr
 from typing import cast
 from typing import Dict
 from typing import List
@@ -247,6 +248,54 @@ class Rule:
             return False
 
         return has_runnable_rule(self._raw)
+
+    @property
+    def formula_string(self) -> str:
+        """
+        Used to calculate a pattern based ID, works through DFS of all
+        PATTERN KEYS, and additionally, if the key is 'join' we include the
+        'on' field also.
+        """
+
+        # Depth first traversal of formula, where we first sort by pattern keys
+        # and where that is not applicable, we do a DFS of two equal keys and
+        # sort them by their resulting strings. I.e. sort by pattern key first
+        # then any conflicts are resoled by the whole content of the pattern
+        def get_subrules(raw: Union[AnyStr, Dict, List]) -> str:
+            patterns_to_add = []
+            if isinstance(raw, str):
+                patterns_to_add.append(raw)
+            elif isinstance(raw, dict):
+                for key in sorted(raw.keys()):
+                    next_raw = raw.get(key)
+                    if next_raw is not None:
+                        patterns_to_add.append(get_subrules(next_raw))
+            elif isinstance(raw, list):
+                for p in raw:
+                    patterns_to_add.append(get_subrules(p))
+            else:
+                raise ValueError(
+                    f"This rule contains an unexpected pattern key: {self.id}:\n {str(raw)}"
+                )
+            return " ".join(sorted(patterns_to_add))
+
+        try:
+            patterns_to_add = []
+            for k in sorted(RuleValidation.PATTERN_KEYS):
+                next_raw = self.raw.get(k)
+                if next_raw is not None:
+                    patterns_to_add.append(get_subrules(next_raw))
+                    if k == "join" and "on" in next_raw:
+                        patterns_to_add += get_subrules(next_raw["on"])
+            res = " ".join(sorted(patterns_to_add))
+            if not res:
+                raise ValueError(f"This rule contains no hashable patterns: {self.id}")
+        # In the scenario where we don't have patterns to hash (this would be
+        # /weird/), just return the empty string, and we'll hash based on rule id +
+        # index + file path
+        except ValueError:
+            res = ""
+        return res
 
 
 def rule_without_metadata(rule: Rule) -> Rule:

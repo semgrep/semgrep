@@ -19,7 +19,7 @@
         "offset": 14
       },
       "extra": {
-        "fingerprint": "919482dc9f5adb366c2dc50c9f05a493",
+        "fingerprint": "e437769ac552691961bf989d05f15ddae2c4e1d8c9ae9bcd80a55ce6e2a321b57b21e3d0a7004d0161cea5d4baf22ea55309671ac565a1ffee2ac9a90de750cd_0",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
@@ -60,7 +60,7 @@
         "offset": 14
       },
       "extra": {
-        "fingerprint": "ded5db274b8dad5c7eeb794969760c05",
+        "fingerprint": "691232c0fc77edc2b45aeb8edc57cd5d64817d7a692f202e775293cd1b3615683e3905a9471ca12bf59f3841e2365d4262d6a86e6b53ce47dcae0a99407c09bd_0",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
@@ -101,7 +101,7 @@
         "offset": 14
       },
       "extra": {
-        "fingerprint": "3f2c98c5e1b6481ad21edc6a83f5a13f",
+        "fingerprint": "4611a608e3d4120576a9266ccd1adb8e57dce2901d7c5ee149277da3bc28fd018f1982f1f6be30050c7722e33ba925cc306b307944591c87ca30b837743f978d_0",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
@@ -142,7 +142,7 @@
         "offset": 14
       },
       "extra": {
-        "fingerprint": "19a1293db9426788a3237e2ff2e5364b",
+        "fingerprint": "2b4341cb1d4478f777cdefcb927b71ad562926b918b122c1a92ae796ea7778eb508e163572c6d17100349a355d0d7cc5ec1a267c2036a9195e3fbe0f3c535eb1_0",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",
@@ -183,7 +183,7 @@
         "offset": 14
       },
       "extra": {
-        "fingerprint": "9efbd01eb7b06c93ec9e846b2f5ac4d6",
+        "fingerprint": "195514e28b592475cd6e454e19deb20a52f74f65eb711b09e42d8015ff1410fdee653e112a143e156e2f8f26208b34150bacc0d6e8ebf13e5c3452053bdcdf83_0",
         "is_ignored": false,
         "lines": "var x = 0 == 0",
         "message": "useless comparison",

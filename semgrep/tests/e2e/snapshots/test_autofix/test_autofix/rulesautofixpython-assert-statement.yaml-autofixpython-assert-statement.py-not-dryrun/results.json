@@ -15,7 +15,7 @@
         "offset": 26
       },
       "extra": {
-        "fingerprint": "e02fb095085d554bebaa733bb863be24",
+        "fingerprint": "6dc6dadef59330502a9d1988fb7c6f14c516b0a94fb7b7c903da09b8b3e91c58bcc5d2e9b733c82887556765c32153a89c1ed3625b95cbe63a53ab03dd770110_0",
         "fix": "assert \"a\"",
         "fixed_lines": [
           "assert \"a\""
@@ -60,7 +60,7 @@
         "offset": 53
       },
       "extra": {
-        "fingerprint": "313cb4216c39d1171f6858cea0d3fcc1",
+        "fingerprint": "47499af8016a3d73a8ac0cb0709ce0cd314cdf477741c8a9e03d4aa03531123e2ff120224289f160fa7623d5960ac44f9e399dbe177a628236bd128af9be2c27_0",
         "fix": "assert \"b\"",
         "fixed_lines": [
           "assert \"b\""

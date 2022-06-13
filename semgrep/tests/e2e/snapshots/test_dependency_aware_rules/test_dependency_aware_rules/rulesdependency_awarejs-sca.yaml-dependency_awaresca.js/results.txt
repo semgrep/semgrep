@@ -48,7 +48,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/package-lock.json"
           }
         ],
-        "fingerprint": "bf2f0ae7b018eead68370e2ae6ab31c6",
+        "fingerprint": "48bdbaf03dc69ff2428f50ec109c92e1a941e4c378b47def768ff466f0fe1d46748d3d0624bacd03979d2873d2c360c926fcdc2cb8b7dbca9afdc624f6d4caa9_0",
         "is_ignored": false,
         "lines": "x = bad()",
         "message": "oh no",

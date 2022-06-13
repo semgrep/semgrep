@@ -25,7 +25,7 @@
         "offset": 81
       },
       "extra": {
-        "fingerprint": "b6e651a84f261a317078aa73919a52d5",
+        "fingerprint": "cfdd8921a107f7ccc6309e25924348dfe0f0c39f93a2909c2419b6ac058566b62789665990fdbb5894ae395ed3e6bfc5395a708dc4e41e8af84fd6a7753fbf3a_0",
         "is_ignored": false,
         "lines": "    metavariable_regex_test.method()",
         "message": "Metavariable regex test multi rule",

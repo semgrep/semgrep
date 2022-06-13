@@ -5,9 +5,29 @@ from textwrap import dedent
 import pytest
 
 import semgrep.output_from_core as core
+from semgrep.config_resolver import parse_config_string
 from semgrep.constants import RuleSeverity
+from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
+
+
+def create_rule() -> Rule:
+    config = parse_config_string(
+        "testfile",
+        dedent(
+            """
+        rules:
+        - id: rule_id
+          pattern: $X == $X
+          languages: [python]
+          severity: INFO
+          message: bad
+        """
+        ),
+        None,
+    )
+    return Rule(config["testfile"].value["rules"].value[0])
 
 
 @pytest.mark.quick
@@ -260,10 +280,31 @@ def test_rule_match_set_indexes(mocker):
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
     )
-    matches = RuleMatchSet()
+
+    line7 = RuleMatch(
+        message="message",
+        severity=RuleSeverity.ERROR,
+        match=core.CoreMatch(
+            rule_id=core.RuleId("rule_id_wrong_one"),
+            location=core.Location(
+                path="foo.py",
+                start=core.Position(7, 1, 60),
+                end=core.Position(7, 15, 74),
+            ),
+            extra=core.CoreMatchExtra(metavars=core.Metavars({})),
+        ),
+    )
+    rule = create_rule()
+    matches = RuleMatchSet(rule)
     matches.update(
         [line3, line4, line5, line6]
     )  # we do need to add them in the correct order
+    try:
+        # Ensure we can't add rule matches with unassociated rule
+        matches.update([line7])
+        raise AssertionError()
+    except ValueError:
+        assert True
     sorted_matches = list(sorted(matches))
     assert sorted_matches[0].index == 0, "1st duplicate match must be assigned index 0"
     assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"

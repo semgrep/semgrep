@@ -15,7 +15,7 @@
         "offset": 2427
       },
       "extra": {
-        "fingerprint": "87458e7dda0be8854b28578ba7e81d1a",
+        "fingerprint": "12717efc031af18241df1f8268d9b3ef480c9e13426d884b64652703415c526fa0703d6207c087055709bf2676fe345034d723cd09cee2924620ba58a9932bc5_0",
         "fix_regex": {
           "regex": "(password.*)\"\"",
           "replacement": "\\1None"
@@ -123,7 +123,7 @@
         "offset": 3058
       },
       "extra": {
-        "fingerprint": "572ad9742dc375b5e25ab4e2b8073713",
+        "fingerprint": "ba91fa5e126c6ea560de5c3fd70fe3c79cc5597f05dc7203c18dcf59d0eec77d0a40298380b9104759f906e9fca53a776eaa00a08e9b95a444ad39f0c194ba85_0",
         "fix_regex": {
           "regex": "(password.*)\"\"",
           "replacement": "\\1None"

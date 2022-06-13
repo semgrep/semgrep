@@ -68,7 +68,8 @@ Would have sent findings blob: {
             "commit_date": <MASKED>
             "syntactic_id": "8c695a6a4ab5ffff33d0103309a310c1",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0"
         },
         {
             "check_id": "eqeq-bad",
@@ -83,7 +84,8 @@ Would have sent findings blob: {
             "commit_date": <MASKED>
             "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1"
         },
         {
             "check_id": "eqeq-bad",
@@ -98,7 +100,8 @@ Would have sent findings blob: {
             "commit_date": <MASKED>
             "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3"
         },
         {
             "check_id": "eqeq-bad",
@@ -113,7 +116,8 @@ Would have sent findings blob: {
             "commit_date": <MASKED>
             "syntactic_id": "d44049421636e370e7906a6bed5fce54",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0"
         },
         {
             "check_id": "eqeq-five",
@@ -130,7 +134,8 @@ Would have sent findings blob: {
             "metadata": {
                 "dev.semgrep.actions": []
             },
-            "is_blocking": false
+            "is_blocking": false,
+            "match_based_id": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
         },
         {
             "check_id": "eqeq-four",
@@ -149,7 +154,8 @@ Would have sent findings blob: {
                     "block"
                 ]
             },
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
         },
         {
             "check_id": "__r2c-internal-cai_eqeq",
@@ -164,7 +170,8 @@ Would have sent findings blob: {
             "commit_date": <MASKED>
             "syntactic_id": "985498b46aff45ebdffe6a26af8524ab",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "428d340d1be54b3f1fbc781d56aef28eb2092d3f140cab3a5d03ad7a769e21803c79eb728c18dce723226b7f224e8f688395081ca05d48bc2c1590d312d26fca_0"
         }
     ],
     "searched_paths": [
@@ -194,7 +201,8 @@ Would have sent ignores blob: {
             "commit_date": <MASKED>
             "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2"
         },
         {
             "check_id": "eqeq-bad",
@@ -209,7 +217,8 @@ Would have sent ignores blob: {
             "commit_date": <MASKED>
             "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0"
         },
         {
             "check_id": "eqeq-bad",
@@ -224,7 +233,8 @@ Would have sent ignores blob: {
             "commit_date": <MASKED>
             "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
             "metadata": {},
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0"
         },
         {
             "check_id": "eqeq-five",
@@ -241,7 +251,8 @@ Would have sent ignores blob: {
             "metadata": {
                 "dev.semgrep.actions": []
             },
-            "is_blocking": false
+            "is_blocking": false,
+            "match_based_id": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0"
         },
         {
             "check_id": "eqeq-four",
@@ -260,7 +271,8 @@ Would have sent ignores blob: {
                     "block"
                 ]
             },
-            "is_blocking": true
+            "is_blocking": true,
+            "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
         }
     ]
 }
