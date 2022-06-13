@@ -8,8 +8,6 @@ from xml.etree import cElementTree
 import pytest
 
 from semgrep.constants import OutputFormat
-from tests.conftest import _clean_output_sarif
-from tests.conftest import CLEANERS
 from tests.conftest import TESTS_PATH
 
 
@@ -99,14 +97,13 @@ def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snaps
     ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
 )
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
-    stdout, stderr = run_semgrep_in_tmp(
+    stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         target_name="basic/stupid.py",
         options=[format],
         output_format=OutputFormat.TEXT,  # Not the real output format; just disables JSON parsing
     )
-    clean = CLEANERS.get(format, lambda s: s)(stdout)
-    snapshot.assert_match(clean, "results.out")
+    snapshot.assert_match(stdout, "results.out")
 
 
 @pytest.mark.kinda_slow
@@ -134,88 +131,70 @@ def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
 # labeled as suppressed.
 @pytest.mark.kinda_slow
 def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
-    sarif_output = json.loads(
+    snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex-nosemgrep.yaml",
             target_name="basic/regex-nosemgrep.txt",
             output_format=OutputFormat.SARIF,
-        )[0]
-    )
-
-    sarif_output = _clean_output_sarif(sarif_output)
-
-    snapshot.assert_match(
-        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+        ).stdout,
+        "results.sarif",
     )
 
 
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
-    sarif_output = json.loads(
-        run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)[0]
-    )
-
-    sarif_output = _clean_output_sarif(sarif_output)
-
+    stdout = run_semgrep_in_tmp(
+        "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
+    ).stdout
     snapshot.assert_match(
-        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+        run_semgrep_in_tmp(
+            "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
+        ).stdout,
+        "results.sarif",
     )
 
     # Assert that each sarif rule object has a helpURI
-    for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
+    for rule in json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("helpUri", None) is not None
 
 
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
-    sarif_output = json.loads(
-        run_semgrep_in_tmp("rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF)[0]
-    )
+    stdout = run_semgrep_in_tmp(
+        "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF
+    ).stdout
 
-    sarif_output = _clean_output_sarif(sarif_output)
-
-    snapshot.assert_match(
-        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
-    )
+    snapshot.assert_match(stdout, "results.sarif")
 
     # Assert that each sarif rule object has a helpURI
-    for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
+    for rule in json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("help", None) is not None
 
 
 @pytest.mark.kinda_slow
 def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
-    sarif_output = json.loads(
+    snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq.yaml",
             target_name="nosemgrep/eqeq-nosemgrep.py",
             output_format=OutputFormat.SARIF,
             options=["--error"],
-        )[0]
-    )
-
-    sarif_output = _clean_output_sarif(sarif_output)
-
-    snapshot.assert_match(
-        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+        ).stdout,
+        "results.sarif",
     )
 
 
 @pytest.mark.kinda_slow
 def test_sarif_output_with_autofix(run_semgrep_in_tmp, snapshot):
-    sarif_output = json.loads(
+
+    snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/autofix/autofix.yaml",
             target_name="autofix/autofix.py",
             output_format=OutputFormat.SARIF,
             options=["--autofix", "--dryrun"],
-        )[0]
-    )
-
-    sarif_output = _clean_output_sarif(sarif_output)
-
-    snapshot.assert_match(
-        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+        ).stdout,
+        "results.sarif",
     )
 
 

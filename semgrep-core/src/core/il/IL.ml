@@ -208,7 +208,7 @@ and exp_kind =
    * with Dot? simpler?
    * This could also be used for Dict.
    *)
-  | Record of (ident * exp) list
+  | Record of field list
   | Cast of G.type_ * exp
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
@@ -217,6 +217,8 @@ and exp_kind =
       fixme_kind
       * G.any (* fixme source *)
       * exp (* partial translation *) option
+
+and field = Field of ident * exp | Spread of exp
 
 and composite_kind =
   | CTuple
@@ -275,7 +277,6 @@ and call_special =
 and anonymous_entity =
   | Lambda of function_definition
   | AnonClass of G.class_definition
-[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Statement *)
@@ -310,7 +311,7 @@ and other_stmt =
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string
 
-and label = ident * G.sid [@@deriving show { with_path = false }]
+and label = ident * G.sid
 
 (*****************************************************************************)
 (* Defs *)
@@ -321,6 +322,7 @@ and function_definition = {
   frettype : G.type_ option;
   fbody : stmt list;
 }
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)

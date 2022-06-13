@@ -366,7 +366,7 @@ and assign env lhs tok rhs_exp e_gen =
       let tmp = fresh_var env tok2 in
       let tmp_lval = lval_of_base (Var tmp) in
       add_instr env (mk_i (Assign (tmp_lval, rhs_exp)) eorig);
-      let record_pairs : (ident * exp) list =
+      let record_pairs : field list =
         fields
         |> Common.map (function
              | G.F
@@ -389,7 +389,7 @@ and assign env lhs tok rhs_exp e_gen =
                      (related_tok tok)
                  in
                  add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
-                 (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
+                 Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
              | field ->
                  (* If a field is not of the form `x1: v1` then we translate it as
                   * `__FIXME_AST_to_IL__: FixmeExp ToDo`.
@@ -400,7 +400,7 @@ and assign env lhs tok rhs_exp e_gen =
                  let tmpi_lval = lval_of_base (Var tmpi) in
                  add_instr env
                    (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
-                 (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field))))
+                 Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field))))
       in
       (* {x1: E1, ..., xN: En} *)
       mk_e (Record record_pairs) (related_exp lhs)
@@ -785,7 +785,21 @@ and record env ((_tok, origfields, _) as record_def) =
                | ___else___ -> todo (G.E e_gen)
              in
              let field_def = expr env fdeforig in
-             (id, field_def)
+             Field (id, field_def)
+         | G.F
+             {
+               s =
+                 G.ExprStmt
+                   ( {
+                       e =
+                         Call
+                           ({ e = IdSpecial (Spread, _); _ }, (_, [ Arg e ], _));
+                       _;
+                     },
+                     _ );
+               _;
+             } ->
+             Spread (expr env e)
          | G.F _ -> todo (G.E e_gen))
   in
   mk_e (Record fields) (SameAs e_gen)

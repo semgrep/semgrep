@@ -14,7 +14,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           submodules: true
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
       - uses: pre-commit/action@v3.0.0
 
   pre-commit-manual:
@@ -23,7 +25,9 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --hook-stage manual
@@ -32,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     # Custom image provides 'ocamlformat' with a specific version needed to check
     # ocaml code (must be the same than the one in semgrep-core/dev/dev.opam)
-    container: returntocorp/ocaml:ubuntu
+    container: returntocorp/ocaml:ubuntu-2022-06-09
     steps:
       - name: Pre-checkout fixes
         run: |

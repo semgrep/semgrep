@@ -6,6 +6,26 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Autodetection of CI env now supports Azure Pipelines, Bitbucket, Buildkite, Circle CI, Jenkins,
+  and Travis CI in addition to GitHub and GitLab
+- You can now disable version checks with an environment variable by setting
+  `SEMGREP_ENABLE_VERSION_CHECK=0`
+- Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
+
+### Fixed
+
+- Fixed a bug where `--disable-version-check` would still send a request
+  when a scan resulted in zero findings.
+- Fixed a regression in 0.97 where the Docker image's working directory changed from `/src` without notice.
+  This also could cause permission issues when running the image.
+- Go: single pattern field can now match toplevel fields in a composite
+  literal (#5452)
+- PHP: metavariable-pattern: works again when used with language: php (#5443)
+
+## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
+
+### Added
+
 - Dataflow: XML elements (e.g. JSX elements) have now a basic translation to the
   Dataflow IL, meaning that dataflow analysis (constant propagation, taint tracking)
   can now operate inside these elements (#5115)
@@ -28,6 +48,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: fixed bug where typed patterns inside classes caused an exception during name resolution
 - metavariable-regex: patterns are now unanchored as specified by the
   documentation (#4807)
+- When a logged in CI scan encounters a Git failure,
+  we now print a helpful error message instead of a traceback.
 
 ## [0.96.0](https://github.com/returntocorp/semgrep/releases/tag/v0.96.0) - 2022-06-03
 
@@ -39,8 +61,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   comments that follow the specified syntax (C style, C++ style, or
   Shell style) (#3428)
 - Metrics now include a list of features used during an execution.
-  Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an `:include` instruction in a `.semgrepignore` file.
-  These strings will NOT include user data or specific settings. As an example, with `semgrep scan --output=secret.txt` we might send `"option/output"` but will NOT send `"option/output=secret.txt"`.
+  Examples of such features are: languages scanned, CLI options passed, keys used in rules,
+  or certain code paths reached, such as using an `:include` instruction in
+  a `.semgrepignore` file.
+  These strings will NOT include user data or specific settings. As an example,
+  with `semgrep scan --output=secret.txt` we might send `"option/output"` but
+  will NOT send `"option/output=secret.txt"`.
 
 ### Changed
 

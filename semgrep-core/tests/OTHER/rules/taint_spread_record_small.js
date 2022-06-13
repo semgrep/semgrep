@@ -1,0 +1,2 @@
+//ruleid: test
+sink({...source})

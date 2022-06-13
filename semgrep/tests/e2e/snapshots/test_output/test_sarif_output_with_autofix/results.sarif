@@ -1,61 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
-  "fixes": [
-    {
-      "artifactChanges": [
-        {
-          "artifactLocation": {
-            "uri": "targets/autofix/autofix.py"
-          },
-          "replacements": [
-            {
-              "deletedRegion": {
-                "endColumn": 12,
-                "endLine": 5,
-                "startColumn": 3,
-                "startLine": 5
-              },
-              "insertedContent": {
-                "text": [
-                  "  inputs.get(x) = 1"
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      "description": {
-        "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
-      }
-    },
-    {
-      "artifactChanges": [
-        {
-          "artifactLocation": {
-            "uri": "targets/autofix/autofix.py"
-          },
-          "replacements": [
-            {
-              "deletedRegion": {
-                "endColumn": 19,
-                "endLine": 6,
-                "startColumn": 6,
-                "startLine": 6
-              },
-              "insertedContent": {
-                "text": [
-                  "  if inputs.get(x + 1) == True:"
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      "description": {
-        "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
-      }
-    }
-  ],
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
     {
       "invocations": [
@@ -66,6 +10,33 @@
       ],
       "results": [
         {
+          "fixes": [
+            {
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "targets/autofix/autofix.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "endColumn": 12,
+                        "endLine": 5,
+                        "startColumn": 3,
+                        "startLine": 5
+                      },
+                      "insertedContent": {
+                        "text": "  inputs.get(x) = 1"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "description": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
+              }
+            }
+          ],
           "locations": [
             {
               "physicalLocation": {
@@ -91,6 +62,33 @@
           "ruleId": "rules.autofix.use-dict-get"
         },
         {
+          "fixes": [
+            {
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "targets/autofix/autofix.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "endColumn": 19,
+                        "endLine": 6,
+                        "startColumn": 6,
+                        "startLine": 6
+                      },
+                      "insertedContent": {
+                        "text": "  if inputs.get(x + 1) == True:"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "description": {
+                "text": "Use `.get()` method to avoid a KeyNotFound error\n Autofix: Semgrep rule suggested fix"
+              }
+            }
+          ],
           "locations": [
             {
               "physicalLocation": {

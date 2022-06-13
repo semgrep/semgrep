@@ -1,5 +1,6 @@
 rules:
 - id: empty-test
+  #ERROR: only negative terms
   patterns:
   - pattern-not-regex: |
       function

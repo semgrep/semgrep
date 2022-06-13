@@ -304,13 +304,15 @@ def ci(
 
     try:
         with fix_head_if_github_action(metadata):
+            if scan_handler:
+                metadata_dict = metadata.to_dict()
+                metadata_dict["is_sca_scan"] = sca
+
             try:
                 logger.info("Fetching configuration from semgrep.dev")
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
-                    metadata_dict = metadata.to_dict()
-                    metadata_dict["is_sca_scan"] = sca
                     scan_handler.start_scan(metadata_dict)
                     config = (scan_handler.scan_rules_url,)
             except Exception as e:

@@ -16,6 +16,7 @@ open Common
 module J = JSON
 module FT = File_type
 module R = Rule
+module XP = Xpattern
 module MR = Mini_rule
 module G = AST_generic
 module PI = Parse_info
@@ -461,12 +462,12 @@ let parse_xpattern xlang (str, tok) =
   match xlang with
   | Xlang.L (lang, _) ->
       let pat = Parse_pattern.parse_pattern lang ~print_errors:false str in
-      R.mk_xpat (R.Sem (pat, lang)) (str, tok)
+      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
   | Xlang.LRegex -> failwith "TODO"
   | Xlang.LGeneric -> (
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
-      | Ok ast -> R.mk_xpat (R.Spacegrep ast) (str, tok)
+      | Ok ast -> XP.mk_xpat (XP.Spacegrep ast) (str, tok)
       | Error err -> failwith err.msg)
 
 (* TODO: note that the [pattern] string and token location [t] given to us
@@ -572,22 +573,23 @@ let rec parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "patterns" -> R.Patterns (t, parse_listi env key get_nested_formula value)
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
-      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) x in
+      let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
       R.Pat xpat
   | "pattern-not-regex" ->
       let x = parse_string_wrap env key value in
-      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) x in
+      let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
       R.PatNot (t, xpat)
   | "pattern-comby" ->
       let x = parse_string_wrap env key value in
-      let xpat = R.mk_xpat (Comby (fst x)) x in
+      let xpat = XP.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
   | "metavariable-analysis"
   | "metavariable-regex"
   | "metavariable-pattern"
-  | "metavariable-comparison"
-  | "pattern-where-python" ->
+  | "metavariable-comparison" ->
       R.PatExtra (t, parse_extra env key value)
+  | "pattern-where-python" ->
+      raise (R.InvalidRule (R.DeprecatedFeature (fst key), env.id, t))
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key env key
@@ -638,11 +640,11 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "inside" -> R.P (parse_xpattern_expr env value, Some Inside)
       | "regex" ->
           let x = parse_string_wrap env key value in
-          let xpat = R.mk_xpat (R.Regexp (parse_regexp env x)) x in
+          let xpat = XP.mk_xpat (XP.Regexp (parse_regexp env x)) x in
           R.P (xpat, None)
       | "comby" ->
           let x = parse_string_wrap env key value in
-          let xpat = R.mk_xpat (R.Comby (fst x)) x in
+          let xpat = XP.mk_xpat (XP.Comby (fst x)) x in
           R.P (xpat, None)
       | _ -> error_at_key env key ("Invalid key for formula_new " ^ fst key))
   | _ -> R.P (parse_xpattern_expr env x, None)
@@ -744,7 +746,6 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       in
       let comparison = parse_metavar_cond env key comparison in
       R.MetavarComparison { R.metavariable; comparison; strip; base }
-  | "pattern-where-python" -> R.PatWherePython (parse_string env key value)
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
 let parse_languages ~id langs : Xlang.t =

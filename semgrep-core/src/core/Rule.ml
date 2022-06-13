@@ -23,8 +23,6 @@ module MV = Metavariable
  *
  * See also Mini_rule.ml where formula and many other features disappear.
  *
- * TODO:
- *  - parse equivalences
  *)
 
 (*****************************************************************************)
@@ -46,52 +44,6 @@ type 'a loc = {
 [@@deriving show, eq]
 
 (*****************************************************************************)
-(* Extended patterns *)
-(*****************************************************************************)
-
-type xpattern = {
-  pat : xpattern_kind;
-  (* Regarding @equal below, even if two patterns have different indentation,
-   * we still consider them equal in the metachecker context.
-   * We rely only on the equality on pat, which will
-   * abstract away line positions.
-   * TODO: right now we have some false positives, e.g., in Python
-   * assert(...) and assert ... are considered equal AST-wise
-   * but it might be a bug!.
-   *)
-  pstr : string wrap; [@equal fun _ _ -> true]
-  (* Unique id, incremented via a gensym()-like function in mk_pat().
-   * This is used to run the patterns in a formula in a batch all-at-once
-   * and remember what was the matching results for a certain pattern id.
-   *)
-  pid : pattern_id; [@equal fun _ _ -> true]
-}
-
-and xpattern_kind =
-  | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
-  | Spacegrep of Spacegrep.Pattern_AST.t
-  | Regexp of regexp
-  | Comby of string
-
-and regexp = Regexp_engine.t
-
-(* used in the engine for rule->mini_rule and match_result gymnastic *)
-and pattern_id = int [@@deriving show, eq]
-
-(* helpers *)
-
-let count = ref 0
-
-let mk_xpat pat pstr =
-  incr count;
-  { pat; pstr; pid = !count }
-
-let is_regexp xpat =
-  match xpat.pat with
-  | Regexp _ -> true
-  | _ -> false
-
-(*****************************************************************************)
 (* Formula (patterns boolean composition) *)
 (*****************************************************************************)
 
@@ -108,7 +60,7 @@ type formula =
    * The same is true for pattern-not and pattern-not-inside
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
-  | P of xpattern (* a leaf pattern *) * inside option
+  | P of Xpattern.t (* a leaf pattern *) * inside option
   | And of conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
@@ -148,7 +100,7 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of MV.mvar * regexp * bool (* constant-propagation *)
+  | CondRegexp of MV.mvar * Xpattern.regexp * bool (* constant-propagation *)
   | CondAnalysis of MV.mvar * metavar_analysis_kind
   | CondNestedFormula of MV.mvar * Xlang.t option * formula
 
@@ -163,17 +115,17 @@ and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
  *)
 type formula_old =
   (* pattern: *)
-  | Pat of xpattern
+  | Pat of Xpattern.t
   (* pattern-not: *)
-  | PatNot of tok * xpattern
+  | PatNot of tok * Xpattern.t
   (* metavariable-xyz: *)
   | PatExtra of tok * extra
   (* focus-metavariable: *)
   | PatFocus of tok * MV.mvar
   (* pattern-inside: *)
-  | PatInside of xpattern
+  | PatInside of Xpattern.t
   (* pattern-not-inside: *)
-  | PatNotInside of tok * xpattern
+  | PatNotInside of tok * Xpattern.t
   (* pattern-either: Or *)
   | PatEither of tok * formula_old list
   (* patterns: And *)
@@ -183,12 +135,13 @@ type formula_old =
 
 (* extra conditions, usually on metavariable content *)
 and extra =
-  | MetavarRegexp of MV.mvar * regexp * bool
+  | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
   | MetavarPattern of MV.mvar * Xlang.t option * formula_old
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
-  (* arbitrary code! dangerous! *)
-  | PatWherePython of string
+(* old: | PatWherePython of string, but it was too dangerous.
+ * MetavarComparison is not as powerful, but safer.
+ *)
 
 (* See also engine/Eval_generic.ml *)
 and metavariable_comparison = {
@@ -201,19 +154,16 @@ and metavariable_comparison = {
 }
 [@@deriving show, eq]
 
+(*****************************************************************************)
+(* Final formula *)
+(*****************************************************************************)
+
 (* pattern formula *)
 type pformula = New of formula | Old of formula_old [@@deriving show, eq]
 
 (*****************************************************************************)
-(* The rule *)
+(* Taint-specific types *)
 (*****************************************************************************)
-
-(* alt:
- *     type common = { id : string; ... }
- *     type search = { common : common; formula : pformula; }
- *     type taint  = { common : common; spec : taint_spec; }
- *     type rule   = Search of search | Taint of taint
- *)
 
 type sanitizer_spec = {
   not_conflicting : bool;
@@ -234,6 +184,16 @@ type taint_spec = {
 }
 [@@deriving show]
 
+(*****************************************************************************)
+(* The rule *)
+(*****************************************************************************)
+
+(* alt:
+ *     type common = { id : string; ... }
+ *     type search = { common : common; formula : pformula; }
+ *     type taint  = { common : common; spec : taint_spec; }
+ *     type rule   = Search of search | Taint of taint
+ *)
 type mode = Search of pformula | Taint of taint_spec [@@deriving show]
 
 (* TODO? just reuse Error_code.severity *)
@@ -251,7 +211,7 @@ type rule = {
   (* deprecated? todo: parse them *)
   equivalences : string list option;
   fix : string option;
-  fix_regexp : (regexp * int option * string) option;
+  fix_regexp : (Xpattern.regexp * int option * string) option;
   paths : paths option;
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata : JSON.t option;
@@ -269,6 +229,17 @@ and paths = {
 (* alias *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let partition_rules rules =
+  rules
+  |> Common.partition_either (fun r ->
+         match r.mode with
+         | Search f -> Left (r, f)
+         | Taint s -> Right (r, s))
 
 (*****************************************************************************)
 (* Error Management *)
@@ -296,8 +267,9 @@ and invalid_rule_error_kind =
       * string (* exn *)
       * string list (* yaml path *)
   | InvalidRegexp of string (* PCRE error message *)
-  | InvalidOther of string
+  | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | InvalidOther of string
 
 let string_of_invalid_rule_error_kind = function
   | InvalidLanguage language -> spf "invalid language %s" language
@@ -309,6 +281,7 @@ let string_of_invalid_rule_error_kind = function
       spf "Invalid pattern for %s" (Xlang.to_string xlang)
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
+  | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | InvalidOther s -> s
 
 exception InvalidRule of invalid_rule_error
@@ -480,20 +453,7 @@ and convert_extra ~rule_id x =
           in
           CondEval cond)
   | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
-  | PatWherePython _ ->
-      (*
-  logger#debug "convert_extra: %s" s;
-  Parse_rule.parse_metavar_cond s
-*)
-      failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
 let formula_of_pformula ?in_metavariable_pattern ~rule_id = function
   | New f -> f
   | Old oldf -> convert_formula_old ?in_metavariable_pattern ~rule_id oldf
-
-let partition_rules rules =
-  rules
-  |> Common.partition_either (fun r ->
-         match r.mode with
-         | Search f -> Left (r, f)
-         | Taint s -> Right (r, s))

@@ -36,22 +36,6 @@ def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
     run_semgrep_in_tmp(f"rules/syntax/empty.yaml", assert_exit_code=7)
 
 
-# similar to _clean_output_json in conftest.py
-def _clean_output_json(output):
-    """Make semgrep's output deterministic."""
-    if output.get("version"):
-        output["version"] = "0.42"
-
-    # Necessary because some tests produce temp files
-    if output.get("errors"):
-        for error in output.get("errors"):
-            if error.get("spans"):
-                for span in error.get("spans"):
-                    if span.get("file"):
-                        file = span.get("file")
-                        span["file"] = file if "tmp" not in file else "tmp/masked/path"
-
-
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, filename):
@@ -62,11 +46,8 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
     json_output = json.loads(stdout)
     # Something went wrong, so there had better be an error, and we asked for JSON so there had better be some output...
     assert json_output["errors"] != []
-    _clean_output_json(json_output)
 
-    snapshot.assert_match(
-        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
-    )
+    snapshot.assert_match(stdout, "error.json")
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/{filename}.yaml",
         options=["--force-color"],
@@ -85,11 +66,7 @@ def test_rule_parser_cli_pattern(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=2
     )
-    json_output = json.loads(stdout)
-    _clean_output_json(json_output)
-    snapshot.assert_match(
-        json.dumps(json_output, indent=2, sort_keys=True), "error.json"
-    )
+    snapshot.assert_match(stdout, "error.json")
 
     # Check pretty print output
     _, stderr = run_semgrep_in_tmp(

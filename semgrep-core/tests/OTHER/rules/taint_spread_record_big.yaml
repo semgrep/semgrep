@@ -1,0 +1,85 @@
+rules:
+  - id: react-create-element-injection-props
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-inside: |
+              { ..., $PROPS, ... } = this.props
+              ...
+          - focus-metavariable: $PROPS
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  function  ... (...,$PROPS,...) {
+                  ...
+                  }
+              - pattern-inside: |
+                  ({...,$PROPS,...}) => {...}
+          - focus-metavariable: $PROPS
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: >
+                  React.createElement("...", {...,dangerouslySetInnerHTML:
+                  {__html: $PROPS},...},...);
+              - pattern-inside: >
+                  window.React.createElement("...",
+                  {...,dangerouslySetInnerHTML: {__html: $PROPS},...},...);
+              - pattern-inside: >
+                  preact.createElement("...", {...,dangerouslySetInnerHTML:
+                  {__html: $PROPS},...},...);
+              - pattern-inside: >
+                  Preact.createElement("...", {...,dangerouslySetInnerHTML:
+                  {__html: $PROPS},...},...);
+          - pattern: $PROPS
+      - patterns:
+          - pattern-inside: |
+              React.createElement("...", {...,...$PROPS,...},...);
+          - pattern: $PROPS
+    pattern-sanitizers:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  import $S from "dompurify";
+                  ...
+              - pattern-inside: |
+                  import * as $S from "dompurify";
+                  ...
+              - pattern-inside: |
+                  import $S from "isomorphic-dompurify";
+                  ...
+          - pattern: $S.sanitize(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  import $S from 'xss';
+                  ...
+              - pattern-inside: |
+                  import * as $S from 'xss';
+                  ...
+          - pattern: $S(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  import $S from 'sanitize-html';
+                  ...
+              - pattern-inside: |
+                  import * as $S from "sanitize-html";
+                  ...
+          - pattern: $S(...)
+    message: Injecting user-input into a new React Element may introduce an XSS
+      vulnerability if the property contains a user-controllable object (such as
+      a `dangerouslySetInnerHTML`).
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation
+        ('Cross-site Scripting')"
+      owasp: "A07: Cross-Site Scripting (XSS)"
+      references:
+        - https://medium.com/dailyjs/exploiting-script-injection-flaws-in-reactjs-883fb1fe36c1
+      category: security
+      technology:
+        - react
+    languages:
+      - typescript
+      - javascript
+    severity: WARNING

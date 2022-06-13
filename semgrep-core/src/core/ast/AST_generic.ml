@@ -1735,6 +1735,11 @@ and partial =
   | PartialMatch of tok * expr
   (* partial objects (just used in JSON and YAML patterns for now)
    * alt: todo? could be considered a full thing and use Fld?
+   * This matches single fields in field list bracket (in Record or cbody).
+   * Note that this actually also matches ArgKwd and certain List
+   * because in Go composite literals are translated in mix of Calls with
+   * ArgKwd and List/Tuples with pairs for fields.
+   * alt: have a PartialSingleFieldOrArgKwd special construct for Go?
    *)
   | PartialSingleField of string wrap (* id or str *) * tok (*:*) * expr
   (* not really a partial, but the partial machinery can help with that *)

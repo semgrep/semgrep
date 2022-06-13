@@ -5,9 +5,11 @@ import urllib.parse
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
+from textwrap import dedent
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import Sequence
 
 from boltons.cacheutils import cachedproperty
 from glom import glom
@@ -15,10 +17,35 @@ from glom import T
 from glom.core import TType
 
 from semgrep import __VERSION__
+from semgrep.error import SemgrepError
 from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def git_check_output(command: Sequence[str]) -> str:
+    try:
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+        return subprocess.check_output(
+            command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
+        ).strip()
+    except subprocess.CalledProcessError:
+        command_str = " ".join(command)
+        raise SemgrepError(
+            dedent(
+                f"""
+                Failed to run '{command_str}'. Possible reasons:
+
+                - the git binary is not available
+                - the current working directory is not a git repository
+                - the current working directory is not marked as safe
+                    (fix with `git config --global --add safe.directory $(pwd)`)
+
+                Try running the command yourself to debug the issue.
+                """
+            ).strip()
+        )
 
 
 @dataclass
@@ -67,9 +94,7 @@ class GitMeta:
         if commit:
             return commit
 
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], encoding="utf-8", timeout=GIT_SH_TIMEOUT
-        ).strip()
+        return git_check_output(["git", "rev-parse", "HEAD"])
 
     @property
     def head_ref(self) -> Optional[str]:
@@ -98,13 +123,7 @@ class GitMeta:
             return branch
 
         try:
-            rev_parse = subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                capture_output=True,
-                encoding="utf-8",
-                timeout=GIT_SH_TIMEOUT,
-            )
-            return rev_parse.stdout.strip()
+            return git_check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
         except Exception as e:
             logger.debug(f"Could not get branch name using git: {e}")
             return None
@@ -117,32 +136,12 @@ class GitMeta:
         """
         Returns epoch time as str of head commit
         """
-        return subprocess.check_output(
-            ["git", "show", "-s", "--format=%ct"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
+        return git_check_output(["git", "show", "-s", "--format=%ct"])
 
     def to_dict(self) -> Dict[str, Any]:
-        commit_title = subprocess.check_output(
-            ["git", "show", "-s", "--format=%B"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
-        commit_author_email = subprocess.check_output(
-            ["git", "show", "-s", "--format=%ae"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
-        commit_author_name = subprocess.check_output(
-            ["git", "show", "-s", "--format=%an"],
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
+        commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
+        commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
+        commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
 
         return {
             "semgrep_version": __VERSION__,
@@ -475,6 +474,254 @@ class GitlabMeta(GitMeta):
         }
 
 
+@dataclass
+class CircleCIMeta(GitMeta):
+    """Gather metadata from Circle CI."""
+
+    environment: str = field(default="circleci", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        project_name = os.getenv("CIRCLE_PROJECT_USERNAME", "")
+        repo_name = os.getenv("CIRCLE_PROJECT_REPONAME", "")
+        if repo_name == "" and project_name == "":
+            return super().repo_name
+        return f"{project_name}/{repo_name}"
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("CIRCLE_REPOSITORY_URL")
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("CIRCLE_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("CIRCLE_BUILD_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("CIRCLE_SHA1")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("CIRCLE_PR_NUMBER")
+
+
+def get_repo_name_from_github_repo_url(url: str) -> str:
+    """Pulls repository name from the url, assuming it is a GitHub repo url.
+    If url can't be parsed, just returns the full url as the repo name.
+    """
+    # url in format https://github.com/org/reponame.git
+    # and we want org/reponame
+    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
+    if second_to_last_slash == -1:
+        return url
+    # slice of beginning of string to last slash and ".git" at the end
+    return url[second_to_last_slash + 1 : -4]
+
+
+@dataclass
+class JenkinsMeta(GitMeta):
+    """Gather metadata from Jenkins CI."""
+
+    environment: str = field(default="jenkins", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        """Constructs the repo name from the git url.
+        This assumes that the url is in the github format.
+        """
+        return get_repo_name_from_github_repo_url(os.getenv("GIT_URL", ""))
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("GIT_URL", os.getenv("GIT_URL_1"))
+
+    @property
+    def branch(self) -> Optional[str]:
+        branch_or_tag = os.getenv("GIT_BRANCH", "")
+        if "tags/" not in branch_or_tag:
+            return branch_or_tag
+        return None
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("BUILD_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("GIT_COMMIT")
+
+
+@dataclass
+class BitbucketMeta(GitMeta):
+    """Gather metadata from BitBucket."""
+
+    environment: str = field(default="bitbucket", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("BITBUCKET_REPO_FULL_NAME")
+        return repo_name if repo_name else super().repo_name
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_GIT_SSH_ORIGIN")
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        url = "{}/addon/pipelines/home#!/results/{}".format(
+            os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"), os.getenv("BITBUCKET_PIPELINE_UUID")
+        )
+        return url
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_COMMIT")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("BITBUCKET_PR_ID")
+
+
+@dataclass
+class AzurePipelinesMeta(GitMeta):
+    """Gather metadata from Azure pipelines.
+    Pulled a lot from https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py
+    """
+
+    environment: str = field(default="azure-pipelines", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        return get_repo_name_from_github_repo_url(self.repo_url or "")
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI") or os.getenv(
+            "BUILD_REPOSITORY_URI"
+        )
+
+    @property
+    def branch(self) -> Optional[str]:
+        branch_or_tag = (
+            os.getenv("SYSTEM_PULLREQUEST_SOURCEBRANCH")
+            or os.getenv("BUILD_SOURCEBRANCH")
+            or os.getenv("BUILD_SOURCEBRANCHNAME")
+            or ""
+        )
+        if "tags/" not in branch_or_tag:
+            return branch_or_tag
+        return None
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        if (
+            os.getenv("SYSTEM_TEAMFOUNDATIONSERVERURI")
+            and os.getenv("SYSTEM_TEAMPROJECTID")
+            and os.getenv("BUILD_BUILDID")
+        ):
+            base_url = "{}{}/_build/results?buildId={}".format(
+                os.getenv("SYSTEM_TEAMFOUNDATIONSERVERURI"),
+                os.getenv("SYSTEM_TEAMPROJECTID"),
+                os.getenv("BUILD_BUILDID"),
+            )
+            return base_url + "&view=logs&j={}&t={}".format(
+                os.getenv("SYSTEM_JOBID"), os.getenv("SYSTEM_TASKINSTANCEID")
+            )
+        return None
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("SYSTEM_PULLREQUEST_SOURCECOMMITID") or os.getenv(
+            "BUILD_SOURCEVERSION"
+        )
+
+
+@dataclass
+class BuildkiteMeta(GitMeta):
+    """Gather metadata from Buildkite."""
+
+    environment: str = field(default="buildkite", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        return get_repo_name_from_github_repo_url(
+            os.getenv("BUILDKITE_PULL_REQUEST_REPO", "")
+        )
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_PULL_REQUEST_REPO")
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return "{}#{}".format(
+            os.getenv("BUILDKITE_BUILD_URL"), os.getenv("BUILDKITE_JOB_ID")
+        )
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_COMMIT")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("BUILDKITE_PULL_REQUEST")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            **super().to_dict(),
+            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR"),
+            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
+            "commit_title": os.getenv("BUILDKITE_MESSAGE"),
+        }
+
+
+@dataclass
+class TravisMeta(GitMeta):
+    """Gather metadata from Travis CI."""
+
+    environment: str = field(default="travis-ci", init=False)
+
+    @property
+    def repo_name(self) -> str:
+        repo_name = os.getenv("TRAVIS_REPO_SLUG")
+        return repo_name if repo_name else super().repo_name
+
+    @property
+    def repo_url(self) -> Optional[str]:
+        return f"https://github.com/{self.repo_name}.git"
+
+    @property
+    def branch(self) -> Optional[str]:
+        return os.getenv("TRAVIS_PULL_REQUEST_BRANCH") or os.getenv("TRAVIS_BRANCH")
+
+    @property
+    def ci_job_url(self) -> Optional[str]:
+        return os.getenv("TRAVIS_JOB_WEB_URL")
+
+    @property
+    def commit_sha(self) -> Optional[str]:
+        return os.getenv("TRAVIS_COMMIT")
+
+    @property
+    def pr_id(self) -> Optional[str]:
+        return os.getenv("TRAVIS_PULL_REQUEST")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {**super().to_dict(), "commit_title": os.getenv("TRAVIS_COMMIT_MESSAGE")}
+
+
 def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
     # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
     if os.getenv("GITHUB_ACTIONS") == "true":
@@ -483,6 +730,31 @@ def generate_meta_from_environment(baseline_ref: Optional[str]) -> GitMeta:
     # https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
     elif os.getenv("GITLAB_CI") == "true":
         return GitlabMeta(baseline_ref)
+
+    # https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
+    elif os.getenv("CIRCLECI") == "true":
+        return CircleCIMeta(baseline_ref)
+
+    # https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/
+    elif os.getenv("JENKINS_URL") is not None:
+        return JenkinsMeta(baseline_ref)
+
+    # https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
+    elif os.getenv("BITBUCKET_BUILD_NUMBER") is not None:
+        return BitbucketMeta(baseline_ref)
+
+    # https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
+    # picked an env var that is only defined by Azure Pipelines
+    elif os.getenv("BUILD_BUILDID") is not None:
+        return AzurePipelinesMeta(baseline_ref)
+
+    # https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email
+    elif os.getenv("BUILDKITE") == "true":
+        return BuildkiteMeta(baseline_ref)
+
+    # https://docs.travis-ci.com/user/environment-variables/
+    elif os.getenv("TRAVIS") == "true":
+        return TravisMeta(baseline_ref)
 
     else:
         return GitMeta(baseline_ref)
