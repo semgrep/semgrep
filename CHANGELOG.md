@@ -14,6 +14,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `SEMGREP_ENABLE_VERSION_CHECK=0`
 - Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 
+### Changed
+
+- Rules are now downloaded from the Semgrep Registry in JSON format instead of YAML.
+  This speeds up rule parsing in the Semgrep CLI,
+  making a `semgrep --config auto` run on the semgrep Python package in 14s instead of 16s.
+
 ### Fixed
 
 - Fixed a bug where `--disable-version-check` would still send a request
