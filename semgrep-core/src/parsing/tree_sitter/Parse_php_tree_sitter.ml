@@ -293,6 +293,17 @@ let map_integer env tok =
   let value = int_of_string value in
   A.Int (Some value, tok)
 
+let map_boolean env tok =
+  let bool_of_string value =
+    let canonicalized_value = String.lowercase_ascii value in
+    if canonicalized_value = "true" then true
+    else if canonicalized_value = "false" then false
+    else failwith ("Not a valid PHP boolean: " ^ value)
+  in
+  let value, tok = _str env tok in
+  let value = bool_of_string value in
+  A.Bool (value, tok)
+
 let map_literal (env : env) (x : CST.literal) : A.expr =
   match x with
   | `Int tok ->
@@ -310,8 +321,7 @@ let map_literal (env : env) (x : CST.literal) : A.expr =
   | `Str_ x -> map_string__ env x
   | `Bool tok ->
       (* pattern [Tt][Rr][Uu][Ee]|[Ff][Aa][Ll][Ss][Ee] *)
-      (* TODO Bool should have its own AST node *)
-      Id [ _str env tok ]
+      map_boolean env tok
   | `Null tok ->
       (* pattern [nN][uU][lL][lL] *)
       (* TODO Null should have its own AST node *)

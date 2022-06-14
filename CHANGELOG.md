@@ -29,6 +29,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Go: single pattern field can now match toplevel fields in a composite
   literal (#5452)
 - PHP: metavariable-pattern: works again when used with language: php (#5443)
+- PHP: booleans are propagated by constant propagation (#5509)
 - PHP: named arguments work in patterns (#5508)
 - Fixed a non-deterministic crash when matching a large number of regexes (#5277)
 - Fixed issue when running in GithubActions that caused semgrep to report on
