@@ -156,7 +156,7 @@ class GitMeta:
             "pull_request_id": self.pr_id,
             "pull_request_title": self.pr_title,
             "scan_environment": self.environment,
-            "is_full_scan": self.merge_base_ref == None,
+            "is_full_scan": self.merge_base_ref is None,
         }
 
 
