@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- New language R with experimental support (#2360)
+  Thanks to Zythosec for some contributions.
 - Autodetection of CI env now supports Azure Pipelines, Bitbucket, Buildkite, Circle CI, Jenkins,
   and Travis CI in addition to GitHub and GitLab
 - You can now disable version checks with an environment variable by setting
@@ -22,6 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   literal (#5452)
 - PHP: metavariable-pattern: works again when used with language: php (#5443)
 - PHP: named arguments work in patterns (#5508)
+- Fixed a non-deterministic crash when matching a large number of regexes (#5277)
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 
