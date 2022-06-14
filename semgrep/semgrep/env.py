@@ -43,6 +43,13 @@ def EnvFactory(
 
 @frozen
 class Env:
+    """Returns the value of an environment variable at the time of command invocation.
+
+    This is better than just keeping these values as constants on the module level,
+    because tests and other non-CLI based invocations might change env variables
+    between multiple invocations.
+    """
+
     semgrep_url: str = field(
         default=EnvFactory(["SEMGREP_URL", "SEMGREP_APP_URL"], "https://semgrep.dev"),
         converter=url,
