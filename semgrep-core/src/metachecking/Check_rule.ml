@@ -174,10 +174,10 @@ let check r =
   let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
-  | Rule.Search pf ->
+  | `Search pf ->
       let f = Rule.formula_of_pformula ~rule_id pf in
       check_formula { r; errors = ref [] } r.languages f
-  | Taint _ -> (* TODO *) []
+  | `Taint _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =

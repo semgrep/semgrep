@@ -812,7 +812,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   | None
   | Some ("search", _) ->
       let formula = parse_formula env rule_dict in
-      R.Search formula
+      `Search formula
   | Some ("taint", _) ->
       let parse_sub_formula env name pattern =
         parse_formula env (yaml_to_dict env name pattern)
@@ -829,7 +829,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
             "pattern-sanitizers",
           take rule_dict env (parse_specs parse_sub_formula) "pattern-sinks" )
       in
-      R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
+      `Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
   | Some key ->
       error_at_key env key
         (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"
