@@ -9,7 +9,7 @@ Commands:
   ci            The recommended way to run semgrep in CI
   login         Obtain and save credentials for semgrep.dev
   logout        Remove locally stored credentials to semgrep.dev
-  lsp           Start the Semgrep LSP server.
+  lsp           [EXPERIMENTAL] Start the Semgrep LSP server.
   publish       Upload rule to semgrep.dev
   scan          Run semgrep rules on files
   shouldafound  Report a false negative in this project.
