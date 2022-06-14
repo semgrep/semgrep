@@ -350,7 +350,7 @@ let rec just_parse_with_lang lang file =
         Php_to_generic.program
   | Lang.Hack ->
       run file [ TreeSitter Parse_hack_tree_sitter.parse ] (fun x -> x)
-  | Lang.R -> failwith "No R parser yet; improve the one in tree-sitter"
+  | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
   | Lang.Yaml ->
       {
         ast = Yaml_to_generic.program file;
