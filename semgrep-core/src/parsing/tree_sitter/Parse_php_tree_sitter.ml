@@ -291,6 +291,18 @@ let map_integer env tok =
   let value = int_of_string value in
   A.Int (Some value, tok)
 
+let map_boolean env tok =
+  let bool_of_string value =
+    let true_regexp = Str.regexp "['T''t']['R''r']['U''u']['E''e']" in
+    let false_regexp = Str.regexp "['F''f']['A''a']['L''l']['S''s']['E''e']" in
+    if Str.string_match true_regexp value 0 then true
+    else if Str.string_match false_regexp value 0 then false
+    else failwith ("Not a valid PHP boolean: " ^ value)
+  in
+  let value, tok = _str env tok in
+  let value = bool_of_string value in
+  A.Bool (value, tok)
+
 let map_literal (env : env) (x : CST.literal) : A.expr =
   match x with
   | `Int tok ->
@@ -308,8 +320,7 @@ let map_literal (env : env) (x : CST.literal) : A.expr =
   | `Str_ x -> map_string__ env x
   | `Bool tok ->
       (* pattern [Tt][Rr][Uu][Ee]|[Ff][Aa][Ll][Ss][Ee] *)
-      (* TODO Bool should have its own AST node *)
-      Id [ _str env tok ]
+      map_boolean env tok
   | `Null tok ->
       (* pattern [nN][uU][lL][lL] *)
       (* TODO Null should have its own AST node *)
