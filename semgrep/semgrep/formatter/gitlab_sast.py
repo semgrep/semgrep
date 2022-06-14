@@ -68,7 +68,6 @@ class GitlabSastFormatter(BaseFormatter):
                 # Gitlab only uses line identifiers
                 "start_line": rule_match.start.line,
                 "end_line": rule_match.end.line,
-                "dependency": {"package": {}},
             },
             "identifiers": [
                 {
@@ -100,7 +99,7 @@ class GitlabSastFormatter(BaseFormatter):
         """
         output_dict = {
             "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-            "version": "2.0",
+            "version": "14.1.2",
             "vulnerabilities": [
                 self._format_rule_match(rule_match)
                 for rule_match in rule_matches
