@@ -208,14 +208,11 @@ class GithubMeta(GitMeta):
             return os.getenv("GITHUB_SHA")
         return super().commit_sha
 
-    def _get_latest_commit_hash_in_branch(self, branch_name: str) -> str:
+    def _shallow_fetch_branch(self, branch_name: str) -> None:
         """
-        Return sha hash of latest commit in a given branch
-
-        Does a git fetch of given branch with depth = 1
+        Split out shallow fetch so we can mock it away in tests
         """
-        # Fetch latest
-        process = subprocess.run(
+        subprocess.run(
             [
                 "git",
                 "fetch",
@@ -230,6 +227,15 @@ class GithubMeta(GitMeta):
             encoding="utf-8",
             timeout=GIT_SH_TIMEOUT,
         )
+
+    def _get_latest_commit_hash_in_branch(self, branch_name: str) -> str:
+        """
+        Return sha hash of latest commit in a given branch
+
+        Does a git fetch of given branch with depth = 1
+        """
+        # Fetch latest
+        self._shallow_fetch_branch(branch_name)
         branch_rev_parse = subprocess.run(
             ["git", "rev-parse", branch_name],
             encoding="utf-8",

@@ -13,6 +13,7 @@ from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigPath
+from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from tests.e2e.test_baseline import _git_commit
@@ -94,6 +95,8 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     mocker.patch.object(
         GitlabMeta, "_fetch_branch_get_merge_base", return_value=base_commit
     )
+
+    mocker.patch.object(GithubMeta, "_shallow_fetch_branch", return_value=None)
 
     yield (repo_base, base_commit, head_commit)
 
