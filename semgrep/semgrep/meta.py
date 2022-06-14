@@ -222,6 +222,7 @@ class GithubMeta(GitMeta):
                 "origin",
                 "--depth",
                 "1",
+                "-fu",
                 f"{branch_name}:{branch_name}",
             ],
             check=True,
@@ -241,14 +242,28 @@ class GithubMeta(GitMeta):
     @cachedproperty
     def head_branch_hash(self) -> str:
         """
-        Latest commit hash of the head branch of PR being merged pulled from github
+        Latest commit hash of the head branch of PR being merged from github
 
         Assumes we are in PR context
         """
-        head_branch_name = self.glom_event(T["pull_request"]["head"]["ref"])
+        head_branch_name = self._head_branch_ref
         commit = self._get_latest_commit_hash_in_branch(head_branch_name)
         logger.debug(f"head branch ({head_branch_name}) has latest commit {commit}")
         return commit
+
+    @cachedproperty
+    def _head_branch_ref(self) -> str:
+        """
+        Ref name of the branch pull request if from
+        """
+        return self.glom_event(T["pull_request"]["head"]["ref"])  # type:ignore
+
+    @cachedproperty
+    def _base_branch_ref(self) -> str:
+        """
+        Ref name of the branch pull request is merging into
+        """
+        return self.glom_event(T["pull_request"]["base"]["ref"])  # type:ignore
 
     @cachedproperty
     def base_branch_hash(self) -> str:
@@ -257,7 +272,7 @@ class GithubMeta(GitMeta):
 
         Assumes we are in PR context
         """
-        base_branch_name = self.glom_event(T["pull_request"]["base"]["ref"])
+        base_branch_name = self._base_branch_ref
         commit = self._get_latest_commit_hash_in_branch(base_branch_name)
         logger.debug(f"base branch ({base_branch_name}) has latest commit {commit}")
         return commit
@@ -286,9 +301,10 @@ class GithubMeta(GitMeta):
                     "git",
                     "fetch",
                     "origin",
+                    "-fu",
                     "--depth",
                     str(fetch_depth),
-                    f"{self.base_branch_hash}:{self.base_branch_hash}",
+                    f"{self._base_branch_ref}:{self._base_branch_ref}",
                 ],
                 check=True,
                 capture_output=True,
@@ -303,9 +319,10 @@ class GithubMeta(GitMeta):
                     "git",
                     "fetch",
                     "origin",
+                    "-fu",
                     "--depth",
                     str(fetch_depth),
-                    f"{self.head_branch_hash}:{self.head_branch_hash}",
+                    f"{self._head_branch_ref}:{self._head_branch_ref}",
                 ],
                 check=True,
                 encoding="utf-8",
@@ -334,7 +351,7 @@ class GithubMeta(GitMeta):
 
             if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:
                 raise Exception(
-                    f"Could not find branch-off point between the baseline tip {self.base_branch_hash} and current head '{self.head_branch_hash}' "
+                    f"Could not find branch-off point between the baseline tip {self._base_branch_ref} @ {self.base_branch_hash} and current head {self._head_branch_ref} @ {self.head_branch_hash}"
                 )
 
             return self._find_branchoff_point(attempt_count + 1)

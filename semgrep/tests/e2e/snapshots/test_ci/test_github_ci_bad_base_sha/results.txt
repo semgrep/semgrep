@@ -1,0 +1,37 @@
+=== command
+CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+
+=== end of stdout - plain
+
+=== stderr - plain
+Scan environment:
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment github-actions, triggering event is pull_request
+  semgrep.dev - authenticated as org_name
+
+Fixing git state for github action pull request
+Fetching configuration from semgrep.dev
+Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
+Fetching rules from https://semgrep.dev/registry.
+Scanning 1 file with 4 python rules.
+  Current version has 0 findings.
+
+Skipping baseline scan, because there are no current findings.
+Returning to original head revision d10d5a29adfdf2527d0bfc3f47c0b30551c517cc
+
+Some files were skipped or only partially analyzed.
+  Scan was limited to files changed since baseline commit.
+
+CI scan completed successfully.
+  Found 0 findings (0 blocking) from 3 rules.
+  Uploading findings to Semgrep App.
+  No blocking findings so exiting with code 0
+
+=== end of stderr - plain
