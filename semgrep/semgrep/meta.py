@@ -236,13 +236,9 @@ class GithubMeta(GitMeta):
         """
         # Fetch latest
         self._shallow_fetch_branch(branch_name)
-        branch_rev_parse = subprocess.run(
-            ["git", "rev-parse", branch_name],
-            encoding="utf-8",
-            check=True,
-            timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
-        ).stdout.rstrip()
+        branch_rev_parse = git_check_output(
+            ["git", "rev-parse", branch_name]
+        )
         return branch_rev_parse
 
     @cachedproperty
