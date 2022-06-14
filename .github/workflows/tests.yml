@@ -157,7 +157,6 @@ jobs:
     name: test semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
-    needs: [build-core] # save some CPU time by waiting till build cache is populated in that job
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv==2022.6.7
@@ -203,8 +202,7 @@ jobs:
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
       - name: Report Number of Tests Stats
         if: github.ref == 'refs/heads/develop'
-        run: |
-          ./semgrep-core/tests/report_test_metrics.sh
+        run: ./semgrep-core/tests/report_test_metrics.sh
 
       # TODO: move this to a stable host for more reliable results.
       #
