@@ -452,18 +452,13 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
     try:
-        rule_definitions = [
-            rule
-            for rule_model in json.loads(contents)
-            for rule in rule_model["definition"]["rules"]
-        ]
         # we pretend it came from YAML so we can keep later code simple
-        return {config_id: YamlTree.wrap({"rules": rule_definitions}, EmptySpan)}
+        data = YamlTree.wrap(json.loads(contents), EmptySpan)
     except json.decoder.JSONDecodeError:
         pass
+
     try:
         data = parse_yaml_preserve_spans(contents, filename)
-        return {config_id: data}
     except EmptyYamlException:
         raise SemgrepError(
             f"Empty configuration file {filename}",
@@ -474,6 +469,7 @@ def parse_config_string(
             f"Invalid YAML file {config_id}:\n{indent(str(se))}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
+    return {config_id: data}
 
 
 def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, YamlTree]:
