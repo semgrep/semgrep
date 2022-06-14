@@ -61,10 +61,27 @@ jobs:
           git add --all
           git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
           git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
+      - name: Get JWT for r2c-argo GitHub App
+        id: jwt
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+        env:
+          EXPIRATION: 600 # seconds
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      - name: Get token for semgrep-ci GitHub App
+        id: token
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "::set-output name=token::$TOKEN"
       - name: Create PR
         id: open-pr
         env:
-          AUTH_HEADER: "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+          AUTH_HEADER: "Authorization: Bearer ${{ steps.token.outputs.token }}"
           HEADER: "Accept: application/vnd.github.v3+json"
           URL: "${{ github.event.repository.url }}/pulls"
           SOURCE: "${{ steps.release-branch.outputs.release-branch }}"
