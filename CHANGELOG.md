@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- New language R with experimental support (#2360)
+  Thanks to Zythosec for some contributions.
 - Autodetection of CI env now supports Azure Pipelines, Bitbucket, Buildkite, Circle CI, Jenkins,
   and Travis CI in addition to GitHub and GitLab
 - You can now disable version checks with an environment variable by setting
