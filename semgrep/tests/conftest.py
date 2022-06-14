@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import tempfile
 from dataclasses import dataclass
 from functools import partial
@@ -374,3 +375,26 @@ def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep
+
+
+@pytest.fixture
+def git_tmp_path(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    # Initialize State
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "baselinetest@r2c.dev"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Baseline Test"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "checkout", "-B", "main"],
+        check=True,
+        capture_output=True,
+    )
+    yield tmp_path

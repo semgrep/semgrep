@@ -681,29 +681,6 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
 
 
 @pytest.fixture
-def git_tmp_path(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
-    # Initialize State
-    subprocess.run(["git", "init"], check=True, capture_output=True)
-    subprocess.run(
-        ["git", "config", "user.email", "baselinetest@r2c.dev"],
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Baseline Test"],
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(
-        ["git", "checkout", "-B", "main"],
-        check=True,
-        capture_output=True,
-    )
-    yield tmp_path
-
-
-@pytest.fixture
 def complex_merge_repo(git_tmp_path, snapshot):
     r"""
     This generates a complex history like this:
