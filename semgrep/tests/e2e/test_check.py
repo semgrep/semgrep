@@ -230,8 +230,7 @@ def test_multiline(run_semgrep_in_tmp, snapshot):
 @pytest.mark.slow
 def test_url_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp(GITHUB_TEST_GIST_URL).stdout,
-        "results.json",
+        run_semgrep_in_tmp(GITHUB_TEST_GIST_URL).stdout, "results.json"
     )
 
 

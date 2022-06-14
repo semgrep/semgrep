@@ -96,12 +96,8 @@ class GitMeta:
 
         return git_check_output(["git", "rev-parse", "HEAD"])
 
-    @property
-    def head_ref(self) -> Optional[str]:
-        return None
-
     @cachedproperty
-    def base_commit_ref(self) -> Optional[str]:
+    def merge_base_ref(self) -> Optional[str]:
         return self.cli_baseline_ref
 
     @property
@@ -127,9 +123,6 @@ class GitMeta:
         except Exception as e:
             logger.debug(f"Could not get branch name using git: {e}")
             return None
-
-    def initialize_repo(self) -> None:
-        return
 
     @property
     def commit_datetime(self) -> str:
@@ -163,7 +156,7 @@ class GitMeta:
             "pull_request_id": self.pr_id,
             "pull_request_title": self.pr_title,
             "scan_environment": self.environment,
-            "is_full_scan": self.base_commit_ref == None,
+            "is_full_scan": self.merge_base_ref is None,
         }
 
 
@@ -215,25 +208,83 @@ class GithubMeta(GitMeta):
             return os.getenv("GITHUB_SHA")
         return super().commit_sha
 
-    @property
-    def head_ref(self) -> Optional[str]:
-        if self.is_pull_request_event:
-            return self.commit_sha
-        else:
-            return None
+    def _shallow_fetch_branch(self, branch_name: str) -> None:
+        """
+        Split out shallow fetch so we can mock it away in tests
+        """
+        subprocess.run(
+            [
+                "git",
+                "fetch",
+                "origin",
+                "--depth=1",
+                "--force",
+                "--update-head-ok",
+                f"{branch_name}:{branch_name}",
+            ],
+            check=True,
+            capture_output=True,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        )
 
-    @property
-    def base_branch_tip(self) -> Optional[str]:
-        return self.glom_event(T["pull_request"]["base"]["sha"])  # type: ignore
+    def _get_latest_commit_hash_in_branch(self, branch_name: str) -> str:
+        """
+        Return sha hash of latest commit in a given branch
+
+        Does a git fetch of given branch with depth = 1
+        """
+        # Fetch latest
+        self._shallow_fetch_branch(branch_name)
+        branch_rev_parse = git_check_output(["git", "rev-parse", branch_name])
+        return branch_rev_parse
+
+    @cachedproperty
+    def head_branch_hash(self) -> str:
+        """
+        Latest commit hash of the head branch of PR being merged from github
+
+        Assumes we are in PR context
+        """
+        head_branch_name = self._head_branch_ref
+        commit = self._get_latest_commit_hash_in_branch(head_branch_name)
+        logger.debug(f"head branch ({head_branch_name}) has latest commit {commit}")
+        return commit
+
+    @cachedproperty
+    def _head_branch_ref(self) -> str:
+        """
+        Ref name of the branch pull request if from
+        """
+        return self.glom_event(T["pull_request"]["head"]["ref"])  # type:ignore
+
+    @cachedproperty
+    def _base_branch_ref(self) -> str:
+        """
+        Ref name of the branch pull request is merging into
+        """
+        return self.glom_event(T["pull_request"]["base"]["ref"])  # type:ignore
+
+    @cachedproperty
+    def base_branch_hash(self) -> str:
+        """
+        Latest commit hash of the base branch of PR is being merged to
+
+        Assumes we are in PR context
+        """
+        base_branch_name = self._base_branch_ref
+        commit = self._get_latest_commit_hash_in_branch(base_branch_name)
+        logger.debug(f"base branch ({base_branch_name}) has latest commit {commit}")
+        return commit
 
     def _find_branchoff_point(self, attempt_count: int = 0) -> str:
         """
         GithubActions is a shallow clone and the "base" that github sends
         is not the merge base. We must fetch and get the merge-base ourselves
         """
-        # Should only be called if head_ref is defined
-        assert self.head_ref is not None
-        assert self.base_branch_tip is not None
+        # Should only be called if head_branch_hash is defined
+        assert self.head_branch_hash is not None
+        assert self.base_branch_hash is not None
 
         # fetch 0, 4, 16, 64, 256, 1024, ...
         fetch_depth = 4**attempt_count if attempt_count else 0
@@ -250,9 +301,11 @@ class GithubMeta(GitMeta):
                     "git",
                     "fetch",
                     "origin",
+                    "--force",
+                    "--update-head-ok",
                     "--depth",
                     str(fetch_depth),
-                    self.base_branch_tip,
+                    f"{self._base_branch_ref}:{self._base_branch_ref}",
                 ],
                 check=True,
                 capture_output=True,
@@ -263,7 +316,16 @@ class GithubMeta(GitMeta):
                 f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
             process = subprocess.run(
-                ["git", "fetch", "origin", "--depth", str(fetch_depth), self.head_ref],
+                [
+                    "git",
+                    "fetch",
+                    "origin",
+                    "--force",
+                    "--update-head-ok",
+                    "--depth",
+                    str(fetch_depth),
+                    f"{self._head_branch_ref}:{self._head_branch_ref}",
+                ],
                 check=True,
                 encoding="utf-8",
                 capture_output=True,
@@ -275,7 +337,7 @@ class GithubMeta(GitMeta):
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
             process = subprocess.run(
-                ["git", "merge-base", self.base_branch_tip, self.head_ref],
+                ["git", "merge-base", self.base_branch_hash, self.head_branch_hash],
                 encoding="utf-8",
                 capture_output=True,
                 check=True,
@@ -291,21 +353,25 @@ class GithubMeta(GitMeta):
 
             if attempt_count >= self.MAX_FETCH_ATTEMPT_COUNT:
                 raise Exception(
-                    f"Could not find branch-off point between the baseline tip {self.base_branch_tip} and current head '{self.head_ref}' "
+                    f"Could not find branch-off point between the baseline tip {self._base_branch_ref} @ {self.base_branch_hash} and current head {self._head_branch_ref} @ {self.head_branch_hash}"
                 )
 
             return self._find_branchoff_point(attempt_count + 1)
         else:
+            merge_base = process.stdout.strip()
+            logger.info(
+                f"Using {merge_base} as the merge-base of {self.base_branch_hash} and {self.head_branch_hash}"
+            )
             logger.debug(
                 f"Found merge base: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
-            return process.stdout.strip()
+            return merge_base
 
     @cachedproperty
-    def base_commit_ref(self) -> Optional[str]:
+    def merge_base_ref(self) -> Optional[str]:
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
-        if self.is_pull_request_event and self.head_ref is not None:
+        if self.is_pull_request_event and self.head_branch_hash is not None:
             return self._find_branchoff_point()
         return None
 
@@ -354,11 +420,6 @@ class GithubMeta(GitMeta):
         if self.event_name == "pull_request_target":
             return os.getenv("GITHUB_HEAD_REF")
         return os.getenv("GITHUB_REF")
-
-    def initialize_repo(self) -> None:
-        if self.is_pull_request_event and self.head_ref is not None:
-            self._find_branchoff_point()
-        return
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -428,7 +489,7 @@ class GitlabMeta(GitMeta):
         return os.getenv("CI_COMMIT_REF_NAME")
 
     @cachedproperty
-    def base_commit_ref(self) -> Optional[str]:
+    def merge_base_ref(self) -> Optional[str]:
         if self.cli_baseline_ref:
             return self.cli_baseline_ref
         target_branch = os.getenv("CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
@@ -469,7 +530,7 @@ class GitlabMeta(GitMeta):
         return {
             **super().to_dict(),
             "branch": self.commit_ref,
-            "base_sha": self.base_commit_ref,
+            "base_sha": self.merge_base_ref,
             "start_sha": self.start_sha,
         }
 

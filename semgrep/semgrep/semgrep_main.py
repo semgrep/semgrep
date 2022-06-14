@@ -134,9 +134,7 @@ def run_rules(
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
-    dependency_aware_rules = [
-        r for r in rest_of_the_rules if r.project_depends_on is not None
-    ]
+    dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
     dependency_only_rules, rest_of_the_rules = partition(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )

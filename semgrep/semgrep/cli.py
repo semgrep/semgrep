@@ -7,6 +7,7 @@ from semgrep.commands.ci import ci
 from semgrep.commands.install import install_deep_semgrep
 from semgrep.commands.login import login
 from semgrep.commands.login import logout
+from semgrep.commands.lsp import lsp
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.commands.shouldafound import shouldafound
@@ -78,3 +79,4 @@ cli.add_command(publish)
 cli.add_command(scan)
 cli.add_command(install_deep_semgrep)
 cli.add_command(shouldafound)
+cli.add_command(lsp)

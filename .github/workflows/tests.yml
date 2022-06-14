@@ -45,7 +45,7 @@ jobs:
           submodules: recursive
       - name: Install pipenv
         if: steps.core-cache.outputs.cache-hit != 'true'
-        run: sudo pip install pipenv
+        run: sudo pip install pipenv==2022.6.7
       - name: Cache OCaml build files
         if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
@@ -154,13 +154,13 @@ jobs:
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
   test-core:
+    # TODO: use the artifact of build-core in this job
     name: test semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
-    needs: [build-core] # save some CPU time by waiting till build cache is populated in that job
     steps:
       - name: Install pipenv
-        run: sudo pip install pipenv
+        run: sudo pip install pipenv==2022.6.7
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -203,8 +203,7 @@ jobs:
           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
       - name: Report Number of Tests Stats
         if: github.ref == 'refs/heads/develop'
-        run: |
-          ./semgrep-core/tests/report_test_metrics.sh
+        run: ./semgrep-core/tests/report_test_metrics.sh
 
       # TODO: move this to a stable host for more reliable results.
       #
@@ -232,7 +231,7 @@ jobs:
         python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -303,7 +302,7 @@ jobs:
         test_name: ["public_repos", "semgrep_rules_repo"]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -327,19 +326,20 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
       - uses: actions/cache@v3
+        if: matrix.test_name == 'public_repos'
         with:
-          path: ~/.cache/semgrep-cache
-          key: semgrep-repo-cache-test
+          path: ~/.cache/qa-public-repos
+          key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}
       - run: |
-          mkdir -p ~/.cache/semgrep-cache
-          touch ~/.cache/semgrep-cache/ok
+          mkdir -p ~/.cache/qa-public-repos
+          touch ~/.cache/qa-public-repos/ok
       - name: Test semgrep
         working-directory: semgrep
         run: |
           export PATH=/github/home/.local/bin:$PATH
           pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_${{ matrix.test_name }}.py
         env:
-          QA_TESTS_CACHE_PATH: ~/.cache/semgrep-cache
+          QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
@@ -348,7 +348,7 @@ jobs:
     needs: [build-core]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -384,7 +384,7 @@ jobs:
     needs: [build-core]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -436,6 +436,8 @@ jobs:
   build-macos-release:
     name: build macOS release
     runs-on: macos-10.15
+    # there are too many PR events which deplete our macOS concurrency limit
+    if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -458,6 +460,8 @@ jobs:
   test-macos-release:
     name: test macOS release
     runs-on: macos-10.15
+    # there are too many PR events which deplete our macOS concurrency limit
+    if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     needs: [build-macos-release]
     steps:
       - name: download artifacts
