@@ -284,14 +284,14 @@ and expr e : G.expr =
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.FDynamic v2)
   | New (v0, v1, v2) ->
-      let v1 = expr v1 and v2 = list expr v2 in
+      let v1 = expr v1 and v2 = list argument v2 in
       let t = H.expr_to_type v1 in
-      G.New (v0, t, fb (v2 |> List.map G.arg))
+      G.New (v0, t, fb v2)
   | NewAnonClass (_tTODO, args, cdef) ->
       let _ent, cdef = class_def cdef in
-      let args = list expr args in
+      let args = list argument args in
       let anon_class = G.AnonClass cdef |> G.e in
-      G.Call (anon_class, fb (args |> List.map G.arg))
+      G.Call (anon_class, fb args)
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Call
@@ -435,9 +435,12 @@ and match_ = function
       let e = expr e in
       G.CasesAndBody ([ G.Default tok ], G.ExprStmt (e, G.sc) |> G.s)
 
-and argument e =
-  let e = expr e in
-  G.arg e
+and argument = function
+  | Arg e -> expr e |> G.arg
+  | ArgRef (tok, e) -> G.Ref (tok, expr e) |> G.e |> G.arg
+  | ArgUnpack (tok, e) ->
+      G.OtherExpr (("Unpack", tok), [ G.E (expr e) ]) |> G.e |> G.arg
+  | ArgLabel (label, _tok, e) -> G.ArgKwd (label, expr e)
 
 and special = function
   | This -> G.This
