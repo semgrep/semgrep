@@ -1,6 +1,6 @@
-(* Ross Nanopoulos (zythosec)
+(* Yoann Padioleau
  *
- * Copyright (c) 2020-2022 R2C
+ * Copyright (c) 2022 R2C
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -15,12 +15,16 @@
 module CST = Tree_sitter_r.CST
 module H = Parse_tree_sitter_helpers
 
+(*open AST_generic*)
+module G = AST_generic
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 type env = unit H.env
 
 let token = H.token
+let todo _env _x = failwith "TODO"
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -32,13 +36,6 @@ let token = H.token
    to another type of tree.
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-let todo _env _x = failwith "TODO"
 let map_integer (env : env) (tok : CST.integer) = (* integer *) token env tok
 
 let map_pat_de5d470 (env : env) (tok : CST.pat_de5d470) =
@@ -129,9 +126,11 @@ let map_string_ (env : env) (x : CST.string_) =
       let v3 = (* "'" *) token env v3 in
       todo env (v1, v2, v3)
 
-let rec map_argument (env : env) (x : CST.argument) =
+let rec map_argument (env : env) (x : CST.argument) : G.argument =
   match x with
-  | `Exp x -> map_expression env x
+  | `Exp x ->
+      let e = map_expression env x in
+      G.Arg e
   | `Defa_arg x -> map_default_argument env x
 
 and map_arguments (env : env) (xs : CST.arguments) =
@@ -139,7 +138,9 @@ and map_arguments (env : env) (xs : CST.arguments) =
     (fun x ->
       match x with
       | `Arg x -> map_argument env x
-      | `COMMA tok -> (* "," *) token env tok)
+      | `COMMA tok ->
+          let _ = (* "," *) token env tok in
+          todo env ())
     xs
 
 and map_assignment (env : env) (x : CST.assignment) =
@@ -175,7 +176,7 @@ and map_assignment (env : env) (x : CST.assignment) =
       let v3 = map_expression env v3 in
       todo env (v1, v2, v3)
 
-and map_binary (env : env) (x : CST.binary) =
+and map_binary (env : env) (x : CST.binary) : G.expr =
   match x with
   | `Exp_choice_PLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -262,16 +263,24 @@ and map_default_argument (env : env) ((v1, v2, v3) : CST.default_argument) =
   in
   todo env (v1, v2, v3)
 
-and map_expression (env : env) (x : CST.expression) =
+and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
-  | `Id x -> map_identifier env x
-  | `Int tok -> (* integer *) token env tok
-  | `Float tok -> (* float *) token env tok
+  | `Id x ->
+      let id = map_identifier env x in
+      todo env id
+  | `Int tok ->
+      let x = (* integer *) token env tok in
+      todo env x
+  | `Float tok ->
+      let x = (* float *) token env tok in
+      todo env x
   | `Comp (v1, v2) ->
       let v1 = (* float *) token env v1 in
       let v2 = (* "i" *) token env v2 in
       todo env (v1, v2)
-  | `Str x -> map_string_ env x
+  | `Str x ->
+      let x = map_string_ env x in
+      todo env x
   | `Call (v1, v2, v3, v4) ->
       let v1 = map_expression env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -282,8 +291,12 @@ and map_expression (env : env) (x : CST.expression) =
       in
       let v4 = (* ")" *) token env v4 in
       todo env (v1, v2, v3, v4)
-  | `Func_defi x -> map_function_definition env x
-  | `Lambda_func x -> map_lambda_function env x
+  | `Func_defi x ->
+      let func = map_function_definition env x in
+      todo env func
+  | `Lambda_func x ->
+      let func = map_lambda_function env x in
+      todo env func
   | `Assign x -> map_assignment env x
   | `Brace_list (v1, v2, v3) ->
       let v1 = (* "{" *) token env v1 in
@@ -389,25 +402,51 @@ and map_expression (env : env) (x : CST.expression) =
       let v5 = map_arguments env v5 in
       let v6 = (* ")" *) token env v6 in
       todo env (v1, v2, v3, v4, v5, v6)
-  | `Brk tok -> (* "break" *) token env tok
-  | `Next tok -> (* "next" *) token env tok
-  | `True tok -> (* "TRUE" *) token env tok
-  | `False tok -> (* "FALSE" *) token env tok
-  | `Null tok -> (* "NULL" *) token env tok
-  | `Inf tok -> (* "Inf" *) token env tok
-  | `Nan tok -> (* "NaN" *) token env tok
-  | `Na x -> map_na env x
-  | `Dots tok -> (* "..." *) token env tok
+  | `Brk tok ->
+      let x = (* "break" *) token env tok in
+      todo env x
+  | `Next tok ->
+      let x = (* "next" *) token env tok in
+      todo env x
+  | `True tok ->
+      let x = (* "TRUE" *) token env tok in
+      todo env x
+  | `False tok ->
+      let x = (* "FALSE" *) token env tok in
+      todo env x
+  | `Null tok ->
+      let x = (* "NULL" *) token env tok in
+      todo env x
+  | `Inf tok ->
+      let x = (* "Inf" *) token env tok in
+      todo env x
+  | `Nan tok ->
+      let x = (* "NaN" *) token env tok in
+      todo env x
+  | `Na x ->
+      let x = map_na env x in
+      todo env x
+  | `Dots tok ->
+      let x = (* "..." *) token env tok in
+      todo env x
 
-and map_formal_parameter (env : env) (x : CST.formal_parameter) =
+and map_statement (env : env) (x : CST.expression) : G.stmt =
   match x with
-  | `Id x -> map_identifier env x
+  | _ -> todo env ()
+
+and map_formal_parameter (env : env) (x : CST.formal_parameter) : G.parameter =
+  match x with
+  | `Id x ->
+      let id = map_identifier env x in
+      todo env id
   | `Defa_param (v1, v2, v3) ->
       let v1 = map_identifier env v1 in
       let v2 = (* "=" *) token env v2 in
       let v3 = map_expression env v3 in
       todo env (v1, v2, v3)
-  | `Dots tok -> (* "..." *) token env tok
+  | `Dots tok ->
+      let t = (* "..." *) token env tok in
+      todo env t
 
 and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
   let v1 = (* "(" *) token env v1 in
@@ -435,13 +474,14 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
   todo env (v1, v2, v3)
 
 and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
-    =
+    : G.function_definition =
   let v1 = (* "function" *) token env v1 in
   let v2 = map_formal_parameters env v2 in
   let v3 = map_expression env v3 in
   todo env (v1, v2, v3)
 
-and map_lambda_function (env : env) ((v1, v2, v3) : CST.lambda_function) =
+and map_lambda_function (env : env) ((v1, v2, v3) : CST.lambda_function) :
+    G.function_definition =
   let v1 = (* "\\" *) token env v1 in
   let v2 = map_formal_parameters env v2 in
   let v3 = map_expression env v3 in
@@ -461,7 +501,9 @@ and map_pipe_rhs (env : env) ((v1, v2, v3, v4) : CST.pipe_rhs) =
 and map_pipe_rhs_argument (env : env) (x : CST.pipe_rhs_argument) =
   match x with
   | `Exp x -> map_expression env x
-  | `Defa_arg x -> map_default_argument env x
+  | `Defa_arg x ->
+      let x = map_default_argument env x in
+      todo env x
   | `Pipe_plac_arg (v1, v2, v3) ->
       let v1 = map_identifier env v1 in
       let v2 = (* "=" *) token env v2 in
@@ -473,10 +515,12 @@ and map_pipe_rhs_arguments (env : env) (xs : CST.pipe_rhs_arguments) =
     (fun x ->
       match x with
       | `Pipe_rhs_arg x -> map_pipe_rhs_argument env x
-      | `COMMA tok -> (* "," *) token env tok)
+      | `COMMA tok ->
+          let _c = (* "," *) token env tok in
+          todo env ())
     xs
 
-and map_program (env : env) (xs : CST.program) =
+and map_program (env : env) (xs : CST.program) : G.program =
   Common.map
     (fun (v1, v2) ->
       let v1 = map_expression env v1 in
@@ -491,7 +535,7 @@ and map_program (env : env) (xs : CST.program) =
       todo env (v1, v2))
     xs
 
-and map_unary (env : env) (x : CST.unary) =
+and map_unary (env : env) (x : CST.unary) : G.expr =
   match x with
   | `Choice_DASH_exp (v1, v2) ->
       let v1 =
