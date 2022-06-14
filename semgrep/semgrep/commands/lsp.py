@@ -50,5 +50,7 @@ def lsp(
         level = logging.DEBUG
     init_log("semgrep.lsp", level, logfile)
 
-    print("Starting Semgrep LSP server ...")
+    print(
+        "Starting Semgrep LSP server. This mode is experimental and prone to bugs or changes without notice."
+    )
     run_server(config)
