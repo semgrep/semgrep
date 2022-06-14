@@ -233,7 +233,7 @@ type rules = rule list [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules (rules : rules) =
+let partition_rules (rules : rules) : search_rule list * taint_rule list =
   rules
   |> Common.partition_either (fun r ->
          match r.mode with
