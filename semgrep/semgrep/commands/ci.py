@@ -98,8 +98,8 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         stashed_rev = rev_parse.stdout.rstrip()
         logger.debug(f"stashed_rev: {stashed_rev}")
 
-        logger.debug(
-            f"Not on head ref {metadata.head_branch_hash}; checking that out now."
+        logger.info(
+            f"Not on head ref: {metadata.head_branch_hash}; checking that out now."
         )
         checkout = subprocess.run(
             ["git", "checkout", metadata.head_branch_hash],

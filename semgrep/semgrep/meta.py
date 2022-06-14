@@ -356,10 +356,14 @@ class GithubMeta(GitMeta):
 
             return self._find_branchoff_point(attempt_count + 1)
         else:
+            merge_base = process.stdout.strip()
+            logger.info(
+                f"Using {merge_base} as the merge-base of {self.base_branch_hash} and {self.head_branch_hash}"
+            )
             logger.debug(
                 f"Found merge base: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
-            return process.stdout.strip()
+            return merge_base
 
     @cachedproperty
     def merge_base_ref(self) -> Optional[str]:

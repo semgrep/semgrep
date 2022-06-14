@@ -420,32 +420,31 @@ def test_github_ci_bad_base_sha(
 
     # Setup Git Repo
     """
-        *   d10d5a2 (HEAD -> bar) merging foo
+        *   17b3114 (HEAD -> bar) merging foo
         |\
-        | * 48454bf (foo) commit #2
-        * | 77b0199 commit #1
+        | * f7ee312 (foo) commit #2
+        * | e04f88c commit #1
         |/
-        * 0d3b233 commit #1
+        * 191a3ac commit #1
 
     Regenerate this tree by running:
         git_log = subprocess.run(["git", "--no-pager", "log", "--oneline", "--decorate", "--graph"], check=True, capture_output=True, encoding="utf-8")
         print(git_log.stdout)
     """
-    SENTINEL_1 = 1324513
     commits = defaultdict(list)
     foo = git_tmp_path / "foo.py"
     bar = git_tmp_path / "bar.py"
 
     subprocess.run(["git", "checkout", "-b", "foo"])
-    foo.open("a").write(f"foo = {SENTINEL_1}\n\n")
+    foo.open("a").write(f"foo == 5\n\n")
     commits["foo"].append(_git_commit(1, add=True))
 
     subprocess.run(["git", "checkout", "-b", "bar"])
-    bar.open("a").write(f"bar = {SENTINEL_1}\n\n")
+    bar.open("a").write(f"bar == 5\n\n")
     commits["bar"].append(_git_commit(1, add=True))
 
     subprocess.run(["git", "checkout", "foo"])
-    foo.open("a").write(f"new = {SENTINEL_1}\n\n")
+    foo.open("a").write(f"new == 5\n\n")
     commits["foo"].append(_git_commit(2, add=True))
 
     subprocess.run(["git", "checkout", "bar"])
@@ -508,14 +507,17 @@ def test_github_ci_bad_base_sha(
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
-                # commits["foo"][0],
-                # commits["bar"][-1],
-                # commits["foo"][-1],
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
             ]
         ),
         "results.txt",
     )
+
+    post_calls = AppSession.post.call_args_list  # type: ignore
+    findings_json = post_calls[1].kwargs["json"]
+    assert (
+        len(findings_json["findings"]) == 1
+    ), "Potentially scanning wrong files/commits"
 
 
 def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
