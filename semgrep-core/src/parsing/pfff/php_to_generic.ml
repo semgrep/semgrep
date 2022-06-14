@@ -335,7 +335,8 @@ and expr e : G.expr =
       G.Ref (t, v1)
   | Unpack v1 ->
       let v1 = expr v1 in
-      G.OtherExpr (("Unpack", fake ""), [ G.E v1 ])
+      G.Call
+        (G.IdSpecial (G.Spread, fake "...") |> G.e, G.fake_bracket [ G.Arg v1 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
@@ -438,8 +439,7 @@ and match_ = function
 and argument = function
   | Arg e -> expr e |> G.arg
   | ArgRef (tok, e) -> G.Ref (tok, expr e) |> G.e |> G.arg
-  | ArgUnpack (tok, e) ->
-      G.OtherExpr (("Unpack", tok), [ G.E (expr e) ]) |> G.e |> G.arg
+  | ArgUnpack (tok, e) -> G.special (Spread, tok) [ expr e ] |> G.arg
   | ArgLabel (label, _tok, e) -> G.ArgKwd (label, expr e)
 
 and special = function
