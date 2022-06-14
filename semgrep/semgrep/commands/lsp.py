@@ -39,7 +39,7 @@ def lsp(
     verbose: Optional[bool], debug: Optional[bool], logfile: Optional[str], config: str
 ) -> None:
     """
-    Start the Semgrep LSP server.
+    [EXPERIMENTAL] Start the Semgrep LSP server.
     """
 
     # Setup logging
