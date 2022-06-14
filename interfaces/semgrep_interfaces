@@ -1,1 +1,1 @@
-../semgrep/semgrep/semgrep_interfaces
+../cli/src/semgrep/semgrep_interfaces/
