@@ -29,13 +29,13 @@ code in your `~/.bashrc` file and then use `semgrep-dev` as your
 
 ```
 semgrep-dev() {
-  PIPENV_PIPFILE=~/semgrep/semgrep/Pipfile pipenv run semgrep "$@"
+  PIPENV_PIPFILE=~/semgrep/cli/Pipfile pipenv run semgrep "$@"
 }
 ```
 
 The Semgrep project has two main parts:
 
-- The Python wrapper in the [`semgrep/`](semgrep) folder, which has its own
+- The Python wrapper in the [`cli/`](cli) folder, which has its own
   makefile needed for some preprocessing and for testing.
   Read the makefile to see what targets are available.
 - The OCaml core in the [`semgrep-core/`](semgrep-core) folder, which

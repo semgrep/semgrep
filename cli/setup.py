@@ -13,7 +13,7 @@ from semgrep import __VERSION__
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SOURCE_DIR)
 BIN_DIR = "bin"
-PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "semgrep", BIN_DIR)
+PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "src", "semgrep", BIN_DIR)
 SEMGREP_CORE_BIN = "semgrep-core"
 SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
@@ -110,8 +110,8 @@ if not SEMGREP_SKIP_BIN:
 
 install_requires = [
     # versions must be manually synced:
-    # - semgrep/setup.py lists dependencies
-    # - semgrep/Pipfile lists type hint packages for dev env
+    # - cli/setup.py lists dependencies
+    # - cli/Pipfile lists type hint packages for dev env
     # - .pre-commit-config.yaml's mypy hooks also list type hint packages
     #
     # These version are flexible so semgrep can coexist with other tools.
@@ -149,7 +149,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
-    packages=setuptools.find_packages(exclude=("*tests*",)),
+    packages=setuptools.find_packages(include_dirs=["src"]),
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},
     include_package_data=True,
     classifiers=[

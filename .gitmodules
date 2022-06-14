@@ -68,7 +68,7 @@
 	path = semgrep-core/src/tree-sitter-lang/semgrep-hcl
 	url = https://github.com/returntocorp/semgrep-hcl
 [submodule "semgrep/lang"]
-	path = semgrep/semgrep/lang
+	path = cli/src/semgrep/lang
 	url = https://github.com/returntocorp/semgrep-langs
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-solidity"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-solidity
@@ -83,7 +83,7 @@
 	path = semgrep-core/src/tree-sitter-lang/semgrep-swift
 	url = https://github.com/returntocorp/semgrep-swift.git
 [submodule "semgrep/semgrep/semgrep-interfaces"]
-	path = semgrep/semgrep/semgrep_interfaces
+	path = cli/src/semgrep/semgrep_interfaces
 	url = https://github.com/returntocorp/semgrep-interfaces.git
 [submodule "semgrep-core/tests/semgrep-rules"]
 	path = semgrep-core/tests/semgrep-rules

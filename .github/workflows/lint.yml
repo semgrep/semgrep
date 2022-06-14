@@ -14,7 +14,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow semgrep/semgrep/lang semgrep/semgrep/semgrep_interfaces
+        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/lang cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -74,7 +74,7 @@ jobs:
         uses: technote-space/get-diff-action@v6.0.1
         with:
           GET_FILE_DIFF: true
-          PATTERNS: semgrep/semgrep/**
+          PATTERNS: cli/src/semgrep/**
       - id: changelog_diff
         name: Get changelog diff
         uses: technote-space/get-diff-action@v6.0.1
