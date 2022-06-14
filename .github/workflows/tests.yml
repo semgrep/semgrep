@@ -329,18 +329,18 @@ jobs:
       - uses: actions/cache@v3
         if: matrix.test_name == "public_repos"
         with:
-          path: ~/.cache/semgrep-cache
-          key: semgrep-repo-cache-test
+          path: ~/.cache/qa-public-repos
+          key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}
       - run: |
-          mkdir -p ~/.cache/semgrep-cache
-          touch ~/.cache/semgrep-cache/ok
+          mkdir -p ~/.cache/qa-public-repos
+          touch ~/.cache/qa-public-repos/ok
       - name: Test semgrep
         working-directory: semgrep
         run: |
           export PATH=/github/home/.local/bin:$PATH
           pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_${{ matrix.test_name }}.py
         env:
-          QA_TESTS_CACHE_PATH: ~/.cache/semgrep-cache
+          QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
 
   # Run abbreviated version of benchmarks to check that they work
   benchmarks-lite:
