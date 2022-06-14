@@ -44,7 +44,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pip3 install pipenv==2021.5.29
+          pip3 install pipenv==2022.6.7
           pipenv install --dev
       - name: Run benchmark
         run: |

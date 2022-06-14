@@ -45,7 +45,7 @@ jobs:
           submodules: recursive
       - name: Install pipenv
         if: steps.core-cache.outputs.cache-hit != 'true'
-        run: sudo pip install pipenv
+        run: sudo pip install pipenv==2022.6.7
       - name: Cache OCaml build files
         if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v3
@@ -160,7 +160,7 @@ jobs:
     needs: [build-core] # save some CPU time by waiting till build cache is populated in that job
     steps:
       - name: Install pipenv
-        run: sudo pip install pipenv
+        run: sudo pip install pipenv==2022.6.7
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
@@ -232,7 +232,7 @@ jobs:
         python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -303,7 +303,7 @@ jobs:
         test_name: ["public_repos", "semgrep_rules_repo"]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -349,7 +349,7 @@ jobs:
     needs: [build-core]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -385,7 +385,7 @@ jobs:
     needs: [build-core]
     steps:
       - name: Install pipenv
-        run: pipx install pipenv==2022.5.2
+        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
