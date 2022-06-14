@@ -29,8 +29,8 @@ let str = H.str
 let fb = G.fake_bracket
 
 let combine_str_and_infos l xs r =
-  let s = xs |> List.map fst |> String.concat "" in
-  let t = PI.combine_infos l (List.map snd xs @ [ r ]) in
+  let s = xs |> Common.map fst |> String.concat "" in
+  let t = PI.combine_infos l (Common.map snd xs @ [ r ]) in
   (s, t)
 
 (*****************************************************************************)
