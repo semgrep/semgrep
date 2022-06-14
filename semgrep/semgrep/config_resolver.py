@@ -387,7 +387,10 @@ def validate_single_rule(
 def manual_config(
     pattern: str, lang: str, replacement: Optional[str]
 ) -> Dict[str, YamlTree]:
-    # TODO remove when using sgrep -e ... -l ... instead of this hacked config
+    """Create a fake rule when we only have a pattern and language
+
+    This is used when someone calls `semgrep scan -e print -l py`
+    """
     pattern_span = Span.from_string(pattern, filename="CLI Input")
     pattern_tree = YamlTree[str](value=pattern, span=pattern_span)
     error_span = Span.from_string(
