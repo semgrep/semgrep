@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import urllib.parse
 from collections import OrderedDict
 from enum import auto
 from enum import Enum
@@ -77,7 +78,7 @@ class ConfigPath:
     _project_url = None
     _extra_headers: Dict[str, str] = {}
 
-    def __init__(self, config_str: str, project_url: Optional[str]) -> None:
+    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
         """
         Mutates Metrics state!
         Takes a user's inputted config_str and transforms it into the appropriate
@@ -139,8 +140,6 @@ class ConfigPath:
         of raw YAML.
         Replaces '/c/' in semgrep urls with '/'.
         """
-        import urllib
-
         parsed = urllib.parse.urlparse(url)
         if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
             return url.replace("/c/", "/")
