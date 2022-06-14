@@ -202,13 +202,7 @@ class ConfigPath:
             headers={"Accept": "application/json", **self._extra_headers},
         )
         if r.status_code == requests.codes.ok:
-            content_type = r.headers.get("Content-Type")
-            if content_type and "application/json" in content_type:
-                return r.content.decode("utf-8", errors="replace")
-            else:
-                raise SemgrepError(
-                    f"unknown content-type: {content_type} returned by config url: {self._config_path}. Can not parse"
-                )
+            return r.content.decode("utf-8", errors="replace")
         else:
             raise SemgrepError(
                 f"bad status code: {r.status_code} returned by config url: {self._config_path}"
@@ -439,8 +433,7 @@ def parse_config_at_path(
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
 
-    with loc.open() as f:
-        return parse_config_string(config_id, f.read(), str(loc))
+    return parse_config_string(config_id, loc.read_text(), str(loc))
 
 
 def parse_config_string(
@@ -448,8 +441,7 @@ def parse_config_string(
 ) -> Dict[str, YamlTree]:
     if not contents:
         raise SemgrepError(
-            f"Empty configuration file {filename}",
-            code=UNPARSEABLE_YAML_EXIT_CODE,
+            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
     try:
         # we pretend it came from YAML so we can keep later code simple
@@ -461,8 +453,7 @@ def parse_config_string(
         data = parse_yaml_preserve_spans(contents, filename)
     except EmptyYamlException:
         raise SemgrepError(
-            f"Empty configuration file {filename}",
-            code=UNPARSEABLE_YAML_EXIT_CODE,
+            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
     except YAMLError as se:
         raise SemgrepError(
