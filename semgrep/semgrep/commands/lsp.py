@@ -1,12 +1,26 @@
 import logging
+import sys
 from typing import Optional
 
 import click
 
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.constants import LSP_DEFAULT_CONFIG
 from semgrep.lsp.server import run_server
-from semgrep.lsp.utils.log import init_log
+
+
+def init_log(name: str, level: int, logfile: Optional[str] = None) -> None:
+    """
+    Set logging to avoid stdout as the LSP server needs exclusive use of it.
+    """
+    log = logging.getLogger(name)
+    log.setLevel(level)
+    handler: logging.Handler = logging.StreamHandler(stream=sys.stderr)
+    if logfile:
+        handler = logging.FileHandler(logfile)
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    log.addHandler(handler)
 
 
 @click.command()
@@ -19,12 +33,7 @@ from semgrep.lsp.utils.log import init_log
     required=False,
     help="Write logs to this file",
 )
-@click.option(
-    "--config",
-    type=str,
-    default=LSP_DEFAULT_CONFIG,
-    help="A Semgrep config for LSP mode",
-)
+@click.option("--config", type=str, required=True, help="A Semgrep config for LSP mode")
 @handle_command_errors
 def lsp(
     verbose: Optional[bool], debug: Optional[bool], logfile: Optional[str], config: str
@@ -39,9 +48,7 @@ def lsp(
         level = logging.INFO
     elif debug:
         level = logging.DEBUG
-    # The LSP server uses stdin/stdout for json-rpc communication, so we
-    # want to configure the root logger to use either stderr or a file.
     init_log("semgrep.lsp", level, logfile)
 
-    print(f"Starting Semgrep LSP server ...")
+    print("Starting Semgrep LSP server ...")
     run_server(config)

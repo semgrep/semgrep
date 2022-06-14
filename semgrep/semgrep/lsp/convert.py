@@ -1,4 +1,3 @@
-from semgrep.constants import LSP_REGISTRY_LOOKUP_URL
 from semgrep.constants import RuleSeverity
 from semgrep.lsp.types import DiagnosticSeverity
 from semgrep.types import JsonObject
@@ -17,6 +16,9 @@ def findings_severity_to_diagnostic(severity: RuleSeverity) -> DiagnosticSeverit
 
 # TODO: need to use RuleMatch here instead of raw json/dict access
 def findings_to_diagnostic(finding: JsonObject, content: str) -> JsonObject:
+    from semgrep.state import get_state
+
+    env = get_state().env
     start_line = finding["start"]["line"] - 1
     start_col = finding["start"]["col"] - 1
     end_line = finding["end"]["line"] - 1
@@ -29,6 +31,8 @@ def findings_to_diagnostic(finding: JsonObject, content: str) -> JsonObject:
         match_source = (
             lines[start_line][start_col:] + middle_lines + lines[end_line][:end_col]
         )
+
+    rule_url = f"{env.semgrep_url}/r/{finding['check_id']}"
 
     diagnostic = {
         "range": {
@@ -44,7 +48,7 @@ def findings_to_diagnostic(finding: JsonObject, content: str) -> JsonObject:
         ).value,
         "source": "Semgrep",
         "code": finding["check_id"],
-        "codeDescription": {"href": LSP_REGISTRY_LOOKUP_URL + finding["check_id"]},
+        "codeDescription": {"href": rule_url},
         "data": {"matchSource": match_source},
     }
 

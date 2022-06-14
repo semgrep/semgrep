@@ -59,7 +59,7 @@ def _exec_semgrep(context: RunContext, target_dir: str) -> str:
     pwd = os.getcwd()
 
     try:
-        os.chdir(target_dir)
+        os.chdir(target_dir)  # things like git-awareness are relative to working dir
 
         output_settings = OutputSettings(
             **{"output_format": OutputFormat.JSON, **context.output}  # type: ignore

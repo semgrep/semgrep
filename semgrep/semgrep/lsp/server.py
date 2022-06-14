@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import sys
@@ -8,14 +9,13 @@ from typing import MutableMapping
 from typing import Optional
 from typing import Sequence
 
-import requests
-from pylsp_jsonrpc.dispatchers import MethodDispatcher  # type: ignore
-from pylsp_jsonrpc.endpoint import Endpoint  # type: ignore
-from pylsp_jsonrpc.streams import JsonRpcStreamReader  # type: ignore
+from pylsp_jsonrpc.dispatchers import MethodDispatcher
+from pylsp_jsonrpc.endpoint import Endpoint
+from pylsp_jsonrpc.streams import JsonRpcStreamReader
 from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 
 from semgrep import __VERSION__ as SEMGREP_VERSION
-from semgrep.constants import LSP_DEFAULT_CONFIG
+from semgrep import config_resolver
 from semgrep.lsp.convert import findings_to_diagnostic
 from semgrep.lsp.run_semgrep import run_rule
 from semgrep.lsp.run_semgrep import RunContext
@@ -25,9 +25,6 @@ from semgrep.lsp.types import Diagnostic
 from semgrep.lsp.types import DiagnosticsList
 from semgrep.lsp.types import Range
 from semgrep.lsp.types import TextDocumentItem
-from semgrep.lsp.utils.rules import is_registry_rule
-from semgrep.lsp.utils.rules import url_for_rule
-from semgrep.lsp.utils.text import text_ranges_overlap
 from semgrep.types import JsonObject
 
 
@@ -46,7 +43,7 @@ SERVER_CAPABILITIES = {
 
 
 class SemgrepLSPServer(MethodDispatcher):  # type: ignore
-    def __init__(self, rx: BinaryIO, tx: BinaryIO, config: str) -> None:
+    def __init__(self, rx: BinaryIO, tx: BinaryIO, config_str: str) -> None:
         # When set to False the server will ignore any incoming request,
         # beside a request to initialize or to exit.
         self._ready = False
@@ -58,18 +55,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self, self._jsonrpc_stream_writer.write, max_workers=10
         )
 
-        # TODO refactor to use config_resolver
-        # Download and cache rules from the registry
-        self._rules = ""
-        if not is_registry_rule(config):
-            self._rules = config
-        else:
-            url = url_for_rule(config if config else LSP_DEFAULT_CONFIG)
-            log.info(f"Downloading rules from {url}")
-            rules = requests.get(url, timeout=30)
-            if rules.status_code != 200:
-                log.error("Bad config")
-            self._rules = rules.content.decode("utf-8")
+        configs = list(config_resolver.ConfigPath(config_str).resolve_config().values())
+        self._rules = json.dumps(configs[0].unroll_dict())
+
         self._diagnostics: MutableMapping[str, DiagnosticsList] = {}
 
     def start(self) -> None:
@@ -223,6 +211,15 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         }
         return fix_action
 
+    @staticmethod
+    def text_ranges_overlap(range1: Range, range2: Range) -> bool:
+        return bool(
+            range1["start"]["line"] <= range2["end"]["line"]
+            and range1["end"]["line"] >= range2["start"]["line"]
+            and range1["start"]["character"] <= range2["end"]["character"]
+            and range1["end"]["character"] >= range2["start"]["character"]
+        )
+
     def computeCodeActions(self, uri: str, range: Range) -> CodeActionsList:
         log.debug(f"Compute code actions for uri {uri} and range {range}")
         diagnostics = self._diagnostics.get(uri)
@@ -231,7 +228,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
         actions = []
         for d in diagnostics:
-            if text_ranges_overlap(range, d["range"]):
+            if self.text_ranges_overlap(range, d["range"]):
                 if "fix" in d["data"]:
                     actions.append(self.createFixAction(uri, d, d["data"]["fix"]))
                 if "fix_regex" in d["data"]:
