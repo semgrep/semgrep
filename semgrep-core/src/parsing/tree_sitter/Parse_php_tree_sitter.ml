@@ -293,10 +293,9 @@ let map_integer env tok =
 
 let map_boolean env tok =
   let bool_of_string value =
-    let true_regexp = Str.regexp "['T''t']['R''r']['U''u']['E''e']" in
-    let false_regexp = Str.regexp "['F''f']['A''a']['L''l']['S''s']['E''e']" in
-    if Str.string_match true_regexp value 0 then true
-    else if Str.string_match false_regexp value 0 then false
+    let canonicalized_value = String.lowercase_ascii value in
+    if canonicalized_value = "true" then true
+    else if canonicalized_value = "false" then false
     else failwith ("Not a valid PHP boolean: " ^ value)
   in
   let value, tok = _str env tok in
