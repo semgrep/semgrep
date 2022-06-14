@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
 
@@ -12,8 +13,11 @@ from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigPath
+from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
+from tests.e2e.test_baseline import _git_commit
+from tests.e2e.test_baseline import _git_merge
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -91,6 +95,8 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     mocker.patch.object(
         GitlabMeta, "_fetch_branch_get_merge_base", return_value=base_commit
     )
+
+    mocker.patch.object(GithubMeta, "_shallow_fetch_branch", return_value=None)
 
     yield (repo_base, base_commit, head_commit)
 
@@ -310,11 +316,13 @@ def test_full_run(
                     },
                     "head": {
                         "sha": head_commit,
+                        "ref": BRANCH_NAME,
                         "number": "7",
                         "title": "placeholder-pr-title",
                     },
                     "base": {
                         "sha": base_commit,
+                        "ref": "main",
                     },
                 },
                 "sender": {
@@ -391,6 +399,128 @@ def test_full_run(
     complete_json = post_calls[3].kwargs["json"]
     complete_json["stats"]["total_time"] = 0.5  # Sanitize time for comparison
     snapshot.assert_match(json.dumps(complete_json, indent=2), "complete.json")
+
+
+def test_github_ci_bad_base_sha(
+    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+):
+    """
+    Github PullRequest Event Webhook file's reported base sha is not guaranteed
+    to be the shahash of the latest commit on the base branch
+
+    In particular the following situations can cause the base sha to be stale
+    (and if we rely on it being latest cause semgrep to incorrectly calculate merge-base):
+    - If new commits are pushed onto base branch and a githubaction is rerun
+    - If the base branch latest is merged into some third branch and that third branch
+      is merged into the PR branch
+
+    Note that simply merging the base branch into the PR branch does cause the base sha to be updated
+
+    This test verifies that we scan the right things even if base sha in a mocked github
+    env is stale. Note that the test does not mock the exact situations above but simply
+    some state where reported base sha is stale
+    """
+
+    # Setup Git Repo
+    """
+        *   17b3114 (HEAD -> bar) merging foo
+        |\
+        | * f7ee312 (foo) commit #2
+        * | e04f88c commit #1
+        |/
+        * 191a3ac commit #1
+
+    Regenerate this tree by running:
+        git_log = subprocess.run(["git", "--no-pager", "log", "--oneline", "--decorate", "--graph"], check=True, capture_output=True, encoding="utf-8")
+        print(git_log.stdout)
+    """
+    commits = defaultdict(list)
+    foo = git_tmp_path / "foo.py"
+    bar = git_tmp_path / "bar.py"
+
+    subprocess.run(["git", "checkout", "-b", "foo"])
+    foo.open("a").write(f"foo == 5\n\n")
+    commits["foo"].append(_git_commit(1, add=True))
+
+    subprocess.run(["git", "checkout", "-b", "bar"])
+    bar.open("a").write(f"bar == 5\n\n")
+    commits["bar"].append(_git_commit(1, add=True))
+
+    subprocess.run(["git", "checkout", "foo"])
+    foo.open("a").write(f"new == 5\n\n")
+    commits["foo"].append(_git_commit(2, add=True))
+
+    subprocess.run(["git", "checkout", "bar"])
+    commits["bar"].append(_git_merge("foo"))
+
+    # Mock Github Actions Env Vars
+    env = {
+        "CI": "true",
+        "GITHUB_ACTIONS": "true",
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+        # Sent in metadata but no functionality change
+        "GITHUB_RUN_ID": "35",
+        "GITHUB_ACTOR": "some_test_username",
+        "GITHUB_REF": BRANCH_NAME,
+    }
+    event = {
+        "pull_request": {
+            "user": {
+                "login": "user-login",
+                "avatar_url": "some.user.avatar.com",
+            },
+            "head": {
+                "sha": commits["bar"][-1],
+                "ref": "bar",
+                "number": "7",
+                "title": "placeholder-pr-title",
+            },
+            "base": {
+                "sha": commits["foo"][0],  # Note how this is not latest commit in foo
+                "ref": "foo",
+            },
+        },
+        "sender": {
+            "login": "test-username",
+            "avatar_url": "some.test.avatar.url.com",
+        },
+    }
+    event_path = tmp_path / "event_path.json"
+    event_path.write_text(json.dumps(event))
+    env["GITHUB_EVENT_PATH"] = str(event_path)
+    env["SEMGREP_APP_TOKEN"] = "fake-key-from-tests"
+
+    # Mimic having a remote by having a new repo dir and pointing origin to the repo
+    # we setup above
+    repo_copy_base = tmp_path / "copy"
+    repo_copy_base.mkdir()
+    monkeypatch.chdir(repo_copy_base)
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", git_tmp_path],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
+    subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
+
+    result = run_semgrep(options=["ci"], strict=False, assert_exit_code=None, env=env)
+
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+            ]
+        ),
+        "results.txt",
+    )
+
+    post_calls = AppSession.post.call_args_list  # type: ignore
+    findings_json = post_calls[1].kwargs["json"]
+    assert (
+        len(findings_json["findings"]) == 1
+    ), "Potentially scanning wrong files/commits"
 
 
 def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
