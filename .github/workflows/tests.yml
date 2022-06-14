@@ -327,6 +327,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
       - uses: actions/cache@v3
+        if: matrix.test_name == "public_repos"
         with:
           path: ~/.cache/semgrep-cache
           key: semgrep-repo-cache-test
