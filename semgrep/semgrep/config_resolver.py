@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from collections import OrderedDict
@@ -32,6 +33,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
+from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
@@ -195,22 +197,12 @@ class ConfigPath:
 
     def _make_config_request(self) -> str:
         app_session = get_state().app_session
-        r = app_session.get(self._config_path, headers=self._extra_headers)
+        r = app_session.get(
+            self._config_path,
+            headers={"Accept": "application/json", **self._extra_headers},
+        )
         if r.status_code == requests.codes.ok:
-            content_type = r.headers.get("Content-Type")
-            yaml_types = [
-                "text/plain",
-                "application/x-yaml",
-                "text/x-yaml",
-                "text/yaml",
-                "text/vnd.yaml",
-            ]
-            if content_type and any(ct in content_type for ct in yaml_types):
-                return r.content.decode("utf-8", errors="replace")
-            else:
-                raise SemgrepError(
-                    f"unknown content-type: {content_type} returned by config url: {self._config_path}. Can not parse"
-                )
+            return r.content.decode("utf-8", errors="replace")
         else:
             raise SemgrepError(
                 f"bad status code: {r.status_code} returned by config url: {self._config_path}"
@@ -441,8 +433,7 @@ def parse_config_at_path(
     if base_path:
         config_id = str(loc).replace(str(base_path), "")
 
-    with loc.open() as f:
-        return parse_config_string(config_id, f.read(), str(loc))
+    return parse_config_string(config_id, loc.read_text(), str(loc))
 
 
 def parse_config_string(
@@ -450,22 +441,26 @@ def parse_config_string(
 ) -> Dict[str, YamlTree]:
     if not contents:
         raise SemgrepError(
-            f"Empty configuration file {filename}",
-            code=UNPARSEABLE_YAML_EXIT_CODE,
+            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
     try:
+        # we pretend it came from YAML so we can keep later code simple
+        data = YamlTree.wrap(json.loads(contents), EmptySpan)
+    except json.decoder.JSONDecodeError:
+        pass
+
+    try:
         data = parse_yaml_preserve_spans(contents, filename)
-        return {config_id: data}
     except EmptyYamlException:
         raise SemgrepError(
-            f"Empty configuration file {filename}",
-            code=UNPARSEABLE_YAML_EXIT_CODE,
+            f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
     except YAMLError as se:
         raise SemgrepError(
             f"Invalid YAML file {config_id}:\n{indent(str(se))}",
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
+    return {config_id: data}
 
 
 def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, YamlTree]:

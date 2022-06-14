@@ -240,14 +240,7 @@ class Rule:
         (beyond Python-handled patterns, like `project-depends-on`).
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
-
-        def has_runnable_rule(d: Dict[str, Any]) -> bool:
-            for k in d:
-                if k in RuleValidation.PATTERN_KEYS:
-                    return True
-            return False
-
-        return has_runnable_rule(self._raw)
+        return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
 
     @property
     def formula_string(self) -> str:
