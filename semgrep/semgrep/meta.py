@@ -236,9 +236,7 @@ class GithubMeta(GitMeta):
         """
         # Fetch latest
         self._shallow_fetch_branch(branch_name)
-        branch_rev_parse = git_check_output(
-            ["git", "rev-parse", branch_name]
-        )
+        branch_rev_parse = git_check_output(["git", "rev-parse", branch_name])
         return branch_rev_parse
 
     @cachedproperty
