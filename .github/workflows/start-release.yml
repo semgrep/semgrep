@@ -61,32 +61,40 @@ jobs:
           git add --all
           git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
           git push --set-upstream origin ${{ steps.release-branch.outputs.release-branch }}
+      - name: Get JWT for r2c-argo GitHub App
+        id: jwt
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+        env:
+          EXPIRATION: 600 # seconds
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }} # semgrep-ci GitHub App id
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+      - name: Get token for semgrep-ci GitHub App
+        id: token
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "::set-output name=token::$TOKEN"
       - name: Create PR
         id: open-pr
         env:
-          AUTH_HEADER: "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
-          HEADER: "Accept: application/vnd.github.v3+json"
-          URL: "${{ github.event.repository.url }}/pulls"
           SOURCE: "${{ steps.release-branch.outputs.release-branch }}"
           TARGET: "${{ github.event.repository.default_branch }}"
           TITLE: "Release Version ${{ steps.next-version.outputs.next-version }}"
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         run: |
           # check if the branch already has a pull request open
-          DATA="{\"base\":\"${TARGET}\", \"head\":\"${SOURCE}\"}";
-          RESPONSE=$(curl -sSL -H "${AUTH_HEADER}" -H "${HEADER}" -X GET --data "${DATA}" $URL);
-          PR=$(echo "${RESPONSE}" | jq --raw-output '.[] | .head.ref');
 
-          # GitHub REST API doesn't allow you to pass a template, so here we go
-          BODY=$(cat ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md)
-
-          if [[ "${PR}" == "${SOURCE}" ]]; then
+          if gh pr list --head ${SOURCE} | grep -vq "no pull requests"; then
               # pull request already open
               echo "pull request from SOURCE ${SOURCE} to TARGET ${TARGET} is already open";
               echo "cancelling release"
               exit 1
-          else
-              # open new pull request with the body of from the local template.
-              # Use a bash parameter expansion with replacement on BODY since it contains newlines.
-              DATA="{\"title\":\"${TITLE}\", \"body\":\"${BODY//$'\n'/'\n'}\", \"base\":\"${TARGET}\", \"head\":\"${SOURCE}\"}";
-              curl -sSL -H "${AUTH_HEADER}" -H "${HEADER}" -X POST --data "${DATA}" $URL;
           fi
+
+          # open new pull request with the body of from the local template.
+          gh pr create --title "${TITLE}" --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md \
+            --base "${TARGET}" --head "${SOURCE}"
