@@ -12,9 +12,9 @@ const d2 = new D();
 
 // MATCH:
 c1.f();
-// TODO:
+// MATCH:
 c2.f();
-// TODO:
+// MATCH:
 (new C()).f();
 
 // DEEP:

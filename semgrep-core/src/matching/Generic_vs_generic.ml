@@ -1730,7 +1730,20 @@ and m_type_ a b =
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
-  | G.TyN a1, B.TyN b1 -> m_name a1 b1
+  | G.TyN a1, B.TyN b1
+  (* JS/TS (and maybe other languages) allow arbitrary expressions to be used as
+   * constructors (in `new X()`). The `X` ends up as a `TyExpr (N ...)` and is
+   * then propagated via some rudimentary type inference. We still want it to
+   * match e.g. typed metavariables, though, which are parsed as `TyN`, thus
+   * this case.
+   *
+   * See the following for context about why this is done here, and not with
+   * desugaring earlier in the pipeline:
+   * - https://github.com/returntocorp/semgrep/pull/5540
+   * - https://github.com/returntocorp/semgrep/pull/4682
+   *)
+  | G.TyN a1, B.TyExpr { e = N b1; _ } ->
+      m_name a1 b1
   | G.TyN (G.Id ((str, tok), _id_info)), _t2 when MV.is_metavar_name str ->
       envf (str, tok) (MV.T b)
   (* dots: *)
