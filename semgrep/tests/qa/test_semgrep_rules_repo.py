@@ -1,68 +1,61 @@
 import shutil
 import subprocess
-import sys
 
 import pytest
+from click.testing import CliRunner
+
+from semgrep.cli import cli
 
 
-def _fail_subprocess_on_error(cmd):
-    output = subprocess.run(
-        cmd,
-        capture_output=True,
-        encoding="utf-8",
+@pytest.fixture(scope="session", autouse=True)
+def in_semgrep_rules_repo(tmpdir_factory):
+    monkeypatch = pytest.MonkeyPatch()
+    repo_dir = tmpdir_factory.mktemp("semgrep-rules")
+    subprocess.check_output(
+        [
+            "git",
+            "clone",
+            "--depth=1",
+            "https://github.com/returntocorp/semgrep-rules",
+            repo_dir,
+        ]
     )
-
-    if output.returncode != 0:
-        pytest.fail(f"Failed running cmd={cmd}" + output.stdout + output.stderr)
+    # Remove subdir that doesnt contain rules
+    shutil.rmtree(repo_dir / "stats")
+    monkeypatch.chdir(repo_dir)
+    yield
+    monkeypatch.undo()
 
 
 @pytest.mark.slow
-def test_semgrep_rules_repo(run_semgrep_in_tmp):
-    subprocess.check_output(
-        ["git", "clone", "--depth=1", "https://github.com/returntocorp/semgrep-rules"]
-    )
-
-    # Remove subdir that doesnt contain rules
-    shutil.rmtree("./semgrep-rules/stats")
-
-    _fail_subprocess_on_error(
+def test_semgrep_rules_repo__test(in_semgrep_rules_repo):
+    runner = CliRunner()
+    results = runner.invoke(
+        cli,
         [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--generate-config",
             "--disable-version-check",
-            "--metrics",
-            "off",
-        ]
-    )
-
-    _fail_subprocess_on_error(
-        [
-            sys.executable,
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "--dangerously-allow-arbitrary-code-execution-from-rules",
+            "--metrics=off",
             "--strict",
             "--test",
             "--test-ignore-todo",
-            "semgrep-rules",
         ],
     )
+    print(results.output)
+    assert results.exit_code == 0
 
-    _fail_subprocess_on_error(
+
+@pytest.mark.slow
+def test_semgrep_rules_repo__validate(in_semgrep_rules_repo):
+    runner = CliRunner()
+    results = runner.invoke(
+        cli,
         [
-            sys.executable,
-            "-m",
-            "semgrep",
             "--disable-version-check",
-            "--metrics",
-            "off",
+            "--metrics=off",
+            "--strict",
             "--validate",
-            "--config",
-            "semgrep-rules",
-        ]
+            "--config=.",
+        ],
     )
+    print(results.output)
+    assert results.exit_code == 0

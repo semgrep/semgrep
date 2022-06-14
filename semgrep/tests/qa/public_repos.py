@@ -17,9 +17,8 @@ class Repo(NamedTuple):
         return pytest.param(
             self,
             id=self.short_url,
-            marks=pytest.mark.xfail(xfail_reason=self.xfail_reason, strict=True)
-            if self.xfail_reason is not None
-            else [],
+            # we haven't looked at these xfails for a year so might as well just skip them in CI
+            marks=pytest.mark.skip if self.xfail_reason is not None else [],
         )
 
 
@@ -109,16 +108,6 @@ REPOS = [
     Repo("https://github.com/dropbox/whitegold"),
     Repo("https://github.com/dropbox/ykfipsconf"),
     Repo("https://github.com/dropbox/zinger"),
-    Repo("https://github.com/returntocorp/badwords"),
-    Repo("https://github.com/returntocorp/bento-report"),
-    Repo("https://github.com/returntocorp/check-docs"),
-    Repo("https://github.com/returntocorp/cli", xfail_reason="unknown"),
-    Repo("https://github.com/returntocorp/flake8-click"),
-    Repo("https://github.com/returntocorp/flake8-flask"),
-    Repo("https://github.com/returntocorp/flake8-requests"),
-    Repo("https://github.com/returntocorp/inputset-generator"),
-    Repo("https://github.com/returntocorp/semgrep-action"),
-    Repo("https://github.com/returntocorp/semgrep-rules", xfail_reason="unknown"),
     Repo("https://github.com/seemoo-lab/opendrop"),
     Repo("https://github.com/lightstep/lightstep-tracer-python"),
     Repo("https://github.com/draios/sysdig-inspect"),
