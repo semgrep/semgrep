@@ -81,19 +81,22 @@ let map_special (env : env) ((v1, v2, v3) : CST.special) : G.ident =
 
 let map_identifier (env : env) (x : CST.identifier) : G.ident =
   match x with
-  | `Pat_3e41275 x -> map_pat_3e41275 env x
-  | `BQUOT_rep_choice_pat_4ad362e_BQUOT (v1, v2, v3) ->
-      let l = (* "`" *) token env v1 in
-      let xs =
-        Common.map
-          (fun x ->
-            match x with
-            | `Pat_4ad362e x -> map_pat_4ad362e env x
-            | `Esc_seq tok -> (* escape_sequence *) str env tok)
-          v2
-      in
-      let r = (* "`" *) token env v3 in
-      combine_str_and_infos l xs r
+  | `Choice_pat_3e41275 x -> (
+      match x with
+      | `Pat_3e41275 x -> map_pat_3e41275 env x
+      | `BQUOT_rep_choice_pat_4ad362e_BQUOT (v1, v2, v3) ->
+          let l = (* "`" *) token env v1 in
+          let xs =
+            Common.map
+              (fun x ->
+                match x with
+                | `Pat_4ad362e x -> map_pat_4ad362e env x
+                | `Esc_seq tok -> (* escape_sequence *) str env tok)
+              v2
+          in
+          let r = (* "`" *) token env v3 in
+          combine_str_and_infos l xs r)
+  | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
 
 let map_string_ (env : env) (x : CST.string_) : string G.wrap =
   match x with
@@ -598,7 +601,15 @@ let parse file =
     (fun () -> Tree_sitter_r.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_program env cst with
-      | Failure "not implemented" as exn ->
-          H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
-          raise exn)
+      map_program env cst)
+
+let parse_pattern str =
+  H.wrap_parser
+    (fun () -> Tree_sitter_r.Parse.string str)
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      match map_program env cst with
+      | [ { s = ExprStmt (e, _); _ } ] -> G.E e
+      | [ x ] -> G.S x
+      | xs -> G.Ss xs)
