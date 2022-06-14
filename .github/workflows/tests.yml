@@ -154,6 +154,7 @@ jobs:
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
 
   test-core:
+    # TODO: use the artifact of build-core in this job
     name: test semgrep-core
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine-2022-06-09
