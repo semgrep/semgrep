@@ -7,12 +7,19 @@ type overlap = float
  * 1.0 means that the AST node matches the annotation perfectly. For
  * practical purposes we can interpret >0.99 as being the same as 1.0. *)
 
+type propagator_id = var
+type propagator_from = propagator_id
+type propagator_to = propagator_id
+
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
   is_source : AST_generic.any -> (Pattern_match.t * overlap) list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
+  is_propagator : AST_generic.any -> propagator_from list * propagator_to list;
+      (** Test whether 'any' matches a taint propagator, this corresponds to
+       * 'pattern-propagators:' in taint-mode. *)
   is_sink : AST_generic.any -> Pattern_match.t list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)

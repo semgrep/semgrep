@@ -177,8 +177,20 @@ type sanitizer_spec = {
 }
 [@@deriving show]
 
+type taint_propagator = {
+  formula : pformula;
+  from : MV.mvar wrap;
+  to_ : MV.mvar wrap;
+}
+[@@deriving show]
+(** e.g. if we want to specify that adding tainted data to a `HashMap` makes the
+ * `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
+ * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
+ * will be marked as tainted too. *)
+
 type taint_spec = {
   sources : pformula list;
+  propagators : taint_propagator list;
   sanitizers : sanitizer_spec list;
   sinks : pformula list;
 }

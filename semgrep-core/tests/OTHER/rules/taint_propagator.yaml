@@ -1,0 +1,16 @@
+rules:
+  - id: test
+    message: Test
+    severity: INFO
+    languages: [py]
+    mode: taint
+    pattern-sources:
+      - pattern: user_input
+    pattern-propagators:
+      - pattern: $S.add($A)
+        from: $A
+        to: $S
+    pattern-sinks:
+      - patterns:
+          - pattern: sink($SINK)
+          - focus-metavariable: $SINK
