@@ -443,8 +443,7 @@ let options () =
         Xlang.supported_xlangs );
     ( "-l",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
-      spf " <str> choose language (valid choices:\n     %s)"
-        Xlang.supported_xlangs );
+      spf " <str> shortcut for -lang" );
     ( "-targets",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );
@@ -452,9 +451,6 @@ let options () =
       Arg.Set_string equivalences_file,
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
-    ( "-opt_cache",
-      Arg.Set Flag.with_opt_cache,
-      " enable caching optimization during matching" );
     ( "-use_parsing_cache",
       Arg.Set_string use_parsing_cache,
       " <dir> store and use the parsed generic ASTs in dir" );
