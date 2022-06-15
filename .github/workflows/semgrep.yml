@@ -19,6 +19,7 @@ jobs:
         with:
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: "1"
+          fetch-depth: '0'
 
   semgrep-run-local-config:
     name: semgrep with local config
@@ -30,3 +31,5 @@ jobs:
         uses: returntocorp/semgrep-action@v1
         env:
           SEMGREP_RULES: semgrep.yml
+        with:
+          fetch-depth: '0'
