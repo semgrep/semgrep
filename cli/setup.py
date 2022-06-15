@@ -7,9 +7,6 @@ import sys
 
 import setuptools
 
-from semgrep import __VERSION__
-
-
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SOURCE_DIR)
 BIN_DIR = "bin"
@@ -139,7 +136,7 @@ install_requires = [
 
 setuptools.setup(
     name="semgrep",
-    version=__VERSION__,
+    version="0.97.0",
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

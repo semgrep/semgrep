@@ -68,6 +68,16 @@ update_setup_py() {
   git add "$target"
 }
 
+update_cli_setup_py() {
+  target=setup.py
+  targets+=" $target"
+  echo "Updating $target"
+  sed_in_place \
+    's/^    version=".*",$/    version="'"$release"'",/g' \
+    "$target"
+  git add "$target"
+}
+
 # Update files containing the release ID.
 #
 # Ideally this shouldn't modify source files,
@@ -76,6 +86,7 @@ bump() {
   update_changelog
   update_init_py
   update_setup_py
+  update_cli_setup_py
   update_version_ml
 }
 
