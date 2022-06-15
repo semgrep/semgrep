@@ -96,5 +96,43 @@ jobs:
           fi
 
           # open new pull request with the body of from the local template.
-          gh pr create --title "${TITLE}" --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md \
-            --base "${TARGET}" --head "${SOURCE}"
+          PR_URL=$(gh pr create --title "${TITLE}" --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md \
+            --base "${TARGET}" --head "${SOURCE}")
+
+          echo $PR_URL
+
+          #GH actions doesn't provide an easy way to determine this, so we capture the number and go from there.
+          PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
+
+          echo "::set-output name=pr-number::$PR_NUMBER"
+      - name: Wait for checks to register
+        id: register-checks
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LEN_CHECKS=$(gh pr view "${{ steps.open-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+
+          # Immediately after creation, the PR doesn't have any checks attached yet, wait until this is not the case
+          # If you immediately start waiting for checks, then it just fails saying there's no checks.
+          while [ ${LEN_CHECKS} = "0" ]; do
+            echo "No checks available yet"
+            sleep 1
+            LEN_CHECKS=$(gh pr view "${{ steps.open-pr.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          done
+          echo "checks are valid"
+
+          echo ${LEN_CHECKS}
+
+          gh pr view "${{ steps.open-pr.outputs.pr-number }}" --json statusCheckRollup
+      - name: Wait for checks to complete
+        id: wait-checks
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Wait for PR checks to finish
+          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" -i 5 --watch
+      - name: Create release version tag
+        id: create-tag
+        run: |
+          git tag -a -m "Release ${{ steps.next-version.outputs.next-version }}" "v${{ steps.next-version.outputs.next-version }}"
+          git push origin "v${{ steps.next-version.outputs.next-version }}"
