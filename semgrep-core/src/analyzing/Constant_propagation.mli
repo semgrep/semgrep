@@ -19,7 +19,7 @@ val propagate_basic : Lang.t -> AST_generic.program -> unit
 val propagate_dataflow_one_function :
   Lang.t ->
   IL.name list (* inputs to function *) ->
-  IL.stmt list (* function body *) ->
+  IL.cfg (* function body *) ->
   unit
 
 val propagate_dataflow : Lang.t -> AST_generic.program -> unit

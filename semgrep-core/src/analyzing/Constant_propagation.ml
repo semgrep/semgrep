@@ -659,8 +659,8 @@ let propagate_basic lang prog =
 let propagate_basic a b =
   Common.profile_code "Constant_propagation.xxx" (fun () -> propagate_basic a b)
 
-let propagate_dataflow_one_function lang inputs stmts =
-  let flow = CFG_build.cfg_of_stmts stmts in
+let propagate_dataflow_one_function lang inputs flow =
+  (* Exposed to help DeepSemgrep *)
   let mapping = Dataflow_svalue.fixpoint lang inputs flow in
   Dataflow_svalue.update_svalue flow mapping
 
@@ -672,7 +672,8 @@ let propagate_dataflow lang ast =
       let xs =
         AST_to_IL.stmt lang (G.Block (Parse_info.unsafe_fake_bracket ast) |> G.s)
       in
-      propagate_dataflow_one_function lang [] xs
+      let flow = CFG_build.cfg_of_stmts xs in
+      propagate_dataflow_one_function lang [] flow
   | _ ->
       let v =
         V.mk_visitor
@@ -681,7 +682,8 @@ let propagate_dataflow lang ast =
             V.kfunction_definition =
               (fun (_k, _) def ->
                 let inputs, xs = AST_to_IL.function_definition lang def in
-                propagate_dataflow_one_function lang inputs xs);
+                let flow = CFG_build.cfg_of_stmts xs in
+                propagate_dataflow_one_function lang inputs flow);
           }
       in
       v (Pr ast)
