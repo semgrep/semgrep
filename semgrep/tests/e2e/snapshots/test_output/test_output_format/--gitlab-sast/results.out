@@ -1,6 +1,6 @@
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-  "version": "2.0",
+  "version": "14.1.2",
   "vulnerabilities": [
     {
       "category": "sast",
@@ -16,9 +16,6 @@
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 3,
         "file": "targets/basic/stupid.py",
         "start_line": 3

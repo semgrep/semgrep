@@ -9,7 +9,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === stdout - plain
 {
   "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
-  "version": "2.0",
+  "version": "14.1.2",
   "vulnerabilities": [
     {
       "category": "sast",
@@ -25,9 +25,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 4,
         "file": "foo.py",
         "start_line": 4
@@ -56,9 +53,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 5,
         "file": "foo.py",
         "start_line": 5
@@ -87,9 +81,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 7,
         "file": "foo.py",
         "start_line": 7
@@ -118,9 +109,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 11,
         "file": "foo.py",
         "start_line": 11
@@ -149,9 +137,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 19,
         "file": "foo.py",
         "start_line": 19
@@ -180,9 +165,6 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
         }
       ],
       "location": {
-        "dependency": {
-          "package": {}
-        },
         "end_line": 15,
         "file": "foo.py",
         "start_line": 15
