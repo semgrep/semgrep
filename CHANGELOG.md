@@ -3,6 +3,15 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+- JS/TS: Typed metavariables now match constructor calls (e.g. `($X: C)` matches `new C()`. (#5540)
+
+### Changed
+
+- Gitlab SAST output is now v14.1.2 compliant
+
+### Fixed
+
+- Inline join mode rules can now run taint-mode rules
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
@@ -19,9 +28,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
-- Rules are now downloaded from the Semgrep Registry in JSON format instead of YAML.
-  This speeds up rule parsing in the Semgrep CLI,
-  making a `semgrep --config auto` run on the semgrep Python package in 14s instead of 16s.
 - Gitlab SAST output is now v14.1.2 compliant
 
 ### Fixed
@@ -40,7 +46,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   files not changed in the PR (#5453)
 - JS/TS: `$X()` no longer matches `new Foo()`, for consistency with other languages (#5510)
 - JS/TS: Typed metavariables now match constructor calls (e.g. `($X: C)` matches `new C()`. (#5540)
-- Inline join mode rules can now run taint-mode rules
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 
