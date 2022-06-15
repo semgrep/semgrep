@@ -4,13 +4,12 @@ from typing import Generator
 from typing import List
 from typing import Tuple
 
+import semgrep.output_from_core as core
 from dependencyparser.find_lockfiles import DependencyTrie
 from dependencyparser.models import LockfileDependency
 from dependencyparser.models import PackageManagers
 from dependencyparser.package_restrictions import dependencies_range_match_any
 from dependencyparser.package_restrictions import ProjectDependsOnEntry
-
-import semgrep.output_from_core as core
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch

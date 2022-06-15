@@ -10,9 +10,8 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
-from dependencyparser.models import PackageManagers
-
 import semgrep.output_from_core as core
+from dependencyparser.models import PackageManagers
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
