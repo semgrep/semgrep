@@ -103,6 +103,15 @@ let line_col_of_charpos file charpos =
   in
   conv charpos
 
+(* Like Common2.with_tmp_file but also invalidates the hmemo cache when finished
+ *
+ * https://github.com/returntocorp/semgrep/issues/5277 *)
+let with_tmp_file ~str ~ext f =
+  Common2.with_tmp_file ~str ~ext (fun file ->
+      Fun.protect
+        ~finally:(fun () -> Hashtbl.remove hmemo file)
+        (fun () -> f file))
+
 let mval_of_string str t =
   let literal =
     match int_of_string_opt str with
