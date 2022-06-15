@@ -277,8 +277,13 @@ let string_of_invalid_rule_error_kind = function
   (* coupling: this is actually intercepted in
    * Semgrep_error_code.exn_to_error to generate a PatternParseError instead
    * of a RuleParseError *)
-  | InvalidPattern (_pattern, xlang, _message, _yaml_path) ->
-      spf "Invalid pattern for %s" (Xlang.to_string xlang)
+  | InvalidPattern (pattern, xlang, message, _yaml_path) ->
+      spf
+        "Invalid pattern for %s: %s\n\
+         ----- pattern -----\n\
+         %s\n\
+         ----- end pattern -----\n"
+        (Xlang.to_string xlang) message pattern
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s

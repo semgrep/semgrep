@@ -215,7 +215,6 @@ let try_with_print_exn_and_reraise file f =
       let e = Exception.catch exn in
       let err = exn_to_error file e in
       pr2 (string_of_error err);
-      pr2 (Exception.to_string e);
       Exception.reraise e
 
 (*****************************************************************************)
