@@ -15,7 +15,7 @@
         "offset": 12
       },
       "extra": {
-        "fingerprint": "2e51641579f597a719dc5a3969fc22da",
+        "fingerprint": "5f2838b4c01cae7d819b15b29a865ebff9de73977f9b4ba2618f1a3cce1c2fe4adfeada1c924f3c0bde71ea6a25d0ef582316ad8b83217a92bcc34e2b0a16205_0",
         "is_ignored": false,
         "lines": "\ud83d\ude0a (smiley)",
         "message": "check different ways to match UTF-8-encoded Unicode text",
@@ -38,7 +38,7 @@
         "offset": 35
       },
       "extra": {
-        "fingerprint": "5811da4bb8392ebeb39c51ea03e7816f",
+        "fingerprint": "5f2838b4c01cae7d819b15b29a865ebff9de73977f9b4ba2618f1a3cce1c2fe4adfeada1c924f3c0bde71ea6a25d0ef582316ad8b83217a92bcc34e2b0a16205_0",
         "is_ignored": false,
         "lines": "\ud83d\ude80 (rocket)",
         "message": "check different ways to match UTF-8-encoded Unicode text",
@@ -61,7 +61,7 @@
         "offset": 87
       },
       "extra": {
-        "fingerprint": "c26d7e14437173c1ea8769b7c71feb46",
+        "fingerprint": "5f2838b4c01cae7d819b15b29a865ebff9de73977f9b4ba2618f1a3cce1c2fe4adfeada1c924f3c0bde71ea6a25d0ef582316ad8b83217a92bcc34e2b0a16205_0",
         "is_ignored": false,
         "lines": "<\u03b2\u03b3\u03b4> (Greek letters)",
         "message": "check different ways to match UTF-8-encoded Unicode text",

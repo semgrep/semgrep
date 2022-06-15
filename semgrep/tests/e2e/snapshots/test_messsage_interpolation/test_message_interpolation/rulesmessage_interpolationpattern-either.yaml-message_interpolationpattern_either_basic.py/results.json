@@ -15,7 +15,7 @@
         "offset": 24
       },
       "extra": {
-        "fingerprint": "5e18f7140bcae156c62ddee8449a655c",
+        "fingerprint": "90f14a569a74591be73171d1a886da7ae96c1484677b7c189cd167dbe4ef800ec3436224a92403d11ef8ae1cfd36997b51ea6f96f861e64a948426633a30f57f_0",
         "is_ignored": false,
         "lines": "def one(x):\n    print(x)",
         "message": "method one detected",
@@ -56,7 +56,7 @@
         "offset": 50
       },
       "extra": {
-        "fingerprint": "d06a0d4b2e51461c7e5fe5da2154d7ee",
+        "fingerprint": "aa637280168ddd068e85c020be957890fc77b2550e28769ac268cda4bacf7e87e425530cba86bf6891e48de6462f8e4013a3aafb26a5c56a9e2f7f99cb1efc9d_0",
         "is_ignored": false,
         "lines": "def two(y):\n    print(y)",
         "message": "method two detected",
@@ -97,7 +97,7 @@
         "offset": 78
       },
       "extra": {
-        "fingerprint": "c78f7971c949957e21d86c35ba8cb72f",
+        "fingerprint": "70b94d92d35fb6d7b2013b301dd01fd38fc20fdd199091393f971fc71fee63577030590a15aef856553164b7d83cfc8adfb4dfee13bbc58bee0cbacf42fa10ed_0",
         "is_ignored": false,
         "lines": "def three(z):\n    print(z)",
         "message": "method three detected",

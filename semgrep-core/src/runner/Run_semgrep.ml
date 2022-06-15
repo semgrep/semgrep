@@ -384,17 +384,17 @@ let mk_rule_table rules =
   let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
   Common.hash_of_list rule_pairs
 
-let xtarget_of_file _config xlang file =
+let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
         (* xlang from the language field in -target, which should be unique *)
         assert (other_langs = []);
         lazy
-          (let { Parse_target.ast; skipped_tokens; _ } =
-             Parse_target.parse_and_resolve_name lang file
-           in
-           (ast, skipped_tokens))
+          (Parse_with_caching.parse_and_resolve_name
+             ~parsing_cache_dir:config.parsing_cache_dir
+             (* alt: could define a AST_generic.version *)
+             config.version lang file)
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 
@@ -608,7 +608,9 @@ let minirule_of_pattern lang pattern_string pattern =
 let rule_of_pattern lang pattern_string pattern =
   let fk = PI.unsafe_fake_info "" in
   let xlang = Xlang.L (lang, []) in
-  let xpat = R.mk_xpat (R.Sem (pattern, lang)) (pattern_string, fk) in
+  let xpat =
+    Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) (pattern_string, fk)
+  in
   {
     R.id = ("-e/-f", fk);
     mode = R.Search (R.New (R.P (xpat, None)));

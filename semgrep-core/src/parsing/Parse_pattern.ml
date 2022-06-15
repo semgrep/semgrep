@@ -131,8 +131,11 @@ let parse_pattern lang ?(print_errors = false) str =
         extract_pattern_from_tree_sitter_result res print_errors
     (* use adhoc parser (neither pfff nor tree-sitter) *)
     | Lang.Yaml -> Yaml_to_generic.any str
-    (* not yet handled *)
-    | Lang.R -> failwith "No R generic parser yet"
+    | Lang.R ->
+        let res = Parse_r_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
+    (* not yet handled ?? *)
+    (* Lang.Xxx failwith "No Xxx generic parser yet" *)
   in
 
   Caching.prepare_pattern any;

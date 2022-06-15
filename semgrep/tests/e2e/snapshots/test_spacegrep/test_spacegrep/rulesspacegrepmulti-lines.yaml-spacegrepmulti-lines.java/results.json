@@ -15,7 +15,7 @@
         "offset": 131
       },
       "extra": {
-        "fingerprint": "3ec667ee25d9ba0e512c6acc00261ab5",
+        "fingerprint": "64392c0fcdce063fbd3284f69f6ac8d2d6344b0bcde95bae53bb0bc282d12d08b85afc6a72604bb7329ddcfa4de8654bad10d9901545b20a0c287f724bf2338c_0",
         "is_ignored": false,
         "lines": "    myfile = open();\n    try {\n      foo(myfile);\n    }\n    finally {\n      close(myfile);",
         "message": "found",

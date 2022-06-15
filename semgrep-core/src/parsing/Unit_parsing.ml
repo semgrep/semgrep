@@ -86,6 +86,7 @@ let lang_parsing_tests () =
          let lang = Lang.Cpp in
          partial_parsing_tests_for_lang files lang);
       pack_parsing_tests_for_lang Lang.Php "php" ".php";
+      pack_parsing_tests_for_lang Lang.R "r" ".r";
     ]
 
 (* It's important that our parsers generate classic parsing errors

@@ -42,7 +42,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/Gemfile.lock"
           }
         ],
-        "fingerprint": "c61fb1ce8248b3d7e7d5200726fadbcf",
+        "fingerprint": "f58d6ef2e59188a6676d5f1566ca172482e729a0b60a020ce619eed0e68504a781b5e2b0030d727fbedcff84ccbee0de66970f6ab3b03ab891ab25465131e917_0",
         "is_ignored": false,
         "lines": "x = bad()",
         "message": "oh no",

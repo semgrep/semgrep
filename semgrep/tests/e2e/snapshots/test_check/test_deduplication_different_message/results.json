@@ -15,7 +15,7 @@
         "offset": 8
       },
       "extra": {
-        "fingerprint": "82306a9c04e2c9f926e1b663037035cc",
+        "fingerprint": "e9b2db0fbdbe073bb939ecc8419d1adc3e82526172194561b844798cfb3aa28d8ad5933761e64965422c71c3c25f989940ba43ae4cf7cb078d70001f4eb200ee_0",
         "is_ignored": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 1 foo",
@@ -73,7 +73,7 @@
         "offset": 8
       },
       "extra": {
-        "fingerprint": "2a2974a6d863cba8aef4bb5664b8352d",
+        "fingerprint": "5eb7d86ab17afe5adec8de536741901bcabc1d4a946f6960c81ee511f2e78188ec90e1a6fca9a1b73c2f83749663fc1cf357f5b609d6102199b56203259da3b9_1",
         "is_ignored": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 2 foo",

@@ -77,16 +77,14 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     so we need to reset the head to the actual PR branch head before continuing.
 
     Assumes cwd is a valid git project and that if we are in github-actions pull_request,
-    that metadata.base_commit_ref and metadata.head_ref point are the head commits of
-    the target merge branch and current branch respectively
+    metadata.head_branch_hash point to head commit of current branch
     """
     if isinstance(metadata, GithubMeta) and metadata.is_pull_request_event:
-        assert metadata.head_ref is not None  # Not none when github action PR
+        assert metadata.head_branch_hash is not None  # Not none when github action PR
+        assert metadata.base_branch_hash is not None
 
         logger.info("Fixing git state for github action pull request")
-        logger.debug(
-            f"base_commit_ref: {metadata.base_commit_ref}, head_ref: {metadata.head_ref}"
-        )
+
         logger.debug("Calling git rev-parse HEAD")
         rev_parse = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -100,9 +98,11 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         stashed_rev = rev_parse.stdout.rstrip()
         logger.debug(f"stashed_rev: {stashed_rev}")
 
-        logger.debug(f"Not on head ref {metadata.head_ref}; checking that out now.")
+        logger.info(
+            f"Not on head ref: {metadata.head_branch_hash}; checking that out now."
+        )
         checkout = subprocess.run(
-            ["git", "checkout", metadata.head_ref],
+            ["git", "checkout", metadata.head_branch_hash],
             encoding="utf-8",
             check=True,
             capture_output=True,
@@ -366,7 +366,7 @@ def ci(
                 timeout_threshold=timeout_threshold,
                 skip_unknown_extensions=(not scan_unknown_extensions),
                 optimizations=optimizations,
-                baseline_commit=metadata.base_commit_ref,
+                baseline_commit=metadata.merge_base_ref,
             )
     except SemgrepError as e:
         output_handler.handle_semgrep_errors([e])

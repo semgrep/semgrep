@@ -1,0 +1,32 @@
+rules:
+  - id: tainted-user-input-in-script
+    patterns:
+      - pattern: |
+          [ <?php $...PHP ?> ]
+      - metavariable-pattern:
+          metavariable: $...PHP
+          language: php
+          patterns:
+            - pattern-either:
+                - pattern: $_GET
+                - pattern: $_REQUEST
+                - pattern: $_POST
+                - pattern: $_COOKIE
+    message: Detected user input going into a php include command, which can lead to
+      path traversal and sensitive data being exposed. Instead, whitelist files
+      that the user can access.
+    metadata:
+      references:
+        - https://medium.com/@emmapinheiro42/php-include-ignore-4a3ba81371af
+        - https://www.acunetix.com/websitesecurity/php-security-2/
+      category: security
+      technology:
+        - php
+        - generic
+      cwe: "CWE-23: Relative Path Traversal"
+      owasp:
+        - A03:2021 - Injection
+        - A01:2017 - Injection
+    languages:
+      - generic
+    severity: ERROR

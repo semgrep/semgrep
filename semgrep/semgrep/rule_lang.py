@@ -284,7 +284,7 @@ class YamlTree(Generic[T]):
             return {str(k.unroll()): v.unroll() for k, v in self.value.items()}
         elif isinstance(self.value, YamlTree):
             return self.value.unroll()
-        elif isinstance(self.value, str) or isinstance(self.value, int):
+        elif isinstance(self.value, (str, int)) or self.value is None:
             return self.value
         else:
             raise ValueError(

@@ -15,7 +15,7 @@
         "offset": 45
       },
       "extra": {
-        "fingerprint": "cdcd45c673dbf050cf9984ba029d5eac",
+        "fingerprint": "0ac73d5a657e9b5e515d89ca6ff10648cca4d787cdbb6d682d7bf153f5a24b412e475bd6f31949268c7559033eba29d19cd49030e428d0380bac8cb1d8f7ebb2_0",
         "is_ignored": false,
         "lines": "        print(\"blah\")",
         "message": "'print(\"blah\")' detected in method 'B' in class 'A'",
@@ -90,7 +90,7 @@
         "offset": 80
       },
       "extra": {
-        "fingerprint": "e71221a369cb62f81e156d5c13716ce0",
+        "fingerprint": "9fe06736cb686ad0c683a77fa748ec016a3d4f87546464dbba9d6cb0a14f83a24731e881e0ceaf1b42d22dc74e9eb5c3c7035da9508e0f994d067af7ec150384_0",
         "is_ignored": false,
         "lines": "        print(\"bla\")",
         "message": "'print(\"bla\")' detected in method 'C' in class 'A'",
@@ -165,7 +165,7 @@
         "offset": 115
       },
       "extra": {
-        "fingerprint": "4c5f3acada25aecf973d0ffc0b9c87df",
+        "fingerprint": "af5ea328361c4ffa55c7b6e69c8bc2c8c0deef328c950cbb60eb526fbabcf9a83f639b85c0081d0f4664b0a361add6a8657b076f1f7318dcfd906a118b94eb66_0",
         "is_ignored": false,
         "lines": "        print('ble')",
         "message": "'print('ble')' detected in method 'D' in class 'A'",
@@ -240,7 +240,7 @@
         "offset": 192
       },
       "extra": {
-        "fingerprint": "e813d6f44fe77e6c8339028bbb51fe8a",
+        "fingerprint": "a59dde41e4602f42bbfc689dd064c94a3429b2a8e401d2872ce6cc29001b5aef94e0baf0e0a2d566769860cd1c9aece6f17260ceb756c99888bf26e2a3f722c7_0",
         "is_ignored": false,
         "lines": "        print(\"qwerty\")",
         "message": "'print(\"qwerty\")' detected in method 'G' in class 'F'",

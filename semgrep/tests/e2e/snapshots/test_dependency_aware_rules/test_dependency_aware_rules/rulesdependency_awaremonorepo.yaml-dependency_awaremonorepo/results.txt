@@ -46,7 +46,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/monorepo/webapp1/yarn.lock"
           }
         ],
-        "fingerprint": "f259dbe78c5afaa7d5dbc8059abb0792",
+        "fingerprint": "0f89f234ff5ecb0dd052e7962090f2b8a78164d31a8980c9288394079bd8360b640d38907400d7ec9f5d427a34dae64221486db915bc6a02cf8e11cb94097230_0",
         "is_ignored": false,
         "lines": "bad()",
         "message": "oh no",
@@ -89,7 +89,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/monorepo/webapp2/yarn.lock"
           }
         ],
-        "fingerprint": "8ccc21b07b8a8b8cf034f4a0a0bd9f6b",
+        "fingerprint": "e1f8e4d1fb984e6c1f9ac3392c434c5ea4abb707751fc4b52a6ee843820cc78ed333eab048c72c78c1a06039ff5d3506e4a7a433ab8f0eaabd407241ddf9018c_0",
         "is_ignored": false,
         "lines": "",
         "message": "oh no",

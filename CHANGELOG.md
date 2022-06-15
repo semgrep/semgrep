@@ -6,11 +6,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- New language R with experimental support (#2360)
+  Thanks to Zythosec for some contributions.
 - Autodetection of CI env now supports Azure Pipelines, Bitbucket, Buildkite, Circle CI, Jenkins,
   and Travis CI in addition to GitHub and GitLab
 - You can now disable version checks with an environment variable by setting
   `SEMGREP_ENABLE_VERSION_CHECK=0`
 - Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
+- An experimental LSP daemon mode for semgrep. Try it with `semgrep lsp --config auto`!
+
+### Changed
+
+- Rules are now downloaded from the Semgrep Registry in JSON format instead of YAML.
+  This speeds up rule parsing in the Semgrep CLI,
+  making a `semgrep --config auto` run on the semgrep Python package in 14s instead of 16s.
 
 ### Fixed
 
@@ -20,6 +29,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   This also could cause permission issues when running the image.
 - Go: single pattern field can now match toplevel fields in a composite
   literal (#5452)
+- PHP: metavariable-pattern: works again when used with language: php (#5443)
+- PHP: booleans are propagated by constant propagation (#5509)
+- PHP: named arguments work in patterns (#5508)
+- Fixed a non-deterministic crash when matching a large number of regexes (#5277)
+- Fixed issue when running in GithubActions that caused semgrep to report on
+  files not changed in the PR (#5453)
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 

@@ -28,7 +28,7 @@
         "offset": 69
       },
       "extra": {
-        "fingerprint": "46713aae5ee9a5e50567c8317afce53a",
+        "fingerprint": "c95dadc38e31ce4f3f682f26354a9603672325fa2de6d2ac189559c5750025378c093404fec16a51b71e1d290e001e899f1f27f2abb4c9c2d3c9a090e3091abd_0",
         "is_ignored": false,
         "lines": "    return a + b == a + b",
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
@@ -71,7 +71,7 @@
         "offset": 67
       },
       "extra": {
-        "fingerprint": "13ec0e550a317f2ee9e5aba6813b6c6c",
+        "fingerprint": "3f5ac7c8e5cbe55f0b56494328ff015b72cfc14b26600ea4cb5839c11a89fa6ca7b85c7a122aa882eefdecd19ee98b9be68eb1c9d899ec2ed3175def7dda585d_0",
         "is_ignored": false,
         "lines": "console.log(x == x)",
         "message": "useless comparison",

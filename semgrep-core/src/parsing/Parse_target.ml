@@ -350,7 +350,7 @@ let rec just_parse_with_lang lang file =
         Php_to_generic.program
   | Lang.Hack ->
       run file [ TreeSitter Parse_hack_tree_sitter.parse ] (fun x -> x)
-  | Lang.R -> failwith "No R parser yet; improve the one in tree-sitter"
+  | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
   | Lang.Yaml ->
       {
         ast = Yaml_to_generic.program file;
@@ -375,6 +375,7 @@ let rec just_parse_with_lang lang file =
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -399,6 +400,7 @@ let parse_and_resolve_name lang file =
 
   logger#info "Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done";
   res
+  [@@profiling]
 
 (* used in test files *)
 let parse_and_resolve_name_warn_if_partial lang file =

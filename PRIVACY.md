@@ -76,10 +76,12 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 
 - How long the command took to run
 - The version of Semgrep
+- An [anonymous user ID](#anonymous-user-id) that identifies the machine
 - Value of the CI environment variable, if set
 - Pseudoanonymized hash of the scanned project’s name
 - Pseudoanonymized hash of the rule definitions run
-- Pseduoanonymized hash of the config option
+- Pseduoanonymized hash of the config option.
+  _(Note that when a config option downloads a ruleset from the https://semgrep.dev registry, [feature usage metrics](#feature-usage) still include the ruleset name in plain text.)_
 
 ### Performance
 
@@ -105,6 +107,7 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 - Number of raised findings
 - Number of ignored findings
 - Pseudoanonymized hashes of the rule definitions that yield findings
+- The [Semgrep features used](#feature-usage) during the scan
 
 ### Pseudoanonymization
 
@@ -161,12 +164,16 @@ r2c will:
 |             | Warnings                                | Array of Warning Classes (compile-time-constant)                       | Understand most common warnings users encounter                                            | `["TimeoutExceeded"]`                                                                                                                                                                 | WarningClass[] |
 |             |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
 | Value       |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
-|             | Features used                           | List of strings that identify Semgrep features used                    | Understand what features users find valuable, and what we could deprecate                  | `["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`                                                                                           | Object         |
+|             | [Features used](#feature-usage)         | List of strings that identify Semgrep features used                    | Understand what features users find valuable, and what we could deprecate                  | `["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`                                                                                           | Object         |
 |             | Rule hashes with findings               | Map of rule hashes to number of findings                               | Understand which rules are providing value to the user; diagnose high false-positive rates | `{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}`                                                                                                             | Object         |
 |             | Total Findings                          | Count of all findings                                                  | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
 |             | Total Nosems                            | Count of all `nosem` annotations that tell semgrep to ignore a finding | Understand if rules are super noisy for the user                                           | 3                                                                                                                                                                                     | Number         |
 
-### Anonymous User ID
+**Note:** Using `semgrep scan --config auto` sends your project URL as a **key** for cached rule recommendations. Metrics must be enabled to make use of `--config auto`. To run scans **without sending the project URL**, specify a configuration. For example, run `semgrep --config p/python` for python-related rules.
+
+### Anonymous user ID
+
+> `anonymous_user_id: "5f52484c-3f82-4779-9353-b29bbd3193b6"`
 
 This ID is stored in the `~/.semgrep/settings.yml` file.
 If the ID disappears, the next run will generate a new one randomly.
@@ -183,6 +190,36 @@ The Semgrep team uses this to answer the following questions:
 
 This ID will only ever be sent with Semgrep's metrics collection endpoint,
 meaning it cannot be used to track users across the web.
+
+### Feature usage
+
+> `"features": ["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]`
+
+Examples of such features are: languages scanned, CLI options passed, keys used in rules, or certain code paths reached, such as using an :include instruction in a .semgrepignore file.
+These strings do NOT include user data or specific settings.
+As an example, for `semgrep scan --output=secret.txt` Semgrep sends `"option/output"` but will NOT send `"option/output=secret.txt"`.
+
+The list of features tracked as of June 2022 is:
+
+- `language`: What languages were scanned
+- `cli-flag`/`cli-envvar`: What options were configured (does NOT include their value)
+- `config`: What method was used to retrieve rules (does NOT include any of the rule)
+- `registry-query`: The value of a `--config r/foo.bar.baz` setting, limited to the first word (e.g. `r/foo..` in this example)
+- `ruleset`: The value of a `--config p/foobar` setting
+- `semgrepignore`: Whether an `:include` statement was used in a .semgrepignore file
+- `subcommand`: What subcommand was used (e.g. `scan` or `ci`)
+
+The Semgrep team uses this to answer the following questions:
+
+- > How many people use a given feature?
+
+  This guides our development,
+  and lets us decide when and how to deprecate features.
+
+- > How does feature usage affect finding counts, error counts, and performance?
+
+  We use this to evaluate experimental features
+  and understand their production-readiness.
 
 ### Sample metrics
 

@@ -36,6 +36,7 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
+  parsing_cache_dir : Common.dirname; (* "" means no cache *)
   (* Flag used by the semgrep-python wrapper *)
   target_file : string;
   (* Common.ml action for the -dump_xxx *)

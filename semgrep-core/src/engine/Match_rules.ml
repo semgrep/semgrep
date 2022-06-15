@@ -25,11 +25,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Small wrapper around Match_search_rules and Match_tainting_rules
- *
- * TODO: now that all the multiple rules handling is done here,
- * we could rename Match_search_rules in Match_search_rule
- * (and same for Match_tainting_rules).
+(* Small wrapper around Match_search_mode and Match_tainting_mode
  *)
 
 (*****************************************************************************)
@@ -110,13 +106,13 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                        (* dispatching *)
                        match r.R.mode with
                        | Search pformula ->
-                           Match_search_rules.check_rule r match_hook
+                           Match_search_mode.check_rule r match_hook
                              default_config pformula xtarget
                        | Taint taint_spec ->
                            (* TODO: 'debug_taint' should just be part of 'res'
                             * (i.e., add a "debugging" field to 'Report.match_result'). *)
                            let res, _TODO_debug_taint =
-                             Match_tainting_rules.check_rule r match_hook
+                             Match_tainting_mode.check_rule r match_hook
                                default_config taint_spec xtarget
                            in
                            res)

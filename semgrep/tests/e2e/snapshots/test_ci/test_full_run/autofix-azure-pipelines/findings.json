@@ -15,7 +15,8 @@
       "commit_date": "sanitized",
       "syntactic_id": "8c695a6a4ab5ffff33d0103309a310c1",
       "metadata": {},
-      "is_blocking": true
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0"
     },
     {
       "check_id": "eqeq-bad",
@@ -30,7 +31,8 @@
       "commit_date": "sanitized",
       "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
       "metadata": {},
-      "is_blocking": true
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1"
     },
     {
       "check_id": "eqeq-bad",
@@ -45,7 +47,8 @@
       "commit_date": "sanitized",
       "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
       "metadata": {},
-      "is_blocking": true
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3"
     },
     {
       "check_id": "eqeq-bad",
@@ -60,7 +63,8 @@
       "commit_date": "sanitized",
       "syntactic_id": "d44049421636e370e7906a6bed5fce54",
       "metadata": {},
-      "is_blocking": true
+      "is_blocking": true,
+      "match_based_id": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0"
     },
     {
       "check_id": "eqeq-five",
@@ -78,6 +82,7 @@
         "dev.semgrep.actions": []
       },
       "is_blocking": false,
+      "match_based_id": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
       "fixed_lines": [
         "    x == 2"
       ]
@@ -99,7 +104,8 @@
           "block"
         ]
       },
-      "is_blocking": true
+      "is_blocking": true,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1"
     },
     {
       "check_id": "__r2c-internal-cai_eqeq",
@@ -114,7 +120,8 @@
       "commit_date": "sanitized",
       "syntactic_id": "985498b46aff45ebdffe6a26af8524ab",
       "metadata": {},
-      "is_blocking": true
+      "is_blocking": true,
+      "match_based_id": "428d340d1be54b3f1fbc781d56aef28eb2092d3f140cab3a5d03ad7a769e21803c79eb728c18dce723226b7f224e8f688395081ca05d48bc2c1590d312d26fca_0"
     }
   ],
   "searched_paths": [

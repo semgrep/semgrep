@@ -105,7 +105,9 @@ let stmt1 xs =
 
 let fake_call_to_builtin (env : env) tok args =
   let str, tok = tok in
-  A.Call (A.Id [ (A.builtin str, tok) ], Parse_info.fake_bracket tok args)
+  A.Call
+    ( A.Id [ (A.builtin str, tok) ],
+      Parse_info.fake_bracket tok (args |> Common.map (fun x -> A.Arg x)) )
 
 let rec chain_else_if (env : env) ifelses (else_ : A.stmt) : A.stmt =
   match ifelses with
@@ -291,6 +293,17 @@ let map_integer env tok =
   let value = int_of_string value in
   A.Int (Some value, tok)
 
+let map_boolean env tok =
+  let bool_of_string value =
+    let canonicalized_value = String.lowercase_ascii value in
+    if canonicalized_value = "true" then true
+    else if canonicalized_value = "false" then false
+    else failwith ("Not a valid PHP boolean: " ^ value)
+  in
+  let value, tok = _str env tok in
+  let value = bool_of_string value in
+  A.Bool (value, tok)
+
 let map_literal (env : env) (x : CST.literal) : A.expr =
   match x with
   | `Int tok ->
@@ -308,8 +321,7 @@ let map_literal (env : env) (x : CST.literal) : A.expr =
   | `Str_ x -> map_string__ env x
   | `Bool tok ->
       (* pattern [Tt][Rr][Uu][Ee]|[Ff][Aa][Ll][Ss][Ee] *)
-      (* TODO Bool should have its own AST node *)
-      Id [ _str env tok ]
+      map_boolean env tok
   | `Null tok ->
       (* pattern [nN][uU][lL][lL] *)
       (* TODO Null should have its own AST node *)
@@ -681,15 +693,17 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
         }
 
 and map_argument (env : env) ((v1, v2) : CST.argument) =
-  let v1_todo =
-    match v1 with
-    | Some x -> Some (map_named_label_statement env x)
-    | None -> None
-  in
   let v2 =
     match v2 with
-    | `Vari_unpa x -> map_variadic_unpacking env x
-    | `Exp x -> map_expression env x
+    | `Vari_unpa (v1, v2) ->
+        let v1 = (* "..." *) token env v1 in
+        let v2 = map_expression env v2 in
+        A.ArgUnpack (v1, v2)
+    | `Exp x -> (
+        match v1 with
+        | Some (v1, v2) ->
+            A.ArgLabel (_str env v1, token env v2, map_expression env x)
+        | None -> A.Arg (map_expression env x))
   in
   v2
 
@@ -1122,13 +1136,14 @@ and map_dynamic_variable_name (env : env) (x : CST.dynamic_variable_name) =
       let v1 = (* "$" *) token env v1 in
       let v2 = map_variable_name_ env v2 in
       A.Call
-        (A.Id [ (A.builtin "eval_var", v1) ], Parse_info.fake_bracket v1 [ v2 ])
+        ( A.Id [ (A.builtin "eval_var", v1) ],
+          Parse_info.fake_bracket v1 [ A.Arg v2 ] )
   | `DOLLAR_LCURL_exp_RCURL (v1, v2, v3, v4) ->
       let v1 = (* "$" *) token env v1 in
       let v2 = (* "{" *) token env v2 in
       let v3 = map_expression env v3 in
       let v4 = (* "}" *) token env v4 in
-      A.Call (A.Id [ (A.builtin "eval_var", v1) ], (v2, [ v3 ], v4))
+      A.Call (A.Id [ (A.builtin "eval_var", v1) ], (v2, [ A.Arg v3 ], v4))
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) =
   let v1 = (* pattern [eE][lL][sS][eE] *) token env v1 in
@@ -1924,7 +1939,7 @@ and map_statement (env : env) (x : CST.statement) =
   | `Decl_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "declare" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
-      let v3 = map_declare_directive env v3 in
+      let v3 = A.Arg (map_declare_directive env v3) in
       let v4 = (* ")" *) token env v4 in
       let v5 =
         match v5 with
@@ -1950,13 +1965,13 @@ and map_statement (env : env) (x : CST.statement) =
   | `Unset_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "unset" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
-      let v3 = map_variable env v3 in
+      let v3 = A.Arg (map_variable env v3) in
       let v4 =
         Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = map_variable env v2 in
-            v2)
+            A.Arg v2)
           v4
       in
       let v5 = (* ")" *) token env v5 in
@@ -2288,7 +2303,7 @@ and map_unary_op_expression (env : env) (x : CST.unary_op_expression) =
   match x with
   | `AT_exp (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
-      let v2 = map_expression env v2 in
+      let v2 = A.Arg (map_expression env v2) in
       A.Call (A.Id [ (A.builtin "at", v1) ], Parse_info.fake_bracket v1 [ v2 ])
   | `Choice_PLUS_exp (v1, v2) ->
       let v1 =

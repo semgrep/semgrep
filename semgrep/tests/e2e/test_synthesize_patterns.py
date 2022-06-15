@@ -1,28 +1,17 @@
 import json
-import subprocess
 
 import pytest
 
 
 @pytest.mark.kinda_slow
-def test_synthesize_patterns():
-    output = subprocess.check_output(
-        [
-            "python",
-            "-m",
-            "semgrep",
-            "--disable-version-check",
-            "--metrics",
-            "off",
-            "--synthesize-patterns",
-            "6:10-6:30",
-            "--lang",
-            "py",
-            "tests/e2e/targets/synthesizing/ex1.py",
+def test_synthesize_patterns(run_semgrep_in_tmp):
+    stdout, _ = run_semgrep_in_tmp(
+        target_name="synthesizing/ex1.py",
+        options=[
+            "--synthesize-patterns=6:10-6:30",
+            "--lang=py",
         ],
-        encoding="utf-8",
     )
-    print("output = ", output)
-    output_json = json.loads(output)
+    output_json = json.loads(stdout)
     assert output_json["exact match"] == "metrics.send('my-report-id')"
     assert output_json["dots"] == "metrics.send(...)"

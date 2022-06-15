@@ -7,6 +7,7 @@
   "index": 0,
   "is_blocking": true,
   "line": 0,
+  "match_based_id": "ac39ef6548f7e4407744659d806fdcd7ed74bff05adf3663a15a6f58a0207a628bf9bc7dd83c598afda27a848c236df8d179557e064e82d8bd776020635992ad_0",
   "message": "message",
   "metadata": {},
   "path": "foo.py",

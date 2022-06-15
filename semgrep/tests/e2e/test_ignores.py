@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from ..conftest import TESTS_PATH
+from tests.conftest import _clean_output_json
 
 
 @pytest.mark.kinda_slow
@@ -32,6 +33,7 @@ def test_default_semgrepignore(run_semgrep_in_tmp, snapshot):
 @pytest.mark.kinda_slow
 def test_file_not_relative_to_base_path(run_semgrep, snapshot):
     results = run_semgrep(options=["--json", "-e", "a", "--lang", "js", "-"], stdin="a")
+    results.raw_stdout = _clean_output_json(results.raw_stdout, True)
     snapshot.assert_match(results.as_snapshot(), "results.txt")
 
 

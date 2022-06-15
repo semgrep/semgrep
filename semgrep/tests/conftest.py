@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import tempfile
 from dataclasses import dataclass
 from functools import partial
@@ -67,7 +68,7 @@ def _clean_stdout(out):
     return json.dumps(json_output)
 
 
-def _clean_output_json(output_json: str) -> str:
+def _clean_output_json(output_json: str, clean_fingerprint: bool = False) -> str:
     """Make semgrep's output deterministic and nicer to read."""
     try:
         output = json.loads(output_json)
@@ -92,7 +93,7 @@ def _clean_output_json(output_json: str) -> str:
             p = r.get("path")
             if p and "/tmp" in p:
                 r["path"] = "/tmp/masked/path"
-                # the fingerprint contains the path too
+            if clean_fingerprint:
                 r["extra"]["fingerprint"] = "0x42"
 
     paths = output.get("paths", {})
@@ -374,3 +375,26 @@ def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep
+
+
+@pytest.fixture
+def git_tmp_path(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    # Initialize State
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "baselinetest@r2c.dev"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Baseline Test"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "checkout", "-B", "main"],
+        check=True,
+        capture_output=True,
+    )
+    yield tmp_path
