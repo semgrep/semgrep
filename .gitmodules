@@ -82,7 +82,7 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-swift"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-swift
 	url = https://github.com/returntocorp/semgrep-swift.git
-[submodule "semgrep/semgrep/semgrep-interfaces"]
+[submodule "cli/src/semgrep/semgrep-interfaces"]
 	path = cli/src/semgrep/semgrep_interfaces
 	url = https://github.com/returntocorp/semgrep-interfaces.git
 [submodule "semgrep-core/tests/semgrep-rules"]
