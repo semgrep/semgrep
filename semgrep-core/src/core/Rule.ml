@@ -284,13 +284,45 @@ let string_of_invalid_rule_error_kind = function
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | InvalidOther s -> s
 
-exception InvalidRule of invalid_rule_error
+(* General errors
 
-(* general errors *)
+   TODO: define one exception for all this because pattern-matching
+   on exceptions has no exhaustiveness checking.
+*)
+exception InvalidRule of invalid_rule_error
 exception InvalidYaml of string * Parse_info.t
 exception DuplicateYamlKey of string * Parse_info.t
 exception UnparsableYamlException of string
 exception ExceededMemoryLimit of string
+
+let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
+  spf "invalid rule %s, %s: %s" rule_id
+    (Parse_info.string_of_info pos)
+    (string_of_invalid_rule_error_kind kind)
+
+(*
+   Exception printers for Printexc.to_string.
+*)
+let opt_string_of_exn (exn : exn) =
+  match exn with
+  | InvalidRule x -> Some (string_of_invalid_rule_error x)
+  | InvalidYaml (msg, pos) ->
+      Some (spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg)
+  | DuplicateYamlKey (key, pos) ->
+      Some
+        (spf "invalid YAML, %s: duplicate key %S"
+           (Parse_info.string_of_info pos)
+           key)
+  | UnparsableYamlException s ->
+      (* TODO: what's the string s? *)
+      Some (spf "unparsable YAML: %s" s)
+  | ExceededMemoryLimit s ->
+      (* TODO: what's the string s? *)
+      Some (spf "exceeded memory limit: %s" s)
+  | _ -> None
+
+(* to be called by the application's main() *)
+let register_exception_printer () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)
 (* Visitor/extractor *)

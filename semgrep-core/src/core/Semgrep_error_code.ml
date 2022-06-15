@@ -71,13 +71,21 @@ let mk_error_tok ?(rule_id = None) tok msg err =
 let error rule_id loc msg err =
   Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
 
-(* TODO: why not capture AST_generic.error here? So we could get rid
- * of Run_semgrep.exn_to_error wrapper.
+(*
+   This function converts known exceptions to Semgrep errors.
+   We also use it to register global exception printers for
+   'Printexc.to_string' to show useful messages.
+
+   TODO: why not capture AST_generic.error here? So we could get rid
+   of Run_semgrep.exn_to_error wrapper.
+
+   TODO: register exception printers in their modules of origin
+   (using Printexc.register_printer).
  *)
-let exn_to_error ?(rule_id = None) file exn =
-  match exn with
+let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
+  match Exception.get_exn e with
   | Parse_info.Lexical_error (s, tok) ->
-      mk_error_tok ~rule_id tok s Out.LexicalError
+      Some (mk_error_tok ~rule_id tok s Out.LexicalError)
   | Parse_info.Parsing_error tok ->
       let msg =
         match tok with
@@ -85,58 +93,71 @@ let exn_to_error ?(rule_id = None) file exn =
             spf "`%s` was unexpected" str
         | _ -> "unknown reason"
       in
-      mk_error_tok tok msg Out.ParseError
+      Some (mk_error_tok tok msg Out.ParseError)
   | Parse_info.Other_error (s, tok) ->
-      mk_error_tok ~rule_id tok s Out.SpecifiedParseError
+      Some (mk_error_tok ~rule_id tok s Out.SpecifiedParseError)
   | Rule.InvalidRule
       (Rule.InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos)
     ->
-      {
-        rule_id = Some rule_id;
-        typ = Out.PatternParseError yaml_path;
-        loc = PI.unsafe_token_location_of_info pos;
-        msg =
-          (* TODO: make message helpful *)
-          spf
-            "Invalid pattern for %s:\n\
-             --- pattern ---\n\
-             %s\n\
-             --- end pattern ---\n\
-             Pattern error: %s\n"
-            (Xlang.to_string xlang) pattern message;
-        details = None;
-      }
+      Some
+        {
+          rule_id = Some rule_id;
+          typ = Out.PatternParseError yaml_path;
+          loc = PI.unsafe_token_location_of_info pos;
+          msg =
+            (* TODO: make message helpful *)
+            spf
+              "Invalid pattern for %s:\n\
+               --- pattern ---\n\
+               %s\n\
+               --- end pattern ---\n\
+               Pattern error: %s\n"
+              (Xlang.to_string xlang) pattern message;
+          details = None;
+        }
   | Rule.InvalidRule (kind, rule_id, pos) ->
       let str = Rule.string_of_invalid_rule_error_kind kind in
-      mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError
-  | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg Out.InvalidYaml
+      Some (mk_error_tok ~rule_id:(Some rule_id) pos str Out.RuleParseError)
+  | Rule.InvalidYaml (msg, pos) ->
+      Some (mk_error_tok ~rule_id pos msg Out.InvalidYaml)
   | Rule.DuplicateYamlKey (s, pos) ->
-      mk_error_tok ~rule_id pos s Out.InvalidYaml
+      Some (mk_error_tok ~rule_id pos s Out.InvalidYaml)
   | Common.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       logger#error "WEIRD Timeout converted to exn, backtrace = %s" s;
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
-      mk_error ~rule_id loc msg Out.Timeout
+      Some (mk_error ~rule_id loc msg Out.Timeout)
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory
+      Some (mk_error ~rule_id loc "Heap space exceeded" Out.OutOfMemory)
   | ExceededMemoryLimit msg ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error ~rule_id loc msg Out.OutOfMemory
-  | UnixExit _ as exn -> raise exn
+      Some (mk_error ~rule_id loc msg Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
-  | exn ->
-      let trace = Printexc.get_backtrace () in
-      let loc = Parse_info.first_loc_of_file file in
-      {
-        rule_id;
-        typ = Out.FatalError;
-        loc;
-        msg = Common.exn_to_s exn;
-        details = Some trace;
-      }
+  | _exn -> None
+
+let exn_to_error ?(rule_id = None) file (e : Exception.t) : error =
+  match known_exn_to_error ~rule_id file e with
+  | Some err -> err
+  | None -> (
+      match Exception.get_exn e with
+      | UnixExit _ ->
+          (* TODO: remove this.
+             This exception shouldn't be passed to this function
+             in the first place. *)
+          Exception.reraise e
+      | exn ->
+          let trace = Exception.to_string e in
+          let loc = Parse_info.first_loc_of_file file in
+          {
+            rule_id;
+            typ = Out.FatalError;
+            loc;
+            msg = Printexc.to_string exn;
+            details = Some trace;
+          })
 
 (*****************************************************************************)
 (* Pretty printers *)
@@ -182,28 +203,20 @@ let severity_of_error typ =
 
 let try_with_exn_to_error file f =
   try f () with
-  | Timeout _ as exn -> raise exn
-  | exn -> Common.push (exn_to_error file exn) g_errors
+  | Timeout _ as exn -> Exception.catch_and_reraise exn
+  | exn ->
+      let e = Exception.catch exn in
+      Common.push (exn_to_error file e) g_errors
 
 let try_with_print_exn_and_reraise file f =
   try f () with
-  | Timeout _ as exn -> raise exn
+  | Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
-      let bt = Printexc.get_backtrace () in
-      let err = exn_to_error file exn in
+      let e = Exception.catch exn in
+      let err = exn_to_error file e in
       pr2 (string_of_error err);
-      pr2 bt;
-      (* does not really re-raise :( lose some backtrace *)
-      raise exn
-
-(* fast = no stack trace *)
-let try_with_print_exn_and_exit_fast file f =
-  try f () with
-  | Timeout _ as exn -> raise exn
-  | exn ->
-      let err = exn_to_error file exn in
-      pr2 (string_of_error err);
-      exit 2
+      pr2 (Exception.to_string e);
+      Exception.reraise e
 
 (*****************************************************************************)
 (* Helper functions to use in testing code *)

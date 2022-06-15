@@ -50,7 +50,7 @@ val print_match :
   Parse_info.t list ->
   unit
 
-val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
+val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
 (**
   Small wrapper over Semgrep_error_code.exn_to_error to handle also
   semgrep-specific exns that have a position.
