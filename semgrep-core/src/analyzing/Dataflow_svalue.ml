@@ -69,13 +69,14 @@ let result_of_function_call_is_constant lang f args =
     | Some constness_f -> (
         match constness_f f_name with
         | Some Constant ->
-            logger#info "%s is always constant" f_name;
+            logger#trace "%s is always constant" f_name;
             true
         | Some NotAlwaysConstant ->
-            logger#info "%s is not always constant" f_name;
+            logger#trace "%s is not always constant" f_name;
             false
         | None ->
-            logger#info "%s has not been read" f_name;
+            logger#trace "we have no information about the constness of %s"
+              f_name;
             false)
     | _ -> false
   in
