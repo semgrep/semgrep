@@ -401,10 +401,10 @@ jobs:
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
-          python3 perf/run-benchmarks --small-only --std-only --save-to cli/src/baseline_timing1.json --no-time
-          jq . cli/src/baseline_timing1.json
-          python3 perf/run-benchmarks --small-only --std-only --save-to cli/src/baseline_timing2.json --no-time
-          jq . cli/src/baseline_timing2.json
+          python3 perf/run-benchmarks --small-only --std-only --save-to cli/baseline_timing1.json --no-time
+          jq . cli/baseline_timing1.json
+          python3 perf/run-benchmarks --small-only --std-only --save-to cli/baseline_timing2.json --no-time
+          jq . cli/baseline_timing2.json
           pip3 uninstall -y semgrep
       - name: Download artifacts
         uses: actions/download-artifact@v3
