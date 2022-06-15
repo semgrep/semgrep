@@ -57,7 +57,7 @@ def get_file_ignore() -> FileIgnore:
     except FileNotFoundError:
         workdir = Path.home()
         logger.warn(
-            f"Current working directory does not exist! Using {workdir} as working directory"
+            f"Current working directory does not exist! Instead checking {workdir} for .semgrepignore files"
         )
 
     # Meant to be used only by semgrep-action
