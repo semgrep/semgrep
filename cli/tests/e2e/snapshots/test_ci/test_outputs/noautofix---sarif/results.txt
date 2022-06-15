@@ -395,8 +395,6 @@ Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
 
 CI scan completed successfully.
   Found 11 findings (9 blocking) from 3 rules.

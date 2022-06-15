@@ -39,8 +39,6 @@ Scanning across multiple languages:
         js | 1 rule  ×  3 files
 
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
 
 Ran 4 rules on 14 files: 2 findings.
 
@@ -79,8 +77,6 @@ Scanning across multiple languages:
         js | 1 rule  ×  3 files
 
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
 
 Ran 4 rules on 14 files: 2 findings.
 
