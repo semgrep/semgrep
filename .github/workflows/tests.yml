@@ -299,7 +299,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test_name: ["public_repos", "semgrep_rules_repo"]
+        split: [1, 2, 3, 4]
     steps:
       - name: Install pipenv
         run: pipx install pipenv==2022.6.7
@@ -329,7 +329,7 @@ jobs:
         if: matrix.test_name == 'public_repos'
         with:
           path: ~/.cache/qa-public-repos
-          key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}
+          key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
       - run: |
           mkdir -p ~/.cache/qa-public-repos
           touch ~/.cache/qa-public-repos/ok
@@ -337,7 +337,7 @@ jobs:
         working-directory: cli
         run: |
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_${{ matrix.test_name }}.py
+          pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
         env:
           QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
 

@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
+addopts = "--splitting-algorithm=least_duration"
 minversion = "7.0"
 testpaths = [
     "tests/unit",
