@@ -326,7 +326,6 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
       - uses: actions/cache@v3
-        if: matrix.test_name == 'public_repos'
         with:
           path: ~/.cache/qa-public-repos
           key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
