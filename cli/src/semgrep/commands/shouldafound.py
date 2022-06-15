@@ -8,7 +8,6 @@ from typing import Optional
 from typing import Sequence
 
 import click
-
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.error import SemgrepError
 from semgrep.state import get_state

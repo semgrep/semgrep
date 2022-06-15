@@ -3,7 +3,6 @@ from typing import List
 
 import click
 import requests
-
 from semgrep.constants import RETURNTOCORP_LEVER_URL
 
 

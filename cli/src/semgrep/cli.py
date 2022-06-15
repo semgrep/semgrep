@@ -2,7 +2,6 @@
 import subprocess
 
 import click
-
 from semgrep.commands.ci import ci
 from semgrep.commands.install import install_deep_semgrep
 from semgrep.commands.login import login

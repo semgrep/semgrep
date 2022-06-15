@@ -13,13 +13,12 @@ from typing import Set
 from typing import Tuple
 
 import click
-from click.shell_completion import CompletionItem
-from click_option_group import MutuallyExclusiveOptionGroup
-from click_option_group import optgroup
-
 import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
+from click.shell_completion import CompletionItem
+from click_option_group import MutuallyExclusiveOptionGroup
+from click_option_group import optgroup
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep.app.registry import list_current_public_rulesets

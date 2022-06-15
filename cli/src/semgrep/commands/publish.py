@@ -8,7 +8,6 @@ from typing import Optional
 from typing import Tuple
 
 import click
-
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config

@@ -12,7 +12,6 @@ from typing import Sequence
 from typing import Tuple
 
 import click
-
 import semgrep.semgrep_main
 from semgrep.app import auth
 from semgrep.app.scans import ScanHandler

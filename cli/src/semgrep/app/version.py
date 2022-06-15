@@ -16,7 +16,6 @@ from typing import Optional
 import requests
 from packaging.version import InvalidVersion
 from packaging.version import Version
-
 from semgrep import __VERSION__
 from semgrep.state import get_state
 from semgrep.types import JsonObject

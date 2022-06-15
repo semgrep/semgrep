@@ -18,6 +18,7 @@ from typing import TypeVar
 from typing import Union
 
 import jsonschema.exceptions
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from attrs import evolve
 from attrs import frozen
 from jsonschema.validators import Draft7Validator
@@ -25,8 +26,6 @@ from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
-
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
 # Do not construct SourceFileHash directly, use `SpanBuilder().add_source`

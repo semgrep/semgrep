@@ -1,5 +1,4 @@
 import pytest
-
 from semgrep.semgrep_types import LANGUAGE
 
 

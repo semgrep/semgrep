@@ -17,12 +17,11 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from attrs import evolve
 from attrs import field
 from attrs import frozen
-
-import semgrep.output_from_core as core
-import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]

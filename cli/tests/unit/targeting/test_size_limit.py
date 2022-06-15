@@ -2,7 +2,6 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
-
 from semgrep.target_manager import TargetManager
 
 

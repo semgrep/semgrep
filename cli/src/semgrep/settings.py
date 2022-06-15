@@ -21,11 +21,10 @@ from typing import Mapping
 from attr import define
 from attr import field
 from ruamel.yaml import YAML
-from typing_extensions import Literal
-from typing_extensions import TypedDict
-
 from semgrep.env import Env
 from semgrep.verbose_logging import getLogger
+from typing_extensions import Literal
+from typing_extensions import TypedDict
 
 logger = getLogger(__name__)
 yaml = YAML()

@@ -1,7 +1,6 @@
 import click
 from attrs import Factory
 from attrs import frozen
-
 from semgrep.app.session import AppSession
 from semgrep.env import Env
 from semgrep.metrics import Metrics

@@ -21,7 +21,6 @@ from typing import Union
 import colorama
 import pytest
 from click.testing import CliRunner
-
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat

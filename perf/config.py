@@ -13,7 +13,6 @@ import requests
 from attrs import define
 from attrs import field
 from ruamel.yaml import YAML
-
 from semgrep.state import get_state
 
 
