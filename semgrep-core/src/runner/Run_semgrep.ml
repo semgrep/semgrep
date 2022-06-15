@@ -384,17 +384,17 @@ let mk_rule_table rules =
   let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
   Common.hash_of_list rule_pairs
 
-let xtarget_of_file _config xlang file =
+let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
         (* xlang from the language field in -target, which should be unique *)
         assert (other_langs = []);
         lazy
-          (let { Parse_target.ast; skipped_tokens; _ } =
-             Parse_target.parse_and_resolve_name lang file
-           in
-           (ast, skipped_tokens))
+          (Parse_with_caching.parse_and_resolve_name
+             ~parsing_cache_dir:"/home/pad/.semgrep/cache"
+             (* alt: could define a AST_generic.version *)
+             config.version lang file)
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 

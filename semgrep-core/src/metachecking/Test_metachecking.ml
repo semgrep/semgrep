@@ -52,6 +52,7 @@ let config =
     max_memory_mb = 0;
     max_match_per_file = 10000;
     ncores = 1;
+    parsing_cache_dir = "";
     target_file = "";
     action = "";
     version = "test";

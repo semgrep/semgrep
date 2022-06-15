@@ -129,6 +129,7 @@ let ncores = ref 1
 (* optional optimizations *)
 (* ------------------------------------------------------------------------- *)
 (* see Flag_semgrep.ml *)
+let use_parsing_cache = ref ""
 
 (* ------------------------------------------------------------------------- *)
 (* flags used by the semgrep-python wrapper *)
@@ -308,6 +309,7 @@ let mk_config () =
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
     ncores = !ncores;
+    parsing_cache_dir = !use_parsing_cache;
     target_file = !target_file;
     action = !action;
     version = Version.version;
@@ -450,6 +452,12 @@ let options () =
       Arg.Set_string equivalences_file,
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
+    ( "-opt_cache",
+      Arg.Set Flag.with_opt_cache,
+      " enable caching optimization during matching" );
+    ( "-use_parsing_cache",
+      Arg.Set_string use_parsing_cache,
+      " <dir> store and use the parsed generic ASTs in dir" );
     ( "-opt_cache",
       Arg.Set Flag.with_opt_cache,
       " enable caching optimization during matching" );
