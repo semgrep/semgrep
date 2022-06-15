@@ -392,7 +392,7 @@ let xtarget_of_file config xlang file =
         assert (other_langs = []);
         lazy
           (Parse_with_caching.parse_and_resolve_name
-             ~parsing_cache_dir:"/home/pad/.semgrep/cache"
+             ~parsing_cache_dir:config.parsing_cache_dir
              (* alt: could define a AST_generic.version *)
              config.version lang file)
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
