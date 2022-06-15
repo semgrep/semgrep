@@ -111,7 +111,7 @@
             }
           }
         },
-        "severity": "ERROR"
+        "severity": "INFO"
       },
       "path": "targets/basic/stupid.py",
       "start": {
