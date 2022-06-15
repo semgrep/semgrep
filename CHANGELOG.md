@@ -29,8 +29,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Rules are now downloaded from the Semgrep Registry in JSON format instead of YAML.
   This speeds up rule parsing in the Semgrep CLI,
-  making a `semgrep --config auto` run on the semgrep Python package in 14s instead of 16s.`
-``
+  making a `semgrep --config auto` run on the semgrep Python package in 14s instead of 16s.
 
 ### Fixed
 
