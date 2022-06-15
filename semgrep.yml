@@ -130,7 +130,7 @@ rules:
     severity: ERROR
     paths:
       include:
-        - cli/*
+        - cli/src/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
