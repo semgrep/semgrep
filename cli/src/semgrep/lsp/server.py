@@ -13,6 +13,7 @@ from pylsp_jsonrpc.dispatchers import MethodDispatcher
 from pylsp_jsonrpc.endpoint import Endpoint
 from pylsp_jsonrpc.streams import JsonRpcStreamReader
 from pylsp_jsonrpc.streams import JsonRpcStreamWriter
+
 from semgrep import __VERSION__ as SEMGREP_VERSION
 from semgrep import config_resolver
 from semgrep.lsp.convert import findings_to_diagnostic

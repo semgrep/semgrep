@@ -56,7 +56,7 @@ repos:
     rev: v3.1.0
     hooks:
       - id: reorder-python-imports
-        args: ["--application-directories=.:cli", --py37-plus]
+        args: ["--application-directories=cli/src", --py37-plus]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.34.0

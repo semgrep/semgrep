@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pytest
+from tests.conftest import _clean_output_json
 
 from ..conftest import TESTS_PATH
-from tests.conftest import _clean_output_json
 
 
 @pytest.mark.kinda_slow

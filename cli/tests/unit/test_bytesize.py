@@ -1,4 +1,5 @@
 import pytest
+
 from semgrep.bytesize import parse_size
 
 

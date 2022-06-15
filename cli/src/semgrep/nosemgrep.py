@@ -19,6 +19,7 @@ from typing import Tuple
 
 from attrs import evolve
 from boltons.iterutils import partition
+
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import NOSEM_PREVIOUS_LINE_RE

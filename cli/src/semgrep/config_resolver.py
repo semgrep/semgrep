@@ -18,6 +18,7 @@ from typing import Tuple
 import requests
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
+
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors

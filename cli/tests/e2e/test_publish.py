@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-from semgrep.cli import cli
-
 from tests.conftest import TESTS_PATH
+
+from semgrep.cli import cli
 
 
 @pytest.mark.kinda_slow

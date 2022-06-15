@@ -7,6 +7,7 @@ from typing import Set
 from typing import Tuple
 
 import pytest
+
 from semgrep.test import COMMENT_SYNTAXES
 from semgrep.test import line_has_ok
 from semgrep.test import line_has_rule

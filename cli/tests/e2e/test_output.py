@@ -6,9 +6,9 @@ from typing import Dict
 from xml.etree import cElementTree
 
 import pytest
-from semgrep.constants import OutputFormat
-
 from tests.conftest import TESTS_PATH
+
+from semgrep.constants import OutputFormat
 
 
 # https://stackoverflow.com/a/10077069

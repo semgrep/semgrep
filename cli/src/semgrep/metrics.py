@@ -22,6 +22,9 @@ import click
 import requests
 from attr import define
 from attr import Factory
+from typing_extensions import LiteralString
+from typing_extensions import TypedDict
+
 from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.profile_manager import ProfileManager
@@ -29,8 +32,6 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
-from typing_extensions import LiteralString
-from typing_extensions import TypedDict
 
 logger = getLogger(__name__)
 

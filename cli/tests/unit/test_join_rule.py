@@ -1,4 +1,5 @@
 import pytest
+
 from semgrep.join_rule import Condition
 from semgrep.join_rule import create_collection_set_from_conditions
 from semgrep.join_rule import create_model_map

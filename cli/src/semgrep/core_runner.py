@@ -18,11 +18,13 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
-import semgrep.output_from_core as core
 from attr import asdict
 from attr import field
 from attr import frozen
 from ruamel.yaml import YAML
+from tqdm import tqdm
+
+import semgrep.output_from_core as core
 from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -47,7 +49,6 @@ from semgrep.target_manager import TargetManager
 from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
-from tqdm import tqdm
 
 logger = getLogger(__name__)
 

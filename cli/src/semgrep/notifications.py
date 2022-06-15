@@ -1,7 +1,8 @@
+from typing_extensions import Final
+
 from semgrep.constants import Colors
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
-from typing_extensions import Final
 
 HAS_SHOWN_SETTINGS_KEY: Final = "has_shown_metrics_notification"
 

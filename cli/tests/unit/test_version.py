@@ -1,4 +1,5 @@
 import pytest
+
 from semgrep.app import version
 
 

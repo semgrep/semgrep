@@ -13,6 +13,7 @@ from typing import TypeVar
 from urllib.parse import urlparse
 
 import click
+
 from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES

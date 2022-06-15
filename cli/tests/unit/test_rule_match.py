@@ -3,6 +3,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+
 import semgrep.output_from_core as core
 from semgrep.config_resolver import parse_config_string
 from semgrep.constants import RuleSeverity

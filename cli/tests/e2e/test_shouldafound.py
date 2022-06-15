@@ -5,6 +5,7 @@ from shutil import copytree
 from unittest.mock import ANY
 
 import pytest
+
 from semgrep.commands import scan
 from semgrep.commands import shouldafound
 

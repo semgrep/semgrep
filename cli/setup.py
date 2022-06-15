@@ -6,6 +6,7 @@ import stat
 import sys
 
 import setuptools
+
 from semgrep import __VERSION__
 
 

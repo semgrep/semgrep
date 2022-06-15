@@ -3,6 +3,7 @@ import sys
 from typing import Optional
 
 import click
+
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.lsp.server import run_server
 

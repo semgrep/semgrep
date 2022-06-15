@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 
 import click
+from tqdm import tqdm
+
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -13,7 +15,6 @@ from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
-from tqdm import tqdm
 
 logger = getLogger(__name__)
 

@@ -1,6 +1,7 @@
 import subprocess
 
 import pytest
+
 from semgrep.git import BaselineHandler
 
 

@@ -12,6 +12,7 @@ from typing import TextIO
 from attr import frozen
 from attrs import define
 from boltons.iterutils import partition
+
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.types import FilteredFiles

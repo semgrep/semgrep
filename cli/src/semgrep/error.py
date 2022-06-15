@@ -13,6 +13,7 @@ from typing import Sequence
 from typing import Tuple
 
 import attr  # TODO: update to next-gen API with @define; difficult cause these subclass of Exception
+
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.constants import Colors

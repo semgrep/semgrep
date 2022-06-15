@@ -11,6 +11,7 @@ from typing import Optional
 from defusedxml import ElementTree as ET  # type: ignore
 from packaging.version import InvalidVersion
 from packaging.version import Version
+
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 

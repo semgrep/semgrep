@@ -15,6 +15,7 @@ from boltons.cacheutils import cachedproperty
 from glom import glom
 from glom import T
 from glom.core import TType
+
 from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.git import GIT_SH_TIMEOUT

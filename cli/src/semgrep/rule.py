@@ -10,6 +10,8 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
+from dependencyparser.models import PackageManagers
+
 import semgrep.output_from_core as core
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
@@ -23,8 +25,6 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
-
-from dependencyparser.models import PackageManagers
 
 
 class Rule:

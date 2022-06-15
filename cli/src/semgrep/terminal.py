@@ -3,6 +3,7 @@ import os
 import sys
 
 from attr import define
+
 from semgrep.env import Env
 
 

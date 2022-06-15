@@ -6,6 +6,7 @@ from typing import NewType
 from typing import Optional
 
 from attrs import frozen
+
 from semgrep.error import UnknownLanguageError
 from semgrep.rule_lang import Span
 from semgrep.types import JsonObject

@@ -9,6 +9,7 @@ import requests
 import urllib3
 from attrs import define
 from attrs import field
+
 from semgrep import __VERSION__
 
 

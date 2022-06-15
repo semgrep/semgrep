@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 import pytest
+
 from semgrep.semgrep_main import invoke_semgrep
 
 

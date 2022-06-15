@@ -33,6 +33,7 @@ from typing import Tuple
 
 from boltons.iterutils import partition
 from ruamel.yaml import YAML
+
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import final_suffix_matches

@@ -15,13 +15,14 @@ from typing import Tuple
 from typing import Type
 
 import peewee as pw
-import semgrep.output_from_core as core
-import semgrep.semgrep_main
 from attrs import define
 from boltons.iterutils import partition
 from peewee import CTE
 from peewee import ModelSelect
 from ruamel.yaml import YAML
+
+import semgrep.output_from_core as core
+import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
 from semgrep.constants import RuleSeverity

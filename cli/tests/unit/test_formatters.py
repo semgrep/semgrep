@@ -2,6 +2,7 @@ from io import StringIO
 
 import pytest
 from ruamel.yaml import YAML
+
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule
 

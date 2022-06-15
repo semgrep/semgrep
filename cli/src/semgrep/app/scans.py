@@ -12,6 +12,7 @@ from typing import Tuple
 import click
 import requests
 from boltons.iterutils import partition
+
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap

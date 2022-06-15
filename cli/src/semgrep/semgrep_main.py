@@ -14,6 +14,7 @@ from typing import Tuple
 from typing import Union
 
 from boltons.iterutils import partition
+
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
