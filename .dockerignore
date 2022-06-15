@@ -164,7 +164,7 @@ scripts/oncall-email/today.json
 scripts/oncall-email/yesterday.json
 
 # Do not check in compiled binaries
-cli/src/semgrep/bin
+cli/src/semgrep/bin/*
 !cli/src/semgrep/bin/__init__.py
 semgrep-core/bin
 
