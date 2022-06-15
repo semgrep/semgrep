@@ -135,6 +135,8 @@ let language_exceptions =
     (Lang.Php, []);
     (* good boy, this feature has been deprecated *)
     (Lang.Scala, [ "regexp_string" ]);
+    (* Experimental languages *)
+    (Lang.R, [ "deep_exprstmt" ]);
   ]
 
 let maturity_tests () =
@@ -194,11 +196,11 @@ let maturity_tests () =
       (* TODO: too many exns, we need to write tests!
          check_maturity Lang.Rust "rust" ".rust" Experimental;
       *)
-      check_maturity Lang.Solidity "solidity" ".sol" Experimental
+      check_maturity Lang.Solidity "solidity" ".sol" Experimental;
       (* YAML has too many NA, not worth it *)
-
+      check_maturity Lang.R "r" ".r" Experimental
       (* Not even experimental *)
-      (* R, HTML, Vue *);
+      (* HTML, Vue *);
     ]
 
 (*****************************************************************************)
@@ -229,7 +231,7 @@ let regression_tests_for_lang ~with_caching files lang =
              let sgrep_file = sgrep_file_of_target file in
              let ast =
                try
-                 Parse_target.parse_and_resolve_name_warn_if_partial lang file
+                 Parse_target.parse_and_resolve_name_fail_if_partial lang file
                with
                | exn ->
                    failwith
@@ -343,6 +345,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
       pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
       pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
+      pack_regression_tests_for_lang Lang.R "r" ".r";
     ]
 
 (*****************************************************************************)
