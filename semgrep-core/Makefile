@@ -44,8 +44,8 @@ test: all
 .PHONY: install
 install:
 	dune install
-	rm -f ../src/cli/semgrep/bin/semgrep-core
-	cp _build/install/default/bin/semgrep-core ../src/cli/semgrep/bin/
+	rm -f ../cli/src/semgrep/bin/semgrep-core
+	cp _build/install/default/bin/semgrep-core ../cli/src/semgrep/bin/
 
 ###############################################################################
 # Developer targets
@@ -57,9 +57,9 @@ install:
 .PHONY: dev
 dev:
 	$(MAKE) all
-	rm -f ../src/cli/semgrep/bin/semgrep-core
+	rm -f ../cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../semgrep-core/bin/semgrep-core \
-	  ../src/cli/semgrep/bin/semgrep-core
+	  ../cli/src/semgrep/bin/semgrep-core
 
 .PHONY: e2etest
 e2etest:
