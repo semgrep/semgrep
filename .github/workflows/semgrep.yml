@@ -12,7 +12,7 @@ jobs:
     name: semgrep with app connection
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v1
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
@@ -24,7 +24,7 @@ jobs:
     name: semgrep with local config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v1
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
