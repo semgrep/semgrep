@@ -1,4 +1,4 @@
-exclude: "^semgrep/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^semgrep/semgrep/external|\\binvalid\\b"
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -44,19 +44,19 @@ repos:
           - --remove-duplicate-keys
           - --remove-all-unused-imports
           - --ignore-init-module-imports
-          - --exclude=/semgrep/semgrep/output_from_core.py
+          - --exclude=/cli/src/semgrep/output_from_core.py
 
   - repo: https://github.com/psf/black
     rev: 22.3.0
     hooks:
       - id: black
-        args: [--exclude=/semgrep/semgrep/output_from_core.py]
+        args: [--exclude=/cli/src/semgrep/output_from_core.py]
 
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v3.1.0
     hooks:
       - id: reorder-python-imports
-        args: ["--application-directories=.:semgrep", --py37-plus]
+        args: ["--application-directories=cli/src", --py37-plus]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.34.0
@@ -68,12 +68,12 @@ repos:
     rev: "v0.961"
     hooks:
       - id: mypy
-        exclude: ^semgrep\/tests\/.+$|^setup.py$|^scripts\/.+$|^parsing-stats\/.+$|^perf\/.+$$
+        exclude: ^cli/tests/.+$|^setup.py$|^scripts/.+$|^parsing-stats/.+$|^perf/.+$$
         args: [--config, mypy.ini, --show-error-codes]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
-          # - semgrep/setup.py lists dependencies
-          # - semgrep/Pipfile lists type hint packages for dev env
+          # - cli/setup.py lists dependencies
+          # - cli/Pipfile lists type hint packages for dev env
           # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 
           # some packages ship with type definitions
@@ -93,7 +93,7 @@ repos:
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
-        files: ^semgrep\/tests\/.+$
+        files: ^cli/tests/.+$
         args: [--config, mypy-tests.ini, --show-error-codes]
         additional_dependencies: *mypy-deps
 
@@ -110,12 +110,12 @@ repos:
       - id: semgrep
         name: Semgrep Python
         types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "https://semgrep.dev/p/python", "--error"]
       - id: semgrep
         name: Semgrep Bandit
         types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "https://semgrep.dev/p/bandit", "--error"]
 
   - repo: local
@@ -144,13 +144,13 @@ repos:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
         types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "p/python", "--error"]
         stages: [manual]
       - id: semgrep-docker-develop
         name: Semgrep Develop Bandit
         types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
+        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
         args: ["--config", "p/bandit", "--error"]
         stages: [manual]
 
@@ -178,4 +178,4 @@ repos:
     rev: v2.6.2
     hooks:
       - id: prettier
-        exclude: "^perf/bench/dummy/.+$|^semgrep/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"
+        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"

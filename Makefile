@@ -26,8 +26,8 @@ endif
 build:
 	$(MAKE) build-core
 	$(MAKE) -C toy-matcher
-	cd semgrep && pipenv install --dev
-	$(MAKE) -C semgrep build
+	cd cli && pipenv install --dev
+	$(MAKE) -C cli build
 
 .PHONY: install
 install:
@@ -81,7 +81,7 @@ config:
 .PHONY: clean
 clean:
 	-$(MAKE) -C semgrep-core clean
-	-$(MAKE) -C semgrep clean
+	-$(MAKE) -C cli clean
 
 # Same as 'make clean' but may remove additional files, such as external
 # libraries installed locally.
@@ -103,4 +103,4 @@ release:
 .PHONY: test
 test:
 	$(MAKE) -C semgrep-core test
-	$(MAKE) -C semgrep test
+	$(MAKE) -C cli test

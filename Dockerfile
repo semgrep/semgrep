@@ -47,8 +47,8 @@ RUN opam install --deps-only \
 WORKDIR /semgrep
 COPY --chown=user semgrep-core/ ./semgrep-core
 COPY --chown=user interfaces/ ./interfaces
-COPY --chown=user semgrep/semgrep/lang ./semgrep/semgrep/lang
-COPY --chown=user semgrep/semgrep/semgrep_interfaces ./semgrep/semgrep/semgrep_interfaces
+COPY --chown=user cli/src/semgrep/lang ./cli/src/semgrep/lang
+COPY --chown=user cli/src/semgrep/semgrep_interfaces ./cli/src/semgrep/semgrep_interfaces
 
 WORKDIR /semgrep/semgrep-core
 RUN opam exec -- dune build
@@ -57,7 +57,7 @@ WORKDIR /semgrep
 RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version
 
 #
-# We change container, bringing the 'semgrep-core' binary and 'semgrep/semgrep' code with us.
+# We change container, bringing the 'semgrep-core' binary with us.
 #
 
 FROM python:3.10-alpine AS semgrep-cli
@@ -70,7 +70,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
      PYTHONUNBUFFERED=1
 
 RUN apk add --no-cache --virtual=.run-deps bash git git-lfs openssh
-COPY semgrep ./
+COPY cli ./
 
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base && \

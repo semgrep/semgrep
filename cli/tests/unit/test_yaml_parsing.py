@@ -107,6 +107,7 @@ def test_default_yaml_type_safe():
     assert rt_yaml.load(io.StringIO(s)) == ["echo Hello world"]
 
     # Unsafe, executes the system call
+    # nosemgrep: python.lang.security.deserialization.avoid-unsafe-ruamel.avoid-unsafe-ruamel
     unsafe_yaml = YAML(typ="unsafe")
     assert unsafe_yaml.load(io.StringIO(s)) == 0
 

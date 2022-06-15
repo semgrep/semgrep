@@ -5,10 +5,10 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
-from semgrep.constants import OutputFormat
 from tests.conftest import _clean_output_json
 from tests.conftest import _clean_stdout
+
+from semgrep.constants import OutputFormat
 
 
 def _mask_times(result_json: str) -> str:

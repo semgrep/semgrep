@@ -1,7 +1,6 @@
 import json
 
 import pytest
-
 from tests.conftest import _clean_stdout
 
 

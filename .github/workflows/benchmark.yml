@@ -51,7 +51,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           git clone --depth=1 ${{github.event.inputs.REPO}} target
           cd target
-          PIPENV_PIPFILE=../semgrep/Pipfile pipenv run semgrep -c ${{github.event.inputs.CONFIG}} --json --json-time . | tee -a times.json
+          PIPENV_PIPFILE=../cli/Pipfile pipenv run semgrep -c ${{github.event.inputs.CONFIG}} --json --json-time . | tee -a times.json
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:

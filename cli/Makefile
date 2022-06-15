@@ -56,5 +56,4 @@ setup:
 clean:
 	rm -rf build/ semgrep.egg-info/ .eggs/
 	rm -rf .pytest_cache/ .benchmarks/
-	rm -f semgrep/bin/semgrep-core
-	rm -rf semgrep/__pycache__ semgrep/*/__pycache__
+	rm -f cli/src/semgrep/bin/semgrep-core

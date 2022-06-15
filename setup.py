@@ -1,6 +1,6 @@
 # type: ignore
 # Used for pre-commit since it expects a setup.py in repo root
-# for actual setup.py see semgrep/setup.py
+# for actual setup.py see cli/setup.py
 from setuptools import setup
 
 setup(

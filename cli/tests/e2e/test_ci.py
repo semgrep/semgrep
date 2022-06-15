@@ -8,6 +8,8 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+from tests.e2e.test_baseline import _git_commit
+from tests.e2e.test_baseline import _git_merge
 
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
@@ -16,8 +18,6 @@ from semgrep.config_resolver import ConfigPath
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
-from tests.e2e.test_baseline import _git_commit
-from tests.e2e.test_baseline import _git_merge
 
 pytestmark = pytest.mark.kinda_slow
 

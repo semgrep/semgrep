@@ -15,10 +15,10 @@ import pytest
 from click.testing import CliRunner
 from pytest import mark
 from pytest import MonkeyPatch
+from tests.conftest import TESTS_PATH
 
 from semgrep.cli import cli
 from semgrep.profiling import ProfilingData
-from tests.conftest import TESTS_PATH
 
 
 # Test data to avoid making web calls in test code

@@ -68,6 +68,7 @@ def assert_sentinel_results(repo_path, sentinel_path, language):
         "--optimizations=none",
     ]
 
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
     semgrep_run = subprocess.run(cmd, capture_output=True, encoding="utf-8")
     assert semgrep_run.returncode == 0
 
@@ -177,6 +178,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
 
     print(f"semgrep command: {cmd}")
 
+    # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
     res = subprocess.run(cmd, encoding="utf-8", capture_output=True)
     print("--- semgrep error output ---")
     print(res.stderr)

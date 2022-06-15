@@ -12,8 +12,8 @@ pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
 # versions must be manually synced:
-# - semgrep/setup.py lists dependencies
-# - semgrep/Pipfile lists type hint packages for dev env
+# - cli/setup.py lists dependencies
+# - cli/Pipfile lists type hint packages for dev env
 # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 # type hints
 types-setuptools = "*"

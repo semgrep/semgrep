@@ -2,7 +2,7 @@
 
 ## Usage
 
-`make test` in the `semgrep/` directory
+`make test` in the `cli/` directory
 
 ## Structure
 

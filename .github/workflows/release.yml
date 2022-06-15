@@ -267,14 +267,14 @@ jobs:
           python-version: 3.7
       - name: Build the wheels
         env:
-          # Relative because build-wheels does a 'cd semgrep'
+          # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
         run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: osx-wheel
-          path: semgrep/dist.zip
+          path: cli/dist.zip
 
   build-wheels-m1:
     runs-on: [self-hosted, macOS, ARM64]
@@ -292,14 +292,14 @@ jobs:
         run: unzip artifacts.zip
       - name: Build the wheels
         env:
-          # Relative because build-wheels does a 'cd semgrep'
+          # Relative because build-wheels does a 'cd cli'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
         run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: m1-wheel
-          path: semgrep/dist.zip
+          path: cli/dist.zip
 
   build-wheels-manylinux:
     runs-on: ubuntu-latest

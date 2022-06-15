@@ -6,10 +6,10 @@
     "**/.tox/**",
     "**/build/**",
     "perf/bench/**",
-    "semgrep/tests/e2e/targets/**",
-    "semgrep/tests/e2e/snapshots/**",
-    "semgrep/tests/e2e/rules/syntax/**",
-    "semgrep/semgrep/external/**",
+    "cli/tests/e2e/targets/**",
+    "cli/tests/e2e/snapshots/**",
+    "cli/tests/e2e/rules/syntax/**",
+    "cli/src/semgrep/external/**",
     "semgrep-core/**/tests/**"
   ]
 }
