@@ -165,6 +165,9 @@ definitions:
                 - pattern
             - required:
                 - patterns
+            - required:
+                - pattern-sources
+                - pattern-sinks
           properties:
             id:
               type: string
@@ -176,6 +179,16 @@ definitions:
               type: string
             patterns:
               $ref: "#/definitions/patterns-content"
+            mode:
+              enum:
+                - search
+                - taint
+            pattern-sources:
+              $ref: "#/definitions/taint-content"
+            pattern-sinks:
+              $ref: "#/definitions/taint-content"
+            pattern-sanitizers:
+              $ref: "#/definitions/taint-content"
           additionalProperties: false
       on:
         type: array

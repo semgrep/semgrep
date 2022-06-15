@@ -1,0 +1,27 @@
+rules:
+- id: flask-likely-xss
+  mode: join
+  join:
+    rules:
+      - id: user-input
+        languages: [python]
+        mode: taint
+        pattern-sources:
+        - pattern: flask.request
+        pattern-sinks:
+        - patterns:
+          - pattern: flask.render_template("$TEMPLATE", ..., $KWARG=$VAR, ...)
+          - metavariable-regex:
+              metavariable: $TEMPLATE
+              regex: ".*(?<!html)$"
+      - id: template-vars
+        languages: [generic]
+        pattern: |
+          {{ $VAR }}
+    on:
+    - 'user-input.$KWARG == template-vars.$VAR'
+    - 'user-input.$TEMPLATE < template-vars.path'
+  message: |
+    Detected a XSS vulnerability: '$VAR' is rendered
+    unsafely in '$TEMPLATE'.
+  severity: ERROR

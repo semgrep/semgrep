@@ -38,6 +38,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   files not changed in the PR (#5453)
 - JS/TS: `$X()` no longer matches `new Foo()`, for consistency with other languages (#5510)
 - JS/TS: Typed metavariables now match constructor calls (e.g. `($X: C)` matches `new C()`. (#5540)
+- Inline join mode rules can now run taint-mode rules
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 
