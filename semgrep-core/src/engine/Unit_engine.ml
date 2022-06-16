@@ -380,12 +380,13 @@ let test_irrelevant_rule rule_file target_file =
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula" (fst rule.id))
-         | Some (_json, re, f) ->
+         | Some (f, func) ->
              let content = read_file target_file in
-             if f content then
+             let s = Semgrep_prefilter_j.string_of_formula f in
+             if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id) re))
+                    (fst rule.id) s))
 
 let test_irrelevant_rule_file target_file =
   ( Filename.basename target_file,

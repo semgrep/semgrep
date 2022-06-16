@@ -285,17 +285,14 @@ let prefilter_of_rules file =
   let xs =
     rules
     |> Common.map (fun r ->
-           let pre = Analyze_rule.regexp_prefilter_of_rule r in
-           let json =
-             match pre with
-             | None -> J.Null
-             | Some pre -> Analyze_rule.json_of_prefilter pre
+           let pre_opt = Analyze_rule.regexp_prefilter_of_rule r in
+           let pre_atd_opt =
+             Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
            in
            let id = r.Rule.id |> fst in
-           J.Object [ ("id", J.String id); ("prefilter", json) ])
+           { Semgrep_prefilter_t.rule_id = id; filter = pre_atd_opt })
   in
-  let json = J.Array xs in
-  let s = J.string_of_json json in
+  let s = Semgrep_prefilter_j.string_of_prefilters xs in
   pr s
 
 (*****************************************************************************)

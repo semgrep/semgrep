@@ -88,10 +88,13 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
              if !Flag_semgrep.filter_irrelevant_rules then (
                match Analyze_rule.regexp_prefilter_of_rule r with
                | None -> true
-               | Some (_json, re, f) ->
+               | Some (prefilter_formula, func) ->
                    let content = Lazy.force lazy_content in
-                   logger#trace "looking for %s in %s" re file;
-                   f content)
+                   let s =
+                     Semgrep_prefilter_j.string_of_formula prefilter_formula
+                   in
+                   logger#trace "looking for %s in %s" s file;
+                   func content)
              else true
            in
            if not relevant_rule then (
