@@ -567,16 +567,16 @@ let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
 
 let hmemo = Hashtbl.create 101
 
-let regexp_prefilter_of_rule r =
+let regexp_prefilter_of_rule (r : R.rule) =
   let rule_id, t = r.R.id in
   let k = PI.file_of_info t ^ "." ^ rule_id in
   Common.memoized hmemo k (fun () ->
       try
         match r.mode with
-        | R.Search pf ->
+        | `Search pf ->
             let f = R.formula_of_pformula ~rule_id pf in
             regexp_prefilter_of_formula f
-        | R.Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+        | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with
       (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
       | CNF_exploded ->

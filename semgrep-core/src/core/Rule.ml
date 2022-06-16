@@ -200,21 +200,13 @@ type taint_spec = {
 (* The rule *)
 (*****************************************************************************)
 
-(* alt:
- *     type common = { id : string; ... }
- *     type search = { common : common; formula : pformula; }
- *     type taint  = { common : common; spec : taint_spec; }
- *     type rule   = Search of search | Taint of taint
- *)
-type mode = Search of pformula | Taint of taint_spec [@@deriving show]
-
 (* TODO? just reuse Error_code.severity *)
 type severity = Error | Warning | Info | Inventory [@@deriving show]
 
-type rule = {
+type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
-  mode : mode;
+  mode : 'mode;
   message : string;
   severity : severity;
   languages : Xlang.t;
@@ -238,6 +230,13 @@ and paths = {
 }
 [@@deriving show]
 
+type search_mode = [ `Search of pformula ] [@@deriving show]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
+type mode = [ search_mode | taint_mode ] [@@deriving show]
+type search_rule = search_mode rule_info [@@deriving show]
+type taint_rule = taint_mode rule_info [@@deriving show]
+type rule = mode rule_info [@@deriving show]
+
 (* alias *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
@@ -246,12 +245,12 @@ type rules = rule list [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules rules =
+let partition_rules (rules : rules) : search_rule list * taint_rule list =
   rules
   |> Common.partition_either (fun r ->
          match r.mode with
-         | Search f -> Left (r, f)
-         | Taint s -> Right (r, s))
+         | `Search _ as s -> Left { r with mode = s }
+         | `Taint _ as t -> Right { r with mode = t })
 
 (*****************************************************************************)
 (* Error Management *)

@@ -614,7 +614,7 @@ let rule_of_pattern lang pattern_string pattern =
   in
   {
     R.id = ("-e/-f", fk);
-    mode = R.Search (R.New (R.P (xpat, None)));
+    mode = `Search (R.New (R.P (xpat, None)));
     message = "";
     severity = R.Error;
     languages = xlang;

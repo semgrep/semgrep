@@ -260,7 +260,7 @@ let ( let* ) = Option.bind
 (*****************************************************************************)
 
 let taint_config_of_rule default_config equivs file ast_and_errors
-    (rule : R.rule) (spec : R.taint_spec) handle_findings =
+    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_findings =
   let config = Common.( ||| ) rule.options default_config in
   let lazy_ast_and_errors = lazy ast_and_errors in
   let xtarget =
@@ -433,7 +433,7 @@ module PMtbl = Hashtbl.Make (struct
   let equal = AST_utils.with_structural_equal PM.equal
 end)
 
-let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
+let check_rule rule match_hook (default_config, equivs) xtarget =
   let matches = ref [] in
   let pm2finding = PMtbl.create 10 in
 
@@ -457,7 +457,7 @@ let check_rule rule match_hook (default_config, equivs) taint_spec xtarget =
                     Common.push pm matches;
                     PMtbl.add pm2finding pm finding))
     in
-    taint_config_of_rule default_config equivs file (ast, []) rule taint_spec
+    taint_config_of_rule default_config equivs file (ast, []) rule
       handle_findings
   in
 

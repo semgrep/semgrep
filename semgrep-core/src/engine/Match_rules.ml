@@ -108,15 +108,15 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                    timeout_function r file timeout (fun () ->
                        (* dispatching *)
                        match r.R.mode with
-                       | Search pformula ->
-                           Match_search_mode.check_rule r match_hook
-                             default_config pformula xtarget
-                       | Taint taint_spec ->
+                       | `Search _ as mode ->
+                           Match_search_mode.check_rule { r with mode }
+                             match_hook default_config xtarget
+                       | `Taint _ as mode ->
                            (* TODO: 'debug_taint' should just be part of 'res'
                             * (i.e., add a "debugging" field to 'Report.match_result'). *)
                            let res, _TODO_debug_taint =
-                             Match_tainting_mode.check_rule r match_hook
-                               default_config taint_spec xtarget
+                             Match_tainting_mode.check_rule { r with mode }
+                               match_hook default_config xtarget
                            in
                            res)
                  in

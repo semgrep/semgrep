@@ -448,7 +448,7 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches =
     taint_rules
-    |> Common.map (fun (rule, taint_spec) ->
+    |> Common.map (fun rule ->
            let equivs = [] in
            let xtarget =
              {
@@ -462,7 +462,7 @@ let tainting_test lang rules_file file =
              Match_tainting_mode.check_rule rule
                (fun _ _ _ _ -> ())
                (Config_semgrep.default_config, equivs)
-               taint_spec xtarget
+               xtarget
            in
            res.matches)
     |> List.flatten
