@@ -280,6 +280,24 @@ let dump_rule file =
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
+let prefilter_of_rules file =
+  let rules = Parse_rule.parse file in
+  let xs =
+    rules
+    |> Common.map (fun r ->
+           let pre = Analyze_rule.regexp_prefilter_of_rule r in
+           let json =
+             match pre with
+             | None -> J.Null
+             | Some pre -> Analyze_rule.json_of_prefilter pre
+           in
+           let id = r.Rule.id |> fst in
+           J.Object [ ("id", J.String id); ("prefilter", json) ])
+  in
+  let json = J.Array xs in
+  let s = J.string_of_json json in
+  pr s
+
 (*****************************************************************************)
 (* Config *)
 (*****************************************************************************)
@@ -368,6 +386,9 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+    ( "-prefilter_of_rules",
+      " <file> dump the prefilter regexps of rules in JSON ",
+      Common.mk_action_1_arg prefilter_of_rules );
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
       Common.mk_action_2_arg Test_synthesizing.expr_at_range );
