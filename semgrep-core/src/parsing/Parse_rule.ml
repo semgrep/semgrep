@@ -385,8 +385,8 @@ let parse_metavar_cond env key s =
     | AST_generic.E e -> e
     | _ -> error_at_key env key "not an expression"
   with
-  | Timeout _ as e -> raise e
-  | UnixExit n -> raise (UnixExit n)
+  | Timeout _ as e -> Exception.catch_and_reraise e
+  | UnixExit _n as e -> Exception.catch_and_reraise e
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
@@ -508,7 +508,7 @@ let parse_xpattern_expr env e =
        (* TODO put in *)
      in *)
   try parse_xpattern env.languages (s, t) with
-  | (Timeout _ | UnixExit _) as e -> raise e
+  | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise

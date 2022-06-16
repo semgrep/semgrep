@@ -225,7 +225,7 @@ let dump_pattern (file : Common.filename) =
 
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  E.try_with_print_exn_and_exit_fast file (fun () ->
+  E.try_with_print_exn_and_reraise file (fun () ->
       let { Parse_target.ast; skipped_tokens; _ } =
         if naming then Parse_target.parse_and_resolve_name lang file
         else Parse_target.just_parse_with_lang lang file
@@ -676,9 +676,22 @@ let main () =
 
 (*****************************************************************************)
 
+(*
+   Register global exception printers defined by the various libraries
+   and modules.
+
+   The main advantage of doing this here is the ability to override
+   undesirable printers defined by some libraries. The order of registration
+   is the order in which modules are initialized, which isn't something
+   that in general we know or want to rely on.
+   For example, JaneStreet Core prints (or used to print) some stdlib
+   exceptions as S-expressions without giving us a choice. Overriding those
+   can be tricky.
+*)
 let register_exception_printers () =
   Parse_info.register_exception_printer ();
-  SPcre.register_exception_printer ()
+  SPcre.register_exception_printer ();
+  Rule.register_exception_printer ()
 
 let () =
   Common.main_boilerplate (fun () ->
