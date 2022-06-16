@@ -169,6 +169,8 @@ r2c will:
 |             | Total Findings                          | Count of all findings                                                  | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
 |             | Total Nosems                            | Count of all `nosem` annotations that tell semgrep to ignore a finding | Understand if rules are super noisy for the user                                           | 3                                                                                                                                                                                     | Number         |
 
+**Note:** Using `semgrep scan --config auto` sends your project URL as a **key** for cached rule recommendations. Metrics must be enabled to make use of `--config auto`. To run scans **without sending the project URL**, specify a configuration. For example, run `semgrep --config p/python` for python-related rules.
+
 ### Anonymous user ID
 
 > `anonymous_user_id: "5f52484c-3f82-4779-9353-b29bbd3193b6"`

@@ -242,6 +242,9 @@ and expr e : G.expr =
   (match e with
   | DeepEllipsis x -> G.DeepEllipsis (bracket expr x)
   | Ellipsis t -> G.Ellipsis t
+  | Bool v1 ->
+      let v1 = wrap id v1 in
+      G.L (G.Bool v1)
   | Int v1 ->
       let v1 = wrap id v1 in
       G.L (G.Int v1)
@@ -284,14 +287,14 @@ and expr e : G.expr =
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.FDynamic v2)
   | New (v0, v1, v2) ->
-      let v1 = expr v1 and v2 = list expr v2 in
+      let v1 = expr v1 and v2 = list argument v2 in
       let t = H.expr_to_type v1 in
-      G.New (v0, t, fb (v2 |> List.map G.arg))
+      G.New (v0, t, fb v2)
   | NewAnonClass (_tTODO, args, cdef) ->
       let _ent, cdef = class_def cdef in
-      let args = list expr args in
+      let args = list argument args in
       let anon_class = G.AnonClass cdef |> G.e in
-      G.Call (anon_class, fb (args |> List.map G.arg))
+      G.Call (anon_class, fb args)
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Call
@@ -335,7 +338,8 @@ and expr e : G.expr =
       G.Ref (t, v1)
   | Unpack v1 ->
       let v1 = expr v1 in
-      G.OtherExpr (("Unpack", fake ""), [ G.E v1 ])
+      G.Call
+        (G.IdSpecial (G.Spread, fake "...") |> G.e, G.fake_bracket [ G.Arg v1 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
@@ -435,9 +439,11 @@ and match_ = function
       let e = expr e in
       G.CasesAndBody ([ G.Default tok ], G.ExprStmt (e, G.sc) |> G.s)
 
-and argument e =
-  let e = expr e in
-  G.arg e
+and argument = function
+  | Arg e -> expr e |> G.arg
+  | ArgRef (tok, e) -> G.Ref (tok, expr e) |> G.e |> G.arg
+  | ArgUnpack (tok, e) -> G.special (Spread, tok) [ expr e ] |> G.arg
+  | ArgLabel (label, _tok, e) -> G.ArgKwd (label, expr e)
 
 and special = function
   | This -> G.This

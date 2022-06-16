@@ -472,7 +472,7 @@ and expr_kind =
    * qualifier though.
    * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
-  | DotAccess of expr * tok (* ., ::, ->, # *) * field_name
+  | DotAccess of expr * tok (* ., ::, ->, #, $ *) * field_name
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
   | ArrayAccess of expr * expr bracket
   (* could also use ArrayAccess with a Tuple rhs, or use a special *)

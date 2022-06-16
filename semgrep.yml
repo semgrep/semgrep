@@ -112,7 +112,7 @@ rules:
     severity: ERROR
     paths:
       include:
-        - semgrep/semgrep/*
+        - cli/*
 
   - id: no-env-vars-on-top-level
     patterns:
@@ -130,7 +130,7 @@ rules:
     severity: ERROR
     paths:
       include:
-        - semgrep/semgrep/*
+        - cli/src/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |

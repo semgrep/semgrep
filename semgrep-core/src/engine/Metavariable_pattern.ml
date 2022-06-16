@@ -87,8 +87,8 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                    * outside of the current file/AST, so we must get
                    * `mval_range` from `mval_file` and not from `env.file`! *)
                   let content = Range.content_at_range mval_file mval_range in
-                  Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
-                    (fun file ->
+                  Xpattern_matcher.with_tmp_file ~str:content
+                    ~ext:"mvar-pattern" (fun file ->
                       (* We don't want having to re-parse `content', but then we
                        * need to fix the token locations in `mast`. *)
                       let mast_start_loc =
@@ -125,7 +125,7 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
               logger#debug "nested analysis of |||%s||| with lang '%s'" content
                 (Xlang.to_string xlang);
               (* We re-parse the matched text as `xlang`. *)
-              Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
+              Xpattern_matcher.with_tmp_file ~str:content ~ext:"mvar-pattern"
                 (fun file ->
                   let lazy_ast_and_errors =
                     lazy

@@ -1,4 +1,0 @@
-include semgrep/rule_schema.yaml
-include semgrep/lang/lang.json
-include LICENSE
-include semgrep/templates/.semgrepignore
