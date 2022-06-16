@@ -587,12 +587,6 @@ def scan_options(func: Callable) -> Callable:
     # help="Save --test output for use in semgrep-app registry",
 )
 @click.option("--generate-config", "-g", is_flag=True, hidden=True)
-@click.option(
-    "--dangerously-allow-arbitrary-code-execution-from-rules",
-    is_flag=True,
-    hidden=True
-    # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
-)
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--deep",
@@ -609,7 +603,6 @@ def scan(
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
-    dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
     deep: bool,
     dryrun: bool,
@@ -706,11 +699,6 @@ def scan(
 
     if pattern is not None and lang is None:
         abort("-e/--pattern and -l/--lang must both be specified")
-
-    if dangerously_allow_arbitrary_code_execution_from_rules:
-        logger.warning(
-            "The '--dangerously-allow-arbitrary-code-execution-from-rules' flag is now deprecated and does nothing. It will be removed in the future."
-        )
 
     if (config and "auto" in config) and metrics == MetricsState.OFF:
         abort(
