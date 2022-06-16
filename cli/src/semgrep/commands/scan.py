@@ -476,12 +476,6 @@ def scan_options(func: Callable) -> Callable:
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
-    "--apply",
-    is_flag=True,
-    help=("Print a list of job postings at r2c."),
-    hidden=True,
-)
-@click.option(
     "--replacement",
     help="""
         An autofix expression that will be applied to any matches found with --pattern.
@@ -636,7 +630,6 @@ def scan_options(func: Callable) -> Callable:
 @handle_command_errors
 def scan(
     *,
-    apply: bool,
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
@@ -720,12 +713,6 @@ def scan(
             from semgrep.app.version import version_check
 
             version_check()
-        return None
-
-    if apply:
-        from semgrep.job_postings import print_job_postings
-
-        print_job_postings()
         return None
 
     if show_supported_languages:
