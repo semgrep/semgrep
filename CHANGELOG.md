@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
+- `--config auto` no longer sends repo information
 - Gitlab SAST output is now v14.1.2 compliant
 
 ### Fixed
