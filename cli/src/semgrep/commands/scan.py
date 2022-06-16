@@ -47,7 +47,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
-from semgrep.synthesize_patterns import synthesize
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -587,12 +586,6 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="Save --test output for use in semgrep-app registry",
 )
-@click.option(
-    "--synthesize-patterns",
-    type=str,
-    hidden=True
-    # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
-)
 @click.option("--generate-config", "-g", is_flag=True, hidden=True)
 @click.option(
     "--dangerously-allow-arbitrary-code-execution-from-rules",
@@ -654,7 +647,6 @@ def scan(
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
     strict: bool,
-    synthesize_patterns: str,
     targets: Sequence[str],
     test: bool,
     test_ignore_todo: bool,
@@ -789,12 +781,6 @@ def scan(
 
         if dump_ast:
             dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
-        elif synthesize_patterns:
-            synthesize(
-                __validate_lang("--synthesize-patterns", lang),
-                synthesize_patterns,
-                targets,
-            )
         elif validate:
             if not (pattern or lang or config):
                 logger.error(
