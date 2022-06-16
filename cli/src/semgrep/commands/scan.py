@@ -582,12 +582,6 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
-    "--debugging-json",
-    is_flag=True,
-    hidden=True
-    # help="Deprecated alias for --json + --debug",
-)
-@click.option(
     "--save-test-output-tar",
     is_flag=True,
     hidden=True
@@ -624,7 +618,6 @@ def scan(
     core_opts: Optional[str],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
-    debugging_json: bool,
     deep: bool,
     dryrun: bool,
     dump_ast: bool,
@@ -743,7 +736,7 @@ def scan(
         targets = (os.curdir,)
 
     output_format = OutputFormat.TEXT
-    if json or debugging_json:
+    if json:
         output_format = OutputFormat.JSON
     elif gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
@@ -763,7 +756,6 @@ def scan(
         output_destination=output,
         error_on_findings=error_on_findings,
         strict=strict,
-        debug=debugging_json,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
         output_time=output_time,

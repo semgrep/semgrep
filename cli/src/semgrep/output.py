@@ -140,7 +140,6 @@ class OutputSettings(NamedTuple):
     error_on_findings: bool = False
     verbose_errors: bool = False  # to do: rename to just 'verbose'
     strict: bool = False
-    debug: bool = False
     output_time: bool = False
     timeout_threshold: int = 0
 
