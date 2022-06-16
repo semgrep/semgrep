@@ -582,12 +582,6 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
-    "--json-stats",
-    is_flag=True,
-    hidden=True
-    # help="Include statistical information about performance in JSON output (experimental).",
-)
-@click.option(
     "--json-time",
     is_flag=True,
     hidden=True
@@ -653,7 +647,6 @@ def scan(
     include: Optional[Tuple[str, ...]],
     jobs: int,
     json: bool,
-    json_stats: bool,
     json_time: bool,
     junit_xml: bool,
     lang: Optional[str],
@@ -780,7 +773,6 @@ def scan(
         debug=debugging_json,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
-        json_stats=json_stats,
         output_time=output_time,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
