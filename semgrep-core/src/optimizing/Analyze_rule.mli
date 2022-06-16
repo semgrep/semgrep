@@ -1,14 +1,15 @@
-(* see below for more information *)
-type prefilter = JSON.t * string (* for debugging *) * (string -> bool)
-
-(* This function analyzes a rule and returns optionaly a function
+(* A prefilter is a pair containing a function
  * that when applied to the content of a file will return whether
  * or not we should process the file. False means that we can
  * skip the file (or more accurately, it means we can skip this rule
  * for this file, and if there are no more rules left for this target file,
  * we will entirely skip the file because we now parse files lazily).
+ *)
+type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
+
+(* This function analyzes a rule and returns optionaly a prefilter.
  *
- * Internally, this returned function relies on a formula of
+ * The return prefilter relies on a formula of
  * regexps that we try to extract from the rule. For example, with:
  *   pattern-either: foo()
  *   pattern-either: bar()
@@ -32,4 +33,4 @@ val regexp_prefilter_of_formula : Rule.formula -> prefilter option
 (* For external tools like Semgrep query console to be able to
  * also prune certain rules/files.
  *)
-val json_of_prefilter : prefilter -> JSON.t
+val prefilter_formula_of_prefilter : prefilter -> Semgrep_prefilter_t.formula

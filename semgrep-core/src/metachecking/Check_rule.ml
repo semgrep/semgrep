@@ -288,7 +288,8 @@ let stat_files fparser xs =
                     pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" file
                          (fst r.id))
-                | Some (_json, s, _f) ->
+                | Some (f, _f) ->
                     incr good;
+                    let s = Semgrep_prefilter_j.string_of_formula f in
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)

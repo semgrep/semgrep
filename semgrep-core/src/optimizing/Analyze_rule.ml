@@ -18,6 +18,7 @@ module XP = Xpattern
 module MV = Metavariable
 module PI = Parse_info
 module J = JSON
+module SP = Semgrep_prefilter_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -387,22 +388,28 @@ let and_step2 (And xs) =
   if null ys then raise GeneralPattern;
   And ys
 
-let json_of_cnf_step2 (And xs) : J.t =
-  J.Array
-    (xs
+let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
+  let xs' =
+    xs
     |> Common.map (fun (Or ys) ->
-           J.Array
-             (ys
+           let ys' =
+             ys
              |> Common.map (function
-                  | Idents xs ->
-                      J.Object
-                        [
-                          ( "idents",
-                            J.Array (xs |> Common.map (fun s -> J.String s)) );
-                        ]
+                  | Idents xs -> `Pred (`Idents xs)
                   | Regexp2_search re ->
                       let re_str = Regexp_engine.show re in
-                      J.Object [ ("regexp", J.String re_str) ]))))
+                      `Pred (`Regexp re_str))
+           in
+           match ys' with
+           | [] -> raise EmptyOr
+           | [ x ] -> x
+           | xs -> `Or xs)
+  in
+  match xs' with
+  | [] -> raise EmptyAnd
+  | [ x ] -> x
+  | xs -> `And xs
+  [@@profiling]
 
 (*****************************************************************************)
 (* Final Step: just regexps? *)
@@ -496,11 +503,12 @@ let run_cnf_step2 cnf big_str =
 (* see mli for more information
  * TODO: use a record.
  *)
-type prefilter = JSON.t * string (* for debugging *) * (string -> bool)
+type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
 
-let json_of_prefilter (pre : prefilter) : J.t =
-  let json, _s, _f = pre in
-  json
+let prefilter_formula_of_prefilter (pre : prefilter) :
+    Semgrep_prefilter_t.formula =
+  let x, _f = pre in
+  x
 
 let compute_final_cnf f =
   let* f = remove_not_final f in
@@ -518,14 +526,11 @@ let compute_final_cnf f =
   Some cnf
   [@@profiling]
 
-let str_final final = show_cnf_step2 final [@@profiling]
-
 let regexp_prefilter_of_formula f : prefilter option =
   try
     let* final = compute_final_cnf f in
     Some
-      ( json_of_cnf_step2 final,
-        str_final final,
+      ( prefilter_formula_of_cnf_step2 final,
         fun big_str ->
           try
             run_cnf_step2 final big_str
