@@ -17,7 +17,6 @@ import multiprocessing
 import os
 import shutil
 import sys
-import tarfile
 import tempfile
 import uuid
 from itertools import product
@@ -44,8 +43,6 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
-SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
 
 COMMENT_SYNTAXES = (("#", "\n"), ("//", "\n"), ("<!--", "-->"), ("(*", "*)"))
 SPACE_OR_NO_SPACE = ("", " ")
@@ -437,7 +434,6 @@ def generate_test_results(
     strict: bool,
     json_output: bool,
     deep: bool,
-    save_test_output_tar: bool = True,
     optimizations: str = "none",
 ) -> None:
     config_filenames = get_config_filenames(config)
@@ -585,18 +581,6 @@ def generate_test_results(
         print(json.dumps(output, indent=4, separators=(",", ": ")))
         sys.exit(exit_code)
 
-    # save the results to json file and tar the file to upload as github artifact.
-    if save_test_output_tar:
-        list_to_output = []
-        with open(SAVE_TEST_OUTPUT_JSON, "w") as f:
-            for tup in results:
-                true_result = tup[2]
-                list_to_output.append(true_result)
-            f.write(json.dumps(list_to_output, indent=4, separators=(",", ":")))
-
-        with tarfile.open(SAVE_TEST_OUTPUT_TAR, "w:gz") as tar:
-            tar.add(SAVE_TEST_OUTPUT_JSON)
-
     num_tests = 0
     num_tests_passed = 0
     check_output_lines: str = ""
@@ -668,7 +652,6 @@ def test_main(
     test_ignore_todo: bool,
     strict: bool,
     json: bool,
-    save_test_output_tar: bool,
     optimizations: str,
     deep: bool,
 ) -> None:
@@ -692,6 +675,5 @@ def test_main(
         strict=strict,
         json_output=json,
         deep=deep,
-        save_test_output_tar=save_test_output_tar,
         optimizations=optimizations,
     )

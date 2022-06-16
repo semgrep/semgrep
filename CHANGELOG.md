@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 
 - Gitlab SAST output is now v14.1.2 compliant
+- Removed deprecated options (#5552)
 
 ### Fixed
 

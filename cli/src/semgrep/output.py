@@ -42,8 +42,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
-from semgrep.stats import make_loc_stats
-from semgrep.stats import make_target_stats
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
@@ -142,8 +140,6 @@ class OutputSettings(NamedTuple):
     error_on_findings: bool = False
     verbose_errors: bool = False  # to do: rename to just 'verbose'
     strict: bool = False
-    debug: bool = False
-    json_stats: bool = False
     output_time: bool = False
     timeout_threshold: int = 0
 
@@ -395,12 +391,6 @@ class OutputHandler:
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.json_stats:
-            extra["stats"] = {
-                "targets": make_target_stats(self.all_targets),
-                "loc": make_loc_stats(self.all_targets),
-                "profiler": self.profiler.dump_stats() if self.profiler else None,
-            }
         if self.settings.output_time or self.settings.verbose_errors:
             cli_timing = _build_time_json(
                 self.filtered_rules,
