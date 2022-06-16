@@ -579,12 +579,6 @@ def scan_options(func: Callable) -> Callable:
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
-@click.option(
-    "--save-test-output-tar",
-    is_flag=True,
-    hidden=True
-    # help="Save --test output for use in semgrep-app registry",
-)
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--deep",
@@ -632,7 +626,6 @@ def scan(
     replacement: Optional[str],
     rewrite_rule_ids: bool,
     sarif: bool,
-    save_test_output_tar: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
@@ -749,7 +742,6 @@ def scan(
             test_ignore_todo=test_ignore_todo,
             strict=strict,
             json=json,
-            save_test_output_tar=save_test_output_tar,
             optimizations=optimizations,
             deep=deep,
         )
