@@ -8,7 +8,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Dict
-from typing import IO
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -16,7 +15,6 @@ from typing import Sequence
 from typing import Tuple
 
 import requests
-from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
 from semgrep.app import auth
@@ -585,23 +583,6 @@ def saved_snippet_to_url(snippet_id: str) -> str:
 
 def is_pack_id(config_str: str) -> bool:
     return config_str[:2] == "p/"
-
-
-def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None:
-    config = DEFAULT_CONFIG
-
-    if lang:
-        config["rules"][0]["languages"] = [lang]
-    if pattern:
-        config["rules"][0]["pattern"] = pattern
-
-    yaml = YAML()
-
-    try:
-        yaml.dump(config, fd)
-        logger.info(f"Template config successfully written to {fd.name}")
-    except Exception as e:
-        raise SemgrepError(str(e))
 
 
 def get_config(

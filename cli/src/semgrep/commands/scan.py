@@ -26,7 +26,6 @@ from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
@@ -586,7 +585,6 @@ def scan_options(func: Callable) -> Callable:
     hidden=True
     # help="Save --test output for use in semgrep-app registry",
 )
-@click.option("--generate-config", "-g", is_flag=True, hidden=True)
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--deep",
@@ -614,7 +612,6 @@ def scan(
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
-    generate_config: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
@@ -804,9 +801,6 @@ def scan(
                     output_handler.handle_semgrep_errors(config_errors)
                     output_handler.output({}, all_targets=set(), filtered_rules=[])
                     raise SemgrepError("Please fix the above errors and try again.")
-        elif generate_config:
-            with open(DEFAULT_CONFIG_FILE, "w") as fd:
-                semgrep.config_resolver.generate_config(fd, lang, pattern)
         else:
             try:
                 (
