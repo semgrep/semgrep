@@ -186,7 +186,7 @@ type taint_propagator = {
 (** e.g. if we want to specify that adding tainted data to a `HashMap` makes the
  * `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
  * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
- * will be marked as tainted too. *)
+ * will also be marked as tainted. *)
 
 type taint_spec = {
   sources : pformula list;

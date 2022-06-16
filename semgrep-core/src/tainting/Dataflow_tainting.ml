@@ -238,7 +238,7 @@ let handle_taint_propagators env x taints =
    * simple but it has limitations, we can only propagate "forward" and, within
    * an instruction node, we can only propagate in the order in which we visit
    * the subexpressions. E.g. in `x.f(y,z)` we can propagate taint from `y` or
-   * `z` to `z`, or from `y` to `z`; but we cannot propagate taint from `x` to
+   * `z` to `x`, or from `y` to `z`; but we cannot propagate taint from `x` to
    * `y` or `z`, or from `z` to `y`. *)
   let var_env = env.var_env in
   let propagate_froms, propagate_tos =
@@ -270,7 +270,10 @@ let handle_taint_propagators env x taints =
   let taints = Taints.union taints taints_incoming in
   let var_env =
     match x with
-    | `Var var -> add_taint_to_var_in_env var_env var taints_incoming
+    | `Var var ->
+        (* If `x` is a variable, then taint is propagated by side-effect. This
+         * allows us to e.g. propagate taint from `x` to `y` in `f(x,y)`. *)
+        add_taint_to_var_in_env var_env var taints_incoming
     | `Exp _ -> var_env
   in
   (taints, var_env)
