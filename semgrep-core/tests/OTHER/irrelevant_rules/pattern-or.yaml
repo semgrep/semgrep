@@ -1,0 +1,8 @@
+rules:
+- id: simple-or
+  pattern-either:
+    - pattern: foo()
+    - pattern: bar()
+  message: matched
+  languages: [js]
+  severity: WARNING

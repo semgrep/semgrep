@@ -87,48 +87,37 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
                    * outside of the current file/AST, so we must get
                    * `mval_range` from `mval_file` and not from `env.file`! *)
                   let content = Range.content_at_range mval_file mval_range in
-                  Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
-                    (fun file ->
-                      Fun.protect
-                        ~finally:(fun () ->
-                          (* Invalidate the cached line/col lookup table when
-                           * this tmp file is no longer in use.
-                           * https://github.com/returntocorp/semgrep/issues/5277
-                           *
-                           * TODO remove the cache or do more principled cache
-                           * invalidation. *)
-                          Hashtbl.remove Xpattern_matcher.hmemo file)
-                        (fun () ->
-                          (* We don't want having to re-parse `content', but then we
-                           * need to fix the token locations in `mast`. *)
-                          let mast_start_loc =
-                            mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens
-                            |> fst |> PI.unsafe_token_location_of_info
-                          in
-                          let fix_loc loc =
-                            {
-                              loc with
-                              PI.charpos =
-                                loc.PI.charpos - mast_start_loc.charpos;
-                              line = loc.line - mast_start_loc.line + 1;
-                              column = loc.column - mast_start_loc.column;
-                              file;
-                            }
-                          in
-                          let fixing_visitor =
-                            Map_AST.mk_fix_token_locations fix_loc
-                          in
-                          let mast' = fixing_visitor.Map_AST.vprogram mast in
-                          let xtarget =
-                            {
-                              env.xtarget with
-                              file;
-                              lazy_ast_and_errors = lazy (mast', []);
-                              lazy_content = lazy content;
-                            }
-                          in
-                          nested_formula_has_matches { env with xtarget }
-                            formula (Some r'))))
+                  Xpattern_matcher.with_tmp_file ~str:content
+                    ~ext:"mvar-pattern" (fun file ->
+                      (* We don't want having to re-parse `content', but then we
+                       * need to fix the token locations in `mast`. *)
+                      let mast_start_loc =
+                        mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens
+                        |> fst |> PI.unsafe_token_location_of_info
+                      in
+                      let fix_loc loc =
+                        {
+                          loc with
+                          PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
+                          line = loc.line - mast_start_loc.line + 1;
+                          column = loc.column - mast_start_loc.column;
+                          file;
+                        }
+                      in
+                      let fixing_visitor =
+                        Map_AST.mk_fix_token_locations fix_loc
+                      in
+                      let mast' = fixing_visitor.Map_AST.vprogram mast in
+                      let xtarget =
+                        {
+                          env.xtarget with
+                          file;
+                          lazy_ast_and_errors = lazy (mast', []);
+                          lazy_content = lazy content;
+                        }
+                      in
+                      nested_formula_has_matches { env with xtarget } formula
+                        (Some r')))
           | Some xlang, MV.Text (content, _tok)
           | Some xlang, MV.Xmls [ XmlText (content, _tok) ]
           | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
@@ -136,50 +125,39 @@ let satisfies_metavar_pattern_condition nested_formula_has_matches env r mvar
               logger#debug "nested analysis of |||%s||| with lang '%s'" content
                 (Xlang.to_string xlang);
               (* We re-parse the matched text as `xlang`. *)
-              Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
+              Xpattern_matcher.with_tmp_file ~str:content ~ext:"mvar-pattern"
                 (fun file ->
-                  Fun.protect
-                    ~finally:(fun () ->
-                      (* Invalidate the cached line/col lookup table when this
-                       * tmp file is no longer in use.
-                       * https://github.com/returntocorp/semgrep/issues/5277
-                       *
-                       * TODO remove the cache or do more principled cache
-                       * invalidation. *)
-                      Hashtbl.remove Xpattern_matcher.hmemo file)
-                    (fun () ->
-                      let lazy_ast_and_errors =
-                        lazy
-                          (match xlang with
-                          | L (lang, _) ->
-                              let { Parse_target.ast; skipped_tokens; _ } =
-                                Parse_target.parse_and_resolve_name lang file
-                              in
-                              (* TODO: If we wanted to report the parse errors
-                               * then we should fix the parse info with
-                               * Parse_info.adjust_info_wrt_base! *)
-                              if skipped_tokens <> [] then
-                                pr2
-                                  (spf
-                                     "rule %s: metavariable-pattern: failed to \
-                                      fully parse the content of %s"
-                                     (fst env.rule.Rule.id) mvar);
-                              (ast, skipped_tokens)
-                          | LRegex
-                          | LGeneric ->
-                              failwith
-                                "requesting generic AST for LRegex|LGeneric")
-                      in
-                      let xtarget =
-                        {
-                          Xtarget.file;
-                          xlang;
-                          lazy_ast_and_errors;
-                          lazy_content = lazy content;
-                        }
-                      in
-                      nested_formula_has_matches { env with xtarget } formula
-                        (Some r')))
+                  let lazy_ast_and_errors =
+                    lazy
+                      (match xlang with
+                      | L (lang, _) ->
+                          let { Parse_target.ast; skipped_tokens; _ } =
+                            Parse_target.parse_and_resolve_name lang file
+                          in
+                          (* TODO: If we wanted to report the parse errors
+                           * then we should fix the parse info with
+                           * Parse_info.adjust_info_wrt_base! *)
+                          if skipped_tokens <> [] then
+                            pr2
+                              (spf
+                                 "rule %s: metavariable-pattern: failed to \
+                                  fully parse the content of %s"
+                                 (fst env.rule.Rule.id) mvar);
+                          (ast, skipped_tokens)
+                      | LRegex
+                      | LGeneric ->
+                          failwith "requesting generic AST for LRegex|LGeneric")
+                  in
+                  let xtarget =
+                    {
+                      Xtarget.file;
+                      xlang;
+                      lazy_ast_and_errors;
+                      lazy_content = lazy content;
+                    }
+                  in
+                  nested_formula_has_matches { env with xtarget } formula
+                    (Some r'))
           | Some _lang, mval ->
               (* This is not necessarily an error in the rule, e.g. you may be
                * matching `$STRING + ...` and then add a metavariable-pattern on

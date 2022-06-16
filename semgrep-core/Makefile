@@ -44,8 +44,8 @@ test: all
 .PHONY: install
 install:
 	dune install
-	rm -f ../semgrep/semgrep/bin/semgrep-core
-	cp _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
+	rm -f ../cli/src/semgrep/bin/semgrep-core
+	cp _build/install/default/bin/semgrep-core ../cli/src/semgrep/bin/
 
 ###############################################################################
 # Developer targets
@@ -57,9 +57,9 @@ install:
 .PHONY: dev
 dev:
 	$(MAKE) all
-	rm -f ../semgrep/semgrep/bin/semgrep-core
+	rm -f ../cli/src/semgrep/bin/semgrep-core
 	ln -s ../../../semgrep-core/bin/semgrep-core \
-	  ../semgrep/semgrep/bin/semgrep-core
+	  ../cli/src/semgrep/bin/semgrep-core
 
 .PHONY: e2etest
 e2etest:
@@ -70,7 +70,7 @@ dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 
 #coupling: .circleci/config.yml
-#semgrep must be in your PATH (run 'pipenv shell' from semgrep/semgrep/)
+#semgrep must be in your PATH (run 'pipenv shell' from cli/src/semgrep/)
 .PHONY: check
 check:
 	@semgrep --version

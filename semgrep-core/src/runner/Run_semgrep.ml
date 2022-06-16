@@ -250,12 +250,12 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
  * reporting.
  *  - TODO: naming exns?
  *)
-let exn_to_error file exn =
-  match exn with
+let exn_to_error file (e : Exception.t) =
+  match Exception.get_exn e with
   | AST_generic.Error (s, tok) ->
       let loc = PI.unsafe_token_location_of_info tok in
       E.mk_error loc s AstBuilderError
-  | _ -> E.exn_to_error file exn
+  | _ -> E.exn_to_error file e
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -357,9 +357,10 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                (* those were converted in Main_timeout in timeout_function()*)
                | Timeout _ -> assert false
                | exn when not !Flag_semgrep.fail_fast ->
+                   let e = Exception.catch exn in
                    {
                      RP.matches = [];
-                     errors = [ exn_to_error file exn ];
+                     errors = [ exn_to_error file e ];
                      skipped_targets = [];
                      profiling = RP.empty_partial_profiling file;
                    })
@@ -384,17 +385,17 @@ let mk_rule_table rules =
   let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
   Common.hash_of_list rule_pairs
 
-let xtarget_of_file _config xlang file =
+let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
     match xlang with
     | Xlang.L (lang, other_langs) ->
         (* xlang from the language field in -target, which should be unique *)
         assert (other_langs = []);
         lazy
-          (let { Parse_target.ast; skipped_tokens; _ } =
-             Parse_target.parse_and_resolve_name lang file
-           in
-           (ast, skipped_tokens))
+          (Parse_with_caching.parse_and_resolve_name
+             ~parsing_cache_dir:config.parsing_cache_dir
+             (* alt: could define a AST_generic.version *)
+             config.version lang file)
     | _ -> lazy (failwith "requesting generic AST for LRegex|LGeneric")
   in
 
@@ -556,10 +557,10 @@ let semgrep_with_raw_results_and_exn_handler config =
     (None, res, files)
   with
   | exn when not !Flag_semgrep.fail_fast ->
-      let trace = Printexc.get_backtrace () in
-      logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
+      let e = Exception.catch exn in
+      logger#info "Uncaught exception: %s" (Exception.to_string e);
       let res =
-        { RP.empty_final_result with errors = [ E.exn_to_error "" exn ] }
+        { RP.empty_final_result with errors = [ E.exn_to_error "" e ] }
       in
       (Some exn, res, [])
 

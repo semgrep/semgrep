@@ -54,7 +54,7 @@ type 'ast parser =
 type 'ast internal_result =
   | Ok of ('ast * Parse_info.parsing_stat)
   | Partial of 'ast * PI.token_location list * Parse_info.parsing_stat
-  | Error of exn * Printexc.raw_backtrace
+  | Error of Exception.t
 
 let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let start = err.start_pos in
@@ -69,7 +69,7 @@ let loc_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 
 let exn_of_loc loc =
   let info = { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo } in
-  PI.Parsing_error info
+  PI.Parsing_error info |> Exception.trace
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
   let loc = loc_of_tree_sitter_error err in
@@ -79,8 +79,8 @@ let errors_from_skipped_tokens xs =
   match xs with
   | [] -> []
   | x :: _ ->
-      let exn = exn_of_loc x in
-      let err = E.exn_to_error x.PI.file exn in
+      let e = exn_of_loc x in
+      let err = E.exn_to_error x.PI.file e in
       let locs = xs |> Common.map OutH.location_of_token_location in
       [ { err with typ = Out.PartialParsing locs } ]
 
@@ -104,11 +104,12 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let res = f file in
             Ok res
           with
-          | Timeout _ as e -> raise e
+          | Timeout _ as e -> Exception.catch_and_reraise e
           | exn ->
+              let e = Exception.catch exn in
               (* TODO: print where the exception was raised or reraise *)
               logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
-              Error (exn, Printexc.get_raw_backtrace ()))
+              Error e)
   | TreeSitter f -> (
       logger#trace "trying to parse with TreeSitter parser %s" file;
       try
@@ -120,13 +121,13 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
               "internal error: failed to recover typed tree from tree-sitter's \
                untyped tree"
             in
-            Error (Failure msg, Printexc.get_callstack 100)
+            Error (Exception.trace (Failure msg))
         | Some ast, [] -> Ok (ast, stat)
         | None, ts_error :: _xs ->
-            let exn = error_of_tree_sitter_error ts_error in
-            logger#error "non-recoverable error (%s) with TreeSitter parser"
-              (Common.exn_to_s exn);
-            Error (exn, Printexc.get_callstack 100)
+            let e = error_of_tree_sitter_error ts_error in
+            logger#error "non-recoverable error with TreeSitter parser:\n%s"
+              (Exception.to_string e);
+            Error e
         | Some ast, x :: xs ->
             (* Note that the first error is probably the most important;
              * the following one may be due to cascading effects *)
@@ -135,21 +136,19 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let locs = x :: xs |> Common.map loc_of_tree_sitter_error in
             Partial (ast, locs, stat)
       with
-      | Timeout _ as e -> raise e
+      | Timeout _ as e -> Exception.catch_and_reraise e
       (* to get correct stack trace on parse error *)
-      | exn when !debug_exn -> raise exn
+      | exn when !debug_exn -> Exception.catch_and_reraise exn
       | exn ->
-          let trace = Printexc.get_raw_backtrace () in
+          let e = Exception.catch exn in
           logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          Error (exn, trace))
+          Error e)
 
 let rec (run_either :
           Common.filename -> 'ast parser list -> 'ast internal_result) =
  fun file xs ->
   match xs with
-  | [] ->
-      Error
-        (Failure (spf "no parser found for %s" file), Printexc.get_callstack 100)
+  | [] -> Error (Exception.trace (Failure (spf "no parser found for %s" file)))
   | p :: xs -> (
       let res = run_parser p file in
       match res with
@@ -158,28 +157,32 @@ let rec (run_either :
           let res = run_either file xs in
           match res with
           | Ok res -> Ok res
-          | Error (exn2, trace2) ->
-              logger#debug "exn again (%s) but return Partial:\n%s"
-                (Common.exn_to_s exn2)
-                (Printexc.raw_backtrace_to_string trace2);
+          | Error e2 ->
+              logger#debug "exn again but return Partial:\n%s"
+                (Exception.to_string e2);
               (* prefer a Partial to an Error *)
               Partial (ast, errs, stat)
           | Partial _ ->
               logger#debug "Partial again but return first Partial";
               Partial (ast, errs, stat))
-      | Error (exn1, trace1) -> (
+      | Error e1 -> (
           let res = run_either file xs in
           match res with
           | Ok res -> Ok res
           | Partial (ast, errs, stat) ->
-              logger#debug "Got now a Partial, better than exn (%s)"
-                (Common.exn_to_s exn1);
+              logger#debug "Got now a Partial, better than exn:\n%s"
+                (Exception.to_string e1);
               Partial (ast, errs, stat)
-          | Error (exn2, _trace2) ->
-              logger#debug "exn again (%s) but return original exn (%s)"
-                (Common.exn_to_s exn2) (Common.exn_to_s exn1);
+          | Error e2 ->
+              logger#debug
+                "exn again but return original exn:\n\
+                 --- new exn (ignored) ---\n\
+                 %s\n\
+                 --- original exn (retained) ---\n\
+                 %s"
+                (Exception.to_string e2) (Exception.to_string e1);
               (* prefer the first error *)
-              Error (exn1, trace1)))
+              Error e1))
 
 let (run :
       Common.filename ->
@@ -205,7 +208,7 @@ let (run :
   | Ok (ast, stat) -> { ast = fconvert ast; skipped_tokens = []; stat }
   | Partial (ast, skipped_tokens, stat) ->
       { ast = fconvert ast; skipped_tokens; stat }
-  | Error (exn, trace) -> Printexc.raise_with_backtrace exn trace
+  | Error e -> Exception.reraise e
 
 let throw_tokens f file =
   let res = f file in
@@ -375,6 +378,7 @@ let rec just_parse_with_lang lang file =
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  [@@profiling]
 
 (*****************************************************************************)
 (* Entry point *)
@@ -399,6 +403,7 @@ let parse_and_resolve_name lang file =
 
   logger#info "Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done";
   res
+  [@@profiling]
 
 (* used in test files *)
 let parse_and_resolve_name_warn_if_partial lang file =

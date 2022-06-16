@@ -30,9 +30,9 @@ semgrep-core/tests/
 semgrep-core/tree-sitter-lang/
 
 pfff/
-semgrep/tests/e2e/targets/
-semgrep/tests/performance/targets/
-semgrep/tests/e2e/snapshots/
+cli/tests/e2e/targets/
+cli/tests/performance/targets/
+cli/tests/e2e/snapshots/
 
 # rules being tested for performance
 perf/rules/

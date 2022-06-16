@@ -4,6 +4,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+
+- Gitlab SAST output is now v14.1.2 compliant
+- Removed the following deprecated `semgrep scan` options:
+  `--json-stats`, `--json-time`, `--debugging-json`, `--save-test-output-tar`, `--synthesize-patterns`,
+  `--generate-config/-g`, `--dangerously-allow-arbitrary-code-execution-from-rules`,
+  and `--apply` (which was an easter egg for job applications, not the same as `--autofix`)
+
+### Fixed
+
+- Inline join mode rules can now run taint-mode rules
+- Python: correctly handle `with` context expressions where the value is not
+  bound (#5513)
+
+## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
+
 ### Added
 
 - New language R with experimental support (#2360)
@@ -13,6 +29,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - You can now disable version checks with an environment variable by setting
   `SEMGREP_ENABLE_VERSION_CHECK=0`
 - Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
+- An experimental LSP daemon mode for semgrep. Try it with `semgrep lsp --config auto`!
+- taint-mode: New experimental `pattern-propagators` feature that allows to specify
+  arbitrary patterns for the propagation of taint by side-effect. In particular,
+  this allows to specify how taint propagates through side-effectful function calls.
+  For example, you can specify that when tainted data is added to an array then the
+  array itself becomes tainted. (#4509)
+
+### Changed
+
+- Rules are now downloaded from the Semgrep Registry in JSON format instead of YAML.
+  This speeds up rule parsing in the Semgrep CLI,
+  making a `semgrep --config auto` run on the semgrep Python package in 14s instead of 16s.
 
 ### Fixed
 
@@ -23,7 +51,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Go: single pattern field can now match toplevel fields in a composite
   literal (#5452)
 - PHP: metavariable-pattern: works again when used with language: php (#5443)
+- PHP: booleans are propagated by constant propagation (#5509)
+- PHP: named arguments work in patterns (#5508)
 - Fixed a non-deterministic crash when matching a large number of regexes (#5277)
+- Fixed issue when running in GithubActions that caused semgrep to report on
+  files not changed in the PR (#5453)
+- JS/TS: `$X()` no longer matches `new Foo()`, for consistency with other languages (#5510)
+- JS/TS: Typed metavariables now match constructor calls (e.g. `($X: C)` matches `new C()`. (#5540)
 
 ## [0.97.0](https://github.com/returntocorp/semgrep/releases/tag/v0.97.0) - 2022-06-08
 

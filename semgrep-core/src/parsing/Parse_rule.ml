@@ -385,8 +385,8 @@ let parse_metavar_cond env key s =
     | AST_generic.E e -> e
     | _ -> error_at_key env key "not an expression"
   with
-  | Timeout _ as e -> raise e
-  | UnixExit n -> raise (UnixExit n)
+  | Timeout _ as e -> Exception.catch_and_reraise e
+  | UnixExit _n as e -> Exception.catch_and_reraise e
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
@@ -508,7 +508,7 @@ let parse_xpattern_expr env e =
        (* TODO put in *)
      in *)
   try parse_xpattern env.languages (s, t) with
-  | (Timeout _ | UnixExit _) as e -> raise e
+  | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
@@ -794,7 +794,15 @@ let parse_formula (env : env) (rule_dict : dict) : R.pformula =
       let _new = Rule.convert_formula_old ~rule_id:env.id old in
       R.Old old
 
-let parse_sanitizer env (key : key) (value : G.expr) =
+let parse_taint_propagator env (key : key) (value : G.expr) :
+    Rule.taint_propagator =
+  let propagator_dict = yaml_to_dict env key value in
+  let from = take propagator_dict env parse_string_wrap "from" in
+  let to_ = take propagator_dict env parse_string_wrap "to" in
+  let formula = parse_formula env propagator_dict in
+  { formula; from; to_ }
+
+let parse_taint_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
   let not_conflicting =
     take_opt sanitizer_dict env parse_bool "not_conflicting"
@@ -822,14 +830,23 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
           (fun env -> parse_spec env (fst key ^ "list item", snd key))
           x
       in
-      let sources, sanitizers_opt, sinks =
+      let sources, propagators_opt, sanitizers_opt, sinks =
         ( take rule_dict env (parse_specs parse_sub_formula) "pattern-sources",
           take_opt rule_dict env
-            (parse_specs parse_sanitizer)
+            (parse_specs parse_taint_propagator)
+            "pattern-propagators",
+          take_opt rule_dict env
+            (parse_specs parse_taint_sanitizer)
             "pattern-sanitizers",
           take rule_dict env (parse_specs parse_sub_formula) "pattern-sinks" )
       in
-      `Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
+      `Taint
+        {
+          sources;
+          propagators = optlist_to_list propagators_opt;
+          sanitizers = optlist_to_list sanitizers_opt;
+          sinks;
+        }
   | Some key ->
       error_at_key env key
         (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"

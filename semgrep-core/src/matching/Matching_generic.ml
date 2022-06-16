@@ -467,7 +467,7 @@ let m_option_none_can_match_some f a b =
   (* Nothing specified in the pattern can match Some stuff *)
   | None, _ -> return ()
   | Some xa, Some xb -> f xa xb
-  | Some _, _ -> fail ()
+  | Some _, None -> fail ()
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: list *)

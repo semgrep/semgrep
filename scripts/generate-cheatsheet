@@ -24,7 +24,7 @@ EOF
 fi
 
 (
-  cd "$repo_root"/semgrep
+  cd "$repo_root"/cli
 
   pipenv run python3 ../scripts/generate_cheatsheet.py --json \
     --directory "$input" \

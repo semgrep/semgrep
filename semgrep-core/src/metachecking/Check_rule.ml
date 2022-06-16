@@ -239,7 +239,9 @@ let run_checks config fparser metachecks xs =
                (* TODO this error is special cased because YAML files that *)
                (* aren't semgrep rules are getting scanned *)
                | Rule.InvalidYaml _ -> []
-               | exn -> [ E.exn_to_error file exn ])
+               | exn ->
+                   let e = Exception.catch exn in
+                   [ E.exn_to_error file e ])
         |> List.flatten
       in
       semgrep_found_errs @ ocaml_found_errs
@@ -286,7 +288,8 @@ let stat_files fparser xs =
                     pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" file
                          (fst r.id))
-                | Some (s, _f) ->
+                | Some (f, _f) ->
                     incr good;
+                    let s = Semgrep_prefilter_j.string_of_formula f in
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)

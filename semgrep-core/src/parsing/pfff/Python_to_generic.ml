@@ -724,7 +724,7 @@ and stmt_aux env x =
       and v3 = list_stmt1 env v3 in
       let anys =
         match v2 with
-        | None -> []
+        | None -> [ G.E v1 ]
         | Some e2 -> [ G.E (G.LetPattern (H.expr_to_pattern e2, v1) |> G.e) ]
       in
       [ G.OtherStmtWithStmt (G.OSWS_With, anys, v3) |> G.s ]

@@ -8,7 +8,7 @@ export function foobar(
 ) {
 
   //ERROR: match
-m  return Array(number)
+  return Array(number)
     //ERROR: match
     .fill(true)
     //ERROR: match
