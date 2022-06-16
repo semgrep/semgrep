@@ -105,7 +105,6 @@ let known_exn_to_error ?(rule_id = None) file (e : Exception.t) : error option =
           typ = Out.PatternParseError yaml_path;
           loc = PI.unsafe_token_location_of_info pos;
           msg =
-            (* TODO: make message helpful *)
             spf
               "Invalid pattern for %s:\n\
                --- pattern ---\n\
