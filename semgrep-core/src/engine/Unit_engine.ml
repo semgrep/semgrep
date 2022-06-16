@@ -380,7 +380,7 @@ let test_irrelevant_rule rule_file target_file =
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula" (fst rule.id))
-         | Some (re, f) ->
+         | Some (_json, re, f) ->
              let content = read_file target_file in
              if f content then
                Alcotest.fail

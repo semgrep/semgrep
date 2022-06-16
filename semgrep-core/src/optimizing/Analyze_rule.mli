@@ -1,3 +1,6 @@
+(* see below for more information *)
+type prefilter = JSON.t * string (* for debugging *) * (string -> bool)
+
 (* This function analyzes a rule and returns optionaly a function
  * that when applied to the content of a file will return whether
  * or not we should process the file. False means that we can
@@ -21,9 +24,12 @@
  *
  * Note that this function use Common.memoized on the rule id
  *)
-val regexp_prefilter_of_rule :
-  Rule.t -> (string (* for debugging *) * (string -> bool)) option
+val regexp_prefilter_of_rule : Rule.t -> prefilter option
 
 (* internal, do not use directly, not memoized *)
-val regexp_prefilter_of_formula :
-  Rule.formula -> (string (* for debugging *) * (string -> bool)) option
+val regexp_prefilter_of_formula : Rule.formula -> prefilter option
+
+(* For external tools like Semgrep query console to be able to
+ * also prune certain rules/files.
+ *)
+val json_of_prefilter : prefilter -> JSON.t

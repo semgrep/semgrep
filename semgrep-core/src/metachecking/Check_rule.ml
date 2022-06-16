@@ -288,7 +288,7 @@ let stat_files fparser xs =
                     pr2
                       (spf "PB: no regexp prefilter for rule %s:%s" file
                          (fst r.id))
-                | Some (s, _f) ->
+                | Some (_json, s, _f) ->
                     incr good;
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)
