@@ -108,8 +108,6 @@ class ConfigPath:
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             state.metrics.add_feature("config", "auto")
-            if self._project_url is not None:
-                self._extra_headers["X-Semgrep-Project"] = self._project_url
             self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
         else:
             state.metrics.add_feature("config", "local")
