@@ -582,12 +582,6 @@ def scan_options(func: Callable) -> Callable:
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
 @click.option(
-    "--json-time",
-    is_flag=True,
-    hidden=True
-    # help="Deprecated alias for --json + --time",
-)
-@click.option(
     "--debugging-json",
     is_flag=True,
     hidden=True
@@ -647,7 +641,6 @@ def scan(
     include: Optional[Tuple[str, ...]],
     jobs: int,
     json: bool,
-    json_time: bool,
     junit_xml: bool,
     lang: Optional[str],
     max_chars_per_line: int,
@@ -739,7 +732,7 @@ def scan(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    output_time = time_flag or json_time
+    output_time = time_flag
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
@@ -750,7 +743,7 @@ def scan(
         targets = (os.curdir,)
 
     output_format = OutputFormat.TEXT
-    if json or json_time or debugging_json:
+    if json or debugging_json:
         output_format = OutputFormat.JSON
     elif gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
