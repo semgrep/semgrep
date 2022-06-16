@@ -108,8 +108,10 @@ let parse_and_resolve_name ?(parsing_cache_dir = "") version lang file =
            * so we focus on just Timeout for now.
            *)
         with
-        | Match_rules.File_timeout as e -> Right e)
+        | Match_rules.File_timeout as exn ->
+            let e = Exception.catch exn in
+            Right e)
   in
   match v with
   | Left x -> x
-  | Right exn -> raise exn
+  | Right e -> Exception.reraise e
