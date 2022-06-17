@@ -251,8 +251,9 @@ let type_at_tok tk uri io =
               | _ -> raise Impossible
             with
             | exn ->
+                let e = Exception.catch exn in
                 logger#error "Exn Parse_ml.type_of_string TODO: %s" s;
-                raise exn
+                Exception.reraise e
           in
           (* logger#info "type = %s" (G.show_type_ ty); *)
           Some ty

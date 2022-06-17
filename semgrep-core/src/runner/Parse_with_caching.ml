@@ -149,6 +149,7 @@ let parse_and_resolve_name ?(parsing_cache_dir = "") version lang file =
         let full_filename =
           spf "%s__%s__%s" file (Lang.to_string lang) version
         in
+
         cache_file_of_file parsing_cache_dir binary_suffix full_filename)
       (fun () -> ast_or_exn_of_file lang file)
   in

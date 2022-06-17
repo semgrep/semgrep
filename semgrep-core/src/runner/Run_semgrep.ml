@@ -576,7 +576,7 @@ let semgrep_with_raw_results_and_exn_handler config =
       let res =
         { RP.empty_final_result with errors = [ E.exn_to_error "" e ] }
       in
-      (Some exn, res, [])
+      (Some e, res, [])
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
