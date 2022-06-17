@@ -1,0 +1,1 @@
+targets/nosemgrep/eqeq-nosemgrep.py:2:12:error(eqeq-is-bad):    return a + b == a + b  # nosemgrep: rules.eqeq-is-bad:useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?

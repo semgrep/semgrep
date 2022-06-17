@@ -408,8 +408,10 @@ class OutputHandler:
 
     def _build_output(
         self,
-        output_format: OutputFormat,
+        output_format: Optional[OutputFormat] = None,
     ) -> str:
+        # Compatibility change for commands assuming one output
+        output_format = output_format or self.settings.output_format
         # CliOutputExtra members
         cli_paths = out.CliPaths(
             scanned=[str(path) for path in sorted(self.all_targets)],
