@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## Added
+
+- taint-mode: New experimental `pattern-propagators` feature that allows to specify
+  arbitrary patterns for the propagation of taint by side-effect. In particular,
+  this allows to specify how taint propagates through side-effectful function calls.
+  For example, you can specify that when tainted data is added to an array then the
+  array itself becomes tainted. (#4509)
+
 ### Changed
 
 - Gitlab SAST output is now v14.1.2 compliant
@@ -30,11 +38,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `SEMGREP_ENABLE_VERSION_CHECK=0`
 - Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 - An experimental LSP daemon mode for semgrep. Try it with `semgrep lsp --config auto`!
-- taint-mode: New experimental `pattern-propagators` feature that allows to specify
-  arbitrary patterns for the propagation of taint by side-effect. In particular,
-  this allows to specify how taint propagates through side-effectful function calls.
-  For example, you can specify that when tainted data is added to an array then the
-  array itself becomes tainted. (#4509)
 
 ### Changed
 
