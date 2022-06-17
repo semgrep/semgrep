@@ -731,11 +731,7 @@ def scan(
         for output_format, output_bool in legacy_output_options
         if output_bool
     ]
-    if len(legacy_output_destinations) > 1:
-        raise RuntimeError(
-            "Mutually exclusive options from 'Output formats' option group cannot"
-        )
-    elif not legacy_output_destinations and output is not None:
+    if not legacy_output_destinations and output is not None:
         legacy_output_destinations += [OutputDestination(OutputFormat.TEXT, output)]
 
     def translate_write_format(write_format: str) -> str:
