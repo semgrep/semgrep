@@ -49,9 +49,21 @@ type versioned_parse_result =
     Common.either
 
 (*****************************************************************************)
-(* Helpers *)
+(* Generic helpers *)
 (*****************************************************************************)
 let filemtime file = (Unix.stat file).Unix.st_mtime
+
+let get_value_and_run_checks ?(filecheck = None) version_cur file_cache =
+  let version, file2, res = Common2.get_value file_cache in
+  if version <> version_cur then
+    failwith (spf "Version mismatch! Clean the cache file %s" file_cache);
+  (match filecheck with
+  | Some file when file <> file2 ->
+      failwith
+        (spf "Not the same file! Md5sum collision! Clean the cache file %s"
+           file_cache)
+  | _ -> ());
+  res
 
 (* The function below is mostly a copy-paste of Common.cache_computation.
  * This function is slightly more flexible because we can put the cache file
@@ -69,15 +81,7 @@ let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
     let file_cache = cache_file_of_file file in
     if Sys.file_exists file_cache && filemtime file_cache >= filemtime file then (
       logger#trace "using cache: %s" file_cache;
-      let version, file2, res = Common2.get_value file_cache in
-      if version <> version_cur then
-        failwith (spf "Version mismatch! Clean the cache file %s" file_cache);
-      if file <> file2 then
-        failwith
-          (spf "Not the same file! Md5sum collision! Clean the cache file %s"
-             file_cache);
-
-      res)
+      get_value_and_run_checks ~filecheck:(Some file) version_cur file_cache)
     else
       let res = f () in
       let final : versioned_parse_result = (version_cur, file, res) in
@@ -100,7 +104,7 @@ let cache_file_of_file parsing_cache_dir suffix filename =
   Filename.concat dir (spf "%s%s" (Digest.to_hex md5) suffix)
 
 (*****************************************************************************)
-(* Entry point *)
+(* Helpers *)
 (*****************************************************************************)
 
 let ast_or_exn_of_file lang file =
@@ -140,21 +144,30 @@ let versioned_parse_result_of_file version lang file : versioned_parse_result =
   (* coupling: see call to Common2.write_value above *)
   (version, file, res)
 
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
 (* A wrapper around Parse_target.parse_and_resolve_name *)
 let parse_and_resolve_name ?(parsing_cache_dir = "") version lang file =
-  let v =
-    cache_computation (parsing_cache_dir <> "") version file
-      (fun file ->
-        (* we may use different parsers for the same file (e.g., in Python3 or
-         * Python2 mode), so put the lang as part of the cache "dependency".
-         * We also add version here so bumping the version will not
-         * try to use the old cache file (which should generate an exception).
-         *)
-        let full_filename =
-          spf "%s__%s__%s" file (Lang.to_string lang) version
-        in
+  if is_binary_ast_filename file then (
+    logger#info "%s is already an AST binary file, unmarshalling its value" file;
+    let v = get_value_and_run_checks ~filecheck:None version file in
+    ast_or_exn_of_value v)
+  else
+    let v =
+      cache_computation (parsing_cache_dir <> "") version file
+        (fun file ->
+          (* we may use different parsers for the same file (e.g., in Python3 or
+           * Python2 mode), so put the lang as part of the cache "dependency".
+           * We also add version here so bumping the version will not
+           * try to use the old cache file (which should generate an exception).
+           *)
+          let full_filename =
+            spf "%s__%s__%s" file (Lang.to_string lang) version
+          in
 
-        cache_file_of_file parsing_cache_dir binary_suffix full_filename)
-      (fun () -> ast_or_exn_of_file lang file)
-  in
-  ast_or_exn_of_value v
+          cache_file_of_file parsing_cache_dir binary_suffix full_filename)
+        (fun () -> ast_or_exn_of_file lang file)
+    in
+    ast_or_exn_of_value v
