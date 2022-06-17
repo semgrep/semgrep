@@ -257,6 +257,26 @@ let dump_v0_json file =
             pr2 (spf "WARNING: fail to fully parse %s" file))
   | [] -> failwith (spf "unsupported language for %s" file)
 
+let generate_ast_json file =
+  match Lang.langs_of_filename file with
+  | lang :: _ ->
+      let ast = Parse_target.parse_and_resolve_name_warn_if_partial lang file in
+      let v1 = AST_generic_to_v0.program ast in
+      let s = Ast_generic_v0_j.string_of_program v1 in
+      let file = file ^ ".ast.json" in
+      Common.write_file ~file s;
+      pr2 (spf "saved JSON output in %s" file)
+  | [] -> failwith (spf "unsupported language for %s" file)
+
+let generate_ast_binary lang file =
+  let final =
+    Parse_with_caching.versioned_parse_result_of_file Version.version lang file
+  in
+  let file = file ^ Parse_with_caching.binary_suffix in
+  assert (Parse_with_caching.is_binary_ast_filename file);
+  Common2.write_value final file;
+  pr2 (spf "saved marshalled generic AST in %s" file)
+
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
@@ -342,6 +362,27 @@ let mk_config () =
 
 let all_actions () =
   [
+    (* possibly useful to the user *)
+    ( "-show_ast_json",
+      " <file> dump on stdout the generic AST of file in JSON",
+      Common.mk_action_1_arg dump_v0_json );
+    ( "-generate_ast_json",
+      " <file> save in file.ast.json the generic AST of file in JSON",
+      Common.mk_action_1_arg generate_ast_json );
+    ( "-generate_ast_binary",
+      " <file> save in file.ast.binary the marshalled generic AST of file",
+      Common.mk_action_1_arg (fun file ->
+          generate_ast_binary (Xlang.lang_of_opt_xlang !lang) file) );
+    ( "-prefilter_of_rules",
+      " <file> dump the prefilter regexps of rules in JSON ",
+      Common.mk_action_1_arg prefilter_of_rules );
+    ( "-parsing_stats",
+      " <files or dirs> generate parsing statistics (use -json for JSON output)",
+      Common.mk_action_n_arg (fun xs ->
+          Test_parsing.parsing_stats
+            (Xlang.lang_of_opt_xlang !lang)
+            ~json:(!output_format = Json) ~verbose:true xs) );
+    (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
       Common.mk_action_0_arg dump_ext_of_lang );
@@ -358,9 +399,11 @@ let all_actions () =
         Common.mk_action_1_arg
           (dump_ast ~naming:true (Xlang.lang_of_opt_xlang !lang))
           file );
-    ("-dump_v0_json", " <file>", Common.mk_action_1_arg dump_v0_json);
-    ("-dump_equivalences", " <file>", Common.mk_action_1_arg dump_equivalences);
+    ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
+    ( "-dump_equivalences",
+      " <file> (deprecated)",
+      Common.mk_action_1_arg dump_equivalences );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
@@ -379,13 +422,10 @@ let all_actions () =
       Common.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang !lang) file) );
-    ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
-    ( "-prefilter_of_rules",
-      " <file> dump the prefilter regexps of rules in JSON ",
-      Common.mk_action_1_arg prefilter_of_rules );
+    (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
       Common.mk_action_2_arg Test_synthesizing.expr_at_range );
@@ -404,12 +444,6 @@ let all_actions () =
     ( "-ebnf_to_menhir",
       " <ebnf file>",
       Common.mk_action_1_arg Experiments.ebnf_to_menhir );
-    ( "-parsing_stats",
-      " <files or dirs> generate parsing statistics (use -json for JSON output)",
-      Common.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_stats
-            (Xlang.lang_of_opt_xlang !lang)
-            ~json:(!output_format = Json) ~verbose:true xs) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Common.mk_action_n_arg (fun xs ->

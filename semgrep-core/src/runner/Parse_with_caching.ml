@@ -1,3 +1,17 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2022 r2c
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
 open Common
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -22,6 +36,15 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * it is now useful to speedup semgrep when running semgrep
  * multiple times on the same reposotiry.
  *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+type versioned_parse_result =
+  string
+  * Common.filename
+  * (AST_generic.program * Parse_info.token_location list, exn) Common.either
 
 (*****************************************************************************)
 (* Helpers *)
@@ -55,7 +78,8 @@ let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
       res)
     else
       let res = f () in
-      (try Common2.write_value (version_cur, file, res) file_cache with
+      let final : versioned_parse_result = (version_cur, file, res) in
+      (try Common2.write_value final file_cache with
       | Sys_error err ->
           (* We must ignore SIGXFSZ to get this exception, see
            * note "SIGXFSZ (file size limit exceeded)". *)
@@ -66,16 +90,51 @@ let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
       res
   [@@profiling]
 
-let cache_file_of_file parsing_cache_dir ext filename =
+let cache_file_of_file parsing_cache_dir suffix filename =
   let dir = parsing_cache_dir in
   if not (Sys.file_exists dir) then Unix.mkdir dir 0o700;
   (* hopefully there will be no collision *)
   let md5 = Digest.string filename in
-  Filename.concat dir (spf "%s.%s" (Digest.to_hex md5) ext)
+  Filename.concat dir (spf "%s%s" (Digest.to_hex md5) suffix)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+let ast_or_exn_of_file lang file =
+  logger#trace "parsing %s" file;
+  try
+    (* finally calling the actual function *)
+    let { Parse_target.ast; skipped_tokens; _ } =
+      Parse_target.parse_and_resolve_name lang file
+    in
+    Left (ast, skipped_tokens)
+    (* We stores also in the cache whether we had
+     * an exception on this file, especially Timeout. We store the exn
+     * in the cache, and below we reraise it after we got it back
+     * from the cache.
+     * TODO: right now we just capture Timeout, but we should capture
+     * any exn. But doing so introduced some weird regressions in CI
+     * so we focus on just Timeout for now.
+     *)
+  with
+  | Match_rules.File_timeout as e -> Right e
+
+let ast_or_exn_of_value v =
+  match v with
+  | Left x -> x
+  | Right exn -> raise exn
+
+let binary_suffix = ".ast.binary"
+
+(* coupling: with binary_suffix definition above *)
+let is_binary_ast_filename file = file =~ ".*\\.ast\\.binary$"
+
+(* for -generate_ast_binary *)
+let versioned_parse_result_of_file version lang file : versioned_parse_result =
+  let res = ast_or_exn_of_file lang file in
+  (* coupling: see call to Common2.write_value above *)
+  (version, file, res)
 
 (* A wrapper around Parse_target.parse_and_resolve_name *)
 let parse_and_resolve_name ?(parsing_cache_dir = "") version lang file =
@@ -90,28 +149,8 @@ let parse_and_resolve_name ?(parsing_cache_dir = "") version lang file =
         let full_filename =
           spf "%s__%s__%s" file (Lang.to_string lang) version
         in
-        cache_file_of_file parsing_cache_dir "ast_cache" full_filename)
-      (fun () ->
-        try
-          logger#trace "parsing %s" file;
-          (* finally calling the actual function *)
-          let { Parse_target.ast; skipped_tokens; _ } =
-            Parse_target.parse_and_resolve_name lang file
-          in
-          Left (ast, skipped_tokens)
-          (* We stores also in the cache whether we had
-           * an exception on this file, especially Timeout. We store the exn
-           * in the cache, and below we reraise it after we got it back
-           * from the cache.
-           * TODO: right now we just capture Timeout, but we should capture
-           * any exn. But doing so introduced some weird regressions in CI
-           * so we focus on just Timeout for now.
-           *)
-        with
-        | Match_rules.File_timeout as exn ->
-            let e = Exception.catch exn in
-            Right e)
+
+        cache_file_of_file parsing_cache_dir binary_suffix full_filename)
+      (fun () -> ast_or_exn_of_file lang file)
   in
-  match v with
-  | Left x -> x
-  | Right e -> Exception.reraise e
+  ast_or_exn_of_value v
