@@ -727,7 +727,7 @@ def scan(
         (OutputFormat.VIM, vim),
     ]
     legacy_output_destinations = [
-        (output_format, output)
+        OutputDestination(output_format, output)
         for output_format, output_bool in legacy_output_options
         if output_bool
     ]
@@ -736,10 +736,10 @@ def scan(
             "Mutually exclusive options from 'Output formats' option group cannot"
         )
     elif not legacy_output_destinations and output is not None:
-        legacy_output_destinations += [(OutputFormat.TEXT, output)]
+        legacy_output_destinations += [OutputDestination(OutputFormat.TEXT, output)]
 
-    def format_write_option(option: str) -> str:
-        return option.lower().replace("-", "_")
+    def translate_write_format(write_format: str) -> str:
+        return write_format.lower().replace("-", "_")
 
     output_format_map = {
         "json": OutputFormat.JSON,
@@ -750,20 +750,21 @@ def scan(
         "emacs": OutputFormat.EMACS,
         "vim": OutputFormat.VIM,
     }
-    new_output_destinations = [
-        (
-            output_format_map[format_write_option(output_format)],
-            output_destination if output_destination != "-" else None,
-        )
-        for output_format, output_destination in write
-    ]
-    output_destinations = [
-        OutputDestination(output_format, output_destination)
-        for output_format, output_destination in legacy_output_destinations
-        + new_output_destinations
-    ]
+    new_output_destinations: List[OutputDestination] = []
+    for write_format, write_path in write:
+        actual_write_format = translate_write_format(write_format)
+        if actual_write_format not in output_format_map:
+            abort(f"Unrecognized output format '{write_format}'.")
+        new_output_destinations += [
+            OutputDestination(output_format_map[actual_write_format], write_path)
+        ]
+
+    output_destinations = legacy_output_destinations + new_output_destinations
     if not output_destinations:
         output_destinations += [OutputDestination(OutputFormat.TEXT, None)]
+
+    if len(output_destinations) > len({dest.path for dest in output_destinations}):
+        abort("Cannot write two outputs to the same location, or two to stdout.")
 
     output_settings = OutputSettings(
         output_format=output_destinations[0].output_format,

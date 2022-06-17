@@ -304,10 +304,10 @@ def test_multiple_output_option_flags_fail(run_semgrep_in_tmp, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_multiple_output_files(run_semgrep_in_tmp, snapshot, tmp_path):
+def test_multiple_output_files_with_formats(run_semgrep_in_tmp, snapshot, tmp_path):
     """
     Should be able to write to multiple files.
-    E.g. semgrep scan --config=auto --json=one.txt --sarif=two.txt
+    E.g. semgrep scan --config=auto --write json 1.txt --write gitlab_sast 2.txt
     """
     output_formats = [
         "json",
@@ -356,6 +356,49 @@ def test_multiple_output_files_with_formatting(run_semgrep_in_tmp, snapshot, tmp
             "EmAcS",
             tmp_path / "emacs.txt",
         ],
+    )
+
+    snapshot.assert_match(results, "results.out")
+    snapshot.assert_match(results, "results.err")
+
+
+@pytest.mark.kinda_slow
+def test_write_output_files_writes_to_stdout(run_semgrep_in_tmp, snapshot, tmp_path):
+    """
+    Writing to standard out should still succeed when using a '-' in the --write option.
+    e.g. semgrep scan --write my-fake-option 1.txt
+    """
+    results, errors = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        target_name="nosemgrep/eqeq-nosemgrep.py",
+        output_format=OutputFormat.TEXT,
+        options=[
+            "--write",
+            "json",
+            "-",
+        ],
+    )
+
+    snapshot.assert_match(results, "results.out")
+    snapshot.assert_match(results, "results.err")
+
+
+@pytest.mark.kinda_slow
+def test_multiple_output_files_invalid_option(run_semgrep_in_tmp, snapshot):
+    """
+    Should be able to throw an exception when an invalid output format is provided.
+    e.g. semgrep scan --write my-fake-option 1.txt
+    """
+    results, errors = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        target_name="nosemgrep/eqeq-nosemgrep.py",
+        output_format=OutputFormat.TEXT,
+        options=[
+            "--write",
+            "my-fake-option",
+            "-",
+        ],
+        assert_exit_code=2,
     )
 
     snapshot.assert_match(results, "results.out")
