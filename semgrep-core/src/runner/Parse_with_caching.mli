@@ -15,7 +15,9 @@ val parse_and_resolve_name :
 type versioned_parse_result =
   string (* version *)
   * Common.filename (* original path *)
-  * (AST_generic.program * Parse_info.token_location list, exn) Common.either
+  * ( AST_generic.program * Parse_info.token_location list,
+      Exception.t )
+    Common.either
 
 (* to add as a suffix to a filename *)
 val binary_suffix : string (* .ast.binary *)

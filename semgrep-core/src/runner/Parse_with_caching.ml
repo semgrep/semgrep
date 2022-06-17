@@ -44,7 +44,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type versioned_parse_result =
   string
   * Common.filename
-  * (AST_generic.program * Parse_info.token_location list, exn) Common.either
+  * ( AST_generic.program * Parse_info.token_location list,
+      Exception.t )
+    Common.either
 
 (*****************************************************************************)
 (* Helpers *)
@@ -118,12 +120,14 @@ let ast_or_exn_of_file lang file =
      * so we focus on just Timeout for now.
      *)
   with
-  | Match_rules.File_timeout as e -> Right e
+  | Match_rules.File_timeout as exn ->
+      let e = Exception.catch exn in
+      Right e
 
 let ast_or_exn_of_value v =
   match v with
   | Left x -> x
-  | Right exn -> raise exn
+  | Right exn -> Exception.reraise exn
 
 let binary_suffix = ".ast.binary"
 
