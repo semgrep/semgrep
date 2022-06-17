@@ -37,6 +37,8 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
+type constness_type = Constant | NotAlwaysConstant [@@deriving show]
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -51,9 +53,77 @@ let warning tok s =
 
 let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
+let str_of_resolved_name name =
+  let name = Common.map fst name in
+  String.concat "." name
+
 (*****************************************************************************)
 (* Constness *)
 (*****************************************************************************)
+
+let hook_constness_table_of_functions = ref None
+
+let result_of_function_call_is_constant lang f args =
+  let check_f f_name =
+    match !hook_constness_table_of_functions with
+    | Some constness_f -> (
+        match constness_f f_name with
+        | Some Constant ->
+            logger#trace "%s is always constant" f_name;
+            true
+        | Some NotAlwaysConstant ->
+            logger#trace "%s is not always constant" f_name;
+            false
+        | None ->
+            logger#trace "we have no information about the constness of %s"
+              f_name;
+            false)
+    | _ -> false
+  in
+
+  match (lang, f, args) with
+  (* Built-in knowledge, we know these functions return constants when
+     * given constant arguments. *)
+  | ( Lang.Php,
+      {
+        e =
+          Fetch
+            {
+              base =
+                Var
+                  {
+                    ident = ("escapeshellarg" | "htmlspecialchars_decode"), _;
+                    _;
+                  };
+              offset = NoOffset;
+            };
+        _;
+      },
+      [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
+      true
+  (* DeepSemgrep: Look up inferred constness of the function *)
+  | ( _,
+      {
+        (* If there is an offset, the full resolved name will be found
+           there. Otherwise, it will be found in the base *)
+        e =
+          ( Fetch { offset = Dot { ident; id_info = { id_resolved; _ }; _ }; _ }
+          | Fetch
+              {
+                base = Var { ident; id_info = { id_resolved; _ }; _ };
+                offset = NoOffset | Index _;
+              } );
+        _;
+      },
+      _ ) -> (
+      match !id_resolved with
+      | Some (G.ResolvedName name, _) ->
+          let f_name = str_of_resolved_name name in
+          check_f f_name
+      | _ ->
+          logger#info "%s does not have a resolved name" (fst ident);
+          false)
+  | _ -> false
 
 let eq_literal l1 l2 = G.equal_literal l1 l2
 let eq_ctype t1 t2 = t1 = t2
@@ -429,37 +499,17 @@ let transfer :
             (* var = exp *)
             let cexp = eval_or_sym_prop inp' exp in
             update_env_with inp' var cexp
-        | Call (Some { base = Var var; offset = NoOffset }, func, args) -> (
+        | Call (Some { base = Var var; offset = NoOffset }, func, args) ->
             let args_val = Common.map (eval inp') args in
-            match (lang, func, args_val) with
-            (* Built-in knowledge, we know these functions return constants when
-             * given constant arguments. *)
-            | ( Lang.Php,
-                {
-                  e =
-                    Fetch
-                      {
-                        base =
-                          Var
-                            {
-                              ident =
-                                ( ("escapeshellarg" | "htmlspecialchars_decode"),
-                                  _ );
-                              _;
-                            };
-                        offset = NoOffset;
-                      };
-                  _;
-                },
-                [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
-                D.VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
-            (* symbolic propagation *)
-            | _lang, _func, _args ->
-                (* Call to an arbitrary function, we are intraprocedural so we cannot
-                 * propagate actual constants in this case, but we can propagate the
-                 * call itself as a symbolic expression. *)
-                let ccall = sym_prop instr.iorig in
-                update_env_with inp' var ccall)
+            if result_of_function_call_is_constant lang func args_val then
+              D.VarMap.add (str_of_name var) (G.Cst G.Cstr) inp'
+            else
+              (* symbolic propagation *)
+              (* Call to an arbitrary function, we are intraprocedural so we cannot
+               * propagate actual constants in this case, but we can propagate the
+               * call itself as a symbolic expression. *)
+              let ccall = sym_prop instr.iorig in
+              update_env_with inp' var ccall
         | CallSpecial
             (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
             (* var = concat(args) *)

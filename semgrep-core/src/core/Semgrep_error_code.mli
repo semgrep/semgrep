@@ -1,3 +1,11 @@
+(*
+   Exception and error management for semgrep-core
+*)
+
+(*****************************************************************************)
+(* Main error type *)
+(*****************************************************************************)
+
 type error = {
   rule_id : Rule.rule_id option;
   typ : Output_from_core_t.core_error_kind;
@@ -12,7 +20,7 @@ type severity = Error | Warning
 val g_errors : error list ref
 
 (*****************************************************************************)
-(* Convertor functions *)
+(* Converter functions *)
 (*****************************************************************************)
 
 val mk_error :
@@ -29,8 +37,9 @@ val error :
   Output_from_core_t.core_error_kind ->
   unit
 
+(* Convert a caught exception and its stack trace to a Semgrep error. *)
 val exn_to_error :
-  ?rule_id:Rule.rule_id option -> Common.filename -> exn -> error
+  ?rule_id:Rule.rule_id option -> Common.filename -> Exception.t -> error
 
 (*****************************************************************************)
 (* Try with error *)
@@ -38,12 +47,6 @@ val exn_to_error :
 
 val try_with_exn_to_error : Common.filename -> (unit -> unit) -> unit
 val try_with_print_exn_and_reraise : Common.filename -> (unit -> unit) -> unit
-
-(*
-   Print exception and exit with code 2. No stack trace is printed because
-   it takes 2 seconds in some instances.
-*)
-val try_with_print_exn_and_exit_fast : Common.filename -> (unit -> unit) -> unit
 
 (*****************************************************************************)
 (* Pretty printers *)

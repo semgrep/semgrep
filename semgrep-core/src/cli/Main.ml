@@ -225,7 +225,7 @@ let dump_pattern (file : Common.filename) =
 
 let dump_ast ?(naming = false) lang file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-  E.try_with_print_exn_and_exit_fast file (fun () ->
+  E.try_with_print_exn_and_reraise file (fun () ->
       let { Parse_target.ast; skipped_tokens; _ } =
         if naming then Parse_target.parse_and_resolve_name lang file
         else Parse_target.just_parse_with_lang lang file
@@ -279,6 +279,21 @@ let dump_rule file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
+
+let prefilter_of_rules file =
+  let rules = Parse_rule.parse file in
+  let xs =
+    rules
+    |> Common.map (fun r ->
+           let pre_opt = Analyze_rule.regexp_prefilter_of_rule r in
+           let pre_atd_opt =
+             Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
+           in
+           let id = r.Rule.id |> fst in
+           { Semgrep_prefilter_t.rule_id = id; filter = pre_atd_opt })
+  in
+  let s = Semgrep_prefilter_j.string_of_prefilters xs in
+  pr s
 
 (*****************************************************************************)
 (* Config *)
@@ -368,6 +383,9 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
+    ( "-prefilter_of_rules",
+      " <file> dump the prefilter regexps of rules in JSON ",
+      Common.mk_action_1_arg prefilter_of_rules );
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
       Common.mk_action_2_arg Test_synthesizing.expr_at_range );
@@ -676,9 +694,22 @@ let main () =
 
 (*****************************************************************************)
 
+(*
+   Register global exception printers defined by the various libraries
+   and modules.
+
+   The main advantage of doing this here is the ability to override
+   undesirable printers defined by some libraries. The order of registration
+   is the order in which modules are initialized, which isn't something
+   that in general we know or want to rely on.
+   For example, JaneStreet Core prints (or used to print) some stdlib
+   exceptions as S-expressions without giving us a choice. Overriding those
+   can be tricky.
+*)
 let register_exception_printers () =
   Parse_info.register_exception_printer ();
-  SPcre.register_exception_printer ()
+  SPcre.register_exception_printer ();
+  Rule.register_exception_printer ()
 
 let () =
   Common.main_boilerplate (fun () ->

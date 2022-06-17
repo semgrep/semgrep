@@ -7,11 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 
 - Gitlab SAST output is now v14.1.2 compliant
+- Removed the following deprecated `semgrep scan` options:
+  `--json-stats`, `--json-time`, `--debugging-json`, `--save-test-output-tar`, `--synthesize-patterns`,
+  `--generate-config/-g`, `--dangerously-allow-arbitrary-code-execution-from-rules`,
+  and `--apply` (which was an easter egg for job applications, not the same as `--autofix`)
 
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
 - Fixed bug where semgrep would crash in nonexistent directory
+- Python: correctly handle `with` context expressions where the value is not
+  bound (#5513)
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
@@ -25,6 +31,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `SEMGREP_ENABLE_VERSION_CHECK=0`
 - Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 - An experimental LSP daemon mode for semgrep. Try it with `semgrep lsp --config auto`!
+- taint-mode: New experimental `pattern-propagators` feature that allows to specify
+  arbitrary patterns for the propagation of taint by side-effect. In particular,
+  this allows to specify how taint propagates through side-effectful function calls.
+  For example, you can specify that when tainted data is added to an array then the
+  array itself becomes tainted. (#4509)
 
 ### Changed
 

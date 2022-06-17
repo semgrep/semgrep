@@ -26,7 +26,6 @@ from semgrep.app.registry import list_current_public_rulesets
 from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
@@ -47,7 +46,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.state import get_state
-from semgrep.synthesize_patterns import synthesize
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -476,12 +474,6 @@ def scan_options(func: Callable) -> Callable:
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
-    "--apply",
-    is_flag=True,
-    help=("Print a list of job postings at r2c."),
-    hidden=True,
-)
-@click.option(
     "--replacement",
     help="""
         An autofix expression that will be applied to any matches found with --pattern.
@@ -587,43 +579,6 @@ def scan_options(func: Callable) -> Callable:
 )
 # These flags are deprecated or experimental - users should not
 # rely on their existence, or their output being stable
-@click.option(
-    "--json-stats",
-    is_flag=True,
-    hidden=True
-    # help="Include statistical information about performance in JSON output (experimental).",
-)
-@click.option(
-    "--json-time",
-    is_flag=True,
-    hidden=True
-    # help="Deprecated alias for --json + --time",
-)
-@click.option(
-    "--debugging-json",
-    is_flag=True,
-    hidden=True
-    # help="Deprecated alias for --json + --debug",
-)
-@click.option(
-    "--save-test-output-tar",
-    is_flag=True,
-    hidden=True
-    # help="Save --test output for use in semgrep-app registry",
-)
-@click.option(
-    "--synthesize-patterns",
-    type=str,
-    hidden=True
-    # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
-)
-@click.option("--generate-config", "-g", is_flag=True, hidden=True)
-@click.option(
-    "--dangerously-allow-arbitrary-code-execution-from-rules",
-    is_flag=True,
-    hidden=True
-    # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
-)
 @click.option("--dump-command-for-core", "-d", is_flag=True, hidden=True)
 @click.option(
     "--deep",
@@ -636,14 +591,11 @@ def scan_options(func: Callable) -> Callable:
 @handle_command_errors
 def scan(
     *,
-    apply: bool,
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     core_opts: Optional[str],
-    dangerously_allow_arbitrary_code_execution_from_rules: bool,
     debug: bool,
-    debugging_json: bool,
     deep: bool,
     dryrun: bool,
     dump_ast: bool,
@@ -654,14 +606,11 @@ def scan(
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
-    generate_config: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
     json: bool,
-    json_stats: bool,
-    json_time: bool,
     junit_xml: bool,
     lang: Optional[str],
     max_chars_per_line: int,
@@ -677,12 +626,10 @@ def scan(
     replacement: Optional[str],
     rewrite_rule_ids: bool,
     sarif: bool,
-    save_test_output_tar: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     show_supported_languages: bool,
     strict: bool,
-    synthesize_patterns: str,
     targets: Sequence[str],
     test: bool,
     test_ignore_todo: bool,
@@ -722,12 +669,6 @@ def scan(
             version_check()
         return None
 
-    if apply:
-        from semgrep.job_postings import print_job_postings
-
-        print_job_postings()
-        return None
-
     if show_supported_languages:
         click.echo(LANGUAGE.show_suppported_languages_message())
         return None
@@ -749,17 +690,12 @@ def scan(
     if pattern is not None and lang is None:
         abort("-e/--pattern and -l/--lang must both be specified")
 
-    if dangerously_allow_arbitrary_code_execution_from_rules:
-        logger.warning(
-            "The '--dangerously-allow-arbitrary-code-execution-from-rules' flag is now deprecated and does nothing. It will be removed in the future."
-        )
-
     if (config and "auto" in config) and metrics == MetricsState.OFF:
         abort(
             "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
-    output_time = time_flag or json_time
+    output_time = time_flag
 
     # Note this must be after the call to `terminal.configure` so that verbosity is respected
     possibly_notify_user()
@@ -770,7 +706,7 @@ def scan(
         targets = (os.curdir,)
 
     output_format = OutputFormat.TEXT
-    if json or json_time or debugging_json:
+    if json:
         output_format = OutputFormat.JSON
     elif gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
@@ -790,10 +726,8 @@ def scan(
         output_destination=output,
         error_on_findings=error_on_findings,
         strict=strict,
-        debug=debugging_json,
         verbose_errors=verbose,
         timeout_threshold=timeout_threshold,
-        json_stats=json_stats,
         output_time=output_time,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
@@ -808,7 +742,6 @@ def scan(
             test_ignore_todo=test_ignore_todo,
             strict=strict,
             json=json,
-            save_test_output_tar=save_test_output_tar,
             optimizations=optimizations,
             deep=deep,
         )
@@ -825,12 +758,6 @@ def scan(
 
         if dump_ast:
             dump_parsed_ast(json, __validate_lang("--dump-ast", lang), pattern, targets)
-        elif synthesize_patterns:
-            synthesize(
-                __validate_lang("--synthesize-patterns", lang),
-                synthesize_patterns,
-                targets,
-            )
         elif validate:
             if not (pattern or lang or config):
                 logger.error(
@@ -866,9 +793,6 @@ def scan(
                     output_handler.handle_semgrep_errors(config_errors)
                     output_handler.output({}, all_targets=set(), filtered_rules=[])
                     raise SemgrepError("Please fix the above errors and try again.")
-        elif generate_config:
-            with open(DEFAULT_CONFIG_FILE, "w") as fd:
-                semgrep.config_resolver.generate_config(fd, lang, pattern)
         else:
             try:
                 (

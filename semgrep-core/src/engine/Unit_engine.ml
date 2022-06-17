@@ -380,12 +380,13 @@ let test_irrelevant_rule rule_file target_file =
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula" (fst rule.id))
-         | Some (re, f) ->
+         | Some (f, func) ->
              let content = read_file target_file in
-             if f content then
+             let s = Semgrep_prefilter_j.string_of_formula f in
+             if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id) re))
+                    (fst rule.id) s))
 
 let test_irrelevant_rule_file target_file =
   ( Filename.basename target_file,
@@ -447,7 +448,7 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches =
     taint_rules
-    |> Common.map (fun (rule, taint_spec) ->
+    |> Common.map (fun rule ->
            let equivs = [] in
            let xtarget =
              {
@@ -461,7 +462,7 @@ let tainting_test lang rules_file file =
              Match_tainting_mode.check_rule rule
                (fun _ _ _ _ -> ())
                (Config_semgrep.default_config, equivs)
-               taint_spec xtarget
+               xtarget
            in
            res.matches)
     |> List.flatten
