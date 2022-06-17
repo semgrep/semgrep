@@ -425,7 +425,7 @@ def main(
                 raise SemgrepError(e)
 
     ignores_start_time = time.time()
-    keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
+    keep_ignored = disable_nosem or output_handler.keep_ignores()
     filtered_matches_by_rule, nosem_errors = process_ignores(
         rule_matches_by_rule, keep_ignored=keep_ignored, strict=strict
     )

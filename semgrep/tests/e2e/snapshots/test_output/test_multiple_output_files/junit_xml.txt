@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<testsuites disabled="0" errors="0" failures="1" tests="1" time="0.0">
+	<testsuite disabled="0" errors="0" failures="1" name="semgrep results" skipped="0" tests="1" time="0">
+		<testcase name="rules.eqeq-is-bad" classname="targets/nosemgrep/eqeq-nosemgrep.py" file="targets/nosemgrep/eqeq-nosemgrep.py" line="2">
+			<failure type="ERROR" message="useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?">    return a + b == a + b  # nosemgrep: rules.eqeq-is-bad
+</failure>
+		</testcase>
+	</testsuite>
+</testsuites>

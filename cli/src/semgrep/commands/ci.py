@@ -402,7 +402,7 @@ def ci(
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
-    keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
+    keep_ignored = not enable_nosem or output_handler.keep_ignores()
     for rule, matches in filtered_matches_by_rule.items():
         if "r2c-internal-cai" in rule.id:
             cai_matches_by_rule[rule] = [

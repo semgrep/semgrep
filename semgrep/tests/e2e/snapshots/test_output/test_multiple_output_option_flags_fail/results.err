@@ -1,0 +1,5 @@
+Usage: semgrep --json [OPTIONS] [TARGETS]...
+
+Error: Mutually exclusive options from 'Output formats' option group cannot be used at the same time:
+  '--json'
+  '--sarif'

@@ -1,4 +1,5 @@
 import collections
+import itertools
 import json
 import re
 from pathlib import Path
@@ -282,3 +283,80 @@ def test_sca_output(run_semgrep_in_tmp_no_symlink, snapshot):
         results,
         "results.txt",
     )
+
+
+@pytest.mark.kinda_slow
+def test_multiple_output_option_flags_fail(run_semgrep_in_tmp, snapshot):
+    """
+    Should fail when multiple outputs are requested without setting filenames
+    E.g. semgrep scan --config=auto --json --sarif
+    """
+    results, errors = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        target_name="nosemgrep/eqeq-nosemgrep.py",
+        output_format=OutputFormat.TEXT,
+        options=["--json", "--sarif"],
+        assert_exit_code=2,
+    )
+
+    snapshot.assert_match(results, "results.out")
+    snapshot.assert_match(errors, "results.err")
+
+
+@pytest.mark.kinda_slow
+def test_multiple_output_files(run_semgrep_in_tmp, snapshot, tmp_path):
+    """
+    Should be able to write to multiple files.
+    E.g. semgrep scan --config=auto --json=one.txt --sarif=two.txt
+    """
+    output_formats = [
+        "json",
+        "gitlab_sast",
+        "gitlab_secrets",
+        "junit_xml",
+        "sarif",
+        "emacs",
+        "vim",
+    ]
+    options = list(
+        itertools.chain(
+            *[
+                [f"--write", output_format, str(tmp_path / f"{output_format}.txt")]
+                for output_format in output_formats
+            ]
+        )
+    )
+    results, _ = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        target_name="nosemgrep/eqeq-nosemgrep.py",
+        output_format=OutputFormat.TEXT,
+        options=options,
+    )
+
+    snapshot.assert_match(results, "results.txt")
+    for output_format in output_formats:
+        output_filename = f"{output_format}.txt"
+        snapshot.assert_match(open(tmp_path / output_filename).read(), output_filename)
+
+
+@pytest.mark.kinda_slow
+def test_multiple_output_files_with_formatting(run_semgrep_in_tmp, snapshot, tmp_path):
+    """
+    Should be able to correctly translate capitalization and dashes to the correct format.
+    """
+    results, errors = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        target_name="nosemgrep/eqeq-nosemgrep.py",
+        output_format=OutputFormat.TEXT,
+        options=[
+            "--write",
+            "gitlab-sast",
+            tmp_path / "gitlab-sast.txt",
+            "--write",
+            "EmAcS",
+            tmp_path / "emacs.txt",
+        ],
+    )
+
+    snapshot.assert_match(results, "results.out")
+    snapshot.assert_match(results, "results.err")

@@ -129,6 +129,13 @@ def _build_time_json(
     )
 
 
+class OutputDestination(NamedTuple):
+    """ """
+
+    output_format: OutputFormat
+    path: Optional[str] = None
+
+
 # WARNING: this class is unofficially part of our external API. It can be passed
 # as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
 # changes to this API, and make them backwards compatible, if possible.
@@ -161,8 +168,10 @@ class OutputHandler:
     def __init__(
         self,
         output_settings: OutputSettings,
+        output_destinations: Optional[List[OutputDestination]] = None,
     ):
         self.settings = output_settings
+        self._output_destinations = output_destinations or []
 
         self.rule_matches: List[RuleMatch] = []
         self.all_targets: Set[Path] = set()
@@ -178,11 +187,31 @@ class OutputHandler:
         self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
 
         self.final_error: Optional[Exception] = None
-        formatter_type = FORMATTERS.get(self.settings.output_format)
-        if formatter_type is None:
-            raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
+        for output_destination in self.output_destinations:
+            if output_destination.output_format not in FORMATTERS:
+                raise RuntimeError(
+                    f"Invalid output format: {output_destination.output_format}"
+                )
+        self.formatters: Dict[OutputFormat, BaseFormatter] = {
+            output_format: FORMATTERS[output_format]()
+            for output_format in {
+                dest.output_format for dest in self.output_destinations
+            }
+        }
 
-        self.formatter = formatter_type()
+    @property
+    def output_destinations(self) -> List[OutputDestination]:
+        return [
+            OutputDestination(
+                self.settings.output_format, self.settings.output_destination
+            )
+        ] + self._output_destinations
+
+    def has_output_format(self, output_format: OutputFormat) -> bool:
+        return output_format in self.formatters
+
+    def keep_ignores(self) -> bool:
+        return any(formatter.keep_ignores() for formatter in self.formatters.values())
 
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
@@ -206,7 +235,7 @@ class OutputHandler:
             else:
                 self._handle_semgrep_error(err)
 
-        if timeout_errors and self.settings.output_format == OutputFormat.TEXT:
+        if timeout_errors and self.has_output_format(OutputFormat.TEXT):
             t_errors = dict(timeout_errors)  # please mypy
             self._handle_semgrep_timeout_errors(t_errors)
 
@@ -241,7 +270,7 @@ class OutputHandler:
         if error not in self.error_set:
             self.semgrep_structured_errors.append(error)
             self.error_set.add(error)
-            if self.settings.output_format == OutputFormat.TEXT and (
+            if self.has_output_format(OutputFormat.TEXT) and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
                 logger.error(with_color(Colors.red, str(error)))
@@ -316,17 +345,18 @@ class OutputHandler:
             self.ignore_log.failed_to_analyze.update(paths)
 
         if self.has_output:
-            output = self._build_output()
-            if self.settings.output_destination:
-                self._save_output(self.settings.output_destination, output)
-            else:
-                if output:
-                    try:
-                        print(output)
-                    except UnicodeEncodeError as ex:
-                        raise Exception(
-                            "Received output encoding error, please set PYTHONIOENCODING=utf-8"
-                        ) from ex
+            for output_destination in self.output_destinations:
+                output = self._build_output(output_destination.output_format)
+                if output_destination.path:
+                    self._save_output(output_destination.path, output)
+                else:
+                    if output:
+                        try:
+                            print(output)
+                        except UnicodeEncodeError as ex:
+                            raise Exception(
+                                "Received output encoding error, please set PYTHONIOENCODING=utf-8"
+                            ) from ex
 
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
@@ -378,6 +408,7 @@ class OutputHandler:
 
     def _build_output(
         self,
+        output_format: OutputFormat,
     ) -> str:
         # CliOutputExtra members
         cli_paths = out.CliPaths(
@@ -414,7 +445,7 @@ class OutputHandler:
             cli_paths = dataclasses.replace(
                 cli_paths, _comment="<add --verbose for a list of skipped paths>"
             )
-        if self.settings.output_format == OutputFormat.TEXT:
+        if output_format == OutputFormat.TEXT:
             extra["color_output"] = (
                 self.settings.output_destination is None and sys.stdout.isatty(),
             )
@@ -426,7 +457,7 @@ class OutputHandler:
             ] = self.settings.output_per_line_max_chars_limit
 
         # the rules are used only by the SARIF formatter
-        return self.formatter.output(
+        return self.formatters[output_format].output(
             self.rules,
             self.rule_matches,
             self.semgrep_structured_errors,

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+  "version": "2.0",
+  "vulnerabilities": [
+    {
+      "category": "sast",
+      "confidence": "High",
+      "cve": "targets/nosemgrep/eqeq-nosemgrep.py:830729269156c785c0b9231f60cfbd650931c5371195c4dbc8b66b55c748b8a4:rules.eqeq-is-bad",
+      "id": "99caab1d-7f2d-4931-ca3c-3c21fd959499",
+      "identifiers": [
+        {
+          "name": "Semgrep - rules.eqeq-is-bad",
+          "type": "semgrep_type",
+          "url": "https://semgrep.dev/r/rules.eqeq-is-bad",
+          "value": "rules.eqeq-is-bad"
+        }
+      ],
+      "location": {
+        "dependency": {
+          "package": {}
+        },
+        "end_line": 2,
+        "file": "targets/nosemgrep/eqeq-nosemgrep.py",
+        "start_line": 2
+      },
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+      "scanner": {
+        "id": "semgrep",
+        "name": "Semgrep",
+        "vendor": {
+          "name": "Semgrep"
+        }
+      },
+      "severity": "High"
+    }
+  ]
+}

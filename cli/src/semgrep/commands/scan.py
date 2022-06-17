@@ -39,6 +39,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
+from semgrep.output import OutputDestination
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
@@ -462,6 +463,16 @@ _scan_options: List[Callable] = [
         is_flag=True,
         help="Output results in vim single-line format.",
     ),
+    optgroup.group(
+        "Additional output formats",
+        help="Used for specifying multiple output destinations.",
+    ),
+    optgroup.option(
+        "--write",
+        nargs=2,
+        multiple=True,
+        help="Output results in the given output format.",
+    ),
 ]
 
 
@@ -641,6 +652,7 @@ def scan(
     verbose: bool,
     version: bool,
     vim: bool,
+    write: List[Tuple[str, str]],
 ) -> ScanReturn:
     """
     Run semgrep rules on files
@@ -705,25 +717,57 @@ def scan(
         semgrep.config_resolver.adjust_for_docker()
         targets = (os.curdir,)
 
-    output_format = OutputFormat.TEXT
-    if json:
-        output_format = OutputFormat.JSON
-    elif gitlab_sast:
-        output_format = OutputFormat.GITLAB_SAST
-    elif gitlab_secrets:
-        output_format = OutputFormat.GITLAB_SECRETS
-    elif junit_xml:
-        output_format = OutputFormat.JUNIT_XML
-    elif sarif:
-        output_format = OutputFormat.SARIF
-    elif emacs:
-        output_format = OutputFormat.EMACS
-    elif vim:
-        output_format = OutputFormat.VIM
+    legacy_output_options = [
+        (OutputFormat.JSON, json),
+        (OutputFormat.GITLAB_SAST, gitlab_sast),
+        (OutputFormat.GITLAB_SECRETS, gitlab_secrets),
+        (OutputFormat.JUNIT_XML, junit_xml),
+        (OutputFormat.SARIF, sarif),
+        (OutputFormat.EMACS, emacs),
+        (OutputFormat.VIM, vim),
+    ]
+    legacy_output_destinations = [
+        (output_format, output)
+        for output_format, output_bool in legacy_output_options
+        if output_bool
+    ]
+    if len(legacy_output_destinations) > 1:
+        raise RuntimeError(
+            "Mutually exclusive options from 'Output formats' option group cannot"
+        )
+    elif not legacy_output_destinations and output is not None:
+        legacy_output_destinations += [(OutputFormat.TEXT, output)]
+
+    def format_write_option(option: str) -> str:
+        return option.lower().replace("-", "_")
+
+    output_format_map = {
+        "json": OutputFormat.JSON,
+        "gitlab_sast": OutputFormat.GITLAB_SAST,
+        "gitlab_secrets": OutputFormat.GITLAB_SECRETS,
+        "junit_xml": OutputFormat.JUNIT_XML,
+        "sarif": OutputFormat.SARIF,
+        "emacs": OutputFormat.EMACS,
+        "vim": OutputFormat.VIM,
+    }
+    new_output_destinations = [
+        (
+            output_format_map[format_write_option(output_format)],
+            output_destination if output_destination != "-" else None,
+        )
+        for output_format, output_destination in write
+    ]
+    output_destinations = [
+        OutputDestination(output_format, output_destination)
+        for output_format, output_destination in legacy_output_destinations
+        + new_output_destinations
+    ]
+    if not output_destinations:
+        output_destinations += [OutputDestination(OutputFormat.TEXT, None)]
 
     output_settings = OutputSettings(
-        output_format=output_format,
-        output_destination=output,
+        output_format=output_destinations[0].output_format,
+        output_destination=output_destinations[0].path,
         error_on_findings=error_on_findings,
         strict=strict,
         verbose_errors=verbose,
@@ -753,7 +797,7 @@ def scan(
     # already deleted the temporary stdin file.
     with tempfile.TemporaryDirectory() as pipes_dir:
         targets = write_pipes_to_disk(targets, Path(pipes_dir))
-        output_handler = OutputHandler(output_settings)
+        output_handler = OutputHandler(output_settings, output_destinations[1:])
         return_data: ScanReturn = None
 
         if dump_ast:
