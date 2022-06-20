@@ -444,6 +444,11 @@ _scan_options: List[Callable] = [
         "--json", is_flag=True, help="Output results in Semgrep's JSON format."
     ),
     optgroup.option(
+        "--github-actions",
+        is_flag=True,
+        help="Output results in GitHub Actions format.",
+    ),
+    optgroup.option(
         "--gitlab-sast",
         is_flag=True,
         help="Output results in GitLab SAST format.",
@@ -606,6 +611,7 @@ def scan(
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
+    github_actions: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
@@ -708,6 +714,8 @@ def scan(
     output_format = OutputFormat.TEXT
     if json:
         output_format = OutputFormat.JSON
+    elif github_actions:
+        output_format = OutputFormat.GITHUB_ACTIONS
     elif gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
     elif gitlab_secrets:

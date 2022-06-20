@@ -1,0 +1,1 @@
+::error file=targets/basic/stupid.py,line=3,col=12,endLine=3,endCol=26::useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?

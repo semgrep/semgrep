@@ -34,6 +34,7 @@ class OutputFormat(Enum):
     SARIF = auto()
     EMACS = auto()
     VIM = auto()
+    GITHUB_ACTIONS = auto()
 
     def is_json(self) -> bool:
         return self in [OutputFormat.JSON, OutputFormat.SARIF]

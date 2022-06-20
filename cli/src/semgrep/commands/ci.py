@@ -185,6 +185,7 @@ def ci(
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
+    github_actions: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
     include: Optional[Tuple[str, ...]],
@@ -257,6 +258,8 @@ def ci(
     output_format = OutputFormat.TEXT
     if json:
         output_format = OutputFormat.JSON
+    elif github_actions:
+        output_format = OutputFormat.GITHUB_ACTIONS
     elif gitlab_sast:
         output_format = OutputFormat.GITLAB_SAST
     elif gitlab_secrets:

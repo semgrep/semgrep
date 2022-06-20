@@ -29,6 +29,7 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
+from semgrep.formatter.github_actions import GithubActionsFormatter
 from semgrep.formatter.gitlab_sast import GitlabSastFormatter
 from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
 from semgrep.formatter.json import JsonFormatter
@@ -55,6 +56,7 @@ logger = getLogger(__name__)
 
 FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,
+    OutputFormat.GITHUB_ACTIONS: GithubActionsFormatter,
     OutputFormat.GITLAB_SAST: GitlabSastFormatter,
     OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
     OutputFormat.JSON: JsonFormatter,

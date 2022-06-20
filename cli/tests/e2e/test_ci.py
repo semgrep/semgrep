@@ -537,7 +537,7 @@ def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofi
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim", "--github-actions"],
 )
 def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep):
     result = run_semgrep(

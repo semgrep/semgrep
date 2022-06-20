@@ -94,7 +94,7 @@ def test_output_highlighting__force_color_and_no_color(run_semgrep_in_tmp, snaps
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     "format",
-    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
+    ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim", "--github-actions"],
 )
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
