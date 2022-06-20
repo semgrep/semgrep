@@ -682,7 +682,7 @@ and m_expr a b =
                         _sid );
                 };
               _;
-            } )) ) ->
+            } )) ) -> (
       (* We used to force to fully qualify entities in the pattern
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
@@ -692,8 +692,15 @@ and m_expr a b =
        * infinite recursion.
        *)
       m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
-      >||> (* try this time a match with the resolved entity *)
-      m_expr a (make_dotted dotted)
+      >||>
+      (* try this time a match with the resolved entity *)
+      match a.G.e with
+      (* If we're matching against a metavariable, don't bother checking
+       * the resolved entity or parents. It will only cause duplicate matches
+       * that can't be deduped, since the captured metavariable will be
+       * different. *)
+      | G.N (G.Id ((str, _), _)) when MV.is_metavar_name str -> fail ()
+      | __else__ -> m_expr a (make_dotted dotted))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
