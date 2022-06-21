@@ -212,11 +212,14 @@ class GithubMeta(GitMeta):
         """
         Split out shallow fetch so we can mock it away in tests
         """
+        logger.debug(
+            f"Trying to fetch branch {branch_name} from {self.pr_head_git_url} as head branch"
+        )
         subprocess.run(
             [
                 "git",
                 "fetch",
-                "origin",
+                self.pr_head_git_url,
                 "--depth=1",
                 "--force",
                 "--update-head-ok",
@@ -296,11 +299,14 @@ class GithubMeta(GitMeta):
         )
 
         if attempt_count:
+            logger.debug(
+                f"Trying to fetch branch {self._base_branch_ref} from {self.pr_base_git_url} as base branch"
+            )
             process = subprocess.run(
                 [
                     "git",
                     "fetch",
-                    "origin",
+                    self.pr_base_git_url,
                     "--force",
                     "--update-head-ok",
                     "--depth",
@@ -315,11 +321,15 @@ class GithubMeta(GitMeta):
             logger.debug(
                 f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
+
+            logger.debug(
+                f"Trying to fetch branch {self._head_branch_ref} from {self.pr_head_git_url} as head branch"
+            )
             process = subprocess.run(
                 [
                     "git",
                     "fetch",
-                    "origin",
+                    self.pr_head_git_url,
                     "--force",
                     "--update-head-ok",
                     "--depth",
@@ -395,6 +405,24 @@ class GithubMeta(GitMeta):
     def pr_title(self) -> Optional[str]:
         pr_title = self.glom_event(T["pull_request"]["title"])
         return str(pr_title) if pr_title else None
+
+    @property
+    def pr_head_git_url(self) -> str:
+        pr_head_git_url = self.glom_event(T["pull_request"]["head"]["repo"]["git_url"])
+        return (
+            str(pr_head_git_url)
+            if pr_head_git_url
+            else str(self.glom_event(T["repository"]["git_url"]))
+        )
+
+    @property
+    def pr_base_git_url(self) -> str:
+        pr_base_git_url = self.glom_event(T["pull_request"]["head"]["repo"]["git_url"])
+        return (
+            str(pr_base_git_url)
+            if pr_base_git_url
+            else str(self.glom_event(T["repository"]["git_url"]))
+        )
 
     @property
     def branch(self) -> Optional[str]:
