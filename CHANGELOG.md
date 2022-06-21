@@ -14,6 +14,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 
+- `--config auto` no longer sends the name of the repository being scanned to the Semgrep Registry.
+  As of June 21st, this data is not recorded by the Semgrep Registry backend, even if an old Semgrep version sends it.
+  Also as of June 21st, none of the previously collected repository names are retained by the Semgrep team;
+  any historical data has been wiped.
 - Gitlab SAST output is now v14.1.2 compliant
 - Removed the following deprecated `semgrep scan` options:
   `--json-stats`, `--json-time`, `--debugging-json`, `--save-test-output-tar`, `--synthesize-patterns`,
