@@ -510,7 +510,10 @@ def test_github_ci_bad_base_sha(
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
     result = run_semgrep(
-        options=["ci", "--debug"], strict=False, assert_exit_code=None, env=env
+        options=["ci", "--debug", "--no-force-color"],
+        strict=False,
+        assert_exit_code=None,
+        env=env,
     )
 
     snapshot.assert_match(
