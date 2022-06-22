@@ -23,12 +23,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `--json-stats`, `--json-time`, `--debugging-json`, `--save-test-output-tar`, `--synthesize-patterns`,
   `--generate-config/-g`, `--dangerously-allow-arbitrary-code-execution-from-rules`,
   and `--apply` (which was an easter egg for job applications, not the same as `--autofix`)
+- PHP: switch to GA maturity! Thanks a lot to Sjoerd Langkemper for most of the
+  heavy work
 
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)
+- Solidity: update to a more recent tree-sitter-solidity to fix certain parsing
+  errors (#4957)
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
