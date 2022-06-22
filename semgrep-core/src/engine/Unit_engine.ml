@@ -121,7 +121,6 @@ let language_exceptions =
       [
         "dots_method_chaining";
         "equivalence_naming_import";
-        "metavar_anno";
         "metavar_key_value";
         "metavar_typed";
       ] );
