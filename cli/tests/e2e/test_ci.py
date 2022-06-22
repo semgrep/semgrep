@@ -530,6 +530,7 @@ def test_github_ci_bad_base_sha(
                 re.compile(r"(.*Main\.Parse_target.*)"),
                 re.compile(r"semgrep ran in (.*) on 1 files"),
                 re.compile(r"\"total_time\":(.*)"),
+                re.compile(r"\"commit_date\":(.*)"),
                 re.compile(r"-targets (.*) -timeout"),
                 re.compile(r"-rules (.*).json"),
                 str(git_tmp_path),
