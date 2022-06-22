@@ -171,7 +171,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait for PR checks to finish
-          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" -i 90 --watch
+          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" --interval 90 --watch
 
   validate-release-trigger:
     needs: [release-setup]
