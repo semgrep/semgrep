@@ -13,8 +13,7 @@ val taint_config_of_rule :
   Equivalence.equivalences ->
   Common.filename ->
   AST_generic.program * Parse_info.token_location list ->
-  Rule.rule ->
-  Rule.taint_spec ->
+  Rule.taint_rule ->
   (Dataflow_tainting.var option ->
   Taint.finding list ->
   Taint.taints Dataflow_core.env ->
@@ -22,13 +21,12 @@ val taint_config_of_rule :
   Dataflow_tainting.config * debug_taint
 
 val check_rule :
-  Rule.t ->
+  Rule.taint_rule ->
   (string ->
   Metavariable.bindings ->
   Parse_info.t list Lazy.t ->
   Taint.finding option ->
   unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
-  Rule.taint_spec ->
   Xtarget.t ->
   Report.rule_profiling Report.match_result * debug_taint

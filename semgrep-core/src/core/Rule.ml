@@ -177,8 +177,20 @@ type sanitizer_spec = {
 }
 [@@deriving show]
 
+type taint_propagator = {
+  formula : pformula;
+  from : MV.mvar wrap;
+  to_ : MV.mvar wrap;
+}
+[@@deriving show]
+(** e.g. if we want to specify that adding tainted data to a `HashMap` makes the
+ * `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
+ * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
+ * will also be marked as tainted. *)
+
 type taint_spec = {
   sources : pformula list;
+  propagators : taint_propagator list;
   sanitizers : sanitizer_spec list;
   sinks : pformula list;
 }
@@ -188,21 +200,13 @@ type taint_spec = {
 (* The rule *)
 (*****************************************************************************)
 
-(* alt:
- *     type common = { id : string; ... }
- *     type search = { common : common; formula : pformula; }
- *     type taint  = { common : common; spec : taint_spec; }
- *     type rule   = Search of search | Taint of taint
- *)
-type mode = Search of pformula | Taint of taint_spec [@@deriving show]
-
 (* TODO? just reuse Error_code.severity *)
 type severity = Error | Warning | Info | Inventory [@@deriving show]
 
-type rule = {
+type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
-  mode : mode;
+  mode : 'mode;
   message : string;
   severity : severity;
   languages : Xlang.t;
@@ -226,6 +230,13 @@ and paths = {
 }
 [@@deriving show]
 
+type search_mode = [ `Search of pformula ] [@@deriving show]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
+type mode = [ search_mode | taint_mode ] [@@deriving show]
+type search_rule = search_mode rule_info [@@deriving show]
+type taint_rule = taint_mode rule_info [@@deriving show]
+type rule = mode rule_info [@@deriving show]
+
 (* alias *)
 type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
@@ -234,12 +245,12 @@ type rules = rule list [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules rules =
+let partition_rules (rules : rules) : search_rule list * taint_rule list =
   rules
   |> Common.partition_either (fun r ->
          match r.mode with
-         | Search f -> Left (r, f)
-         | Taint s -> Right (r, s))
+         | `Search _ as s -> Left { r with mode = s }
+         | `Taint _ as t -> Right { r with mode = t })
 
 (*****************************************************************************)
 (* Error Management *)
@@ -277,20 +288,57 @@ let string_of_invalid_rule_error_kind = function
   (* coupling: this is actually intercepted in
    * Semgrep_error_code.exn_to_error to generate a PatternParseError instead
    * of a RuleParseError *)
-  | InvalidPattern (_pattern, xlang, _message, _yaml_path) ->
-      spf "Invalid pattern for %s" (Xlang.to_string xlang)
+  | InvalidPattern (pattern, xlang, message, _yaml_path) ->
+      spf
+        "Invalid pattern for %s: %s\n\
+         ----- pattern -----\n\
+         %s\n\
+         ----- end pattern -----\n"
+        (Xlang.to_string xlang) message pattern
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | InvalidOther s -> s
 
-exception InvalidRule of invalid_rule_error
+(* General errors
 
-(* general errors *)
+   TODO: define one exception for all this because pattern-matching
+   on exceptions has no exhaustiveness checking.
+*)
+exception InvalidRule of invalid_rule_error
 exception InvalidYaml of string * Parse_info.t
 exception DuplicateYamlKey of string * Parse_info.t
 exception UnparsableYamlException of string
 exception ExceededMemoryLimit of string
+
+let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
+  spf "invalid rule %s, %s: %s" rule_id
+    (Parse_info.string_of_info pos)
+    (string_of_invalid_rule_error_kind kind)
+
+(*
+   Exception printers for Printexc.to_string.
+*)
+let opt_string_of_exn (exn : exn) =
+  match exn with
+  | InvalidRule x -> Some (string_of_invalid_rule_error x)
+  | InvalidYaml (msg, pos) ->
+      Some (spf "invalid YAML, %s: %s" (Parse_info.string_of_info pos) msg)
+  | DuplicateYamlKey (key, pos) ->
+      Some
+        (spf "invalid YAML, %s: duplicate key %S"
+           (Parse_info.string_of_info pos)
+           key)
+  | UnparsableYamlException s ->
+      (* TODO: what's the string s? *)
+      Some (spf "unparsable YAML: %s" s)
+  | ExceededMemoryLimit s ->
+      (* TODO: what's the string s? *)
+      Some (spf "exceeded memory limit: %s" s)
+  | _ -> None
+
+(* to be called by the application's main() *)
+let register_exception_printer () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)
 (* Visitor/extractor *)

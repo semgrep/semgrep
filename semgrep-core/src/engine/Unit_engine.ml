@@ -79,6 +79,8 @@ let ga_features =
       "metavar_anno";
       "metavar_key_value";
       "metavar_typed";
+      "metavar_ellipsis_args";
+      (* TODO: metavar_ellipsis_params *)
       "regexp_string";
     ]
 
@@ -98,13 +100,14 @@ let language_exceptions =
   [
     (* GA languages *)
 
-    (* TODO: NA for Java? *)
-    (Lang.Java, [ "equivalence_naming_import"; "metavar_key_value" ]);
-    (* TODO: why not metavar_typed? regexp_string? NA for naming_import? *)
+    (* TODO: why not regexp_string? NA for naming_import? *)
     ( Lang.Csharp,
-      [ "equivalence_naming_import"; "metavar_typed"; "regexp_string" ] );
+      [ "equivalence_naming_import"; "metavar_ellipsis_args"; "regexp_string" ]
+    );
     (* TODO: metavar_anno sounds like an NA, but the other?? *)
     (Lang.Go, [ "metavar_class_def"; "metavar_import"; "metavar_anno" ]);
+    (* TODO: NA for Java? *)
+    (Lang.Java, [ "equivalence_naming_import"; "metavar_key_value" ]);
     (* metavar_typed is NA (dynamic language) *)
     (Lang.Js, [ "equivalence_naming_import"; "metavar_typed" ]);
     ( Lang.Ts,
@@ -114,10 +117,19 @@ let language_exceptions =
         "metavar_anno";
         "metavar_class_def";
       ] );
+    ( Lang.Php,
+      [
+        "dots_method_chaining";
+        "equivalence_naming_import";
+        "metavar_key_value";
+        "metavar_typed";
+      ] );
     (* good boy, metavar_typed is working just for constants though *)
     (Lang.Python, []);
     (* metavar_typed is NA (dynamic language), metavar_anno also NA? *)
     (Lang.Ruby, [ "equivalence_naming_import"; "metavar_typed"; "metavar_anno" ]);
+    (* regexp_string feature has been deprecated *)
+    (Lang.Scala, [ "regexp_string"; "metavar_ellipsis_args" ]);
     (* Beta languages *)
 
     (* TODO: to fix *)
@@ -131,10 +143,6 @@ let language_exceptions =
     (Lang.Lua, []);
     (* dots_stmts is maybe NA, same with deep_exprstmt *)
     (Lang.Ocaml, [ "deep_exprstmt"; "dots_stmts" ]);
-    (* good boy *)
-    (Lang.Php, []);
-    (* good boy, this feature has been deprecated *)
-    (Lang.Scala, [ "regexp_string" ]);
     (* Experimental languages *)
     (Lang.R, [ "deep_exprstmt" ]);
   ]
@@ -150,6 +158,13 @@ let maturity_tests () =
          try List.assoc lang language_exceptions with
          | Not_found -> []
        in
+       (* sanity check exns *)
+       exns
+       |> List.iter (fun base ->
+              let path = Filename.concat dir (base ^ ext) in
+              if Sys.file_exists path then
+                failwith
+                  (spf "%s actually exist! remove it from exceptions" path));
        let features = Common2.minus_set features exns in
        features
        |> Common.map (fun base ->
@@ -173,6 +188,7 @@ let maturity_tests () =
       check_maturity Lang.Java "java" ".java" GA;
       check_maturity Lang.Js "js" ".js" GA;
       (* JSON has too many NA, not worth it *)
+      check_maturity Lang.Php "php" ".php" GA;
       check_maturity Lang.Python "python" ".py" GA;
       check_maturity Lang.Ruby "ruby" ".rb" GA;
       check_maturity Lang.Ts "ts" ".ts" GA;
@@ -191,7 +207,6 @@ let maturity_tests () =
       *)
       check_maturity Lang.Lua "lua" ".lua" Experimental;
       check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
-      check_maturity Lang.Php "php" ".php" Experimental;
       (* TODO we say we support R, but not really actually *)
       (* TODO: too many exns, we need to write tests!
          check_maturity Lang.Rust "rust" ".rust" Experimental;
@@ -380,12 +395,13 @@ let test_irrelevant_rule rule_file target_file =
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula" (fst rule.id))
-         | Some (re, f) ->
+         | Some (f, func) ->
              let content = read_file target_file in
-             if f content then
+             let s = Semgrep_prefilter_j.string_of_formula f in
+             if func content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
-                    (fst rule.id) re))
+                    (fst rule.id) s))
 
 let test_irrelevant_rule_file target_file =
   ( Filename.basename target_file,
@@ -447,7 +463,7 @@ let tainting_test lang rules_file file =
   assert (search_rules = []);
   let matches =
     taint_rules
-    |> Common.map (fun (rule, taint_spec) ->
+    |> Common.map (fun rule ->
            let equivs = [] in
            let xtarget =
              {
@@ -461,7 +477,7 @@ let tainting_test lang rules_file file =
              Match_tainting_mode.check_rule rule
                (fun _ _ _ _ -> ())
                (Config_semgrep.default_config, equivs)
-               taint_spec xtarget
+               xtarget
            in
            res.matches)
     |> List.flatten

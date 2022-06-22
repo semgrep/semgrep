@@ -4,15 +4,37 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## Added
+
+- taint-mode: New experimental `pattern-propagators` feature that allows to specify
+  arbitrary patterns for the propagation of taint by side-effect. In particular,
+  this allows to specify how taint propagates through side-effectful function calls.
+  For example, you can specify that when tainted data is added to an array then the
+  array itself becomes tainted. (#4509)
+
 ### Changed
 
+- `--config auto` no longer sends the name of the repository being scanned to the Semgrep Registry.
+  As of June 21st, this data is not recorded by the Semgrep Registry backend, even if an old Semgrep version sends it.
+  Also as of June 21st, none of the previously collected repository names are retained by the Semgrep team;
+  any historical data has been wiped.
 - Gitlab SAST output is now v14.1.2 compliant
+- Removed the following deprecated `semgrep scan` options:
+  `--json-stats`, `--json-time`, `--debugging-json`, `--save-test-output-tar`, `--synthesize-patterns`,
+  `--generate-config/-g`, `--dangerously-allow-arbitrary-code-execution-from-rules`,
+  and `--apply` (which was an easter egg for job applications, not the same as `--autofix`)
+- PHP: switch to GA maturity! Thanks a lot to Sjoerd Langkemper for most of the
+  heavy work
 
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
 - Will no longer print "files were not tracked by git" if not in a git repo
 - Will no longer print "Some files were skipped" if no files were skipped
+- Python: correctly handle `with` context expressions where the value is not
+  bound (#5513)
+- Solidity: update to a more recent tree-sitter-solidity to fix certain parsing
+  errors (#4957)
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 

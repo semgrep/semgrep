@@ -1,9 +1,13 @@
-# Prevent frequent conflict resolution in the changelog by
-# asking git to always take both sides of a branch in the
-# changelog. As a downside, two edits to an existing line
-# in the changelog will show up as two lines in the merged
-# output. We should remove these duplicates at release time.
-CHANGELOG.md merge=union
+# This causes the changelog to become incorrect with virtually
+# every release PR that is merged. Unfortunately union-merges
+# are quite dumb. Perhaps it's better to deal with the conflicts
+# manually but do it well.
+# # Prevent frequent conflict resolution in the changelog by
+# # asking git to always take both sides of a branch in the
+# # changelog. As a downside, two edits to an existing line
+# # in the changelog will show up as two lines in the merged
+# # output. We should remove these duplicates at release time.
+# CHANGELOG.md merge=union
 
 # https://github.com/github/linguist/blob/master/docs/overrides.md
 # Don't consider test files in language stats for the repository on Github

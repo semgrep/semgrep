@@ -55,11 +55,15 @@ end)
 
 type var = Dataflow_core.var
 type overlap = float
+type propagator_id = var
+type propagator_from = propagator_id
+type propagator_to = propagator_id
 
 type config = {
   filepath : Common.filename;
   rule_id : string;
   is_source : G.any -> (PM.t * overlap) list;
+  is_propagator : AST_generic.any -> propagator_from list * propagator_to list;
   is_sink : G.any -> PM.t list;
   is_sanitizer : G.any -> (PM.t * overlap) list;
   unify_mvars : bool;
@@ -210,22 +214,69 @@ let exp_is_sanitized env exp =
           Some (sanitize_var env.var_env sanitizer_pms var)
       | _ -> Some env.var_env)
 
-(* Add `var -> taints` to `var_env`. *)
-let add_taint_to_var_in_env var_env var taints =
+let add_taint_to_strid_in_env var_env strid taints =
   if Taints.is_empty taints then var_env
   else
-    let taints =
-      let var_tok = snd var.ident in
-      if Parse_info.is_fake var_tok then taints
-      else
-        taints |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-    in
-    VarMap.update (str_of_name var)
+    VarMap.update strid
       (function
         | None -> Some taints
         (* THINK: couldn't we just replace the existing taints? *)
         | Some taints' -> Some (Taints.union taints taints'))
       var_env
+
+(* Add `var -> taints` to `var_env`. *)
+let add_taint_to_var_in_env var_env var taints =
+  let taints =
+    let var_tok = snd var.ident in
+    if Parse_info.is_fake var_tok then taints
+    else taints |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+  in
+  add_taint_to_strid_in_env var_env (str_of_name var) taints
+
+let handle_taint_propagators env x taints =
+  (* We propagate taints via an auxiliary variable (the propagator id). This is
+   * simple but it has limitations, we can only propagate "forward" and, within
+   * an instruction node, we can only propagate in the order in which we visit
+   * the subexpressions. E.g. in `x.f(y,z)` we can propagate taint from `y` or
+   * `z` to `x`, or from `y` to `z`; but we cannot propagate taint from `x` to
+   * `y` or `z`, or from `z` to `y`. *)
+  let var_env = env.var_env in
+  let propagate_froms, propagate_tos =
+    match x with
+    | `Var var ->
+        let _, tok = var.ident in
+        if Parse_info.is_origintok tok then env.config.is_propagator (G.Tk tok)
+        else ([], [])
+    | `Exp exp -> env.config.is_propagator (any_of_orig exp.eorig)
+  in
+  let var_env =
+    (* `x` is the source (the "from") of propagation, we add its taints to
+     * the environment. *)
+    List.fold_left
+      (fun var_env strid -> add_taint_to_strid_in_env var_env strid taints)
+      var_env propagate_froms
+  in
+  let taints_incoming =
+    (* `x` is the destination (the "to") of propagation. we collect all the
+     * incoming taints by looking for the propagator ids in the environment. *)
+    List.fold_left
+      (fun taints_in_acc strid ->
+        let taints_strid =
+          VarMap.find_opt strid var_env |> Option.value ~default:Taints.empty
+        in
+        Taints.union taints_in_acc taints_strid)
+      Taints.empty propagate_tos
+  in
+  let taints = Taints.union taints taints_incoming in
+  let var_env =
+    match x with
+    | `Var var ->
+        (* If `x` is a variable, then taint is propagated by side-effect. This
+         * allows us to e.g. propagate taint from `x` to `y` in `f(x,y)`. *)
+        add_taint_to_var_in_env var_env var taints_incoming
+    | `Exp _ -> var_env
+  in
+  (taints, var_env)
 
 (* Test whether a variable occurrence is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -273,6 +324,11 @@ let check_tainted_var env (var : IL.name) : Taints.t * var_env =
         taints_sources
         |> Taints.union taints_var_env
         |> Taints.union taints_fun_env
+      in
+      let taints, var_env' =
+        handle_taint_propagators
+          { env with var_env = var_env' }
+          (`Var var) taints
       in
       let sinks = sink_pms |> Common.map T.trace_of_pm in
       let findings = findings_of_tainted_sinks env taints sinks in
@@ -337,6 +393,9 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
       in
       let taints_exp, var_env = check_subexpr exp in
       let taints = taints_sources |> Taints.union taints_exp in
+      let taints, var_env =
+        handle_taint_propagators { env with var_env } (`Exp exp) taints
+      in
       let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
       (taints, var_env)
@@ -417,15 +476,15 @@ let check_tainted_instr env instr : Taints.t * var_env =
     | Assign (_, e) -> check_expr env e
     | AssignAnon _ -> (Taints.empty, env.var_env) (* TODO *)
     | Call (_, e, args) ->
-        let e_taints, var_env = check_expr env e in
         let args_taints, var_env =
           args
           |> List.fold_left_map
                (fun var_env arg ->
                  check_expr { env with var_env } arg |> Common2.swap)
-               var_env
+               env.var_env
           |> Common2.swap
         in
+        let e_taints, var_env = check_expr { env with var_env } e in
         let call_taints =
           match check_function_signature env e args_taints with
           | Some call_taints -> call_taints

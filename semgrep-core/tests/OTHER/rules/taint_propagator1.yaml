@@ -1,0 +1,15 @@
+rules:
+- id: test
+  severity: INFO
+  message: Test
+  languages:
+    - javascript
+  mode: taint
+  pattern-sources:
+    - pattern: req.query
+  pattern-sinks:
+    - pattern: db.query(...)
+  pattern-propagators:
+    - pattern: $Y.push($X)
+      from: $X
+      to: $Y
