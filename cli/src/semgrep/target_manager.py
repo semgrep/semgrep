@@ -137,6 +137,9 @@ class FileTargetingLog:
                 "Scan was limited to files changed since baseline commit."
             )
         elif self.target_manager.respect_git_ignore:
+            # Each target could be a git repo, and we respect the git ignore
+            # of each target, so to be accurate with this print statement we 
+            # need to check if any target is a git repo and not just the cwd
             targets_not_in_git = 0
             dir_targets = 0
             for t in self.target_manager.targets:
