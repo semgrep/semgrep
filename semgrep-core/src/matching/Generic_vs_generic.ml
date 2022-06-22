@@ -398,19 +398,19 @@ let rec m_name a b =
   | ( a,
       B.Id
         ( idb,
-          {
-            B.id_resolved =
-              {
-                contents =
-                  Some
-                    ( ( B.ImportedEntity dotted
-                      | B.ImportedModule (B.DottedName dotted)
-                      | B.ResolvedName dotted ),
-                      _sid );
-              };
-            _;
-          } ) ) -> (
-      m_name a (B.Id (idb, B.empty_id_info ()))
+          ({
+             B.id_resolved =
+               {
+                 contents =
+                   Some
+                     ( ( B.ImportedEntity dotted
+                       | B.ImportedModule (B.DottedName dotted)
+                       | B.ResolvedName dotted ),
+                       _sid );
+               };
+             _;
+           } as infob) ) ) -> (
+      m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
       >||>
       (* Try the resolved entity and parents *)
       match a with
