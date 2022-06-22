@@ -1,0 +1,4 @@
+<?php
+
+#[Attribute]
+class SetUp {}

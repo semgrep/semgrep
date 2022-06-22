@@ -331,7 +331,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: manylinux-wheel
-          path: semgrep/dist.zip
+          path: cli/dist.zip
 
   test-wheels-manylinux:
     runs-on: ubuntu-latest

@@ -117,8 +117,13 @@ let language_exceptions =
         "metavar_anno";
         "metavar_class_def";
       ] );
-    (* good boy *)
-    (Lang.Php, []);
+    ( Lang.Php,
+      [
+        "dots_method_chaining";
+        "equivalence_naming_import";
+        "metavar_key_value";
+        "metavar_typed";
+      ] );
     (* good boy, metavar_typed is working just for constants though *)
     (Lang.Python, []);
     (* metavar_typed is NA (dynamic language), metavar_anno also NA? *)
@@ -183,6 +188,7 @@ let maturity_tests () =
       check_maturity Lang.Java "java" ".java" GA;
       check_maturity Lang.Js "js" ".js" GA;
       (* JSON has too many NA, not worth it *)
+      check_maturity Lang.Php "php" ".php" GA;
       check_maturity Lang.Python "python" ".py" GA;
       check_maturity Lang.Ruby "ruby" ".rb" GA;
       check_maturity Lang.Ts "ts" ".ts" GA;
@@ -201,7 +207,6 @@ let maturity_tests () =
       *)
       check_maturity Lang.Lua "lua" ".lua" Experimental;
       check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
-      check_maturity Lang.Php "php" ".php" Experimental;
       (* TODO we say we support R, but not really actually *)
       (* TODO: too many exns, we need to write tests!
          check_maturity Lang.Rust "rust" ".rust" Experimental;

@@ -61,11 +61,11 @@ Semgrep is developed and commercially supported by [r2c, a software security com
 
 <h4 align="center">General availability</h4>
 <p align="center">
-C# · Go · Java · JavaScript · JSX · JSON · Python · Ruby · Scala · TypeScript · TSX</br>
+C# · Go · Java · JavaScript · JSX · JSON · PHP · Python · Ruby · Scala · TypeScript · TSX</br>
 </p>
 <h4 align="center">Beta & experimental</h4>
 <p align="center">
-See <a href="https://semgrep.dev/docs/language-support/">supported languages</a> for the complete list.
+See <a href="https://semgrep.dev/docs/supported-languages/">supported languages</a> for the complete list.
 </p>
 
 ### Getting started

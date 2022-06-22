@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 set -e
-version="${GITHUB_REF/refs\/tags\//}"
+version="${1}"
 version="${version:-$VERSION}"
 version="${version:?Version must be set}"
 
