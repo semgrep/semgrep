@@ -517,8 +517,18 @@ def test_github_ci_bad_base_sha(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                # Mask output about semgrep core binary absolute path
+                # Mask variable debug output
                 re.compile(r"/(.*)/semgrep-core"),
+                re.compile(r"loaded 1 configs in(.*)"),
+                re.compile(r".*https://semgrep.dev(.*).*"),
+                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
+                re.compile(r"(.*Main\.Run_semgrep.*)"),
+                re.compile(r"(.*Main\.Common.*)"),
+                re.compile(r"(.*Main\.Parse_target.*)"),
+                re.compile(r"semgrep ran in (.*) on 1 files"),
+                re.compile(r"\"total_time\":(.*)"),
+                re.compile(r"-targets (.*) -timeout"),
+                re.compile(r"-rules (.*).json"),
                 str(git_tmp_path),
                 str(tmp_path),
             ]

@@ -25,9 +25,8 @@ Scan environment:
   environment - running in environment github-actions, triggering event is pull_request
   semgrep.dev - authenticated as org_name
 
-Trying to fetch branch bar from <MASKED> as head branch
 head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-Trying to fetch branch foo from <MASKED> as head branch
+Trying to shallow fetch branch foo from origin
 base branch (foo) has latest commit f7ee3123ed098941662685dd8b726fceee48f78d
 Fixing git state for github action pull request
 Calling git rev-parse HEAD
@@ -58,22 +57,24 @@ HEAD is now at 17b3114 merging foo
 
 Attempting to find merge base, attempt_count=0, fetch_depth=0
 Attempting to find merge base, attempt_count=1, fetch_depth=4
-Trying to fetch branch foo from <MASKED> as base branch
-Base branch fetch: args=['git', 'fetch', '<MASKED>', '--force', '--update-head-ok', '--depth', '4', 'foo:foo'], stdout=, stderr=
-Trying to fetch branch bar from <MASKED> as head branch
-Head branch fetch: args=['git', 'fetch', '<MASKED>', '--force', '--update-head-ok', '--depth', '4', 'bar:bar'], stdout=, stderr=
+Trying to fetch branch foo from origin as base branch
+Base branch fetch: args=['git', 'fetch', 'origin', '--force', '--update-head-ok', '--depth', '4', 'foo:foo'], stdout=, stderr=
+Trying to fetch branch bar as commit from origin as head branch tip commit
+Head branch fetch: args=['git', 'fetch', 'origin', '--force', '--update-head-ok', '--depth', '4', '17b3114fb3d41437abc2a3e6499db84ad921e6f0'], stdout=, stderr=From <MASKED>
+ * branch            17b3114fb3d41437abc2a3e6499db84ad921e6f0 -> FETCH_HEAD
+
 Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
 Found merge base: args=['git', 'merge-base', 'f7ee3123ed098941662685dd8b726fceee48f78d', '17b3114fb3d41437abc2a3e6499db84ad921e6f0'], stdout=f7ee3123ed098941662685dd8b726fceee48f78d
 , stderr=
 Fetching configuration from semgrep.dev
 Starting scan
-Using https://semgrep.dev/api/agent/scans/<MagicMock name='post().json().__getitem__().__getitem__()' id='4422096496'>/rules.yaml as scan rules url
+Using https://semgrep.dev<MASKED>
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 semgrep version <MASKED>
-Fetching rules from https://semgrep.dev/registry.
-trying to download from https://semgrep.dev/api/agent/scans/<MagicMock name='post().json().__getitem__().__getitem__()' id='4422096496'>/rules.yaml
-finished downloading from https://semgrep.dev/api/agent/scans/<MagicMock name='post().json().__getitem__().__getitem__()' id='4422096496'>/rules.yaml
-loaded 1 configs in 0.012315750122070312
+Fetching rules from https://semgrep.dev<MASKED>
+trying to download from https://semgrep.dev<MASKED>
+finished downloading from https://semgrep.dev<MASKED>
+loaded 1 configs in<MASKED>
 running 4 rules from 1 config remote-url_0
 Initializing git status
 Running git diff
@@ -88,7 +89,7 @@ Initializing dirty paths
 Git status output: 
 finished getting dirty paths
 {}
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev<MASKED>
 Rules:
 - __r2c-internal-cai_eqeq
 - eqeq-bad
@@ -97,11 +98,11 @@ Rules:
 Passing whole rules directly to semgrep_core
 Scanning 1 file with 4 python rules.
 Running semgrep-core with command:
-/<MASKED>/semgrep-core -json -rules /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp_dxxz3zb.json -j 8 -targets /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmpvjj8nfvy -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast --debug
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
-[0.031  Info       Main.Dune__exe__Main ] Executed as: /<MASKED>/semgrep-core -json -rules /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp_dxxz3zb.json -j 8 -targets /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmpvjj8nfvy -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast --debug
-[0.031  Info       Main.Dune__exe__Main ] Version: semgrep-core version: <MASKED>, pfff: 0.42
-[0.031  Info       Main.Run_semgrep     ] Parsing /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp_dxxz3zb.json:
+<MASKED>
+<MASKED>
+<MASKED>
 {
   "rules": [
     {
@@ -151,17 +152,17 @@ Running semgrep-core with command:
     }
   ]
 }
-[0.032  Info       Main.Common          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-0cfb16.py
-[0.033  Info       Main.Common          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-e73165.py
-[0.033  Info       Main.Common          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-125001.py
-[0.033  Info       Main.Common          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-28fea9.py
-[0.033  Info       Main.Run_semgrep     ] processing 1 files, skipping 0 files
-[0.000  Info       Main.Run_semgrep     ] [23437] Analyzing bar.py
-[0.001  Info       Main.Parse_target    ] [23437] Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done
-[0.093  Info       Main.Run_semgrep     ] found 1 matches, 0 errors, 0 skipped targets
-[0.093  Info       Main.Run_semgrep     ] size of returned JSON string: 975
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
-semgrep ran in 0:00:00.155293 on 1 files
+semgrep ran in <MASKED> on 1 files
 findings summary: 1 error, 0 info
   Current version has 1 finding.
 
@@ -182,7 +183,7 @@ Files skipped:
    • <all files not listed by `git ls-files` were skipped>
 
   Skipped by .semgrepignore:
-  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
+  (See: https://semgrep.dev<MASKED>
 
    • <none>
 
@@ -256,268 +257,10 @@ Sending complete blob: {
     "stats": {
         "findings": 1,
         "errors": [],
-        "total_time": 0.1986382007598877
+        "total_time":<MASKED>
     }
 }
   No blocking findings so exiting with code 0
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is True
 
 === end of stderr - plain
-
-=== stdout - color
-
-Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ bar == 2
-          1┆ bar == 2
-
-=== end of stdout - color
-
-=== stderr - color
-Scan environment:
-  versions    - semgrep <MASKED> on python <MASKED>
-  environment - running in environment github-actions, triggering event is pull_request
-  semgrep.dev - authenticated as org_name
-
-Trying to fetch branch bar from <MASKED> as head branch
-head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-Trying to fetch branch foo from <MASKED> as head branch
-base branch (foo) has latest commit f7ee3123ed098941662685dd8b726fceee48f78d
-Fixing git state for github action pull request
-Calling git rev-parse HEAD
-git rev-parse stdout: 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-
-git rev-parse stderr: 
-stashed_rev: 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-Not on head ref: 17b3114fb3d41437abc2a3e6499db84ad921e6f0; checking that out now.
-git checkout stdout: 
-git checkout stderr: Note: switching to '17b3114fb3d41437abc2a3e6499db84ad921e6f0'.
-
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by switching back to a branch.
-
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -c with the switch command. Example:
-
-  git switch -c <new-branch-name>
-
-Or undo this operation with:
-
-  git switch -
-
-Turn off this advice by setting config variable advice.detachedHead to false
-
-HEAD is now at 17b3114 merging foo
-
-Attempting to find merge base, attempt_count=0, fetch_depth=0
-Attempting to find merge base, attempt_count=1, fetch_depth=4
-Trying to fetch branch foo from <MASKED> as base branch
-Base branch fetch: args=['git', 'fetch', '<MASKED>', '--force', '--update-head-ok', '--depth', '4', 'foo:foo'], stdout=, stderr=
-Trying to fetch branch bar from <MASKED> as head branch
-Head branch fetch: args=['git', 'fetch', '<MASKED>', '--force', '--update-head-ok', '--depth', '4', 'bar:bar'], stdout=, stderr=
-Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-Found merge base: args=['git', 'merge-base', 'f7ee3123ed098941662685dd8b726fceee48f78d', '17b3114fb3d41437abc2a3e6499db84ad921e6f0'], stdout=f7ee3123ed098941662685dd8b726fceee48f78d
-, stderr=
-Fetching configuration from semgrep.dev
-Starting scan
-Using https://semgrep.dev/api/agent/scans/<MagicMock name='post().json().__getitem__().__getitem__()' id='4422096496'>/rules.yaml as scan rules url
-Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
-semgrep version <MASKED>
-Fetching rules from https://semgrep.dev/registry.
-trying to download from https://semgrep.dev/api/agent/scans/<MagicMock name='post().json().__getitem__().__getitem__()' id='4422096496'>/rules.yaml
-finished downloading from https://semgrep.dev/api/agent/scans/<MagicMock name='post().json().__getitem__().__getitem__()' id='4422096496'>/rules.yaml
-loaded 1 configs in 0.012315750122070312
-running 4 rules from 1 config remote-url_0
-Initializing git status
-Running git diff
-Finished git diff. Parsing git status output
-['A', 'bar.py']
-Git status:
-added: [PosixPath('bar.py')]
-modified: []
-removed: []
-unmerged: []
-Initializing dirty paths
-Git status output: 
-finished getting dirty paths
-{}
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
-Rules:
-- __r2c-internal-cai_eqeq
-- eqeq-bad
-- eqeq-five
-- eqeq-four
-Passing whole rules directly to semgrep_core
-Scanning 1 file with 4 python rules.
-Running semgrep-core with command:
-/<MASKED>/semgrep-core -json -rules /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp_dxxz3zb.json -j 8 -targets /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmpvjj8nfvy -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast --debug
---- semgrep-core stderr ---
-[0.031  [94mInfo[39m       [4mMain.Dune__exe__Main[24m ] Executed as: /<MASKED>/semgrep-core -json -rules /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp_dxxz3zb.json -j 8 -targets /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmpvjj8nfvy -timeout 30 -timeout_threshold 3 -max_memory 0 -json_time -fast --debug
-[0.031  [94mInfo[39m       [4mMain.Dune__exe__Main[24m ] Version: semgrep-core version: <MASKED>, pfff: 0.42
-[0.031  [94mInfo[39m       [4mMain.Run_semgrep[24m     ] Parsing /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp_dxxz3zb.json:
-{
-  "rules": [
-    {
-      "id": "eqeq-bad",
-      "languages": [
-        "python"
-      ],
-      "message": "useless comparison",
-      "pattern": "$X == $X",
-      "severity": "ERROR"
-    },
-    {
-      "fix": "$X == 2",
-      "id": "eqeq-five",
-      "languages": [
-        "python"
-      ],
-      "message": "useless comparison to 5",
-      "metadata": {
-        "dev.semgrep.actions": []
-      },
-      "pattern": "$X == 5",
-      "severity": "ERROR"
-    },
-    {
-      "id": "eqeq-four",
-      "languages": [
-        "python"
-      ],
-      "message": "useless comparison to 4",
-      "metadata": {
-        "dev.semgrep.actions": [
-          "block"
-        ]
-      },
-      "pattern": "$X == 4",
-      "severity": "ERROR"
-    },
-    {
-      "id": "__r2c-internal-cai_eqeq",
-      "languages": [
-        "python"
-      ],
-      "message": "useless comparison to 3",
-      "pattern": "$X == 3",
-      "severity": "INFO"
-    }
-  ]
-}
-[0.032  [94mInfo[39m       [4mMain.Common[24m          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-0cfb16.py
-[0.033  [94mInfo[39m       [4mMain.Common[24m          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-e73165.py
-[0.033  [94mInfo[39m       [4mMain.Common[24m          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-125001.py
-[0.033  [94mInfo[39m       [4mMain.Common[24m          ] erasing: /var/folders/fp/gjlfj5ln5dn2wtd8j6z9dtbr0000gn/T/tmp-23436-28fea9.py
-[0.033  [94mInfo[39m       [4mMain.Run_semgrep[24m     ] processing 1 files, skipping 0 files
-[0.000  [94mInfo[39m       [4mMain.Run_semgrep[24m     ] [23437] Analyzing bar.py
-[0.001  [94mInfo[39m       [4mMain.Parse_target[24m    ] [23437] Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done
-[0.093  [94mInfo[39m       [4mMain.Run_semgrep[24m     ] found 1 matches, 0 errors, 0 skipped targets
-[0.093  [94mInfo[39m       [4mMain.Run_semgrep[24m     ] size of returned JSON string: 975
---- end semgrep-core stderr ---
-semgrep ran in 0:00:00.155293 on 1 files
-findings summary: 1 error, 0 info
-  Current version has 1 finding.
-
-Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
-Returning to original head revision 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-
-========================================
-Files skipped:
-========================================
-
-  Always skipped by Semgrep:
-
-   • <none>
-
-  Skipped by .gitignore:
-  (Disable by passing --no-git-ignore)
-
-   • <all files not listed by `git ls-files` were skipped>
-
-  Skipped by .semgrepignore:
-  (See: https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)
-
-   • <none>
-
-  Skipped by --include patterns:
-
-   • <none>
-
-  Skipped by --exclude patterns:
-
-   • <none>
-
-  Skipped by limiting to files smaller than 1000000 bytes:
-  (Adjust with the --max-target-bytes flag)
-
-   • <none>
-
-  Skipped by analysis failure due to parsing or internal Semgrep error
-
-   • <none>
-
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 1 finding (0 blocking) from 3 rules.
-  Uploading findings to Semgrep App.
-Sending findings blob: {
-    "token": null,
-    "gitlab_token": null,
-    "findings": [
-        {
-            "check_id": "eqeq-five",
-            "path": "bar.py",
-            "line": 1,
-            "column": 1,
-            "end_line": 1,
-            "end_column": 9,
-            "message": "useless comparison to 5",
-            "severity": 2,
-            "index": 0,
-            "commit_date": "2000-03-09T16:00:00",
-            "syntactic_id": "79b90242d13e90751d81594d5863a672",
-            "metadata": {
-                "dev.semgrep.actions": []
-            },
-            "is_blocking": false,
-            "match_based_id": "81ccf0034358a3caf8caef04451dc035f1b37240ce39ce08044ed5dcaafbe171d65792c5a3119e04e6802388c431ec8967d98a6c5666b1f4502a45df8b1eedd6_0",
-            "fixed_lines": [
-                "bar == 2"
-            ]
-        }
-    ],
-    "searched_paths": [
-        "bar.py"
-    ],
-    "rule_ids": [
-        "eqeq-bad",
-        "eqeq-five",
-        "eqeq-four"
-    ],
-    "cai_ids": [
-        "__r2c-internal-cai_eqeq"
-    ]
-}
-Sending ignores blob: {
-    "findings": []
-}
-Sending complete blob: {
-    "exit_code": 0,
-    "stats": {
-        "findings": 1,
-        "errors": [],
-        "total_time": 0.1986382007598877
-    }
-}
-  No blocking findings so exiting with code 0
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is True
-
-=== end of stderr - color
