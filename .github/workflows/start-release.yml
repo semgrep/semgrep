@@ -180,3 +180,36 @@ jobs:
     secrets: inherit
     with:
       version: ${{needs.release-setup.outputs.version}}
+
+  notify-success:
+    needs: [release-setup, validate-release-trigger]
+    name: Notify of Success
+    runs-on: ubuntu-20.04
+    if: success()
+    steps:
+      - run: echo "${{needs.release-setup.outputs.version}}"
+      - name: Notify Success
+        run: |
+          curl --request POST \
+          --url  ${{ secrets.NOTIFICATIONS_URL }} \
+          --header 'content-type: application/json' \
+          --data '{
+            "version": "${{needs.release-setup.outputs.version}}",
+            "message": "Release Validation has succeeded!"
+          }'
+
+  notify-failure:
+    needs: [release-setup, validate-release-trigger]
+    name: Notify of Failure
+    runs-on: ubuntu-20.04
+    if: failure()
+    steps:
+      - name: Notify Failure
+        run: |
+          curl --request POST \
+          --url  ${{ secrets.NOTIFICATIONS_URL }} \
+          --header 'content-type: application/json' \
+          --data '{
+            "version": "${{needs.release-setup.outputs.version}}",
+            "message": "Release Validation has failed. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
+          }'
