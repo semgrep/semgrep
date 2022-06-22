@@ -185,6 +185,8 @@ definitions:
                 - taint
             pattern-sources:
               $ref: "#/definitions/taint-content"
+            pattern-propagators:
+              $ref: "#/definitions/taint-content"
             pattern-sinks:
               $ref: "#/definitions/taint-content"
             pattern-sanitizers:
@@ -466,6 +468,8 @@ properties:
           $ref: "#/definitions/taint-content"
         pattern-sources:
           $ref: "#/definitions/taint-content"
+        pattern-propagators:
+          $ref: "#/definitions/taint-content"
         pattern-sanitizers:
           $ref: "#/definitions/taint-content"
         join:
@@ -621,6 +625,8 @@ properties:
                   - pattern-sinks
               - required:
                   - pattern-sources
+              - required:
+                  - pattern-propagators
               - required:
                   - pattern-sanitizers
               - required:

@@ -88,10 +88,13 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
              if !Flag_semgrep.filter_irrelevant_rules then (
                match Analyze_rule.regexp_prefilter_of_rule r with
                | None -> true
-               | Some (re, f) ->
+               | Some (prefilter_formula, func) ->
                    let content = Lazy.force lazy_content in
-                   logger#trace "looking for %s in %s" re file;
-                   f content)
+                   let s =
+                     Semgrep_prefilter_j.string_of_formula prefilter_formula
+                   in
+                   logger#trace "looking for %s in %s" s file;
+                   func content)
              else true
            in
            if not relevant_rule then (
@@ -105,15 +108,15 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                    timeout_function r file timeout (fun () ->
                        (* dispatching *)
                        match r.R.mode with
-                       | Search pformula ->
-                           Match_search_mode.check_rule r match_hook
-                             default_config pformula xtarget
-                       | Taint taint_spec ->
+                       | `Search _ as mode ->
+                           Match_search_mode.check_rule { r with mode }
+                             match_hook default_config xtarget
+                       | `Taint _ as mode ->
                            (* TODO: 'debug_taint' should just be part of 'res'
                             * (i.e., add a "debugging" field to 'Report.match_result'). *)
                            let res, _TODO_debug_taint =
-                             Match_tainting_mode.check_rule r match_hook
-                               default_config taint_spec xtarget
+                             Match_tainting_mode.check_rule { r with mode }
+                               match_hook default_config xtarget
                            in
                            res)
                  in

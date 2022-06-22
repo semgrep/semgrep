@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,6 +17,8 @@ module R = Rule
 module XP = Xpattern
 module MV = Metavariable
 module PI = Parse_info
+module J = JSON
+module SP = Semgrep_prefilter_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -71,8 +73,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * todo? the evaluation engine prefers to work on DNF where negation
  * must be inside a And, so maybe better to work also on DNF here?
  * and skip correctly the negations?
+ *
  * update: I now use run_cnf_step2 to eval a cnf, so I could do it
- * on a dnf too because I don't anymore reduce everything to a single regexp
+ * on a DNF too because I don't anymore reduce everything to a single regexp
  * (it's fast enough to run many regexps on a file).
  *
  *)
@@ -88,7 +91,7 @@ exception EmptyOr
 exception CNF_exploded
 
 (*****************************************************************************)
-(* Utils *)
+(* Helpers *)
 (*****************************************************************************)
 
 let ( let* ) = Common.( >>= )
@@ -385,6 +388,29 @@ let and_step2 (And xs) =
   if null ys then raise GeneralPattern;
   And ys
 
+let prefilter_formula_of_cnf_step2 (And xs) : Semgrep_prefilter_t.formula =
+  let xs' =
+    xs
+    |> Common.map (fun (Or ys) ->
+           let ys' =
+             ys
+             |> Common.map (function
+                  | Idents xs -> `Pred (`Idents xs)
+                  | Regexp2_search re ->
+                      let re_str = Regexp_engine.show re in
+                      `Pred (`Regexp re_str))
+           in
+           match ys' with
+           | [] -> raise EmptyOr
+           | [ x ] -> x
+           | xs -> `Or xs)
+  in
+  match xs' with
+  | [] -> raise EmptyAnd
+  | [ x ] -> x
+  | xs -> `And xs
+  [@@profiling]
+
 (*****************************************************************************)
 (* Final Step: just regexps? *)
 (*****************************************************************************)
@@ -474,6 +500,16 @@ let run_cnf_step2 cnf big_str =
 (* Entry points *)
 (*****************************************************************************)
 
+(* see mli for more information
+ * TODO: use a record.
+ *)
+type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
+
+let prefilter_formula_of_prefilter (pre : prefilter) :
+    Semgrep_prefilter_t.formula =
+  let x, _f = pre in
+  x
+
 let compute_final_cnf f =
   let* f = remove_not_final f in
   let cnf = cnf f in
@@ -490,13 +526,11 @@ let compute_final_cnf f =
   Some cnf
   [@@profiling]
 
-let str_final final = show_cnf_step2 final [@@profiling]
-
-let regexp_prefilter_of_formula f =
+let regexp_prefilter_of_formula f : prefilter option =
   try
     let* final = compute_final_cnf f in
     Some
-      ( str_final final,
+      ( prefilter_formula_of_cnf_step2 final,
         fun big_str ->
           try
             run_cnf_step2 final big_str
@@ -533,16 +567,16 @@ let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
 
 let hmemo = Hashtbl.create 101
 
-let regexp_prefilter_of_rule r =
+let regexp_prefilter_of_rule (r : R.rule) =
   let rule_id, t = r.R.id in
   let k = PI.file_of_info t ^ "." ^ rule_id in
   Common.memoized hmemo k (fun () ->
       try
         match r.mode with
-        | R.Search pf ->
+        | `Search pf ->
             let f = R.formula_of_pformula ~rule_id pf in
             regexp_prefilter_of_formula f
-        | R.Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+        | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
       with
       (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
       | CNF_exploded ->

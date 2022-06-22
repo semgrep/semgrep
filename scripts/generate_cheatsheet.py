@@ -3,13 +3,13 @@
 # Generate cheatsheets displayed next to the live editor, for each language.
 #
 # Usage:
-#   cd semgrep
-#   pipenv run ../scripts/generate_cheatsheet.py --json --directory \
+#   $ ./scripts/generate-cheatsheet
+#
+# or more explicitely:
+#   $ cd cli
+#   $ pipenv run ../scripts/generate_cheatsheet.py --json --directory \
 #     ../semgrep-core/tests --output-file cheatsheet.json
 #
-# or just:
-#
-#   ./scripts/generate-cheatsheet
 #
 # If you add support for a new language, you may need to update
 # LANG_DIR_TO_EXT below.
@@ -157,7 +157,7 @@ BETA_FEATURES = {
 }
 
 GA_FEATURES = {
-    "metavar": ["typed", "anno", "key_value"],
+    "metavar": ["typed", "anno", "key_value", "ellipsis_args"],
     "regexp": ["string"],
     "equivalence": [
         "naming_import",

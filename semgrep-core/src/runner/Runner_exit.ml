@@ -7,13 +7,17 @@ open Common
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (* Add new cases as needed *)
-type reason = Success | False | Bad_command_line | Unknown_exception of exn
+type reason =
+  | Success
+  | False
+  | Bad_command_line
+  | Unknown_exception of Exception.t
 
 let string_of_reason = function
   | Success -> "success"
   | False -> "false"
   | Bad_command_line -> "bad command line"
-  | Unknown_exception e -> spf "unknown exception %s" (Printexc.to_string e)
+  | Unknown_exception e -> spf "unknown exception %s" (Exception.to_string e)
 
 (*
    TODO: standardize these error codes to help the semgrep wrapper explain

@@ -565,7 +565,8 @@ and matches_of_formula config rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule r hook (default_config, equivs) pformula xtarget =
+let check_rule ({ R.mode = `Search pformula; _ } as r) hook
+    (default_config, equivs) xtarget =
   let config = r.R.options ||| default_config in
   let rule_id = fst r.id in
   let formula = R.formula_of_pformula ~rule_id pformula in

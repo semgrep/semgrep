@@ -81,7 +81,17 @@ let run_with_memory_limit ?get_context
   in
   let alarm = Gc.create_alarm limit_memory in
   try Fun.protect f ~finally:(fun () -> Gc.delete_alarm alarm) with
-  | Out_of_memory as e ->
+  | Out_of_memory as exn ->
+      (*
+         Is it bad to collect a full stack backtrace when we're out of memory?
+         Fun.protect does it systematically so we'll assume it's fine.
+
+         See:
+         - at the time of writing this:
+           https://github.com/ocaml/ocaml/blob/357b42accc160c699219575ab8b952be9594e1d9/stdlib/fun.ml
+         - latest: https://github.com/ocaml/ocaml/blob/trunk/stdlib/fun.ml
+      *)
+      let e = Exception.catch exn in
       (* Try to free up some space. Expensive operation. *)
       Gc.compact ();
-      raise e
+      Exception.reraise e

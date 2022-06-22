@@ -1,13 +1,12 @@
 (* main entry point *)
 val check_rule :
-  Rule.t ->
+  Rule.search_rule ->
   (string ->
   Metavariable.bindings ->
   Parse_info.t list Lazy.t ->
   _ option ->
   unit) ->
   Config_semgrep.t * Equivalence.equivalences ->
-  Rule.pformula ->
   Xtarget.t ->
   Report.rule_profiling Report.match_result
 

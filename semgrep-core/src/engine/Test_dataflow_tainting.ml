@@ -66,13 +66,13 @@ let test_dfg_tainting rules_file file =
            | _ -> false)
   in
   let _search_rules, taint_rules = Rule.partition_rules rules in
-  let rule, taint_spec = List.hd taint_rules in
+  let rule = List.hd taint_rules in
   pr2 "Tainting";
   pr2 "========";
   let handle_findings _ _ _ = () in
   let config, debug_taint =
     Match_tainting_mode.taint_config_of_rule Config_semgrep.default_config []
-      file (ast, []) rule taint_spec handle_findings
+      file (ast, []) rule handle_findings
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";

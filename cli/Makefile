@@ -8,7 +8,6 @@ default:
 # Generate code. Needed at least when the interface changes.
 .PHONY: build
 build:
-	$(MAKE) -C semgrep build
 	$(MAKE) check
 
 # Typecheck and run all tests from quickest to slowest.
