@@ -6,20 +6,20 @@ var foo = 'sensitive_var=test1';
 //ERROR:
 var foo = 'otherdata=foo&sensitive_var=test-2&moredata=bar';
 
-var LITERAL = 'test-3'
+var LITERAL1 = 'test-3'
 //ERROR:
-var foo = `otherdata=foo&sensitive_var=${LITERAL}&moredata=bar`;
+var foo = `otherdata=foo&sensitive_var=${LITERAL1}&moredata=bar`;
 //ERROR:
-var foo = 'otherdata=foo&sensitive_var=' + LITERAL + '&moredata=bar';
+var foo = 'otherdata=foo&sensitive_var=' + LITERAL1 + '&moredata=bar';
 
-const LITERAL = 'test-4'
+const LITERAL2 = 'test-4'
 //ERROR:
-var foo = `otherdata=foo&sensitive_var=${LITERAL}&moredata=bar`;
+var foo = `otherdata=foo&sensitive_var=${LITERAL2}&moredata=bar`;
 //ERROR:
-var foo = 'otherdata=foo&sensitive_var=' + LITERAL + '&moredata=bar';
+var foo = 'otherdata=foo&sensitive_var=' + LITERAL2 + '&moredata=bar';
 
-let LITERAL = 'test-4'
+let LITERAL3 = 'test-4'
 //ERROR:
-var foo = `&otherdata=foo&sensitive_var=${LITERAL}&moredata=bar`;
+var foo = `&otherdata=foo&sensitive_var=${LITERAL3}&moredata=bar`;
 //ERROR:
-var foo = 'otherdata=foo&sensitive_var=' + LITERAL + '&moredata=bar';
+var foo = 'otherdata=foo&sensitive_var=' + LITERAL3 + '&moredata=bar';
