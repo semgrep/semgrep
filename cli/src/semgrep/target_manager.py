@@ -144,11 +144,11 @@ class FileTargetingLog:
                     dir_targets += 1
                     try:
                         t.files_from_git_ls()
-                        targets_not_in_git += 1
                     except (subprocess.SubprocessError, FileNotFoundError):
+                        targets_not_in_git += 1
                         continue
-            if targets_not_in_git < dir_targets:
-                limited_fragments.append("Scan was limited to files tracked by git.")
+            if targets_not_in_git != dir_targets:
+                limited_fragments.append(f"Scan was limited to files tracked by git.")
 
         if self.cli_includes:
             skip_fragments.append(
