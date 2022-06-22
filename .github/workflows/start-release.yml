@@ -131,7 +131,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait for PR checks to finish
-          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" -i 5 --watch
+          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" -i 90 --watch
       - name: Get Current Num Checks
         id: num-checks
         env:
@@ -171,7 +171,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait for PR checks to finish
-          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" -i 2 --watch
+          gh pr checks "${{ steps.open-pr.outputs.pr-number }}" -i 90 --watch
 
   validate-release-trigger:
     needs: [release-setup]
