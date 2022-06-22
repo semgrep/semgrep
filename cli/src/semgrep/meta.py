@@ -213,13 +213,13 @@ class GithubMeta(GitMeta):
         Split out shallow fetch so we can mock it away in tests
         """
         logger.debug(
-            f"Trying to fetch branch {branch_name} from {self.pr_head_git_url} as head branch"
+            f"Trying to fetch branch {branch_name} from {self.pr_head_clone_url} as head branch"
         )
         subprocess.run(
             [
                 "git",
                 "fetch",
-                self.pr_head_git_url,
+                self.pr_head_clone_url,
                 "--depth=1",
                 "--force",
                 "--update-head-ok",
@@ -300,13 +300,13 @@ class GithubMeta(GitMeta):
 
         if attempt_count:
             logger.debug(
-                f"Trying to fetch branch {self._base_branch_ref} from {self.pr_base_git_url} as base branch"
+                f"Trying to fetch branch {self._base_branch_ref} from {self.pr_base_clone_url} as base branch"
             )
             process = subprocess.run(
                 [
                     "git",
                     "fetch",
-                    self.pr_base_git_url,
+                    self.pr_base_clone_url,
                     "--force",
                     "--update-head-ok",
                     "--depth",
@@ -323,13 +323,13 @@ class GithubMeta(GitMeta):
             )
 
             logger.debug(
-                f"Trying to fetch branch {self._head_branch_ref} from {self.pr_head_git_url} as head branch"
+                f"Trying to fetch branch {self._head_branch_ref} from {self.pr_head_clone_url} as head branch"
             )
             process = subprocess.run(
                 [
                     "git",
                     "fetch",
-                    self.pr_head_git_url,
+                    self.pr_head_clone_url,
                     "--force",
                     "--update-head-ok",
                     "--depth",
@@ -407,21 +407,25 @@ class GithubMeta(GitMeta):
         return str(pr_title) if pr_title else None
 
     @property
-    def pr_head_git_url(self) -> str:
-        pr_head_git_url = self.glom_event(T["pull_request"]["head"]["repo"]["git_url"])
+    def pr_head_clone_url(self) -> str:
+        pr_head_clone_url = self.glom_event(
+            T["pull_request"]["head"]["repo"]["clone_url"]
+        )
         return (
-            str(pr_head_git_url)
-            if pr_head_git_url
-            else str(self.glom_event(T["repository"]["git_url"]))
+            str(pr_head_clone_url)
+            if pr_head_clone_url
+            else str(self.glom_event(T["repository"]["clone_url"]))
         )
 
     @property
-    def pr_base_git_url(self) -> str:
-        pr_base_git_url = self.glom_event(T["pull_request"]["head"]["repo"]["git_url"])
+    def pr_base_clone_url(self) -> str:
+        pr_base_clone_url = self.glom_event(
+            T["pull_request"]["head"]["repo"]["clone_url"]
+        )
         return (
-            str(pr_base_git_url)
-            if pr_base_git_url
-            else str(self.glom_event(T["repository"]["git_url"]))
+            str(pr_base_clone_url)
+            if pr_base_clone_url
+            else str(self.glom_event(T["repository"]["clone_url"]))
         )
 
     @property

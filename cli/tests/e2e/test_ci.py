@@ -319,12 +319,12 @@ def test_full_run(
                         "ref": BRANCH_NAME,
                         "number": "7",
                         "title": "placeholder-pr-title",
-                        "repo": {"git_url": "git://github.com/head/repo.git"},
+                        "repo": {"clone_url": "git://github.com/head/repo.git"},
                     },
                     "base": {
                         "sha": base_commit,
                         "ref": "main",
-                        "repo": {"git_url": "git://github.com/base/repo.git"},
+                        "repo": {"clone_url": "git://github.com/base/repo.git"},
                     },
                 },
                 "sender": {
@@ -349,9 +349,7 @@ def test_full_run(
         env["TRAVIS_COMMIT"] = head_commit
     env["SEMGREP_APP_TOKEN"] = "fake-key-from-tests"
 
-    result = run_semgrep(
-        options=["ci", "--debug"], strict=False, assert_exit_code=None, env=env
-    )
+    result = run_semgrep(options=["ci"], strict=False, assert_exit_code=None, env=env)
 
     snapshot.assert_match(
         result.as_snapshot(
@@ -479,12 +477,12 @@ def test_github_ci_bad_base_sha(
                 "ref": "bar",
                 "number": "7",
                 "title": "placeholder-pr-title",
-                "repo": {"git_url": str(git_tmp_path)},
+                "repo": {"clone_url": str(git_tmp_path)},
             },
             "base": {
                 "sha": commits["foo"][0],  # Note how this is not latest commit in foo
                 "ref": "foo",
-                "repo": {"git_url": str(git_tmp_path)},
+                "repo": {"clone_url": str(git_tmp_path)},
             },
         },
         "sender": {
