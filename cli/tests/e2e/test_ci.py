@@ -509,12 +509,18 @@ def test_github_ci_bad_base_sha(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
-    result = run_semgrep(options=["ci"], strict=False, assert_exit_code=None, env=env)
+    result = run_semgrep(
+        options=["ci", "--debug"], strict=False, assert_exit_code=None, env=env
+    )
 
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                # Mask output about semgrep core binary absolute path
+                re.compile(r"/(.*)/semgrep-core"),
+                str(git_tmp_path),
+                str(tmp_path),
             ]
         ),
         "results.txt",
