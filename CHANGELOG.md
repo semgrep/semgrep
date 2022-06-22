@@ -33,6 +33,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   bound (#5513)
 - Solidity: update to a more recent tree-sitter-solidity to fix certain parsing
   errors (#4957)
+- `semgrep ci`: CI runs were failing to checkout the PR head in GitHub Actions, which is corrected here.
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
