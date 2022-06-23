@@ -39,6 +39,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
+- Will no longer print "files were not tracked by git" if not in a git repo
+- Will no longer print "Some files were skipped" if no files were skipped
 - Fixed bug where semgrep would crash in nonexistent directory
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)

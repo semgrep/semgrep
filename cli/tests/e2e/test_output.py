@@ -1,12 +1,14 @@
 import collections
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Dict
 from xml.etree import cElementTree
 
 import pytest
 from tests.conftest import TESTS_PATH
+from tests.e2e.test_ci import REPO_DIR_NAME
 
 from semgrep.constants import OutputFormat
 
@@ -268,6 +270,43 @@ def test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snap
 
     snapshot.assert_match(
         json.dumps(parsed_output["paths"], indent=2, sort_keys=True), "report.json"
+    )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "git_repo",
+    [True, False],
+)
+def test_git_repo_output(run_semgrep, git_repo, tmp_path, monkeypatch, snapshot):
+    """
+    Initialize a git repo at a temp directory
+    """
+    repo_base = tmp_path / REPO_DIR_NAME
+    repo_base.mkdir(parents=True)
+
+    monkeypatch.chdir(repo_base)
+
+    if git_repo:
+        # Initialize State
+        subprocess.run(["git", "init"], check=True, capture_output=True)
+        # Symlink the gitignore to the temp directory
+        (repo_base / ".gitignore").symlink_to(
+            Path(TESTS_PATH / "e2e" / "targets" / "ignores" / ".gitignore").resolve()
+        )
+
+    # Symlink rules
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+
+    monkeypatch.chdir(tmp_path)
+    snapshot.assert_match(
+        run_semgrep(
+            "rules/eqeq-basic.yaml",
+            output_format=OutputFormat.TEXT,
+            assume_targets_dir=False,
+            target_name=repo_base,
+        ).stderr,
+        "results.txt",
     )
 
 
