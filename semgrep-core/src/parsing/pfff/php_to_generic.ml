@@ -277,6 +277,9 @@ and expr e : G.expr =
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+  | Obj_get (v1, _tdot, Ellipsis tdots) ->
+      let v1 = expr v1 in
+      G.DotAccessEllipsis (v1, tdots)
   | Obj_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.FDynamic v2)
