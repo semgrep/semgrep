@@ -212,6 +212,7 @@ class GithubMeta(GitMeta):
         """
         Split out shallow fetch so we can mock it away in tests
         """
+        logger.debug(f"Trying to shallow fetch branch {branch_name} from origin")
         subprocess.run(
             [
                 "git",
@@ -242,14 +243,14 @@ class GithubMeta(GitMeta):
     @cachedproperty
     def head_branch_hash(self) -> str:
         """
-        Latest commit hash of the head branch of PR being merged from github
+        Commit of the head branch, reported via the GitHub pull_request event
 
         Assumes we are in PR context
         """
         head_branch_name = self._head_branch_ref
-        commit = self._get_latest_commit_hash_in_branch(head_branch_name)
+        commit = self.glom_event(T["pull_request"]["head"]["sha"])
         logger.debug(f"head branch ({head_branch_name}) has latest commit {commit}")
-        return commit
+        return str(commit)
 
     @cachedproperty
     def _head_branch_ref(self) -> str:
@@ -296,6 +297,9 @@ class GithubMeta(GitMeta):
         )
 
         if attempt_count:
+            logger.debug(
+                f"Trying to fetch branch {self._base_branch_ref} from origin as base branch"
+            )
             process = subprocess.run(
                 [
                     "git",
@@ -315,6 +319,10 @@ class GithubMeta(GitMeta):
             logger.debug(
                 f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
+
+            logger.debug(
+                f"Trying to fetch branch {self._head_branch_ref} as commit from origin as head branch tip commit"
+            )
             process = subprocess.run(
                 [
                     "git",
@@ -324,7 +332,7 @@ class GithubMeta(GitMeta):
                     "--update-head-ok",
                     "--depth",
                     str(fetch_depth),
-                    f"{self._head_branch_ref}:{self._head_branch_ref}",
+                    f"{self.head_branch_hash}",
                 ],
                 check=True,
                 encoding="utf-8",
