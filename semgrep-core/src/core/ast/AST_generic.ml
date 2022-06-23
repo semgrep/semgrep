@@ -525,7 +525,9 @@ and expr_kind =
   | DeepEllipsis of expr bracket (* <... ...> *)
   | DisjExpr of expr * expr
   | TypedMetavar of ident * tok (* : *) * type_
-  (* for ellipsis in method chaining *)
+  (* for ellipsis in method chaining.
+   * alt: make it part of field_name in DotAccess
+   *)
   | DotAccessEllipsis of expr * tok (* '...' *)
   (* Dual of ExprStmt. See stmt_to_expr() below and its comment.
    * OCaml/Ruby/Scala/... have just expressions, not separate statements.
@@ -623,6 +625,9 @@ and field_name =
    * The IdQualified inside name is Useful for OCaml field access.
    *)
   | FN of name
+  (* less: FEllipsis instead of DotAccessEllipsis; can also be
+   * represented in theory by FDynamic (Ellipsis)
+   *)
   (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby
    * or C++ ArrowStarAccess ->*
    *)

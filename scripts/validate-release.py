@@ -86,7 +86,7 @@ if __name__ == "__main__":
         print("USAGE: python3 validate-release.py 0.X.0")
         exit(1)
 
-    release_tag = sys.argv[1]
+    release_tag = f"v{sys.argv[1]}"
 
     version = release_tag
     print(f"Testing {release_tag}")
