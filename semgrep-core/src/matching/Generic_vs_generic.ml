@@ -2072,9 +2072,8 @@ and m_stmt a b =
       let* () = m_tok a0 b0 in
       let* () = m_option_ellipsis_ok m_expr a1 b1 in
       m_tok asc bsc
-  (* deeper: go deep by default implicitly (no need for explicit <... ...>) *)
   | G.ExprStmt (a1, a2), B.ExprStmt (b1, b2) ->
-      m_expr_deep a1 b1 >>= fun () -> m_tok a2 b2
+      m_expr a1 b1 >>= fun () -> m_tok a2 b2
   (* opti: specialization to avoid going in the deep stmt matching!
    * TODO: we should not need this; '...' should not enumerate all
    * possible subset of stmt list and take forever.
