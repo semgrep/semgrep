@@ -290,6 +290,7 @@ and pattern env pat =
         |> List.concat
       in
       (tmp_lval, ss)
+  | G.PatTyped (pat1, _typTODO) -> pattern env pat1
   | _ -> todo (G.P pat)
 
 and _catch_exn env exn =
