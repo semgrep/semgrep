@@ -138,7 +138,7 @@ class FileTargetingLog:
             )
         elif self.target_manager.respect_git_ignore:
             # Each target could be a git repo, and we respect the git ignore
-            # of each target, so to be accurate with this print statement we 
+            # of each target, so to be accurate with this print statement we
             # need to check if any target is a git repo and not just the cwd
             targets_not_in_git = 0
             dir_targets = 0
