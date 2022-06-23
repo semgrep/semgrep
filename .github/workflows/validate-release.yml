@@ -2,6 +2,12 @@
 name: validate-release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The release version to validate"
+        required: true
+        type: string
   workflow_call:
     inputs:
       version:
