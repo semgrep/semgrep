@@ -1,0 +1,11 @@
+rules:
+- id: java-iterator-missed-propagation
+  mode: taint
+  pattern-sources:
+    - pattern: $ANYTHING.getStackTrace(...)
+  pattern-sinks:
+    - pattern: System.out.println(...)
+  message: Semgrep found a match
+  languages:
+    - java
+  severity: WARNING

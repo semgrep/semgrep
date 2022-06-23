@@ -4,6 +4,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+### Changed
+
+### Fixed
+
+- `semgrep ci`: CI runs were failing to checkout the PR head in GitHub Actions, which is corrected here.
+
+## [0.100.0](https://github.com/returntocorp/semgrep/releases/tag/v0.100.0) - 2022-06-22
+
 ## Added
 
 - taint-mode: New experimental `pattern-propagators` feature that allows to specify
@@ -29,11 +39,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
+- Fixed bug where semgrep would crash in nonexistent directory
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)
 - Solidity: update to a more recent tree-sitter-solidity to fix certain parsing
   errors (#4957)
-- `semgrep ci`: CI runs were failing to checkout the PR head in GitHub Actions, which is corrected here.
+- taint-mode: Correctly propagate taint in for-each loops with typed iteration
+  variables (as in Java or C#). If the iterator object is tainted, that taint will
+  now be propagated to the iteration variable. This should fix some false negatives
+  (i.e., findings not being reported) in the presence of for-each loops. (#5590)
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 

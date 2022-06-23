@@ -277,6 +277,9 @@ and expr e : G.expr =
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+  | Obj_get (v1, _tdot, Ellipsis tdots) ->
+      let v1 = expr v1 in
+      G.DotAccessEllipsis (v1, tdots)
   | Obj_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.DotAccess (v1, t, G.FDynamic v2)
@@ -560,13 +563,13 @@ and modifier v = wrap modifierbis v
 
 and attribute v =
   match v with
-  | Id [ id ] ->
-      let id = ident id in
-      G.NamedAttr (fake "@", G.Id (id, G.empty_id_info ()), fb [])
-  | Call (Id [ id ], args) ->
-      let id = ident id in
+  | Id xs ->
+      let name = name_of_qualified_ident xs in
+      G.NamedAttr (fake "@", name, fb [])
+  | Call (Id xs, args) ->
+      let name = name_of_qualified_ident xs in
       let args = bracket (list argument) args in
-      G.NamedAttr (fake "@", G.Id (id, G.empty_id_info ()), args)
+      G.NamedAttr (fake "@", name, args)
   | _ -> raise Impossible
 
 (* see ast_php_build.ml *)
