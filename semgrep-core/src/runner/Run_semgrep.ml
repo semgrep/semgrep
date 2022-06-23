@@ -512,9 +512,15 @@ let semgrep_with_rules config extractors
             let file = t.In.path in
             let xlang = Xlang.of_string t.In.language in
             let xtarget = xtarget_of_file config xlang file in
-            Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
-              ~timeout_threshold:config.timeout_threshold extractors xtarget
-              rule_ids)
+            let extract_targets =
+              Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
+                ~timeout_threshold:config.timeout_threshold extractors xtarget
+                rule_ids
+            in
+            (* Print number of extra targets so Python knows *)
+            if config.output_format = Json then
+              pr (string_of_int (List.length extract_targets));
+            extract_targets)
           extract_targets
         |> Fun.flip
              (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
