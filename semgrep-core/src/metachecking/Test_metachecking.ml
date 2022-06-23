@@ -40,6 +40,7 @@ let config =
     pattern_string = "";
     pattern_file = "";
     rules_file = "";
+    extractors_file = "";
     equivalences_file = "";
     metatypes_file = "";
     lang = None;
