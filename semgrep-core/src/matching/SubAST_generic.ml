@@ -156,10 +156,23 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   (* TODO? or call recursively on e? *)
   | ParenExpr (_, e, _) -> [ e ]
+  | Xml { xml_attrs; xml_body; _ } ->
+      List.filter_map
+        (function
+          | XmlAttr (_, _, e)
+          | XmlAttrExpr (_, e, _) ->
+              Some e
+          | _ -> None)
+        xml_attrs
+      @ List.filter_map
+          (function
+            | XmlExpr (_, Some e, _) -> Some e
+            | XmlXml xml -> Some (Xml xml |> AST_generic.e)
+            | _ -> None)
+          xml_body
   (* currently skipped over but could recurse *)
   | Constructor _
   | AnonClass _
-  | Xml _
   | LetPattern _ ->
       []
   | DisjExpr _ -> raise Common.Impossible
