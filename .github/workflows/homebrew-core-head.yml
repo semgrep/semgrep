@@ -4,7 +4,7 @@ name: Homebrew Nightly Verification
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "26 9 * * *"
 
 jobs:
   brew-build:
