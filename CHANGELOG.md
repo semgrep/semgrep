@@ -31,6 +31,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
+- Fixed bug where semgrep would crash in nonexistent directory
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)
 - Solidity: update to a more recent tree-sitter-solidity to fix certain parsing

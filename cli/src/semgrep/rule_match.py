@@ -219,7 +219,7 @@ class RuleMatch:
         """
         try:
             path = self.path.relative_to(Path.cwd())
-        except ValueError:
+        except (ValueError, FileNotFoundError):
             path = self.path
         return (self.rule_id, str(path), self.syntactic_context, self.index)
 
@@ -265,7 +265,7 @@ class RuleMatch:
     def get_match_based_id(self) -> str:
         try:
             path = self.path.relative_to(Path.cwd())
-        except ValueError:
+        except (ValueError, FileNotFoundError):
             path = self.path
         match_formula_str = self.match_formula_string
         if self.extra.get("metavars") is not None:
