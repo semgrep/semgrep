@@ -118,7 +118,12 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                              Match_tainting_mode.check_rule { r with mode }
                                match_hook default_config xtarget
                            in
-                           res)
+                           res
+                       | `Extract extract_spec ->
+                           (* TODO: need another module for extract? *)
+                           Match_search_mode.check_rule
+                             { r with mode = `Search extract_spec.pformula }
+                             match_hook default_config xtarget)
                  in
                  match match_result with
                  | Some res -> Left res

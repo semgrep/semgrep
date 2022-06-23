@@ -26,6 +26,7 @@ module V = Visitor_AST
 module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
+(* TODO: cooper/pp : update for `Extract *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -174,7 +175,8 @@ let check r =
   let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
-  | `Search pf ->
+  | `Search pf
+  | `Extract { pformula = pf; _ } ->
       let f = Rule.formula_of_pformula ~rule_id pf in
       check_formula { r; errors = ref [] } r.languages f
   | `Taint _ -> (* TODO *) []

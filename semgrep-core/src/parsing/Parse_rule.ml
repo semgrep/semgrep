@@ -748,18 +748,17 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarComparison { R.metavariable; comparison; strip; base }
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
+let parse_language ~id ((s, t) as _lang) : Lang.t =
+  match Lang.lang_of_string_opt s with
+  | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
+  | Some l -> l
+
 let parse_languages ~id langs : Xlang.t =
   match langs with
   | [ (("none" | "regex"), _t) ] -> LRegex
   | [ ("generic", _t) ] -> LGeneric
   | xs -> (
-      let languages =
-        xs
-        |> Common.map (function s, t ->
-               (match Lang.lang_of_string_opt s with
-               | None -> raise (R.InvalidRule (R.InvalidLanguage s, fst id, t))
-               | Some l -> l))
-      in
+      let languages = xs |> Common.map (parse_language ~id:(fst id)) in
       match languages with
       | [] ->
           raise
@@ -847,9 +846,20 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
           sanitizers = optlist_to_list sanitizers_opt;
           sinks;
         }
+  | Some ("extract", _) ->
+      let pformula = parse_formula env rule_dict in
+      let dst_lang =
+        take rule_dict env parse_string_wrap "dest-language"
+        |> parse_language ~id:env.id
+      in
+      (* TODO: determine fmt---string with interpolated metavars? *)
+      let extract = take rule_dict env parse_string "extract" in
+      `Extract { pformula; dst_lang; extract }
   | Some key ->
       error_at_key env key
-        (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"
+        (spf
+           "Unexpected value for mode, should be 'search', 'taint', or \
+            'extract', not %s"
            (fst key))
 
 (* sanity check there are no remaining fields in rd *)

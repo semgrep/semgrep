@@ -196,6 +196,18 @@ type taint_spec = {
 }
 [@@deriving show]
 
+type extract_spec = {
+  pformula : pformula;
+  (* TODO: determine if we need reductions beyond concat; maybe
+               "separate"?
+   * combine_extract: extract_mode;
+   *)
+  (* TODO: really want Lang.t | Generic *)
+  dst_lang : Lang.t;
+  extract : string;
+}
+[@@deriving show]
+
 (*****************************************************************************)
 (* The rule *)
 (*****************************************************************************)
@@ -207,6 +219,7 @@ type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
   mode : 'mode;
+  (* TODO: only want these for Search & Taint *)
   message : string;
   severity : severity;
   languages : Xlang.t;
@@ -232,9 +245,11 @@ and paths = {
 
 type search_mode = [ `Search of pformula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type mode = [ search_mode | taint_mode ] [@@deriving show]
+type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
+type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
+type extract_rule = extract_mode rule_info [@@deriving show]
 type rule = mode rule_info [@@deriving show]
 
 (* alias *)
@@ -245,12 +260,14 @@ type rules = rule list [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules (rules : rules) : search_rule list * taint_rule list =
+let partition_rules (rules : rules) :
+    search_rule list * taint_rule list * extract_rule list =
   rules
-  |> Common.partition_either (fun r ->
+  |> Common.partition_either3 (fun r ->
          match r.mode with
-         | `Search _ as s -> Left { r with mode = s }
-         | `Taint _ as t -> Right { r with mode = t })
+         | `Search _ as s -> Left3 { r with mode = s }
+         | `Taint _ as t -> Middle3 { r with mode = t }
+         | `Extract _ as e -> Right3 { r with mode = e })
 
 (*****************************************************************************)
 (* Error Management *)

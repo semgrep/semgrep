@@ -443,6 +443,7 @@ properties:
             - search
             - taint
             - join
+            - extract
         languages:
           title: Languages this pattern should run on
           type: array
@@ -512,9 +513,76 @@ properties:
           $ref: "#/definitions/pattern-either-content"
         r2c-internal-project-depends-on:
           $ref: "#/definitions/r2c-internal-project-depends-on-content"
+        extract:
+          title: Metavariable whose content to use as the extracted result for subsequent rules
+          type: string
+        dest-language:
+          title: Language to process the extracted result of this rule as
+          type: string
       additionalProperties: false
 
       oneOf:
+        - properties:
+            mode:
+              const: extract
+          required:
+            - id
+            - mode
+            - languages
+            - dest-language
+            - extract
+          oneOf:
+            - required:
+                - pattern
+              not:
+                anyOf:
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - patterns
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-either
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-regex
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+          not:
+            anyOf:
+              - required:
+                  - pattern-sinks
+              - required:
+                  - pattern-sources
+              - required:
+                  - pattern-sanitizers
+              - required:
+                  - join
+
         - properties:
             mode:
               const: taint
