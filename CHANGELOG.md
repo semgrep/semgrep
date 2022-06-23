@@ -49,6 +49,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   now be propagated to the iteration variable. This should fix some false negatives
   (i.e., findings not being reported) in the presence of for-each loops. (#5590)
 
+## 0.99.0 - Skipped
+
+Version 0.99.0 of Semgrep was intentionally skipped. Version 0.100.0 immediately follows version 0.98.0.
+
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
 ### Added
