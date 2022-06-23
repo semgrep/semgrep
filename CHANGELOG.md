@@ -43,7 +43,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## 0.99.0 - Skipped
 
-Version 0.99.0 of semgrep was intentionally skipped. Version 0.100.0 immediately follows version 0.98.0.
+Version 0.99.0 of Semgrep was intentionally skipped. Version 0.100.0 immediately follows version 0.98.0.
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
