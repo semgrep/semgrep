@@ -298,6 +298,7 @@ and invalid_rule_error_kind =
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
   | InvalidOther of string
+[@@deriving show]
 
 let string_of_invalid_rule_error_kind = function
   | InvalidLanguage language -> spf "invalid language %s" language
