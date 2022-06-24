@@ -4,8 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-# Fixed
+### Added
 
+### Changed
+
+### Fixed
+
+- `semgrep ci`: CI runs were failing to checkout the PR head in GitHub Actions, which is
+  corrected here.
+- TS: fixed the parsing of type predicates and typeof queries
 - Deep expression matching now works on HTML in JavaScript
 
 ## [0.100.0](https://github.com/returntocorp/semgrep/releases/tag/v0.100.0) - 2022-06-22
@@ -35,6 +42,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
+- Will no longer print "files were not tracked by git" if not in a git repo
+- Will no longer print "Some files were skipped" if no files were skipped
 - Fixed bug where semgrep would crash in nonexistent directory
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)
@@ -44,6 +53,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   variables (as in Java or C#). If the iterator object is tainted, that taint will
   now be propagated to the iteration variable. This should fix some false negatives
   (i.e., findings not being reported) in the presence of for-each loops. (#5590)
+
+## 0.99.0 - Skipped
+
+Version 0.99.0 of Semgrep was intentionally skipped. Version 0.100.0 immediately follows version 0.98.0.
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 

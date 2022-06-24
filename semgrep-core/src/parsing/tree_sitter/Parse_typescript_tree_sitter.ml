@@ -2702,6 +2702,9 @@ and map_type_predicate (env : env) ((v1, v2, v3) : CST.type_predicate) =
         let id = identifier env tok (* identifier *) in
         idexp_or_special id
     | `This tok -> this env tok
+    | `Pred_type v1 ->
+        let id = predefined_type env v1 in
+        idexp_or_special id
   in
   let tis = token env v2 (* "is" *) in
   let ty = type_ env v3 in
@@ -2764,6 +2767,7 @@ and type_predicate (env : env) ((v1, v2, v3) : CST.type_predicate) : type_ =
     match v1 with
     | `Id tok -> (* identifier *) identifier env tok |> idexp
     | `This tok -> (* "this" *) this env tok
+    | `Pred_type v1 -> predefined_type env v1 |> idexp
   in
   let _is = token env v2 (* "is" *) in
   let type_ = type_ env v3 in

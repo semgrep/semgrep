@@ -137,7 +137,21 @@ class FileTargetingLog:
                 "Scan was limited to files changed since baseline commit."
             )
         elif self.target_manager.respect_git_ignore:
-            limited_fragments.append("Scan was limited to files tracked by git.")
+            # Each target could be a git repo, and we respect the git ignore
+            # of each target, so to be accurate with this print statement we
+            # need to check if any target is a git repo and not just the cwd
+            targets_not_in_git = 0
+            dir_targets = 0
+            for t in self.target_manager.targets:
+                if t.path.is_dir():
+                    dir_targets += 1
+                    try:
+                        t.files_from_git_ls()
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        targets_not_in_git += 1
+                        continue
+            if targets_not_in_git != dir_targets:
+                limited_fragments.append(f"Scan was limited to files tracked by git.")
 
         if self.cli_includes:
             skip_fragments.append(
