@@ -455,6 +455,47 @@ let targets_of_config (config : Runner_config.t)
         failwith "if you use -targets and -rules, you should not specify a lang";
       (targets, skipped)
 
+(**
+   Generate the list of targets to run extract rules against given a config,
+   the ids for rules to run against the generated targets and a set of extract
+   rules used to perform the extraction.
+*)
+let extract_targets_of_config config rule_ids extractors =
+  let erule_ids = Common.map (fun r -> fst r.R.id) extractors in
+  let extract_targets, extract_skipped = targets_of_config config erule_ids in
+  let match_hook str env matched_tokens =
+    if config.output_format = Text then (
+      let xs = Lazy.force matched_tokens in
+      print_string "extracted content from ";
+      print_match ~str config.match_format config.mvars env
+        Metavariable.ii_of_mval xs)
+  in
+  logger#info "extracting nested content from %d files, skipping %d files"
+    (List.length extract_targets)
+    (List.length extract_skipped);
+  List.concat_map
+    (fun t ->
+      (* TODO: addt'l filtering required for rule_ids when targets are
+         passed explicitly? *)
+      let file = t.In.path in
+      let xlang = Xlang.of_string t.In.language in
+      let xtarget = xtarget_of_file config xlang file in
+      let extract_targets =
+        Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
+          ~timeout_threshold:config.timeout_threshold extractors xtarget
+          rule_ids
+      in
+      (* Print number of extra targets so Python knows *)
+      if config.output_format = Json then
+        pr (string_of_int (List.length extract_targets));
+      extract_targets)
+    extract_targets
+  |> Fun.flip
+       (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
+            Hashtbl.add fn_tbl t.In.path fn;
+            (t :: ts, fn_tbl)))
+       ([], Hashtbl.create (List.length extract_targets))
+
 (*****************************************************************************)
 (* Semgrep -config *)
 (*****************************************************************************)
@@ -463,74 +504,32 @@ let targets_of_config (config : Runner_config.t)
  * It takes a set of rules and a set of targets and
  * recursively process those targets.
  *)
-let semgrep_with_rules config extractors
-    ((rules, invalid_rules), rules_parse_time) =
+let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   (* Return an exception
      - always, if there are no rules but just invalid rules
      - when users want to fail fast, if there are valid and invalid rules *)
-  (* TODO right now there is no option to not fail fast *)
-  let erules_parse_time =
-    match extractors with
-    | Some (((_extractors, _invalid_extractors) as exr), erules_parse_time) -> (
-        match exr with
-        (* TODO: (same as below) fail fast only when strict? *)
-        | _ :: _, err :: _ -> raise (Rule.InvalidRule err)
-        | _ -> erules_parse_time)
-    | None -> 0.
-  in
-
   (match (rules, invalid_rules) with
   | [], [] -> ()
   | [], err :: _ -> raise (Rule.InvalidRule err)
   | _, err :: _ (* TODO fail fast when only when strict? *) ->
       raise (Rule.InvalidRule err)
-  | _ -> ());
+  | _, [] -> ());
+
+  let rules, extract_rules =
+    Common.partition_either
+      (fun r ->
+        match r.Rule.mode with
+        | `Extract _ as e -> Right { r with mode = e }
+        | mode -> Left { r with mode })
+      rules
+  in
 
   let rule_ids = Common.map (fun r -> fst r.R.id) rules in
 
   let extracted_targets, extract_result_map =
-    match extractors with
-    | Some ((extractors, _), _) ->
-        let erule_ids = Common.map (fun r -> fst r.R.id) extractors in
-        let extract_targets, extract_skipped =
-          targets_of_config config erule_ids
-        in
-        let match_hook str env matched_tokens =
-          if config.output_format = Text then (
-            let xs = Lazy.force matched_tokens in
-            print_string "extracted content from ";
-            print_match ~str config.match_format config.mvars env
-              Metavariable.ii_of_mval xs)
-        in
-        logger#info "extracting nested content from %d files, skipping %d files"
-          (List.length extract_targets)
-          (List.length extract_skipped);
-        List.concat_map
-          (fun t ->
-            (* TODO: addt'l filtering required for rule_ids when targets are
-               passed explicitly? *)
-            let file = t.In.path in
-            let xlang = Xlang.of_string t.In.language in
-            let xtarget = xtarget_of_file config xlang file in
-            let extract_targets =
-              Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
-                ~timeout_threshold:config.timeout_threshold extractors xtarget
-                rule_ids
-            in
-            (* Print number of extra targets so Python knows *)
-            if config.output_format = Json then
-              pr (string_of_int (List.length extract_targets));
-            extract_targets)
-          extract_targets
-        |> Fun.flip
-             (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
-                  Hashtbl.add fn_tbl t.In.path fn;
-                  (t :: ts, fn_tbl)))
-             ([], Hashtbl.create (List.length extract_targets))
-    | None -> ([], Hashtbl.create 0)
+    extract_targets_of_config config rule_ids extract_rules
   in
-
-  (* TODO: possibly extract from generated stuff *)
+  (* TODO: possibly extract (recursively) from generated stuff *)
   if not (config.metatypes_file = "") then
     process_metatypes config.metatypes_file;
   let rule_table = mk_rule_table rules in
@@ -570,8 +569,7 @@ let semgrep_with_rules config extractors
            |> Option.fold ~some:(fun f -> f res) ~none:res)
   in
   let res =
-    RP.make_final_result file_results rules config.report_time
-      (erules_parse_time +. rules_parse_time)
+    RP.make_final_result file_results rules config.report_time rules_parse_time
   in
   let res = { res with skipped_targets = skipped @ res.skipped_targets } in
   logger#info "found %d matches, %d errors, %d skipped targets"
@@ -602,54 +600,14 @@ let semgrep_with_raw_results_and_exn_handler config =
    * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
    *)
   let rules_file = replace_named_pipe_by_regular_file rules_file in
-  let extractors_file =
-    if config.extractors_file <> "" then
-      Some (replace_named_pipe_by_regular_file config.extractors_file)
-    else None
-  in
   try
-    logger#linfo
-      (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
-    let timed_extractors =
-      Option.map
-        (fun extr_f ->
-          Common.with_time (fun () ->
-              (* TODO: should probably refactor these w/ partition_rules?
-               * maybe just mash everything in the one rules.yaml too?
-               *)
-              Parse_rule.parse_and_filter_invalid_rules extr_f |> fun (r, i) ->
-              ( r
-                |> List.filter_map (fun x ->
-                       match x.R.mode with
-                       | `Extract _ as mode -> Some { x with mode }
-                       | `Search _
-                       | `Taint _ ->
-                           logger#info
-                             "Ignoring rule: %s. An extract rule was expected."
-                             (fst x.R.id);
-                           None),
-                i )))
-        extractors_file
-    in
     logger#linfo
       (lazy (spf "Parsing %s:\n%s" rules_file (read_file rules_file)));
     let timed_rules =
       Common.with_time (fun () ->
-          (* TODO: see above *)
-          Parse_rule.parse_and_filter_invalid_rules rules_file |> fun (r, i) ->
-          ( r
-            |> List.filter_map (fun x ->
-                   match x.R.mode with
-                   | (`Search _ | `Taint _) as mode -> Some { x with mode }
-                   | `Extract _ ->
-                       logger#info
-                         "Ignoring extract rule: %s. Should be passed with -pp \
-                          if intended for langauge extraction."
-                         (fst x.R.id);
-                       None),
-            i ))
+          Parse_rule.parse_and_filter_invalid_rules rules_file)
     in
-    let res, files = semgrep_with_rules config timed_extractors timed_rules in
+    let res, files = semgrep_with_rules config timed_rules in
     (None, res, files)
   with
   | exn when not !Flag_semgrep.fail_fast ->
@@ -759,7 +717,7 @@ let semgrep_with_one_pattern config =
         Common.with_time (fun () -> rule_of_pattern lang pattern_string pattern)
       in
       let res, files =
-        semgrep_with_rules config None (([ rule ], []), rules_parse_time)
+        semgrep_with_rules config (([ rule ], []), rules_parse_time)
       in
       let json = JSON_report.match_results_of_matches_and_errors files res in
       let s = Out.string_of_core_match_results json in

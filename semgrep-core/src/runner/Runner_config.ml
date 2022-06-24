@@ -20,7 +20,6 @@ type t = {
   pattern_string : string;
   pattern_file : filename;
   rules_file : filename;
-  extractors_file : filename;
   equivalences_file : string;
   metatypes_file : string;
   lang : Xlang.t option;

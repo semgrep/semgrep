@@ -105,7 +105,6 @@ let rules_file = ref ""
 let equivalences_file = ref ""
 
 (* TODO: infer from basename argv(0) ? *)
-let extractors_file = ref ""
 let lang = ref None
 let output_format = ref Text
 let match_format = ref Matching_report.Normal
@@ -313,7 +312,6 @@ let mk_config () =
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
     rules_file = !rules_file;
-    extractors_file = !extractors_file;
     equivalences_file = !equivalences_file;
     metatypes_file = !metatypes_file;
     lang = !lang;
@@ -457,10 +455,6 @@ let options () =
     ( "-rules",
       Arg.Set_string rules_file,
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
-    ( "-pp",
-      Arg.Set_string extractors_file,
-      " <file> obtain formula of extractors patterns from YAML/JSON/Jsonnet \
-       file" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
