@@ -233,7 +233,6 @@ This is a sample blob of the aggregate metrics described above:
     "sent_at": "2021-05-10T21:05:09+00:00",
     "event_id": "222bcccd-9dc2-4d10-ac3a-5692460e77ee",
     "anonymous_user_id": "5f52484c-3f82-4779-9353-b29bbd3193b6",
-    "clientIP": "0.0.0.0",
     "environment": {
         "version": "0.51.0",
         "ci": "true",
