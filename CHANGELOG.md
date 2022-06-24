@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `semgrep ci`: CI runs were failing to checkout the PR head in GitHub Actions, which is
   corrected here.
 - TS: fixed the parsing of type predicates and typeof queries
+- Deep expression matching now works on HTML in JavaScript
 
 ## [0.100.0](https://github.com/returntocorp/semgrep/releases/tag/v0.100.0) - 2022-06-22
 
