@@ -14,6 +14,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   corrected here.
 - TS: fixed the parsing of type predicates and typeof queries
 - Deep expression matching now works on HTML in JavaScript
+- taint-mode: Taint propagation via `pattern-propagators` now works correclty when the
+  `from` or `to` metavariables match a function call. For example, given
+  `sqlBuilder.append(page.getOrderBy())`, we can now propagate taint from
+  `page.getOrderBy()` to `sqlBuilder`.
 
 ## [0.100.0](https://github.com/returntocorp/semgrep/releases/tag/v0.100.0) - 2022-06-22
 

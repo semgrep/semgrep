@@ -248,6 +248,7 @@ let handle_taint_propagators env x taints =
         if Parse_info.is_origintok tok then env.config.is_propagator (G.Tk tok)
         else ([], [])
     | `Exp exp -> env.config.is_propagator (any_of_orig exp.eorig)
+    | `Ins ins -> env.config.is_propagator (any_of_orig ins.iorig)
   in
   let var_env =
     (* `x` is the source (the "from") of propagation, we add its taints to
@@ -274,7 +275,9 @@ let handle_taint_propagators env x taints =
         (* If `x` is a variable, then taint is propagated by side-effect. This
          * allows us to e.g. propagate taint from `x` to `y` in `f(x,y)`. *)
         add_taint_to_var_in_env var_env var taints_incoming
-    | `Exp _ -> var_env
+    | `Exp _
+    | `Ins _ ->
+        var_env
   in
   (taints, var_env)
 
@@ -512,6 +515,11 @@ let check_tainted_instr env instr : Taints.t * var_env =
       in
       let taints_instr, var_env' = check_instr instr.i in
       let taints = taint_sources |> Taints.union taints_instr in
+      let taints, var_env' =
+        handle_taint_propagators
+          { env with var_env = var_env' }
+          (`Ins instr) taints
+      in
       let findings = findings_of_tainted_sinks env taints sinks in
       report_findings env findings;
       (taints, var_env')
