@@ -6,6 +6,6 @@ from setuptools import setup
 setup(
     name="semgrep_pre_commit_package",
     version="0.100.0",
-    install_requires=["semgrep==0.100.0"],
+    install_requires=["semgrep==0.101.0"],
     packages=[],
 )
