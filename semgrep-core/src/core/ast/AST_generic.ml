@@ -223,7 +223,9 @@ type dotted_ident = ident list (* at least 1 element *)
  *)
 type module_name =
   | DottedName of dotted_ident (* ex: Python *)
-  (* in FileName the '/' is similar to the '.' in DottedName *)
+  (* in FileName the '/' is similar to the '.' in DottedName.
+   * In C/C++ the string can be <foo.h>.
+   *)
   | FileName of string wrap (* ex: Js import, C #include, Go import *)
 [@@deriving show { with_path = false }, eq, hash]
 
