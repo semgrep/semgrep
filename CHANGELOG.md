@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Bash: Support for subshell syntax i.e. commands in parentheses (#5629)
+
 ### Changed
 
 ### Fixed
@@ -18,6 +20,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `from` or `to` metavariables match a function call. For example, given
   `sqlBuilder.append(page.getOrderBy())`, we can now propagate taint from
   `page.getOrderBy()` to `sqlBuilder`.
+- Will no longer print "files were not tracked by git" if not in a git repo
+- Will no longer print "Some files were skipped" if no files were skipped
+- Fixed bug where semgrep would crash in nonexistent directory (#4785)
+- taint-mode: Correctly propagate taint in for-each loops with typed iteration
+  variables (as in Java or C#). If the iterator object is tainted, that taint will
+  now be propagated to the iteration variable. This should fix some false negatives
+  (i.e., findings not being reported) in the presence of for-each loops. (#5590)
 
 ## [0.100.0](https://github.com/returntocorp/semgrep/releases/tag/v0.100.0) - 2022-06-22
 
@@ -28,7 +37,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   this allows to specify how taint propagates through side-effectful function calls.
   For example, you can specify that when tainted data is added to an array then the
   array itself becomes tainted. (#4509)
-- Bash: Support for subshell syntax i.e. commands in parentheses (#5629)
 
 ### Changed
 
@@ -47,17 +55,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
-- Will no longer print "files were not tracked by git" if not in a git repo
-- Will no longer print "Some files were skipped" if no files were skipped
-- Fixed bug where semgrep would crash in nonexistent directory
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)
 - Solidity: update to a more recent tree-sitter-solidity to fix certain parsing
   errors (#4957)
-- taint-mode: Correctly propagate taint in for-each loops with typed iteration
-  variables (as in Java or C#). If the iterator object is tainted, that taint will
-  now be propagated to the iteration variable. This should fix some false negatives
-  (i.e., findings not being reported) in the presence of for-each loops. (#5590)
 
 ## 0.99.0 - Skipped
 
