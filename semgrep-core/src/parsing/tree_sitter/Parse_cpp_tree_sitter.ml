@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021-2022 R2C
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -399,7 +399,8 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     Common.map
       (fun x ->
         match x with
-        | `Imm_tok_pat_c7f65b4 tok -> str env tok (* pattern "[^\\\\\"\\n]+" *)
+        | `Imm_tok_prec_p1_pat_c7f65b4 tok ->
+            str env tok (* pattern "[^\\\\\"\\n]+" *)
         | `Esc_seq tok -> str env tok
         (* escape_sequence *))
       v2
@@ -481,8 +482,8 @@ let map_ms_declspec_modifier (env : env)
   let v4 = token env v4 (* ")" *) in
   DeclSpec (v1, (v2, v3, v4))
 
-let map_anon_choice_stmt_id_d3c4b5f (env : env)
-    (x : CST.anon_choice_stmt_id_d3c4b5f) =
+let map_anon_choice_type_id_d3c4b5f (env : env)
+    (x : CST.anon_choice_type_id_d3c4b5f) =
   match x with
   | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
   (* TODO: should return an either? *)
@@ -696,12 +697,12 @@ let map_preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) =
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 = map_anon_choice_stmt_id_d3c4b5f env v1 in
+        let v1 = map_anon_choice_type_id_d3c4b5f env v1 in
         let v2 =
           Common.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
-              let v2 = map_anon_choice_stmt_id_d3c4b5f env v2 in
+              let v2 = map_anon_choice_type_id_d3c4b5f env v2 in
               v2)
             v2
         in
