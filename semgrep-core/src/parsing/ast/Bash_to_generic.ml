@@ -185,6 +185,9 @@ module C = struct
 
   (* Process substitution: <(...) *)
   let proc_subst loc = mk loc "proc_subst"
+
+  (* Subshell: (...) *)
+  let subshell loc = mk loc "subshell"
 end
 
 (*
@@ -294,7 +297,8 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let right = pipeline env right |> as_expr in
       Expr (loc, G.opcall (G.Or, or_tok) [ left; right ])
   | Subshell (loc, (open_, bl, close)) ->
-      (* TODO: subshell *) stmt_group env loc (blist env bl)
+      let args = [ stmt_group env loc (blist env bl) |> as_expr ] in
+      Expr (loc, call loc C.subshell args)
   | Command_group (loc, (open_, bl, close)) -> stmt_group env loc (blist env bl)
   | Sh_test (loc, _) -> todo_expr2 loc
   | Bash_test (loc, _) -> todo_expr2 loc

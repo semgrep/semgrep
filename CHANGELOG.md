@@ -28,6 +28,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   this allows to specify how taint propagates through side-effectful function calls.
   For example, you can specify that when tainted data is added to an array then the
   array itself becomes tainted. (#4509)
+- Bash: Support for subshell syntax i.e. commands in parentheses (#5629)
 
 ### Changed
 
