@@ -597,6 +597,10 @@ properties:
           not:
             anyOf:
               - required:
+                  - extract
+              - required:
+                  - dest-language
+              - required:
                   - pattern
               - required:
                   - patterns
@@ -617,6 +621,10 @@ properties:
             - join
           not:
             anyOf:
+              - required:
+                  - extract
+              - required:
+                  - dest-language
               - required:
                   - patterns
               - required:
@@ -689,6 +697,10 @@ properties:
                       - pattern
           not:
             anyOf:
+              - required:
+                  - extract
+              - required:
+                  - dest-language
               - required:
                   - pattern-sinks
               - required:
