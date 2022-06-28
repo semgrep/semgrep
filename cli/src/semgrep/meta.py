@@ -47,7 +47,7 @@ def git_check_output(command: Sequence[str]) -> str:
                 Command failed with exit code: {e.returncode}
                 -----
                 Command failed with output:
-                {e.output}
+                {e.stderr}
                 """
             ).strip()
         )
