@@ -228,7 +228,7 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
+        python: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
