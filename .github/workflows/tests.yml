@@ -240,7 +240,7 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pipenv
       - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
+        run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -311,7 +311,7 @@ jobs:
           python-version: "3.10"
           cache: pipenv
       - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
+        run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -356,7 +356,7 @@ jobs:
           python-version: "3.7"
           cache: pipenv
       - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
+        run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -392,7 +392,7 @@ jobs:
           python-version: "3.7"
           cache: pipenv
       - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
+        run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
           pip3 install semgrep==0.94.0
