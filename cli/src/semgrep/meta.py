@@ -244,12 +244,32 @@ class GithubMeta(GitMeta):
     def head_branch_hash(self) -> str:
         """
         Commit of the head branch, reported via the GitHub pull_request event
+        This will also ensure that a fetch is done prior to returning.
 
         Assumes we are in PR context
         """
         head_branch_name = self._head_branch_ref
         commit = self.glom_event(T["pull_request"]["head"]["sha"])
-        logger.debug(f"head branch ({head_branch_name}) has latest commit {commit}")
+        logger.debug(
+            f"head branch ({head_branch_name}) has latest commit {commit}, fetching that commit now."
+        )
+        process = subprocess.run(
+            [
+                "git",
+                "fetch",
+                "origin",
+                "--force",
+                "--depth=1",
+                f"{commit}",
+            ],
+            check=True,
+            capture_output=True,
+            encoding="utf-8",
+            timeout=GIT_SH_TIMEOUT,
+        )
+        logger.debug(
+            f"Head Branch Hash fetch: stdout={process.stdout}, stderr={process.stderr}"
+        )
         return str(commit)
 
     @cachedproperty

@@ -25,7 +25,10 @@ Scan environment:
   environment - running in environment github-actions, triggering event is pull_request
   semgrep.dev - authenticated as org_name
 
-head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0
+head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0, fetching that commit now.
+Head Branch Hash fetch: stdout=, stderr=From <MASKED>
+ * branch            17b3114fb3d41437abc2a3e6499db84ad921e6f0 -> FETCH_HEAD
+
 Trying to shallow fetch branch foo from origin
 base branch (foo) has latest commit f7ee3123ed098941662685dd8b726fceee48f78d
 Fixing git state for github action pull request
