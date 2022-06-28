@@ -1,6 +1,6 @@
 from typing import Any
 from typing import List
-from typing import Mapping
+from typing import MutableMapping
 
 from semgrep.constants import RuleSeverity
 from semgrep.lsp.types import DiagnosticSeverity
@@ -40,7 +40,7 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
                     },
                 },
             },
-            "message": f"{m} := {d.abstract_content}",
+            "message": f"{m}: {d.abstract_content}",
         }
         return related
 
@@ -55,7 +55,7 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
 def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
     env = get_state().env
     rule_url = f"{env.semgrep_url}/r/{rule_match.rule_id}"
-    diagnostic: Mapping[str, Any] = {
+    diagnostic: MutableMapping[str, Any] = {
         "range": {
             # We start at 0, but the LSP starts at 1
             "start": {
@@ -79,11 +79,20 @@ def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
         "relatedInformation": rule_match_get_related(rule_match),
     }
 
+    fix_message = None
+    if rule_match.extra.get("metavars") is not None:
+        diagnostic["data"]["metavars"] = rule_match.extra["metavars"]
     if rule_match.fix:
         diagnostic["data"]["fix"] = rule_match.fix
+        fix_message = rule_match.fix
     if rule_match.fix_regex:
         diagnostic["data"]["fix_regex"] = rule_match.fix_regex
+        fix_message = rule_match.fix
 
+    if fix_message is not None:
+        diagnostic["message"] += f"\nFix: {fix_message}"
+    # This looks better
+    diagnostic["message"] += "\n"
     return diagnostic
 
 

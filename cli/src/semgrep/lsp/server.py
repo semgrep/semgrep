@@ -23,6 +23,7 @@ from semgrep.lsp.types import Diagnostic
 from semgrep.lsp.types import DiagnosticsList
 from semgrep.lsp.types import Range
 from semgrep.lsp.types import TextDocumentItem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
 from semgrep.types import JsonObject
 
 
@@ -31,6 +32,7 @@ log = logging.getLogger(__name__)
 
 SERVER_CAPABILITIES = {
     "codeActionProvider": True,
+    "inlayHintProvider": True,
     "textDocumentSync": {
         "save": {
             "includeText": True,
@@ -165,6 +167,17 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         else:
             return []
 
+    def m_text_document__inlay_hint(
+        self,
+        textDocument: Optional[TextDocumentItem] = None,
+        range: Optional[Range] = None,
+        **_kwargs: JsonObject,
+    ) -> List[JsonObject]:
+        if self._ready and textDocument is not None and range is not None:
+            return self.computeInlayHints(textDocument["uri"], range)
+        else:
+            return []
+
     #
     # LSP Workspace methods
     #
@@ -230,6 +243,11 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
+    def refreshInlayHints(self) -> None:
+        self._endpoint.request(
+            "workspace/inlayHint/refresh",
+        )
+
     def processTextDocument(self, textDocument: TextDocumentItem) -> None:
         log.debug("textDocument: %s", textDocument)
 
@@ -244,6 +262,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         self._diagnostics[textDocument["uri"]] = diagnostics
         self.publishDiagnostics(textDocument["uri"], diagnostics)
+        self.refreshInlayHints()
 
     def processWorkspaces(self) -> None:
         log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
@@ -261,10 +280,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self._diagnostics = sorted_diagnostics
         for uri in self._diagnostics:
             self.publishDiagnostics(uri, self._diagnostics[uri])
+        self.refreshInlayHints()
 
     def cleanupDiagnostics(self, textDocument: TextDocumentItem) -> None:
         self._diagnostics[textDocument["uri"]] = []
         self.publishDiagnostics(textDocument["uri"], [])
+        self.refreshInlayHints()
 
     def createFixAction(
         self, uri: str, diagnostic: Diagnostic, newText: str
@@ -282,6 +303,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     @staticmethod
     def text_ranges_overlap(range1: Range, range2: Range) -> bool:
         return bool(
+            range1["start"]["line"] < range2["end"]["line"]
+            and range1["end"]["line"] > range2["start"]["line"]
+        ) or bool(
             range1["start"]["line"] <= range2["end"]["line"]
             and range1["end"]["line"] >= range2["start"]["line"]
             and range1["start"]["character"] <= range2["end"]["character"]
@@ -312,6 +336,33 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
         log.debug(f"Computed code actions: {actions}")
         return actions
+
+    def computeInlayHints(self, uri: str, range: Range) -> List[JsonObject]:
+        log.debug(f"Compute inlay hints for uri {uri} and range {range}")
+        diagnostics = self._diagnostics.get(uri)
+        if not diagnostics:
+            return []
+
+        hints = []
+        for d in diagnostics:
+            if self.text_ranges_overlap(d["range"], range):
+                if "metavars" in d["data"]:
+                    for metavar in d["data"]["metavars"]:
+                        info = MetavarValue.from_json(d["data"]["metavars"][metavar])
+                        hint: JsonObject = {
+                            "position": {
+                                "line": info.start.line - 1,
+                                "character": info.start.col - 1,
+                            },
+                            "label": f"{metavar}:",
+                            "tooltip": info.abstract_content,
+                            "paddingRight": True,
+                        }
+                        if hint not in hints:
+                            hints.append(hint)
+
+        log.debug(f"Computed inlay hints: {hints}")
+        return hints
 
 
 def run_server() -> None:

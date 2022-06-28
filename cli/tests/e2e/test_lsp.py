@@ -76,6 +76,28 @@ def test_lsp_code_action(lsp, tmp_path, snapshot):
     snapshot.assert_match(actions, "fixes.json")
 
 
+def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
+    init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
+    lsp.m_text_document__did_open(
+        textDocument=next(
+            mock_text_document_item(tmp_path / "targets/basic/stupid.py", "python")
+        )
+    )
+
+    inlay_hints = lsp.m_text_document__inlay_hint(
+        textDocument=next(
+            mock_text_document_item(tmp_path / "targets/basic/stupid.py", "python")
+        ),
+        range={
+            "start": {"line": 0, "character": 0},
+            "end": {"line": 1000, "character": 1000},
+        },
+    )
+
+    output = _clean_output_lsp(inlay_hints)
+    snapshot.assert_match(output, "inlay_hints.json")
+
+
 def test_lsp_workspace_folders(lsp, tmp_path):
     init_lsp(lsp, tmp_path)
     dirs = []
