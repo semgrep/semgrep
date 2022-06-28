@@ -253,23 +253,17 @@ class GithubMeta(GitMeta):
         logger.debug(
             f"head branch ({head_branch_name}) has latest commit {commit}, fetching that commit now."
         )
-        process = subprocess.run(
+        output = git_check_output(
             [
                 "git",
                 "fetch",
                 "origin",
                 "--force",
                 "--depth=1",
-                f"{commit}",
-            ],
-            check=True,
-            capture_output=True,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
+                commit,
+            ]
         )
-        logger.debug(
-            f"Head Branch Hash fetch: stdout={process.stdout}, stderr={process.stderr}"
-        )
+        logger.debug(f"Head Branch Hash fetch: output={output}")
         return str(commit)
 
     @cachedproperty
