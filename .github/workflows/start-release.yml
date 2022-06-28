@@ -16,6 +16,8 @@ jobs:
   release-setup:
     name: Setup Release Branch
     runs-on: ubuntu-20.04
+    outputs:
+      version: ${{ steps.next-version.outputs.next-version }}
     steps:
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
