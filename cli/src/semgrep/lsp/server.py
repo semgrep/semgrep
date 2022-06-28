@@ -1,13 +1,12 @@
-import json
 import logging
 import re
 import sys
 import urllib.request
-from os import path
+import uuid
 from typing import BinaryIO
+from typing import List
 from typing import MutableMapping
 from typing import Optional
-from typing import Sequence
 
 from pylsp_jsonrpc.dispatchers import MethodDispatcher
 from pylsp_jsonrpc.endpoint import Endpoint
@@ -15,10 +14,9 @@ from pylsp_jsonrpc.streams import JsonRpcStreamReader
 from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 
 from semgrep import __VERSION__ as SEMGREP_VERSION
-from semgrep import config_resolver
-from semgrep.lsp.convert import findings_to_diagnostic
-from semgrep.lsp.run_semgrep import run_rule
-from semgrep.lsp.run_semgrep import RunContext
+from semgrep.lsp.config import LSPConfig
+from semgrep.lsp.convert import rule_match_map_to_diagnostics
+from semgrep.lsp.run_semgrep import run_rules
 from semgrep.lsp.types import CodeActionContext
 from semgrep.lsp.types import CodeActionsList
 from semgrep.lsp.types import Diagnostic
@@ -39,14 +37,19 @@ SERVER_CAPABILITIES = {
         },
         "openClose": True,
     },
+    "workspaceFolders": {
+        "supported": True,
+        "changeNotifications": True,
+    },
 }
 
 
 class SemgrepLSPServer(MethodDispatcher):  # type: ignore
-    def __init__(self, rx: BinaryIO, tx: BinaryIO, config_str: str) -> None:
+    def __init__(self, rx: BinaryIO, tx: BinaryIO) -> None:
         # When set to False the server will ignore any incoming request,
         # beside a request to initialize or to exit.
         self._ready = False
+        self.config = LSPConfig({}, [])
 
         # Prepare the json-rpc endpoint
         self._jsonrpc_stream_reader = JsonRpcStreamReader(rx)
@@ -55,10 +58,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self, self._jsonrpc_stream_writer.write, max_workers=10
         )
 
-        configs = list(config_resolver.ConfigPath(config_str).resolve_config().values())
-        self._rules = json.dumps(configs[0].unroll_dict())
-
         self._diagnostics: MutableMapping[str, DiagnosticsList] = {}
+        self._registered_capabilities: MutableMapping[str, str] = {}
 
     def start(self) -> None:
         # Start the json-rpc endpoint
@@ -83,7 +84,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         rootUri: Optional[str] = None,
         rootPath: Optional[str] = None,
         initializationOptions: Optional[JsonObject] = None,
-        workspaceFolders: Optional[Sequence[str]] = None,
+        workspaceFolders: Optional[List[JsonObject]] = None,
         **_kwargs: JsonObject,
     ) -> JsonObject:
         log.debug(
@@ -93,7 +94,11 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             f"... options {initializationOptions}\n"
             f"... workspaceFolders {workspaceFolders}",
         )
-
+        config = initializationOptions if initializationOptions is not None else {}
+        if workspaceFolders is not None:
+            self.config = LSPConfig(config, workspaceFolders)
+        else:
+            self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
         # Get our capabilities
         return {
             "capabilities": SERVER_CAPABILITIES,
@@ -105,6 +110,16 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_initialized(self, **_kwargs: JsonObject) -> None:
         log.info("Semgrep LSP initialized")
+        self.registerCapability(
+            "workspace/didChangeWatchedFiles",
+            {
+                "watchers": [
+                    {
+                        "globPattern": "**/*.{yml,yaml}",
+                    }
+                ]
+            },
+        )
         self._ready = True
 
     def m_shutdown(self, **_kwargs: JsonObject) -> None:
@@ -151,8 +166,60 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             return []
 
     #
+    # LSP Workspace methods
+    #
+
+    def m_workspace__workspace_folders(
+        self,
+        workspace_folders: Optional[List[JsonObject]] = None,
+        **_kwargs: JsonObject,
+    ) -> None:
+        if workspace_folders is not None:
+            self.config._workspace_folders = workspace_folders
+
+    def m_workspace__did_change_workspace_folders(self, event: JsonObject) -> None:
+        self.config.update_workspace(event["added"], event["removed"])
+        self.processWorkspaces()
+
+    def m_workspace__did_change_watched_files(self, changes: JsonObject) -> None:
+        self.processWorkspaces()
+
     #
     #
+    #
+
+    # Custom commands to add:
+    # - semgrep/activeRules (list of active rules)
+    # - semgrep/refreshRules (refresh the cached CI + Registry rules)
+    # - semgrep/login (login to CI)
+
+    #
+    #
+    #
+
+    def registerCapability(
+        self, method: str, registerOptions: Optional[JsonObject] = None
+    ) -> None:
+        id = str(uuid.uuid4())
+        self._registered_capabilities[method] = id
+        self._endpoint.request(
+            "client/registerCapability",
+            {
+                "registrations": [
+                    {"id": id, "method": method, "registerOptions": registerOptions}
+                ]
+            },
+        )
+
+    def unregisterCapability(self, method: str) -> None:
+        self._endpoint.request(
+            "client/unregisterCapability",
+            {
+                "unregistrations": [
+                    {"id": self._registered_capabilities[method], "method": method}
+                ]
+            },
+        )
 
     def publishDiagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
         self._endpoint.notify(
@@ -169,30 +236,31 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         uri = urllib.parse.urlparse(textDocument["uri"])
         if uri.scheme != "file":
             return
-
         target_name = urllib.request.url2pathname(uri.path)
-        with open(target_name) as f:
-            target_content = f.read()
-
-        context = RunContext(
-            "",
-            [{"name": path.basename(target_name), "content": target_content}],
-            {"strict": "true", "no_rewrite_rule_ids": "true"},
-            {"output_time": "false"},
-        )
-
         log.info(f"Running Semgrep on {target_name}")
 
-        output = run_rule(self._rules, context)
-        log.debug(f"Semgrep results:\n\n{output}")
-
-        diagnostics = []
-        results = output["results"]
-        for r in results:
-            diagnostics.append(findings_to_diagnostic(r, target_content))
-
+        diagnostics = rule_match_map_to_diagnostics(
+            run_rules([target_name], self.config)
+        )
         self._diagnostics[textDocument["uri"]] = diagnostics
         self.publishDiagnostics(textDocument["uri"], diagnostics)
+
+    def processWorkspaces(self) -> None:
+        log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
+        for uri in self._diagnostics:
+            self.publishDiagnostics(uri, [])
+        self._diagnostics = {}
+        diagnostics = rule_match_map_to_diagnostics(
+            run_rules(self.config.folder_paths, self.config)
+        )
+        sorted_diagnostics: MutableMapping[str, List[JsonObject]] = {}
+        for d in diagnostics:
+            if d["data"]["uri"] not in sorted_diagnostics:
+                sorted_diagnostics[d["data"]["uri"]] = []
+            sorted_diagnostics[d["data"]["uri"]].append(d)
+        self._diagnostics = sorted_diagnostics
+        for uri in self._diagnostics:
+            self.publishDiagnostics(uri, self._diagnostics[uri])
 
     def cleanupDiagnostics(self, textDocument: TextDocumentItem) -> None:
         self._diagnostics[textDocument["uri"]] = []
@@ -246,8 +314,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         return actions
 
 
-def run_server(config: str) -> None:
+def run_server() -> None:
     log.info("Starting Semgrep language server.")
-    server = SemgrepLSPServer(sys.stdin.buffer, sys.stdout.buffer, config)
+    server = SemgrepLSPServer(sys.stdin.buffer, sys.stdout.buffer)
     server.start()
     log.info("Server stopped!")

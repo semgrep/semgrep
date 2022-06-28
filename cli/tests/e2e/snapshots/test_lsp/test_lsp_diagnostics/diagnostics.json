@@ -1,0 +1,45 @@
+{
+  "file:///tmp/masked/path": [
+    {
+      "code": "rules.eqeq-is-bad",
+      "codeDescription": {
+        "href": "https://semgrep.dev/r/rules.eqeq-is-bad"
+      },
+      "data": {
+        "matchSource": "return a + b == a + b",
+        "uri": "file:///tmp/masked/path"
+      },
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+      "range": {
+        "end": {
+          "character": 25,
+          "line": 2
+        },
+        "start": {
+          "character": 11,
+          "line": 2
+        }
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 2
+              },
+              "start": {
+                "character": 11,
+                "line": 2
+              }
+            },
+            "uri": "file:///tmp/masked/path"
+          },
+          "message": "$X := a+b"
+        }
+      ],
+      "severity": 1,
+      "source": "Semgrep"
+    }
+  ]
+}
