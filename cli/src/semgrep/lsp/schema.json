@@ -69,25 +69,10 @@
       "default": 0,
       "description": "Maximum time to scan in seconds."
     },
-    "semgrep.highlighting.enable": {
-      "type": "boolean",
-      "default": true,
-      "description": "enable or disable highlighting"
-    },
-    "semgrep.highlighting.metavars": {
-      "type": "boolean",
-      "default": true,
-      "description": "Enable or Disable metavar highlighting"
-    },
-    "semgrep.lsp.watchedFiles": {
-      "type": "string",
-      "default": null,
-      "description": "Glob pattern of rule files to watch for changes."
-    },
     "semgrep.lsp.watchWorkspace": {
       "type": "boolean",
       "default": true,
-      "description": "Watch and scan all workspace folders. Disable for per-file scanning only."
+      "description": "Scan all workspace folders. Disable for per-file scanning only."
     }
   }
 }

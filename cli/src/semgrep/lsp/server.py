@@ -192,10 +192,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_workspace__did_change_workspace_folders(self, event: JsonObject) -> None:
         self.config.update_workspace(event["added"], event["removed"])
-        self.processWorkspaces()
+        if self.config.watch_workspace:
+            self.processWorkspaces()
 
     def m_workspace__did_change_watched_files(self, changes: JsonObject) -> None:
-        self.processWorkspaces()
+        if self.config.watch_workspace:
+            self.processWorkspaces()
 
     #
     #

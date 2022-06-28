@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from tests.conftest import _clean_output_lsp
 
 from semgrep.lsp.server import SemgrepLSPServer
@@ -122,6 +123,7 @@ def test_lsp_workspace_folders(lsp, tmp_path):
     assert lsp.config._workspace_folders == dirs[:5]
 
 
+@pytest.mark.kinda_slow
 def test_lsp_workspace_auto_config(lsp, tmp_path):
     with open(tmp_path / "semgrep.yaml", "w") as s:
         with open(tmp_path / "rules/eqeq-python.yaml") as f:

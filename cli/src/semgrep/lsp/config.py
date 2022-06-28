@@ -1,6 +1,6 @@
+import glob
 import urllib
 from functools import partial
-from pathlib import Path
 from typing import Callable
 from typing import List
 from typing import Optional
@@ -25,6 +25,7 @@ class LSPConfig:
     ) -> None:
         self._settings = lsp_config
         self._workspace_folders = workspace_folders
+        self.update_workspace(added=None, removed=None)
         self._update_target_manager()
 
     @property
@@ -35,15 +36,11 @@ class LSPConfig:
     def configs(self) -> List[str]:
         # First check if workspace folders/semgrep.yaml exists
         configs = []
-        for f in self.folder_paths:
-            # check if semgrep.yaml exists in the folder
-            path = Path(f) / "semgrep.yaml"
-            if path.exists():
-                configs.append(str(path))
         settings_configs = self._settings.get("semgrep.scan.configuration")
         if settings_configs is not None:
             configs.extend(settings_configs)
         # Should do something with CI here
+        configs.extend(self._workspace_configs)
         if len(configs) > 0:
             return configs
         else:
@@ -88,6 +85,10 @@ class LSPConfig:
     @property
     def project_url(self) -> Union[str, None]:
         return get_project_url()
+
+    @property
+    def watch_workspace(self) -> bool:
+        return self._settings.get("semgrep.scan.watchedWorkspace", True)
 
     @property
     def rules(self) -> List[Rule]:
@@ -165,4 +166,16 @@ class LSPConfig:
                 ]
         elif added is not None:
             self._workspace_folders = added
+        # update workspace configs
+        configs = []
+        for f in self.folder_paths:
+            # check if semgrep.yaml exists in the folder
+            possibles = ["semgrep.yaml", "semgrep.yml", ".semgrep.yaml", ".semgrep.yml"]
+            files = []
+            for p in possibles:
+                files.extend(glob.glob(f + "/**/" + p, recursive=True))
+            print(files)
+            for f in files:
+                configs.append(str(f))
+        self._workspace_configs = configs
         self._update_target_manager()
