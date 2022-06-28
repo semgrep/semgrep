@@ -69,6 +69,12 @@ jobs:
         env:
           SEMGREP_RELEASE_NEXT_VERSION: ${{ steps.next-version.outputs.next-version }}
         run: make release
+      - name: Update Changelog
+        working-directory: scripts/release
+        run: |
+          pip3 install pipenv==2022.6.7
+          pipenv install --dev
+          pipenv run towncrier build --yes --version ${{ steps.next-version.outputs.next-version }}
       - name: Push release branch
         id: push-release-branch
         env:

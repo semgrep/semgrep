@@ -25,23 +25,6 @@ error() {
   exit 1
 }
 
-update_changelog() {
-  target=CHANGELOG.md
-  targets+=" $target"
-  if grep -F "[$release]" "$target"; then
-    echo "Found [$release] in $target. Not touching it."
-    echo "Edit and commit $target manually if needed."
-  else
-    echo "Editing $target"
-    url=https://github.com/returntocorp/semgrep/releases/tag/v$release
-    date=$(date +%Y-%m-%d)
-    sed_in_place \
-      "s|## Unreleased|## Unreleased\n\n## [$release]($url) - $date|g" \
-      "$target"
-  fi
-  git add "$target"
-}
-
 update_init_py() {
   target=cli/src/semgrep/__init__.py
   targets+=" $target"
@@ -83,7 +66,6 @@ update_cli_setup_py() {
 # Ideally this shouldn't modify source files,
 # but only write purely-generated files for simplicity and robustness.
 bump() {
-  update_changelog
   update_init_py
   update_setup_py
   update_cli_setup_py
