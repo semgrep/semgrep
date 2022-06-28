@@ -253,7 +253,7 @@ class GithubMeta(GitMeta):
         logger.debug(
             f"head branch ({head_branch_name}) has latest commit {commit}, fetching that commit now."
         )
-        output = git_check_output(
+        git_check_output(
             [
                 "git",
                 "fetch",
@@ -263,7 +263,6 @@ class GithubMeta(GitMeta):
                 commit,
             ]
         )
-        logger.debug(f"Head Branch Hash fetch: output={output}")
         return str(commit)
 
     @cachedproperty
