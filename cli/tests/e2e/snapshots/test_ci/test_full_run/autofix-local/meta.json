@@ -1,7 +1,7 @@
 {
   "meta": {
     "semgrep_version": "<sanitized version>",
-    "repository": "project_name",
+    "repository": "checkout_project_name",
     "repo_url": null,
     "branch": "some/branch-name",
     "ci_job_url": null,

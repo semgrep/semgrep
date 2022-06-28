@@ -98,7 +98,20 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
     mocker.patch.object(GithubMeta, "_shallow_fetch_branch", return_value=None)
 
-    yield (repo_base, base_commit, head_commit)
+    repo_copy_base = tmp_path / "checkout_project_name"
+    repo_copy_base.mkdir()
+    monkeypatch.chdir(repo_copy_base)
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", repo_base],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "pull", "origin"])
+    subprocess.run(["git", "checkout", f"{MAIN_BRANCH_NAME}"])
+    subprocess.run(["git", "checkout", f"{BRANCH_NAME}"])
+
+    yield (repo_copy_base, base_commit, head_commit)
 
 
 @pytest.fixture(autouse=True)

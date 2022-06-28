@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- `semgrep ci`: CI runs in GitHub Actions failed to checkout the commit assoociated with the head branch, and is fixed here.
+
 ## [0.101.0](https://github.com/returntocorp/semgrep/releases/tag/v0.101.0) - 2022-06-27
 
 ### Added
