@@ -106,7 +106,7 @@ class FileTargetingLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
-    failed_to_analyze: Set[Path] = Factory(set)
+    failed_to_analyze: Dict[Path, Optional[int]] = Factory(dict)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
@@ -244,8 +244,14 @@ class FileTargetingLog:
 
         yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
         if self.failed_to_analyze:
-            for path in self.failed_to_analyze:
-                yield 2, with_color(Colors.cyan, str(path))
+            for path, lines in self.failed_to_analyze.items():
+                if lines is None:
+                    skipped = "all"
+                else:
+                    # TODO: use pluralization library
+                    skipped = str(lines)
+
+                yield 2, with_color(Colors.cyan, f"{path} ({skipped} lines skipped)")
         else:
             yield 2, "<none>"
 

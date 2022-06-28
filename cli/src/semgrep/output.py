@@ -311,7 +311,15 @@ class OutputHandler:
                 for err in self.semgrep_structured_errors
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
-            paths = {Path(err.core.location.path) for err in semgrep_core_errors}
+            paths = {
+                # This assumes that each file only has one error, which won't always be true, but it makes this logic far simpler
+                Path(err.core.location.path): sum(
+                    s.end.line - s.start.line + 1 for s in err.spans
+                )
+                if err.spans
+                else None
+                for err in semgrep_core_errors
+            }
             final_error = self.semgrep_structured_errors[-1]
             self.ignore_log.failed_to_analyze.update(paths)
 
@@ -391,7 +399,7 @@ class OutputHandler:
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time or self.settings.verbose_errors:
+        if self.settings.output_time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
