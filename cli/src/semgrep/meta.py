@@ -320,6 +320,8 @@ class GithubMeta(GitMeta):
                 f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
 
+            # Note that head must be fetched by commit not branch name since if the head
+            # is from a fork repo, the branch name doesn't exist in the base context
             logger.debug(
                 f"Trying to fetch branch {self._head_branch_ref} as commit from origin as head branch tip commit"
             )
