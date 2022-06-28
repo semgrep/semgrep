@@ -145,8 +145,6 @@ rules:
     paths:
       include:
         - cli/src/*
-      exclude:
-        - cli/tests/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
