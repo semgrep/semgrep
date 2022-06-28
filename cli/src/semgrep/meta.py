@@ -5,11 +5,9 @@ import urllib.parse
 from dataclasses import dataclass
 from dataclasses import field
 from pathlib import Path
-from textwrap import dedent
 from typing import Any
 from typing import Dict
 from typing import Optional
-from typing import Sequence
 
 from boltons.cacheutils import cachedproperty
 from glom import glom
@@ -17,40 +15,11 @@ from glom import T
 from glom.core import TType
 
 from semgrep import __VERSION__
-from semgrep.error import SemgrepError
 from semgrep.git import GIT_SH_TIMEOUT
+from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-
-def git_check_output(command: Sequence[str]) -> str:
-    try:
-        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-        return subprocess.check_output(
-            command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
-        ).strip()
-    except subprocess.CalledProcessError as e:
-        command_str = " ".join(command)
-        raise SemgrepError(
-            dedent(
-                f"""
-                Failed to run '{command_str}'. Possible reasons:
-
-                - the git binary is not available
-                - the current working directory is not a git repository
-                - the current working directory is not marked as safe
-                    (fix with `git config --global --add safe.directory $(pwd)`)
-
-                Try running the command yourself to debug the issue.
-
-                Command failed with exit code: {e.returncode}
-                -----
-                Command failed with output:
-                {e.stderr}
-                """
-            ).strip()
-        )
 
 
 @dataclass
@@ -72,6 +41,7 @@ class GitMeta:
         if repo_name:
             return repo_name
 
+        # nosem: use-git-check-output-helper
         rev_parse = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True,
@@ -218,7 +188,7 @@ class GithubMeta(GitMeta):
         Split out shallow fetch so we can mock it away in tests
         """
         logger.debug(f"Trying to shallow fetch branch {branch_name} from origin")
-        subprocess.run(
+        git_check_output(
             [
                 "git",
                 "fetch",
@@ -227,11 +197,7 @@ class GithubMeta(GitMeta):
                 "--force",
                 "--update-head-ok",
                 f"{branch_name}:{branch_name}",
-            ],
-            check=True,
-            capture_output=True,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
+            ]
         )
 
     def _get_latest_commit_hash_in_branch(self, branch_name: str) -> str:
@@ -350,12 +316,8 @@ class GithubMeta(GitMeta):
             )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
-            process = subprocess.run(
-                ["git", "merge-base", self.base_branch_hash, self.head_branch_hash],
-                encoding="utf-8",
-                capture_output=True,
-                check=True,
-                timeout=GIT_SH_TIMEOUT,
+            merge_base = git_check_output(
+                ["git", "merge-base", self.base_branch_hash, self.head_branch_hash]
             )
         except subprocess.CalledProcessError as e:
             output = e.stderr.strip()
@@ -372,12 +334,8 @@ class GithubMeta(GitMeta):
 
             return self._find_branchoff_point(attempt_count + 1)
         else:
-            merge_base = process.stdout.strip()
             logger.info(
                 f"Using {merge_base} as the merge-base of {self.base_branch_hash} and {self.head_branch_hash}"
-            )
-            logger.debug(
-                f"Found merge base: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
             )
             return merge_base
 
@@ -472,18 +430,11 @@ class GitlabMeta(GitMeta):
             netloc=f"gitlab-ci-token:{os.environ['CI_JOB_TOKEN']}@{parts.netloc}"
         )
         url = urllib.parse.urlunsplit(parts)
-        subprocess.run(
-            ["git", "fetch", url, branch_name],
-            check=True,
-            timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
-        )
+        git_check_output(["git", "fetch", url, branch_name])
 
-        base_sha = subprocess.check_output(
-            ["git", "merge-base", "--all", head_sha, "FETCH_HEAD"],
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
+        base_sha = git_check_output(
+            ["git", "merge-base", "--all", head_sha, "FETCH_HEAD"]
+        )
         return base_sha
 
     @property
@@ -510,11 +461,7 @@ class GitlabMeta(GitMeta):
         if not target_branch:
             return None
 
-        head_sha = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        ).strip()
+        head_sha = git_check_output(["git", "rev-parse", "HEAD"])
         return self._fetch_branch_get_merge_base(target_branch, head_sha)
 
     @property

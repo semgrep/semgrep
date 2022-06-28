@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import subprocess
-
 import click
 
 from semgrep.commands.ci import ci
@@ -12,8 +10,8 @@ from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.commands.shouldafound import shouldafound
 from semgrep.default_group import DefaultGroup
-from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.state import get_state
+from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -36,13 +34,8 @@ def maybe_set_git_safe_directories() -> None:
         return
 
     try:
-        subprocess.run(
-            # "*" is used over Path.cwd() in case the user targets an absolute path instead of setting --workdir
-            ["git", "config", "--global", "--add", "safe.directory", "*"],
-            check=True,
-            encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
-        )
+        # "*" is used over Path.cwd() in case the user targets an absolute path instead of setting --workdir
+        git_check_output(["git", "config", "--global", "--add", "safe.directory", "*"])
     except Exception as e:
         logger.info(
             f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
