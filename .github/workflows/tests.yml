@@ -230,8 +230,6 @@ jobs:
       matrix:
         python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -241,6 +239,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
+      - name: Install pipenv
+        run: pipx install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -301,8 +301,6 @@ jobs:
       matrix:
         split: [1, 2, 3, 4]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -312,6 +310,8 @@ jobs:
         with:
           python-version: "3.10"
           cache: pipenv
+      - name: Install pipenv
+        run: pipx install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -346,8 +346,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -357,6 +355,8 @@ jobs:
         with:
           python-version: "3.7"
           cache: pipenv
+      - name: Install pipenv
+        run: pipx install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -382,8 +382,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -393,6 +391,8 @@ jobs:
         with:
           python-version: "3.7"
           cache: pipenv
+      - name: Install pipenv
+        run: pipx install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
           pip3 install semgrep==0.94.0
