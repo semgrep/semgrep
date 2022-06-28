@@ -25,6 +25,7 @@ types-requests = "*"
 types-jinja2 = "*"
 types-python-dateutil = "*"
 types-freezegun = "*"
+pytest-split = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
