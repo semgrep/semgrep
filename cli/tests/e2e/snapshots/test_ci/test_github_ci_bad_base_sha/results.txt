@@ -58,11 +58,7 @@ HEAD is now at 17b3114 merging foo
 Attempting to find merge base, attempt_count=0, fetch_depth=0
 Attempting to find merge base, attempt_count=1, fetch_depth=4
 Trying to fetch branch foo from origin as base branch
-Base branch fetch: args=['git', 'fetch', 'origin', '--force', '--update-head-ok', '--depth', '4', 'foo:foo'], stdout=, stderr=
 Trying to fetch branch bar as commit from origin as head branch tip commit
-Head branch fetch: args=['git', 'fetch', 'origin', '--force', '--update-head-ok', '--depth', '4', '17b3114fb3d41437abc2a3e6499db84ad921e6f0'], stdout=, stderr=From <MASKED>
- * branch            17b3114fb3d41437abc2a3e6499db84ad921e6f0 -> FETCH_HEAD
-
 Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
 Found merge base: args=['git', 'merge-base', 'f7ee3123ed098941662685dd8b726fceee48f78d', '17b3114fb3d41437abc2a3e6499db84ad921e6f0'], stdout=f7ee3123ed098941662685dd8b726fceee48f78d
 , stderr=

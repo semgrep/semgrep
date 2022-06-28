@@ -30,7 +30,7 @@ def git_check_output(command: Sequence[str]) -> str:
         return subprocess.check_output(
             command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
         ).strip()
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         command_str = " ".join(command)
         raise SemgrepError(
             dedent(
@@ -43,6 +43,11 @@ def git_check_output(command: Sequence[str]) -> str:
                     (fix with `git config --global --add safe.directory $(pwd)`)
 
                 Try running the command yourself to debug the issue.
+
+                Command failed with exit code: {e.returncode}
+                -----
+                Command failed with output:
+                {e.output}
                 """
             ).strip()
         )
@@ -313,7 +318,7 @@ class GithubMeta(GitMeta):
             logger.debug(
                 f"Trying to fetch branch {self._base_branch_ref} from origin as base branch"
             )
-            process = subprocess.run(
+            git_check_output(
                 [
                     "git",
                     "fetch",
@@ -323,14 +328,7 @@ class GithubMeta(GitMeta):
                     "--depth",
                     str(fetch_depth),
                     f"{self._base_branch_ref}:{self._base_branch_ref}",
-                ],
-                check=True,
-                capture_output=True,
-                encoding="utf-8",
-                timeout=GIT_SH_TIMEOUT,
-            )
-            logger.debug(
-                f"Base branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
+                ]
             )
 
             # Note that head must be fetched by commit not branch name since if the head
@@ -338,7 +336,7 @@ class GithubMeta(GitMeta):
             logger.debug(
                 f"Trying to fetch branch {self._head_branch_ref} as commit from origin as head branch tip commit"
             )
-            process = subprocess.run(
+            git_check_output(
                 [
                     "git",
                     "fetch",
@@ -348,14 +346,7 @@ class GithubMeta(GitMeta):
                     "--depth",
                     str(fetch_depth),
                     f"{self.head_branch_hash}",
-                ],
-                check=True,
-                encoding="utf-8",
-                capture_output=True,
-                timeout=GIT_SH_TIMEOUT,
-            )
-            logger.debug(
-                f"Head branch fetch: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
+                ]
             )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
