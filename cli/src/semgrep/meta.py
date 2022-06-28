@@ -45,9 +45,10 @@ def git_check_output(command: Sequence[str]) -> str:
                 Try running the command yourself to debug the issue.
 
                 Command failed with exit code: {e.returncode}
-                -----
                 Command failed with output:
-                {e.output}
+                -----
+                {e.stderr}
+                -----
                 """
             ).strip()
         )
@@ -358,15 +359,55 @@ class GithubMeta(GitMeta):
                 )
 
             return self._find_branchoff_point(attempt_count + 1)
-        else:
-            merge_base = process.stdout.strip()
-            logger.info(
-                f"Using {merge_base} as the merge-base of {self.base_branch_hash} and {self.head_branch_hash}"
+
+        merge_base_candidate_hash = process.stdout.strip()
+        logger.debug(
+            f"Found merge base: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
+        )
+        merge_base_candidate_date = (
+            int(
+                git_check_output(
+                    ["git", "show", "-s", "--format=%ct", merge_base_candidate_hash]
+                )
             )
-            logger.debug(
-                f"Found merge base: args={process.args}, stdout={process.stdout}, stderr={process.stderr}"
+            - 1
+        )
+
+        try:
+            git_check_output(
+                [
+                    "git",
+                    "fetch",
+                    f"--shallow-since={merge_base_candidate_date}",
+                    "origin",
+                    "--force",
+                    "--update-head-ok",
+                    f"{self._base_branch_ref}:{self._base_branch_ref}",
+                ]
             )
-            return merge_base
+            git_check_output(
+                [
+                    "git",
+                    "fetch",
+                    f"--shallow-since={merge_base_candidate_date}",
+                    "origin",
+                    "--force",
+                    "--update-head-ok",
+                    f"{self.head_branch_hash}",
+                ]
+            )
+        except Exception:
+            pass
+        # Need to fetch all commits after the merge_base_candidate
+        # This should not fail since at least will retturn merge_base_candidate
+        merge_base = git_check_output(
+            ["git", "merge-base", self.base_branch_hash, self.head_branch_hash]
+        )
+
+        logger.info(
+            f"Using {merge_base} as the merge-base of {self.base_branch_hash} and {self.head_branch_hash}"
+        )
+        return merge_base
 
     @cachedproperty
     def merge_base_ref(self) -> Optional[str]:
