@@ -18,9 +18,10 @@ import click
 
 from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
+from semgrep.constants import GIT_SH_TIMEOUT
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
-from semgrep.git import GIT_SH_TIMEOUT
+
 
 T = TypeVar("T")
 

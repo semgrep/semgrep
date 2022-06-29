@@ -15,7 +15,7 @@ from glom import T
 from glom.core import TType
 
 from semgrep import __VERSION__
-from semgrep.git import GIT_SH_TIMEOUT
+from semgrep.constants import GIT_SH_TIMEOUT
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 

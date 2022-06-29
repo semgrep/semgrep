@@ -8,14 +8,12 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 
+from semgrep.constants import GIT_SH_TIMEOUT
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
-
-
-GIT_SH_TIMEOUT = 100
 
 
 def zsplit(s: str) -> List[str]:
