@@ -30,38 +30,13 @@ Trying to shallow fetch branch foo from origin
 base branch (foo) has latest commit f7ee3123ed098941662685dd8b726fceee48f78d
 Fixing git state for github action pull request
 Calling git rev-parse HEAD
-git rev-parse stdout: 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-
-git rev-parse stderr: 
 stashed_rev: 17b3114fb3d41437abc2a3e6499db84ad921e6f0
 Not on head ref: 17b3114fb3d41437abc2a3e6499db84ad921e6f0; checking that out now.
-git checkout stdout: 
-git checkout stderr: Note: switching to '17b3114fb3d41437abc2a3e6499db84ad921e6f0'.
-
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by switching back to a branch.
-
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -c with the switch command. Example:
-
-  git switch -c <new-branch-name>
-
-Or undo this operation with:
-
-  git switch -
-
-Turn off this advice by setting config variable advice.detachedHead to false
-
-HEAD is now at 17b3114 merging foo
-
 Attempting to find merge base, attempt_count=0, fetch_depth=0
 Attempting to find merge base, attempt_count=1, fetch_depth=4
 Trying to fetch branch foo from origin as base branch
 Trying to fetch branch bar as commit from origin as head branch tip commit
 Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
-Found merge base: args=['git', 'merge-base', 'f7ee3123ed098941662685dd8b726fceee48f78d', '17b3114fb3d41437abc2a3e6499db84ad921e6f0'], stdout=f7ee3123ed098941662685dd8b726fceee48f78d
-, stderr=
 Fetching configuration from semgrep.dev
 Starting scan
 Using https://semgrep.dev<MASKED>
