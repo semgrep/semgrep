@@ -83,6 +83,10 @@ class LSPConfig:
         return self._settings.get("semgrep.scan.timeoutThreshold", 0)
 
     @property
+    def use_git_ignore(self) -> bool:
+        return self._settings.get("semgrep.scan.useGitIgnore", True)
+
+    @property
     def project_url(self) -> Union[str, None]:
         return get_project_url()
 
@@ -136,6 +140,7 @@ class LSPConfig:
             exclude=self.exclude,
             include=self.include,
             jobs=self.jobs,
+            no_git_ignore=not self.use_git_ignore,
             max_memory=self.max_memory,
             timeout_threshold=self.timeout_threshold,
             disable_nosem=self.disable_nosem,

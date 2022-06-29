@@ -64,10 +64,15 @@
       "default": 0,
       "description": "Maximum size of target in bytes to scan."
     },
-    "semgrep.scan.timeout_threshold": {
+    "semgrep.scan.timeoutThreshold": {
       "type": "integer",
       "default": 0,
       "description": "Maximum time to scan in seconds."
+    },
+    "semgrep.scan.useGitIgnore": {
+      "type": "boolean",
+      "default": true,
+      "description": "Skip files ignored by git"
     },
     "semgrep.lsp.watchWorkspace": {
       "type": "boolean",

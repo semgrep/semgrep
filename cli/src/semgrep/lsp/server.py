@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 SERVER_CAPABILITIES = {
     "codeActionProvider": True,
-    "inlayHintProvider": True,
+    "inlayHintProvider": False,
     "textDocumentSync": {
         "save": {
             "includeText": True,
@@ -112,7 +112,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_initialized(self, **_kwargs: JsonObject) -> None:
         log.info("Semgrep LSP initialized")
-        self.registerCapability(
+        self.register_capability(
             "workspace/didChangeWatchedFiles",
             {
                 "watchers": [
@@ -139,21 +139,28 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     ) -> None:
         log.debug("document__did_close")
         if self._ready and textDocument is not None:
-            self.cleanupDiagnostics(textDocument)
+            self.cleanup_diagnostics(textDocument)
+
+    def m_text_document__did_change(
+        self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
+    ) -> None:
+        log.debug("document__did_open")
+        if self._ready and textDocument is not None:
+            self.process_text_document(textDocument)
 
     def m_text_document__did_open(
         self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
     ) -> None:
         log.debug("document__did_open")
         if self._ready and textDocument is not None:
-            self.processTextDocument(textDocument)
+            self.process_text_document(textDocument)
 
     def m_text_document__did_save(
         self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
     ) -> None:
         log.debug(f"document__did_save")
         if self._ready and textDocument is not None:
-            self.processTextDocument(textDocument)
+            self.process_text_document(textDocument)
 
     def m_text_document__code_action(
         self,
@@ -163,7 +170,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         **_kwargs: JsonObject,
     ) -> CodeActionsList:
         if self._ready and textDocument is not None and range is not None:
-            return self.computeCodeActions(textDocument["uri"], range)
+            return self.compute_code_actions(textDocument["uri"], range)
         else:
             return []
 
@@ -174,7 +181,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         **_kwargs: JsonObject,
     ) -> List[JsonObject]:
         if self._ready and textDocument is not None and range is not None:
-            return self.computeInlayHints(textDocument["uri"], range)
+            return self.compute_inlay_hints(textDocument["uri"], range)
         else:
             return []
 
@@ -193,26 +200,28 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     def m_workspace__did_change_workspace_folders(self, event: JsonObject) -> None:
         self.config.update_workspace(event["added"], event["removed"])
         if self.config.watch_workspace:
-            self.processWorkspaces()
+            self.process_workspaces()
 
     def m_workspace__did_change_watched_files(self, changes: JsonObject) -> None:
         if self.config.watch_workspace:
-            self.processWorkspaces()
+            self.process_workspaces()
 
     #
     #
     #
 
     # Custom commands to add:
-    # - semgrep/activeRules (list of active rules)
+    # - semgrep/workspaceRules (list of active rules)
+    # - semgrep/documentRules (list of active rules for a document)
     # - semgrep/refreshRules (refresh the cached CI + Registry rules)
     # - semgrep/login (login to CI)
+    # - semgrep/dump_ast (dump the AST for a file)
 
     #
     #
     #
 
-    def registerCapability(
+    def register_capability(
         self, method: str, registerOptions: Optional[JsonObject] = None
     ) -> None:
         id = str(uuid.uuid4())
@@ -226,7 +235,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    def unregisterCapability(self, method: str) -> None:
+    def unregister_capability(self, method: str) -> None:
         self._endpoint.request(
             "client/unregisterCapability",
             {
@@ -236,7 +245,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    def publishDiagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
+    def publish_diagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
         self._endpoint.notify(
             "textDocument/publishDiagnostics",
             {
@@ -245,12 +254,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    def refreshInlayHints(self) -> None:
+    def refresh_inlay_hints(self) -> None:
         self._endpoint.request(
             "workspace/inlayHint/refresh",
         )
 
-    def processTextDocument(self, textDocument: TextDocumentItem) -> None:
+    def process_text_document(self, textDocument: TextDocumentItem) -> None:
         log.debug("textDocument: %s", textDocument)
 
         uri = urllib.parse.urlparse(textDocument["uri"])
@@ -263,13 +272,13 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             run_rules([target_name], self.config)
         )
         self._diagnostics[textDocument["uri"]] = diagnostics
-        self.publishDiagnostics(textDocument["uri"], diagnostics)
-        self.refreshInlayHints()
+        self.publish_diagnostics(textDocument["uri"], diagnostics)
+        self.refresh_inlay_hints()
 
-    def processWorkspaces(self) -> None:
+    def process_workspaces(self) -> None:
         log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
         for uri in self._diagnostics:
-            self.publishDiagnostics(uri, [])
+            self.publish_diagnostics(uri, [])
         self._diagnostics = {}
         diagnostics = rule_match_map_to_diagnostics(
             run_rules(self.config.folder_paths, self.config)
@@ -281,15 +290,15 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             sorted_diagnostics[d["data"]["uri"]].append(d)
         self._diagnostics = sorted_diagnostics
         for uri in self._diagnostics:
-            self.publishDiagnostics(uri, self._diagnostics[uri])
-        self.refreshInlayHints()
+            self.publish_diagnostics(uri, self._diagnostics[uri])
+        self.refresh_inlay_hints()
 
-    def cleanupDiagnostics(self, textDocument: TextDocumentItem) -> None:
+    def cleanup_diagnostics(self, textDocument: TextDocumentItem) -> None:
         self._diagnostics[textDocument["uri"]] = []
-        self.publishDiagnostics(textDocument["uri"], [])
-        self.refreshInlayHints()
+        self.publish_diagnostics(textDocument["uri"], [])
+        self.refresh_inlay_hints()
 
-    def createFixAction(
+    def create_fix_action(
         self, uri: str, diagnostic: Diagnostic, newText: str
     ) -> JsonObject:
         check_id = diagnostic["code"]
@@ -314,7 +323,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             and range1["end"]["character"] >= range2["start"]["character"]
         )
 
-    def computeCodeActions(self, uri: str, range: Range) -> CodeActionsList:
+    def compute_code_actions(self, uri: str, range: Range) -> CodeActionsList:
         log.debug(f"Compute code actions for uri {uri} and range {range}")
         diagnostics = self._diagnostics.get(uri)
         if not diagnostics:
@@ -324,7 +333,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         for d in diagnostics:
             if self.text_ranges_overlap(range, d["range"]):
                 if "fix" in d["data"]:
-                    actions.append(self.createFixAction(uri, d, d["data"]["fix"]))
+                    actions.append(self.create_fix_action(uri, d, d["data"]["fix"]))
                 if "fix_regex" in d["data"]:
                     fix_regex = d["data"]["fix_regex"]
                     source = d["data"]["matchSource"]
@@ -334,12 +343,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                         source,
                         count=fix_regex.get("count", 0),
                     )
-                    actions.append(self.createFixAction(uri, d, fix))
+                    actions.append(self.create_fix_action(uri, d, fix))
 
         log.debug(f"Computed code actions: {actions}")
         return actions
 
-    def computeInlayHints(self, uri: str, range: Range) -> List[JsonObject]:
+    def compute_inlay_hints(self, uri: str, range: Range) -> List[JsonObject]:
         log.debug(f"Compute inlay hints for uri {uri} and range {range}")
         diagnostics = self._diagnostics.get(uri)
         if not diagnostics:
