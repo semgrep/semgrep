@@ -316,8 +316,13 @@ class GithubMeta(GitMeta):
             )
 
         try:  # check if both branches connect to the yet-unknown branch-off point now
-            merge_base = git_check_output(
-                ["git", "merge-base", self.base_branch_hash, self.head_branch_hash]
+            # nosem: use-git-check-output-helper
+            process = subprocess.run(
+                ["git", "merge-base", self.base_branch_hash, self.head_branch_hash],
+                encoding="utf-8",
+                capture_output=True,
+                check=True,
+                timeout=GIT_SH_TIMEOUT,
             )
         except subprocess.CalledProcessError as e:
             output = e.stderr.strip()
@@ -334,6 +339,7 @@ class GithubMeta(GitMeta):
 
             return self._find_branchoff_point(attempt_count + 1)
         else:
+            merge_base = process.stdout.strip()
             logger.info(
                 f"Using {merge_base} as the merge-base of {self.base_branch_hash} and {self.head_branch_hash}"
             )
