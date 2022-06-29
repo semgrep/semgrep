@@ -6,16 +6,25 @@
   "properties": {
     "semgrep.scan.configuration": {
       "type": "array",
+      "items": {
+        "type": "string"
+      },
       "default": [],
       "description": "Each item can be a YAML configuration file, directory of YAML files ending in .yml | .yaml, URL of a configuration file, or Semgrep registry entry name. Use \"auto\" to automatically obtain rules tailored to this project; your project URL will be used to log in to the Semgrep registry."
     },
     "semgrep.scan.exclude": {
       "type": "array",
+      "items": {
+        "type": "string"
+      },
       "default": [],
       "description": "List of files or directories to exclude."
     },
     "semgrep.scan.include": {
       "type": "array",
+      "items": {
+        "type": "string"
+      },
       "default": [],
       "description": "List of files or directories to include."
     },
