@@ -504,13 +504,21 @@ let mask_unicode str =
      characters. *)
   (* Note that the YAML parser does return a correct line and col, which we
      use everywhere else. However, it gives an exclusive end when returning
-     the token that ends a mapping/sequence/other bracket, whereas Semgrep 
+     the token that ends a mapping/sequence/other bracket, whereas Semgrep
      expects an inclusive end. To adjust this, we currently need the charpos *)
   let char_range = 128 in
   let control_char_start_range = 32 in
   let control_char_end_range = 1 in
-  let available_range = char_range - (control_char_end_range + control_char_start_range) in
-  String.of_seq (Seq.map (fun c -> let code = Char.code c in if code < char_range then c else Char.chr ((code mod available_range) + control_char_start_range)) (String.to_seq str)) 
+  let available_range =
+    char_range - (control_char_end_range + control_char_start_range)
+  in
+  String.of_seq
+    (Seq.map
+       (fun c ->
+         let code = Char.code c in
+         if code < char_range then c
+         else Char.chr ((code mod available_range) + control_char_start_range))
+       (String.to_seq str))
 
 (*****************************************************************************)
 (* Entry points *)
