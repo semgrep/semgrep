@@ -106,6 +106,8 @@ class FileTargetingLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
+
+    # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
