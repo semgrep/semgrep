@@ -106,7 +106,7 @@ class FileTargetingLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
-    failed_to_analyze: Dict[Path, Optional[int]] = Factory(dict)
+    failed_to_analyze: Mapping[Path, Optional[int]] = Factory(dict)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))

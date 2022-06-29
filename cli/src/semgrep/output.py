@@ -2,6 +2,7 @@ import dataclasses
 import pathlib
 import sys
 from collections import defaultdict
+from functools import reduce
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -257,6 +258,25 @@ class OutputHandler:
         else:
             raise ex
 
+    @staticmethod
+    def _make_failed_to_analyze(
+        semgrep_core_errors: Sequence[SemgrepCoreError],
+    ) -> Mapping[Path, Optional[int]]:
+        def update_failed_to_analyze(
+            memo: Mapping[Path, Optional[int]], err: SemgrepCoreError
+        ) -> Mapping[Path, Optional[int]]:
+            path = Path(err.core.location.path)
+            so_far = memo.get(path, 0)
+            if err.spans is None or so_far is None:
+                num_lines = None
+            else:
+                num_lines = so_far + sum(
+                    s.end.line - s.start.line + 1 for s in err.spans
+                )
+            return {**memo, path: num_lines}
+
+        return reduce(update_failed_to_analyze, semgrep_core_errors, {})
+
     def output(
         self,
         rule_matches_by_rule: RuleMatchMap,
@@ -311,17 +331,12 @@ class OutputHandler:
                 for err in self.semgrep_structured_errors
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
-            paths = {
-                # This assumes that each file only has one error, which won't always be true, but it makes this logic far simpler
-                Path(err.core.location.path): sum(
-                    s.end.line - s.start.line + 1 for s in err.spans
-                )
-                if err.spans
-                else None
-                for err in semgrep_core_errors
-            }
+
+            failed_to_analyze_lines_by_path = self._make_failed_to_analyze(
+                semgrep_core_errors
+            )
             final_error = self.semgrep_structured_errors[-1]
-            self.ignore_log.failed_to_analyze.update(paths)
+            self.ignore_log.failed_to_analyze = failed_to_analyze_lines_by_path
 
         if self.has_output:
             output = self._build_output()
