@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Semgrep Language Server Configuration",
+  "description": "This server can be configured using `workspace/didChangeConfiguration` method. Each configuration option is described below:",
+  "type": "object",
+  "properties": {
+    "semgrep.scan.configurationSource": {
+      "type": "array",
+      "default": [],
+      "description": "Source of configuration to use.",
+      "items": {
+        "type": "string",
+        "enum": ["ci", "registry", "file"]
+      },
+      "uniqueItems": true
+    },
+    "semgrep.scan.configuration": {
+      "type": "array",
+      "default": ["auto"],
+      "description": "YAML configuration file, directory of YAML files ending in .yml | .yaml, URL of a configuration file, or Semgrep registry entry name. Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in to the Semgrep registry."
+    },
+    "semgrep.scan.exclude": {
+      "type": "array",
+      "default": [],
+      "description": "List of files or directories to exclude."
+    },
+    "semgrep.scan.include": {
+      "type": "array",
+      "default": [],
+      "description": "List of files or directories to include."
+    },
+    "semgrep.scan.jobs": {
+      "type": "integer",
+      "default": 1,
+      "description": "Number of parallel jobs to run."
+    },
+    "semgrep.scan.disableNoSem": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable no-semgrep comments."
+    },
+    "semgrep.scan.baselineCommit": {
+      "type": "string",
+      "default": null,
+      "description": "Baseline commit to scan from"
+    },
+    "semgrep.scan.severity": {
+      "type": "array",
+      "default": ["INFO", "WARNING", "ERROR"],
+      "items": {
+        "type": "string",
+        "enum": ["INFO", "WARNING", "ERROR"]
+      },
+      "description": "Severity of rules to scan for.",
+      "uniqueItems": true
+    },
+    "semgrep.scan.maxMemory": {
+      "type": "integer",
+      "default": 0,
+      "description": "Maximum memory to use in megabytes."
+    },
+    "semgrep.scan.maxTargetBytes": {
+      "type": "integer",
+      "default": 0,
+      "description": "Maximum size of target in bytes to scan."
+    },
+    "semgrep.scan.timeout_threshold": {
+      "type": "integer",
+      "default": 0,
+      "description": "Maximum time to scan in seconds."
+    },
+    "semgrep.lsp.watchWorkspace": {
+      "type": "boolean",
+      "default": true,
+      "description": "Scan all workspace folders. Disable for per-file scanning only."
+    }
+  }
+}

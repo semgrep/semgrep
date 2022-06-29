@@ -1,0 +1,11 @@
+[
+  {
+    "label": "$X:",
+    "paddingRight": true,
+    "position": {
+      "character": 11,
+      "line": 2
+    },
+    "tooltip": "a+b"
+  }
+]

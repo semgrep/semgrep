@@ -1,0 +1,64 @@
+{
+  "file:///tmp/masked/path": [
+    {
+      "code": "rules.eqeq-is-bad",
+      "codeDescription": {
+        "href": "https://semgrep.dev/r/rules.eqeq-is-bad"
+      },
+      "data": {
+        "matchSource": "return a + b == a + b",
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "aca68f1483a3c0badcd1b2f72d3954d7",
+              "type": "AST"
+            }
+          }
+        },
+        "uri": "file:///tmp/masked/path"
+      },
+      "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?\n",
+      "range": {
+        "end": {
+          "character": 25,
+          "line": 2
+        },
+        "start": {
+          "character": 11,
+          "line": 2
+        }
+      },
+      "relatedInformation": [
+        {
+          "location": {
+            "range": {
+              "end": {
+                "character": 16,
+                "line": 2
+              },
+              "start": {
+                "character": 11,
+                "line": 2
+              }
+            },
+            "uri": "file:///tmp/masked/path"
+          },
+          "message": "$X: a+b"
+        }
+      ],
+      "severity": 1,
+      "source": "Semgrep"
+    }
+  ]
+}

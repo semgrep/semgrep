@@ -1,13 +1,13 @@
 from enum import Enum
-from typing import Sequence
+from typing import List
 
 from semgrep.types import JsonObject
 
 
 CodeActionContext = JsonObject
-CodeActionsList = Sequence[JsonObject]
+CodeActionsList = List[JsonObject]
 Diagnostic = JsonObject
-DiagnosticsList = Sequence[Diagnostic]
+DiagnosticsList = List[Diagnostic]
 Range = JsonObject
 TextDocumentItem = JsonObject
 

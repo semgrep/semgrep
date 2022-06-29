@@ -1,6 +1,17 @@
+from typing import Any
+from typing import List
+from typing import MutableMapping
+
 from semgrep.constants import RuleSeverity
 from semgrep.lsp.types import DiagnosticSeverity
+from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
+from semgrep.rule_match import RuleMatchMap
+from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
+from semgrep.state import get_state
+from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
+from semgrep.util import flatten
 
 SeverityMapping = {
     RuleSeverity.ERROR: DiagnosticSeverity.Error,
@@ -14,47 +25,90 @@ def findings_severity_to_diagnostic(severity: RuleSeverity) -> DiagnosticSeverit
     return SeverityMapping.get(severity, DiagnosticSeverity.Information)
 
 
-# TODO: need to use RuleMatch here instead of raw json/dict access
-def findings_to_diagnostic(finding: JsonObject, content: str) -> JsonObject:
-    from semgrep.state import get_state
+def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
+    def get_metavar(m: str, d: MetavarValue) -> JsonObject:
+        uri = f"file://{rule_match.path}"
+        related = {
+            "location": {
+                "uri": uri,
+                "range": {
+                    # We start at 0, but the LSP starts at 1
+                    "start": {"line": d.start.line - 1, "character": d.start.col - 1},
+                    "end": {
+                        "line": d.end.line - 1,
+                        "character": d.end.col - 1,
+                    },
+                },
+            },
+            "message": f"{m}: {d.abstract_content}",
+        }
+        return related
 
-    env = get_state().env
-    start_line = finding["start"]["line"] - 1
-    start_col = finding["start"]["col"] - 1
-    end_line = finding["end"]["line"] - 1
-    end_col = finding["end"]["col"] - 1
-    lines = content.split("\n")
-    if start_line == end_line:
-        match_source = lines[start_line][start_col:end_col]
-    else:
-        middle_lines = "\n".join(lines[start_line + 1 : end_line])
-        match_source = (
-            lines[start_line][start_col:] + middle_lines + lines[end_line][:end_col]
+    if rule_match.extra.get("metavars") is not None:
+        return list(
+            get_metavar(m, MetavarValue.from_json(d))
+            for m, d in rule_match.extra["metavars"].items()
         )
+    return []
 
-    rule_url = f"{env.semgrep_url}/r/{finding['check_id']}"
 
-    diagnostic = {
+def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
+    env = get_state().env
+    rule_url = f"{env.semgrep_url}/r/{rule_match.rule_id}"
+    diagnostic: MutableMapping[str, Any] = {
         "range": {
-            "start": {"line": start_line, "character": start_col},
+            # We start at 0, but the LSP starts at 1
+            "start": {
+                "line": rule_match.start.line - 1,
+                "character": rule_match.start.col - 1,
+            },
             "end": {
-                "line": end_line,
-                "character": end_col,
+                "line": rule_match.end.line - 1,
+                "character": rule_match.end.col - 1,
             },
         },
-        "message": finding["extra"]["message"],
-        "severity": findings_severity_to_diagnostic(
-            RuleSeverity(finding["extra"]["severity"])
-        ).value,
+        "message": rule_match.message,
+        "severity": findings_severity_to_diagnostic(rule_match.severity).value,
         "source": "Semgrep",
-        "code": finding["check_id"],
+        "code": rule_match.rule_id,
         "codeDescription": {"href": rule_url},
-        "data": {"matchSource": match_source},
+        "data": {
+            "matchSource": rule_match.syntactic_context,
+            "uri": f"file://{rule_match.path}",
+        },
+        "relatedInformation": rule_match_get_related(rule_match),
     }
 
-    if "fix" in finding["extra"]:
-        diagnostic["data"]["fix"] = finding["extra"]["fix"]
-    if "fix_regex" in finding["extra"]:
-        diagnostic["data"]["fix_regex"] = finding["extra"]["fix_regex"]
+    fix_message = None
+    if rule_match.extra.get("metavars") is not None:
+        diagnostic["data"]["metavars"] = rule_match.extra["metavars"]
+    if rule_match.fix:
+        diagnostic["data"]["fix"] = rule_match.fix
+        fix_message = rule_match.fix
+    if rule_match.fix_regex:
+        diagnostic["data"]["fix_regex"] = rule_match.fix_regex
+        fix_message = rule_match.fix
 
+    if fix_message is not None:
+        diagnostic["message"] += f"\nFix: {fix_message}"
+    # This looks better
+    diagnostic["message"] += "\n"
     return diagnostic
+
+
+def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> List[JsonObject]:
+    return flatten(
+        [
+            list(map(rule_match_to_diagnostic, rule_match_list))
+            for rule_match_list in rule_map.values()
+        ]
+    )
+
+
+def rule_to_files(rule: Rule, target_manager: TargetManager) -> List[str]:
+    target_files = []
+    for lang in rule.languages:
+        files = target_manager.get_files_for_rule(lang, [], [], rule_id=rule.id)
+        for f in files:
+            target_files.append(str(f))
+    return target_files
