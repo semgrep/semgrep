@@ -4,20 +4,10 @@
   "description": "This server can be configured using `workspace/didChangeConfiguration` method. Each configuration option is described below:",
   "type": "object",
   "properties": {
-    "semgrep.scan.configurationSource": {
-      "type": "array",
-      "default": [],
-      "description": "Source of configuration to use.",
-      "items": {
-        "type": "string",
-        "enum": ["ci", "registry", "file"]
-      },
-      "uniqueItems": true
-    },
     "semgrep.scan.configuration": {
       "type": "array",
-      "default": ["auto"],
-      "description": "YAML configuration file, directory of YAML files ending in .yml | .yaml, URL of a configuration file, or Semgrep registry entry name. Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in to the Semgrep registry."
+      "default": [],
+      "description": "Each item can be a YAML configuration file, directory of YAML files ending in .yml | .yaml, URL of a configuration file, or Semgrep registry entry name. Use \"auto\" to automatically obtain rules tailored to this project; your project URL will be used to log in to the Semgrep registry."
     },
     "semgrep.scan.exclude": {
       "type": "array",

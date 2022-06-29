@@ -216,6 +216,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # - semgrep/refreshRules (refresh the cached CI + Registry rules)
     # - semgrep/login (login to CI)
     # - semgrep/dump_ast (dump the AST for a file)
+    # - semgrep/search
 
     #
     #

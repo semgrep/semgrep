@@ -72,6 +72,7 @@ def test_lsp_code_action(lsp, tmp_path, snapshot):
             "start": {"line": 0, "character": 0},
             "end": {"line": 1000, "character": 1000},
         },
+        context={},
     )
     actions = _clean_output_lsp(action_list)
     snapshot.assert_match(actions, "fixes.json")
