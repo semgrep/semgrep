@@ -106,7 +106,7 @@ class FileTargetingLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
-    failed_to_analyze: Mapping[Path, Optional[int]] = Factory(dict)
+    core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
@@ -169,9 +169,9 @@ class FileTargetingLog:
             skip_fragments.append(
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
             )
-        if self.failed_to_analyze:
+        if self.core_failure_lines_by_file:
             partial_fragments.append(
-                f"{len(self.failed_to_analyze)} files only partially analyzed due to a parsing or internal Semgrep error"
+                f"{len(self.core_failure_lines_by_file)} files only partially analyzed due to a parsing or internal Semgrep error"
             )
 
         if not limited_fragments and not skip_fragments and not partial_fragments:
@@ -243,8 +243,8 @@ class FileTargetingLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
-        if self.failed_to_analyze:
-            for path, lines in self.failed_to_analyze.items():
+        if self.core_failure_lines_by_file:
+            for path, lines in self.core_failure_lines_by_file.items():
                 if lines is None:
                     skipped = "all"
                 else:
@@ -300,7 +300,7 @@ class FileTargetingLog:
                 "reason": "exceeded_size_limit",
                 "size_limit_bytes": self.target_manager.max_target_bytes,
             }
-        for path in self.failed_to_analyze:
+        for path in self.core_failure_lines_by_file:
             yield {
                 "path": str(path),
                 "reason": "analysis_failed_parser_or_internal_error",

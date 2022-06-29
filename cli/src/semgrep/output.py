@@ -336,7 +336,7 @@ class OutputHandler:
                 semgrep_core_errors
             )
             final_error = self.semgrep_structured_errors[-1]
-            self.ignore_log.failed_to_analyze = failed_to_analyze_lines_by_path
+            self.ignore_log.core_failure_lines_by_file = failed_to_analyze_lines_by_path
 
         if self.has_output:
             output = self._build_output()
