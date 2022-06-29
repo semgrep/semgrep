@@ -3,10 +3,12 @@ import re
 import sys
 import urllib.request
 import uuid
+from typing import Any
 from typing import BinaryIO
 from typing import List
 from typing import MutableMapping
 from typing import Optional
+from typing import Sequence
 
 from pylsp_jsonrpc.dispatchers import MethodDispatcher
 from pylsp_jsonrpc.endpoint import Endpoint
@@ -15,6 +17,7 @@ from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 
 from semgrep import __VERSION__ as SEMGREP_VERSION
 from semgrep.lsp.config import LSPConfig
+from semgrep.lsp.convert import metavar_to_inlay
 from semgrep.lsp.convert import rule_match_map_to_diagnostics
 from semgrep.lsp.run_semgrep import run_rules
 from semgrep.lsp.types import CodeActionContext
@@ -32,12 +35,13 @@ log = logging.getLogger(__name__)
 
 SERVER_CAPABILITIES = {
     "codeActionProvider": True,
-    "inlayHintProvider": False,
+    "inlayHintProvider": True,
     "textDocumentSync": {
         "save": {
-            "includeText": True,
+            "includeText": False,
         },
         "openClose": True,
+        "change": 2,
     },
     "workspaceFolders": {
         "supported": True,
@@ -62,6 +66,13 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
         self._diagnostics: MutableMapping[str, DiagnosticsList] = {}
         self._registered_capabilities: MutableMapping[str, str] = {}
+
+    def __getitem__(self, key: str) -> Any:
+        if key not in ["initialize", "initialized"] and not self._ready:
+            # At some point we should override the Endpoint's request_callback
+            # to actually be able to send error responses
+            return {}
+        return super().__getitem__(key)
 
     def start(self) -> None:
         # Start the json-rpc endpoint
@@ -100,6 +111,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if workspaceFolders is not None:
             self.config = LSPConfig(config, workspaceFolders)
         else:
+            # We should probably check if rootUri is None
             self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
         # Get our capabilities
         return {
@@ -110,8 +122,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         }
 
-    def m_initialized(self, **_kwargs: JsonObject) -> None:
-        log.info("Semgrep LSP initialized")
+    def m_initialized(self) -> None:
         self.register_capability(
             "workspace/didChangeWatchedFiles",
             {
@@ -122,68 +133,58 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                 ]
             },
         )
+        log.info("Registered config watchers")
         self._ready = True
+        log.info("Semgrep LSP initialized")
 
-    def m_shutdown(self, **_kwargs: JsonObject) -> None:
+    def m_shutdown(self) -> None:
         log.info("Server shutting down")
-        self._ready = False
 
     # TODO: VSCode seems to close the streams right after the shutdown message, which
     # makes us exit anyway, instead of sending an exit message.
-    def m_exit(self, **_kwargs: JsonObject) -> None:
+    def m_exit(self) -> None:
         log.info("Server stopping")
         self.stop()
 
-    def m_text_document__did_close(
-        self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
-    ) -> None:
+    def m_text_document__did_close(self, textDocument: TextDocumentItem) -> None:
         log.debug("document__did_close")
-        if self._ready and textDocument is not None:
-            self.cleanup_diagnostics(textDocument)
+        self.cleanup_diagnostics(textDocument)
 
     def m_text_document__did_change(
-        self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
+        self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
     ) -> None:
         log.debug("document__did_open")
-        if self._ready and textDocument is not None:
-            self.process_text_document(textDocument)
+        for c in contentChanges:
+            range = c["range"]
+            if self._diagnostics.get(textDocument["uri"]) is not None:
+                diagnostics = []
+                for d in self._diagnostics[textDocument["uri"]]:
+                    if not self.text_ranges_overlap(range, d["range"]):
+                        diagnostics.append(d)
+                self._diagnostics[textDocument["uri"]] = diagnostics
+                self.publish_diagnostics(textDocument["uri"], diagnostics)
 
-    def m_text_document__did_open(
-        self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
-    ) -> None:
+        self.refresh_inlay_hints()
+
+    def m_text_document__did_open(self, textDocument: TextDocumentItem) -> None:
         log.debug("document__did_open")
-        if self._ready and textDocument is not None:
-            self.process_text_document(textDocument)
+        self.process_text_document(textDocument)
 
-    def m_text_document__did_save(
-        self, textDocument: Optional[TextDocumentItem] = None, **_kwargs: JsonObject
-    ) -> None:
+    def m_text_document__did_save(self, textDocument: TextDocumentItem) -> None:
         log.debug(f"document__did_save")
-        if self._ready and textDocument is not None:
-            self.process_text_document(textDocument)
+        self.process_text_document(textDocument)
 
     def m_text_document__code_action(
-        self,
-        textDocument: Optional[TextDocumentItem] = None,
-        range: Optional[Range] = None,
-        context: Optional[CodeActionContext] = None,
-        **_kwargs: JsonObject,
+        self, textDocument: TextDocumentItem, range: Range, context: CodeActionContext
     ) -> CodeActionsList:
-        if self._ready and textDocument is not None and range is not None:
-            return self.compute_code_actions(textDocument["uri"], range)
-        else:
-            return []
+        return self.compute_code_actions(textDocument["uri"], range)
 
     def m_text_document__inlay_hint(
         self,
-        textDocument: Optional[TextDocumentItem] = None,
-        range: Optional[Range] = None,
-        **_kwargs: JsonObject,
+        textDocument: TextDocumentItem,
+        range: Range,
     ) -> List[JsonObject]:
-        if self._ready and textDocument is not None and range is not None:
-            return self.compute_inlay_hints(textDocument["uri"], range)
-        else:
-            return []
+        return self.compute_inlay_hints(textDocument["uri"], range)
 
     #
     # LSP Workspace methods
@@ -192,7 +193,6 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     def m_workspace__workspace_folders(
         self,
         workspace_folders: Optional[List[JsonObject]] = None,
-        **_kwargs: JsonObject,
     ) -> None:
         if workspace_folders is not None:
             self.config._workspace_folders = workspace_folders
@@ -360,15 +360,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                 if "metavars" in d["data"]:
                     for metavar in d["data"]["metavars"]:
                         info = MetavarValue.from_json(d["data"]["metavars"][metavar])
-                        hint: JsonObject = {
-                            "position": {
-                                "line": info.start.line - 1,
-                                "character": info.start.col - 1,
-                            },
-                            "label": f"{metavar}:",
-                            "tooltip": info.abstract_content,
-                            "paddingRight": True,
-                        }
+                        hint = metavar_to_inlay(metavar, info)
                         if hint not in hints:
                             hints.append(hint)
 

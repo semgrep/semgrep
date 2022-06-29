@@ -25,8 +25,20 @@ def findings_severity_to_diagnostic(severity: RuleSeverity) -> DiagnosticSeverit
     return SeverityMapping.get(severity, DiagnosticSeverity.Information)
 
 
+def metavar_to_inlay(metavar: str, info: MetavarValue) -> JsonObject:
+    return {
+        "position": {
+            "line": info.start.line - 1,
+            "character": info.start.col - 1,
+        },
+        "label": f"{metavar}:",
+        "tooltip": info.abstract_content,
+        "paddingRight": True,
+    }
+
+
 def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
-    def get_metavar(m: str, d: MetavarValue) -> JsonObject:
+    def get_metavar_related(m: str, d: MetavarValue) -> JsonObject:
         uri = f"file://{rule_match.path}"
         related = {
             "location": {
@@ -46,7 +58,7 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
 
     if rule_match.extra.get("metavars") is not None:
         return list(
-            get_metavar(m, MetavarValue.from_json(d))
+            get_metavar_related(m, MetavarValue.from_json(d))
             for m, d in rule_match.extra["metavars"].items()
         )
     return []
