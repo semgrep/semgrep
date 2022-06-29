@@ -61,6 +61,13 @@ let subexprs_of_stmt_kind = function
       | Some cond -> [ H.cond_to_expr cond ])
   | Return (_, eopt, _) -> Option.to_list eopt
   (* n *)
+  | For (_, MultiForEach es, _) ->
+      es
+      |> List.filter_map (function
+           | FE (_, _, e) -> Some [ e ]
+           | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
+           | FEllipsis _ -> None)
+      |> List.concat
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
       |> Common.map_filter (function

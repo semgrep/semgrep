@@ -1064,48 +1064,15 @@ and stmt_aux env st =
       @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
       @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
-      let ss, e' = expr_with_pre_stmts env e in
-      let st = stmt st_env st in
-
-      let next_lval = fresh_lval env tok2 in
-      let hasnext_lval = fresh_lval env tok2 in
-      let hasnext_call =
-        mk_s
-          (Instr
-             (mk_i
-                (CallSpecial (Some hasnext_lval, (ForeachHasNext, tok2), [ e' ]))
-                (related_tok tok2)))
-      in
-      let next_call =
-        mk_s
-          (Instr
-             (mk_i
-                (CallSpecial (Some next_lval, (ForeachNext, tok2), [ e' ]))
-                (related_tok tok2)))
-      in
-      (* same semantic? or need to take Ref? or pass lval
-       * directly in next_call instead of using intermediate next_lval?
-       *)
-      let assign_st =
-        pattern_assign_statements env
-          (mk_e (Fetch next_lval) (related_tok tok2))
-          ~eorig:(related_tok tok2) pat
-      in
-      let cond = mk_e (Fetch hasnext_lval) (related_tok tok2) in
-
-      (ss @ [ hasnext_call ])
-      @ [
-          mk_s
-            (Loop
-               ( tok,
-                 cond,
-                 [ next_call ] @ assign_st @ st @ cont_label_s
-                 @ [ (* ss @ ?*) hasnext_call ] ));
-        ]
-      @ break_label_s
+      for_each env tok (pat, tok2, e) st
+  | G.For (_, G.MultiForEach [], st) -> stmt env st
+  | G.For (_, G.MultiForEach (FEllipsis _ :: _), _) -> sgrep_construct (G.S st)
+  | G.For (tok, G.MultiForEach (FECond (fr, tok2, e) :: for_eachs), st) ->
+      let loop = G.For (tok, G.MultiForEach for_eachs, st) |> G.s in
+      let st = G.If (tok2, Cond e, loop, None) |> G.s in
+      for_each env tok fr st
+  | G.For (tok, G.MultiForEach (FE fr :: for_eachs), st) ->
+      for_each env tok fr (G.For (tok, G.MultiForEach for_eachs, st) |> G.s)
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
@@ -1248,6 +1215,48 @@ and stmt_aux env st =
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
+
+and for_each env tok (pat, tok2, e) st =
+  let cont_label_s, break_label_s, st_env = mk_break_continue_labels env tok in
+  let ss, e' = expr_with_pre_stmts env e in
+  let st = stmt st_env st in
+
+  let next_lval = fresh_lval env tok2 in
+  let hasnext_lval = fresh_lval env tok2 in
+  let hasnext_call =
+    mk_s
+      (Instr
+         (mk_i
+            (CallSpecial (Some hasnext_lval, (ForeachHasNext, tok2), [ e' ]))
+            (related_tok tok2)))
+  in
+  let next_call =
+    mk_s
+      (Instr
+         (mk_i
+            (CallSpecial (Some next_lval, (ForeachNext, tok2), [ e' ]))
+            (related_tok tok2)))
+  in
+  (* same semantic? or need to take Ref? or pass lval
+     * directly in next_call instead of using intermediate next_lval?
+  *)
+  let assign_st =
+    pattern_assign_statements env
+      (mk_e (Fetch next_lval) (related_tok tok2))
+      ~eorig:(related_tok tok2) pat
+  in
+  let cond = mk_e (Fetch hasnext_lval) (related_tok tok2) in
+
+  (ss @ [ hasnext_call ])
+  @ [
+      mk_s
+        (Loop
+           ( tok,
+             cond,
+             [ next_call ] @ assign_st @ st @ cont_label_s
+             @ [ (* ss @ ?*) hasnext_call ] ));
+    ]
+  @ break_label_s
 
 (* TODO: Maybe this and the following function could be merged *)
 and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =

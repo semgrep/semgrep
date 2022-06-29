@@ -799,6 +799,11 @@ and map_for_header = function
       let t = map_tok t in
       let v1 = map_pattern v1 and v2 = map_expr v2 in
       `ForEach (v1, t, v2)
+  | MultiForEach (FE (v1, t, v2) :: _) ->
+      let t = map_tok t in
+      let v1 = map_pattern v1 and v2 = map_expr v2 in
+      `ForEach (v1, t, v2)
+  | MultiForEach _ -> failwith "todo - MultiForEach"
   | ForEllipsis t ->
       let t = map_tok t in
       `ForEllipsis t
