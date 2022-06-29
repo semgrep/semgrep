@@ -393,6 +393,14 @@ let rec m_name a b =
     in
     aux parents
   in
+  let try_alternate_names = function
+    | B.ResolvedName (_, alternate_names) ->
+        List.fold_left
+          (fun acc alternate_name ->
+            acc >||> m_name a (H.name_of_ids alternate_name))
+          (fail ()) alternate_names
+    | _ -> fail ()
+  in
   match (a, b) with
   (* equivalence: aliasing (name resolving) part 1 *)
   | ( a,
@@ -403,14 +411,15 @@ let rec m_name a b =
                {
                  contents =
                    Some
-                     ( ( B.ImportedEntity dotted
-                       | B.ImportedModule (B.DottedName dotted)
-                       | B.ResolvedName dotted ),
+                     ( (( B.ImportedEntity dotted
+                        | B.ImportedModule (B.DottedName dotted)
+                        | B.ResolvedName (dotted, _) ) as resolved),
                        _sid );
                };
              _;
            } as infob) ) ) -> (
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
+      >||> try_alternate_names resolved
       >||>
       (* Try the resolved entity and parents *)
       match a with
@@ -494,9 +503,9 @@ let rec m_name a b =
                  {
                    contents =
                      Some
-                       ( ( B.ImportedEntity dotted
-                         | B.ImportedModule (B.DottedName dotted)
-                         | B.ResolvedName dotted ),
+                       ( (( B.ImportedEntity dotted
+                          | B.ImportedModule (B.DottedName dotted)
+                          | B.ResolvedName (dotted, _) ) as resolved),
                          _sid );
                  };
                _;
@@ -504,6 +513,7 @@ let rec m_name a b =
            _;
          } as b1) ) -> (
       try_parents dotted
+      >||> try_alternate_names resolved
       >||>
       match a with
       | IdQualified a1 -> m_name_info a1 b1
