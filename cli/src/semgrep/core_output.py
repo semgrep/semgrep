@@ -5,6 +5,7 @@ json output into a typed object
 The precise type of the response from semgrep-core is specified in
 https://github.com/returntocorp/semgrep/blob/develop/interfaces/Output_from_core.atd
 """
+import dataclasses
 from dataclasses import replace
 from typing import Dict
 from typing import List
@@ -27,6 +28,14 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+def _core_location_to_error_span(location: core.Location) -> out.ErrorSpan:
+    return out.ErrorSpan(
+        file=location.path,
+        start=out.PositionBis(line=location.start.line, col=location.start.col),
+        end=out.PositionBis(line=location.end.line, col=location.end.col),
+    )
+
+
 def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
     # Hackily convert the level string to Semgrep expectations
@@ -40,25 +49,27 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
     spans: Optional[List[out.ErrorSpan]] = None
     if isinstance(err.error_type.value, core.PatternParseError):
         yaml_path = err.error_type.value.value[::-1]
-        start = out.PositionBis(
-            line=err.location.start.line, col=err.location.start.col
-        )
-        end = out.PositionBis(line=err.location.end.line, col=err.location.end.col)
+        error_span = _core_location_to_error_span(err.location)
         config_start = out.PositionBis(line=0, col=1)
         config_end = out.PositionBis(
             line=err.location.end.line - err.location.start.line,
             col=err.location.end.col - err.location.start.col + 1,
         )
         spans = [
-            out.ErrorSpan(
-                file=err.location.path,
-                start=start,
-                end=end,
+            dataclasses.replace(
+                error_span,
                 config_start=config_start,
                 config_end=config_end,
                 config_path=yaml_path,
             )
         ]
+    elif isinstance(err.error_type.value, core.PartialParsing):
+        # The spans for PartialParsing errors are contained in the "error_type" object
+        spans = [
+            _core_location_to_error_span(location)
+            for location in err.error_type.value.value
+        ]
+
     # TODO benchmarking code relies on error code value right now
     # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
     if (

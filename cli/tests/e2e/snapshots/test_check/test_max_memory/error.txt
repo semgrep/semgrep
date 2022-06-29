@@ -37,7 +37,7 @@ Files skipped:
 
   Skipped by analysis failure due to parsing or internal Semgrep error
 
-   • targets/equivalence/open_redirect.py
+   • targets/equivalence/open_redirect.py (all lines skipped)
 
 
 Some files were skipped or only partially analyzed.
