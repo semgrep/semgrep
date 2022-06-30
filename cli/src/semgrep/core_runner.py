@@ -170,6 +170,8 @@ class StreamingSemgrepCore:
         When it sees neither output it saves it to self._stdout
         """
         stdout_lines: List[bytes] = []
+        num_total_targets: int = self._total
+        num_scanned_targets: int = 0
 
         # appease mypy. stream is only None if call to create_subproccess_exec
         # sets stdout/stderr stream to None
@@ -185,11 +187,13 @@ class StreamingSemgrepCore:
                 return
 
             if line_bytes == b".\n":
+                num_scanned_targets += 1
                 if self._progress_bar:
                     self._progress_bar.update()
             else:
                 try:
                     extra_targets = int(line_bytes)
+                    num_total_targets += extra_targets
                     if self._progress_bar:
                         self._progress_bar.total += extra_targets
                 except ValueError:
@@ -205,7 +209,7 @@ class StreamingSemgrepCore:
             # issues (namely, fill the pipe) if reading the json result dump.
             #
             # See e.g., <https://github.com/returntocorp/semgrep/issues/4693>
-            if self._progress_bar.n == self._progress_bar.total:
+            if num_scanned_targets == num_total_targets:
                 # Reset `line_bytes` here so the last state communication
                 # output isn't captured in stdout.
                 line_bytes = b""
