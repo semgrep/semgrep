@@ -2250,9 +2250,13 @@ and m_for_header a b =
   | G.ForClassic (a1, a2, a3), B.ForClassic (b1, b2, b3) ->
       (m_list m_for_var_or_expr) a1 b1 >>= fun () ->
       m_option m_expr a2 b2 >>= fun () -> m_option m_expr a3 b3
-  | G.ForEach (a1, at, a2), B.ForEach (b1, bt, b2) ->
-      m_pattern a1 b1 >>= fun () ->
-      m_tok at bt >>= fun () -> m_expr a2 b2
+  | G.ForEach a1, B.ForEach b1 -> m_for_each a1 b1
+  | G.MultiForEach a1, B.MultiForEach b1 ->
+      m_list_with_dots ~less_is_ok:false m_multi_for_each
+        (function
+          | G.FEllipsis _ -> true
+          | _ -> false)
+        a1 b1
   | G.ForIn (a1, a2), B.ForIn (b1, b2) ->
       (m_list m_for_var_or_expr) a1 b1 >>= fun () ->
       m_list_with_dots m_expr
@@ -2262,8 +2266,22 @@ and m_for_header a b =
         ~less_is_ok:false a2 b2
   | G.ForClassic _, _
   | G.ForEach _, _
+  | G.MultiForEach _, _
   | G.ForIn _, _ ->
       fail ()
+
+and m_for_each (a1, at, a2) (b1, bt, b2) =
+  m_pattern a1 b1 >>= fun () ->
+  m_tok at bt >>= fun () -> m_expr a2 b2
+
+and m_multi_for_each a b =
+  match (a, b) with
+  | G.FE a1, B.FE b1 -> m_for_each a1 b1
+  | G.FECond (a1, at, a2), B.FECond (b1, bt, b2) ->
+      m_for_each a1 b1 >>= fun () ->
+      m_tok at bt >>= fun () -> m_expr a2 b2
+  | G.FEllipsis _, _ -> return ()
+  | _ -> fail ()
 
 and m_block a b =
   match (a.s, b.s) with

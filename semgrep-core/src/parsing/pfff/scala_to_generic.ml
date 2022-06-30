@@ -562,24 +562,7 @@ and v_stmt = function
       let v1 = v_tok v1
       and v2 = v2 |> G.unbracket |> v_enumerators
       and v3 = v_for_body v3 in
-      List.fold_right
-        (fun gen stmt ->
-          match gen with
-          | `G (pat, tok, e, guards) ->
-              G.For
-                ( v1,
-                  G.ForEach (pat, tok, e),
-                  List.fold_right
-                    (fun (g_tok, g_e) stmt ->
-                      G.If (g_tok, G.Cond g_e, stmt, None) |> G.s)
-                    guards stmt )
-              |> G.s
-          | `GIf guards ->
-              List.fold_right
-                (fun (g_tok, g_e) stmt ->
-                  G.If (g_tok, G.Cond g_e, stmt, None) |> G.s)
-                guards stmt)
-        v2 v3
+      G.For (v1, G.MultiForEach v2, v3) |> G.s
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
       G.Return (v1, v2, G.sc) |> G.s
@@ -601,8 +584,18 @@ and v_stmt = function
 and v_enumerators v = v_list v_enumerator v
 
 and v_enumerator = function
-  | G v1 -> `G (v_generator v1)
-  | GIf v1 -> `GIf (v_list v_guard v1)
+  | G v1 -> (
+      let pat, tok, e, guards = v_generator v1 in
+      match guards with
+      | [] -> G.FE (pat, tok, e)
+      | (tok2, cond) :: guards ->
+          let conds =
+            List.fold_left
+              (fun e (tok, c) -> G.special (G.Op G.And, tok) [ e; c ])
+              cond guards
+          in
+          G.FECond ((pat, tok, e), tok2, conds))
+  | GEllipsis tok -> G.FEllipsis tok
 
 and v_generator
     {

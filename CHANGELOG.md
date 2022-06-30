@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Scala: ellipsis are now allowed in for loop headers (#5650)
+
 ### Fixed
 
 - taint-mode: In some scenarios some statements were not being included in the

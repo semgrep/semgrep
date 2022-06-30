@@ -419,12 +419,20 @@ and for_stmt env level (for_tok, hdr, s) =
   in
   let opt_expr = opt (fun x -> expr env x) in
   let hdr_str =
+    let for_each (pat, tok, e) =
+      F.sprintf "%s %s %s" (pattern env pat) (token "in" tok) (expr env e)
+    in
+    let multi_for_each = function
+      | FE fe -> for_each fe
+      | FECond (fe, _, e) -> F.sprintf "%s if %s" (for_each fe) (expr env e)
+      | FEllipsis _ -> "..."
+    in
     match hdr with
     | ForClassic (init, cond, next) ->
         F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond)
           (opt_expr next)
-    | ForEach (pat, tok, e) ->
-        F.sprintf "%s %s %s" (pattern env pat) (token "in" tok) (expr env e)
+    | ForEach (pat, tok, e) -> for_each (pat, tok, e)
+    | MultiForEach fors -> String.concat ";" (Common.map multi_for_each fors)
     | ForEllipsis tok -> token "..." tok
     | ForIn (init, exprs) ->
         F.sprintf "%s %s %s" (show_init_list init) "in"
