@@ -52,7 +52,13 @@ logger = getLogger(__name__)
 
 def get_file_ignore() -> FileIgnore:
     TEMPLATES_DIR = Path(__file__).parent / "templates"
-    workdir = Path.cwd()
+    try:
+        workdir = Path.cwd()
+    except FileNotFoundError:
+        workdir = Path.home()
+        logger.warn(
+            f"Current working directory does not exist! Instead checking {workdir} for .semgrepignore files"
+        )
 
     # Meant to be used only by semgrep-action
     if "SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE" in environ:

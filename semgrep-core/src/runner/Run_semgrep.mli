@@ -49,6 +49,7 @@ val print_match :
   Metavariable.bindings ->
   (Metavariable.mvalue -> Parse_info.t list) ->
   Parse_info.t list ->
+  Pattern_match.taint_trace Lazy.t option ->
   unit
 
 val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error

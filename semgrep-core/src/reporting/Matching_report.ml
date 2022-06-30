@@ -58,7 +58,7 @@ let rec join_with_space_if_needed xs =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let print_match ?(format = Normal) ?(str = "") ii =
+let print_match ?(format = Normal) ?(str = "") ?(spaces = 0) ii =
   try
     let mini, maxi = PI.min_max_ii_by_pos ii in
     let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
@@ -69,11 +69,12 @@ let print_match ?(format = Normal) ?(str = "") ii =
     match format with
     | Normal ->
         let prefix = if str = "" then prefix else prefix ^ " " ^ str in
-        pr prefix;
+        let spaces_string = String.init spaces (fun _ -> ' ') in
+        pr (spaces_string ^ prefix);
         (* todo? some context too ? *)
         lines
         |> Common.map (fun i -> arr.(i))
-        |> List.iter (fun s -> pr (" " ^ s))
+        |> List.iter (fun s -> pr (spaces_string ^ " " ^ s))
     (* bugfix: do not add extra space after ':', otherwise M-x wgrep will not work *)
     | Emacs -> pr (prefix ^ ":" ^ arr.(List.hd lines))
     | OneLine ->

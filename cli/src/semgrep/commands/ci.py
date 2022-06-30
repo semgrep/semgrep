@@ -1,5 +1,4 @@
 import os
-import subprocess
 import sys
 import time
 from contextlib import contextmanager
@@ -23,7 +22,6 @@ from semgrep.constants import OutputFormat
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.git import GIT_SH_TIMEOUT
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
@@ -34,6 +32,7 @@ from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
+from semgrep.util import git_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -86,42 +85,19 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
         logger.info("Fixing git state for github action pull request")
 
         logger.debug("Calling git rev-parse HEAD")
-        rev_parse = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            encoding="utf-8",
-            check=True,
-            timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
-        )
-        logger.debug(f"git rev-parse stdout: {rev_parse.stdout}")
-        logger.debug(f"git rev-parse stderr: {rev_parse.stderr}")
-        stashed_rev = rev_parse.stdout.rstrip()
+        stashed_rev = git_check_output(["git", "rev-parse", "HEAD"])
         logger.debug(f"stashed_rev: {stashed_rev}")
 
         logger.info(
             f"Not on head ref: {metadata.head_branch_hash}; checking that out now."
         )
-        checkout = subprocess.run(
-            ["git", "checkout", metadata.head_branch_hash],
-            encoding="utf-8",
-            check=True,
-            capture_output=True,
-            timeout=GIT_SH_TIMEOUT,
-        )
-        logger.debug(f"git checkout stdout: {checkout.stdout}")
-        logger.debug(f"git checkout stderr: {checkout.stderr}")
+        git_check_output(["git", "checkout", metadata.head_branch_hash])
 
         try:
             yield
         finally:
             logger.info(f"Returning to original head revision {stashed_rev}")
-            subprocess.run(
-                ["git", "checkout", stashed_rev],
-                encoding="utf-8",
-                capture_output=True,
-                check=True,
-                timeout=GIT_SH_TIMEOUT,
-            )
+            git_check_output(["git", "checkout", stashed_rev])
     else:
         # Do nothing
         yield

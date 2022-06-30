@@ -168,8 +168,6 @@ jobs:
     name: Build the OSX binaries
     runs-on: macos-10.15
     steps:
-      - name: Install pipenv
-        run: sudo python3 -m pip install pipenv==2022.6.7
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - name: Checkout
@@ -180,6 +178,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv==2022.6.7
       - name: Run OSX release script
         run: ./scripts/osx-release.sh
       - name: Upload artifacts

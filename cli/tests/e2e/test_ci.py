@@ -98,7 +98,20 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
     mocker.patch.object(GithubMeta, "_shallow_fetch_branch", return_value=None)
 
-    yield (repo_base, base_commit, head_commit)
+    repo_copy_base = tmp_path / "checkout_project_name"
+    repo_copy_base.mkdir()
+    monkeypatch.chdir(repo_copy_base)
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", repo_base],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "pull", "origin"])
+    subprocess.run(["git", "checkout", f"{MAIN_BRANCH_NAME}"])
+    subprocess.run(["git", "checkout", f"{BRANCH_NAME}"])
+
+    yield (repo_copy_base, base_commit, head_commit)
 
 
 @pytest.fixture(autouse=True)
@@ -319,10 +332,12 @@ def test_full_run(
                         "ref": BRANCH_NAME,
                         "number": "7",
                         "title": "placeholder-pr-title",
+                        "repo": {"clone_url": "git://github.com/head/repo.git"},
                     },
                     "base": {
                         "sha": base_commit,
                         "ref": "main",
+                        "repo": {"clone_url": "git://github.com/base/repo.git"},
                     },
                 },
                 "sender": {
@@ -475,10 +490,12 @@ def test_github_ci_bad_base_sha(
                 "ref": "bar",
                 "number": "7",
                 "title": "placeholder-pr-title",
+                "repo": {"clone_url": str(git_tmp_path)},
             },
             "base": {
                 "sha": commits["foo"][0],  # Note how this is not latest commit in foo
                 "ref": "foo",
+                "repo": {"clone_url": str(git_tmp_path)},
             },
         },
         "sender": {
@@ -505,12 +522,32 @@ def test_github_ci_bad_base_sha(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
-    result = run_semgrep(options=["ci"], strict=False, assert_exit_code=None, env=env)
+    result = run_semgrep(
+        options=["ci", "--debug", "--no-force-color"],
+        strict=False,
+        assert_exit_code=None,
+        env=env,
+    )
 
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                # Mask variable debug output
+                re.compile(r"/(.*)/semgrep-core"),
+                re.compile(r"loaded 1 configs in(.*)"),
+                re.compile(r".*https://semgrep.dev(.*).*"),
+                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
+                re.compile(r"(.*Main\.Run_semgrep.*)"),
+                re.compile(r"(.*Main\.Common.*)"),
+                re.compile(r"(.*Main\.Parse_target.*)"),
+                re.compile(r"semgrep ran in (.*) on 1 files"),
+                re.compile(r"\"total_time\":(.*)"),
+                re.compile(r"\"commit_date\":(.*)"),
+                re.compile(r"-targets (.*) -timeout"),
+                re.compile(r"-rules (.*).json"),
+                str(git_tmp_path),
+                str(tmp_path),
             ]
         ),
         "results.txt",

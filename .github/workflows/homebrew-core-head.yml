@@ -1,14 +1,14 @@
 # Verify Homebrew Core Formula Works
-name: homebrew-core-head
+name: Homebrew Nightly Verification
 
 on:
+  workflow_dispatch:
   schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron: "0 12 * * *"
+    - cron: "26 9 * * *"
 
 jobs:
-  mac-build:
-    name: Check brew install formula works for develop head
+  brew-build:
+    name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
     runs-on: macos-10.15
     steps:
       - name: Brew update
@@ -17,3 +17,19 @@ jobs:
         run: brew install semgrep --HEAD
       - name: Check installed correctly
         run: brew test semgrep --HEAD
+
+  notify-failure:
+    needs: [brew-build]
+    name: Notify of Failure
+    runs-on: ubuntu-20.04
+    if: failure()
+    steps:
+      - name: Notify Failure
+        run: |
+          curl --request POST \
+          --url  ${{ secrets.HOMEBREW_NIGHTLY_NOTIFICATIONS_URL }} \
+          --header 'content-type: application/json' \
+          --data '{
+            "commit_sha": "${{needs.release-setup.outputs.version}}",
+            "workflow_url": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+          }'

@@ -118,12 +118,7 @@ let language_exceptions =
         "metavar_class_def";
       ] );
     ( Lang.Php,
-      [
-        "dots_method_chaining";
-        "equivalence_naming_import";
-        "metavar_key_value";
-        "metavar_typed";
-      ] );
+      [ "equivalence_naming_import"; "metavar_key_value"; "metavar_typed" ] );
     (* good boy, metavar_typed is working just for constants though *)
     (Lang.Python, []);
     (* metavar_typed is NA (dynamic language), metavar_anno also NA? *)
@@ -475,7 +470,7 @@ let tainting_test lang rules_file file =
            in
            let res, _debug =
              Match_tainting_mode.check_rule rule
-               (fun _ _ _ _ -> ())
+               (fun _ _ -> ())
                (Config_semgrep.default_config, equivs)
                xtarget
            in

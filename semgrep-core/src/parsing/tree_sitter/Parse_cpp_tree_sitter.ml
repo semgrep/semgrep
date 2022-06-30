@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021 R2C
+ * Copyright (c) 2021-2022 R2C
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -399,7 +399,8 @@ let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     Common.map
       (fun x ->
         match x with
-        | `Imm_tok_pat_c7f65b4 tok -> str env tok (* pattern "[^\\\\\"\\n]+" *)
+        | `Imm_tok_prec_p1_pat_c7f65b4 tok ->
+            str env tok (* pattern "[^\\\\\"\\n]+" *)
         | `Esc_seq tok -> str env tok
         (* escape_sequence *))
       v2
@@ -481,8 +482,8 @@ let map_ms_declspec_modifier (env : env)
   let v4 = token env v4 (* ")" *) in
   DeclSpec (v1, (v2, v3, v4))
 
-let map_anon_choice_stmt_id_d3c4b5f (env : env)
-    (x : CST.anon_choice_stmt_id_d3c4b5f) =
+let map_anon_choice_type_id_d3c4b5f (env : env)
+    (x : CST.anon_choice_type_id_d3c4b5f) =
   match x with
   | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
   (* TODO: should return an either? *)
@@ -696,12 +697,12 @@ let map_preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) =
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 = map_anon_choice_stmt_id_d3c4b5f env v1 in
+        let v1 = map_anon_choice_type_id_d3c4b5f env v1 in
         let v2 =
           Common.map
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
-              let v2 = map_anon_choice_stmt_id_d3c4b5f env v2 in
+              let v2 = map_anon_choice_type_id_d3c4b5f env v2 in
               v2)
             v2
         in
@@ -711,8 +712,8 @@ let map_preproc_params (env : env) ((v1, v2, v3) : CST.preproc_params) =
   let v3 = token env v3 (* ")" *) in
   (v1, v2, v3)
 
-let map_anon_choice_stmt_id_efddc5b (env : env)
-    (x : CST.anon_choice_stmt_id_efddc5b) : ident_or_op =
+let map_anon_choice_type_id_efddc5b (env : env)
+    (x : CST.anon_choice_type_id_efddc5b) : ident_or_op =
   match x with
   | `Id tok -> IdIdent (str env tok) (* pattern [a-zA-Z_]\w* *)
   | `Op_name tok ->
@@ -1111,8 +1112,8 @@ and map_anon_choice_prep_else_in_field_decl_list_97ea65e (env : env)
       (dir :: v4) @ v5
 
 (* used for field initializer in ctor/dtor *)
-and map_anon_choice_stmt_id_ae28a26 (env : env)
-    (x : CST.anon_choice_stmt_id_ae28a26) : name =
+and map_anon_choice_type_id_ae28a26 (env : env)
+    (x : CST.anon_choice_type_id_ae28a26) : name =
   match x with
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
@@ -1120,15 +1121,15 @@ and map_anon_choice_stmt_id_ae28a26 (env : env)
   | `Scoped_field_id (v1, v2, v3) ->
       let v1 =
         match v1 with
-        | Some x -> Some (map_anon_choice_stmt_id_ec78ce4 env x)
+        | Some x -> Some (map_anon_choice_type_id_ec78ce4 env x)
         | None -> None
       in
       let v2 = token env v2 (* "::" *) in
-      let v3 = map_anon_choice_stmt_id_efddc5b env v3 in
+      let v3 = map_anon_choice_type_id_efddc5b env v3 in
       name_scoped v1 v2 v3
 
-and map_anon_choice_stmt_id_ec78ce4 (env : env)
-    (x : CST.anon_choice_stmt_id_ec78ce4) =
+and map_anon_choice_type_id_ec78ce4 (env : env)
+    (x : CST.anon_choice_type_id_ec78ce4) =
   match x with
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
@@ -1140,8 +1141,8 @@ and map_anon_choice_stmt_id_ec78ce4 (env : env)
       let x = map_scoped_namespace_identifier env x in
       x
 
-and map_anon_choice_stmt_id_f1f5a37 (env : env)
-    (x : CST.anon_choice_stmt_id_f1f5a37) : name =
+and map_anon_choice_type_id_f1f5a37 (env : env)
+    (x : CST.anon_choice_type_id_f1f5a37) : name =
   match x with
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
@@ -2192,7 +2193,7 @@ and map_field_expression (env : env) (x : CST.field_expression) : expr =
       DotAccess (v1, v2, v3)
 
 and map_field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
-  let v1 = map_anon_choice_stmt_id_ae28a26 env v1 in
+  let v1 = map_anon_choice_type_id_ae28a26 env v1 in
   let v2 =
     match v2 with
     | `Init_list x ->
@@ -2528,7 +2529,7 @@ and map_operator_cast (env : env) ((v1, v2, v3, v4) : CST.operator_cast) : name
     | Some (v1, v2) ->
         let v1 =
           match v1 with
-          | Some x -> Some (map_anon_choice_stmt_id_ec78ce4 env x)
+          | Some x -> Some (map_anon_choice_type_id_ec78ce4 env x)
           | None -> None
         in
         let v2 = token env v2 (* "::" *) in
@@ -2795,18 +2796,18 @@ and map_scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) :
     name =
   let v1 =
     match v1 with
-    | Some x -> Some (map_anon_choice_stmt_id_ec78ce4 env x)
+    | Some x -> Some (map_anon_choice_type_id_ec78ce4 env x)
     | None -> None
   in
   let v2 = token env v2 (* "::" *) in
-  let v3 = map_anon_choice_stmt_id_efddc5b env v3 in
+  let v3 = map_anon_choice_type_id_efddc5b env v3 in
   name_scoped v1 v2 v3
 
 and map_scoped_namespace_identifier (env : env)
     ((v1, v2, v3) : CST.scoped_namespace_identifier) =
   let v1 =
     match v1 with
-    | Some x -> Some (map_anon_choice_stmt_id_ec78ce4 env x)
+    | Some x -> Some (map_anon_choice_type_id_ec78ce4 env x)
     | None -> None
   in
   let v2 = token env v2 (* "::" *) in
@@ -2817,7 +2818,7 @@ and map_scoped_type_identifier (env : env)
     ((v1, v2, v3) : CST.scoped_type_identifier) : name =
   let v1 =
     match v1 with
-    | Some x -> Some (map_anon_choice_stmt_id_ec78ce4 env x)
+    | Some x -> Some (map_anon_choice_type_id_ec78ce4 env x)
     | None -> None
   in
   let v2 = token env v2 (* "::" *) in
@@ -2990,12 +2991,12 @@ and map_template_declaration (env : env)
 
 and map_template_function (env : env) ((v1, v2) : CST.template_function) : name
     =
-  let v1 = map_anon_choice_stmt_id_f1f5a37 env v1 in
+  let v1 = map_anon_choice_type_id_f1f5a37 env v1 in
   let v2 = map_template_argument_list env v2 in
   name_add_template_args v1 v2
 
 and map_template_method (env : env) ((v1, v2) : CST.template_method) : name =
-  let v1 = map_anon_choice_stmt_id_ae28a26 env v1 in
+  let v1 = map_anon_choice_type_id_ae28a26 env v1 in
   let v2 = map_template_argument_list env v2 in
   name_add_template_args v1 v2
 
@@ -3368,7 +3369,7 @@ and map_update_expression (env : env) (x : CST.update_expression) : expr =
 and map_using_declaration (env : env) ((v1, v2, v3, v4) : CST.using_declaration)
     : using =
   let v1 = token env v1 (* "using" *) in
-  let v3 = map_anon_choice_stmt_id_f1f5a37 env v3 in
+  let v3 = map_anon_choice_type_id_f1f5a37 env v3 in
   let v4 = token env v4 (* ";" *) in
   let v2 =
     match v2 with

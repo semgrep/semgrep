@@ -83,6 +83,7 @@ let (matches_of_matcher :
                               file;
                               range_loc = (loc1, loc2);
                               env;
+                              taint_trace = None;
                               tokens = lazy [ info_of_token_location loc1 ];
                             }))
               |> List.flatten)

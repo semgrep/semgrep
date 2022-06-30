@@ -177,6 +177,12 @@ let add_call env tok eorig ~void mk_call =
 
 let add_stmt env st = Common.push st env.stmts
 let add_stmts env xs = xs |> List.iter (add_stmt env)
+
+let pop_stmts env =
+  let xs = List.rev !(env.stmts) in
+  env.stmts := [];
+  xs
+
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
 let ident_of_entity_opt ent =
@@ -290,6 +296,7 @@ and pattern env pat =
         |> List.concat
       in
       (tmp_lval, ss)
+  | G.PatTyped (pat1, _typTODO) -> pattern env pat1
   | _ -> todo (G.P pat)
 
 and _catch_exn env exn =
@@ -621,17 +628,13 @@ and expr_aux env ?(void = false) e_gen =
       let lval = fresh_lval env tok in
 
       (* not sure this is correct *)
-      let before = List.rev !(env.stmts) in
-      env.stmts := [];
+      let before = pop_stmts env in
       let e1 = expr env e1_gen in
-      let ss_for_e1 = List.rev !(env.stmts) in
-      env.stmts := [];
+      let ss_for_e1 = pop_stmts env in
       let e2 = expr env e2_gen in
-      let ss_for_e2 = List.rev !(env.stmts) in
-      env.stmts := [];
+      let ss_for_e2 = pop_stmts env in
       let e3 = expr env e3_gen in
-      let ss_for_e3 = List.rev !(env.stmts) in
-      env.stmts := [];
+      let ss_for_e3 = pop_stmts env in
 
       add_stmts env before;
       add_stmts env ss_for_e1;
@@ -890,7 +893,11 @@ and stmt_expr env ?e_gen st =
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, expr_opt env eorig)) |> add_stmt env;
       expr_opt env None
-  | __else__ -> todo ()
+  | __else__ ->
+      (* In any case, let's make sure the statement is in the IL translation
+       * so that e.g. taint can do its job. *)
+      stmt env st |> add_stmts env;
+      todo ()
 
 (*****************************************************************************)
 (* Exprs and instrs *)
@@ -917,8 +924,7 @@ and lval_of_ent env ent =
 
 and expr_with_pre_stmts env ?void e =
   let e = expr env ?void e in
-  let xs = List.rev !(env.stmts) in
-  env.stmts := [];
+  let xs = pop_stmts env in
   (xs, e)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
@@ -926,21 +932,18 @@ and cond_with_pre_stmts env ?void cond =
   match cond with
   | G.Cond e ->
       let e = expr env ?void e in
-      let xs = List.rev !(env.stmts) in
-      env.stmts := [];
+      let xs = pop_stmts env in
       (xs, e)
   | G.OtherCond (categ, xs) ->
       let e = G.OtherExpr (categ, xs) |> G.e in
       log_fixme ToDo (G.E e);
       let e = expr env ?void e in
-      let xs = List.rev !(env.stmts) in
-      env.stmts := [];
+      let xs = pop_stmts env in
       (xs, e)
 
 and args_with_pre_stmts env args =
   let args = arguments env args in
-  let xs = List.rev !(env.stmts) in
-  env.stmts := [];
+  let xs = pop_stmts env in
   (xs, args)
 
 and expr_with_pre_stmts_opt env eopt =
@@ -1014,7 +1017,8 @@ and stmt_aux env st =
       (* optimize? pass context to expr when no need for return value? *)
       let ss, e = expr_with_pre_stmts ~void:true env eorig in
       mk_aux_var env tok e |> ignore;
-      ss
+      let ss' = pop_stmts env in
+      ss @ ss'
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
       let lv = lval_of_ent env ent in
@@ -1063,48 +1067,15 @@ and stmt_aux env st =
       @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
       @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
-      let ss, e' = expr_with_pre_stmts env e in
-      let st = stmt st_env st in
-
-      let next_lval = fresh_lval env tok2 in
-      let hasnext_lval = fresh_lval env tok2 in
-      let hasnext_call =
-        mk_s
-          (Instr
-             (mk_i
-                (CallSpecial (Some hasnext_lval, (ForeachHasNext, tok2), [ e' ]))
-                (related_tok tok2)))
-      in
-      let next_call =
-        mk_s
-          (Instr
-             (mk_i
-                (CallSpecial (Some next_lval, (ForeachNext, tok2), [ e' ]))
-                (related_tok tok2)))
-      in
-      (* same semantic? or need to take Ref? or pass lval
-       * directly in next_call instead of using intermediate next_lval?
-       *)
-      let assign_st =
-        pattern_assign_statements env
-          (mk_e (Fetch next_lval) (related_tok tok2))
-          ~eorig:(related_tok tok2) pat
-      in
-      let cond = mk_e (Fetch hasnext_lval) (related_tok tok2) in
-
-      (ss @ [ hasnext_call ])
-      @ [
-          mk_s
-            (Loop
-               ( tok,
-                 cond,
-                 [ next_call ] @ assign_st @ st @ cont_label_s
-                 @ [ (* ss @ ?*) hasnext_call ] ));
-        ]
-      @ break_label_s
+      for_each env tok (pat, tok2, e) st
+  | G.For (_, G.MultiForEach [], st) -> stmt env st
+  | G.For (_, G.MultiForEach (FEllipsis _ :: _), _) -> sgrep_construct (G.S st)
+  | G.For (tok, G.MultiForEach (FECond (fr, tok2, e) :: for_eachs), st) ->
+      let loop = G.For (tok, G.MultiForEach for_eachs, st) |> G.s in
+      let st = G.If (tok2, Cond e, loop, None) |> G.s in
+      for_each env tok fr st
+  | G.For (tok, G.MultiForEach (FE fr :: for_eachs), st) ->
+      for_each env tok fr (G.For (tok, G.MultiForEach for_eachs, st) |> G.s)
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
@@ -1247,6 +1218,48 @@ and stmt_aux env st =
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
+
+and for_each env tok (pat, tok2, e) st =
+  let cont_label_s, break_label_s, st_env = mk_break_continue_labels env tok in
+  let ss, e' = expr_with_pre_stmts env e in
+  let st = stmt st_env st in
+
+  let next_lval = fresh_lval env tok2 in
+  let hasnext_lval = fresh_lval env tok2 in
+  let hasnext_call =
+    mk_s
+      (Instr
+         (mk_i
+            (CallSpecial (Some hasnext_lval, (ForeachHasNext, tok2), [ e' ]))
+            (related_tok tok2)))
+  in
+  let next_call =
+    mk_s
+      (Instr
+         (mk_i
+            (CallSpecial (Some next_lval, (ForeachNext, tok2), [ e' ]))
+            (related_tok tok2)))
+  in
+  (* same semantic? or need to take Ref? or pass lval
+     * directly in next_call instead of using intermediate next_lval?
+  *)
+  let assign_st =
+    pattern_assign_statements env
+      (mk_e (Fetch next_lval) (related_tok tok2))
+      ~eorig:(related_tok tok2) pat
+  in
+  let cond = mk_e (Fetch hasnext_lval) (related_tok tok2) in
+
+  (ss @ [ hasnext_call ])
+  @ [
+      mk_s
+        (Loop
+           ( tok,
+             cond,
+             [ next_call ] @ assign_st @ st @ cont_label_s
+             @ [ (* ss @ ?*) hasnext_call ] ));
+    ]
+  @ break_label_s
 
 (* TODO: Maybe this and the following function could be merged *)
 and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =

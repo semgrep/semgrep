@@ -109,7 +109,7 @@ and map_resolved_name_kind = function
   | Macro -> `Macro
   | EnumConstant -> `EnumConstant
   | TypeName -> `TypeName
-  | ResolvedName _v1 -> failwith "TODO"
+  | ResolvedName (_v1, _v2) -> failwith "TODO"
 
 and map_id_info x =
   match x with
@@ -799,6 +799,11 @@ and map_for_header = function
       let t = map_tok t in
       let v1 = map_pattern v1 and v2 = map_expr v2 in
       `ForEach (v1, t, v2)
+  | MultiForEach (FE (v1, t, v2) :: _) ->
+      let t = map_tok t in
+      let v1 = map_pattern v1 and v2 = map_expr v2 in
+      `ForEach (v1, t, v2)
+  | MultiForEach _ -> failwith "todo - MultiForEach"
   | ForEllipsis t ->
       let t = map_tok t in
       `ForEllipsis t
