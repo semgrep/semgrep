@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v3
       - name: something
         run: |
-          git fetch --depth 1000 develop
+          git fetch --depth 1000 origin develop
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
