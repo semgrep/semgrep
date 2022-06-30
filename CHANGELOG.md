@@ -25,6 +25,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `--verbose` no longer toggles the display of timing information, use
   `--verbose --time` to display this information.
+- Change timeout for git operations from 100s to 500s
 
 ## [0.101.1](https://github.com/returntocorp/semgrep/releases/tag/v0.101.1) - 2022-06-28
 
