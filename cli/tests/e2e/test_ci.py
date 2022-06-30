@@ -709,7 +709,7 @@ def test_shallow_wrong_merge_base(
     )
 
     post_calls = AppSession.post.call_args_list  # type: ignore
-    findings_json = post_calls[(len(post_calls) / 2) + 1].kwargs["json"]
+    findings_json = post_calls[(len(post_calls) // 2) + 1].kwargs["json"]
 
     assert (
         len(findings_json["findings"]) == 1
