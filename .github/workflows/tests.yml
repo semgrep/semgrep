@@ -25,6 +25,9 @@ jobs:
           sudo chmod -R 777 "$github_cache_dir"
       - name: Checkout
         uses: actions/checkout@v3
+      - name: something
+        run: |
+          git fetch --depth 1000 develop
       - id: submodule-status
         name: Get submodule version
         run: echo ::set-output name=versions-hash::$(git submodule status --cached | sha256sum | cut -d" " -f1)
