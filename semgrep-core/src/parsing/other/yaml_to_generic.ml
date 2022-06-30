@@ -524,7 +524,7 @@ let mask_unicode str =
 (* Entry points *)
 (*****************************************************************************)
 
-let program_help file str =
+let parse_yaml_file file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
@@ -541,13 +541,19 @@ let program_help file str =
   let xs = parse env in
   Common.map G.exprstmt xs
 
-let program file =
+(* This needs to be separate since we call parse_rule to parse yaml rules
+   for other languages, but when we parse yaml-language rules/targets we
+   preprocess unicode characters differently *)
+
+let parse_rule file =
   let str = Common.read_file file in
-  program_help file str
+  parse_yaml_file file str
+
+(* The entry points for yaml-language parsing *)
 
 let any str =
   let file = "<pattern_file>" in
-  let str = preprocess_yaml str in
+  let str = preprocess_yaml (mask_unicode str) in
   let parser = get_res file (S.parser str) in
   let env =
     {
@@ -561,8 +567,6 @@ let any str =
   let xs = parse env in
   make_pattern_expr xs
 
-let yaml_program file =
+let program file =
   let str = mask_unicode (Common.read_file file) in
-  program_help file str
-
-let yaml_any str = any (mask_unicode str)
+  parse_yaml_file file str
