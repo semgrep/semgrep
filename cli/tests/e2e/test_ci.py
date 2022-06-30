@@ -696,7 +696,7 @@ def test_shallow_wrong_merge_base(
         options=["ci", "--no-force-color"],
         strict=False,
         assert_exit_code=None,
-        env={**env, "SEMGREP_MIN_FETCH_DEPTH": "100"},
+        env={**env, "SEMGREP_GHA_MIN_FETCH_DEPTH": "100"},
     )
 
     snapshot.assert_match(

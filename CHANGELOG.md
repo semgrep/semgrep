@@ -8,9 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Scala: ellipsis are now allowed in for loop headers, so you can write patterns
   like `for (...; $X <- $Y if $COND; ...) { ... }` to match nested for loops. (#5650)
-- The `SEMGREP_MIN_FETCH_DEPTH` environment variable
-  which lets you set how many commits `semgrep ci` fetches from the remote at the minimum
-  when the Git repository was cloned shallow.
+- The `SEMGREP_GHA_MIN_FETCH_DEPTH` environment variable which lets you set how many
+  commits `semgrep ci` fetches from the remote at the minimum when calculating the merge-base in GithubActions.
   Having more commits available helps Semgrep determine what changes came from the current pull request,
   fixing issues where Semgrep would report findings that weren't touched in a given pull request.
   This value is set to 0 by default (#5664)

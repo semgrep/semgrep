@@ -139,5 +139,5 @@ class Env:
 
     @min_fetch_depth.default
     def min_fetch_depth_default(self) -> int:
-        value = os.getenv("SEMGREP_MIN_FETCH_DEPTH", "0")
+        value = os.getenv("SEMGREP_GHA_MIN_FETCH_DEPTH", "0")
         return int(value)
