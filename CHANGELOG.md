@@ -6,7 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- Scala: ellipsis are now allowed in for loop headers (#5650)
+- Scala: ellipsis are now allowed in for loop headers, so you can write patterns
+  like `for (...; $X <- $Y if $COND; ...) { ... }` to match nested for loops. (#5650)
 
 ### Fixed
 
