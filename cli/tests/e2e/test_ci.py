@@ -560,9 +560,10 @@ def test_github_ci_bad_base_sha(
     ), "Potentially scanning wrong files/commits"
 
 
-def test_shallow_wrong_merge_base(run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch):
-    """
-    """
+def test_shallow_wrong_merge_base(
+    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+):
+    """ """
     commits = defaultdict(list)
     foo = git_tmp_path / "foo.py"
     bar = git_tmp_path / "bar.py"
@@ -571,7 +572,15 @@ def test_shallow_wrong_merge_base(run_semgrep, snapshot, git_tmp_path, tmp_path,
     subprocess.run(["git", "checkout", "-b", "foo"])
     foo.open("a").write(f"foo == 5\n")
     commits["foo"].append(_git_commit(1, add=True))
-    subprocess.run(["git", "show", "-s", "--format=%ct", "b903231925961ac9d787ae53ee0bd15ec156e689"])
+    subprocess.run(
+        [
+            "git",
+            "show",
+            "-s",
+            "--format=%ct",
+            "b903231925961ac9d787ae53ee0bd15ec156e689",
+        ]
+    )
 
     subprocess.run(["git", "checkout", "-b", "baz"])
     baz.open("a").write(f"baz == 5\n")
@@ -591,12 +600,21 @@ def test_shallow_wrong_merge_base(run_semgrep, snapshot, git_tmp_path, tmp_path,
         commits["foo"].append(_git_commit(5, add=True))
 
     commits["foo"].append(_git_merge("baz"))
-    git_log = subprocess.run(["git", "--no-pager", "log", "--oneline", "--decorate", "--graph", "--all"], check=True, capture_output=True, encoding="utf-8")
+    git_log = subprocess.run(
+        ["git", "--no-pager", "log", "--oneline", "--decorate", "--graph", "--all"],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
     print(git_log.stdout)
     subprocess.run(["git", "checkout", "bar"])
-    git_log = subprocess.run(["git", "--no-pager", "log", "--oneline", "--decorate", "--graph"], check=True, capture_output=True, encoding="utf-8")
+    git_log = subprocess.run(
+        ["git", "--no-pager", "log", "--oneline", "--decorate", "--graph"],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
     print(git_log.stdout)
-
 
     # Mock Github Actions Env Vars
     env = {
@@ -691,8 +709,6 @@ def test_shallow_wrong_merge_base(run_semgrep, snapshot, git_tmp_path, tmp_path,
     assert (
         len(findings_json["findings"]) == 1
     ), "Potentially scanning wrong files/commits"
-
-
 
 
 def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
