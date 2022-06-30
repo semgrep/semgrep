@@ -160,7 +160,14 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                       let tokens = lazy (V.ii_of_any (any x)) in
                       let rule_id = rule_id_of_mini_rule rule in
                       Common.push
-                        { PM.rule_id; file; env; range_loc; tokens }
+                        {
+                          PM.rule_id;
+                          file;
+                          env;
+                          range_loc;
+                          tokens;
+                          taint_trace = None;
+                        }
                         matches;
                       hook env tokens));
   (* try the rules on substatements and subexpressions *)
@@ -288,7 +295,14 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                 let tokens = lazy (V.ii_of_any (E x)) in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 Common.push
-                                  { PM.rule_id; file; env; range_loc; tokens }
+                                  {
+                                    PM.rule_id;
+                                    file;
+                                    env;
+                                    range_loc;
+                                    tokens;
+                                    taint_trace = None;
+                                  }
                                   matches;
                                 hook env tokens)
                    | Some (start_loc, end_loc) ->
@@ -333,7 +347,14 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                   let tokens = lazy (V.ii_of_any (S x)) in
                                   let rule_id = rule_id_of_mini_rule rule in
                                   Common.push
-                                    { PM.rule_id; file; env; range_loc; tokens }
+                                    {
+                                      PM.rule_id;
+                                      file;
+                                      env;
+                                      range_loc;
+                                      tokens;
+                                      taint_trace = None;
+                                    }
                                     matches;
                                   hook env tokens));
               k x
@@ -401,6 +422,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                         env;
                                         range_loc;
                                         tokens;
+                                        taint_trace = None;
                                       }
                                       matches;
                                     hook env tokens)));
