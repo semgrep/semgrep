@@ -20,7 +20,7 @@ from typing import Union
 import jsonschema.exceptions
 from attrs import evolve
 from attrs import frozen
-from jsonschema.validators import Draft7Validator
+from jsonschema.validators import Draft202012Validator
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -456,7 +456,7 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     tests/e2e/rules/syntax/badXXX.yaml
     """
 
-    contexts = list(error.parent.context) if error.parent else [error]
+    contexts = (error.parent.context or []) if error.parent else [error]
     bad_type = set()
     invalid_keys = set()
     any_of_invalid_keys = set()
@@ -501,21 +501,21 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     if outs:
         return "\n".join(outs)
 
-    return cast(str, contexts[0].message)
+    return contexts[0].message
 
 
 def validate_yaml(data: YamlTree) -> None:
     from semgrep.error import InvalidRuleSchemaError
 
     try:
-        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft202012Validator)
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data
 
         root_error = ve
         while root_error.parent is not None:
-            root_error = root_error.parent
+            root_error = cast(jsonschema.ValidationError, root_error.parent)
 
         for el in root_error.absolute_path:
             item = item.value[el]
