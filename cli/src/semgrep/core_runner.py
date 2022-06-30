@@ -195,7 +195,21 @@ class StreamingSemgrepCore:
                 except ValueError:
                     # We saw a non-("." or number) line; move to reading json
                     # output blob.
+                    #
+                    # Leave this in `line_bytes` so we can capture it in stdout
+                    # in the next loop.
                     break
+
+            # If we expect to be done, move to the next loop. This is necessary
+            # because reading with `stream.readline()` above will cause
+            # issues (namely, fill the pipe) if reading the json result dump.
+            #
+            # See e.g., <https://github.com/returntocorp/semgrep/issues/4693>
+            if self._progress_bar.n == self._progress_bar.total:
+                # Reset `line_bytes` here so the last state communication
+                # output isn't captured in stdout.
+                line_bytes = b""
+                break
 
         while True:
             # Once we see a non-"." char it means we are reading a large json
