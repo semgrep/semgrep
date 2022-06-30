@@ -1,5 +1,5 @@
 === command
-CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_MIN_FETCH_DEPTH="100" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --debug --no-force-color
+CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --debug --no-force-color
 === end of command
 
 === exit code
@@ -17,6 +17,14 @@ Findings:
          ▶▶┆ Autofix ▶ bar == 2
           1┆ bar == 2
 
+
+  foo.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ foo == 2
+          2┆ foo == 2
+
 === end of stdout - plain
 
 === stderr - plain
@@ -32,11 +40,11 @@ Fixing git state for github action pull request
 Calling git rev-parse HEAD
 stashed_rev: 7b5cda417c780f1f96c888e1d7bd062f46df236e
 Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
-Attempting to find merge base, attempt_count=0, fetch_depth=100
-Attempting to find merge base, attempt_count=1, fetch_depth=104
+Attempting to find merge base, attempt_count=0, fetch_depth=0
+Attempting to find merge base, attempt_count=1, fetch_depth=4
 Trying to fetch branch foo from origin as base branch
 Trying to fetch branch bar as commit from origin as head branch tip commit
-Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
 Fetching configuration from semgrep.dev
 Starting scan
 Using https://semgrep.dev<MASKED>
@@ -50,10 +58,10 @@ running 4 rules from 1 config remote-url_0
 Initializing git status
 Running git diff
 Finished git diff. Parsing git status output
-['A', 'bar.py']
+['A', 'bar.py', 'M', 'foo.py']
 Git status:
 added: [PosixPath('bar.py')]
-modified: []
+modified: [PosixPath('foo.py')]
 removed: []
 unmerged: []
 Initializing dirty paths
@@ -67,7 +75,7 @@ Rules:
 - eqeq-five
 - eqeq-four
 Passing whole rules directly to semgrep_core
-Scanning 1 file with 4 python rules.
+Scanning 2 files with 4 python rules.
 Running semgrep-core with command:
 /<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
 --- semgrep-core stderr ---
@@ -132,12 +140,60 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
+<MASKED>
+<MASKED>
+--- end semgrep-core stderr ---
+semgrep ran in 0:00:00.191367 on 2 files
+findings summary: 3 error, 0 info
+  Current version has 3 findings.
+
+Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
+  Will report findings introduced by these commits:
+    * 7b5cda4 commit #4
+    * 5b37988 commit #3
+
+Running git write-tree
+Running git checkout for baseline context
+Finished git checkout for baseline context
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev<MASKED>
+Passing whole rules directly to semgrep_core
+Scanning 1 file.
+Running semgrep-core with command:
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
+--- semgrep-core stderr ---
+<MASKED>
+<MASKED>
+<MASKED>
+{
+  "rules": [
+    {
+      "fix": "$X == 2",
+      "id": "eqeq-five",
+      "languages": [
+        "python"
+      ],
+      "message": "useless comparison to 5",
+      "metadata": {
+        "dev.semgrep.actions": []
+      },
+      "pattern": "$X == 5",
+      "severity": "ERROR"
+    }
+  ]
+}
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
-findings summary: 1 error, 0 info
-  Current version has 1 finding.
-
-Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
+findings summary: 1 error
+Removing matches that exist in baseline scan
+Removed 1 finding that were in baseline scan
+Running git reset to return original context
+Finished git reset to return original context
 Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
 
 ========================================
@@ -180,7 +236,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
-  Found 1 finding (0 blocking) from 3 rules.
+  Found 2 findings (0 blocking) from 3 rules.
   Uploading findings to Semgrep App.
 Sending findings blob: {
     "token": null,
@@ -206,10 +262,32 @@ Sending findings blob: {
             "fixed_lines": [
                 "bar == 2"
             ]
+        },
+        {
+            "check_id": "eqeq-five",
+            "path": "foo.py",
+            "line": 2,
+            "column": 1,
+            "end_line": 2,
+            "end_column": 9,
+            "message": "useless comparison to 5",
+            "severity": 2,
+            "index": 1,
+            "commit_date":<MASKED>
+            "syntactic_id": "861172832df30cd4106e6b802e97b11f",
+            "metadata": {
+                "dev.semgrep.actions": []
+            },
+            "is_blocking": false,
+            "match_based_id": "6b80ba6bd4a3fd199becfdf3dca66b46737892d6d4b59b583c453db90c4588fdec9d3a5a392327bda406d7299fa703db96a8a9ac62f55d3d3a03471b3b004e87_1",
+            "fixed_lines": [
+                "foo == 2"
+            ]
         }
     ],
     "searched_paths": [
-        "bar.py"
+        "bar.py",
+        "foo.py"
     ],
     "rule_ids": [
         "eqeq-bad",
@@ -226,7 +304,7 @@ Sending ignores blob: {
 Sending complete blob: {
     "exit_code": 0,
     "stats": {
-        "findings": 1,
+        "findings": 2,
         "errors": [],
         "total_time":<MASKED>
     }

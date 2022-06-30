@@ -670,13 +670,48 @@ def test_shallow_wrong_merge_base(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
-    # subprocess.run(["git", "fetch", "--shallow-since=984182400", "origin"])
-
+    # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
         options=["ci", "--debug", "--no-force-color"],
         strict=False,
         assert_exit_code=None,
         env=env,
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+                # Mask variable debug output
+                re.compile(r"/(.*)/semgrep-core"),
+                re.compile(r"loaded 1 configs in(.*)"),
+                re.compile(r".*https://semgrep.dev(.*).*"),
+                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
+                re.compile(r"(.*Main\.Run_semgrep.*)"),
+                re.compile(r"(.*Main\.Common.*)"),
+                re.compile(r"(.*Main\.Parse_target.*)"),
+                re.compile(r"semgrep ran in (.*) on 1 files"),
+                re.compile(r"\"total_time\":(.*)"),
+                re.compile(r"\"commit_date\":(.*)"),
+                re.compile(r"-targets (.*) -timeout"),
+                re.compile(r"-rules (.*).json"),
+                str(git_tmp_path),
+                str(tmp_path),
+            ]
+        ),
+        "bad_results.txt",
+    )
+    post_calls = AppSession.post.call_args_list  # type: ignore
+    findings_json = post_calls[1].kwargs["json"]
+    assert (
+        len(findings_json["findings"]) == 2
+    ), "Test might be invalid since we expect this to scan the wrong thing"
+
+    # Run again with greater depth
+    result = run_semgrep(
+        options=["ci", "--debug", "--no-force-color"],
+        strict=False,
+        assert_exit_code=None,
+        env={**env, "SEMGREP_MIN_FETCH_DEPTH": "100"},
     )
 
     snapshot.assert_match(
@@ -704,7 +739,7 @@ def test_shallow_wrong_merge_base(
     )
 
     post_calls = AppSession.post.call_args_list  # type: ignore
-    findings_json = post_calls[1].kwargs["json"]
+    findings_json = post_calls[(len(post_calls) / 2) + 1].kwargs["json"]
 
     assert (
         len(findings_json["findings"]) == 1
