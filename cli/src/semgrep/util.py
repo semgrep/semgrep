@@ -4,11 +4,13 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from textwrap import dedent
 from typing import Any
 from typing import Callable
 from typing import FrozenSet
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import TypeVar
 from urllib.parse import urlparse
 
@@ -16,8 +18,10 @@ import click
 
 from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
+from semgrep.constants import GIT_SH_TIMEOUT
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
+
 
 T = TypeVar("T")
 
@@ -172,3 +176,37 @@ def unit_str(count: int, unit: str, pad: bool = False) -> str:
         unit += " "
 
     return f"{count} {unit}"
+
+
+def git_check_output(command: Sequence[str]) -> str:
+    """
+    Helper function to run a GIT command that prints out helpful debugging information
+    """
+    from semgrep.error import SemgrepError  # Avoiding circular import
+
+    try:
+        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+        return subprocess.check_output(
+            command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
+        ).strip()
+    except subprocess.CalledProcessError as e:
+        command_str = " ".join(command)
+        raise SemgrepError(
+            dedent(
+                f"""
+                Command failed with exit code: {e.returncode}
+                -----
+                Command failed with output:
+                {e.stderr}
+
+                Failed to run '{command_str}'. Possible reasons:
+
+                - the git binary is not available
+                - the current working directory is not a git repository
+                - the current working directory is not marked as safe
+                    (fix with `git config --global --add safe.directory $(pwd)`)
+
+                Try running the command yourself to debug the issue.
+                """
+            ).strip()
+        )

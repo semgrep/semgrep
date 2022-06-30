@@ -1,7 +1,6 @@
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
-from textwrap import dedent
 from textwrap import indent
 from typing import Dict
 from typing import Iterator
@@ -9,15 +8,12 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 
-from semgrep.error import SemgrepError
-from semgrep.util import sub_check_output
+from semgrep.constants import GIT_SH_TIMEOUT
+from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
-
-
-GIT_SH_TIMEOUT = 100
 
 
 def zsplit(s: str) -> List[str]:
@@ -68,28 +64,7 @@ class BaselineHandler:
 
         try:
             # Check commit hash exists
-            try:
-                subprocess.run(
-                    ["git", "cat-file", "-e", base_commit],
-                    check=True,
-                    capture_output=True,
-                )
-            except subprocess.CalledProcessError:
-                raise SemgrepError(
-                    dedent(
-                        f"""
-                        Cannot find a commit with reference '{base_commit}'. Possible reasons:
-
-                        - the referenced commit does not exist
-                        - the git binary is not available
-                        - the current working directory is not a git repository
-                        - the current working directory is not marked as safe
-                            (fix with `git config --global --add safe.directory $(pwd)`)
-
-                        Try running `git show {base_commit}` to debug the issue.
-                        """
-                    ).strip()
-                )
+            git_check_output(["git", "cat-file", "-e", base_commit])
 
             self.status = self._get_git_status()
             self._abort_on_pending_changes()
@@ -214,14 +189,7 @@ class BaselineHandler:
             return self._dirty_paths_by_status
 
         logger.debug("Initializing dirty paths")
-        sub_out = subprocess.run(
-            ["git", "status", "--porcelain", "-z"],
-            timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
-            encoding="utf-8",
-            check=True,
-        )
-        git_status_output = sub_out.stdout
+        git_status_output = git_check_output(["git", "status", "--porcelain", "-z"])
         logger.debug(f"Git status output: {git_status_output}")
         output = zsplit(git_status_output)
         logger.debug("finished getting dirty paths")
@@ -302,27 +270,15 @@ class BaselineHandler:
         self._abort_on_conflicting_untracked_paths(self.status)
 
         logger.debug("Running git write-tree")
-        current_head = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            timeout=GIT_SH_TIMEOUT,
-            capture_output=True,
-            encoding="utf-8",
-            check=True,
-        ).stdout.strip()
+
+        current_head = git_check_output(["git", "rev-parse", "HEAD"])
         try:
-            merge_base_sha = (
-                sub_check_output(["git", "merge-base", self._base_commit, "HEAD"])
-                .rstrip()
-                .decode()
+            merge_base_sha = git_check_output(
+                ["git", "merge-base", self._base_commit, "HEAD"]
             )
 
             logger.debug("Running git checkout for baseline context")
-            subprocess.run(
-                ["git", "reset", "--hard", merge_base_sha],
-                timeout=GIT_SH_TIMEOUT,
-                capture_output=True,
-                check=True,
-            )
+            git_check_output(["git", "reset", "--hard", merge_base_sha])
             logger.debug("Finished git checkout for baseline context")
             yield
         finally:
@@ -333,6 +289,7 @@ class BaselineHandler:
             # Note that we have no good way of detecting this issue without inspecting the checkout output
             # message, which means we are fragile with respect to git version here.
             logger.debug("Running git reset to return original context")
+            # nosem: use-git-check-output-helper
             x = subprocess.run(
                 ["git", "reset", "--hard", current_head],
                 capture_output=True,
@@ -357,35 +314,27 @@ class BaselineHandler:
                     )
 
     def print_git_log(self) -> None:
-        base_commit_sha = (
-            sub_check_output(["git", "rev-parse", self._base_commit]).rstrip().decode()
-        )
-        merge_base_sha = (
-            sub_check_output(["git", "merge-base", self._base_commit, "HEAD"])
-            .rstrip()
-            .decode()
+        base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])
+        merge_base_sha = git_check_output(
+            ["git", "merge-base", self._base_commit, "HEAD"]
         )
         logger.info("  Will report findings introduced by these commits:")
-        log = sub_check_output(
-            ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"],
-            timeout=GIT_SH_TIMEOUT,
-            encoding="utf-8",
-        ).rstrip()
+        log = git_check_output(
+            ["git", "log", "--oneline", "--graph", f"{merge_base_sha}..HEAD"]
+        )
         logger.info(indent(log, "    "))
         if merge_base_sha != base_commit_sha:
             logger.warning(
                 "  The current branch is missing these commits from the baseline branch:"
             )
-            log = sub_check_output(
+            log = git_check_output(
                 [
                     "git",
                     "log",
                     "--oneline",
                     "--graph",
                     f"{merge_base_sha}..{base_commit_sha}",
-                ],
-                timeout=GIT_SH_TIMEOUT,
-                encoding="utf-8",
+                ]
             )
             logger.info(indent(log, "    ").rstrip())
 
