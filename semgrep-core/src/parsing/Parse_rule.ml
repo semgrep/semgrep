@@ -40,7 +40,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * of tokens with location information. We actually used first that low-level
  * API to return the generic AST of a yaml file, to add support for
  * YAML in semgrep (allowing semgrep rules on any YAML files).
- * See the Yaml_to_generic.program function. We then abuse this function
+ * See the Yaml_to_generic.parse_rule function. We then abuse this function
  * to also parse a semgrep rule (which is a yaml file) in this file.
  *
  *)
@@ -983,7 +983,7 @@ let parse_bis ?error_recovery file =
          * Yojson to parse a JSON rule, because Yojson correctly unescaped
          * and returned the "final string".
          *
-         * Note that this is handled correctly by Yaml_to_generic.program
+         * Note that this is handled correctly by Yaml_to_generic.parse_rule
          * below.
          *)
         Json_to_generic.program ~unescape_strings:true
@@ -995,22 +995,22 @@ let parse_bis ?error_recovery file =
             if n <> 0 then failwith (spf "error executing %s" cmd);
             Json_to_generic.program ~unescape_strings:true
               (Parse_json.parse_program tmpfile))
-    | FT.Config FT.Yaml -> Yaml_to_generic.program file
+    | FT.Config FT.Yaml -> Yaml_to_generic.parse_rule file
     | _ ->
         logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
         logger#info "trying to parse %s as YAML" file;
-        Yaml_to_generic.program file
+        Yaml_to_generic.parse_rule file
   in
   parse_generic ?error_recovery file ast
 
 let parse_metatypes file =
   let ast =
     match FT.file_type_of_file file with
-    | FT.Config FT.Yaml -> Yaml_to_generic.program file
+    | FT.Config FT.Yaml -> Yaml_to_generic.parse_rule file
     | _ ->
         logger#error "wrong rule format, only YAML is valid";
         logger#info "trying to parse %s as YAML" file;
-        Yaml_to_generic.program file
+        Yaml_to_generic.parse_rule file
   in
   parse_generic_metatypes file ast
 

@@ -18,6 +18,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   reported (i.e. false negatives). This affected mainly languages like Scala where
   traditional control-flow constructs are expressions rather than statements (or,
   seen in a different way, every statement returns a value). (#5652)
+- Yaml: location information is fixed for unicode characters (#5660)
 
 ### Changed
 
