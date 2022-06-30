@@ -8,6 +8,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Scala: ellipsis are now allowed in for loop headers, so you can write patterns
   like `for (...; $X <- $Y if $COND; ...) { ... }` to match nested for loops. (#5650)
+- `SEMGREP_MIN_FETCH_DEPTH` with default value 0 to set the minimum fetch depth
+  when calculating merge-base (in GithubActions pull requests). Setting to a high
+  value like 100 should solve occurances of semgrep calculating a stale merge-base
+  causing semgrep to report findings not touched in PRs (#5664)
 
 ### Fixed
 
