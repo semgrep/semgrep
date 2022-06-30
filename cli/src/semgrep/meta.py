@@ -273,6 +273,7 @@ class GithubMeta(GitMeta):
 
         # fetch 0, 4, 16, 64, 256, 1024, ...
         fetch_depth = 4**attempt_count if attempt_count else 0
+        fetch_depth += get_state().env.min_fetch_depth
         if attempt_count > self.MAX_FETCH_ATTEMPT_COUNT:  # get all commits on last try
             fetch_depth = 2**31 - 1  # git expects a signed 32-bit integer
 

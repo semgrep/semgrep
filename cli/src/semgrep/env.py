@@ -79,6 +79,7 @@ class Env:
     in_gh_action: bool = field()
     in_agent: bool = field()
     shouldafound_no_email: bool = field()
+    fetch_depth_min: int = field()
 
     @version_check_timeout.default
     def version_check_timeout_default(self) -> int:
@@ -135,3 +136,8 @@ class Env:
     @shouldafound_no_email.default
     def shouldafound_no_email_default(self) -> bool:
         return "SEMGREP_SHOULDAFOUND_NO_EMAIL" in os.environ
+
+    @fetch_depth_min.default
+    def fetch_depth_min_default(self) -> int:
+        value = os.getenv("SEMGREP_MIN_FETCH_DEPTH", "200")
+        return int(value)
