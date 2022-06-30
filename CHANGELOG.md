@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   reported (i.e. false negatives). This affected mainly languages like Scala where
   traditional control-flow constructs are expressions rather than statements (or,
   seen in a different way, every statement returns a value). (#5652)
+- Yaml: location information is fixed for unicode characters (#5660)
 
 ### Changed
 
@@ -27,7 +28,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - `semgrep ci`: CI runs in GitHub Actions failed to checkout the commit assoociated with the head branch, and is fixed here.
-- Yaml: location information is fixed for unicode characters (#5660)
 
 ## [0.101.0](https://github.com/returntocorp/semgrep/releases/tag/v0.101.0) - 2022-06-27
 
