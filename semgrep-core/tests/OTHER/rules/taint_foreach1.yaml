@@ -1,0 +1,16 @@
+rules:
+- id: scala-taint
+  mode: taint
+  pattern-sources:
+    - patterns:
+        - pattern-inside: |
+            def $FUNC(..., $PARAM: $PARAMTYPE, ...) = ...
+        - focus-metavariable: $PARAM
+  pattern-sinks:
+    - patterns:
+        - pattern-inside: db.$METHOD(..., $SINK, ...)
+        - focus-metavariable: $SINK
+  message: Don't pass inputs (like $PARAM) into sensitive methods on "db" (like $METHOD)
+  languages:
+    - scala
+  severity: WARNING
