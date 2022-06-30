@@ -84,6 +84,7 @@ let print_bool env = function
       | Lang.Cpp
       | Lang.Js
       | Lang.Json
+      | Lang.Julia
       | Lang.Yaml
       | Lang.Ocaml
       | Lang.Ruby
@@ -118,6 +119,7 @@ let print_bool env = function
       | Lang.Json
       | Lang.Yaml
       | Lang.Js
+      | Lang.Julia
       | Lang.Ocaml
       | Lang.Ruby
       | Lang.Ts
@@ -263,6 +265,7 @@ and if_stmt env level (tok, e, s, sopt) =
      * permit them. *)
     | Lang.Swift ->
         (paren_cond, "else if", bracket_body)
+    | Lang.Julia
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
   let e_str = format_cond tok (condition env e) in
@@ -323,7 +326,9 @@ and while_stmt env level (tok, e, s) =
     | Lang.R ->
         c_while
     | Lang.Go -> go_while
-    | Lang.Ruby -> ruby_while
+    | Lang.Julia
+    | Lang.Ruby -> 
+        ruby_while
     | Lang.Ocaml -> ocaml_while
   in
   while_format (token "while" tok) (condition env e) (stmt env (level + 1) s)
@@ -359,6 +364,7 @@ and do_while stmt env level (s, e) =
     | Lang.Python3
     | Lang.Go
     | Lang.Json
+    | Lang.Julia
     | Lang.Ocaml
     | Lang.Rust
     | Lang.R ->
@@ -400,6 +406,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Python3 ->
         F.sprintf "%s %s:\n%s"
     | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
+    | Lang.Julia -> F.sprintf "%s %s\n %s\nend"
     | Lang.Json
     | Lang.Ocaml ->
         failwith "JSON/OCaml has for loops????"
@@ -469,6 +476,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Python
       | Lang.Python2
       | Lang.Python3
+      | Lang.Julia (* TODO optional typing? *)
       | Lang.Ruby ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
@@ -530,6 +538,7 @@ and return env (tok, eopt) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Julia
   | Lang.Swift
   | Lang.Ts
   | Lang.Vue
@@ -572,6 +581,7 @@ and break env (tok, lbl) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Julia
   | Lang.Ts
   | Lang.Vue
   | Lang.Lua
@@ -615,6 +625,7 @@ and continue env (tok, lbl) _sc =
   | Lang.Ocaml
   | Lang.Json
   | Lang.Js
+  | Lang.Julia
   | Lang.Swift
   | Lang.Ts
   | Lang.Vue ->
@@ -725,6 +736,7 @@ and literal env l =
       | Lang.Kotlin
       | Lang.Json
       | Lang.Js
+      | Lang.Julia
       | Lang.Vue
       | Lang.Ocaml
       | Lang.Ruby

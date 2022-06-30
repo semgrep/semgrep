@@ -88,3 +88,6 @@
 [submodule "semgrep-core/tests/semgrep-rules"]
 	path = semgrep-core/tests/semgrep-rules
 	url = https://github.com/returntocorp/semgrep-rules.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-julia"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-julia
+	url = https://github.com/returntocorp/semgrep-julia.git

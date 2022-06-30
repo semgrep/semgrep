@@ -110,6 +110,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Java ->
         let any = Parse_java.any_of_string str in
         Java_to_generic.any any
+    | Lang.Julia ->
+        let res = Parse_julia_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Go ->
         let any = Parse_go.any_of_string str in
         Go_to_generic.any any

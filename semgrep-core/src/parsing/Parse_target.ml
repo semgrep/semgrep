@@ -246,6 +246,8 @@ let rec just_parse_with_lang lang file =
           Pfff (throw_tokens Parse_java.parse);
         ]
         Java_to_generic.program
+  | Lang.Julia ->
+      run file [ TreeSitter Parse_julia_tree_sitter.parse ] (fun x -> x)
   | Lang.Go ->
       run file
         [

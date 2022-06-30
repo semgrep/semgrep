@@ -29,6 +29,7 @@ let lang_has_no_dollar_ids =
     | Hack
     | Bash
     | Dockerfile
+    | Julia
     | Rust
     | Scala
     | Solidity ->
