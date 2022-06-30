@@ -672,7 +672,7 @@ def test_shallow_wrong_merge_base(
 
     # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
-        options=["ci", "--debug", "--no-force-color"],
+        options=["ci", "--no-force-color"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -681,21 +681,6 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                # Mask variable debug output
-                re.compile(r"/(.*)/semgrep-core"),
-                re.compile(r"loaded 1 configs in(.*)"),
-                re.compile(r".*https://semgrep.dev(.*).*"),
-                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
-                re.compile(r"(.*Main\.Run_semgrep.*)"),
-                re.compile(r"(.*Main\.Common.*)"),
-                re.compile(r"(.*Main\.Parse_target.*)"),
-                re.compile(r"semgrep ran in (.*) on 1 files"),
-                re.compile(r"\"total_time\":(.*)"),
-                re.compile(r"\"commit_date\":(.*)"),
-                re.compile(r"-targets (.*) -timeout"),
-                re.compile(r"-rules (.*).json"),
-                str(git_tmp_path),
-                str(tmp_path),
             ]
         ),
         "bad_results.txt",
@@ -708,7 +693,7 @@ def test_shallow_wrong_merge_base(
 
     # Run again with greater depth
     result = run_semgrep(
-        options=["ci", "--debug", "--no-force-color"],
+        options=["ci", "--no-force-color"],
         strict=False,
         assert_exit_code=None,
         env={**env, "SEMGREP_MIN_FETCH_DEPTH": "100"},
@@ -718,21 +703,6 @@ def test_shallow_wrong_merge_base(
         result.as_snapshot(
             mask=[
                 re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
-                # Mask variable debug output
-                re.compile(r"/(.*)/semgrep-core"),
-                re.compile(r"loaded 1 configs in(.*)"),
-                re.compile(r".*https://semgrep.dev(.*).*"),
-                re.compile(r"(.*Main\.Dune__exe__Main.*)"),
-                re.compile(r"(.*Main\.Run_semgrep.*)"),
-                re.compile(r"(.*Main\.Common.*)"),
-                re.compile(r"(.*Main\.Parse_target.*)"),
-                re.compile(r"semgrep ran in (.*) on 1 files"),
-                re.compile(r"\"total_time\":(.*)"),
-                re.compile(r"\"commit_date\":(.*)"),
-                re.compile(r"-targets (.*) -timeout"),
-                re.compile(r"-rules (.*).json"),
-                str(git_tmp_path),
-                str(tmp_path),
             ]
         ),
         "results.txt",
