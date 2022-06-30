@@ -885,18 +885,20 @@ let parse_one_rule t i rule =
   in
   let languages = parse_languages ~id languages in
   let env = { id = fst id; languages; path = [ string_of_int i; "rules" ] } in
-  let ( message,
-        severity,
-        mode_opt,
+  let mode_opt = take_opt rd env parse_string_wrap "mode" in
+  let mode = parse_mode env mode_opt rd in
+  let ( (message, severity),
         metadata_opt,
         fix_opt,
         fix_regex_opt,
         paths_opt,
         equivs_opt,
         options_opt ) =
-    ( take rd env parse_string "message",
-      take rd env parse_string_wrap "severity",
-      take_opt rd env parse_string_wrap "mode",
+    ( (match mode with
+      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | _ ->
+          ( take rd env parse_string "message",
+            take rd env parse_string_wrap "severity" )),
       take_opt rd env generic_to_json "metadata",
       take_opt rd env parse_string "fix",
       take_opt rd env parse_fix_regex "fix-regex",
@@ -904,7 +906,6 @@ let parse_one_rule t i rule =
       take_opt rd env parse_equivalences "equivalences",
       take_opt rd env parse_options "options" )
   in
-  let mode = parse_mode env mode_opt rd in
   report_unparsed_fields rd;
   {
     R.id;
