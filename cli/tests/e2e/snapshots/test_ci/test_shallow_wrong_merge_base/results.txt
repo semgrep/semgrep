@@ -25,44 +25,18 @@ Scan environment:
   environment - running in environment github-actions, triggering event is pull_request
   semgrep.dev - authenticated as org_name
 
-head branch (bar) has latest commit 7b5cda417c780f1f96c888e1d7bd062f46df236e
+head branch (bar) has latest commit 7b5cda417c780f1f96c888e1d7bd062f46df236e, fetching that commit now.
 Trying to shallow fetch branch foo from origin
-base branch (foo) has latest commit e288e008d2333cf7043293e189514cbf62f885c6
+base branch (foo) has latest commit 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38
 Fixing git state for github action pull request
 Calling git rev-parse HEAD
-git rev-parse stdout: 7b5cda417c780f1f96c888e1d7bd062f46df236e
-
-git rev-parse stderr: 
 stashed_rev: 7b5cda417c780f1f96c888e1d7bd062f46df236e
 Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
-git checkout stdout: 
-git checkout stderr: Note: switching to '7b5cda417c780f1f96c888e1d7bd062f46df236e'.
-
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by switching back to a branch.
-
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -c with the switch command. Example:
-
-  git switch -c <new-branch-name>
-
-Or undo this operation with:
-
-  git switch -
-
-Turn off this advice by setting config variable advice.detachedHead to false
-
-HEAD is now at 7b5cda4 commit #4
-
-Attempting to find merge base, attempt_count=0, fetch_depth=0
-Attempting to find merge base, attempt_count=1, fetch_depth=4
+Attempting to find merge base, attempt_count=0, fetch_depth=200
+Attempting to find merge base, attempt_count=1, fetch_depth=204
 Trying to fetch branch foo from origin as base branch
 Trying to fetch branch bar as commit from origin as head branch tip commit
-Found merge base candidate: args=['git', 'merge-base', 'e288e008d2333cf7043293e189514cbf62f885c6', '7b5cda417c780f1f96c888e1d7bd062f46df236e'], stdout=b903231925961ac9d787ae53ee0bd15ec156e689
-, stderr=
-Fetching all commits after merge-base candidate
-Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of e288e008d2333cf7043293e189514cbf62f885c6 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
 Fetching configuration from semgrep.dev
 Starting scan
 Using https://semgrep.dev<MASKED>
