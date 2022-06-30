@@ -37,7 +37,14 @@ let short_string_of_node_kind nkind =
       | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
       | AssignAnon _ -> " ... = <lambda|class>"
       | Call (_lopt, exp, _) -> string_of_exp exp ^ "(...)"
-      | CallSpecial _ -> "<special>"
+      | CallSpecial (lval_opt, (call_special, _tok), _args) ->
+          let lval_str =
+            match lval_opt with
+            | None -> ""
+            | Some lval -> Common.spf " %s =" (string_of_lval lval)
+          in
+          Common.spf "<special>%s %s(...)" lval_str
+            (IL.show_call_special call_special)
       | FixmeInstr _ -> "<fix-me instr>")
   | NTodo _ -> "<to-do stmt>"
 

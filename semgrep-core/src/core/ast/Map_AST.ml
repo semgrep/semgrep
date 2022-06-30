@@ -753,10 +753,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
         and v2 = map_of_option map_expr v2
         and v3 = map_of_option map_expr v3 in
         ForClassic (v1, v2, v3)
-    | ForEach (v1, t, v2) ->
-        let t = map_tok t in
-        let v1 = map_pattern v1 and v2 = map_expr v2 in
-        ForEach (v1, t, v2)
+    | ForEach v1 -> ForEach (map_for_each v1)
+    | MultiForEach v1 -> MultiForEach (map_of_list map_multi_for_each v1)
     | ForEllipsis t ->
         let t = map_tok t in
         ForEllipsis t
@@ -764,6 +762,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_of_list map_for_var_or_expr v1
         and v2 = map_of_list map_expr v2 in
         ForIn (v1, v2)
+  and map_for_each (v1, t, v2) =
+    let t = map_tok t in
+    let v1 = map_pattern v1 and v2 = map_expr v2 in
+    (v1, t, v2)
+  and map_multi_for_each = function
+    | FE v1 -> FE (map_for_each v1)
+    | FECond (v1, t, v2) -> FECond (map_for_each v1, map_tok t, map_expr v2)
+    | FEllipsis t -> FEllipsis (map_tok t)
   and map_for_var_or_expr = function
     | ForInitVar (v1, v2) ->
         let v1 = map_entity v1 and v2 = map_variable_definition v2 in

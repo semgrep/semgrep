@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 from shutil import copy
 from shutil import copytree
-from unittest.mock import ANY
+from unittest.mock import ANY  # nosem: use-pytest-mock
 
 import pytest
 

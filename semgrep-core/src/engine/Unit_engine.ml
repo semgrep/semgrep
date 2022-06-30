@@ -470,7 +470,7 @@ let tainting_test lang rules_file file =
            in
            let res, _debug =
              Match_tainting_mode.check_rule rule
-               (fun _ _ _ _ -> ())
+               (fun _ _ -> ())
                (Config_semgrep.default_config, equivs)
                xtarget
            in
