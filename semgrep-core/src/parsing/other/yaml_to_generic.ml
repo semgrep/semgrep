@@ -524,10 +524,9 @@ let mask_unicode str =
 (* Entry points *)
 (*****************************************************************************)
 
-let program file =
+let program_help file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
-  let str = mask_unicode (Common.read_file file) in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
   let parser = get_res file (S.parser str) in
   let env =
@@ -542,9 +541,13 @@ let program file =
   let xs = parse env in
   Common.map G.exprstmt xs
 
+let program file =
+  let str = Common.read_file file in
+  program_help file str
+
 let any str =
   let file = "<pattern_file>" in
-  let str = mask_unicode (preprocess_yaml str) in
+  let str = preprocess_yaml str in
   let parser = get_res file (S.parser str) in
   let env =
     {
@@ -557,3 +560,9 @@ let any str =
   in
   let xs = parse env in
   make_pattern_expr xs
+
+let yaml_program file =
+  let str = mask_unicode (Common.read_file file) in
+  program_help file str
+
+let yaml_any str = any (mask_unicode str)
