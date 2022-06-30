@@ -12,6 +12,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   traditional control-flow constructs are expressions rather than statements (or,
   seen in a different way, every statement returns a value). (#5652)
 
+### Changed
+
+- `--verbose` no longer toggles the display of timing information, use
+  `--verbose --time` to display this information.
+
 ## [0.101.1](https://github.com/returntocorp/semgrep/releases/tag/v0.101.1) - 2022-06-28
 
 ### Fixed

@@ -1,9 +1,14 @@
-Cannot find a commit with reference '12345'. Possible reasons:
+Command failed with exit code: 128
+-----
+Command failed with output:
+fatal: not a git repository (or any of the parent directories): .git
 
-- the referenced commit does not exist
+
+Failed to run 'git cat-file -e 12345'. Possible reasons:
+
 - the git binary is not available
 - the current working directory is not a git repository
 - the current working directory is not marked as safe
     (fix with `git config --global --add safe.directory $(pwd)`)
 
-Try running `git show 12345` to debug the issue.
+Try running the command yourself to debug the issue.

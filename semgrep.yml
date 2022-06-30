@@ -131,6 +131,20 @@ rules:
     paths:
       include:
         - cli/src/*
+
+  - id: use-git-check-output-helper
+    pattern-either:
+      - pattern: subprocess.$METHOD(["git", ...], ...)
+      - pattern: semgrep.util.sub_check_output(["git", ...], ...)
+    message: >-
+      We have a helper function git_check_output in meta.py that
+      handles printing nice error+debug messages on failure. Use
+      that instead of using subprocess
+    languages: [python]
+    severity: ERROR
+    paths:
+      include:
+        - cli/src/*
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
