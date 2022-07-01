@@ -228,10 +228,8 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10", "3.11.0-beta - 3.11.0"]
+        python: ["3.7", "3.8", "3.9", "3.10"]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -241,6 +239,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pipenv
+      - name: Install pipenv
+        run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -273,7 +273,7 @@ jobs:
         if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
         uses: EndBug/add-and-commit@v9
         with:
-          add: semgrep/tests/e2e/snapshots
+          add: cli/tests/e2e/snapshots
           default_author: github_actions
           message: "Update pytest snapshots"
           new_branch: snapshot-updates-${{ github.run_id }}-${{ github.run_attempt }}
@@ -299,10 +299,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test_name: ["public_repos", "semgrep_rules_repo"]
+        split: [1, 2, 3, 4]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -312,6 +310,8 @@ jobs:
         with:
           python-version: "3.10"
           cache: pipenv
+      - name: Install pipenv
+        run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -326,10 +326,9 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
       - uses: actions/cache@v3
-        if: matrix.test_name == 'public_repos'
         with:
           path: ~/.cache/qa-public-repos
-          key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}
+          key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
       - run: |
           mkdir -p ~/.cache/qa-public-repos
           touch ~/.cache/qa-public-repos/ok
@@ -337,7 +336,7 @@ jobs:
         working-directory: cli
         run: |
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_${{ matrix.test_name }}.py
+          pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
         env:
           QA_TESTS_CACHE_PATH: ~/.cache/qa-public-repos
 
@@ -347,8 +346,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -358,6 +355,8 @@ jobs:
         with:
           python-version: "3.7"
           cache: pipenv
+      - name: Install pipenv
+        run: pip install pipenv==2022.6.7
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
@@ -383,8 +382,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-core]
     steps:
-      - name: Install pipenv
-        run: pipx install pipenv==2022.6.7
       - name: Checkout
         uses: actions/checkout@v3
       - name: Fetch semgrep-cli submodules
@@ -394,6 +391,8 @@ jobs:
         with:
           python-version: "3.7"
           cache: pipenv
+      - name: Install pipenv
+        run: pip install pipenv==2022.6.7
       - name: Run timing benchmark
         run: |
           pip3 install semgrep==0.94.0

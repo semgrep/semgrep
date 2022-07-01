@@ -2,10 +2,17 @@
 name: validate-release
 
 on:
-  push:
-    # Sequence of patterns matched against refs/tags
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The release version to validate"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
 
 jobs:
   sanity_check_release:
@@ -14,8 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: "v${{ inputs.version }}"
       - name: Validate the release
-        run: ./scripts/validate-release.py
+        run: ./scripts/validate-release.py ${{ inputs.version }}
 
   verify_docker_release:
     name: Verify the docker release works
@@ -23,8 +32,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: "v${{ inputs.version }}"
       - name: Validate docker release
-        run: ./scripts/validate-docker-release.sh
+        run: ./scripts/validate-docker-release.sh ${{ inputs.version }}
 
   verify_ubuntu_release:
     name: Verify the ubuntu release works
@@ -32,13 +43,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+        with:
+          ref: "v${{ inputs.version }}"
+      # Although this action can do the checkout step for us, it is more explicit and maintainable to pass context in this manner.
       - name: build tester image
         uses: docker/build-push-action@v3
         with:
           push: false
-          path: scripts
-          dockerfile: scripts/Dockerfile.16.04
-          build_args: version=${{ steps.get_version.outputs.VERSION }}
+          context: "scripts"
+          file: scripts/Dockerfile.16.04
+          build-args: version=${{ inputs.version }}

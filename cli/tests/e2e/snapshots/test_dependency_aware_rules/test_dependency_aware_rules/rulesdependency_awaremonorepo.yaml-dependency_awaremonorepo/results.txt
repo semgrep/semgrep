@@ -112,8 +112,6 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === stderr - plain
 Scanning 3 files.
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
 
 Ran 1 rule on 3 files: 2 findings.
 

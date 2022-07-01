@@ -286,6 +286,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
         PM.range_loc;
         PM.tokens = lazy (MV.ii_of_mval mval);
         PM.env = range.mvars;
+        PM.taint_trace = None;
       }
     in
     let focus_range = RM.match_result_to_range focus_match in
@@ -585,7 +586,7 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
              v
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
-                    hook str m.env m.tokens None));
+                    hook str m));
     errors = res.errors |> Common.map (error_with_rule_id rule_id);
     skipped_targets = res.skipped_targets;
     profiling = res.profiling;

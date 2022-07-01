@@ -65,11 +65,14 @@ update_setup_py() {
   sed_in_place \
     's/^    install_requires=\["semgrep==.*"\],$/    install_requires=["semgrep=='"$release"'"],/g' \
     "$target"
+  sed_in_place \
+    's/^    version=".*",$/    version="'"$release"'",/g' \
+    "$target"
   git add "$target"
 }
 
 update_cli_setup_py() {
-  target=setup.py
+  target=cli/setup.py
   targets+=" $target"
   echo "Updating $target"
   sed_in_place \

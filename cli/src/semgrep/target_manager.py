@@ -106,7 +106,9 @@ class FileTargetingLog:
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
-    failed_to_analyze: Set[Path] = Factory(set)
+
+    # "None" indicates that all lines were skipped
+    core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
     by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
@@ -137,7 +139,21 @@ class FileTargetingLog:
                 "Scan was limited to files changed since baseline commit."
             )
         elif self.target_manager.respect_git_ignore:
-            limited_fragments.append("Scan was limited to files tracked by git.")
+            # Each target could be a git repo, and we respect the git ignore
+            # of each target, so to be accurate with this print statement we
+            # need to check if any target is a git repo and not just the cwd
+            targets_not_in_git = 0
+            dir_targets = 0
+            for t in self.target_manager.targets:
+                if t.path.is_dir():
+                    dir_targets += 1
+                    try:
+                        t.files_from_git_ls()
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        targets_not_in_git += 1
+                        continue
+            if targets_not_in_git != dir_targets:
+                limited_fragments.append(f"Scan was limited to files tracked by git.")
 
         if self.cli_includes:
             skip_fragments.append(
@@ -155,9 +171,9 @@ class FileTargetingLog:
             skip_fragments.append(
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
             )
-        if self.failed_to_analyze:
+        if self.core_failure_lines_by_file:
             partial_fragments.append(
-                f"{len(self.failed_to_analyze)} files only partially analyzed due to a parsing or internal Semgrep error"
+                f"{len(self.core_failure_lines_by_file)} files only partially analyzed due to a parsing or internal Semgrep error"
             )
 
         if not limited_fragments and not skip_fragments and not partial_fragments:
@@ -229,9 +245,15 @@ class FileTargetingLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by analysis failure due to parsing or internal Semgrep error"
-        if self.failed_to_analyze:
-            for path in self.failed_to_analyze:
-                yield 2, with_color(Colors.cyan, str(path))
+        if self.core_failure_lines_by_file:
+            for path, lines in self.core_failure_lines_by_file.items():
+                if lines is None:
+                    skipped = "all"
+                else:
+                    # TODO: use pluralization library
+                    skipped = str(lines)
+
+                yield 2, with_color(Colors.cyan, f"{path} ({skipped} lines skipped)")
         else:
             yield 2, "<none>"
 
@@ -280,7 +302,7 @@ class FileTargetingLog:
                 "reason": "exceeded_size_limit",
                 "size_limit_bytes": self.target_manager.max_target_bytes,
             }
-        for path in self.failed_to_analyze:
+        for path in self.core_failure_lines_by_file:
             yield {
                 "path": str(path),
                 "reason": "analysis_failed_parser_or_internal_error",

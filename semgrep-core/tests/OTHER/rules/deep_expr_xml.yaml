@@ -1,0 +1,23 @@
+rules:
+  - id: untitled_rule
+    pattern-either:
+      - patterns:
+          - focus-metavariable: $X
+          - pattern-either:
+              - pattern: |
+                  {dangerouslySetInnerHTML: <... $X ...>}
+              - pattern: |
+                  <$Y ... dangerouslySetInnerHTML={<... $X ...>} />
+          - pattern-not: |
+              <... {__html: "..."} ...>
+          - pattern-not: |
+              <... {__html: `...`} ...>
+          - metavariable-pattern:
+              metavariable: $X
+              patterns:
+                - pattern-not: |
+                    {...}
+    message: Semgrep found a match
+    languages:
+      - js
+    severity: WARNING

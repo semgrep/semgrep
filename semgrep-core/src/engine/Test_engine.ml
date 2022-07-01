@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021 r2c
+ * Copyright (C) 2021-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -27,16 +27,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(*
-let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
-  match rs |> Common.find_some_opt (fun r ->
-    match r.R.languages with
-    | R.L (l, _) -> Some l
-    | _ -> None
-  ) with
-  | Some l -> l
-  | None -> failwith "could not find a language"
-*)
 
 let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
  fun rs -> rs |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
@@ -163,7 +153,7 @@ let make_tests ?(unit_testing = false) xs =
              let res =
                try
                  Match_rules.check
-                   ~match_hook:(fun _ _ _ _ -> ())
+                   ~match_hook:(fun _ _ -> ())
                    ~timeout:0. ~timeout_threshold:0 (config, []) rules xtarget
                with
                | exn ->

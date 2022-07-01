@@ -1,0 +1,56 @@
+rules:
+  - id: jpa-sqli
+    languages:
+      - java
+    severity: ERROR
+    message: User data flows into this manually-constructed SQL string. User data
+      can be safely inserted into SQL strings using prepared statements or an
+      object-relational mapper (ORM). Manually-constructed SQL strings is a
+      possible indicator of SQL injection, which could let an attacker steal or
+      manipulate data from the database. Instead, use prepared statements
+      (`connection.PreparedStatement`) or a safe library.
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      owasp:
+        - A03:2021 - Injection
+        - A01:2017 - Injection
+      references:
+        - https://docs.oracle.com/javase/7/docs/api/java/sql/PreparedStatement.html
+      category: security
+      technology:
+        - spring
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $METHODNAME(..., @$REQ(...) $TYPE $SOURCE,...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $METHODNAME(..., @$REQ $TYPE $SOURCE,...) {
+                    ...
+                  }
+          - metavariable-regex:
+              metavariable: $REQ
+              regex: (RequestBody|PathVariable|RequestParam|RequestHeader|CookieValue)
+          - focus-metavariable: $SOURCE
+    pattern-propagators:
+    - patterns:
+      - pattern: (Page $PAGE).$SETTER($DATA)
+      - metavariable-regex:
+          metavariable: $SETTER
+          regex: ^set.*
+      from: $DATA
+      to: $PAGE
+    - pattern: (StringBuilder $BUILDER).append($STR)
+      from: $STR
+      to: $BUILDER
+    pattern-sinks:
+    - patterns:
+      - focus-metavariable: $SQL
+      - pattern-either:
+        - pattern-inside: (javax.persistence.EntityManager $EM).createQuery($SQL,...)
+        - pattern-inside: (javax.persistence.EntityManager $EM).createNativeQuery($SQL,...)
+

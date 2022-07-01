@@ -4,19 +4,94 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
+
+### Added
+
+- Scala: ellipsis are now allowed in for loop headers, so you can write patterns
+  like `for (...; $X <- $Y if $COND; ...) { ... }` to match nested for loops. (#5650)
+
+### Fixed
+
+- taint-mode: In some scenarios some statements were not being included in the
+  CFG used by taint tracking, and as a result some expected findings were not being
+  reported (i.e. false negatives). This affected mainly languages like Scala where
+  traditional control-flow constructs are expressions rather than statements (or,
+  seen in a different way, every statement returns a value). (#5652)
+- Yaml: location information is fixed for unicode characters (#5660)
+
 ### Changed
 
+- `--verbose` no longer toggles the display of timing information, use
+  `--verbose --time` to display this information.
+
+## [0.101.1](https://github.com/returntocorp/semgrep/releases/tag/v0.101.1) - 2022-06-28
+
+### Fixed
+
+- `semgrep ci`: CI runs in GitHub Actions failed to checkout the commit assoociated with the head branch, and is fixed here.
+
+## [0.101.0](https://github.com/returntocorp/semgrep/releases/tag/v0.101.0) - 2022-06-27
+
+### Added
+
+- Bash: Support for subshell syntax i.e. commands in parentheses (#5629)
+
+### Changed
+
+### Fixed
+
+- `semgrep ci`: CI runs were failing to checkout the PR head in GitHub Actions, which is
+  corrected here.
+- TS: fixed the parsing of type predicates and typeof queries
+- Deep expression matching now works on HTML in JavaScript
+- taint-mode: Taint propagation via `pattern-propagators` now works correclty when the
+  `from` or `to` metavariables match a function call. For example, given
+  `sqlBuilder.append(page.getOrderBy())`, we can now propagate taint from
+  `page.getOrderBy()` to `sqlBuilder`.
+- Will no longer print "files were not tracked by git" if not in a git repo
+- Will no longer print "Some files were skipped" if no files were skipped
+- Fixed bug where semgrep would crash in nonexistent directory (#4785)
+- taint-mode: Correctly propagate taint in for-each loops with typed iteration
+  variables (as in Java or C#). If the iterator object is tainted, that taint will
+  now be propagated to the iteration variable. This should fix some false negatives
+  (i.e., findings not being reported) in the presence of for-each loops. (#5590)
+
+## [0.100.0](https://github.com/returntocorp/semgrep/releases/tag/v0.100.0) - 2022-06-22
+
+## Added
+
+- taint-mode: New experimental `pattern-propagators` feature that allows to specify
+  arbitrary patterns for the propagation of taint by side-effect. In particular,
+  this allows to specify how taint propagates through side-effectful function calls.
+  For example, you can specify that when tainted data is added to an array then the
+  array itself becomes tainted. (#4509)
+
+### Changed
+
+- `--config auto` no longer sends the name of the repository being scanned to the Semgrep Registry.
+  As of June 21st, this data is not recorded by the Semgrep Registry backend, even if an old Semgrep version sends it.
+  Also as of June 21st, none of the previously collected repository names are retained by the Semgrep team;
+  any historical data has been wiped.
 - Gitlab SAST output is now v14.1.2 compliant
 - Removed the following deprecated `semgrep scan` options:
   `--json-stats`, `--json-time`, `--debugging-json`, `--save-test-output-tar`, `--synthesize-patterns`,
   `--generate-config/-g`, `--dangerously-allow-arbitrary-code-execution-from-rules`,
   and `--apply` (which was an easter egg for job applications, not the same as `--autofix`)
+- PHP: switch to GA maturity! Thanks a lot to Sjoerd Langkemper for most of the
+  heavy work
 
 ### Fixed
 
 - Inline join mode rules can now run taint-mode rules
 - Python: correctly handle `with` context expressions where the value is not
   bound (#5513)
+- Solidity: update to a more recent tree-sitter-solidity to fix certain parsing
+  errors (#4957)
+
+## 0.99.0 - Skipped
+
+Version 0.99.0 of Semgrep was intentionally skipped. Version 0.100.0 immediately follows version 0.98.0.
 
 ## [0.98.0](https://github.com/returntocorp/semgrep/releases/tag/v0.98.0) - 2022-06-15
 
@@ -30,11 +105,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `SEMGREP_ENABLE_VERSION_CHECK=0`
 - Dataflow: spread operators in record expressions (e.g. `{...foo}`) are now translated into the Dataflow IL
 - An experimental LSP daemon mode for semgrep. Try it with `semgrep lsp --config auto`!
-- taint-mode: New experimental `pattern-propagators` feature that allows to specify
-  arbitrary patterns for the propagation of taint by side-effect. In particular,
-  this allows to specify how taint propagates through side-effectful function calls.
-  For example, you can specify that when tainted data is added to an array then the
-  array itself becomes tainted. (#4509)
 
 ### Changed
 

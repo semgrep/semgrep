@@ -6,8 +6,7 @@
    match results corresponding to the file from which that extraction occured.
 *)
 val extract_nested_lang :
-  match_hook:
-    (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  match_hook:(string -> Pattern_match.t -> unit) ->
   timeout:float ->
   timeout_threshold:int ->
   Rule.extract_rule list ->

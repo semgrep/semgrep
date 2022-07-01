@@ -16,7 +16,8 @@ val semgrep_with_rules_and_formatted_output : Runner_config.t -> unit
 *)
 
 val semgrep_with_raw_results_and_exn_handler :
-  Runner_config.t -> exn option * Report.final_result * Common.filename list
+  Runner_config.t ->
+  Exception.t option * Report.final_result * Common.filename list
 (** [semgrep_with_raw_results_and_exn_handler config] runs the semgrep
     engine with a starting list of targets and returns
     (success, result, targets).
@@ -48,6 +49,7 @@ val print_match :
   Metavariable.bindings ->
   (Metavariable.mvalue -> Parse_info.t list) ->
   Parse_info.t list ->
+  Pattern_match.taint_trace Lazy.t option ->
   unit
 
 val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error

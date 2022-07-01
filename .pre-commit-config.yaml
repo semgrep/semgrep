@@ -1,4 +1,4 @@
-exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b"
+exclude: "^cli/tests/e2e/(targets|snapshots|rules/syntax)|^semgrep-core/tests|^cli/src/semgrep/external|\\binvalid\\b|^cli/.test_durations"
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -47,7 +47,7 @@ repos:
           - --exclude=/cli/src/semgrep/output_from_core.py
 
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 22.6.0
     hooks:
       - id: black
         args: [--exclude=/cli/src/semgrep/output_from_core.py]
@@ -105,7 +105,7 @@ repos:
         args: ["--select=B,E9,F4,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.96.0"
+    rev: "v0.100.0"
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -139,7 +139,7 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: "v0.96.0"
+    rev: "v0.100.0"
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
@@ -175,7 +175,7 @@ repos:
 
   # Reformat YAML, JSON, and Markdown files
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.6.2
+    rev: v2.7.1
     hooks:
       - id: prettier
         exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"

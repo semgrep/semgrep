@@ -75,9 +75,7 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
    * Should respect memory limits, etc..
    *)
   let res =
-    Match_rules.check
-      ~match_hook:(fun s e m _ -> match_hook s e m)
-      ~timeout ~timeout_threshold
+    Match_rules.check ~match_hook ~timeout ~timeout_threshold
       (Config_semgrep.default_config, [] (* no equiv *))
       (erules :> Rule.rules)
       xtarget

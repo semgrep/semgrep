@@ -82,9 +82,12 @@ if __name__ == "__main__":
     # Environment variables
     # 'GITHUB_REF': 'refs/tags/vGenInstall-10',
     # 'GITHUB_REPOSITORY': 'rcoh/semgrep', 'GITHUB_
-    release_tag = os.environ.get("GITHUB_REF", "refs/tags/vGenInstall-10").split("/")[
-        -1
-    ]
+    if len(sys.argv) != 2:
+        print("USAGE: python3 validate-release.py 0.X.0")
+        exit(1)
+
+    release_tag = f"v{sys.argv[1]}"
+
     version = release_tag
     print(f"Testing {release_tag}")
     repo = os.environ.get("GITHUB_REPOSITORY", "rcoh/semgrep")

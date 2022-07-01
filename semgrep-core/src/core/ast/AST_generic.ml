@@ -223,7 +223,9 @@ type dotted_ident = ident list (* at least 1 element *)
  *)
 type module_name =
   | DottedName of dotted_ident (* ex: Python *)
-  (* in FileName the '/' is similar to the '.' in DottedName *)
+  (* in FileName the '/' is similar to the '.' in DottedName.
+   * In C/C++ the string can be <foo.h>.
+   *)
   | FileName of string wrap (* ex: Js import, C #include, Go import *)
 [@@deriving show { with_path = false }, eq, hash]
 
@@ -280,7 +282,25 @@ and resolved_name_kind =
   (* used for C *)
   | Macro
   | EnumConstant
-  | ResolvedName of dotted_ident (* for deep semgrep *)
+  (* for deep semgrep
+   *
+   * ResolvedName (resolved_name, alternate_names)
+   *
+   * resolved_name: The canonical, global name that the symbol resolves to.
+   *
+   * alternate_names: Other names that users may write when referring to this
+   * symbol. For example, in JS, the resolved_name may include the file path of
+   * the file where the symbol is defined, but users may want to write patterns
+   * to match based on the module specifier, e.g.:
+   *
+   * import {bar} from 'foo';
+   * bar;
+   *
+   * We might store ['/path/to/node_modules/foo/src/x.js', 'bar'] as the
+   * resolved_name, but we also want to match the pattern `foo.bar` so we will
+   * store ['foo', 'bar'] as an alternate name.
+   * *)
+  | ResolvedName of dotted_ident * dotted_ident list
 [@@deriving show { with_path = false }, eq, hash]
 
 (* Start of big mutually recursive types because of the use of 'any'
@@ -525,7 +545,9 @@ and expr_kind =
   | DeepEllipsis of expr bracket (* <... ...> *)
   | DisjExpr of expr * expr
   | TypedMetavar of ident * tok (* : *) * type_
-  (* for ellipsis in method chaining *)
+  (* for ellipsis in method chaining.
+   * alt: make it part of field_name in DotAccess
+   *)
   | DotAccessEllipsis of expr * tok (* '...' *)
   (* Dual of ExprStmt. See stmt_to_expr() below and its comment.
    * OCaml/Ruby/Scala/... have just expressions, not separate statements.
@@ -623,6 +645,9 @@ and field_name =
    * The IdQualified inside name is Useful for OCaml field access.
    *)
   | FN of name
+  (* less: FEllipsis instead of DotAccessEllipsis; can also be
+   * represented in theory by FDynamic (Ellipsis)
+   *)
   (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby
    * or C++ ArrowStarAccess ->*
    *)
@@ -1027,15 +1052,24 @@ and for_header =
       * expr option (* cond *)
       * expr option (* next *)
   (* newvar: *)
-  | ForEach of
-      pattern
-      * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *)
-      * expr (* pattern 'in' expr *)
+  | ForEach of for_each
+  (* Scala *)
+  | MultiForEach of multi_for_each list
   (* Lua. todo: merge with ForEach? *)
   (* pattern 'in' expr *)
   | ForIn of for_var_or_expr list (* init *) * expr list
   (* sgrep: *)
   | ForEllipsis of (* ... *) tok
+
+and for_each =
+  pattern
+  * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java, '<-' Scala *)
+  * expr (* pattern 'in' expr *)
+
+and multi_for_each =
+  | FE of for_each
+  | FECond of for_each * tok * expr
+  | FEllipsis of tok
 
 and for_var_or_expr =
   (* newvar: *)

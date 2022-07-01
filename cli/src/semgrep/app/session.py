@@ -38,12 +38,14 @@ class UserAgent:
             result.add(os.environ["SEMGREP_USER_AGENT_APPEND"])
 
         try:
+            # nosem: use-git-check-output-helper
             remote_url = subprocess.check_output(
                 ["git", "remote", "get-url", "origin"],
                 cwd=Path(__file__).parent,
                 stderr=subprocess.DEVNULL,
                 encoding="utf-8",
             ).strip()
+            # nosem: use-git-check-output-helper
             sha = subprocess.check_output(
                 [
                     "git",

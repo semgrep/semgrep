@@ -58,7 +58,7 @@ install:
 dev:
 	$(MAKE) all
 	rm -f ../cli/src/semgrep/bin/semgrep-core
-	ln -s ../../../semgrep-core/bin/semgrep-core \
+	ln -s ../../../../semgrep-core/bin/semgrep-core \
 	  ../cli/src/semgrep/bin/semgrep-core
 
 .PHONY: e2etest

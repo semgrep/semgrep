@@ -1462,5 +1462,6 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       try map_module_ env cst with
       | Failure "not implemented" as exn ->
+          let e = Exception.catch exn in
           H.debug_sexp_cst_after_error (CST.sexp_of_module_ cst);
-          raise exn)
+          Exception.reraise e)

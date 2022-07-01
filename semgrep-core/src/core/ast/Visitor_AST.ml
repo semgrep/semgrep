@@ -175,8 +175,9 @@ let (mk_visitor :
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
-    | ResolvedName v1 ->
+    | ResolvedName (v1, v2) ->
         let v1 = v_dotted_ident v1 in
+        let v2 = v_list v_dotted_ident v2 in
         ()
   and v_name_info
       { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =
@@ -845,14 +846,23 @@ let (mk_visitor :
         and v2 = v_option v_expr v2
         and v3 = v_option v_expr v3 in
         ()
-    | ForEach (v1, t, v2) ->
-        let t = v_tok t in
-        let v1 = v_pattern v1 and v2 = v_expr v2 in
-        ()
+    | ForEach v1 -> v_for_each v1
+    | MultiForEach v1 -> v_list v_multi_for_each v1
     | ForEllipsis t -> v_tok t
     | ForIn (v1, v2) ->
         let v1 = v_list v_for_var_or_expr v1 and v2 = v_list v_expr v2 in
         ()
+  and v_for_each (v1, t, v2) =
+    let t = v_tok t in
+    let v1 = v_pattern v1 and v2 = v_expr v2 in
+    ()
+  and v_multi_for_each = function
+    | FE v1 -> v_for_each v1
+    | FECond (v1, t, v2) ->
+        v_for_each v1;
+        v_tok t;
+        v_expr v2
+    | FEllipsis t -> v_tok t
   and v_for_var_or_expr = function
     | ForInitVar (v1, v2) ->
         let v1 = v_entity v1 and v2 = v_variable_definition v2 in

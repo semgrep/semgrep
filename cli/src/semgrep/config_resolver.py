@@ -106,8 +106,6 @@ class ConfigPath:
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             state.metrics.add_feature("config", "auto")
-            if self._project_url is not None:
-                self._extra_headers["X-Semgrep-Project"] = self._project_url
             self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
         else:
             state.metrics.add_feature("config", "local")
@@ -305,7 +303,10 @@ class Config:
     @staticmethod
     def _convert_config_id_to_prefix(config_id: str) -> str:
         at_path = Path(config_id)
-        at_path = Config._safe_relative_to(at_path, Path.cwd())
+        try:
+            at_path = Config._safe_relative_to(at_path, Path.cwd())
+        except FileNotFoundError:
+            pass
 
         prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
         if len(prefix):

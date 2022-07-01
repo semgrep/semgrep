@@ -1523,7 +1523,10 @@ and type_parameters = (
 )
 
 and type_predicate = (
-    [ `Id of identifier (*tok*) | `This of Token.t (* "this" *) ]
+    [ `Id of identifier (*tok*)
+    | `This of Token.t (* "this" *)
+    | `Pred_type of predefined_type
+    ]
   * Token.t (* "is" *)
   * type_
 )
