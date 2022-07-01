@@ -49,6 +49,10 @@ type t = {
   (* this ultimately should go away once '...' works on the CFG *)
   ~go_deeper_stmt <ocaml default="true"> : bool;
 
+  (* implicitly assume deep ellipsis in expression statement *)
+  (* TODO: eventually the default should be 'false'. *)
+  ~implicit_deep_exprstmt <ocaml default="true"> : bool;
+
   (* implicitly assume ellipsis in record patterns *)
   (* TODO: eventually the default should be 'false'. *)
   ~implicit_ellipsis <ocaml default="true"> : bool;

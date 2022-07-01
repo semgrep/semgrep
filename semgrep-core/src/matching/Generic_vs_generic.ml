@@ -637,9 +637,16 @@ and m_id_info a b =
 (* Expression *)
 (*****************************************************************************)
 
-(* possibly go deeper when someone wants that a pattern like
+and m_expr_deep a b tin =
+  let symbolic_propagation = tin.config.Config.symbolic_propagation in
+  let subexprs_of_expr =
+    SubAST_generic.subexprs_of_expr ~symbolic_propagation
+  in
+  m_deep m_expr_deep m_expr subexprs_of_expr a b tin
+
+(* possibly go deeper. When someone writes a pattern like
  *   'bar();'
- * match also an expression statement like
+ * he may also want to match an expression statement like
  *   'x = bar();'.
  *
  * This is very hacky.
@@ -649,17 +656,17 @@ and m_id_info a b =
  *  - do as in coccinelle and use 'if(<... <expr> ...>)'
  *  - CURRENT: impicitely go deep without requiring an extra syntax
  *
- * todo? we could restrict ourselves to only a few forms? see SubAST_generic.ml
+ * todo? we could restrict ourselves to only a few forms?
  *   - x = <expr>,
  *   - <call>(<exprs).
+ * see SubAST_generic.subexprs_of_expr_implicit
  *)
-(* experimental! *)
-and m_expr_deep a b tin =
+and m_expr_deep_implict a b tin =
   let symbolic_propagation = tin.config.Config.symbolic_propagation in
   let subexprs_of_expr =
-    SubAST_generic.subexprs_of_expr ~symbolic_propagation
+    SubAST_generic.subexprs_of_expr_implicit ~symbolic_propagation
   in
-  m_deep m_expr_deep m_expr subexprs_of_expr a b tin
+  m_deep m_expr_deep_implict m_expr subexprs_of_expr a b tin
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
@@ -2082,8 +2089,16 @@ and m_stmt a b =
       let* () = m_tok a0 b0 in
       let* () = m_option_ellipsis_ok m_expr a1 b1 in
       m_tok asc bsc
+  (* deeper: go deep by default implicitly *)
   | G.ExprStmt (a1, a2), B.ExprStmt (b1, b2) ->
-      m_expr a1 b1 >>= fun () -> m_tok a2 b2
+      (* TODO: should make this an options: *)
+      let* () =
+        if_config
+          (fun x -> x.implicit_deep_exprstmt)
+          ~then_:(m_expr_deep_implict a1 b1)
+          ~else_:(m_expr a1 b1)
+      in
+      m_tok a2 b2
   (* opti: specialization to avoid going in the deep stmt matching!
    * TODO: we should not need this; '...' should not enumerate all
    * possible subset of stmt list and take forever.
