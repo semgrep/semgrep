@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- Expression statement patterns (e.g. `foo();`) used to also match when
+  they were a bit deeper in the expression (e.g., `x = foo();`).
+  This can now be disabled via rule `options:`
+  with `implicit_deep_exprstmt: false` (#5472)
+
 ## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
 
 ### Added
