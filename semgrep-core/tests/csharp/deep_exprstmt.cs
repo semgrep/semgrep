@@ -5,26 +5,23 @@ class HelloWorldFuncCall
     public static string Test()
     {
         //ERROR:
-        StaticMethod();
+        foo();
+        bar();
 
         //ERROR:
-        Console.WriteLine(StaticMethod());
+        foo();
+        Console.WriteLine(bar());
 
         //ERROR:
-        var x = StaticMethod();
-
-        //ERROR:
-        if (null == StaticMethod())
-        {
-            //ERROR:
-            throw new NullReferenceException(StaticMethod());
-        }
+        foo();
+        var x = bar();
 
 	//ERROR:
-	return StaticMethod();
+        foo();
+	return bar();
     }
 
-    private static string StaticMethod()
+    private static string bar()
     {
         return "hello world";
     }

@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   JavaScript, by writing additional rules to find JavaScript in non-JavaScript
   files, e.g., JavaScript contained in HTML or template files. While this is
   somewhat possible with metavariable-pattern, this reduces the work from an M \* N problem to an M + N one.
+- Expression statement patterns (e.g. `foo();`) used to also match when
+  they were a bit deeper in the expression (e.g., `x = foo();`).
+  This can now be disabled via rule `options:`
+  with `implicit_deep_exprstmt: false` (#5472)
 
 ## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
 
@@ -19,6 +23,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Scala: ellipsis are now allowed in for loop headers, so you can write patterns
   like `for (...; $X <- $Y if $COND; ...) { ... }` to match nested for loops. (#5650)
+- The `SEMGREP_GHA_MIN_FETCH_DEPTH` environment variable which lets you set how many
+  commits `semgrep ci` fetches from the remote at the minimum when calculating the merge-base in GitHub Actions.
+  Having more commits available helps Semgrep determine what changes came from the current pull request,
+  fixing issues where Semgrep would report findings that weren't touched in a given pull request.
+  This value is set to 0 by default (#5664)
 
 ### Fixed
 
@@ -33,6 +42,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `--verbose` no longer toggles the display of timing information, use
   `--verbose --time` to display this information.
+- Change timeout for git operations from 100s to 500s
 
 ## [0.101.1](https://github.com/returntocorp/semgrep/releases/tag/v0.101.1) - 2022-06-28
 

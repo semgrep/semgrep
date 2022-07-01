@@ -1,0 +1,9 @@
+rules:
+  - id: my-rule
+    languages:
+      - dockerfile
+    message: Working!
+    options:
+      implicit_deep_exprstmt: false
+    pattern: RUN b
+    severity: WARNING
