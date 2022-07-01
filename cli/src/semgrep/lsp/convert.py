@@ -37,6 +37,8 @@ def metavar_to_inlay(metavar: str, info: MetavarValue) -> JsonObject:
     }
 
 
+# Get related info for a rule match
+# Right now this is just the location + abstract content of metavars
 def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
     def get_metavar_related(m: str, d: MetavarValue) -> JsonObject:
         uri = f"file://{rule_match.path}"
@@ -64,6 +66,8 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
     return []
 
 
+# Convert a rule match to a LSP diagnostic
+# According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnostic
 def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
     env = get_state().env
     rule_url = f"{env.semgrep_url}/r/{rule_match.rule_id}"
@@ -117,6 +121,7 @@ def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> List[JsonObject]:
     )
 
 
+# get assocaitated files for a rule match
 def rule_to_files(rule: Rule, target_manager: TargetManager) -> List[str]:
     target_files = []
     for lang in rule.languages:

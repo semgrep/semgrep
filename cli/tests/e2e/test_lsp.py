@@ -1,4 +1,6 @@
 import json
+from typing import Any
+from typing import Mapping
 
 import pytest
 from tests.conftest import _clean_output_lsp
@@ -27,9 +29,12 @@ def mock_workspace_folder(path, name=None):
 
 
 def init_lsp(lsp, tmp_path, rule_path=None) -> SemgrepLSPServer:
-    initialization_options = {}
+    initialization_options: Mapping[str, Any] = {
+        "scan": {},
+        "lsp": {},
+    }
     if rule_path is not None:
-        initialization_options["semgrep.scan.configuration"] = [rule_path]
+        initialization_options["scan"]["configuration"] = [rule_path]
     lsp.m_initialize(
         processId="1",
         rootUri=tmp_path,

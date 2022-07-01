@@ -67,8 +67,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self._diagnostics: MutableMapping[str, DiagnosticsList] = {}
         self._registered_capabilities: MutableMapping[str, str] = {}
 
+    # Override the default implementation of __getitem__ So we can ensure no
+    # methods besides initialize, initialized, shutdown, exit are called before
+    # we are ready
     def __getitem__(self, key: str) -> Any:
-        if key not in ["initialize", "initialized"] and not self._ready:
+        if (
+            key not in ["initialize", "initialized", "shutdown", "exit"]
+            and not self._ready
+        ):
             # At some point we should override the Endpoint's request_callback
             # to actually be able to send error responses
             return {}
@@ -91,6 +97,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # of the json-rpc message.
     #
 
+    # Called by the client before ANYTHING else.
     def m_initialize(
         self,
         processId: Optional[str] = None,
@@ -100,13 +107,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         workspaceFolders: Optional[List[JsonObject]] = None,
         **_kwargs: JsonObject,
     ) -> JsonObject:
-        log.debug(
+        log.info(
             f"Semgrep Language Server initialized with:\n"
             f"... PID {processId}\n"
             f"... rooUri {rootUri}\n... rootPath {rootPath}\n"
             f"... options {initializationOptions}\n"
             f"... workspaceFolders {workspaceFolders}",
         )
+        # Clients don't need to send initializationOptions :(
         config = initializationOptions if initializationOptions is not None else {}
         if workspaceFolders is not None:
             self.config = LSPConfig(config, workspaceFolders)
@@ -122,18 +130,22 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         }
 
+    # Called by client after ok response from initialize
     def m_initialized(self) -> None:
-        self.register_capability(
-            "workspace/didChangeWatchedFiles",
-            {
-                "watchers": [
-                    {
-                        "globPattern": "**/*.{yml,yaml}",
-                    }
-                ]
-            },
-        )
-        log.info("Registered config watchers")
+        # At some point we should only watch config files specified for us
+        # But then we wouldn't watch join rule config files so not sure
+        if self.config.watch_configs:
+            self.register_capability(
+                "workspace/didChangeWatchedFiles",
+                {
+                    "watchers": [
+                        {
+                            "globPattern": "**/*.{yml,yaml}",
+                        }
+                    ]
+                },
+            )
+            log.info("Registered config watchers")
         self._ready = True
         log.info("Semgrep LSP initialized")
 
@@ -150,6 +162,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.debug("document__did_close")
         self.cleanup_diagnostics(textDocument)
 
+    # Called every time a file is changed, not saved! Anything in here should
+    # be relatively quick, we should not scan every change for now since that
+    # could slow down the client
     def m_text_document__did_change(
         self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
     ) -> None:
@@ -179,6 +194,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     ) -> CodeActionsList:
         return self.compute_code_actions(textDocument["uri"], range)
 
+    # This is called by the client, but if we want them to know we have new
+    # inlays we can send a notification with self.refresh_inlay_hints() and
+    # they'll make a request to here
     def m_text_document__inlay_hint(
         self,
         textDocument: TextDocumentItem,
@@ -197,14 +215,22 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if workspace_folders is not None:
             self.config._workspace_folders = workspace_folders
 
+    # We scan here every time since workspace folders RARELY change
     def m_workspace__did_change_workspace_folders(self, event: JsonObject) -> None:
         self.config.update_workspace(event["added"], event["removed"])
         if self.config.watch_workspace:
             self.process_workspaces()
 
+    # This is called by the client when whatever files we registered above in
+    # m_initialized changes. Handy for configs!
     def m_workspace__did_change_watched_files(self, changes: JsonObject) -> None:
+        # We're only watching config files so we don't care about the changes
         if self.config.watch_workspace:
             self.process_workspaces()
+
+    def m_workspace__did_change_configuration(self, settings: JsonObject) -> None:
+        self.config = LSPConfig(settings, self.config._workspace_folders)
+        self.process_workspaces()
 
     #
     #
@@ -222,9 +248,16 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     #
     #
 
+    # General method to register a capability with the client. Some
+    # capabilities such as watched files are recommended not to be done
+    # statically, but to be done dynamically through this method.
+    #
+    # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability
     def register_capability(
         self, method: str, registerOptions: Optional[JsonObject] = None
     ) -> None:
+        # Each capability needs a unique id, so we'll just generate one and
+        # keep a map of ids to methods for easy unregistering
         id = str(uuid.uuid4())
         self._registered_capabilities[method] = id
         self._endpoint.request(
@@ -236,6 +269,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
+    # Opposite of above :)
     def unregister_capability(self, method: str) -> None:
         self._endpoint.request(
             "client/unregisterCapability",
@@ -246,6 +280,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
+    # Publish diagnostics to the client. The client DOES NOT do any merging of
+    # diagnostics, and to clear them ALL out you must send an empty list
+    # explicitly.
     def publish_diagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
         self._endpoint.notify(
             "textDocument/publishDiagnostics",
@@ -255,11 +292,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
+    # Prompt the client to ask for new inlay hints
     def refresh_inlay_hints(self) -> None:
         self._endpoint.request(
             "workspace/inlayHint/refresh",
         )
 
+    # Do all scan related processsing here. This is called every time a file is
+    # saved or opened
     def process_text_document(self, textDocument: TextDocumentItem) -> None:
         log.debug("textDocument: %s", textDocument)
 
@@ -267,15 +307,19 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if uri.scheme != "file":
             return
         target_name = urllib.request.url2pathname(uri.path)
-        log.info(f"Running Semgrep on {target_name}")
+        log.info(f"Running Semgrep on {target_name} with configs {self.config.configs}")
 
+        # Run a scan on the file and convert to LSP diagnostics
         diagnostics = rule_match_map_to_diagnostics(
             run_rules([target_name], self.config)
         )
+        # Record them so we can calculate fixes and inlay hints
         self._diagnostics[textDocument["uri"]] = diagnostics
         self.publish_diagnostics(textDocument["uri"], diagnostics)
         self.refresh_inlay_hints()
 
+    # Do all workspace related processing here. This scans the entire workspace
+    # and recalculates all diagnostics
     def process_workspaces(self) -> None:
         log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
         for uri in self._diagnostics:
@@ -294,11 +338,15 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self.publish_diagnostics(uri, self._diagnostics[uri])
         self.refresh_inlay_hints()
 
+    # Clear all diagnostics for a given file
     def cleanup_diagnostics(self, textDocument: TextDocumentItem) -> None:
         self._diagnostics[textDocument["uri"]] = []
         self.publish_diagnostics(textDocument["uri"], [])
         self.refresh_inlay_hints()
 
+    # Create a fix item for a given diagnostic. These are just autofixes! We
+    # probably want to move this to convert at some point and make it more
+    # typed
     def create_fix_action(
         self, uri: str, diagnostic: Diagnostic, newText: str
     ) -> JsonObject:
@@ -312,11 +360,16 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         }
         return fix_action
 
+    # Helper method since a lot of request from the client aren't for a whole
+    # document but only for where the client is currently working.
     @staticmethod
     def text_ranges_overlap(range1: Range, range2: Range) -> bool:
+        # Check exclusive bounds, as sometimes the client sends just line
+        # numbers no characters
         return bool(
             range1["start"]["line"] < range2["end"]["line"]
             and range1["end"]["line"] > range2["start"]["line"]
+            # Check inclusive bounds
         ) or bool(
             range1["start"]["line"] <= range2["end"]["line"]
             and range1["end"]["line"] >= range2["start"]["line"]
@@ -324,6 +377,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             and range1["end"]["character"] >= range2["start"]["character"]
         )
 
+    # Compute the fixes for a given document. Basically pull out all autofixes
+    # from diagnostics.
     def compute_code_actions(self, uri: str, range: Range) -> CodeActionsList:
         log.debug(f"Compute code actions for uri {uri} and range {range}")
         diagnostics = self._diagnostics.get(uri)
@@ -349,6 +404,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.debug(f"Computed code actions: {actions}")
         return actions
 
+    # Compute inlay hints for a given document. This labels the abstract
+    # content associated with a metavar
     def compute_inlay_hints(self, uri: str, range: Range) -> List[JsonObject]:
         log.debug(f"Compute inlay hints for uri {uri} and range {range}")
         diagnostics = self._diagnostics.get(uri)

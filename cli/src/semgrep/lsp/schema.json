@@ -77,6 +77,16 @@
       "type": "boolean",
       "default": true,
       "description": "Scan all workspace folders. Disable for per-file scanning only."
+    },
+    "semgrep.lsp.watchConfigs": {
+      "type": "boolean",
+      "default": true,
+      "description": "Watch all semgrep config files for changes and rescan when they are saved. semgrep.lsp.watchWorkspace must be enabled for this to work."
+    },
+    "semgrep.lsp.autodetectConfigs": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically detect configuration files in workspace folders according to the glob pattern **/{semgrep,.semgrep}.{yml,yaml}"
     }
   }
 }

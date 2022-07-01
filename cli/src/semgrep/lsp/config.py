@@ -1,8 +1,10 @@
 import glob
 import urllib
 from functools import partial
+from typing import Any
 from typing import Callable
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Union
 
@@ -23,24 +25,33 @@ class LSPConfig:
     def __init__(
         self, lsp_config: JsonObject, workspace_folders: List[JsonObject]
     ) -> None:
-        self._settings = lsp_config
+        lsp_config = dict(lsp_config)
+        # Ensure that we have these config keys
+        # This is easier than checking if they are None everywhere
+        if "scan" not in lsp_config:
+            lsp_config["scan"] = {}
+        if "workspace" not in lsp_config:
+            lsp_config["workspace"] = {}
+        self._settings: Mapping[str, Mapping[str, Any]] = lsp_config
         self._workspace_folders = workspace_folders
         self.update_workspace(added=None, removed=None)
         self._update_target_manager()
 
-    @property
-    def settings(self) -> JsonObject:
-        return self._settings
+    # =====================
+    # Semgrep scan settings
+    # =====================
 
+    # Get all valid configs to run semgrep on for the current workspace
     @property
     def configs(self) -> List[str]:
-        # First check if workspace folders/semgrep.yaml exists
         configs = []
-        settings_configs = self._settings.get("semgrep.scan.configuration")
+        settings_configs = self._settings["scan"].get("configuration")
         if settings_configs is not None:
             configs.extend(settings_configs)
         # Should do something with CI here
-        configs.extend(self._workspace_configs)
+        # Configs we have autodetected from the workspace folders
+        if self.autodetect_configs:
+            configs.extend(self._workspace_configs)
         if len(configs) > 0:
             return configs
         else:
@@ -48,52 +59,72 @@ class LSPConfig:
 
     @property
     def severity(self) -> List[str]:
-        return self._settings.get("semgrep.scan.severity", ["INFO", "WARNING", "ERROR"])
+        return self._settings["scan"].get("severity", ["INFO", "WARNING", "ERROR"])
 
     @property
     def exclude(self) -> List[str]:
-        return self._settings.get("semgrep.scan.exclude", [])
+        return self._settings["scan"].get("exclude", [])
 
     @property
     def include(self) -> List[str]:
-        return self._settings.get("semgrep.scan.include", [])
+        return self._settings["scan"].get("include", [])
 
     @property
     def jobs(self) -> int:
-        return self._settings.get("semgrep.scan.jobs", 1)
+        return self._settings["scan"].get("jobs", 1)
 
     @property
     def configurationSource(self) -> List[str]:
-        return self._settings.get("semgrep.scan.configurationSource", ["file"])
+        return self._settings["scan"].get("configurationSource", ["file"])
 
     @property
     def disable_nosem(self) -> bool:
-        return self._settings.get("semgrep.scan.disableNoSem", False)
+        return self._settings["scan"].get("disableNoSem", False)
 
     @property
     def max_memory(self) -> int:
-        return self._settings.get("semgrep.scan.maxMemory", 0)
+        return self._settings["scan"].get("maxMemory", 0)
 
     @property
     def max_target_bytes(self) -> int:
-        return self._settings.get("semgrep.scan.maxTargetBytes", 0)
+        return self._settings["scan"].get("maxTargetBytes", 0)
 
     @property
     def timeout_threshold(self) -> int:
-        return self._settings.get("semgrep.scan.timeoutThreshold", 0)
+        return self._settings["scan"].get("timeoutThreshold", 0)
 
     @property
     def use_git_ignore(self) -> bool:
-        return self._settings.get("semgrep.scan.useGitIgnore", True)
+        return self._settings["scan"].get("useGitIgnore", True)
 
     @property
     def project_url(self) -> Union[str, None]:
         return get_project_url()
 
+    # =====================
+    # Semgrep LSP settings
+    # =====================
     @property
     def watch_workspace(self) -> bool:
-        return self._settings.get("semgrep.scan.watchedWorkspace", True)
+        return self._settings["lsp"].get("watchedWorkspace", True)
 
+    @property
+    def watch_configs(self) -> bool:
+        return self._settings["lsp"].get("watchConfigs", True)
+
+    @property
+    def autodetect_configs(self) -> bool:
+        return self._settings["lsp"].get("autodetectConfigs", True)
+
+    # =====================
+    # Useful properties
+    # =====================
+
+    @property
+    def settings(self) -> JsonObject:
+        return self._settings
+
+    # Get all rules we're running, for semgrep/**rules commands
     @property
     def rules(self) -> List[Rule]:
         configs_obj, config_errors = get_config(
@@ -106,14 +137,17 @@ class LSPConfig:
         ]
         return filtered_rules
 
+    # Get all languages we're running
     @property
     def languages(self) -> List[Language]:
         return flatten([rule.languages for rule in self.rules])
 
+    # All workspace folders by URI
     @property
     def folders(self) -> List[str]:
         return [f["uri"] for f in self._workspace_folders]
 
+    # All workspace folders by path
     @property
     def folder_paths(self) -> List[str]:
         folder_paths = []
@@ -123,10 +157,13 @@ class LSPConfig:
             folder_paths.append(target_name)
         return folder_paths
 
+    # Generate a scanner according to the config
+    # I like doing it this way because then it's all in one spot
+    # but I can see an argument for this being a function that takes a config
     @property
     def scanner(self) -> Callable:
         # TODO: do something smart here with CI things in the future
-        baseline_commit = self._settings.get("semgrep.scan.baselineCommit")
+        baseline_commit = self._settings["scan"].get("baselineCommit")
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
         output_handler = OutputHandler(output_settings)
         return partial(
@@ -147,6 +184,11 @@ class LSPConfig:
             baseline_commit=baseline_commit,
         )
 
+    # =====================
+    # Config management
+    # =====================
+
+    # Update our target manager so we're reporting accurate files
     def _update_target_manager(self) -> None:
         self.target_manager = TargetManager(
             includes=self.include,
@@ -155,6 +197,7 @@ class LSPConfig:
             target_strings=self.folder_paths,
         )
 
+    # Add or remove folders from our config, and update what we need to
     def update_workspace(
         self,
         added: Optional[List[JsonObject]],
@@ -173,14 +216,21 @@ class LSPConfig:
             self._workspace_folders = added
         # update workspace configs
         configs = []
-        for f in self.folder_paths:
-            # check if semgrep.yaml exists in the folder
-            possibles = ["semgrep.yaml", "semgrep.yml", ".semgrep.yaml", ".semgrep.yml"]
-            files = []
-            for p in possibles:
-                files.extend(glob.glob(f + "/**/" + p, recursive=True))
-            print(files)
-            for f in files:
-                configs.append(str(f))
-        self._workspace_configs = configs
+        # Autodetect configs from workspace folders
+        if self.autodetect_configs:
+            for f in self.folder_paths:
+                # check if semgrep.yaml exists in the folder
+                possibles = [
+                    "semgrep.yaml",
+                    "semgrep.yml",
+                    ".semgrep.yaml",
+                    ".semgrep.yml",
+                ]
+                files = []
+                for p in possibles:
+                    files.extend(glob.glob(f + "/**/" + p, recursive=True))
+                print(files)
+                for f in files:
+                    configs.append(str(f))
+            self._workspace_configs = configs
         self._update_target_manager()

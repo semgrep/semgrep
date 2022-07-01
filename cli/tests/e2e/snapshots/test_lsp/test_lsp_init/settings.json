@@ -1,1 +1,1 @@
-{"semgrep.scan.configuration": ["rules/eqeq-python.yaml"]}
+{"scan": {"configuration": ["rules/eqeq-python.yaml"]}, "lsp": {}, "workspace": {}}
