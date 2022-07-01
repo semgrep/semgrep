@@ -159,7 +159,7 @@ class ConfigPath:
             notice = f"\nRules downloaded from {config_url} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
             notice_color = with_color(Colors.red, notice, bold=True)
             logger.error(notice_color)
-            raise SemgrepError(terminal_wrap(f"Parse error details: {str(e)}"))
+            raise e
         except Exception as e:
             raise SemgrepError(
                 terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
