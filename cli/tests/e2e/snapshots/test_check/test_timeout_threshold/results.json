@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "[WARN] Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ",
+      "message": "Timeout when running rules.forcetimeout on targets/equivalence/open_redirect.py:\n ",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
       "type": "Timeout"
