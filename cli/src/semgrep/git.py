@@ -8,7 +8,7 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 
-from semgrep.constants import GIT_SH_TIMEOUT
+from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
@@ -85,6 +85,7 @@ class BaselineHandler:
 
         Raises CalledProcessError if there are any problems running `git diff` command
         """
+        env = get_state().env
         logger.debug("Initializing git status")
 
         # Output of git command will be relative to git project root not cwd
@@ -105,7 +106,7 @@ class BaselineHandler:
             # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
             raw_output = subprocess.run(
                 [*status_cmd, "--merge-base"],
-                timeout=GIT_SH_TIMEOUT,
+                timeout=env.git_command_timeout,
                 capture_output=True,
                 encoding="utf-8",
                 check=True,
@@ -119,7 +120,7 @@ class BaselineHandler:
                 # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
                 raw_output = subprocess.run(
                     status_cmd,
-                    timeout=GIT_SH_TIMEOUT,
+                    timeout=env.git_command_timeout,
                     capture_output=True,
                     encoding="utf-8",
                     check=True,
@@ -264,6 +265,7 @@ class BaselineHandler:
 
         Raises CalledProcessError if any calls to git return non-zero exit code
         """
+        env = get_state().env
         # Reabort in case for some reason aborting in __init__ did not cause
         # semgrep to exit
         self._abort_on_pending_changes()
@@ -293,7 +295,7 @@ class BaselineHandler:
             x = subprocess.run(
                 ["git", "reset", "--hard", current_head],
                 capture_output=True,
-                timeout=GIT_SH_TIMEOUT,
+                timeout=env.git_command_timeout,
             )
             logger.debug("Finished git reset to return original context")
 

@@ -15,7 +15,6 @@ from glom import T
 from glom.core import TType
 
 from semgrep import __VERSION__
-from semgrep.constants import GIT_SH_TIMEOUT
 from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
@@ -38,6 +37,7 @@ class GitMeta:
 
     @property
     def repo_name(self) -> str:
+        env = get_state().env
         repo_name = os.getenv("SEMGREP_REPO_NAME")
         if repo_name:
             return repo_name
@@ -47,7 +47,7 @@ class GitMeta:
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True,
             encoding="utf-8",
-            timeout=GIT_SH_TIMEOUT,
+            timeout=env.git_command_timeout,
         )
         if rev_parse.returncode != 0:
             raise Exception(
@@ -271,6 +271,7 @@ class GithubMeta(GitMeta):
         # Should only be called if head_branch_hash is defined
         assert self.head_branch_hash is not None
         assert self.base_branch_hash is not None
+        env = get_state().env
 
         # fetch 0, 4, 16, 64, 256, 1024, ...
         fetch_depth = 4**attempt_count if attempt_count else 0
@@ -324,7 +325,7 @@ class GithubMeta(GitMeta):
                 encoding="utf-8",
                 capture_output=True,
                 check=True,
-                timeout=GIT_SH_TIMEOUT,
+                timeout=env.git_command_timeout,
             )
         except subprocess.CalledProcessError as e:
             output = e.stderr.strip()
