@@ -30,8 +30,8 @@ class LSPConfig:
         # This is easier than checking if they are None everywhere
         if "scan" not in lsp_config:
             lsp_config["scan"] = {}
-        if "workspace" not in lsp_config:
-            lsp_config["workspace"] = {}
+        if "lsp" not in lsp_config:
+            lsp_config["lsp"] = {}
         self._settings: Mapping[str, Mapping[str, Any]] = lsp_config
         self._workspace_folders = workspace_folders
         self.update_workspace(added=None, removed=None)

@@ -169,6 +169,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
     ) -> None:
         log.debug("document__did_open")
+        # Remove all findings if the file is changed
         for c in contentChanges:
             range = c["range"]
             if self._diagnostics.get(textDocument["uri"]) is not None:
@@ -298,6 +299,53 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             "workspace/inlayHint/refresh",
         )
 
+    def notify_work_done_create(self, message: str, title: str, token: str) -> str:
+        res = self._endpoint.request(
+            "window/workDoneProgress/create",
+            {
+                "token": token,
+            },
+        )
+        log.info(f"Created notification {token} with result {res}")
+        self._endpoint.notify(
+            "$/progress",
+            {
+                "token": token,
+                "value": {
+                    "kind": "begin",
+                    "title": title,
+                    "message": message,
+                    "cancellable": False,
+                },
+            },
+        )
+
+        self._endpoint.notify(
+            "$/progress",
+            {
+                "token": token,
+                "value": {
+                    "kind": "report",
+                    "message": message,
+                    "cancellable": False,
+                },
+            },
+        )
+        return token
+
+    def notify_work_done_end(self, token: str, message: str) -> None:
+        self._endpoint.notify(
+            "$/progress",
+            {
+                "token": token,
+                "value": {
+                    "kind": "end",
+                    "message": message,
+                },
+            },
+        )
+        log.debug(f"Ended notification {token}")
+
     # Do all scan related processsing here. This is called every time a file is
     # saved or opened
     def process_text_document(self, textDocument: TextDocumentItem) -> None:
@@ -308,15 +356,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             return
         target_name = urllib.request.url2pathname(uri.path)
         log.info(f"Running Semgrep on {target_name} with configs {self.config.configs}")
-
-        # Run a scan on the file and convert to LSP diagnostics
-        diagnostics = rule_match_map_to_diagnostics(
-            run_rules([target_name], self.config)
-        )
-        # Record them so we can calculate fixes and inlay hints
-        self._diagnostics[textDocument["uri"]] = diagnostics
-        self.publish_diagnostics(textDocument["uri"], diagnostics)
-        self.refresh_inlay_hints()
+        self.lsp_scan([target_name])
 
     # Do all workspace related processing here. This scans the entire workspace
     # and recalculates all diagnostics
@@ -325,17 +365,28 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         for uri in self._diagnostics:
             self.publish_diagnostics(uri, [])
         self._diagnostics = {}
-        diagnostics = rule_match_map_to_diagnostics(
-            run_rules(self.config.folder_paths, self.config)
+        self.lsp_scan(self.config.folder_paths)
+
+    # Run a scan on targets and update diagnostics
+    def lsp_scan(self, targets: List[str]) -> None:
+        token = str(uuid.uuid4())
+        self.notify_work_done_create(
+            f"Scanning files {len(self.config.target_manager.targets)} file(s)",
+            "Running Semgrep",
+            token,
         )
+        # Run a scan on the file and convert to LSP diagnostics
+        diagnostics = rule_match_map_to_diagnostics(run_rules(targets, self.config))
+        self.notify_work_done_end(token, "Scanning complete")
         sorted_diagnostics: MutableMapping[str, List[JsonObject]] = {}
+        # Record them so we can calculate fixes and inlay hints
         for d in diagnostics:
             if d["data"]["uri"] not in sorted_diagnostics:
                 sorted_diagnostics[d["data"]["uri"]] = []
             sorted_diagnostics[d["data"]["uri"]].append(d)
-        self._diagnostics = sorted_diagnostics
-        for uri in self._diagnostics:
-            self.publish_diagnostics(uri, self._diagnostics[uri])
+        for t in sorted_diagnostics:
+            self._diagnostics[t] = sorted_diagnostics[t]
+            self.publish_diagnostics(t, sorted_diagnostics[t])
         self.refresh_inlay_hints()
 
     # Clear all diagnostics for a given file
