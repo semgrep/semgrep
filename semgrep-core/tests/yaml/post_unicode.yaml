@@ -1,0 +1,5 @@
+# MATCH:
+other: test
+unicode: ｼﾞｬﾊﾟﾝ
+# MATCH:
+other: test2

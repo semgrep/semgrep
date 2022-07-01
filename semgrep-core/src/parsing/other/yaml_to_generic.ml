@@ -496,14 +496,37 @@ let preprocess_yaml str =
   in
   String.concat "\n" (process_lines lines [] [])
 
+let mask_unicode str =
+  (* The YAML parser returns the charpos as the number of unicode (not 8-bit)
+     characters. However, Parse_info.full_charpos_to_pos expects the charpos
+     to be the number of 8-bit characters. This difference causes incorrect
+     line/col to be assigned to the end tokens of mappings after unicode
+     characters. *)
+  (* Note that the YAML parser does return a correct line and col, which we
+     use everywhere else. However, it gives an exclusive end when returning
+     the token that ends a mapping/sequence/other bracket, whereas Semgrep
+     expects an inclusive end. To adjust this, we currently need the charpos *)
+  let char_range = 128 in
+  let control_char_start_range = 32 in
+  let control_char_end_range = 1 in
+  let available_range =
+    char_range - (control_char_end_range + control_char_start_range)
+  in
+  String.of_seq
+    (Seq.map
+       (fun c ->
+         let code = Char.code c in
+         if code < char_range then c
+         else Char.chr ((code mod available_range) + control_char_start_range))
+       (String.to_seq str))
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let program file =
+let parse_yaml_file file str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
-  let str = Common.read_file file in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
   let parser = get_res file (S.parser str) in
   let env =
@@ -518,9 +541,19 @@ let program file =
   let xs = parse env in
   Common.map G.exprstmt xs
 
+(* This needs to be separate since we call parse_rule to parse yaml rules
+   for other languages, but when we parse yaml-language rules/targets we
+   preprocess unicode characters differently *)
+
+let parse_rule file =
+  let str = Common.read_file file in
+  parse_yaml_file file str
+
+(* The entry points for yaml-language parsing *)
+
 let any str =
   let file = "<pattern_file>" in
-  let str = preprocess_yaml str in
+  let str = preprocess_yaml (mask_unicode str) in
   let parser = get_res file (S.parser str) in
   let env =
     {
@@ -533,3 +566,7 @@ let any str =
   in
   let xs = parse env in
   make_pattern_expr xs
+
+let program file =
+  let str = mask_unicode (Common.read_file file) in
+  parse_yaml_file file str
