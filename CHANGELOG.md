@@ -4,6 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- A new experimental 'extract' mode. This mode runs a Semgrep rule on a
+  codebase and "extracts" code from matches, treating it as a different
+  language. This allows users to supplement an existing set of rules, e.g., for
+  JavaScript, by writing additional rules to find JavaScript in non-JavaScript
+  files, e.g., JavaScript contained in HTML or template files. While this is
+  somewhat possible with metavariable-pattern, this reduces the work from an M \* N problem to an M + N one.
+
 ## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
 
 ### Added
