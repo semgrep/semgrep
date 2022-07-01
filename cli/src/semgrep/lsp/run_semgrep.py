@@ -8,5 +8,15 @@ log = getLogger(__name__)
 
 
 def run_rules(targets: Sequence[str], config: LSPConfig) -> RuleMatchMap:
+    (
+        filtered_matches_by_rule,
+        _,
+        _,
+        _,
+        filtered_rules,
+        profiler,
+        profiling_data,
+        shown_severities,
+    ) = config.scanner(target=targets)
     # ignore this type since we're doing weird things with partial :O
-    return config.scanner(target=targets)[0]  # type: ignore
+    return filtered_matches_by_rule  # type: ignore

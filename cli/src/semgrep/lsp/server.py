@@ -81,12 +81,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         return super().__getitem__(key)
 
     def start(self) -> None:
-        # Start the json-rpc endpoint
+        """Start the json-rpc endpoint"""
         self._jsonrpc_stream_reader.listen(self._endpoint.consume)
 
     def stop(self) -> None:
+        """Stop the json-rpc endpoint"""
         log.info("Server stopping")
-        # Stop the json-rpc endpoint
         self._endpoint.shutdown()
         self._jsonrpc_stream_reader.close()
         self._jsonrpc_stream_writer.close()
@@ -148,6 +148,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             log.info("Registered config watchers")
         self._ready = True
         log.info("Semgrep LSP initialized")
+        self.process_workspaces()
 
     def m_shutdown(self) -> None:
         log.info("Server shutting down")
@@ -162,12 +163,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.debug("document__did_close")
         self.cleanup_diagnostics(textDocument)
 
-    # Called every time a file is changed, not saved! Anything in here should
-    # be relatively quick, we should not scan every change for now since that
-    # could slow down the client
+    # Anything in here should be relatively quick, we should not scan every
+    # change for now since that could slow down the client
     def m_text_document__did_change(
         self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
     ) -> None:
+        """Called by client everytime a file is changed (but not necessarily saved)"""
         log.debug("document__did_open")
         # Remove all findings if the file is changed
         for c in contentChanges:
@@ -184,6 +185,11 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_text_document__did_open(self, textDocument: TextDocumentItem) -> None:
         log.debug("document__did_open")
+        # Assume that all opened files are in the workspace and covered by the
+        # workspace scan
+        if self.config.watch_workspace:
+            log.info(f"First scan of {textDocument['uri']}, using preprocessed results")
+            return
         self.process_text_document(textDocument)
 
     def m_text_document__did_save(self, textDocument: TextDocumentItem) -> None:
@@ -216,20 +222,22 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if workspace_folders is not None:
             self.config._workspace_folders = workspace_folders
 
-    # We scan here every time since workspace folders RARELY change
     def m_workspace__did_change_workspace_folders(self, event: JsonObject) -> None:
         self.config.update_workspace(event["added"], event["removed"])
+        # We scan here every time since workspace folders RARELY change
         if self.config.watch_workspace:
             self.process_workspaces()
 
     # This is called by the client when whatever files we registered above in
     # m_initialized changes. Handy for configs!
     def m_workspace__did_change_watched_files(self, changes: JsonObject) -> None:
+        """Called by client when watched config files change"""
         # We're only watching config files so we don't care about the changes
         if self.config.watch_workspace:
             self.process_workspaces()
 
     def m_workspace__did_change_configuration(self, settings: JsonObject) -> None:
+        """Called by client when settings change"""
         self.config = LSPConfig(settings, self.config._workspace_folders)
         self.process_workspaces()
 
@@ -245,18 +253,11 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # - semgrep/dump_ast (dump the AST for a file)
     # - semgrep/search
 
-    #
-    #
-    #
-
-    # General method to register a capability with the client. Some
-    # capabilities such as watched files are recommended not to be done
-    # statically, but to be done dynamically through this method.
-    #
-    # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability
+    # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability since this can be trick to understand
     def register_capability(
         self, method: str, registerOptions: Optional[JsonObject] = None
     ) -> None:
+        """General method to register a capability with the client. Some capabilities such as watched files are recommended not to be done statically, but to be done dynamically through this method."""
         # Each capability needs a unique id, so we'll just generate one and
         # keep a map of ids to methods for easy unregistering
         id = str(uuid.uuid4())
@@ -270,8 +271,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    # Opposite of above :)
     def unregister_capability(self, method: str) -> None:
+        """Unregister a capability. See register_capability for more info."""
         self._endpoint.request(
             "client/unregisterCapability",
             {
@@ -281,10 +282,10 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    # Publish diagnostics to the client. The client DOES NOT do any merging of
-    # diagnostics, and to clear them ALL out you must send an empty list
-    # explicitly.
+    # The client DOES NOT do any merging of diagnostics, and to clear them ALL
+    # out you must send an empty list explicitly.
     def publish_diagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
+        """Publish diagnostics to the client"""
         self._endpoint.notify(
             "textDocument/publishDiagnostics",
             {
@@ -293,8 +294,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    # Prompt the client to ask for new inlay hints
+    def cleanup_diagnostics(self, textDocument: TextDocumentItem) -> None:
+        """Clear all diagnostics for a given file"""
+        self._diagnostics[textDocument["uri"]] = []
+        self.publish_diagnostics(textDocument["uri"], [])
+        self.refresh_inlay_hints()
+
     def refresh_inlay_hints(self) -> None:
+        """Prompt the client to ask for new inlay hints"""
         self._endpoint.request(
             "workspace/inlayHint/refresh",
         )
@@ -306,7 +313,6 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                 "token": token,
             },
         )
-        log.info(f"Created notification {token} with result {res}")
         self._endpoint.notify(
             "$/progress",
             {
@@ -346,9 +352,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         log.debug(f"Ended notification {token}")
 
-    # Do all scan related processsing here. This is called every time a file is
-    # saved or opened
     def process_text_document(self, textDocument: TextDocumentItem) -> None:
+        """Scan textDocument and publish diagnostics. This is called every time a file is saved or opened"""
         log.debug("textDocument: %s", textDocument)
 
         uri = urllib.parse.urlparse(textDocument["uri"])
@@ -358,20 +363,19 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.info(f"Running Semgrep on {target_name} with configs {self.config.configs}")
         self.lsp_scan([target_name])
 
-    # Do all workspace related processing here. This scans the entire workspace
-    # and recalculates all diagnostics
     def process_workspaces(self) -> None:
+        """Scan workspace folders and recalculate all diagnostics. This is called every time the workspace changes"""
         log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
         for uri in self._diagnostics:
             self.publish_diagnostics(uri, [])
         self._diagnostics = {}
         self.lsp_scan(self.config.folder_paths)
 
-    # Run a scan on targets and update diagnostics
     def lsp_scan(self, targets: List[str]) -> None:
+        """Run a scan on targets and update diagnostics"""
         token = str(uuid.uuid4())
         self.notify_work_done_create(
-            f"Scanning files {len(self.config.target_manager.targets)} file(s)",
+            f"Scanning files {len(targets)} location(s)",
             "Running Semgrep",
             token,
         )
@@ -387,12 +391,6 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         for t in sorted_diagnostics:
             self._diagnostics[t] = sorted_diagnostics[t]
             self.publish_diagnostics(t, sorted_diagnostics[t])
-        self.refresh_inlay_hints()
-
-    # Clear all diagnostics for a given file
-    def cleanup_diagnostics(self, textDocument: TextDocumentItem) -> None:
-        self._diagnostics[textDocument["uri"]] = []
-        self.publish_diagnostics(textDocument["uri"], [])
         self.refresh_inlay_hints()
 
     # Create a fix item for a given diagnostic. These are just autofixes! We

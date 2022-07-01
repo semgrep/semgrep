@@ -28,10 +28,12 @@ def mock_workspace_folder(path, name=None):
     return {"name": name if name is not None else f"{path}", "uri": f"file://{path}"}
 
 
-def init_lsp(lsp, tmp_path, rule_path=None) -> SemgrepLSPServer:
+def init_lsp(lsp, tmp_path, rule_path=None, watch_workspace=False) -> SemgrepLSPServer:
     initialization_options: Mapping[str, Any] = {
         "scan": {},
-        "lsp": {},
+        "lsp": {
+            "watchWorkspace": watch_workspace,
+        },
     }
     if rule_path is not None:
         initialization_options["scan"]["configuration"] = [rule_path]
@@ -106,7 +108,7 @@ def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
 
 
 def test_lsp_workspace_folders(lsp, tmp_path):
-    init_lsp(lsp, tmp_path)
+    init_lsp(lsp, tmp_path, watch_workspace=True)
     dirs = []
     for i in range(10):
         path = tmp_path / f"folder{i}"

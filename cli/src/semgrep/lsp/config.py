@@ -106,7 +106,7 @@ class LSPConfig:
     # =====================
     @property
     def watch_workspace(self) -> bool:
-        return self._settings["lsp"].get("watchedWorkspace", True)
+        return self._settings["lsp"].get("watchWorkspace", True)
 
     @property
     def watch_configs(self) -> bool:
