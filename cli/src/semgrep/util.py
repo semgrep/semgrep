@@ -18,7 +18,6 @@ import click
 
 from semgrep.constants import Colors
 from semgrep.constants import FIXTEST_SUFFIX
-from semgrep.constants import GIT_SH_TIMEOUT
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 
@@ -182,12 +181,19 @@ def git_check_output(command: Sequence[str]) -> str:
     """
     Helper function to run a GIT command that prints out helpful debugging information
     """
-    from semgrep.error import SemgrepError  # Avoiding circular import
+    # Avoiding circular imports
+    from semgrep.error import SemgrepError
+    from semgrep.state import get_state
+
+    env = get_state().env
 
     try:
         # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
         return subprocess.check_output(
-            command, stderr=subprocess.PIPE, encoding="utf-8", timeout=GIT_SH_TIMEOUT
+            command,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            timeout=env.git_command_timeout,
         ).strip()
     except subprocess.CalledProcessError as e:
         command_str = " ".join(command)
