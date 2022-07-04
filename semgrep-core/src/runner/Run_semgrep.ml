@@ -85,7 +85,7 @@ let rec print_taint_call_trace ~format ~spaces = function
       Matching_report.print_match ~format ~spaces call_toks;
       if intermediate_toks <> [] then
         pr
-          (spf "%sthese intermediate values are tainted: %s" spaces_string
+          (spf "%sthese intermediate variables are tainted: %s" spaces_string
              (string_of_toks intermediate_toks));
       pr (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
@@ -98,10 +98,13 @@ let print_taint_trace ~format taint_trace =
     print_taint_call_trace ~format ~spaces:4 source;
     if tokens <> [] then
       pr
-        (spf "  * These intermediate values are tainted: %s"
+        (spf "  * These intermediate variables are tainted: %s"
            (string_of_toks tokens));
-    pr "  * This is how taint reaches the sink:";
-    print_taint_call_trace ~format ~spaces:4 sink
+    match sink with
+    | Pattern_match.Toks _ -> ()
+    | _call ->
+        pr "  * This is how taint reaches the sink:";
+        print_taint_call_trace ~format ~spaces:4 sink
 
 let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
