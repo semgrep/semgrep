@@ -103,10 +103,14 @@ let print_taint_trace ~format taint_trace =
     pr "  * This is how taint reaches the sink:";
     print_taint_call_trace ~format ~spaces:4 sink
 
-let print_match ?str match_format mvars mvar_binding ii_of_any
-    tokens_matched_code taint_trace =
+let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
+  let { match_format; mvars; _ } = config in
+  let { Pattern_match.env; tokens = (lazy tokens_matched_code); taint_trace; _ }
+      =
+    match_
+  in
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
   (if mvars = [] then Matching_report.print_match ?str ~format:match_format toks
   else
@@ -119,7 +123,7 @@ let print_match ?str match_format mvars mvar_binding ii_of_any
     let strings_metavars =
       mvars
       |> Common.map (fun x ->
-             match Common2.assoc_opt x mvar_binding with
+             match Common2.assoc_opt x env with
              | Some any ->
                  any |> ii_of_any
                  |> List.filter PI.is_origintok
@@ -543,10 +547,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            let xtarget = xtarget_of_file config xlang file in
            let match_hook str match_ =
              if config.output_format = Text then
-               let xs = Lazy.force match_.Pattern_match.tokens in
-               print_match ~str config.match_format config.mvars
-                 match_.Pattern_match.env Metavariable.ii_of_mval xs
-                 match_.Pattern_match.taint_trace
+               print_match ~str config match_ Metavariable.ii_of_mval
            in
            let res =
              Match_rules.check ~match_hook ~timeout:config.timeout
@@ -734,10 +735,8 @@ let semgrep_with_one_pattern config =
                        file
                    in
                    Match_patterns.check
-                     ~hook:(fun env matched_tokens ->
-                       let xs = Lazy.force matched_tokens in
-                       print_match config.match_format config.mvars env
-                         Metavariable.ii_of_mval xs None)
+                     ~hook:(fun match_ ->
+                       print_match config match_ Metavariable.ii_of_mval)
                      ( Config_semgrep.default_config,
                        parse_equivalences config.equivalences_file )
                      minirule (file, lang, ast)
