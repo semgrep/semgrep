@@ -36,15 +36,20 @@
  * from a pattern:, we should not merge them!
  *)
 
+(* The locations of variables which taint propagates through *)
 type tainted_tokens = Parse_info.t list [@@deriving show]
+
+(* The tokens associated with a single pattern match involved in a taint trace
+ * *)
+type pattern_match_tokens = Parse_info.t list [@@deriving show]
 
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)
 type taint_call_trace =
   (* A direct match *)
-  | Toks of Parse_info.t list
+  | Toks of pattern_match_tokens
   (* An indirect match through a function call *)
   | Call of {
-      call_toks : tainted_tokens;
+      call_toks : pattern_match_tokens;
       intermediate_toks : tainted_tokens;
       call_trace : taint_call_trace;
     }
