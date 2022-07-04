@@ -100,8 +100,11 @@ let print_taint_trace ~format taint_trace =
       pr
         (spf "  * These intermediate values are tainted: %s"
            (string_of_toks tokens));
-    pr "  * This is how taint reaches the sink:";
-    print_taint_call_trace ~format ~spaces:4 sink
+    match sink with
+    | Pattern_match.Toks _ -> ()
+    | Call _ ->
+        pr "  * This is how taint reaches the sink:";
+        print_taint_call_trace ~format ~spaces:4 sink
 
 let print_match ?str config match_ ii_of_any =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
