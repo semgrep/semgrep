@@ -69,8 +69,7 @@ let ranges_matched lang file pattern : Range.t list =
   (* Are equivalences necessary for this? *)
   let matches =
     Match_patterns.check
-      ~hook:(fun _env matched_tokens ->
-        let xs = Lazy.force matched_tokens in
+      ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
         let toks = xs |> List.filter Parse_info.is_origintok in
         let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
         let minii_loc = Parse_info.unsafe_token_location_of_info minii in
