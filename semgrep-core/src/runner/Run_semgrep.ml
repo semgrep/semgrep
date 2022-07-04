@@ -79,14 +79,14 @@ let string_of_toks toks =
 
 let rec print_taint_call_trace ~format ~spaces = function
   | Pattern_match.Toks toks -> Matching_report.print_match ~format ~spaces toks
-  | Call { call_toks; intermediate_toks; call_trace } ->
+  | Call { call_toks; intermediate_vars; call_trace } ->
       let spaces_string = String.init spaces (fun _ -> ' ') in
       pr (spaces_string ^ "call to");
       Matching_report.print_match ~format ~spaces call_toks;
-      if intermediate_toks <> [] then
+      if intermediate_vars <> [] then
         pr
           (spf "%sthese intermediate values are tainted: %s" spaces_string
-             (string_of_toks intermediate_toks));
+             (string_of_toks intermediate_vars));
       pr (spaces_string ^ "then");
       print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
 

@@ -50,7 +50,7 @@ type taint_call_trace =
   (* An indirect match through a function call *)
   | Call of {
       call_toks : pattern_match_tokens;
-      intermediate_toks : tainted_tokens;
+      intermediate_vars : tainted_tokens;
       call_trace : taint_call_trace;
     }
 [@@deriving show]
