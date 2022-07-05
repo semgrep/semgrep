@@ -41,9 +41,9 @@ class LSPConfig:
     # Semgrep scan settings
     # =====================
 
-    # Get all valid configs to run semgrep on for the current workspace
     @property
     def configs(self) -> List[str]:
+        """Get all valid configs to run semgrep on for the current workspace"""
         configs = []
         settings_configs = self._settings["scan"].get("configuration")
         if settings_configs is not None:
@@ -124,9 +124,9 @@ class LSPConfig:
     def settings(self) -> JsonObject:
         return self._settings
 
-    # Get all rules we're running, for semgrep/**rules commands
     @property
     def rules(self) -> List[Rule]:
+        """Get all rules we're running, for semgrep/**rules commands"""
         configs_obj, config_errors = get_config(
             None, None, self.configs, project_url=self.project_url
         )
@@ -137,19 +137,19 @@ class LSPConfig:
         ]
         return filtered_rules
 
-    # Get all languages we're running
     @property
     def languages(self) -> List[Language]:
+        """Get all languages we're running"""
         return flatten([rule.languages for rule in self.rules])
 
-    # All workspace folders by URI
     @property
     def folders(self) -> List[str]:
+        """All workspace folders by URI"""
         return [f["uri"] for f in self._workspace_folders]
 
-    # All workspace folders by path
     @property
     def folder_paths(self) -> List[str]:
+        """All workspace folders by path"""
         folder_paths = []
         for f in self.folders:
             uri = urllib.parse.urlparse(f)
@@ -157,11 +157,11 @@ class LSPConfig:
             folder_paths.append(target_name)
         return folder_paths
 
-    # Generate a scanner according to the config
     # I like doing it this way because then it's all in one spot
     # but I can see an argument for this being a function that takes a config
     @property
     def scanner(self) -> Callable:
+        """Generate a scanner according to the config"""
         # TODO: do something smart here with CI things in the future
         baseline_commit = self._settings["scan"].get("baselineCommit")
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
@@ -188,8 +188,8 @@ class LSPConfig:
     # Config management
     # =====================
 
-    # Update our target manager so we're reporting accurate files
     def _update_target_manager(self) -> None:
+        """Update our target manager so we're reporting accurate files"""
         self.target_manager = TargetManager(
             includes=self.include,
             excludes=self.exclude,
@@ -197,13 +197,12 @@ class LSPConfig:
             target_strings=self.folder_paths,
         )
 
-    # Add or remove folders from our config, and update what we need to
     def update_workspace(
         self,
         added: Optional[List[JsonObject]],
         removed: Optional[List[JsonObject]],
     ) -> None:
-
+        """Add or remove folders from our config, and update what we need to"""
         if self._workspace_folders is not None:
 
             if added is not None:

@@ -97,7 +97,6 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # of the json-rpc message.
     #
 
-    # Called by the client before ANYTHING else.
     def m_initialize(
         self,
         processId: Optional[str] = None,
@@ -107,6 +106,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         workspaceFolders: Optional[List[JsonObject]] = None,
         **_kwargs: JsonObject,
     ) -> JsonObject:
+        """Called by the client before ANYTHING else."""
         log.info(
             f"Semgrep Language Server initialized with:\n"
             f"... PID {processId}\n"
@@ -130,8 +130,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         }
 
-    # Called by client after ok response from initialize
     def m_initialized(self) -> None:
+        """Called by client after ok response from initialize"""
         # At some point we should only watch config files specified for us
         # But then we wouldn't watch join rule config files so not sure
         if self.config.watch_configs:
@@ -209,6 +209,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         textDocument: TextDocumentItem,
         range: Range,
     ) -> List[JsonObject]:
+        """Called by client to get inlay hints. Use self.refresh_inlay_hints() to prompt them to request new hints"""
         return self.compute_inlay_hints(textDocument["uri"], range)
 
     #
@@ -453,9 +454,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.debug(f"Computed code actions: {actions}")
         return actions
 
-    # Compute inlay hints for a given document. This labels the abstract
-    # content associated with a metavar
     def compute_inlay_hints(self, uri: str, range: Range) -> List[JsonObject]:
+        """Compute inlay hints for a given document. This labels the abstract content associated with a metavar"""
         log.debug(f"Compute inlay hints for uri {uri} and range {range}")
         diagnostics = self._diagnostics.get(uri)
         if not diagnostics:
