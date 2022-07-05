@@ -411,6 +411,8 @@ jobs:
     defaults:
       run:
         working-directory: cli/
+    env:
+      SEMGREP_SKIP_BIN: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -423,8 +425,6 @@ jobs:
         run: sudo python3 -m pip install pipenv==2022.6.7
       - name: Install dependencies
         run: pipenv install --dev
-        env:
-          SEMGREP_SKIP_BIN: "1"
       - name: Build parked packages
         run: pipenv run python setup.py park
       - name: Publish to Pypi
