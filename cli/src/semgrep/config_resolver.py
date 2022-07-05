@@ -447,6 +447,7 @@ def parse_config_string(
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
+        return {config_id: data}
     except json.decoder.JSONDecodeError:
         pass
 
