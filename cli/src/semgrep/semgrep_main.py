@@ -173,7 +173,7 @@ def run_rules(
 
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import run_dependency_aware_rule
-        from dependencyparser.find_lockfiles import make_dependency_trie
+        from semdep.find_lockfiles import make_dependency_trie
 
         targets = [t.path for t in target_manager.targets]
         top_level_target_rooted = list(targets[0].parents)

@@ -20,8 +20,8 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-from dependencyparser.models import LockfileDependency
-from dependencyparser.models import PackageManagers
+from semdep.models import LockfileDependency
+from semdep.models import PackageManagers
 
 
 def extract_npm_lockfile_hash(s: str) -> Dict[str, List[str]]:
