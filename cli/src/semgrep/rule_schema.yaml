@@ -526,7 +526,7 @@ properties:
         - if:
             properties:
               mode:
-                const: extractA
+                const: extract
             required:
               - mode
           then:
@@ -646,7 +646,7 @@ properties:
             properties:
               mode:
                 const: search
-        - then:
+          then:
             required:
               - id
               - message
