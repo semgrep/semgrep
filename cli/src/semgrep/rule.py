@@ -11,7 +11,7 @@ from typing import Set
 from typing import Union
 
 import semgrep.output_from_core as core
-from dependencyparser.models import PackageManagers
+from semdep.models import PackageManagers
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -19,7 +19,6 @@ from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
-from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -27,34 +26,22 @@ from semgrep.semgrep_types import SEARCH_MODE
 
 
 class Rule:
-    def __init__(self, raw: YamlTree[YamlMap]) -> None:
-        self._yaml = raw
-        self._raw: Dict[str, Any] = raw.unroll_dict()
-
+    def __init__(
+        self, raw: Dict[str, Any], yaml: Optional[YamlTree[YamlMap]] = None
+    ) -> None:
+        self._raw: Dict[str, Any] = raw
+        self._yaml: Optional[YamlTree[YamlMap]] = yaml
         self._id = str(self._raw["id"])
 
-        paths_tree: Optional[YamlTree] = self._yaml.value.get("paths")
-        if paths_tree is None:
-            path_dict = {}
-        else:
-            paths, paths_span = paths_tree.value, paths_tree.span
-            if not isinstance(paths, YamlMap):
-                path_key = self._yaml.value.key_tree("paths").span
-                help_str: Optional[str] = None
-                if isinstance(paths, list):
-                    help_str = "remove the `-` to convert the list into a mapping"
-                raise InvalidRuleSchemaError(
-                    short_msg="invalid paths",
-                    long_msg=f"the `paths:` targeting rules must be an object with at least one of {ALLOWED_GLOB_TYPES}",
-                    spans=[path_key.extend_to(paths_span)],
-                    help=help_str,
-                )
-            path_dict = paths_tree.unroll_dict()
+        path_dict = self._raw.get("paths", {})
         self._includes = cast(Sequence[str], path_dict.get("include", []))
         self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
+
+        lang_span = (
+            yaml.value["languages"].span if yaml and "languages" in yaml.value else None
+        )
         rule_languages: Set[Language] = {
-            LANGUAGE.resolve(l, self.languages_span)
-            for l in self._raw.get("languages", [])
+            LANGUAGE.resolve(l, lang_span) for l in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
@@ -188,7 +175,9 @@ class Rule:
 
     @property
     def languages_span(self) -> Span:
-        return self._yaml.value["languages"].span
+        if self._yaml:
+            return self._yaml.value["languages"].span
+        return EmptySpan
 
     @property
     def raw(self) -> Dict[str, Any]:
@@ -206,12 +195,11 @@ class Rule:
 
     @classmethod
     def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":
-        yaml = YamlTree.wrap(rule_json, EmptySpan)
-        return cls(yaml)
+        return cls(rule_json, None)
 
     @classmethod
     def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> "Rule":
-        return cls(rule_yaml)
+        return cls(rule_yaml.unroll_dict(), rule_yaml)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id}>"
@@ -293,6 +281,6 @@ class Rule:
 
 def rule_without_metadata(rule: Rule) -> Rule:
     """Key used to deduplicate rules."""
-    new_rule = Rule(rule._yaml)
+    new_rule = Rule(rule._raw.copy())
     new_rule._raw.pop("metadata", None)
     return new_rule

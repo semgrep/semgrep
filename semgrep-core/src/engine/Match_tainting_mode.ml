@@ -22,6 +22,7 @@ module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Report
 module T = Taint
+module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -329,9 +330,28 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       sinks = sinks_ranges;
     } )
 
+let rec convert_taint_call_trace = function
+  | Taint.PM pm ->
+      let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
+      PM.Toks toks
+  | Taint.Call (expr, toks, ct) ->
+      PM.Call
+        {
+          call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
+          intermediate_vars = toks;
+          call_trace = convert_taint_call_trace ct;
+        }
+
+let taint_trace_of_src_to_sink source tokens sink =
+  {
+    Pattern_match.source = convert_taint_call_trace source;
+    tokens;
+    sink = convert_taint_call_trace sink;
+  }
+
 let pm_of_finding finding =
   match finding with
-  | T.SrcToSink { source = _; tokens = _; sink; merged_env } ->
+  | T.SrcToSink { source; tokens; sink; merged_env } ->
       (* We always report the finding on the sink that gets tainted, the call trace
        * must be used to explain how exactly the taint gets there. At some point
        * we experimented with reporting the match on the `sink`'s function call that
@@ -347,8 +367,11 @@ let pm_of_finding finding =
        * for the injection bug... but most users seem to be confused about this. They
        * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
        *)
+      let taint_trace =
+        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
+      in
       let sink_pm = T.pm_of_trace sink in
-      Some { sink_pm with env = merged_env }
+      Some { sink_pm with env = merged_env; taint_trace }
   | T.SrcToReturn _
   (* TODO: We might want to report functions that let input taint
    * go into a sink (?) *)
@@ -420,22 +443,8 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   check_stmt ?name ~in_env lang fun_env taint_config
     (H.funcbody_to_stmt fdef.G.fbody)
 
-(* TODO: Pass a hashtable to cache the CFG of each def, otherwise we are
- * recomputing the CFG for each taint rule. *)
-module PMtbl = Hashtbl.Make (struct
-  type t = PM.t
-
-  let hash (pm : PM.t) = Hashtbl.hash (pm.rule_id, pm.file, pm.range_loc, pm.env)
-
-  (* TODO: Shouldn't be the PM.equal that does the right thing? Instead of
-   * deriving `equal` for `Metavariable.bindings` via ppx_deriving, perhaps
-   * we need to have a custom definition that relies on AST_utils there. *)
-  let equal = AST_utils.with_structural_equal PM.equal
-end)
-
 let check_rule rule match_hook (default_config, equivs) xtarget =
   let matches = ref [] in
-  let pm2finding = PMtbl.create 10 in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
   let lang =
@@ -453,9 +462,7 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
       findings
       |> List.iter (fun finding ->
              pm_of_finding finding
-             |> Option.iter (fun pm ->
-                    Common.push pm matches;
-                    PMtbl.add pm2finding pm finding))
+             |> Option.iter (fun pm -> Common.push pm matches))
     in
     taint_config_of_rule default_config equivs file (ast, []) rule
       handle_findings
@@ -502,8 +509,7 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
            v
            |> List.iter (fun (m : Pattern_match.t) ->
                   let str = Common.spf "with rule %s" m.rule_id.id in
-                  let opt_finding = PMtbl.find_opt pm2finding m in
-                  match_hook str m.env m.tokens opt_finding))
+                  match_hook str m))
     |> Common.map (fun m ->
            { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in

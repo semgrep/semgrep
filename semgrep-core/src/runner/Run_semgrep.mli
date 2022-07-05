@@ -44,11 +44,9 @@ val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
 
 val print_match :
   ?str:string ->
-  Matching_report.match_format ->
-  Metavariable.mvar list ->
-  Metavariable.bindings ->
+  Runner_config.t ->
+  Pattern_match.t ->
   (Metavariable.mvalue -> Parse_info.t list) ->
-  Parse_info.t list ->
   unit
 
 val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -61,6 +61,13 @@ let subexprs_of_stmt_kind = function
       | Some cond -> [ H.cond_to_expr cond ])
   | Return (_, eopt, _) -> Option.to_list eopt
   (* n *)
+  | For (_, MultiForEach es, _) ->
+      es
+      |> List.filter_map (function
+           | FE (_, _, e) -> Some [ e ]
+           | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
+           | FEllipsis _ -> None)
+      |> List.concat
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
       |> Common.map_filter (function
@@ -181,6 +188,89 @@ let subexprs_of_expr with_symbolic_propagation e =
 (* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
 let subexprs_of_expr ?(symbolic_propagation = false) e =
   subexprs_of_expr symbolic_propagation e
+
+(* This is similar to subexprs_of_expr, but used for the
+ * *implicit* deep expression matching. Here we should not go as deep.
+ *
+ * For example, we should allow patterns like 'foo();'
+ * to also match code like 'x = foo();' or even 'print(foo());'
+ * but not necessarily any expressions like 'bar() || foo();'.
+ * See tests/ts/deep_exprtmt.ts for more examples.
+ *)
+let subexprs_of_expr_implicit with_symbolic_propagation e =
+  match e.e with
+  | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
+    when with_symbolic_propagation ->
+      [ e1 ]
+  (* cases where we extract a subexpr *)
+  | Assign (_e1, _, e2)
+  | AssignOp (_e1, _, e2) ->
+      [ e2 ]
+  (* TODO? special case for Bash and Dockerfile to prevent
+   * 'RUN b' to also match 'RUN a && b' (but still allowing
+   *  'RUN a' to match 'RUN a && b'?)
+   * | Call ({ e = IdSpecial (Op And, _); _}, (_, Arg e1::_, _)) -> [e1]
+   *)
+  | Call (e, args) ->
+      (* TODO: ugly we add 'e' also here for cases like
+       * bar().then(stuff) which is parsed as (bar().then)(stuff)
+       * and we need to go in left part.
+       *)
+      e :: subexprs_of_args args
+  | Cast (_, _, e)
+  | ParenExpr (_, e, _)
+  | Await (_, e) ->
+      [ e ]
+  | Yield (_, eopt, _) -> Option.to_list eopt
+  | StmtExpr st -> subexprs_of_stmt st
+  (* TODO: ugly, but we have pattern like 'db.find(...)' that we
+   * also want to match code like 'db.find().then(stuff).
+   *)
+  | DotAccess (e, _, _) -> [ e ]
+  (* TODO: ugly but in semgrep-rules/python/.../flush.yaml there is
+   * '$F.name' that is matching cmd = [stuff, fout.name, otherstuff].
+   * They should rewrite the rule and use '... <... $F.name ...>' there.
+   *)
+  | Container (_, xs) -> unbracket xs
+  (* TODO: ugly but in semgrep-rules/terraform/.../missing-athena...yaml
+   * we look for '{ ... encryption_configuration {...} ...}' and
+   * the encryption_configuration can actually be nested deeper.
+   * They should rewrite the rule.
+   *)
+  | Record (_, flds, _) ->
+      flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
+  (* cases where we should not extract a subexpr *)
+  | L _
+  | N _
+  | IdSpecial _
+  | Ellipsis _ ->
+      []
+  | Ref (_, _e)
+  | DeRef (_, _e) ->
+      []
+  | Conditional (_e1, _e2, _e3) -> []
+  | Seq _xs -> []
+  | ArrayAccess (_e1, (_, _e2, _)) -> []
+  | SliceAccess (_e1, _e2) -> []
+  | Comprehension (_, (_, (_e, _xs), _)) -> []
+  | New (_, _t, _args) -> []
+  | OtherExpr (_, _anys) -> []
+  | Alias (_, _e1) -> []
+  | Xml _xmlbody -> []
+  | Constructor _ -> []
+  | AnonClass _def -> []
+  | Lambda _def -> []
+  | LetPattern _ -> []
+  | TypedMetavar _
+  | DeepEllipsis _
+  | DotAccessEllipsis _
+  | DisjExpr _ ->
+      raise Common.Impossible
+  [@@profiling]
+
+(* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
+let subexprs_of_expr_implicit ?(symbolic_propagation = false) e =
+  subexprs_of_expr_implicit symbolic_propagation e
 
 (* used for deep statement matching *)
 let substmts_of_stmt st =

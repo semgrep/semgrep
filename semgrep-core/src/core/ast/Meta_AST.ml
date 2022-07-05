@@ -854,10 +854,12 @@ and vof_for_header = function
       and v2 = OCaml.vof_option vof_expr v2
       and v3 = OCaml.vof_option vof_expr v3 in
       OCaml.VSum ("ForClassic", [ v1; v2; v3 ])
-  | ForEach (v1, t, v2) ->
-      let t = vof_tok t in
-      let v1 = vof_pattern v1 and v2 = vof_expr v2 in
-      OCaml.VSum ("ForEach", [ v1; t; v2 ])
+  | ForEach v1 ->
+      let v1 = vof_for_each v1 in
+      OCaml.VSum ("ForEach", [ v1 ])
+  | MultiForEach v1 ->
+      let v1 = OCaml.vof_list vof_multi_for_each v1 in
+      OCaml.VSum ("MultiForEach", [ v1 ])
   | ForEllipsis t ->
       let t = vof_tok t in
       OCaml.VSum ("ForEllipsis", [ t ])
@@ -865,6 +867,23 @@ and vof_for_header = function
       let v1 = OCaml.vof_list vof_for_var_or_expr v1
       and v2 = OCaml.vof_list vof_expr v2 in
       OCaml.VSum ("ForIn", [ v1; v2 ])
+
+and vof_for_each (v1, t, v2) =
+  let t = vof_tok t in
+  let v1 = vof_pattern v1 and v2 = vof_expr v2 in
+  OCaml.VTuple [ v1; t; v2 ]
+
+and vof_multi_for_each = function
+  | FE v1 ->
+      let v1 = vof_for_each v1 in
+      OCaml.VSum ("FE", [ v1 ])
+  | FECond (v1, t, v2) ->
+      let t = vof_tok t in
+      let v1 = vof_for_each v1 and v2 = vof_expr v2 in
+      OCaml.VSum ("FECond", [ v1; t; v2 ])
+  | FEllipsis t ->
+      let t = vof_tok t in
+      OCaml.VSum ("FEllipsis", [ t ])
 
 and vof_for_var_or_expr = function
   | ForInitVar (v1, v2) ->

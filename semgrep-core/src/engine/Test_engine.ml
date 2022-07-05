@@ -153,7 +153,7 @@ let make_tests ?(unit_testing = false) xs =
              let res =
                try
                  Match_rules.check
-                   ~match_hook:(fun _ _ _ _ -> ())
+                   ~match_hook:(fun _ _ -> ())
                    ~timeout:0. ~timeout_threshold:0 (config, []) rules xtarget
                with
                | exn ->

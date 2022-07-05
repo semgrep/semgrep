@@ -7,8 +7,8 @@ from typing import Tuple
 import packaging.version
 from packaging.specifiers import SpecifierSet
 
-from dependencyparser.models import LockfileDependency
-from dependencyparser.models import PackageManagers
+from semdep.models import LockfileDependency
+from semdep.models import PackageManagers
 from semgrep.error import SemgrepError
 
 

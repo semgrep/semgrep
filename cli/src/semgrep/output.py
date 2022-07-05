@@ -2,6 +2,7 @@ import dataclasses
 import pathlib
 import sys
 from collections import defaultdict
+from functools import reduce
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -244,7 +245,7 @@ class OutputHandler:
             if self.settings.output_format == OutputFormat.TEXT and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
-                logger.error(with_color(Colors.red, str(error)))
+                logger.error(error.format_for_terminal())
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
         if ex is None:
@@ -256,6 +257,25 @@ class OutputHandler:
                 raise ex
         else:
             raise ex
+
+    @staticmethod
+    def _make_failed_to_analyze(
+        semgrep_core_errors: Sequence[SemgrepCoreError],
+    ) -> Mapping[Path, Optional[int]]:
+        def update_failed_to_analyze(
+            memo: Mapping[Path, Optional[int]], err: SemgrepCoreError
+        ) -> Mapping[Path, Optional[int]]:
+            path = Path(err.core.location.path)
+            so_far = memo.get(path, 0)
+            if err.spans is None or so_far is None:
+                num_lines = None
+            else:
+                num_lines = so_far + sum(
+                    s.end.line - s.start.line + 1 for s in err.spans
+                )
+            return {**memo, path: num_lines}
+
+        return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
     def output(
         self,
@@ -311,9 +331,12 @@ class OutputHandler:
                 for err in self.semgrep_structured_errors
                 if SemgrepError.semgrep_error_type(err) == "SemgrepCoreError"
             ]
-            paths = {Path(err.core.location.path) for err in semgrep_core_errors}
+
+            failed_to_analyze_lines_by_path = self._make_failed_to_analyze(
+                semgrep_core_errors
+            )
             final_error = self.semgrep_structured_errors[-1]
-            self.ignore_log.failed_to_analyze.update(paths)
+            self.ignore_log.core_failure_lines_by_file = failed_to_analyze_lines_by_path
 
         if self.has_output:
             output = self._build_output()
@@ -391,7 +414,7 @@ class OutputHandler:
         # - The text formatter uses it to store settings
         # You should use CliOutputExtra for better type checking
         extra: Dict[str, Any] = {}
-        if self.settings.output_time or self.settings.verbose_errors:
+        if self.settings.output_time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,

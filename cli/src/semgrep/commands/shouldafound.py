@@ -13,6 +13,7 @@ from semgrep.commands.wrapper import handle_command_errors
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.types import JsonObject
+from semgrep.util import git_check_output
 
 
 @click.command()
@@ -95,7 +96,7 @@ def _get_git_email() -> str:
     """
     :raises CalledProcessError: If not in a git environment / email not configured
     """
-    return subprocess.check_output(["git", "config", "user.email"]).decode().strip()
+    return git_check_output(["git", "config", "user.email"])
 
 
 def _make_shouldafound_request(data: JsonObject) -> Optional[str]:

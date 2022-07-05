@@ -1,4 +1,4 @@
-[31m[22m[24m[31m[22m[24msemgrep error[0m: null values prohibited
+[31m[22m[24msemgrep error[0m: null values prohibited
   --> rules/syntax/bad10.yaml:8
 [94m[22m[24m7 | [0m    # This key is missing a value
 [94m[22m[24m8 | [0m    pattern-either:
@@ -6,5 +6,5 @@
 [94m[22m[24m9 | [0m    languages: [python]
 
 [31m[22m[24mIn semgrep YAML configuration, null values are prohibited[0m
-[0m
-[31m[22m[24mRan with --strict and got 1 error while loading configs[0m
+
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs

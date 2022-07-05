@@ -27,7 +27,7 @@ def create_rule() -> Rule:
         ),
         None,
     )
-    return Rule(config["testfile"].value["rules"].value[0])
+    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
 
 
 @pytest.mark.quick

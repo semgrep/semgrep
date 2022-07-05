@@ -35,7 +35,7 @@ def test_rule_full_hash_equivalency():
         None,
     )
     rule1, rule2, rule3 = (
-        Rule(tree) for tree in config["testfile"].value["rules"].value
+        Rule.from_yamltree(tree) for tree in config["testfile"].value["rules"].value
     )
     assert rule1.full_hash == rule2.full_hash
     assert rule1.full_hash != rule3.full_hash

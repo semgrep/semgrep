@@ -1,1 +1,1 @@
-Found pending changes in tracked files. Baseline scans runs require a clean git state.
+[ERROR] Found pending changes in tracked files. Baseline scans runs require a clean git state.

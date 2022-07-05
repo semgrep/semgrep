@@ -1052,15 +1052,24 @@ and for_header =
       * expr option (* cond *)
       * expr option (* next *)
   (* newvar: *)
-  | ForEach of
-      pattern
-      * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *)
-      * expr (* pattern 'in' expr *)
+  | ForEach of for_each
+  (* Scala *)
+  | MultiForEach of multi_for_each list
   (* Lua. todo: merge with ForEach? *)
   (* pattern 'in' expr *)
   | ForIn of for_var_or_expr list (* init *) * expr list
   (* sgrep: *)
   | ForEllipsis of (* ... *) tok
+
+and for_each =
+  pattern
+  * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java, '<-' Scala *)
+  * expr (* pattern 'in' expr *)
+
+and multi_for_each =
+  | FE of for_each
+  | FECond of for_each * tok * expr
+  | FEllipsis of tok
 
 and for_var_or_expr =
   (* newvar: *)

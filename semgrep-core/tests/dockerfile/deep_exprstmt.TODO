@@ -1,13 +1,16 @@
-RUN foo() { \
+CMD \
   # ERROR: match \
-  bar; \
+  foo \
+  bar \
   # ERROR: match \
-  x=$(bar); \
+  foo \
+  x=$(bar) \
   # ERROR: match \
-  foo2 "$(bar)"; \
+  foo \
+  foo2 "$(bar)" \
   # ERROR: match \
-  bloo | bar > /dev/null; \
-}
+  foo \
+  bloo | bar > /dev/null
 
 # ERROR: match
-CMD bar
+CMD foo; bar

@@ -184,7 +184,7 @@ let debug_semgrep config mini_rules file lang ast =
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
-             ~hook:(fun _ _ -> ())
+             ~hook:(fun _ -> ())
              config [ mr ] (file, lang, ast)
          in
          if !debug_matches then
@@ -228,7 +228,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
             else
               (* regular path *)
               Match_patterns.check
-                ~hook:(fun _ _ -> ())
+                ~hook:(fun _ -> ())
                 ?range_filter config mini_rules (file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
@@ -286,6 +286,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
         PM.range_loc;
         PM.tokens = lazy (MV.ii_of_mval mval);
         PM.env = range.mvars;
+        PM.taint_trace = None;
       }
     in
     let focus_range = RM.match_result_to_range focus_match in
@@ -585,7 +586,7 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
              v
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
-                    hook str m.env m.tokens None));
+                    hook str m));
     errors = res.errors |> Common.map (error_with_rule_id rule_id);
     skipped_targets = res.skipped_targets;
     profiling = res.profiling;

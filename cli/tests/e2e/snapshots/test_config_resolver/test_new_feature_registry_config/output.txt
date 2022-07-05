@@ -10,7 +10,7 @@ Rules downloaded from https://semgrep.dev/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.
 Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.
 
-Parse error details: semgrep error: Invalid rule schema
+semgrep error: Invalid rule schema
   --> https://semgrep.dev/...:2
 2 | - id: eqeq-bad
 3 |   pattern-new-feature: $X == $X
@@ -20,4 +20,4 @@ Parse error details: semgrep error: Invalid rule schema
 
 Additional properties are not allowed ('pattern-new-feature' was unexpected)
 
-invalid configuration file found (1 configs were invalid)
+[ERROR] invalid configuration file found (1 configs were invalid)

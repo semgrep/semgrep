@@ -1,4 +1,4 @@
-[31m[22m[24m[31m[22m[24msemgrep error[0m: Invalid rule schema
+[31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad4.yaml:4
 [94m[22m[24m4 | [0m      pattern-inside: |
 [94m[22m[24m5 | [0m        def foo($X):
@@ -7,5 +7,5 @@
 [94m[22m[24m8 | [0m    message: "$X is being reassigned"
 
 [31m[22m[24m{'pattern-inside': 'def foo($X):\n    ...\n', 'pattern': '$X = 1'} is not of type 'array'[0m
-[0m
-[31m[22m[24mRan with --strict and got 1 error while loading configs[0m
+
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs

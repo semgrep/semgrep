@@ -1,0 +1,24 @@
+{
+  "errors": [
+    {
+      "code": 3,
+      "level": "warn",
+      "message": "Syntax error at line targets/bad/invalid_python.py:1:\n `\n    ` was unexpected",
+      "path": "targets/bad/invalid_python.py",
+      "type": "Syntax error"
+    }
+  ],
+  "paths": {
+    "scanned": [
+      "targets/bad/invalid_python.py"
+    ],
+    "skipped": [
+      {
+        "path": "targets/bad/invalid_python.py",
+        "reason": "analysis_failed_parser_or_internal_error"
+      }
+    ]
+  },
+  "results": [],
+  "version": "0.42"
+}

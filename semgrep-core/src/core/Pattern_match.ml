@@ -36,6 +36,32 @@
  * from a pattern:, we should not merge them!
  *)
 
+(* The locations of variables which taint propagates through *)
+type tainted_tokens = Parse_info.t list [@@deriving show]
+
+(* The tokens associated with a single pattern match involved in a taint trace
+ * *)
+type pattern_match_tokens = Parse_info.t list [@@deriving show]
+
+(* Simplified version of Taint.source_to_sink meant for finding reporting *)
+type taint_call_trace =
+  (* A direct match *)
+  | Toks of pattern_match_tokens
+  (* An indirect match through a function call *)
+  | Call of {
+      call_toks : pattern_match_tokens;
+      intermediate_vars : tainted_tokens;
+      call_trace : taint_call_trace;
+    }
+[@@deriving show]
+
+type taint_trace = {
+  source : taint_call_trace;
+  tokens : tainted_tokens;
+  sink : taint_call_trace;
+}
+[@@deriving show]
+
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -48,6 +74,8 @@ type t = {
   tokens : Parse_info.t list Lazy.t; [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
+  (* Lazy since construction involves forcing lazy token lists. *)
+  taint_trace : taint_trace Lazy.t option; [@equal fun _a _b -> true]
 }
 
 (* This is currently a record, but really only the rule id should matter.
