@@ -1,4 +1,4 @@
-Command failed with exit code: 128
+[ERROR] Command failed with exit code: 128
 -----
 Command failed with output:
 fatal: not a git repository (or any of the parent directories): .git

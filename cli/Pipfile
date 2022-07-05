@@ -26,6 +26,7 @@ types-jinja2 = "*"
 types-python-dateutil = "*"
 types-freezegun = "*"
 pytest-split = "*"
+pypi-parker = "*"
 
 # pipenv does not support multiple python versions, but the
 # dependencies of jsonschema differ from < 3.8 to >= 3.8. Therefore we just

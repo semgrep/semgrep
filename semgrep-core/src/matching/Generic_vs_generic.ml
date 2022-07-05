@@ -423,10 +423,18 @@ let rec m_name a b =
       >||>
       (* Try the resolved entity and parents *)
       match a with
-      (* If we're matching against a metavariable, don't bother checking
-       * the resolved entity or parents. It will only cause duplicate matches
-       * that can't be deduped, since the captured metavariable will be
-       * different. *)
+      (* > If we're matching against a metavariable, don't bother checking
+       * > the resolved entity or parents. It will only cause duplicate matches
+       * > that can't be deduped, since the captured metavariable will be
+       * > different.
+       *
+       * FIXME:
+       * This is actually not the correct way of dealing with the problem,
+       * because there could be `metavariable-xyz` operators filtering the
+       * potential values of the metavariable. See DeepSemgrep commit
+       *
+       *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+       *)
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ ->
           (* try this time a match with the resolved entity *)

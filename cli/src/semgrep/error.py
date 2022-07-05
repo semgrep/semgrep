@@ -81,6 +81,17 @@ class SemgrepError(Exception):
     def to_dict(self) -> Dict[str, Any]:
         return cast(Dict[str, Any], self.to_CliError().to_json())
 
+    def format_for_terminal(self) -> str:
+        level_tag = (
+            with_color(Colors.red, "[", bgcolor=Colors.red)
+            + with_color(
+                Colors.forced_white, self.level.name, bgcolor=Colors.red, bold=True
+            )
+            + with_color(Colors.red, "]", bgcolor=Colors.red)
+        )
+
+        return f"{level_tag} {self}"
+
     # TODO: @classmethod?
     def semgrep_error_type(self) -> str:
         return type(self).__name__
@@ -166,15 +177,7 @@ class SemgrepCoreError(SemgrepError):
             return ""
 
     def __str__(self) -> str:
-        level_tag = (
-            with_color(Colors.red, "[", bgcolor=Colors.red)
-            + with_color(
-                Colors.forced_white, self.level.name, bgcolor=Colors.red, bold=True
-            )
-            + with_color(Colors.red, "]", bgcolor=Colors.red)
-        )
-
-        return f"{level_tag} " + self._error_message + self._stack_trace
+        return self._error_message + self._stack_trace
 
     # TODO: I didn't manage to get core.Error to be hashable because it contains lists or
     # objects (e.g., Error_) which are not hashable
@@ -324,6 +327,9 @@ class ErrorWithSpan(SemgrepError):
         return snippet
 
     def __str__(self) -> str:
+        return self.short_msg
+
+    def format_for_terminal(self) -> str:
         """
         Format this exception into a pretty string with context and color
         """

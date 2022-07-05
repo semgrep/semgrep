@@ -338,7 +338,7 @@ let rec convert_taint_call_trace = function
       PM.Call
         {
           call_toks = V.ii_of_any (G.E expr) |> List.filter PI.is_origintok;
-          intermediate_toks = toks;
+          intermediate_vars = toks;
           call_trace = convert_taint_call_trace ct;
         }
 

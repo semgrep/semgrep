@@ -159,7 +159,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                   | Some range_loc ->
                       let tokens = lazy (V.ii_of_any (any x)) in
                       let rule_id = rule_id_of_mini_rule rule in
-                      Common.push
+                      let pm =
                         {
                           PM.rule_id;
                           file;
@@ -168,8 +168,9 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                           tokens;
                           taint_trace = None;
                         }
-                        matches;
-                      hook env tokens));
+                      in
+                      Common.push pm matches;
+                      hook pm));
   (* try the rules on substatements and subexpressions *)
   k x
 
@@ -294,7 +295,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                 let env = env.mv.full_env in
                                 let tokens = lazy (V.ii_of_any (E x)) in
                                 let rule_id = rule_id_of_mini_rule rule in
-                                Common.push
+                                let pm =
                                   {
                                     PM.rule_id;
                                     file;
@@ -303,8 +304,9 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                     tokens;
                                     taint_trace = None;
                                   }
-                                  matches;
-                                hook env tokens)
+                                in
+                                Common.push pm matches;
+                                hook pm)
                    | Some (start_loc, end_loc) ->
                        logger#info
                          "While matching pattern %s in file %s, we skipped \
@@ -346,7 +348,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                               | Some range_loc ->
                                   let tokens = lazy (V.ii_of_any (S x)) in
                                   let rule_id = rule_id_of_mini_rule rule in
-                                  Common.push
+                                  let pm =
                                     {
                                       PM.rule_id;
                                       file;
@@ -355,8 +357,9 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                       tokens;
                                       taint_trace = None;
                                     }
-                                    matches;
-                                  hook env tokens));
+                                  in
+                                  Common.push pm matches;
+                                  hook pm));
               k x
             in
             (* If bloom_filter is not enabled, always visit the statement *)
@@ -415,7 +418,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                            span)
                                     in
                                     let rule_id = rule_id_of_mini_rule rule in
-                                    Common.push
+                                    let pm =
                                       {
                                         PM.rule_id;
                                         file;
@@ -424,8 +427,9 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                                         tokens;
                                         taint_trace = None;
                                       }
-                                      matches;
-                                    hook env tokens)));
+                                    in
+                                    Common.push pm matches;
+                                    hook pm)));
             k x);
         V.ktype_ =
           (fun (k, _) x ->

@@ -16,6 +16,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   they were a bit deeper in the expression (e.g., `x = foo();`).
   This can now be disabled via rule `options:`
   with `implicit_deep_exprstmt: false` (#5472)
+- The timeout for git commands Semgrep runs is now configurable by setting the
+  `SEMGREP_GIT_COMMAND_TIMEOUT` environment variable.
+  The unit used is seconds. The default value is 300.
+
+### Fixed
+
+- Error messages in JSON output used to contain ANSI color codes,
+  this was fixed so they are now uncolored (and readable!) plain text.
 
 ## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
 

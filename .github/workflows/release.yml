@@ -202,6 +202,7 @@ jobs:
           else
             echo "::set-output name=defined::false"
           fi
+
   build-core-m1:
     name: Build the OSX M1 binaries
     needs: [check-m1-build]
@@ -403,6 +404,46 @@ jobs:
           user: __token__
           password: ${{ secrets.test_pypi_upload_token }}
           skip_existing: true
+
+  park-pypi-packages:
+    name: Park PyPI package names
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli/
+    env:
+      SEMGREP_SKIP_BIN: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: pipenv
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv==2022.6.7
+      - name: Install dependencies
+        run: pipenv install --dev
+      - name: Build parked packages
+        run: pipenv run python setup.py park
+      - name: Publish to Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: ${{ !contains(github.ref,'-test-release') }}
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_upload_token }}
+          skip_existing: true
+          packages_dir: cli/dist/
+      - name: Publish to test Pypi
+        uses: pypa/gh-action-pypi-publish@master
+        if: ${{ contains(github.ref,'-test-release') }}
+        with:
+          repository_url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.test_pypi_upload_token }}
+          skip_existing: true
+          packages_dir: cli/dist/
 
   sleep-before-homebrew:
     name: Sleep 10 min before releasing to homebrew
