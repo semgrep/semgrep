@@ -324,6 +324,7 @@ class RuleMatch:
             match_based_id=self.match_based_id,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
+            dataflow_trace=self.match.extra.dataflow_trace,
         )
 
         if self.extra.get("fixed_lines"):
