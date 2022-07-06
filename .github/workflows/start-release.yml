@@ -71,6 +71,26 @@ jobs:
         env:
           SEMGREP_RELEASE_NEXT_VERSION: ${{ steps.next-version.outputs.next-version }}
         run: make release
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pipenv"
+          cache-dependency-path: |
+            scripts/release/Pipfile.lock
+      - name: Create GitHub Release Body
+        working-directory: scripts/release
+        id: changelog_output
+        run: |
+          pip3 install pipenv==2022.6.7
+          pipenv install --dev
+          pipenv run towncrier build --draft --version ${{ steps.next-version.outputs.next-version }} > release_body.txt
+      - name: Update Changelog
+        working-directory: scripts/release
+        run: |
+          pip3 install pipenv==2022.6.7
+          pipenv install --dev
+          pipenv run towncrier build --yes --version ${{ steps.next-version.outputs.next-version }}
       - name: Push release branch
         id: push-release-branch
         env:
@@ -149,6 +169,16 @@ jobs:
         run: |
           git tag -a -m "Release ${{ steps.next-version.outputs.next-version }}" "v${{ steps.next-version.outputs.next-version }}"
           git push origin "v${{ steps.next-version.outputs.next-version }}"
+      - name: Create Draft Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ steps.next-version.outputs.next-version }}"
+          name: Release v${{ steps.next-version.outputs.next-version }}
+          body_path: scripts/release/release_body.txt
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          draft: true
       - name: Wait for release checks to register
         id: register-release-checks
         env:
