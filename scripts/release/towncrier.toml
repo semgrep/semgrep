@@ -1,0 +1,23 @@
+[tool.towncrier]
+    directory = "../../changelog.d"
+    filename = "../../CHANGELOG.md"
+    name = "semgrep"
+    title_format = "## [{version}](https://github.com/returntocorp/semgrep/releases/tag/v{version}) - {project_date}"
+    start_string = "This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).\n"
+    underlines = ["", ""]
+    [[tool.towncrier.type]]
+        directory = "added"
+        name = "### Added"
+        showcontent = true
+    [[tool.towncrier.type]]
+        directory = "changed"
+        name = "### Changed"
+        showcontent = true
+    [[tool.towncrier.type]]
+        directory = "fixed"
+        name = "### Fixed"
+        showcontent = true
+    [[tool.towncrier.type]]
+        directory = "infra"
+        name = "### Infra/Release Changes"
+        showcontent = true
