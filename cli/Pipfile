@@ -26,6 +26,7 @@ types-jinja2 = "*"
 types-python-dateutil = "*"
 types-freezegun = "*"
 pytest-split = "*"
+pypi-parker = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}

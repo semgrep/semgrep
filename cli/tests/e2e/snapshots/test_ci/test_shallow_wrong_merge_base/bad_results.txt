@@ -1,0 +1,61 @@
+=== command
+CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITORY="project_name/project_name" GITHUB_RUN_ID="35" GITHUB_ACTOR="some_test_username" GITHUB_REF="some/branch-name" GITHUB_EVENT_PATH="<MASKED>" SEMGREP_APP_TOKEN="fake-key-from-tests" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep ci --no-force-color
+=== end of command
+
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+
+Findings:
+
+  bar.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ bar == 2
+          1┆ bar == 2
+
+
+  foo.py 
+     eqeq-five
+        useless comparison to 5
+
+         ▶▶┆ Autofix ▶ foo == 2
+          2┆ foo == 2
+
+=== end of stdout - plain
+
+=== stderr - plain
+Scan environment:
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment github-actions, triggering event is pull_request
+  semgrep.dev - authenticated as org_name
+
+Fixing git state for github action pull request
+Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
+Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+Fetching configuration from semgrep.dev
+Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
+Fetching rules from https://semgrep.dev/registry.
+Scanning 2 files with 4 python rules.
+  Current version has 3 findings.
+
+Switching repository to baseline commit 'b903231925961ac9d787ae53ee0bd15ec156e689'.
+  Will report findings introduced by these commits:
+    * 7b5cda4 commit #4
+    * 5b37988 commit #3
+
+Scanning 1 file.
+Returning to original head revision 7b5cda417c780f1f96c888e1d7bd062f46df236e
+
+Some files were skipped or only partially analyzed.
+  Scan was limited to files changed since baseline commit.
+
+CI scan completed successfully.
+  Found 2 findings (0 blocking) from 3 rules.
+  Uploading findings to Semgrep App.
+  No blocking findings so exiting with code 0
+
+=== end of stderr - plain

@@ -6,11 +6,11 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
-from dependencyparser.models import LockfileDependency
-from dependencyparser.models import NAMESPACE_TO_LOCKFILES
-from dependencyparser.models import PackageManagers
-from dependencyparser.parse_lockfile import LOCKFILE_PARSERS
-from dependencyparser.parse_lockfile import parse_lockfile_str
+from semdep.models import LockfileDependency
+from semdep.models import NAMESPACE_TO_LOCKFILES
+from semdep.models import PackageManagers
+from semdep.parse_lockfile import LOCKFILE_PARSERS
+from semdep.parse_lockfile import parse_lockfile_str
 from semgrep.target_manager import TargetManager
 
 TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()

@@ -560,6 +560,162 @@ def test_github_ci_bad_base_sha(
     ), "Potentially scanning wrong files/commits"
 
 
+def test_shallow_wrong_merge_base(
+    run_semgrep, snapshot, git_tmp_path, tmp_path, monkeypatch
+):
+    """ """
+    commits = defaultdict(list)
+    foo = git_tmp_path / "foo.py"
+    bar = git_tmp_path / "bar.py"
+    baz = git_tmp_path / "baz.py"
+
+    subprocess.run(["git", "checkout", "-b", "foo"])
+    foo.open("a").write(f"foo == 5\n")
+    commits["foo"].append(_git_commit(1, add=True))
+    subprocess.run(
+        [
+            "git",
+            "show",
+            "-s",
+            "--format=%ct",
+            "b903231925961ac9d787ae53ee0bd15ec156e689",
+        ]
+    )
+
+    subprocess.run(["git", "checkout", "-b", "baz"])
+    baz.open("a").write(f"baz == 5\n")
+    commits["baz"].append(_git_commit(2, add=True))
+
+    subprocess.run(["git", "checkout", "foo"])
+    foo.open("a").write("foo == 5\n")
+    commits["foo"].append(_git_commit(3, add=True))
+
+    subprocess.run(["git", "checkout", "-b", "bar"])
+    bar.open("a").write(f"bar == 5\n\n")
+    commits["bar"].append(_git_commit(4, add=True))
+
+    for _ in range(16):
+        subprocess.run(["git", "checkout", "foo"])
+        foo.open("a").write(f"new == 5\n\n")
+        commits["foo"].append(_git_commit(5, add=True))
+
+    commits["foo"].append(_git_merge("baz"))
+    git_log = subprocess.run(
+        ["git", "--no-pager", "log", "--oneline", "--decorate", "--graph", "--all"],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    print(git_log.stdout)
+    subprocess.run(["git", "checkout", "bar"])
+    git_log = subprocess.run(
+        ["git", "--no-pager", "log", "--oneline", "--decorate", "--graph"],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    print(git_log.stdout)
+
+    # Mock Github Actions Env Vars
+    env = {
+        "CI": "true",
+        "GITHUB_ACTIONS": "true",
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_REPOSITORY": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
+        # Sent in metadata but no functionality change
+        "GITHUB_RUN_ID": "35",
+        "GITHUB_ACTOR": "some_test_username",
+        "GITHUB_REF": BRANCH_NAME,
+    }
+    event = {
+        "pull_request": {
+            "user": {
+                "login": "user-login",
+                "avatar_url": "some.user.avatar.com",
+            },
+            "head": {
+                "sha": commits["bar"][-1],
+                "ref": "bar",
+                "number": "7",
+                "title": "placeholder-pr-title",
+                "repo": {"clone_url": str(git_tmp_path)},
+            },
+            "base": {
+                "sha": commits["foo"][-1],  # Note how this is not latest commit in foo
+                "ref": "foo",
+                "repo": {"clone_url": str(git_tmp_path)},
+            },
+        },
+        "sender": {
+            "login": "test-username",
+            "avatar_url": "some.test.avatar.url.com",
+        },
+    }
+    event_path = tmp_path / "event_path.json"
+    event_path.write_text(json.dumps(event))
+    env["GITHUB_EVENT_PATH"] = str(event_path)
+    env["SEMGREP_APP_TOKEN"] = "fake-key-from-tests"
+
+    # Mimic having a remote by having a new repo dir and pointing origin to the repo
+    # we setup above
+    repo_copy_base = tmp_path / "copy"
+    repo_copy_base.mkdir()
+    monkeypatch.chdir(repo_copy_base)
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", git_tmp_path],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
+    subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
+
+    # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
+    result = run_semgrep(
+        options=["ci", "--no-force-color"],
+        strict=False,
+        assert_exit_code=None,
+        env=env,
+    )
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+            ]
+        ),
+        "bad_results.txt",
+    )
+    post_calls = AppSession.post.call_args_list  # type: ignore
+    findings_json = post_calls[1].kwargs["json"]
+    assert (
+        len(findings_json["findings"]) == 2
+    ), "Test might be invalid since we expect this to scan the wrong thing"
+
+    # Run again with greater depth
+    result = run_semgrep(
+        options=["ci", "--no-force-color"],
+        strict=False,
+        assert_exit_code=None,
+        env={**env, "SEMGREP_GHA_MIN_FETCH_DEPTH": "100"},
+    )
+
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                re.compile(r'GITHUB_EVENT_PATH="(.+?)"'),
+            ]
+        ),
+        "results.txt",
+    )
+
+    post_calls = AppSession.post.call_args_list  # type: ignore
+    findings_json = post_calls[(len(post_calls) // 2) + 1].kwargs["json"]
+
+    assert (
+        len(findings_json["findings"]) == 1
+    ), "Potentially scanning wrong files/commits"
+
+
 def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
     result = run_semgrep(
         "p/something",

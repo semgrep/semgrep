@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "[WARN] Out of memory at line targets/equivalence/open_redirect.py:1:\n Exceeded memory limit",
+      "message": "Out of memory at line targets/equivalence/open_redirect.py:1:\n Exceeded memory limit",
       "path": "targets/equivalence/open_redirect.py",
       "type": "Out of memory"
     }

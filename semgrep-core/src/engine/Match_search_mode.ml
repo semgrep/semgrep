@@ -184,7 +184,7 @@ let debug_semgrep config mini_rules file lang ast =
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
            Match_patterns.check
-             ~hook:(fun _ _ -> ())
+             ~hook:(fun _ -> ())
              config [ mr ] (file, lang, ast)
          in
          if !debug_matches then
@@ -229,7 +229,7 @@ let matches_of_patterns ?mvar_context ?range_filter config file_and_more
             else
               (* regular path *)
               Match_patterns.check
-                ~hook:(fun _ _ -> ())
+                ~hook:(fun _ -> ())
                 ?mvar_context ?range_filter config mini_rules (file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in

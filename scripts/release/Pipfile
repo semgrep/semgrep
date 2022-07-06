@@ -2,3 +2,4 @@
 sh = "*"
 click = "*"
 requests = "*"
+towncrier = "~=21.9.0"

@@ -1,5 +1,5 @@
 val check :
-  hook:(Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  hook:(Pattern_match.t -> unit) ->
   ?mvar_context:Metavariable.bindings option ->
   ?range_filter:(Parse_info.token_location * Parse_info.token_location -> bool) ->
   Config_semgrep.t * Equivalence.equivalences ->

@@ -4,12 +4,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.103.0](https://github.com/returntocorp/semgrep/releases/tag/v0.103.0) - 2022-07-05
+
+### Added
+
+- Expression statement patterns (e.g. `foo();`) used to also match when
+  they were a bit deeper in the expression (e.g., `x = foo();`).
+  This can now be disabled via rule `options:`
+  with `implicit_deep_exprstmt: false` (#5472)
+- The timeout for git commands Semgrep runs is now configurable by setting the
+  `SEMGREP_GIT_COMMAND_TIMEOUT` environment variable.
+  The unit used is seconds. The default value is 300.
+
+### Fixed
+
+- Error messages in JSON output used to contain ANSI color codes,
+  this was fixed so they are now uncolored (and readable!) plain text.
+- Fixed config parsing bug to cut CI scan speeds down significantly
+
 ## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
 
 ### Added
 
 - Scala: ellipsis are now allowed in for loop headers, so you can write patterns
   like `for (...; $X <- $Y if $COND; ...) { ... }` to match nested for loops. (#5650)
+- The `SEMGREP_GHA_MIN_FETCH_DEPTH` environment variable which lets you set how many
+  commits `semgrep ci` fetches from the remote at the minimum when calculating the merge-base in GitHub Actions.
+  Having more commits available helps Semgrep determine what changes came from the current pull request,
+  fixing issues where Semgrep would report findings that weren't touched in a given pull request.
+  This value is set to 0 by default (#5664)
 
 ### Fixed
 
@@ -24,6 +47,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - `--verbose` no longer toggles the display of timing information, use
   `--verbose --time` to display this information.
+- Change timeout for git operations from 100s to 500s
 
 ## [0.101.1](https://github.com/returntocorp/semgrep/releases/tag/v0.101.1) - 2022-06-28
 

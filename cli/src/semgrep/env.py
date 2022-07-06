@@ -70,6 +70,8 @@ class Env:
     version_check_timeout: int = field()
     version_check_cache_path: Path = field()
 
+    git_command_timeout: int = field()
+
     src_directory: Path = field()
     user_data_folder: Path = field()
     user_log_file: Path = field()
@@ -79,6 +81,7 @@ class Env:
     in_gh_action: bool = field()
     in_agent: bool = field()
     shouldafound_no_email: bool = field()
+    min_fetch_depth: int = field()
 
     @version_check_timeout.default
     def version_check_timeout_default(self) -> int:
@@ -91,6 +94,11 @@ class Env:
         if value:
             return Path(value)
         return Path.home() / ".cache" / "semgrep_version"
+
+    @git_command_timeout.default
+    def git_command_timeout_default(self) -> int:
+        value = os.getenv("SEMGREP_GIT_COMMAND_TIMEOUT", "300")
+        return int(value)
 
     @src_directory.default
     def src_directory_default(self) -> Path:
@@ -135,3 +143,8 @@ class Env:
     @shouldafound_no_email.default
     def shouldafound_no_email_default(self) -> bool:
         return "SEMGREP_SHOULDAFOUND_NO_EMAIL" in os.environ
+
+    @min_fetch_depth.default
+    def min_fetch_depth_default(self) -> int:
+        value = os.getenv("SEMGREP_GHA_MIN_FETCH_DEPTH", "0")
+        return int(value)

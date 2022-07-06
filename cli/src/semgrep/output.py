@@ -245,7 +245,7 @@ class OutputHandler:
             if self.settings.output_format == OutputFormat.TEXT and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
-                logger.error(with_color(Colors.red, str(error)))
+                logger.error(error.format_for_terminal())
 
     def _final_raise(self, ex: Optional[Exception]) -> None:
         if ex is None:

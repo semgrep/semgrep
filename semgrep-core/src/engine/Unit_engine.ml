@@ -284,10 +284,9 @@ let regression_tests_for_lang ~with_caching files lang =
              Common.save_excursion Flag_semgrep.with_opt_cache with_caching
                (fun () ->
                  Match_patterns.check
-                   ~hook:(fun _env matched_tokens ->
+                   ~hook:(fun { Pattern_match.tokens = (lazy xs); _ } ->
                      (* there are a few fake tokens in the generic ASTs now (e.g.,
                       * for DotAccess generated outside the grammar) *)
-                     let xs = Lazy.force matched_tokens in
                      let toks = xs |> List.filter Parse_info.is_origintok in
                      let minii, _maxii = Parse_info.min_max_ii_by_pos toks in
                      let minii_loc =
