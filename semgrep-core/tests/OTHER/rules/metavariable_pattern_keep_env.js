@@ -1,7 +1,7 @@
 function f () {
-    // rule-id
+    //ruleid: test
     a + b;
 
-	// ok
+	//ok:
 	a + a;
 }
