@@ -535,7 +535,7 @@ let extract_targets_of_config config rule_ids extractors =
           rule_ids
       in
       (* Print number of extra targets so Python knows *)
-      if config.output_format = Json then
+      if config.output_format = Json && extract_targets <> [] then
         pr (string_of_int (List.length extract_targets));
       extract_targets)
     extract_targets
