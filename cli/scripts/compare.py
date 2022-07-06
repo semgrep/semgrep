@@ -16,9 +16,21 @@ SEMGREP_DEV_TIMEOUT_S = 30.0
 
 @click.command()
 @click.argument("start", type=str)
-@click.argument("end", type=str)
+@click.argument(
+    "end",
+    type=str,
+)
 @click.argument("snippet", type=str)
 def compare(start: str, end: str, snippet: str) -> int:
+    """
+    Compares behavior of two versions of Semgrep on a rule ID
+
+    START - The first version of Semgrep to run
+
+    END - The second version of Semgrep to run
+
+    SNIPPET - A snippet or rule ID (e.g. "Wlz")
+    """
 
     url = f"https://semgrep.dev/api/registry/rule/{snippet}?definition=1&test_cases=1"
     data = requests.get(url, timeout=SEMGREP_DEV_TIMEOUT_S).json()
