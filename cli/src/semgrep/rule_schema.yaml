@@ -576,16 +576,14 @@ properties:
                         - patterns
                     - required:
                         - pattern-either
-            not:
-              anyOf:
-                - required:
-                    - pattern-sinks
-                - required:
-                    - pattern-sources
-                - required:
-                    - pattern-sanitizers
-                - required:
-                    - join
+            properties:
+              message: false
+              severity: false
+              pattern-sinks: false
+              pattern-sources: false
+              pattern-propagators: false
+              pattern-sanitizers: false
+              join: false
         - if:
             properties:
               mode:
@@ -600,22 +598,14 @@ properties:
               - severity
               - pattern-sinks
               - pattern-sources
-            not:
-              anyOf:
-                - required:
-                    - extract
-                - required:
-                    - dest-language
-                - required:
-                    - pattern
-                - required:
-                    - patterns
-                - required:
-                    - pattern-either
-                - required:
-                    - pattern-regex
-                - required:
-                    - join
+            properties:
+              extract: false
+              dest-language: false
+              pattern: false
+              patterns: false
+              pattern-either: false
+              pattern-regex: false
+              join: false
         - if:
             properties:
               mode:
@@ -628,20 +618,17 @@ properties:
               - message
               - severity
               - join
-            not:
-              anyOf:
-                - required:
-                    - extract
-                - required:
-                    - dest-language
-                - required:
-                    - patterns
-                - required:
-                    - pattern
-                - required:
-                    - pattern-either
-                - required:
-                    - pattern-regex
+            properties:
+              extract: false
+              dest-language: false
+              patterns: false
+              pattern: false
+              pattern-either: false
+              pattern-regex: false
+              pattern-sinks: false
+              pattern-sources: false
+              pattern-propagators: false
+              pattern-sanitizers: false
         - if:
             properties:
               mode:
@@ -705,19 +692,11 @@ properties:
                         - pattern-regex
                     - required:
                         - pattern
-            not:
-              anyOf:
-                - required:
-                    - extract
-                - required:
-                    - dest-language
-                - required:
-                    - pattern-sinks
-                - required:
-                    - pattern-sources
-                - required:
-                    - pattern-propagators
-                - required:
-                    - pattern-sanitizers
-                - required:
-                    - join
+            properties:
+              extract: false
+              dest-language: false
+              pattern-sinks: false
+              pattern-sources: false
+              pattern-propagators: false
+              pattern-sanitizers: false
+              join: false

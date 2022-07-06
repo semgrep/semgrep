@@ -446,6 +446,7 @@ class RuleValidation:
         "join",
     }
     INVALID_SENTINEL = " is not allowed for "
+    INVALID_FOR_MODE_SENTINEL = "False schema does not allow"
     BAD_TYPE_SENTINEL = "is not of type"
     BANNED_SENTINEL = "Additional properties are not allowed"
 
@@ -457,12 +458,15 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     """
 
     contexts = (error.parent.context or []) if error.parent else [error]
+    invalid_for_mode_keys = set()
     bad_type = set()
     invalid_keys = set()
     any_of_invalid_keys = set()
     required = set()
     banned = set()
     for context in contexts:
+        if RuleValidation.INVALID_FOR_MODE_SENTINEL in context.message:
+            invalid_for_mode_keys.add(context.path.pop())
         if RuleValidation.BAD_TYPE_SENTINEL in context.message:
             bad_type.add(context.message)
         if RuleValidation.INVALID_SENTINEL in context.message:
@@ -491,6 +495,9 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
         return "\n".join(sorted(banned))
 
     outs = []
+    if invalid_for_mode_keys:
+        keys = ", ".join(f"'{k}'" for k in sorted(invalid_for_mode_keys))
+        outs.append(f"These properties are invalid in the current mode: {keys}")
     if any_of_invalid_keys:
         keys = ", ".join(f"'{k}'" for k in sorted(any_of_invalid_keys))
         outs.append(f"One of these properties may be invalid: {keys}")
