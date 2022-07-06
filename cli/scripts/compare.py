@@ -61,7 +61,7 @@ def compare(start: str, end: str, snippet: str) -> int:
             yaml.safe_dump(definition, fd)  # type: ignore ## for some reason this is missing from ruamel stub
 
         target_name = (
-            f"target.{next(e for e in LANGUAGE.definition_by_id[language].exts)}"
+            f"target{next(e for e in LANGUAGE.definition_by_id[language].exts)}"
         )
         with open(target_name, "w") as fd:
             fd.write(target)
