@@ -8,7 +8,7 @@ import click
 import requests
 from ruamel import yaml
 
-from semgrep.semgrep_types import LANGUAGE  # type: ignore  ## mypy isn't picking up src/ in this context
+from semgrep.semgrep_types import LANGUAGE
 
 
 SEMGREP_DEV_TIMEOUT_S = 30.0
@@ -60,7 +60,9 @@ def compare(start: str, end: str, snippet: str) -> int:
         with open("semgrep.yml", "w") as fd:
             yaml.safe_dump(definition, fd)  # type: ignore ## for some reason this is missing from ruamel stub
 
-        target_name = f"target.{LANGUAGE.definition_by_id[language].exts[0]}"
+        target_name = (
+            f"target.{next(e for e in LANGUAGE.definition_by_id[language].exts)}"
+        )
         with open(target_name, "w") as fd:
             fd.write(target)
 
