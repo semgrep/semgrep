@@ -183,6 +183,7 @@ class StreamingSemgrepCore:
         get_input: Callable[
             [asyncio.StreamReader], Coroutine[Any, Any, bytes]
         ] = lambda s: s.readexactly(2)
+        reading_json = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
             line_bytes = await get_input(stream)
@@ -192,11 +193,11 @@ class StreamingSemgrepCore:
                 self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
                 break
 
-            if line_bytes == b".\n":
+            if line_bytes == b".\n" and not reading_json:
                 num_scanned_targets += 1
                 if self._progress_bar:
                     self._progress_bar.update()
-            elif chr(line_bytes[0]).isdigit():
+            elif chr(line_bytes[0]).isdigit() and not reading_json:
                 if not line_bytes.endswith(b"\n"):
                     line_bytes = line_bytes + await stream.readline()
                 extra_targets = int(line_bytes)
@@ -207,6 +208,7 @@ class StreamingSemgrepCore:
                 stdout_lines.append(line_bytes)
                 # Once we see a non-"." char it means we are reading a large json blob
                 # so increase the buffer read size (kept below subprocess buffer limit below)
+                reading_json = True
                 get_input = lambda s: s.read(n=1024 * 1024 * 512)
 
     async def _core_stderr_processor(
