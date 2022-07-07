@@ -628,8 +628,17 @@ properties:
                 - required:
                     - pattern-regex
             else:
-              required:
-                - r2c-internal-project-depends-on
+              oneOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+                - required:
+                    - r2c-internal-project-depends-on
             properties:
               extract: false
               dest-language: false
