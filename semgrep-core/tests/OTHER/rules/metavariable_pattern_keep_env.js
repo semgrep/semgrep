@@ -1,5 +1,5 @@
 function f () {
-    //ruleid: test
+    //ruleid: metavariable-pattern-keep-env
     a + b;
 
 	//ok:
