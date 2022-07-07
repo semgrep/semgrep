@@ -607,17 +607,29 @@ properties:
               - message
               - languages
               - severity
-            oneOf:
-              - required:
-                  - pattern
-              - required:
-                  - patterns
-              - required:
-                  - pattern-either
-              - required:
-                  - pattern-regex
-              - required:
-                  - r2c-internal-project-depends-on
+            if:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+            then:
+              oneOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+            else:
+              required:
+                - r2c-internal-project-depends-on
             properties:
               extract: false
               dest-language: false
