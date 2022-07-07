@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.103.0](https://github.com/returntocorp/semgrep/releases/tag/v0.103.0) - 2022-07-05
+
 ### Added
 
 - Expression statement patterns (e.g. `foo();`) used to also match when
@@ -18,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Error messages in JSON output used to contain ANSI color codes,
   this was fixed so they are now uncolored (and readable!) plain text.
+- Fixed config parsing bug to cut CI scan speeds down significantly
 
 ## [0.102.0](https://github.com/returntocorp/semgrep/releases/tag/v0.102.0) - 2022-06-30
 

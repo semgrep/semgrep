@@ -1,0 +1,1 @@
+Added taint traces as part of Semgrep's JSON output. This helps explain how the sink became tainted.

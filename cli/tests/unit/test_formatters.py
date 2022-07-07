@@ -5,6 +5,8 @@ from ruamel.yaml import YAML
 
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule
+from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import YamlTree
 
 yaml = YAML(typ="rt")
 
@@ -25,7 +27,7 @@ def test_rule_to_sarif_tags():
     """
     with StringIO(r) as stream:
         j = yaml.load(stream)
-    rule = Rule.from_json(j)
+    rule = Rule.from_yamltree(YamlTree.wrap(j, EmptySpan))
     tags = SarifFormatter._rule_to_sarif_tags(rule)
 
     assert all([isinstance(tag, str) for tag in tags])
