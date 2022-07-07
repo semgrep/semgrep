@@ -297,7 +297,7 @@ jobs:
     with:
       version: ${{needs.release-setup.outputs.version}}
       repository: "returntocorp/semgrep-action"
-      base_branch: "spencer/bump-script-fix"
+      base_branch: "develop"
       bump_script_path: "scripts/bump-version"
 
   bump-semgrep-rpc:
@@ -308,7 +308,7 @@ jobs:
     with:
       version: ${{needs.release-setup.outputs.version}}
       repository: "returntocorp/semgrep-rpc"
-      base_branch: "spencer/bump-version-script"
+      base_branch: "develop"
       bump_script_path: "scripts/bump-version"
 
   notify-success:
