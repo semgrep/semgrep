@@ -10,7 +10,9 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import cast
+from typing import Coroutine
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -178,10 +180,12 @@ class StreamingSemgrepCore:
         assert stream
 
         # Start out reading two bytes at a time (".\n")
-        bytes_to_read = 2
+        get_input: Callable[
+            [asyncio.StreamReader], Coroutine[Any, Any, bytes]
+        ] = lambda s: s.readexactly(2)
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
-            line_bytes = await stream.readexactly(n=bytes_to_read)
+            line_bytes = await get_input(stream)
 
             # read returns empty when EOF
             if not line_bytes:
@@ -203,7 +207,7 @@ class StreamingSemgrepCore:
                 stdout_lines.append(line_bytes)
                 # Once we see a non-"." char it means we are reading a large json blob
                 # so increase the buffer read size (kept below subprocess buffer limit below)
-                bytes_to_read = 1024 * 1024 * 512
+                get_input = lambda s: s.read(n=1024 * 1024 * 512)
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
