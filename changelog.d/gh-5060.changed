@@ -1,0 +1,17 @@
+Metavariable-pattern now uses the same metavariable context as its parent. This will potentially
+cause breaking changes for rules that reuse metavariables in the pattern. For example, consider
+the following formula:
+
+```
+- patterns:
+   - pattern-either:
+       - pattern-inside: $OBJ.output($RESP)
+   - pattern: $RESP
+   - metavariable-pattern:
+       metavariable: $RESP
+       pattern: `...{ $OBJ }...`
+```
+
+Previously, the `$OBJ` in the metavariable-pattern would be a new metavariable. The formula would
+behave the same if that `$OBJ` was `$A` instead. Now, `$OBJ` will try to unify with the value bound
+by `$OBJ` in the pattern-inside.
