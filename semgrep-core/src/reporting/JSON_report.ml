@@ -138,10 +138,36 @@ let metavars startp_of_match_range (s, mval) =
           unique_id = unique_id any;
         } )
 
+(* None if pi has no location information. Fake tokens should have been filtered
+ * out earlier, but in case one slipped through we handle this case. *)
+let parse_info_to_location pi =
+  PI.token_location_of_info pi
+  |> Result.to_option
+  |> Option.map (fun token_location ->
+         OutH.location_of_token_location token_location)
+
+let tokens_to_locations toks = List.filter_map parse_info_to_location toks
+
+let rec taint_call_trace_to_locations = function
+  | Toks toks -> tokens_to_locations toks
+  | Call { call_trace; _ } -> taint_call_trace_to_locations call_trace
+
+let taint_trace_to_dataflow_trace { source; tokens; sink = _ } =
+  {
+    Out.taint_source = Some (taint_call_trace_to_locations source);
+    intermediate_vars = Some (tokens_to_locations tokens);
+  }
+
 let match_to_match x =
   try
     let min_loc, max_loc = x.range_loc in
     let startp, endp = OutH.position_range min_loc max_loc in
+    let dataflow_trace =
+      Option.map
+        (function
+          | (lazy trace) -> taint_trace_to_dataflow_trace trace)
+        x.taint_trace
+    in
     Left
       ({
          Out.rule_id = x.rule_id.id;
@@ -150,6 +176,7 @@ let match_to_match x =
            {
              message = Some x.rule_id.message;
              metavars = x.env |> Common.map (metavars startp);
+             dataflow_trace;
            };
        }
         : Out.core_match)
