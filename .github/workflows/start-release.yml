@@ -169,7 +169,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait for PR checks to finish
-          gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 2 --watch
+          gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
       - name: Get Current Num Checks
         id: num-checks
         env:
@@ -268,7 +268,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait for PR checks to finish
-          gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 2 --watch
+          gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
 
   validate-release-trigger:
     needs: [wait-for-release-checks, release-setup]
@@ -277,6 +277,39 @@ jobs:
     secrets: inherit
     with:
       version: ${{needs.release-setup.outputs.version}}
+
+  bump-semgrep-app:
+    needs: [validate-release-trigger, release-setup]
+    name: Bump Semgrep App Semgrep Version
+    uses: ./.github/workflows/open-bump-pr.yml
+    secrets: inherit
+    with:
+      version: ${{needs.release-setup.outputs.version}}
+      repository: "returntocorp/semgrep-app"
+      base_branch: "develop"
+      bump_script_path: "scripts/bump-version"
+
+  bump-semgrep-action:
+    needs: [validate-release-trigger, release-setup]
+    name: Bump Semgrep Action Semgrep Version
+    uses: ./.github/workflows/open-bump-pr.yml
+    secrets: inherit
+    with:
+      version: ${{needs.release-setup.outputs.version}}
+      repository: "returntocorp/semgrep-action"
+      base_branch: "spencer/bump-script-fix"
+      bump_script_path: "scripts/bump-version"
+
+  bump-semgrep-rpc:
+    needs: [validate-release-trigger, release-setup]
+    name: Bump Semgrep RPC Semgrep Version
+    uses: ./.github/workflows/open-bump-pr.yml
+    secrets: inherit
+    with:
+      version: ${{needs.release-setup.outputs.version}}
+      repository: "returntocorp/semgrep-rpc"
+      base_branch: "spencer/bump-version-script"
+      bump_script_path: "scripts/bump-version"
 
   notify-success:
     needs: [release-setup, validate-release-trigger]
@@ -292,7 +325,7 @@ jobs:
           --header 'content-type: application/json' \
           --data '{
             "version": "${{needs.release-setup.outputs.version}}",
-            "message": "Release Validation has succeeded!"
+            "message": "Release Validation has succeeded! Please review the following PRs that bump versions in other repos: ${{ needs.bump-semgrep-action.outputs.pr-url }}, ${{ needs.bump-semgrep-rpc.outputs.pr-url }}, ${{ needs.bump-semgrep-app.outputs.pr-url }}"
           }'
 
   notify-failure:
