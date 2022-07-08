@@ -33,24 +33,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
       generated targets to matches in the original file
 *)
 
+let ( let* ) = Option.bind
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* copy and paste from JSON_report:81
- * TODO: refactor to some shared module: Metavariable.ml? *)
-let metavar_string_of_any any =
-  (* TODO: metavar_string_of_any is used in get_propagated_value
-      to get the string for propagated values. Not all propagated
-      values will have origintoks. For example, in
-          x = 1; y = x + 1; ...
-     we have y = 2 but there is no source location for 2.
-     Handle such cases *)
-  any |> Visitor_AST.ii_of_any
-  |> List.filter Parse_info.is_origintok
-  |> List.sort Parse_info.compare_pos
-  |> Common.map Parse_info.str_of_info
-  |> Matching_report.join_with_space_if_needed
 
 (* from Run_semgrep *)
 let mk_rule_table rules =
@@ -98,26 +85,38 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
              (* Note: char/line offset should be relative to the extracted
               * portion, _not_ the whole pattern!
               *)
-             let char_offset, line_offset, col_offset =
-               Metavariable.mvalue_to_any extract_mvalue
-               |> Visitor_AST.range_of_any_opt
-               |> Option.map (fun (start_loc, _) ->
-                      ( start_loc.Parse_info.charpos,
-                        (* subtract 1 because lines are 1-indexed, so the offset is
-                         * one less than the current line *)
-                        start_loc.Parse_info.line - 1,
-                        start_loc.Parse_info.column ))
-               |> Option.get (* FIXME: handle *)
+             let* ( (char_offset, line_offset, col_offset),
+                    (start_extract_pos, end_extract_pos) ) =
+               match
+                 Metavariable.mvalue_to_any extract_mvalue
+                 |> Visitor_AST.range_of_any_opt
+                 |> Option.map (fun (start_loc, end_loc) ->
+                        let end_len = String.length end_loc.Parse_info.str in
+                        ( ( start_loc.Parse_info.charpos,
+                            (* subtract 1 because lines are 1-indexed, so the offset is
+                             * one less than the current line *)
+                            start_loc.line - 1,
+                            start_loc.column ),
+                          (start_loc.charpos, end_loc.charpos + end_len) ))
+               with
+               | Some x -> Some x
+               | None ->
+                   logger#error
+                     "In rule %s the extract metavariable (%s) did not have a \
+                      corresponding source range"
+                     (fst erule.id)
+                     (let (`Extract { Rule.extract; _ }) = erule.mode in
+                      extract);
+                   None
              in
-             let contents =
-               Metavariable.mvalue_to_any extract_mvalue
-               |> metavar_string_of_any
-             in
+             let source_file = open_in_bin m.file in
+             let extract_size = end_extract_pos - start_extract_pos in
+             seek_in source_file start_extract_pos;
+             let contents = really_input_string source_file extract_size in
              logger#trace
-               "Extract rule %s extracted the following from %s at line %d, \
-                char %d\n\
+               "Extract rule %s extracted the following from %s at  bytes %d-%d\n\
                 %s"
-               m.rule_id.id m.file line_offset char_offset contents;
+               m.rule_id.id m.file start_extract_pos end_extract_pos contents;
              let f : Common.dirname = Common.new_temp_file "extracted" m.file in
              Common2.write_file ~file:f contents;
              let target =
