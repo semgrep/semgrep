@@ -17,9 +17,6 @@
       "extra": {
         "fingerprint": "070c76f072fcc5c05b90e7e6f2ed676961207fdae73acfd5c78253a8c2294126a6f19168fbbc00272bb3ca882b71f84df59a71277082f6235f5132effdf037a6_0",
         "fix": "one",
-        "fixed_lines": [
-          "one"
-        ],
         "is_ignored": false,
         "lines": "one\ntwo",
         "message": "This rule changes the line numbers for the other rule's match",
@@ -44,9 +41,6 @@
       "extra": {
         "fingerprint": "36e519fa759ca74dea55c0aef65e0e3e081cdfeb4370a8b8a2546e77f65952ead0e128ca7b79e10645edaac3006b670ff0e122e96ee1569dca4105167a8b6b7e_0",
         "fix": "four",
-        "fixed_lines": [
-          "four"
-        ],
         "is_ignored": false,
         "lines": "three\nfour",
         "message": "If semgrep is not smart enough, the match of this rule will be out of range",
