@@ -198,11 +198,14 @@ type taint_spec = {
 
 type extract_spec = {
   pformula : pformula;
-  (* TODO: determine if we need reductions beyond concat; maybe
-               "separate"?
+  (* TODO: determine if we need reductions beyond separate maching; maybe
+               "concat"?
    * combine_extract: extract_mode;
    *)
-  (* TODO: really want Lang.t | Generic *)
+  (* TODO: really want Lang.t | Generic --- the requirement that the
+     destination is a real langauge is potentially awkward for template files
+     with DSLs, though this might require some sort of additional label system
+     to be robust *)
   dst_lang : Lang.t;
   extract : string;
 }
@@ -219,9 +222,8 @@ type 'mode rule_info = {
   (* MANDATORY fields *)
   id : rule_id wrap;
   mode : 'mode;
-  (* TODO: only want these for Search & Taint *)
-  message : string;
-  severity : severity;
+  message : string; (* Currently a dummy value for extract mode rules *)
+  severity : severity; (* Currently a dummy value for extract mode rules *)
   languages : Xlang.t;
   (* OPTIONAL fields *)
   options : Config_semgrep.t option;

@@ -550,8 +550,8 @@ let extract_targets_of_config config rule_ids extractors =
 (*****************************************************************************)
 
 (* This is the main function used by the semgrep python wrapper right now.
- * It takes a set of rules and a set of targets and
- * recursively process those targets.
+ * It takes a set of rules and a set of targets (targets derived from config,
+ * and potentially also extract rules) and recursively process those targets.
  *)
 let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   (* Return an exception
