@@ -96,7 +96,7 @@ jobs:
           fi
 
           # open new pull request with the body of from the local template.
-          PR_URL=$(gh pr create --title "${TITLE}" --body "Bump Semgrep Version to ${{ inputs.version }}" --draft \
+          PR_URL=$(gh pr create --title "${TITLE}" --body "Bump Semgrep Version to ${{ inputs.version }}" \
             --base "${TARGET}" --head "${SOURCE}")
 
           echo $PR_URL
