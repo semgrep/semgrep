@@ -50,7 +50,6 @@ from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
 from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
-from semgrep.util import get_permission_bits_for_path
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
