@@ -73,20 +73,30 @@
       "default": true,
       "description": "Skip files ignored by git"
     },
+    "semgrep.lsp.watchOpenFiles": {
+      "type": "boolean",
+      "default": true,
+      "description": "Scan all opened files automatically on open and save."
+    },
     "semgrep.lsp.watchWorkspace": {
       "type": "boolean",
       "default": true,
-      "description": "Scan all workspace folders. Disable for per-file scanning only."
+      "description": "Scan all workspace folders automatically on open and when folders are added or removed."
     },
     "semgrep.lsp.watchConfigs": {
       "type": "boolean",
       "default": true,
-      "description": "Watch all semgrep config files for changes and rescan when they are saved. semgrep.lsp.watchWorkspace must be enabled for this to work."
+      "description": "Watch all semgrep config files for changes and rescan when they are saved. semgrep.lsp.watchWorkspace must also be enabled."
     },
     "semgrep.lsp.autodetectConfigs": {
       "type": "boolean",
       "default": true,
       "description": "Automatically detect configuration files in workspace folders according to the glob pattern **/{semgrep,.semgrep}.{yml,yaml}"
+    },
+    "semgrep.lsp.ciEnabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "When logged in, the LSP will runs rules configured on Semgrep App"
     }
   }
 }

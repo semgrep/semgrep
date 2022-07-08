@@ -8,17 +8,20 @@ from typing import Mapping
 from typing import Optional
 from typing import Union
 
+import semgrep.commands.ci
 import semgrep.semgrep_main
+from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
 from semgrep.constants import OutputFormat
+from semgrep.meta import generate_meta_from_environment
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
-from semgrep.semgrep_types import Language
+from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
-from semgrep.util import flatten
+from semgrep.util import git_check_output
 
 
 class LSPConfig:
@@ -56,6 +59,14 @@ class LSPConfig:
             return configs
         else:
             return ["auto"]
+
+    @property
+    def logged_in(self) -> bool:
+        return get_state().app_session.token is not None
+
+    @property
+    def baseline_commit(self) -> Optional[str]:
+        return self._settings["scan"].get("baselineCommit")
 
     @property
     def severity(self) -> List[str]:
@@ -101,9 +112,27 @@ class LSPConfig:
     def project_url(self) -> Union[str, None]:
         return get_project_url()
 
+    @property
+    def scan_url(self) -> str:
+        scan_handler = ScanHandler(True)
+        metadata = generate_meta_from_environment(self.baseline_commit)
+        state = get_state()
+        to_server = (
+            ""
+            if state.env.semgrep_url == "https://semgrep.dev"
+            else f" to {state.env.semgrep_url}"
+        )
+        metadata_dict = metadata.to_dict()
+        scan_handler.start_scan(metadata_dict)
+        return scan_handler.scan_rules_url
+
     # =====================
     # Semgrep LSP settings
     # =====================
+    @property
+    def watch_open_files(self) -> bool:
+        return self._settings["lsp"].get("watchOpenFiles", True)
+
     @property
     def watch_workspace(self) -> bool:
         return self._settings["lsp"].get("watchWorkspace", True)
@@ -116,6 +145,10 @@ class LSPConfig:
     def autodetect_configs(self) -> bool:
         return self._settings["lsp"].get("autodetectConfigs", True)
 
+    @property
+    def ci_enabled(self) -> bool:
+        return self._settings["lsp"].get("ciEnabled", True)
+
     # =====================
     # Useful properties
     # =====================
@@ -124,13 +157,8 @@ class LSPConfig:
     def settings(self) -> JsonObject:
         return self._settings
 
-    @property
-    def rules(self) -> List[Rule]:
-        """Get all rules we're running, for semgrep/**rules commands"""
-        configs_obj, config_errors = get_config(
-            None, None, self.configs, project_url=self.project_url
-        )
-        # We don't want to rewrite IDs here because things get annoying UI wise
+    def _rules(self, configs: List[str]) -> List[Rule]:
+        configs_obj, _ = get_config(None, None, configs, project_url=self.project_url)
         all_rules = configs_obj.get_rules(True)
         filtered_rules = [
             rule for rule in all_rules if rule.severity.value in self.severity
@@ -138,9 +166,15 @@ class LSPConfig:
         return filtered_rules
 
     @property
-    def languages(self) -> List[Language]:
-        """Get all languages we're running"""
-        return flatten([rule.languages for rule in self.rules])
+    def workspace_rules(self) -> List[Rule]:
+        """Get all local rules we're running"""
+        return self._rules(self.configs)
+
+    @property
+    def ci_rules(self) -> Optional[List[Rule]]:
+        if not self.logged_in:
+            return None
+        return self._rules([self.scan_url])
 
     @property
     def folders(self) -> List[str]:
@@ -157,32 +191,47 @@ class LSPConfig:
             folder_paths.append(target_name)
         return folder_paths
 
-    # I like doing it this way because then it's all in one spot
-    # but I can see an argument for this being a function that takes a config
     @property
-    def scanner(self) -> Callable:
+    def is_git_dir(self) -> bool:
+        try:
+            for f in self.folder_paths:
+                git_check_output(["git", "-C", f, "rev-parse"])
+            return True
+        except Exception:
+            return False
+
+    def _scanner(self, configs: List[str]) -> Callable:
         """Generate a scanner according to the config"""
-        # TODO: do something smart here with CI things in the future
-        baseline_commit = self._settings["scan"].get("baselineCommit")
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
         output_handler = OutputHandler(output_settings)
         return partial(
             semgrep.semgrep_main.main,
-            pattern=None,
-            lang=None,
-            output_handler=output_handler,
             deep=False,
-            configs=self.configs,
+            configs=configs,
             severity=self.severity,
             exclude=self.exclude,
             include=self.include,
+            output_handler=output_handler,
+            dryrun=True,
             jobs=self.jobs,
+            pattern=None,
+            lang=None,
             no_git_ignore=not self.use_git_ignore,
             max_memory=self.max_memory,
             timeout_threshold=self.timeout_threshold,
             disable_nosem=self.disable_nosem,
-            baseline_commit=baseline_commit,
+            baseline_commit=self.baseline_commit,
         )
+
+    # I like doing it this way because then it's all in one spot
+    # but I can see an argument for this being a function that takes a config
+    @property
+    def scanner(self) -> Callable:
+        return self._scanner(configs=self.configs)
+
+    @property
+    def scanner_ci(self) -> Callable:
+        return self._scanner(configs=[self.scan_url])
 
     # =====================
     # Config management

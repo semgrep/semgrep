@@ -1,14 +1,17 @@
 import logging
 import re
 import sys
+import time
 import urllib.request
 import uuid
 from typing import Any
 from typing import BinaryIO
+from typing import Callable
 from typing import List
 from typing import MutableMapping
 from typing import Optional
 from typing import Sequence
+from typing import Union
 
 from pylsp_jsonrpc.dispatchers import MethodDispatcher
 from pylsp_jsonrpc.endpoint import Endpoint
@@ -16,10 +19,16 @@ from pylsp_jsonrpc.streams import JsonRpcStreamReader
 from pylsp_jsonrpc.streams import JsonRpcStreamWriter
 
 from semgrep import __VERSION__ as SEMGREP_VERSION
+from semgrep.app import auth
+from semgrep.commands.login import make_login_url
+from semgrep.commands.login import save_token
+from semgrep.error import SemgrepError
 from semgrep.lsp.config import LSPConfig
 from semgrep.lsp.convert import metavar_to_inlay
 from semgrep.lsp.convert import rule_match_map_to_diagnostics
+from semgrep.lsp.convert import rule_to_metadata
 from semgrep.lsp.run_semgrep import run_rules
+from semgrep.lsp.run_semgrep import run_rules_ci
 from semgrep.lsp.types import CodeActionContext
 from semgrep.lsp.types import CodeActionsList
 from semgrep.lsp.types import Diagnostic
@@ -27,6 +36,7 @@ from semgrep.lsp.types import DiagnosticsList
 from semgrep.lsp.types import Range
 from semgrep.lsp.types import TextDocumentItem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
+from semgrep.state import get_state
 from semgrep.types import JsonObject
 
 
@@ -56,6 +66,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         # beside a request to initialize or to exit.
         self._ready = False
         self.config = LSPConfig({}, [])
+
+        # Used so we don't scan an individual file while we're scanning the workspace
+        self._scanning_workspace = False
 
         # Prepare the json-rpc endpoint
         self._jsonrpc_stream_reader = JsonRpcStreamReader(rx)
@@ -148,6 +161,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             log.info("Registered config watchers")
         self._ready = True
         log.info("Semgrep LSP initialized")
+        get_state()
+        saved_login_token = auth._read_token_from_settings_file()
+        if not saved_login_token:
+            log.info("No saved login token found! Running from files only")
+            self.show_message(
+                3,
+                "Login to enable additional proprietary Semgrep Registry rules and running custom policies from Semgrep App",
+            )
         self.process_workspaces()
 
     def m_shutdown(self) -> None:
@@ -190,11 +211,13 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if self.config.watch_workspace:
             log.info(f"First scan of {textDocument['uri']}, using preprocessed results")
             return
-        self.process_text_document(textDocument)
+        if self.config.watch_open_files:
+            self.process_text_document(textDocument)
 
     def m_text_document__did_save(self, textDocument: TextDocumentItem) -> None:
         log.debug(f"document__did_save")
-        self.process_text_document(textDocument)
+        if self.config.watch_open_files:
+            self.process_text_document(textDocument)
 
     def m_text_document__code_action(
         self, textDocument: TextDocumentItem, range: Range, context: CodeActionContext
@@ -243,16 +266,44 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self.process_workspaces()
 
     #
-    #
+    # LSP Semgrep custom commands
     #
 
+    def m_semgrep__scan(self, uri: str) -> None:
+        """Called by client to scan specific file"""
+        self.process_text_document({"uri": uri})
+
+    def m_semgrep__scan_workspace(self) -> None:
+        """Called by client to scan specific file, or if none provided all files in the workspace"""
+        self.process_workspaces()
+
+    def m_semgrep__login(self) -> Union[JsonObject, None]:
+        """Called by client to login to Semgrep App. Returns None if already logged in"""
+        if self.config.logged_in:
+            return None
+        else:
+            return self.init_login()
+
+    def m_semgrep__login_finish(self, url: str, sessionId: str) -> None:
+        """Called by client to finish login to Semgrep App and save token"""
+        self.process_login(sessionId)
+
+    def m_semgrep__workspace_rules(self) -> Sequence[JsonObject]:
+        """Called by client to get rules from local configs"""
+        return [rule_to_metadata(r) for r in self.config.workspace_rules]
+
+    def m_semgrep__ci_rules(self) -> Sequence[JsonObject]:
+        """Called by client to get rules from app"""
+        rules = self.config.ci_rules
+        if rules:
+            return [rule_to_metadata(r) for r in rules]
+        else:
+            return []
+
     # Custom commands to add:
-    # - semgrep/workspaceRules (list of active rules)
-    # - semgrep/documentRules (list of active rules for a document)
-    # - semgrep/refreshRules (refresh the cached CI + Registry rules)
-    # - semgrep/login (login to CI)
     # - semgrep/dump_ast (dump the AST for a file)
     # - semgrep/search
+    # - semgrep/scanDocument (scan a file)
 
     # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability since this can be trick to understand
     def register_capability(
@@ -353,8 +404,69 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         log.debug(f"Ended notification {token}")
 
+    def show_message_request(
+        self,
+        type: int,
+        message: str,
+        actions: List[str],
+        callback: Callable[[Union[str, None]], None],
+    ) -> None:
+        """Type can be: Error(1), Warning(2), Info(3), Log(4)"""
+        res = self._endpoint.request(
+            "window/showMessageRequest",
+            {
+                "type": type,
+                "message": message,
+                "actions": [{"title": action} for action in actions],
+            },
+        )
+        res.add_done_callback(lambda f: callback(f.result().get("title")))
+
+    def show_message(self, type: int, message: str) -> None:
+        """Type can be: Error(1), Warning(2), Info(3), Log(4)"""
+        self._endpoint.notify(
+            "window/showMessage",
+            {
+                "type": type,
+                "message": message,
+            },
+        )
+
+    def init_login(self) -> JsonObject:
+        session_id, url = make_login_url()
+        return {"url": url, "sessionId": str(session_id)}
+
+    def process_login(self, session_id: str) -> None:
+        WAIT_BETWEEN_RETRY_IN_SEC = 6  # So every 10 retries is a minute
+        MAX_RETRIES = 30  # Give users 3 minutes to log in / open link
+
+        state = get_state()
+        for _ in range(MAX_RETRIES):
+            r = state.app_session.post(
+                f"{state.env.semgrep_url}/api/agent/tokens/requests",
+                json={"token_request_key": session_id},
+            )
+            if r.status_code == 200:
+                as_json = r.json()
+                if save_token(as_json.get("token"), echo_token=True):
+                    self.show_message(3, f"Successfully logged in to semgrep.")
+                    return
+                else:
+                    self.show_message(1, f"Failed to log in to semgrep.")
+            elif r.status_code != 404:
+                self.show_message(
+                    1,
+                    f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
+                )
+
+            time.sleep(WAIT_BETWEEN_RETRY_IN_SEC)
+
     def process_text_document(self, textDocument: TextDocumentItem) -> None:
         """Scan textDocument and publish diagnostics. This is called every time a file is saved or opened"""
+
+        # Just wait for workspace scanning to finish instead
+        if self._scanning_workspace:
+            return
         log.debug("textDocument: %s", textDocument)
 
         uri = urllib.parse.urlparse(textDocument["uri"])
@@ -367,22 +479,44 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     def process_workspaces(self) -> None:
         """Scan workspace folders and recalculate all diagnostics. This is called every time the workspace changes"""
         log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
+        self._scanning_workspace = True
         for uri in self._diagnostics:
             self.publish_diagnostics(uri, [])
         self._diagnostics = {}
+        self.refresh_inlay_hints()
         self.lsp_scan(self.config.folder_paths)
+        self._scanning_workspace = False
 
     def lsp_scan(self, targets: List[str]) -> None:
         """Run a scan on targets and update diagnostics"""
         token = str(uuid.uuid4())
         self.notify_work_done_create(
-            f"Scanning files {len(targets)} location(s)",
+            f"Scanning {len(targets)} location(s)",
             "Running Semgrep",
             token,
         )
         # Run a scan on the file and convert to LSP diagnostics
-        diagnostics = rule_match_map_to_diagnostics(run_rules(targets, self.config))
-        self.notify_work_done_end(token, "Scanning complete")
+        diagnostics = []
+        try:
+            diagnostics = rule_match_map_to_diagnostics(run_rules(targets, self.config))
+            if (
+                self.config.logged_in
+                and self.config.is_git_dir
+                and self.config.ci_enabled
+            ):
+                diagnostics_ci = rule_match_map_to_diagnostics(
+                    run_rules_ci(targets, self.config)
+                )
+                diagnostics.extend(diagnostics_ci)
+            self.notify_work_done_end(token, "Scanning complete")
+        except SemgrepError as e:
+            self.show_message(1, f"Scan failed: \n{e}")
+            log.error(f"Scan failed: \n{e}")
+            # Check if we have partial results
+            if len(diagnostics) == 0:
+                self.notify_work_done_end(token, "Scanning failed")
+                return
+            self.notify_work_done_end(token, "Scanning partially complete")
         sorted_diagnostics: MutableMapping[str, List[JsonObject]] = {}
         # Record them so we can calculate fixes and inlay hints
         for d in diagnostics:

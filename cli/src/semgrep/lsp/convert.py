@@ -1,3 +1,5 @@
+import json
+import urllib
 from typing import Any
 from typing import List
 from typing import MutableMapping
@@ -8,10 +10,10 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
-from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
 from semgrep.util import flatten
+
 
 SeverityMapping = {
     RuleSeverity.ERROR: DiagnosticSeverity.Error,
@@ -70,8 +72,13 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
 # According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnostic
 def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
     """Convert a rule match to a LSP diagnostic"""
-    env = get_state().env
-    rule_url = f"{env.semgrep_url}/r/{rule_match.rule_id}"
+    # we should try and link to file vs ci here depending on rule origin
+    rule_url = rule_match.metadata.get("shortlink")
+    if not rule_url:
+        # Yes this is vscode specific but if you use another editor
+        # You probably won't be clicking links :)
+        args = {"query": rule_match.rule_id, "includes": "*.{yml,yaml}"}
+        rule_url = f"command:search.action.openNewEditorToSide?{urllib.parse.quote(json.dumps([args]))}"
     diagnostic: MutableMapping[str, Any] = {
         "range": {
             # We start at 0, but the LSP starts at 1
@@ -130,3 +137,16 @@ def rule_to_files(rule: Rule, target_manager: TargetManager) -> List[str]:
         for f in files:
             target_files.append(str(f))
     return target_files
+
+
+def rule_to_metadata(rule: Rule) -> JsonObject:
+    return {
+        "id": rule.id,
+        "languages": rule.languages,
+        "message": rule.message,
+        "severity": str(rule.severity),
+        "metadata": rule.metadata,
+        "include": rule.includes,
+        "exclude": rule.excludes,
+        "is_blocking": rule.is_blocking,
+    }
