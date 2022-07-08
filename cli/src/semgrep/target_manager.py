@@ -339,7 +339,12 @@ class Target:
 
     def _is_valid_file_or_dir(self, path: Path) -> bool:
         """Check this is a valid file or directory for semgrep scanning."""
-        return os.access(str(path), os.R_OK) and not path.is_symlink()
+        if not os.path.exists(str(path)):
+            return False
+        stat_results = os.stat(str(path))
+        mode = bin(stat_results.st_mode)
+        permission_bits = mode[len(mode) - 9 :]
+        return permission_bits[0] == "1" and (not path.is_symlink())
 
     def _is_valid_file(self, path: Path) -> bool:
         """Check if file is a readable regular file.
@@ -523,7 +528,12 @@ class TargetManager:
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def get_shebang_line(self, path: Path) -> Optional[str]:
-        if not os.access(str(path), os.X_OK | os.R_OK):
+        if not os.path.exists(str(path)):
+            return None
+        stat_results = os.stat(str(path))
+        mode = bin(stat_results.st_mode)
+        permission_bits = mode[len(mode) - 9 :]
+        if not (permission_bits[0] == "1" and permission_bits[2] == "1"):
             return None
 
         with path.open() as f:
