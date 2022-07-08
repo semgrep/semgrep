@@ -36,6 +36,10 @@ def is_url(url: str) -> bool:
         return False
 
 
+def path_has_permissions(path: Path, permissions: int) -> bool:
+    return path.exists() and path.stat().st_mode & permissions == permissions
+
+
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
     sys.exit(2)
