@@ -27,6 +27,7 @@ types-python-dateutil = "*"
 types-freezegun = "*"
 pytest-split = "*"
 pypi-parker = "*"
+pytest-rerunfailures = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
