@@ -1,4 +1,5 @@
 import os
+import stat
 import subprocess
 import sys
 from collections import defaultdict
@@ -47,7 +48,7 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
-from semgrep.util import sub_check_output
+from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
 from semgrep.util import get_permission_bits_for_path
 from semgrep.verbose_logging import getLogger
@@ -340,10 +341,7 @@ class Target:
 
     def _is_valid_file_or_dir(self, path: Path) -> bool:
         """Check this is a valid file or directory for semgrep scanning."""
-        if not os.path.exists(str(path)):
-            return False
-        permission_bits = get_permission_bits_for_path(path)
-        return permission_bits[0] == "1" and (not path.is_symlink())
+        return path_has_permissions(path, stat.S_IRUSR) and not path.is_symlink()
 
     def _is_valid_file(self, path: Path) -> bool:
         """Check if file is a readable regular file.
@@ -527,10 +525,7 @@ class TargetManager:
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def get_shebang_line(self, path: Path) -> Optional[str]:
-        if not os.path.exists(str(path)):
-            return None
-        permission_bits = get_permission_bits_for_path(path)
-        if not (permission_bits[0] == "1" and permission_bits[2] == "1"):
+        if not path_has_permissions(path, stat.S_IRUSR & stat.S_IXUSR):
             return None
 
         with path.open() as f:
