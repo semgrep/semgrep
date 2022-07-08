@@ -6,9 +6,6 @@ on:
         description: "Docker Tag to Run. Default: edge"
         required: false
         default: "edge"
-  push:
-    branches:
-      - test-workflow
   schedule:
     - cron: "43 20 * * *"
 
