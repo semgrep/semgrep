@@ -36,6 +36,10 @@ def is_url(url: str) -> bool:
         return False
 
 
+def get_permission_bits_for_path(path: Path) -> str:
+    return bin(path.stat().st_mode)[-9:]
+
+
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
     sys.exit(2)

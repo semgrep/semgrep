@@ -49,6 +49,7 @@ from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
+from semgrep.util import get_permission_bits_for_path
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -341,9 +342,7 @@ class Target:
         """Check this is a valid file or directory for semgrep scanning."""
         if not os.path.exists(str(path)):
             return False
-        stat_results = os.stat(str(path))
-        mode = bin(stat_results.st_mode)
-        permission_bits = mode[len(mode) - 9 :]
+        permission_bits = get_permission_bits_for_path(path)
         return permission_bits[0] == "1" and (not path.is_symlink())
 
     def _is_valid_file(self, path: Path) -> bool:
@@ -530,9 +529,7 @@ class TargetManager:
     def get_shebang_line(self, path: Path) -> Optional[str]:
         if not os.path.exists(str(path)):
             return None
-        stat_results = os.stat(str(path))
-        mode = bin(stat_results.st_mode)
-        permission_bits = mode[len(mode) - 9 :]
+        permission_bits = get_permission_bits_for_path(path)
         if not (permission_bits[0] == "1" and permission_bits[2] == "1"):
             return None
 
