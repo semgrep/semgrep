@@ -524,7 +524,7 @@ class TargetManager:
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def get_shebang_line(self, path: Path) -> Optional[str]:
-        if not path_has_permissions(path, stat.S_IRUSR & stat.S_IXUSR):
+        if not path_has_permissions(path, stat.S_IRUSR | stat.S_IXUSR):
             return None
 
         with path.open() as f:
