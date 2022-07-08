@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import subprocess
+import sys
 import tempfile
 from typing import Sequence
 
@@ -29,11 +30,15 @@ def compare(start: str, end: str, snippet: str) -> int:
 
     END - The second version of Semgrep to run
 
-    SNIPPET - A snippet or rule ID (e.g. "Wlz")
+    SNIPPET - A snippet or rule ID (e.g. "Wlz" or "ievans:print-to-logger2")
     """
 
-    url = f"https://semgrep.dev/api/registry/rule/{snippet}?definition=1&test_cases=1"
-    data = requests.get(url, timeout=SEMGREP_DEV_TIMEOUT_S).json()
+    is_ruleset = ":" in snippet
+    collection_path = "rulesets" if is_ruleset else "rules"
+    url = f"https://semgrep.dev/api/registry/{collection_path}/{snippet}?definition=1&test_cases=1"
+    headers = {"Accept": "application/json"}
+    data = requests.get(url, timeout=SEMGREP_DEV_TIMEOUT_S, headers=headers).json()
+    data = data["rules"][0] if is_ruleset else data
 
     definition = data["definition"]
     test_case = data["test_cases"][0]
@@ -44,6 +49,7 @@ def compare(start: str, end: str, snippet: str) -> int:
         return [
             "docker",
             "run",
+            *(["-ti"] if sys.stdout.isatty() else []),
             "-v",
             f"{dir}:/src",
             f"returntocorp/semgrep:{version}",

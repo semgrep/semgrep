@@ -15,6 +15,77 @@
         "offset": 162
       },
       "extra": {
+        "dataflow_trace": {
+          "intermediate_vars": [
+            {
+              "end": {
+                "col": 6,
+                "line": 3,
+                "offset": 62
+              },
+              "path": "targets/taint/taint.py",
+              "start": {
+                "col": 5,
+                "line": 3,
+                "offset": 61
+              }
+            },
+            {
+              "end": {
+                "col": 10,
+                "line": 8,
+                "offset": 145
+              },
+              "path": "targets/taint/taint.py",
+              "start": {
+                "col": 9,
+                "line": 8,
+                "offset": 144
+              }
+            }
+          ],
+          "taint_source": [
+            {
+              "end": {
+                "col": 16,
+                "line": 3,
+                "offset": 72
+              },
+              "path": "targets/taint/taint.py",
+              "start": {
+                "col": 9,
+                "line": 3,
+                "offset": 65
+              }
+            },
+            {
+              "end": {
+                "col": 17,
+                "line": 3,
+                "offset": 73
+              },
+              "path": "targets/taint/taint.py",
+              "start": {
+                "col": 16,
+                "line": 3,
+                "offset": 72
+              }
+            },
+            {
+              "end": {
+                "col": 18,
+                "line": 3,
+                "offset": 74
+              },
+              "path": "targets/taint/taint.py",
+              "start": {
+                "col": 17,
+                "line": 3,
+                "offset": 73
+              }
+            }
+          ]
+        },
         "fingerprint": "b7d9e6f63610bc461ccd05b612b609b516a1ba6c6fb63268160f62de8bb894cd8c2ef9e389681db5d538050af75010b0219f21d41f67488da439ca426798dbde_0",
         "is_ignored": false,
         "lines": "    sink1(b)",

@@ -16,6 +16,19 @@ jobs:
     needs: [upload-wheels, release-ubuntu-16-04]
     if: ${{ !contains(github.ref, '-test-release') }}
     steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      # wait for the draft release since these may not be ready after the refactor of the start-release.
+      - name: Wait for Draft Release if not Ready
+        id: wait-draft-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get_version.outputs.VERSION }}"; do
+            echo "release not yet ready, sleeping for 5 seconds"
+            sleep 5
+          done
       # OSX
       - uses: actions/download-artifact@v3
         with:
@@ -23,9 +36,6 @@ jobs:
           path: semgrep-osx
       - name: Compute checksum
         run: cat ./semgrep-osx/artifacts.zip | sha256sum > ./semgrep-osx/artifacts.zip.sha256
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - name: Upload Release Asset
         id: upload-release-asset-osx
         env:
