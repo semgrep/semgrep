@@ -309,7 +309,7 @@ jobs:
       version: ${{needs.release-setup.outputs.version}}
       repository: "returntocorp/semgrep-rpc"
       base_branch: "develop"
-      bump_script_path: "scripts/bump-version"
+      bump_script_path: "scripts/bump-version.sh"
 
   notify-success:
     needs: [release-setup, validate-release-trigger]
