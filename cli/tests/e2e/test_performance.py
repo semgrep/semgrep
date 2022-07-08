@@ -4,6 +4,7 @@ import pytest
 
 
 @pytest.mark.slow
+@pytest.mark.flaky(reruns=2)
 def test_debug_performance(run_semgrep_in_tmp):
     """
     Verify that running semgrep with --debug does not result in
@@ -25,11 +26,9 @@ def test_debug_performance(run_semgrep_in_tmp):
     )
     time_with_debug = time.time() - start_with_debug
 
-    from pytest import approx
-
     # pad: this used to be 0.1, but got some FPs on unrelated changes like
     # https://github.com/returntocorp/semgrep/runs/6468878138?check_suite_focus=true
     # so I've put 0.2
-    assert time_with_debug == approx(
+    assert time_with_debug == pytest.approx(
         time_without_debug, rel=0.2
     ), "adding --debug slowed runtime by more than 20%"
