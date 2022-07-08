@@ -1,0 +1,1 @@
+Replacing os.access() calls in the target_manager.py with os.stat() to fix the behavior in docker.
