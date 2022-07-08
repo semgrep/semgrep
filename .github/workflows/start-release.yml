@@ -312,7 +312,14 @@ jobs:
       bump_script_path: "scripts/bump-version.sh"
 
   notify-success:
-    needs: [release-setup, validate-release-trigger]
+    needs:
+      [
+        release-setup,
+        validate-release-trigger,
+        bump-semgrep-action,
+        bump-semgrep-rpc,
+        bump-semgrep-app,
+      ]
     name: Notify of Success
     runs-on: ubuntu-20.04
     if: success()
@@ -329,7 +336,14 @@ jobs:
           }'
 
   notify-failure:
-    needs: [release-setup, validate-release-trigger]
+    needs:
+      [
+        release-setup,
+        validate-release-trigger,
+        bump-semgrep-action,
+        bump-semgrep-rpc,
+        bump-semgrep-app,
+      ]
     name: Notify of Failure
     runs-on: ubuntu-20.04
     if: failure()
