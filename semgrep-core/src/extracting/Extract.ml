@@ -39,14 +39,296 @@ let ( let* ) = Option.bind
 (* Helpers *)
 (*****************************************************************************)
 
+(* A type for nonempty lists *)
+type 'a nonempty = Nonempty of 'a * 'a list
+
+let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
+let nonempty_to_list (Nonempty (x, xs)) = x :: xs
+
 (* from Run_semgrep *)
 let mk_rule_table rules =
   let rule_pairs = Common.map (fun r -> (fst r.Rule.id, r)) rules in
   Common.hash_of_list rule_pairs
 
+(** Collects a list into a list of equivalence classes (themselves nonempty
+    lists) according to the given equality predicate. `eq` must be an
+    equivalence relation for correctness.
+*)
+let collect eq l =
+  List.fold_left
+    (fun collected x ->
+      match
+        List.fold_left
+          (fun (checked, to_add) candidate_class ->
+            match (to_add, candidate_class) with
+            | None, _ -> (candidate_class :: checked, None)
+            | Some x, Nonempty (y, _) ->
+                if eq x y then ((x @: candidate_class) :: checked, None)
+                else (candidate_class :: checked, Some x))
+          ([], Some x) collected
+      with
+      | collected, None -> collected
+      | collected, Some new_class -> Nonempty (new_class, []) :: collected)
+    [] l
+
+let extract_of_match erule_table match_ =
+  Common.find_some_opt
+    (fun (x, mvar) ->
+      match Hashtbl.find_opt erule_table match_.Pattern_match.rule_id.id with
+      | None -> None
+      | Some r ->
+          let (`Extract { Rule.extract; _ }) = r.Rule.mode in
+          if x = extract then Some (r, Some mvar) else Some (r, None))
+    match_.Pattern_match.env
+
+type extract_range = {
+  (* Offsets from start of file from which the extraction occured *)
+  start_line : int;
+  start_col : int;
+  (* Byte index of start/end *)
+  start_pos : int;
+  end_pos : int;
+}
+
+let count_lines_and_trailing =
+  String.fold_left
+    (fun (n, c) b ->
+      match b with
+      | '\n' -> (n + 1, 0)
+      | _ -> (n, c + 1))
+    (0, 0)
+
+let offsets_of_mval extract_mvalue =
+  Metavariable.mvalue_to_any extract_mvalue
+  |> Visitor_AST.range_of_any_opt
+  |> Option.map (fun (start_loc, end_loc) ->
+         let end_len = String.length end_loc.Parse_info.str in
+         {
+           start_pos = start_loc.charpos;
+           (* subtract 1 because lines are 1-indexed, so the
+               offset is one less than the current line *)
+           start_line = start_loc.Parse_info.line - 1;
+           start_col = start_loc.column;
+           end_pos = end_loc.charpos + end_len;
+         })
+
+(*****************************************************************************)
+(* Error reporting *)
+(*****************************************************************************)
+
+let report_unbound_mvar ruleid mvar m =
+  let { Range.start; end_ } = Pattern_match.range m in
+  logger#warning
+    "The extract metavariable for rule %s (%s) wasn't bound in a match; \
+     skipping extraction for this match [match was at bytes %d-%d]"
+    ruleid mvar start end_
+
+let report_no_source_range erule =
+  logger#error
+    "In rule %s the extract metavariable (%s) did not have a corresponding \
+     source range"
+    (fst erule.Rule.id)
+    (let (`Extract { Rule.extract; _ }) = erule.mode in
+     extract)
+
+(*****************************************************************************)
+(* Result mapping helpers *)
+(*****************************************************************************)
+
+let map_loc pos line col file (loc : Parse_info.token_location) =
+  (* this _shouldn't_ be a fake location *)
+  {
+    loc with
+    charpos = loc.charpos + pos;
+    line = loc.line + line;
+    column = (if loc.line = 1 then loc.column + col else loc.column);
+    file;
+  }
+
+let map_res map_loc tmpfile file
+    (mr : Report.partial_profiling Report.match_result) =
+  {
+    Report.matches =
+      Common.map
+        (fun (m : Pattern_match.t) ->
+          { m with file; range_loc = Common2.pair map_loc m.range_loc })
+        mr.matches;
+    errors =
+      Common.map
+        (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
+        mr.errors;
+    skipped_targets =
+      Common.map
+        (fun (st : Output_from_core_t.skipped_target) ->
+          { st with path = (if st.path = tmpfile then file else st.path) })
+        mr.skipped_targets;
+    profiling = { mr.profiling with Report.file };
+  }
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
+
+let extract_collect_and_comb erule_table xtarget rule_ids matches =
+  matches
+  |> collect (fun m m' -> m.Pattern_match.rule_id = m'.Pattern_match.rule_id)
+  |> Common.map (fun matches -> nonempty_to_list matches)
+  |> Common.map
+       (List.filter_map (fun m ->
+            match extract_of_match erule_table m with
+            | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
+              ->
+                report_unbound_mvar id extract m;
+                None
+            | Some (r, Some mval) -> Some (r, mval)
+            | None -> None))
+  |> List.filter_map (function
+       | [] -> None
+       | (r, _) :: _ as xs -> Some (r, Common.map snd xs))
+  |> Common.map (fun (r, mvals) ->
+         ( r,
+           List.filter_map
+             (fun mval ->
+               let offsets = offsets_of_mval mval in
+               if Option.is_none offsets then report_no_source_range r;
+               offsets)
+             mvals ))
+  |> Common.map (fun (r, offsets) ->
+         List.fast_sort (fun x y -> Int.compare x.start_pos y.start_pos) offsets
+         |> List.fold_left
+              (fun acc curr ->
+                match acc with
+                | [] -> [ curr ]
+                | last :: acc ->
+                    (* Keep both when disjoint *)
+                    if last.end_pos < curr.start_pos then curr :: last :: acc
+                      (* Filter out already contained range; start of
+                           last is before start of curr from sorting *)
+                    else if curr.end_pos <= last.end_pos then last :: acc
+                      (* Merge overlapping ranges *)
+                    else { last with end_pos = curr.end_pos } :: acc)
+              []
+         |> List.rev
+         |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
+                let source_file = open_in_bin xtarget.Xtarget.file in
+                let extract_size = end_pos - start_pos in
+                seek_in source_file start_pos;
+                let contents = really_input_string source_file extract_size in
+                logger#trace
+                  "Extract rule %s extracted the following from %s at bytes \
+                   %d-%d\n\
+                   %s"
+                  (fst r.Rule.id) xtarget.file start_pos end_pos contents;
+                (contents, map_loc start_pos start_line start_col xtarget.file))
+         |> List.fold_left
+              (fun (consumed_loc, contents, map_contents) (snippet, map_snippet) ->
+                Buffer.add_string contents snippet;
+                let len = String.length snippet in
+                let snippet_lines, snippet_trailing =
+                  count_lines_and_trailing snippet
+                in
+                ( {
+                    consumed_loc with
+                    start_pos = consumed_loc.start_pos + len;
+                    start_line = consumed_loc.start_line + snippet_lines;
+                    start_col = snippet_trailing;
+                  },
+                  contents,
+                  fun ({ Parse_info.charpos; _ } as loc) ->
+                    if charpos < consumed_loc.start_pos then map_contents loc
+                    else
+                      let line = loc.line - consumed_loc.start_line in
+                      map_snippet
+                        {
+                          loc with
+                          charpos = loc.charpos - consumed_loc.start_pos;
+                          line;
+                          column =
+                            (if line = 1 then
+                             loc.column - consumed_loc.start_col
+                            else loc.column);
+                        } ))
+              ( { start_pos = 0; end_pos = 0; start_line = 0; start_col = 0 },
+                Buffer.create 0,
+                fun _ ->
+                  (* cannot reach here because charpos of matches
+                     cannot be negative and above length starts at 0 *)
+                  raise Common.Impossible )
+         |> fun (_, buf, map_loc) ->
+         let contents = Buffer.contents buf in
+         logger#trace
+           "Extract rule %s combined matches from %s resulting in the following:\n\
+            %s"
+           (fst r.Rule.id) xtarget.file contents;
+         let f : Common.dirname =
+           Common.new_temp_file "extracted" xtarget.file
+         in
+         Common2.write_file ~file:f contents;
+         let target =
+           {
+             In.path = f;
+             language =
+               (let (`Extract { Rule.dst_lang; _ }) = r.mode in
+                dst_lang)
+               |> Lang.show;
+             rule_ids;
+           }
+         in
+         (target, map_res map_loc f xtarget.file))
+
+let extract_as_separate erule_table xtarget rule_ids matches =
+  matches
+  |> List.filter_map (fun m ->
+         match extract_of_match erule_table m with
+         | Some (erule, Some extract_mvalue) ->
+             (* Note: char/line offset should be relative to the extracted
+              * portion, _not_ the whole pattern!
+              *)
+             let* {
+                    start_pos = start_extract_pos;
+                    start_line = line_offset;
+                    start_col = col_offset;
+                    end_pos = end_extract_pos;
+                  } =
+               match offsets_of_mval extract_mvalue with
+               | Some x -> Some x
+               | None ->
+                   report_no_source_range erule;
+                   None
+             in
+             let source_file = open_in_bin m.file in
+             let extract_size = end_extract_pos - start_extract_pos in
+             seek_in source_file start_extract_pos;
+             let contents = really_input_string source_file extract_size in
+             logger#trace
+               "Extract rule %s extracted the following from %s at bytes %d-%d\n\
+                %s"
+               m.rule_id.id m.file start_extract_pos end_extract_pos contents;
+             let f : Common.dirname = Common.new_temp_file "extracted" m.file in
+             Common2.write_file ~file:f contents;
+             let target =
+               {
+                 In.path = f;
+                 language =
+                   (let (`Extract { Rule.dst_lang; _ }) = erule.mode in
+                    dst_lang)
+                   |> Lang.show;
+                 rule_ids;
+               }
+             in
+             let map_loc =
+               map_loc start_extract_pos line_offset col_offset
+                 xtarget.Xtarget.file
+             in
+             Some (target, map_res map_loc f xtarget.file)
+         | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
+           ->
+             report_unbound_mvar id extract m;
+             None
+         | None ->
+             (* Cannot fail to lookup rule in hashtable just created from rules
+                used for query *)
+             raise Common.Impossible)
 
 (** This is the main function which performs extraction of the matches
    generated by extract mode rules.
@@ -64,118 +346,20 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
       (erules :> Rule.rules)
       xtarget
   in
-  (* mode for combination *)
-  (* match combine with
-     | "separate" -> *)
-  res.Report.matches
-  |> List.filter_map (fun m ->
-         match
-           Common.find_some_opt
-             (fun (x, mvar) ->
-               match
-                 Hashtbl.find_opt erule_table m.Pattern_match.rule_id.id
-               with
-               | None -> None
-               | Some r ->
-                   let (`Extract { Rule.extract; _ }) = r.mode in
-                   if x = extract then Some (r, Some mvar) else Some (r, None))
-             m.Pattern_match.env
-         with
-         | Some (erule, Some extract_mvalue) ->
-             (* Note: char/line offset should be relative to the extracted
-              * portion, _not_ the whole pattern!
-              *)
-             let* ( (char_offset, line_offset, col_offset),
-                    (start_extract_pos, end_extract_pos) ) =
-               match
-                 Metavariable.mvalue_to_any extract_mvalue
-                 |> Visitor_AST.range_of_any_opt
-                 |> Option.map (fun (start_loc, end_loc) ->
-                        let end_len = String.length end_loc.Parse_info.str in
-                        ( ( start_loc.Parse_info.charpos,
-                            (* subtract 1 because lines are 1-indexed, so the offset is
-                             * one less than the current line *)
-                            start_loc.line - 1,
-                            start_loc.column ),
-                          (start_loc.charpos, end_loc.charpos + end_len) ))
-               with
-               | Some x -> Some x
-               | None ->
-                   logger#error
-                     "In rule %s the extract metavariable (%s) did not have a \
-                      corresponding source range"
-                     (fst erule.id)
-                     (let (`Extract { Rule.extract; _ }) = erule.mode in
-                      extract);
-                   None
-             in
-             let source_file = open_in_bin m.file in
-             let extract_size = end_extract_pos - start_extract_pos in
-             seek_in source_file start_extract_pos;
-             let contents = really_input_string source_file extract_size in
-             logger#trace
-               "Extract rule %s extracted the following from %s at  bytes %d-%d\n\
-                %s"
-               m.rule_id.id m.file start_extract_pos end_extract_pos contents;
-             let f : Common.dirname = Common.new_temp_file "extracted" m.file in
-             Common2.write_file ~file:f contents;
-             let target =
-               {
-                 In.path = f;
-                 language =
-                   (let (`Extract { Rule.dst_lang; _ }) = erule.mode in
-                    dst_lang)
-                   |> Lang.show;
-                 rule_ids;
-               }
-             in
-             (* Make result mapping function *)
-             let map_loc (loc : Parse_info.token_location) =
-               (* this _shouldn't_ be a fake location *)
-               {
-                 loc with
-                 charpos = loc.charpos + char_offset;
-                 line = loc.line + line_offset;
-                 column =
-                   (if loc.line = 1 then loc.column + col_offset
-                   else loc.column);
-                 file = xtarget.file;
-               }
-             in
-             let map_res (mr : Report.partial_profiling Report.match_result) =
-               {
-                 Report.matches =
-                   Common.map
-                     (fun (m : Pattern_match.t) ->
-                       {
-                         m with
-                         file = xtarget.file;
-                         range_loc = Common2.pair map_loc m.range_loc;
-                       })
-                     mr.matches;
-                 errors =
-                   Common.map
-                     (fun (e : Semgrep_error_code.error) ->
-                       { e with loc = map_loc e.loc })
-                     mr.errors;
-                 skipped_targets =
-                   Common.map
-                     (fun (st : Output_from_core_t.skipped_target) ->
-                       {
-                         st with
-                         path = (if st.path = f then xtarget.file else st.path);
-                       })
-                     mr.skipped_targets;
-                 profiling = { mr.profiling with Report.file = xtarget.file };
-               }
-             in
-             Some (target, map_res)
-         | Some ({ mode = `Extract { extract; _ }; id = id, _; _ }, None) ->
-             logger#warning
-               "The extract metavariable for rule %s (%s) wasn't bound in a \
-                match; skipping extraction for this match"
-               id extract;
-             None
-         | None ->
-             (* Cannot fail to lookup rule in hashtable just created from rules used for query *)
-             raise Common.Impossible)
+  let separate_matches, combine_matches =
+    Common.partition_either
+      (fun (m : Pattern_match.t) ->
+        let erule = Hashtbl.find erule_table m.rule_id.id in
+        let (`Extract { Rule.reduce; _ }) = erule.mode in
+        match reduce with
+        | Separate -> Left m
+        | Concat -> Right m)
+      res.matches
+  in
+  let separate =
+    extract_as_separate erule_table xtarget rule_ids separate_matches
+  in
+  let combined =
+    extract_collect_and_comb erule_table xtarget rule_ids combine_matches
+  in
+  separate @ combined
