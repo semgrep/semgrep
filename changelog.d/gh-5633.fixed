@@ -1,0 +1,2 @@
+Semgrep threw list index out of range error in the text formatter when the dedented_lines list was empty.
+This PR adds a conditions to factor for that and fixes the relevant issue.
