@@ -99,7 +99,7 @@ class TextFormatter(BaseFormatter):
             dedented_lines = textwrap.dedent("".join(lines)).splitlines()
             indent_len = (
                 len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
-                if len(lines) > 0
+                if len(dedented_lines) > 0 and len(lines) > 0
                 else 0
             )
 

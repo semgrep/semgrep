@@ -207,7 +207,8 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?range_filter config file_and_more patterns =
+let matches_of_patterns ?mvar_context ?range_filter config file_and_more
+    patterns =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     file_and_more
   in
@@ -229,7 +230,7 @@ let matches_of_patterns ?range_filter config file_and_more patterns =
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?range_filter config mini_rules (file, lang, ast))
+                ?mvar_context ?range_filter config mini_rules (file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       {
@@ -309,7 +310,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns config file_and_more xpatterns =
+let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
   let { Xtarget.file; lazy_content; _ } = file_and_more in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -321,7 +322,7 @@ let matches_of_xpatterns config file_and_more xpatterns =
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns config file_and_more patterns;
+      matches_of_patterns ~mvar_context config file_and_more patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
       Xpattern_match_comby.matches_of_combys combys lazy_content file;
@@ -541,7 +542,13 @@ and matches_of_formula config rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
-  let res = matches_of_xpatterns config xtarget xpatterns |> RP.add_rule rule in
+  let mvar_context : Metavariable.bindings option =
+    Option.map (fun s -> s.RM.mvars) opt_context
+  in
+  let res =
+    matches_of_xpatterns mvar_context config xtarget xpatterns
+    |> RP.add_rule rule
+  in
   logger#trace "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)

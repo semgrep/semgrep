@@ -201,7 +201,8 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
  *   filter allows us to avoid all that expensive stuff when matching expressions
  *   unless they fall in specific regions of the code.
  *   See also docs for {!check} in Match_pattern.mli. *)
-let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
+let check2 ~hook mvar_context range_filter (config, equivs) rules
+    (file, lang, ast) =
   logger#trace "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
@@ -286,7 +287,9 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
                          (show_expr_kind x.e);
                        ()
                    | Some range_loc when range_filter range_loc ->
-                       let env = MG.empty_environment cache lang config in
+                       let env =
+                         MG.empty_environment ~mvar_context cache lang config
+                       in
                        let matches_with_env = match_e_e rule pattern x env in
                        if matches_with_env <> [] then
                          (* Found a match *)
@@ -494,6 +497,7 @@ let check2 ~hook range_filter (config, equivs) rules (file, lang, ast) =
     |> PM.uniq
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook ?(range_filter = fun _ -> true) config a b =
+let check ~hook ?(mvar_context = None) ?(range_filter = fun _ -> true) config a
+    b =
   Common.profile_code "Match_patterns.check" (fun () ->
-      check2 ~hook range_filter config a b)
+      check2 ~hook mvar_context range_filter config a b)
