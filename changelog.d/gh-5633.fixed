@@ -1,2 +1,1 @@
-Semgrep threw list index out of range error in the text formatter when the dedented_lines list was empty.
-This PR adds a conditions to factor for that and fixes the relevant issue.
+Semgrep used to crash when trying to print findings that match only whitespace, such as when a rule disallows two newlines at the end of a file. This crash is now fixed.
