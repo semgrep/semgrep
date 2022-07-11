@@ -58,6 +58,7 @@ def compare(start: str, end: str, snippet: str, use_podman: bool) -> int:
         return [
             docker_executable,
             "run",
+            "--rm",
             *(["-ti"] if sys.stdout.isatty() else []),
             *(["--security-opt", "label=disable"] if use_podman else []),
             "-v",
