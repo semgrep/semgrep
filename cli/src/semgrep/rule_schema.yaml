@@ -520,6 +520,12 @@ properties:
         dest-language:
           title: Language to process the extracted result of this rule as
           type: string
+        reduce:
+          title: Method of intrafile match reduction
+          enum:
+            - concat
+            - separate
+          default: separate
       additionalProperties: false
 
       allOf:
@@ -569,6 +575,7 @@ properties:
             properties:
               extract: false
               dest-language: false
+              reduce: false
               pattern: false
               patterns: false
               pattern-either: false
@@ -589,6 +596,7 @@ properties:
             properties:
               extract: false
               dest-language: false
+              reduce: false
               patterns: false
               pattern: false
               pattern-either: false
@@ -642,6 +650,7 @@ properties:
             properties:
               extract: false
               dest-language: false
+              reduce: false
               pattern-sinks: false
               pattern-sources: false
               pattern-propagators: false

@@ -780,6 +780,18 @@ let parse_severity ~id (s, t) =
              id,
              t ))
 
+let parse_extract_reduction ~id (s, t) =
+  match s with
+  | "concat" -> R.Concat
+  | "separate" -> R.Separate
+  | s ->
+      raise
+        (R.InvalidRule
+           ( R.InvalidOther
+               (spf "Bad extract reduction: %s (expected concat or separate)" s),
+             id,
+             t ))
+
 (*****************************************************************************)
 (* Sub parsers taint *)
 (*****************************************************************************)
@@ -854,7 +866,12 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
-      `Extract { pformula; dst_lang; extract; reduce = Rule.Separate }
+      let reduce =
+        take_opt rule_dict env parse_string_wrap "reduce"
+        |> Option.map (parse_extract_reduction ~id:env.id)
+        |> Option.value ~default:R.Separate
+      in
+      `Extract { pformula; dst_lang; extract; reduce }
   | Some key ->
       error_at_key env key
         (spf
