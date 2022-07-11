@@ -18,8 +18,11 @@ on:
         type: string
     outputs:
       pr-url:
-        description: "The first output string"
+        description: "The PR URL that's opened for the version bump"
         value: ${{ jobs.bump-version.outputs.pr-url }}
+      pr-number:
+        description: "The PR Number that's opened for the version bump"
+        value: ${{ jobs.bump-version.outputs.pr-number }}
 
 jobs:
   bump-version:
@@ -27,6 +30,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       pr-url: ${{ steps.open-pr.outputs.pr-url }}
+      pr-number: ${{ steps.open-pr.outputs.pr-number }}
     steps:
       - name: Get JWT for semgrep-ci GitHub App
         id: jwt
@@ -63,7 +67,10 @@ jobs:
       - name: Create Release Branch
         id: release-branch
         run: |
-          RELEASE_BRANCH="release-${{ inputs.version }}"
+          RELEASE_BRANCH="${{ inputs.new_branch_name }}"
+          if [ -z "${{ inputs.new_branch_name }}" ]; then
+            RELEASE_BRANCH="release-${{ inputs.version }}"
+          fi
           git checkout -b ${RELEASE_BRANCH}
           echo ::set-output name=release-branch::${RELEASE_BRANCH}
       - name: Run release scripts

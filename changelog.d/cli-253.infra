@@ -1,0 +1,1 @@
+Using some building blocks from release, set up a workflow to test `semgrep ci` e2e.
