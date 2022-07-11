@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       docker_tag:
-        description: "Docker Tag to Run. Default: edge"
+        description: "Docker Tag to Run. Default: develop"
         required: false
-        default: "edge"
+        default: "develop"
   schedule:
     - cron: "43 20 * * *"
 
@@ -19,7 +19,7 @@ jobs:
       - name: Set variables
         id: get-inputs
         env:
-          DEFAULT_TAG: edge
+          DOCKER_TAG: develop
         run: |
           echo "::set-output name=docker_tag::${{ inputs.docker_tag || env.DOCKER_TAG }}"
       - name: Debug
