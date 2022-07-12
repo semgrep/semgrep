@@ -15,6 +15,13 @@ from semgrep.semgrep_types import LANGUAGE
 SEMGREP_DEV_TIMEOUT_S = 30.0
 
 
+def compute_docker_executable(use_podman: bool) -> str:
+    if use_podman:
+        return "podman"
+
+    return "docker"
+
+
 @click.command()
 @click.argument("start", type=str)
 @click.argument(
@@ -22,7 +29,8 @@ SEMGREP_DEV_TIMEOUT_S = 30.0
     type=str,
 )
 @click.argument("snippet", type=str)
-def compare(start: str, end: str, snippet: str) -> int:
+@click.option("--use-podman", is_flag=True, help="Use podman instead of docker.")
+def compare(start: str, end: str, snippet: str, use_podman: bool) -> int:
     """
     Compares behavior of two versions of Semgrep on a rule ID
 
@@ -45,11 +53,14 @@ def compare(start: str, end: str, snippet: str) -> int:
     language = test_case["language"]
     target = test_case["target"]
 
-    def docker_cmd(dir: str, version: str) -> Sequence[str]:
+    def docker_cmd(use_podman: bool, dir: str, version: str) -> Sequence[str]:
+        docker_executable = compute_docker_executable(use_podman)
         return [
-            "docker",
+            docker_executable,
             "run",
+            "--rm",
             *(["-ti"] if sys.stdout.isatty() else []),
+            *(["--security-opt", "label=disable"] if use_podman else []),
             "-v",
             f"{dir}:/src",
             f"returntocorp/semgrep:{version}",
@@ -75,12 +86,12 @@ def compare(start: str, end: str, snippet: str) -> int:
         click.secho(f"===== RUNNING WITH VERSION {start} =====\n", fg="blue", bold=True)
         # The following rule shouldn't be running on Semgrep, it's an FP factory
         # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-        subprocess.run(docker_cmd(td, start))
+        subprocess.run(docker_cmd(use_podman, td, start))
         click.secho(
             f"\n\n===== RUNNING WITH VERSION {end} =====\n", fg="blue", bold=True
         )
         # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-        subprocess.run(docker_cmd(td, end))
+        subprocess.run(docker_cmd(use_podman, td, end))
 
     return 0
 
