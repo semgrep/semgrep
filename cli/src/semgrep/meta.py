@@ -27,7 +27,7 @@ def get_url_from_ssh_url(ssh_url: Optional[str]) -> Optional[str]:
     if not ssh_url or not ssh_url.startswith("git@") or not ssh_url.endswith(".git"):
         return ssh_url
 
-    return f"https://${ssh_url[4:-4]}"
+    return f"https://{ssh_url[4:-4]}"
 
 
 def get_repo_name_from_github_repo_url(repo_url: str) -> str:
