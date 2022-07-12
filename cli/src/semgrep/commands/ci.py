@@ -385,6 +385,16 @@ def ci(
                 match for match in matches if not match.is_ignored or keep_ignored
             ]
         else:
+            if scan_handler:
+                matches = list(
+                    filter(
+                        lambda match: match.syntactic_id  # type: ignore
+                        not in scan_handler.skipped_syntactic_ids
+                        and match.match_based_id
+                        not in scan_handler.skipped_match_based_ids,
+                        matches,
+                    )
+                )
             if rule.is_blocking:
                 blocking_matches_by_rule[rule] = [
                     match for match in matches if not match.is_ignored or keep_ignored

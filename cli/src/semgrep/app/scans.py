@@ -32,6 +32,8 @@ class ScanHandler:
         self._autofix = False
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
+        self._skipped_syntactic_ids: List[str] = []
+        self._skipped_match_based_ids: List[str] = []
 
     @property
     def autofix(self) -> bool:
@@ -39,6 +41,20 @@ class ScanHandler:
         Seperate property for easy of mocking in test
         """
         return self._autofix
+
+    @property
+    def skipped_syntactic_ids(self) -> List[str]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._skipped_syntactic_ids
+
+    @property
+    def skipped_match_based_ids(self) -> List[str]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._skipped_match_based_ids
 
     def _get_deployment_details(self) -> Tuple[Optional[int], Optional[str]]:
         """
@@ -99,6 +115,8 @@ class ScanHandler:
         self.scan_id = body["scan"]["id"]
         self._autofix = body.get("autofix", False)
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
+        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
+        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
 
     @property
     def scan_rules_url(self) -> str:
@@ -156,7 +174,12 @@ class ScanHandler:
             for match in matches_of_rule
         ]
         new_ignored, new_matches = partition(
-            all_matches, lambda match: bool(match.is_ignored)
+            all_matches,
+            lambda match: bool(
+                match.is_ignored
+                or match.syntactic_id in self.skipped_syntactic_ids
+                or match.match_based_id in self.skipped_match_based_ids
+            ),
         )
 
         findings = {
