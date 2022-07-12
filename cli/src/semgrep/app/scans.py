@@ -175,11 +175,7 @@ class ScanHandler:
         ]
         new_ignored, new_matches = partition(
             all_matches,
-            lambda match: bool(
-                match.is_ignored
-                or match.syntactic_id in self.skipped_syntactic_ids
-                or match.match_based_id in self.skipped_match_based_ids
-            ),
+            lambda match: bool(match.is_ignored),
         )
 
         findings = {
