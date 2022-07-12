@@ -35,6 +35,7 @@ from semgrep.lsp.types import Diagnostic
 from semgrep.lsp.types import DiagnosticsList
 from semgrep.lsp.types import Range
 from semgrep.lsp.types import TextDocumentItem
+from semgrep.lsp.utils.metrics import LSPMetrics
 from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
 from semgrep.state import get_state
 from semgrep.types import JsonObject
@@ -57,6 +58,24 @@ SERVER_CAPABILITIES = {
         "supported": True,
         "changeNotifications": True,
     },
+    "workspace": {
+        "fileOperations": {
+            "didRename": {
+                "filters": [
+                    {
+                        "pattern": {"glob": "**/*", "matches": "file"},
+                    }
+                ]
+            },
+            "didDelete": {
+                "filters": [
+                    {
+                        "pattern": {"glob": "**/*", "matches": "file"},
+                    }
+                ]
+            },
+        }
+    },
 }
 
 
@@ -78,6 +97,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
 
         self._diagnostics: MutableMapping[str, DiagnosticsList] = {}
+        self._fix_metrics: LSPMetrics = LSPMetrics()
         self._registered_capabilities: MutableMapping[str, str] = {}
 
     # Override the default implementation of __getitem__ So we can ensure no
@@ -147,18 +167,25 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         """Called by client after ok response from initialize"""
         # At some point we should only watch config files specified for us
         # But then we wouldn't watch join rule config files so not sure
+        watchers = [
+            {
+                # Always watch git head so we know if the branch changes
+                "globPattern": "**/.git/HEAD",
+            }
+        ]
         if self.config.watch_configs:
-            self.register_capability(
-                "workspace/didChangeWatchedFiles",
+            watchers.append(
                 {
-                    "watchers": [
-                        {
-                            "globPattern": "**/*.{yml,yaml}",
-                        }
-                    ]
-                },
+                    "globPattern": "**/*.{yml,yaml}",
+                }
             )
-            log.info("Registered config watchers")
+        self.register_capability(
+            "workspace/didChangeWatchedFiles",
+            {
+                "watchers": watchers,
+            },
+        )
+        log.info("Registered file watchers")
         self._ready = True
         log.info("Semgrep LSP initialized")
         get_state()
@@ -173,36 +200,13 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_shutdown(self) -> None:
         log.info("Server shutting down")
+        self._fix_metrics.send()
 
     # TODO: VSCode seems to close the streams right after the shutdown message, which
     # makes us exit anyway, instead of sending an exit message.
     def m_exit(self) -> None:
         log.info("Server stopping")
         self.stop()
-
-    def m_text_document__did_close(self, textDocument: TextDocumentItem) -> None:
-        log.debug("document__did_close")
-        self.cleanup_diagnostics(textDocument)
-
-    # Anything in here should be relatively quick, we should not scan every
-    # change for now since that could slow down the client
-    def m_text_document__did_change(
-        self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
-    ) -> None:
-        """Called by client everytime a file is changed (but not necessarily saved)"""
-        log.debug("document__did_open")
-        # Remove all findings if the file is changed
-        for c in contentChanges:
-            range = c["range"]
-            if self._diagnostics.get(textDocument["uri"]) is not None:
-                diagnostics = []
-                for d in self._diagnostics[textDocument["uri"]]:
-                    if not self.text_ranges_overlap(range, d["range"]):
-                        diagnostics.append(d)
-                self._diagnostics[textDocument["uri"]] = diagnostics
-                self.publish_diagnostics(textDocument["uri"], diagnostics)
-
-        self.refresh_inlay_hints()
 
     def m_text_document__did_open(self, textDocument: TextDocumentItem) -> None:
         log.debug("document__did_open")
@@ -218,6 +222,18 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.debug(f"document__did_save")
         if self.config.watch_open_files:
             self.process_text_document(textDocument)
+
+    def m_text_document__did_close(self, textDocument: TextDocumentItem) -> None:
+        log.debug("document__did_close")
+
+    # Anything in here should be relatively quick, we should not scan every
+    # change for now since that could slow down the client
+    def m_text_document__did_change(
+        self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
+    ) -> None:
+        """Called by client everytime a file is changed (but not necessarily saved)"""
+        log.debug("document__did_change")
+        self.process_text_document_change(textDocument, contentChanges)
 
     def m_text_document__code_action(
         self, textDocument: TextDocumentItem, range: Range, context: CodeActionContext
@@ -254,16 +270,40 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     # This is called by the client when whatever files we registered above in
     # m_initialized changes. Handy for configs!
-    def m_workspace__did_change_watched_files(self, changes: JsonObject) -> None:
+    def m_workspace__did_change_watched_files(
+        self, changes: Sequence[JsonObject]
+    ) -> None:
         """Called by client when watched config files change"""
-        # We're only watching config files so we don't care about the changes
-        if self.config.watch_workspace:
-            self.process_workspaces()
+        # Reset metrics iff git
+        for c in changes:
+            if c["uri"].endswith(".git/HEAD"):
+                self._fix_metrics.send()
+                self._fix_metrics = LSPMetrics()
+        self.process_workspaces()
 
     def m_workspace__did_change_configuration(self, settings: JsonObject) -> None:
         """Called by client when settings change"""
         self.config = LSPConfig(settings, self.config._workspace_folders)
         self.process_workspaces()
+
+    def m_workspace__did_rename_files(self, files: Sequence[JsonObject]) -> None:
+        """Called by client when files are renamed. Renames all diagnostics + metrics accordingly"""
+        log.info("workspace__did_rename_files")
+        for f in files:
+            old_uri = f["oldUri"]
+            new_uri = f["newUri"]
+            # Doesn't rename related files but oh well
+            if old_uri in self._diagnostics:
+                self.publish_diagnostics(new_uri, self._diagnostics[old_uri])
+                self.publish_diagnostics(old_uri, [])
+        self.refresh_inlay_hints()
+
+    def m_workspace__did_delete_files(self, files: Sequence[JsonObject]) -> None:
+        """Called by client when files are deleted. Deletes all diagnostics"""
+        log.info("workspace__did_delete_files")
+        for f in files:
+            self.cleanup_diagnostics(f["uri"])
+        self.refresh_inlay_hints()
 
     #
     # LSP Semgrep custom commands
@@ -338,6 +378,17 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # out you must send an empty list explicitly.
     def publish_diagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
         """Publish diagnostics to the client"""
+        before = []
+        # only count before if we're not refreshing the diagnostics (refreshing = user did not change code but a config file or folder or git status changed)
+        if self._diagnostics.get(uri) is not None:
+            before = list(map(lambda d: d["code"], self._diagnostics[uri]))  # type: ignore
+        after = list(map(lambda d: d["code"], diagnostics))  # type: ignore
+        for r in set(before):
+            count = after.count(r)
+            closed = before.count(r) - count
+            closed = max(closed, 0)
+            self._fix_metrics.update(r, count, closed)
+        self._diagnostics[uri] = diagnostics
         self._endpoint.notify(
             "textDocument/publishDiagnostics",
             {
@@ -346,10 +397,10 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    def cleanup_diagnostics(self, textDocument: TextDocumentItem) -> None:
+    def cleanup_diagnostics(self, uri: str) -> None:
         """Clear all diagnostics for a given file"""
-        self._diagnostics[textDocument["uri"]] = []
-        self.publish_diagnostics(textDocument["uri"], [])
+        self._diagnostics[uri] = []
+        self.publish_diagnostics(uri, [])
         self.refresh_inlay_hints()
 
     def refresh_inlay_hints(self) -> None:
@@ -476,19 +527,32 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         log.info(f"Running Semgrep on {target_name} with configs {self.config.configs}")
         self.lsp_scan([target_name])
 
+    def process_text_document_change(
+        self, textDocument: TextDocumentItem, contentChanges: Sequence[JsonObject]
+    ) -> None:
+        """Process changes for textDocument, such as if we should remove diagnostics or if fixes have been made"""
+        # We should check if branch or commit changed and refresh
+        # Remove all findings if the file is changed
+        for c in contentChanges:
+            range = c["range"]
+            if self._diagnostics.get(textDocument["uri"]) is not None:
+                diagnostics = []
+                for d in self._diagnostics[textDocument["uri"]]:
+                    if not self.text_ranges_overlap(range, d["range"]):
+                        diagnostics.append(d)
+                self.publish_diagnostics(textDocument["uri"], diagnostics)
+
+        self.refresh_inlay_hints()
+
     def process_workspaces(self) -> None:
         """Scan workspace folders and recalculate all diagnostics. This is called every time the workspace changes"""
         log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
-        self._scanning_workspace = True
-        for uri in self._diagnostics:
-            self.publish_diagnostics(uri, [])
-        self._diagnostics = {}
-        self.refresh_inlay_hints()
-        self.lsp_scan(self.config.folder_paths)
-        self._scanning_workspace = False
+        self.lsp_scan(self.config.folder_paths, True)
 
-    def lsp_scan(self, targets: List[str]) -> None:
+    def lsp_scan(self, targets: List[str], workspaces: bool = False) -> None:
         """Run a scan on targets and update diagnostics"""
+        if workspaces:
+            self._scanning_workspace = True
         token = str(uuid.uuid4())
         self.notify_work_done_create(
             f"Scanning {len(targets)} location(s)",
@@ -497,6 +561,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         # Run a scan on the file and convert to LSP diagnostics
         diagnostics = []
+        self._diagnostics.keys()
         try:
             diagnostics = rule_match_map_to_diagnostics(run_rules(targets, self.config))
             if (
@@ -523,10 +588,16 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             if d["data"]["uri"] not in sorted_diagnostics:
                 sorted_diagnostics[d["data"]["uri"]] = []
             sorted_diagnostics[d["data"]["uri"]].append(d)
+        # If workspace has changed, make sure we remove all stale diagnostics
+        if workspaces:
+            removed = set(self._diagnostics.keys()) - set(sorted_diagnostics.keys())
+            for r in removed:
+                self.cleanup_diagnostics(r)
         for t in sorted_diagnostics:
-            self._diagnostics[t] = sorted_diagnostics[t]
             self.publish_diagnostics(t, sorted_diagnostics[t])
         self.refresh_inlay_hints()
+        if workspaces:
+            self._scanning_workspace = False
 
     # Create a fix item for a given diagnostic. These are just autofixes! We
     # probably want to move this to convert at some point and make it more

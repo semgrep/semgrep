@@ -14,6 +14,7 @@ from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
 from semgrep.constants import OutputFormat
 from semgrep.meta import generate_meta_from_environment
+from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.project import get_project_url
@@ -149,6 +150,16 @@ class LSPConfig:
     def ci_enabled(self) -> bool:
         return self._settings["lsp"].get("ciEnabled", True)
 
+    @property
+    def metrics(self) -> MetricsState:
+        choice = self._settings.get("metrics", "on")
+        if choice == "on":
+            return MetricsState.ON
+        elif choice == "off":
+            return MetricsState.OFF
+        else:
+            return MetricsState.AUTO
+
     # =====================
     # Useful properties
     # =====================
@@ -204,6 +215,7 @@ class LSPConfig:
         """Generate a scanner according to the config"""
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
         output_handler = OutputHandler(output_settings)
+        get_state().metrics.configure(self.metrics, None)
         return partial(
             semgrep.semgrep_main.main,
             deep=False,
