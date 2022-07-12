@@ -539,11 +539,12 @@ let extract_targets_of_config config rule_ids extractors =
         pr (string_of_int (List.length extract_targets));
       extract_targets)
     extract_targets
-  |> Fun.flip
-       (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
-            Hashtbl.add fn_tbl t.In.path fn;
-            (t :: ts, fn_tbl)))
-       ([], Hashtbl.create (List.length extract_targets))
+  |> fun extracted_ranges ->
+  (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
+       Hashtbl.add fn_tbl t.In.path fn;
+       (t :: ts, fn_tbl)))
+    extracted_ranges
+    ([], Hashtbl.create (List.length extract_targets))
 
 (*****************************************************************************)
 (* Semgrep -config *)
