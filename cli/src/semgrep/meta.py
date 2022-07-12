@@ -22,25 +22,33 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def get_repo_name_from_github_repo_url(url: str) -> str:
-    """Pulls repository name from the url, assuming it is a GitHub repo url.
-    If url can't be parsed, just returns the full url as the repo name.
-    """
-    # url in format https://github.com/org/reponame.git
-    # and we want org/reponame
-    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
-    if second_to_last_slash == -1:
-        return url
-    # slice of beginning of string to last slash and ".git" at the end
-    return url[second_to_last_slash + 1 : -4]
-
-
 def get_url_from_ssh_url(ssh_url: Optional[str]) -> Optional[str]:
     """Gets regular url from ssh_url"""
     if not ssh_url or not ssh_url.startswith("git@") or not ssh_url.endswith(".git"):
         return ssh_url
 
     return f"https://${ssh_url[4:-4]}"
+
+
+def get_repo_name_from_github_repo_url(repo_url: str) -> str:
+    """Pulls repository name from the url, assuming it is a GitHub repo url.
+    If url can't be parsed, just returns the full url as the repo name.
+    """
+    # make sure url in right format - might be ssh
+    url = get_url_from_ssh_url(repo_url)
+    if url is None:
+        # this is just for type checking, shouldn't ever reach here
+        return repo_url
+
+    # url in format https://github.com/org/reponame.git or https://github.com/org/reponame
+    # and we want org/reponame
+    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
+    if second_to_last_slash == -1:
+        return url
+    # slice of beginning of string to last slash and ".git" at the end
+    if url.endswith(".git"):
+        return url[second_to_last_slash + 1 : -4]
+    return url[second_to_last_slash + 1 :]
 
 
 @dataclass
