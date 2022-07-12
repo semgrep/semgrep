@@ -1,0 +1,1 @@
+Fixed parsing of CI environment variables for Circle CI, Bitbucket, and Buildkite
