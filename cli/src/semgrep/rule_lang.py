@@ -446,8 +446,10 @@ class RuleValidation:
         "join",
     }
     INVALID_SENTINEL = " is not allowed for "
+    INVALID_FOR_MODE_SENTINEL = "False schema does not allow"
     BAD_TYPE_SENTINEL = "is not of type"
     BANNED_SENTINEL = "Additional properties are not allowed"
+    REDUNDANT_SENTINEL = "is valid under each of"
 
 
 def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:
@@ -456,13 +458,28 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     tests/e2e/rules/syntax/badXXX.yaml
     """
 
-    contexts = list(error.parent.context) if error.parent else [error]
+    contexts = (error.parent.context or []) if error.parent else [error]
+    invalid_for_mode_keys = set()
+    redundant_keys = set()
     bad_type = set()
     invalid_keys = set()
     any_of_invalid_keys = set()
     required = set()
     banned = set()
     for context in contexts:
+        if RuleValidation.REDUNDANT_SENTINEL in context.message:
+            mutex_properties = [
+                k["required"][0]
+                for k in context.validator_value
+                if "required" in k and k["required"]
+            ]
+            l = []
+            for property in mutex_properties:
+                if property and property in context.instance.keys():
+                    l.append(property)
+            redundant_keys.add(tuple(l))
+        if context.message.startswith(RuleValidation.INVALID_FOR_MODE_SENTINEL):
+            invalid_for_mode_keys.add(context.path.pop())
         if RuleValidation.BAD_TYPE_SENTINEL in context.message:
             bad_type.add(context.message)
         if RuleValidation.INVALID_SENTINEL in context.message:
@@ -491,6 +508,9 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
         return "\n".join(sorted(banned))
 
     outs = []
+    if invalid_for_mode_keys:
+        keys = ", ".join(f"'{k}'" for k in sorted(invalid_for_mode_keys))
+        outs.append(f"These properties are invalid in the current mode: {keys}")
     if any_of_invalid_keys:
         keys = ", ".join(f"'{k}'" for k in sorted(any_of_invalid_keys))
         outs.append(f"One of these properties may be invalid: {keys}")
@@ -498,10 +518,16 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     if required:
         keys = ", ".join(f"'{k}'" for k in sorted(required))
         outs.append(f"One of these properties is missing: {keys}")
+    if redundant_keys:
+        for mutex_set in sorted(redundant_keys):
+            keys = ", ".join(f"'{k}'" for k in sorted(mutex_set))
+            outs.append(
+                f"These options were {'both' if len(mutex_set) == 2 else 'all'} specified, but they are mutually exclusive: {keys}"
+            )
     if outs:
         return "\n".join(outs)
 
-    return cast(str, contexts[0].message)
+    return contexts[0].message
 
 
 def validate_yaml(data: YamlTree) -> None:
@@ -515,7 +541,7 @@ def validate_yaml(data: YamlTree) -> None:
 
         root_error = ve
         while root_error.parent is not None:
-            root_error = root_error.parent
+            root_error = cast(jsonschema.ValidationError, root_error.parent)
 
         for el in root_error.absolute_path:
             item = item.value[el]

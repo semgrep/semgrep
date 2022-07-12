@@ -84,7 +84,7 @@ repos:
           - defusedxml~=0.7.1
           # other packages have separate typings published
           - types-colorama~=0.4.0
-          - types-jsonschema~=3.2
+          - types-jsonschema~=4.6.0
           - types-requests
           - types-setuptools
           - types-freezegun

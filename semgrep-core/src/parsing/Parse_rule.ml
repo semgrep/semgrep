@@ -748,18 +748,17 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarComparison { R.metavariable; comparison; strip; base }
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
+let parse_language ~id ((s, t) as _lang) : Lang.t =
+  match Lang.lang_of_string_opt s with
+  | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
+  | Some l -> l
+
 let parse_languages ~id langs : Xlang.t =
   match langs with
   | [ (("none" | "regex"), _t) ] -> LRegex
   | [ ("generic", _t) ] -> LGeneric
   | xs -> (
-      let languages =
-        xs
-        |> Common.map (function s, t ->
-               (match Lang.lang_of_string_opt s with
-               | None -> raise (R.InvalidRule (R.InvalidLanguage s, fst id, t))
-               | Some l -> l))
-      in
+      let languages = xs |> Common.map (parse_language ~id:(fst id)) in
       match languages with
       | [] ->
           raise
@@ -847,9 +846,20 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
           sanitizers = optlist_to_list sanitizers_opt;
           sinks;
         }
+  | Some ("extract", _) ->
+      let pformula = parse_formula env rule_dict in
+      let dst_lang =
+        take rule_dict env parse_string_wrap "dest-language"
+        |> parse_language ~id:env.id
+      in
+      (* TODO: determine fmt---string with interpolated metavars? *)
+      let extract = take rule_dict env parse_string "extract" in
+      `Extract { pformula; dst_lang; extract }
   | Some key ->
       error_at_key env key
-        (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"
+        (spf
+           "Unexpected value for mode, should be 'search', 'taint', or \
+            'extract', not %s"
            (fst key))
 
 (* sanity check there are no remaining fields in rd *)
@@ -875,18 +885,20 @@ let parse_one_rule t i rule =
   in
   let languages = parse_languages ~id languages in
   let env = { id = fst id; languages; path = [ string_of_int i; "rules" ] } in
-  let ( message,
-        severity,
-        mode_opt,
+  let mode_opt = take_opt rd env parse_string_wrap "mode" in
+  let mode = parse_mode env mode_opt rd in
+  let ( (message, severity),
         metadata_opt,
         fix_opt,
         fix_regex_opt,
         paths_opt,
         equivs_opt,
         options_opt ) =
-    ( take rd env parse_string "message",
-      take rd env parse_string_wrap "severity",
-      take_opt rd env parse_string_wrap "mode",
+    ( (match mode with
+      | `Extract _ -> ("", ("INFO", PI.unsafe_fake_info ""))
+      | _ ->
+          ( take rd env parse_string "message",
+            take rd env parse_string_wrap "severity" )),
       take_opt rd env generic_to_json "metadata",
       take_opt rd env parse_string "fix",
       take_opt rd env parse_fix_regex "fix-regex",
@@ -894,7 +906,6 @@ let parse_one_rule t i rule =
       take_opt rd env parse_equivalences "equivalences",
       take_opt rd env parse_options "options" )
   in
-  let mode = parse_mode env mode_opt rd in
   report_unparsed_fields rd;
   {
     R.id;

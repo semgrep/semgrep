@@ -453,8 +453,9 @@ let tainting_test lang rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let search_rules, taint_rules = Rule.partition_rules rules in
+  let search_rules, taint_rules, extract_rules = Rule.partition_rules rules in
   assert (search_rules = []);
+  assert (extract_rules = []);
   let matches =
     taint_rules
     |> Common.map (fun rule ->

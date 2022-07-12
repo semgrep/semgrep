@@ -12,6 +12,7 @@ type rule_profiling = {
   parse_time : float;
   match_time : float;
 }
+[@@deriving show]
 
 type times = { parse_time : float; match_time : float }
 
@@ -22,11 +23,13 @@ type file_profiling = {
   rule_times : rule_profiling list;
   run_time : float;
 }
+[@@deriving show]
 
 type partial_profiling = {
   file : Common.filename;
   rule_times : rule_profiling list;
 }
+[@@deriving show]
 
 (* Result object for the entire rule *)
 
@@ -35,6 +38,7 @@ type final_profiling = {
   rules_parse_time : float;
   file_times : file_profiling list;
 }
+[@@deriving show]
 
 type final_result = {
   matches : Pattern_match.t list;
@@ -43,6 +47,7 @@ type final_result = {
   skipped_rules : Rule.invalid_rule_error list;
   final_profiling : final_profiling option;
 }
+[@@deriving show]
 
 (* For each file, substitute in the profiling type we have *)
 
@@ -52,6 +57,7 @@ type 'a match_result = {
   skipped_targets : Output_from_core_t.skipped_target list;
   profiling : 'a;
 }
+[@@deriving show]
 
 (* Create empty versions of match results *)
 
