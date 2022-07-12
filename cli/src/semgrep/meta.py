@@ -22,12 +22,30 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def get_url_from_ssh_url(ssh_url: Optional[str]) -> Optional[str]:
-    """Gets regular url from ssh_url"""
-    if not ssh_url or not ssh_url.startswith("git@") or not ssh_url.endswith(".git"):
-        return ssh_url
+def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
+    """Gets regular url from sstp url"""
+    if sstp_url is None:
+        return None
+    url = sstp_url
+    # trim start
+    possible_starts = ["ssh://", "rsync://", "git://"]
+    for start in possible_starts:
+        if url.startswith(start):
+            url = url[len(start) :]
+            break
+    at_symbol_index = url.find("@")
+    if at_symbol_index != -1:
+        url = url[at_symbol_index + 1 :]
 
-    return f"https://{ssh_url[4:-4]}"
+    # trim end
+    possible_ends = [".git", ".git/", "/"]
+    for end in possible_ends:
+        if url.endswith(end):
+            end_index = len(end) * -1
+            url = url[0:end_index]
+            break
+
+    return url
 
 
 def get_repo_name_from_github_repo_url(repo_url: str) -> str:
@@ -35,7 +53,7 @@ def get_repo_name_from_github_repo_url(repo_url: str) -> str:
     If url can't be parsed, just returns the full url as the repo name.
     """
     # make sure url in right format - might be ssh
-    url = get_url_from_ssh_url(repo_url)
+    url = get_url_from_sstp_url(repo_url)
     if url is None:
         # this is just for type checking, shouldn't ever reach here
         return repo_url
@@ -551,7 +569,7 @@ class CircleCIMeta(GitMeta):
     @property
     def repo_url(self) -> Optional[str]:
         # may be in SSH url format
-        return get_url_from_ssh_url(os.getenv("CIRCLE_REPOSITORY_URL"))
+        return get_url_from_sstp_url(os.getenv("CIRCLE_REPOSITORY_URL"))
 
     @property
     def branch(self) -> Optional[str]:
@@ -705,7 +723,7 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_ssh_url(os.getenv("BUILDKITE_REPO"))
+        return get_url_from_sstp_url(os.getenv("BUILDKITE_REPO"))
 
     @property
     def branch(self) -> Optional[str]:
