@@ -1,5 +1,5 @@
 import json
-import tempfile
+import shutil
 from pathlib import Path
 
 import pytest
@@ -19,7 +19,7 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
-    "rule,target,change",
+    "rule,target,expect_change",
     [
         # ("rules/match_based_id/","",True)
         ("rules/match_based_id/formatting.yaml", "formatting.c", False),
@@ -30,36 +30,27 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp, snapshot):
         ("rules/match_based_id/join.yaml", "join.py", True),
     ],
 )
-def test_id_change(run_semgrep_in_tmp, snapshot, rule, target, change):
-    # Since the id is based on the file name, we want the exact same file
-    # everytime, for both the before and after files
-    with tempfile.NamedTemporaryFile(dir=Path("targets")) as tf:
-        with open(Path("targets/match_based_id/before") / target) as fin:
-            tf.write(fin.read().encode("utf-8"))
-        tf.flush()  # Make sure file has been copied.
-        tf.seek(
-            0
-        )  # Seek to beginning since Semgrep will be reading from it. Just in case.
-        before_results, _errors = run_semgrep_in_tmp(
-            rule,
-            target_name=tf.name,
-            output_format=OutputFormat.JSON,
-        )
-        before_id = json.loads(before_results)["results"][0]["extra"]["fingerprint"]
-        tf.seek(0)  # Seek to beginning again so we can read after file
-        tf.truncate()  # delete before content
-        tf.flush()  # Make sure file has been copied.
-        with open(Path("targets/match_based_id/after") / target) as fin:
-            tf.write(fin.read().encode("utf-8"))
-        tf.flush()  # Make sure file has been copied.
-        tf.seek(
-            0
-        )  # Seek to beginning since Semgrep will be reading from it. Just in case.
-        after_results, _errors = run_semgrep_in_tmp(
-            rule,
-            target_name=tf.name,
-            output_format=OutputFormat.JSON,
-        )
-        after_id = json.loads(after_results)["results"][0]["extra"]["fingerprint"]
+def test_id_change(run_semgrep_on_copied_files, tmp_path, rule, target, expect_change):
 
-        assert (after_id != before_id) == change
+    suffix = Path(target).suffix
+
+    # Target file prior to edit
+    before_target = tmp_path / "targets" / "match_based_id" / "before" / target
+    # Target file after edit
+    after_target = tmp_path / "targets" / "match_based_id" / "after" / target
+    # Static file path (necessary to obtain static id)
+    static_target = tmp_path / "targets" / ("_match_based_id" + suffix)
+
+    def run_on_target(target):
+        shutil.copy(target, static_target)
+        before_results, _ = run_semgrep_on_copied_files(
+            rule,
+            target_name=static_target,
+            output_format=OutputFormat.JSON,
+        )
+        return json.loads(before_results)["results"][0]["extra"]["fingerprint"]
+
+    before_id = run_on_target(before_target)
+    after_id = run_on_target(after_target)
+
+    assert (after_id != before_id) == expect_change
