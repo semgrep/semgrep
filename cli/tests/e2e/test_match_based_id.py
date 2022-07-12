@@ -34,23 +34,20 @@ def test_id_change(run_semgrep_on_copied_files, tmp_path, rule, target, expect_c
 
     suffix = Path(target).suffix
 
-    # Target file prior to edit
-    before_target = tmp_path / "targets" / "match_based_id" / "before" / target
-    # Target file after edit
-    after_target = tmp_path / "targets" / "match_based_id" / "after" / target
     # Static file path (necessary to obtain static id)
     static_target = tmp_path / "targets" / ("_match_based_id" + suffix)
 
-    def run_on_target(target):
-        shutil.copy(target, static_target)
-        before_results, _ = run_semgrep_on_copied_files(
+    def run_on_target(subpath):
+        source_target = tmp_path / "targets" / "match_based_id" / subpath / target
+        shutil.copy(source_target, static_target)
+        results, _ = run_semgrep_on_copied_files(
             rule,
             target_name=static_target,
             output_format=OutputFormat.JSON,
         )
-        return json.loads(before_results)["results"][0]["extra"]["fingerprint"]
+        return json.loads(results)["results"][0]["extra"]["fingerprint"]
 
-    before_id = run_on_target(before_target)
-    after_id = run_on_target(after_target)
+    before_id = run_on_target("before")
+    after_id = run_on_target("after")
 
     assert (after_id != before_id) == expect_change
