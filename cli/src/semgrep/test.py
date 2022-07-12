@@ -251,13 +251,17 @@ def get_expected_and_reported_lines(
 
 
 def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any]) -> str:
-    def _generate_expected_vs_reported_lines(matches: Mapping[str, Any]) -> str:
-        expected = f"expected lines: {matches['expected_lines']}"
-        reported = f"reported lines: {matches['reported_lines']}"
-        return f"{expected}, {reported}"
+    def _generate_missed_vs_incorrect_lines(matches: Mapping[str, Any]) -> str:
+        expected_lines = matches["expected_lines"]
+        reported_lines = matches["reported_lines"]
+        missed = f"missed lines: {list(set(expected_lines) - set(reported_lines))}"
+        incorrect = (
+            f"incorrect lines: {list(set(reported_lines) - set(expected_lines))}"
+        )
+        return f"{missed}, {incorrect}"
 
-    expected_vs_reported_lines = "\t\n".join(
-        _generate_expected_vs_reported_lines(matches)
+    missed_vs_incorrect_lines = "\t\n".join(
+        _generate_missed_vs_incorrect_lines(matches)
         for _, matches in check_results["matches"].items()
     )
 
@@ -265,7 +269,7 @@ def _generate_check_output_line(check_id: str, check_results: Mapping[str, Any])
         test_file for test_file, _ in check_results["matches"].items()
     )
 
-    return f"\t✖ {check_id.ljust(60)} {expected_vs_reported_lines} \n\ttest file path: {test_file_names}\n\n"
+    return f"\t✖ {check_id.ljust(60)} {missed_vs_incorrect_lines} \n\ttest file path: {test_file_names}\n\n"
 
 
 def _generate_fixcheck_output_line(
