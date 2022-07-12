@@ -385,6 +385,7 @@ def ci(
                 match for match in matches if not match.is_ignored or keep_ignored
             ]
         else:
+            # Filter out any matches that are triaged as ignored on the app
             if scan_handler:
                 matches = list(
                     filter(
