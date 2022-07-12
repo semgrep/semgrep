@@ -22,6 +22,56 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
+    """Gets regular url from sstp url"""
+    if sstp_url is None:
+        return None
+    url = sstp_url
+    # trim start
+    possible_starts = ["ssh://", "rsync://", "git://"]
+    for start in possible_starts:
+        if url.startswith(start):
+            url = url[len(start) :]
+            break
+    at_symbol_index = url.find("@")
+    if at_symbol_index != -1:
+        url = url[at_symbol_index + 1 :]
+
+    # trim end
+    possible_ends = [".git", ".git/", "/"]
+    for end in possible_ends:
+        if url.endswith(end):
+            end_index = len(end) * -1
+            url = url[0:end_index]
+            break
+
+    if url.startswith("https://") or url.startswith("http://"):
+        return url
+    else:
+        return "https://" + url
+
+
+def get_repo_name_from_github_repo_url(repo_url: str) -> str:
+    """Pulls repository name from the url, assuming it is a GitHub repo url.
+    If url can't be parsed, just returns the full url as the repo name.
+    """
+    # make sure url in right format - might be ssh
+    url = get_url_from_sstp_url(repo_url)
+    if url is None:
+        # this is just for type checking, shouldn't ever reach here
+        return repo_url
+
+    # url in format https://github.com/org/reponame.git or https://github.com/org/reponame
+    # and we want org/reponame
+    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
+    if second_to_last_slash == -1:
+        return url
+    # slice of beginning of string to last slash and ".git" at the end
+    if url.endswith(".git"):
+        return url[second_to_last_slash + 1 : -4]
+    return url[second_to_last_slash + 1 :]
+
+
 @dataclass
 class GitMeta:
     """Gather metadata only from local filesystem."""
@@ -521,7 +571,8 @@ class CircleCIMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("CIRCLE_REPOSITORY_URL")
+        # may be in SSH url format
+        return get_url_from_sstp_url(os.getenv("CIRCLE_REPOSITORY_URL"))
 
     @property
     def branch(self) -> Optional[str]:
@@ -537,20 +588,8 @@ class CircleCIMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        return os.getenv("CIRCLE_PR_NUMBER")
-
-
-def get_repo_name_from_github_repo_url(url: str) -> str:
-    """Pulls repository name from the url, assuming it is a GitHub repo url.
-    If url can't be parsed, just returns the full url as the repo name.
-    """
-    # url in format https://github.com/org/reponame.git
-    # and we want org/reponame
-    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
-    if second_to_last_slash == -1:
-        return url
-    # slice of beginning of string to last slash and ".git" at the end
-    return url[second_to_last_slash + 1 : -4]
+        # have to use the pull request url to get the id
+        return os.getenv("CIRCLE_PULL_REQUEST", "").split("/")[-1]
 
 
 @dataclass
@@ -599,7 +638,7 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("BITBUCKET_GIT_SSH_ORIGIN")
+        return os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
 
     @property
     def branch(self) -> Optional[str]:
@@ -683,13 +722,11 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return get_repo_name_from_github_repo_url(
-            os.getenv("BUILDKITE_PULL_REQUEST_REPO", "")
-        )
+        return get_repo_name_from_github_repo_url(os.getenv("BUILDKITE_REPO", ""))
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("BUILDKITE_PULL_REQUEST_REPO")
+        return get_url_from_sstp_url(os.getenv("BUILDKITE_REPO"))
 
     @property
     def branch(self) -> Optional[str]:
@@ -707,13 +744,15 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        return os.getenv("BUILDKITE_PULL_REQUEST")
+        # might be "false" if there is no PR id
+        pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
+        return None if pr_id == "false" else pr_id
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             **super().to_dict(),
-            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR"),
-            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
+            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
+            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR"),
             "commit_title": os.getenv("BUILDKITE_MESSAGE"),
         }
 
