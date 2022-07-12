@@ -175,7 +175,9 @@ let make_final_result results rules ~debug ~report_time ~rules_parse_time =
 
   (* These fields take a lot of space and aren't always necessary *)
   let skipped_targets =
-    if debug then results |> Common.map (fun x -> x.skipped_targets) |> List.flatten else []
+    if debug then
+      results |> Common.map (fun x -> x.skipped_targets) |> List.flatten
+    else []
   in
   let file_times = results |> Common.map (fun x -> x.profiling) in
   let final_profiling =
