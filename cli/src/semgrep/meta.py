@@ -22,6 +22,27 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+def get_repo_name_from_github_repo_url(url: str) -> str:
+    """Pulls repository name from the url, assuming it is a GitHub repo url.
+    If url can't be parsed, just returns the full url as the repo name.
+    """
+    # url in format https://github.com/org/reponame.git
+    # and we want org/reponame
+    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
+    if second_to_last_slash == -1:
+        return url
+    # slice of beginning of string to last slash and ".git" at the end
+    return url[second_to_last_slash + 1 : -4]
+
+
+def get_url_from_ssh_url(ssh_url: Optional[str]) -> Optional[str]:
+    """Gets regular url from ssh_url"""
+    if not ssh_url or not ssh_url.startswith("git@") or not ssh_url.endswith(".git"):
+        return ssh_url
+
+    return f"https://${ssh_url[4:-4]}"
+
+
 @dataclass
 class GitMeta:
     """Gather metadata only from local filesystem."""
@@ -521,7 +542,8 @@ class CircleCIMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("CIRCLE_REPOSITORY_URL")
+        # may be in SSH url format
+        return get_url_from_ssh_url(os.getenv("CIRCLE_REPOSITORY_URL"))
 
     @property
     def branch(self) -> Optional[str]:
@@ -537,20 +559,8 @@ class CircleCIMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        return os.getenv("CIRCLE_PR_NUMBER")
-
-
-def get_repo_name_from_github_repo_url(url: str) -> str:
-    """Pulls repository name from the url, assuming it is a GitHub repo url.
-    If url can't be parsed, just returns the full url as the repo name.
-    """
-    # url in format https://github.com/org/reponame.git
-    # and we want org/reponame
-    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
-    if second_to_last_slash == -1:
-        return url
-    # slice of beginning of string to last slash and ".git" at the end
-    return url[second_to_last_slash + 1 : -4]
+        # have to use the pull request url to get the id
+        return os.getenv("CIRCLE_PULL_REQUEST", "").split("/")[-1]
 
 
 @dataclass
@@ -599,7 +609,7 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("BITBUCKET_GIT_SSH_ORIGIN")
+        return os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
 
     @property
     def branch(self) -> Optional[str]:
@@ -683,13 +693,11 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return get_repo_name_from_github_repo_url(
-            os.getenv("BUILDKITE_PULL_REQUEST_REPO", "")
-        )
+        return get_repo_name_from_github_repo_url(os.getenv("BUILDKITE_REPO", ""))
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("BUILDKITE_PULL_REQUEST_REPO")
+        return get_url_from_ssh_url(os.getenv("BUILDKITE_REPO"))
 
     @property
     def branch(self) -> Optional[str]:
