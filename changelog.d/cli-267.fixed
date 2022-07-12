@@ -1,1 +1,1 @@
-Fixed parsing of CI environment variables for Circle CI, Bitbucket, and Buildkite
+Semgrep App's links to repositories, code snippets, and pull requests are no longer broken for projects that run Semgrep in Circle CI, Bitbucket, and Buildkite.
