@@ -155,6 +155,16 @@ def automocks(mocker):
     mocker.patch.object(
         ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
     )
+    mocker.patch.object(
+        ScanHandler, "skipped_syntactic_ids", ["f3b21c38bc22a1f1f870d49fc3a40244"]
+    )
+    mocker.patch.object(
+        ScanHandler,
+        "skipped_match_based_ids",
+        [
+            "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
+        ],
+    )
     mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
     mocker.patch.object(AppSession, "post")
 
