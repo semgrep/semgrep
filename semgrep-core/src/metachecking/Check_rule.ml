@@ -26,7 +26,6 @@ module V = Visitor_AST
 module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
-(* TODO: cooper/pp : update for `Extract *)
 
 (*****************************************************************************)
 (* Prelude *)
