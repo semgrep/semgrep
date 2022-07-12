@@ -715,13 +715,15 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def pr_id(self) -> Optional[str]:
-        return os.getenv("BUILDKITE_PULL_REQUEST")
+        # might be "false" if there is no PR id
+        pr_id = os.getenv("BUILDKITE_PULL_REQUEST")
+        return None if pr_id == "false" else pr_id
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             **super().to_dict(),
-            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR"),
-            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
+            "commit_author_email": os.getenv("BUILDKITE_BUILD_AUTHOR_EMAIL"),
+            "commit_author_name": os.getenv("BUILDKITE_BUILD_AUTHOR"),
             "commit_title": os.getenv("BUILDKITE_MESSAGE"),
         }
 
