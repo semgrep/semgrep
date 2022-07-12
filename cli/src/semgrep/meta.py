@@ -45,7 +45,10 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
             url = url[0:end_index]
             break
 
-    return url
+    if url.startswith("https://") or url.startswith("http://"):
+        return url
+    else:
+        return "https://" + url
 
 
 def get_repo_name_from_github_repo_url(repo_url: str) -> str:
