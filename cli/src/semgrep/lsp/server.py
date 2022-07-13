@@ -4,6 +4,7 @@ import sys
 import time
 import urllib.request
 import uuid
+from pathlib import Path
 from typing import Any
 from typing import BinaryIO
 from typing import Callable
@@ -11,6 +12,7 @@ from typing import List
 from typing import MutableMapping
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from typing import Union
 
 from pylsp_jsonrpc.dispatchers import MethodDispatcher
@@ -200,7 +202,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_shutdown(self) -> None:
         log.info("Server shutting down")
-        self._fix_metrics.send()
+        self._fix_metrics.send(
+            self.config.metrics, self.config.project_url, self.config.token
+        )
 
     # TODO: VSCode seems to close the streams right after the shutdown message, which
     # makes us exit anyway, instead of sending an exit message.
@@ -277,7 +281,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         # Reset metrics iff git
         for c in changes:
             if c["uri"].endswith(".git/HEAD"):
-                self._fix_metrics.send()
+                self._fix_metrics.send(
+                    self.config.metrics, self.config.project_url, self.config.token
+                )
                 self._fix_metrics = LSPMetrics()
         self.process_workspaces()
 
@@ -383,10 +389,11 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         if self._diagnostics.get(uri) is not None:
             before = list(map(lambda d: d["code"], self._diagnostics[uri]))  # type: ignore
         after = list(map(lambda d: d["code"], diagnostics))  # type: ignore
-        for r in set(before):
+        for r in set(before + after):
             count = after.count(r)
             closed = before.count(r) - count
             closed = max(closed, 0)
+            log.info(f"Closing {closed} {count} {r} diagnostics")
             self._fix_metrics.update(r, count, closed)
         self._diagnostics[uri] = diagnostics
         self._endpoint.notify(
@@ -561,18 +568,21 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         # Run a scan on the file and convert to LSP diagnostics
         diagnostics = []
+        all_targets: Set[Path] = set()
         self._diagnostics.keys()
         try:
-            diagnostics = rule_match_map_to_diagnostics(run_rules(targets, self.config))
+
+            matches, all_targets = run_rules(targets, self.config)
+            diagnostics = rule_match_map_to_diagnostics(matches)
             if (
                 self.config.logged_in
                 and self.config.is_git_dir
                 and self.config.ci_enabled
             ):
-                diagnostics_ci = rule_match_map_to_diagnostics(
-                    run_rules_ci(targets, self.config)
-                )
+                matches_ci, all_targets_ci = run_rules_ci(targets, self.config)
+                diagnostics_ci = rule_match_map_to_diagnostics(matches_ci)
                 diagnostics.extend(diagnostics_ci)
+                all_targets.update(all_targets_ci)
             self.notify_work_done_end(token, "Scanning complete")
         except SemgrepError as e:
             self.show_message(1, f"Scan failed: \n{e}")
@@ -588,13 +598,17 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             if d["data"]["uri"] not in sorted_diagnostics:
                 sorted_diagnostics[d["data"]["uri"]] = []
             sorted_diagnostics[d["data"]["uri"]].append(d)
+
         # If workspace has changed, make sure we remove all stale diagnostics
-        if workspaces:
-            removed = set(self._diagnostics.keys()) - set(sorted_diagnostics.keys())
-            for r in removed:
-                self.cleanup_diagnostics(r)
-        for t in sorted_diagnostics:
-            self.publish_diagnostics(t, sorted_diagnostics[t])
+        for target in all_targets:
+            uri = f"file://{target}"
+            if uri not in sorted_diagnostics:
+                if workspaces:
+                    self.cleanup_diagnostics(uri)
+                else:
+                    sorted_diagnostics[f"file://{target}"] = []
+        for uri in sorted_diagnostics:
+            self.publish_diagnostics(uri, sorted_diagnostics[uri])
         self.refresh_inlay_hints()
         if workspaces:
             self._scanning_workspace = False

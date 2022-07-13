@@ -62,10 +62,6 @@ class LSPConfig:
             return ["auto"]
 
     @property
-    def logged_in(self) -> bool:
-        return get_state().app_session.token is not None
-
-    @property
     def baseline_commit(self) -> Optional[str]:
         return self._settings["scan"].get("baselineCommit")
 
@@ -201,6 +197,14 @@ class LSPConfig:
             target_name = urllib.request.url2pathname(uri.path)
             folder_paths.append(target_name)
         return folder_paths
+
+    @property
+    def token(self) -> Optional[str]:
+        return get_state().app_session.token
+
+    @property
+    def logged_in(self) -> bool:
+        return self.token is not None
 
     @property
     def is_git_dir(self) -> bool:

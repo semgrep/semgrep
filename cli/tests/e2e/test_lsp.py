@@ -138,3 +138,27 @@ def test_lsp_workspace_auto_config(lsp, tmp_path):
             s.write(f.read())
     init_lsp(lsp, tmp_path)
     assert lsp.config.configs == [str(tmp_path / "semgrep.yaml")]
+
+
+def test_lsp_metrics_measurement(lsp, tmp_path, mocker):
+    init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
+    tmp_file = tmp_path / "foo.py"
+    tmp_file.touch()
+    with open(tmp_path / "targets/basic/stupid.py") as f:
+        with open(tmp_file, "w") as b:
+            b.write(f.read())
+    lsp.m_text_document__did_open(
+        textDocument=next(mock_text_document_item(tmp_file, "python"))
+    )
+    with open(tmp_file, "w") as b:
+        b.write("")
+    lsp.m_text_document__did_save(
+        textDocument=next(mock_text_document_item(tmp_file, "python"))
+    )
+
+    mock_post = mocker.patch("requests.post")
+    lsp.m_shutdown()
+
+    payload = json.loads(mock_post.call_args.kwargs["data"])
+    assert payload["fix_rate"]["lowerLimits"]["rules.eqeq-is-bad"] == 1
+    assert payload["fix_rate"]["upperLimits"]["rules.eqeq-is-bad"] == 1

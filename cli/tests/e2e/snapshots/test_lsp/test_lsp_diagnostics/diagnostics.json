@@ -3,7 +3,7 @@
     {
       "code": "rules.eqeq-is-bad",
       "codeDescription": {
-        "href": "https://semgrep.dev/r/rules.eqeq-is-bad"
+        "href": "https://sg.run/xyz1"
       },
       "data": {
         "matchSource": "return a + b == a + b",
