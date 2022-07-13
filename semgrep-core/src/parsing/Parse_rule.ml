@@ -772,6 +772,7 @@ let parse_severity ~id (s, t) =
   | "WARNING" -> R.Warning
   | "INFO" -> R.Info
   | "INVENTORY" -> R.Inventory
+  | "EXPERIMENT" -> R.Experiment
   | s ->
       raise
         (R.InvalidRule

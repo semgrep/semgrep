@@ -1,0 +1,1 @@
+Added handling for EXPERIMENT severity to allow the ability to test rules as experiments.
