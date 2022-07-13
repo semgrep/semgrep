@@ -13,6 +13,7 @@
     "returnCode": 0
   },
   "event_id": "00000000-0000-0000-0000-000000000000",
+  "fix_rate": {},
   "performance": {
     "fileStats": [
       {
