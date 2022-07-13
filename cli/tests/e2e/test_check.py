@@ -725,3 +725,14 @@ def test_inventory_finding_output(run_semgrep_in_tmp, snapshot):
         ).stderr,
         "output.txt",
     )
+
+def test_experiment_finding_output(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/experiment-rule.yaml",
+            target_name="auto/fingerprints",
+            strict=False,
+            output_format=OutputFormat.TEXT,
+        ).stderr,
+        "output.txt",
+    )

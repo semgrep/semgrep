@@ -466,6 +466,7 @@ properties:
             - WARNING
             - INFO
             - INVENTORY
+            - EXPERIMENT
         pattern-sinks:
           $ref: "#/$defs/taint-content"
         pattern-sources:

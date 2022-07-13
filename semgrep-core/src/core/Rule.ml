@@ -216,7 +216,7 @@ type extract_spec = {
 (*****************************************************************************)
 
 (* TODO? just reuse Error_code.severity *)
-type severity = Error | Warning | Info | Inventory [@@deriving show]
+type severity = Error | Warning | Info | Inventory | Experiment [@@deriving show]
 
 type 'mode rule_info = {
   (* MANDATORY fields *)
