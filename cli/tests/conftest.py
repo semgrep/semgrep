@@ -267,7 +267,7 @@ def _run_semgrep(
     """Run the semgrep CLI.
 
     :param config: what to pass as --config's value
-    :param target_name: which directory within ./e2e/targets/ to scan
+    :param target_name: which path (either relative or absolute) within ./e2e/targets/ to scan
     :param options: additional CLI flags to add
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
