@@ -5,6 +5,7 @@ from typing import List
 from typing import MutableMapping
 
 from semgrep.constants import RuleSeverity
+from semgrep.lsp.types import Diagnostic
 from semgrep.lsp.types import DiagnosticSeverity
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -24,10 +25,12 @@ SeverityMapping = {
 
 
 def findings_severity_to_diagnostic(severity: RuleSeverity) -> DiagnosticSeverity:
+    """Convert a rule severity to a LSP diagnostic severity"""
     return SeverityMapping.get(severity, DiagnosticSeverity.Information)
 
 
 def metavar_to_inlay(metavar: str, info: MetavarValue) -> JsonObject:
+    """Convert a Semgrep metavar to an inlay hint"""
     return {
         "position": {
             "line": info.start.line - 1,
@@ -39,9 +42,24 @@ def metavar_to_inlay(metavar: str, info: MetavarValue) -> JsonObject:
     }
 
 
+def diagnostic_to_code_action(
+    uri: str, diagnostic: Diagnostic, newText: str
+) -> JsonObject:
+    """Convert a LSP diagnostic to a code action"""
+    check_id = diagnostic["code"]
+    code_action = {
+        "title": f"Apply fix suggested by Semgrep rule {check_id}",
+        "kind": "quickfix",
+        "edit": {
+            "changes": {uri: [{"range": diagnostic["range"], "newText": newText}]}
+        },
+    }
+    return code_action
+
+
 # Right now this is just the location + abstract content of metavars
 def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
-    """Get related info for a rule match"""
+    """Get related info (metavars + locations) for a rule match"""
 
     def get_metavar_related(m: str, d: MetavarValue) -> JsonObject:
         uri = f"file://{rule_match.path}"
@@ -70,7 +88,7 @@ def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
 
 
 # According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnostic
-def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
+def rule_match_to_diagnostic(rule_match: RuleMatch) -> Diagnostic:
     """Convert a rule match to a LSP diagnostic"""
     # we should try and link to file vs ci here depending on rule origin
     rule_url = rule_match.metadata.get("shortlink")
@@ -120,7 +138,7 @@ def rule_match_to_diagnostic(rule_match: RuleMatch) -> JsonObject:
     return diagnostic
 
 
-def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> List[JsonObject]:
+def rule_match_map_to_diagnostics(rule_map: RuleMatchMap) -> List[Diagnostic]:
     return flatten(
         [
             list(map(rule_match_to_diagnostic, rule_match_list))
@@ -140,6 +158,7 @@ def rule_to_files(rule: Rule, target_manager: TargetManager) -> List[str]:
 
 
 def rule_to_metadata(rule: Rule) -> JsonObject:
+    """Get metadata for a rule to be used in the LSP"""
     return {
         "id": rule.id,
         "languages": rule.languages,

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from typing import BinaryIO
 from typing import Callable
+from typing import Iterable
 from typing import List
 from typing import MutableMapping
 from typing import Optional
@@ -26,18 +27,18 @@ from semgrep.commands.login import make_login_url
 from semgrep.commands.login import save_token
 from semgrep.error import SemgrepError
 from semgrep.lsp.config import LSPConfig
+from semgrep.lsp.convert import diagnostic_to_code_action
 from semgrep.lsp.convert import metavar_to_inlay
 from semgrep.lsp.convert import rule_match_map_to_diagnostics
 from semgrep.lsp.convert import rule_to_metadata
+from semgrep.lsp.metrics import LSPMetrics
 from semgrep.lsp.run_semgrep import run_rules
 from semgrep.lsp.run_semgrep import run_rules_ci
+from semgrep.lsp.types import CodeAction
 from semgrep.lsp.types import CodeActionContext
-from semgrep.lsp.types import CodeActionsList
 from semgrep.lsp.types import Diagnostic
-from semgrep.lsp.types import DiagnosticsList
 from semgrep.lsp.types import Range
 from semgrep.lsp.types import TextDocumentItem
-from semgrep.lsp.utils.metrics import LSPMetrics
 from semgrep.semgrep_interfaces.semgrep_output_v0 import MetavarValue
 from semgrep.state import get_state
 from semgrep.types import JsonObject
@@ -91,6 +92,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         # Used so we don't scan an individual file while we're scanning the workspace
         self._scanning_workspace = False
 
+        self._active_scans: Set[Path] = set()
+
         # Prepare the json-rpc endpoint
         self._jsonrpc_stream_reader = JsonRpcStreamReader(rx)
         self._jsonrpc_stream_writer = JsonRpcStreamWriter(tx)
@@ -98,7 +101,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             self, self._jsonrpc_stream_writer.write, max_workers=10
         )
 
-        self._diagnostics: MutableMapping[str, DiagnosticsList] = {}
+        self._diagnostics: MutableMapping[str, List[Diagnostic]] = {}
         self._fix_metrics: LSPMetrics = LSPMetrics()
         self._registered_capabilities: MutableMapping[str, str] = {}
 
@@ -181,7 +184,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                     "globPattern": "**/*.{yml,yaml}",
                 }
             )
-        self.register_capability(
+        self.request_register_capability(
             "workspace/didChangeWatchedFiles",
             {
                 "watchers": watchers,
@@ -194,7 +197,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         saved_login_token = auth._read_token_from_settings_file()
         if not saved_login_token:
             log.info("No saved login token found! Running from files only")
-            self.show_message(
+            self.notify_show_message(
                 3,
                 "Login to enable additional proprietary Semgrep Registry rules and running custom policies from Semgrep App",
             )
@@ -213,6 +216,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self.stop()
 
     def m_text_document__did_open(self, textDocument: TextDocumentItem) -> None:
+        """Called when a file is opened"""
         log.debug("document__did_open")
         # Assume that all opened files are in the workspace and covered by the
         # workspace scan
@@ -241,11 +245,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
 
     def m_text_document__code_action(
         self, textDocument: TextDocumentItem, range: Range, context: CodeActionContext
-    ) -> CodeActionsList:
+    ) -> List[CodeAction]:
+        """Called by client to get code actions for a document + where there cursor is"""
         return self.compute_code_actions(textDocument["uri"], range)
 
     # This is called by the client, but if we want them to know we have new
-    # inlays we can send a notification with self.refresh_inlay_hints() and
+    # inlays we can send a notification with self.request_refresh_inlay_hints() and
     # they'll make a request to here
     def m_text_document__inlay_hint(
         self,
@@ -263,14 +268,15 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self,
         workspace_folders: Optional[List[JsonObject]] = None,
     ) -> None:
+        """Called by client when workspace is opened"""
         if workspace_folders is not None:
             self.config._workspace_folders = workspace_folders
 
     def m_workspace__did_change_workspace_folders(self, event: JsonObject) -> None:
+        """Called by client when workspace folders are added or removed"""
         self.config.update_workspace(event["added"], event["removed"])
         # We scan here every time since workspace folders RARELY change
-        if self.config.watch_workspace:
-            self.process_workspaces()
+        self.process_workspaces()
 
     # This is called by the client when whatever files we registered above in
     # m_initialized changes. Handy for configs!
@@ -302,14 +308,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             if old_uri in self._diagnostics:
                 self.publish_diagnostics(new_uri, self._diagnostics[old_uri])
                 self.publish_diagnostics(old_uri, [])
-        self.refresh_inlay_hints()
+        self.request_refresh_inlay_hints()
 
     def m_workspace__did_delete_files(self, files: Sequence[JsonObject]) -> None:
         """Called by client when files are deleted. Deletes all diagnostics"""
         log.info("workspace__did_delete_files")
         for f in files:
-            self.cleanup_diagnostics(f["uri"])
-        self.refresh_inlay_hints()
+            self.publish_diagnostics(f["uri"], [])
+        self.request_refresh_inlay_hints()
 
     #
     # LSP Semgrep custom commands
@@ -320,10 +326,10 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         self.process_text_document({"uri": uri})
 
     def m_semgrep__scan_workspace(self) -> None:
-        """Called by client to scan specific file, or if none provided all files in the workspace"""
-        self.process_workspaces()
+        """Called by client to scan all files in the workspace"""
+        self.process_workspaces(force=True)
 
-    def m_semgrep__login(self) -> Union[JsonObject, None]:
+    def m_semgrep__login(self) -> Optional[JsonObject]:
         """Called by client to login to Semgrep App. Returns None if already logged in"""
         if self.config.logged_in:
             return None
@@ -349,53 +355,19 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     # Custom commands to add:
     # - semgrep/dump_ast (dump the AST for a file)
     # - semgrep/search
-    # - semgrep/scanDocument (scan a file)
 
-    # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability since this can be trick to understand
-    def register_capability(
-        self, method: str, registerOptions: Optional[JsonObject] = None
-    ) -> None:
-        """General method to register a capability with the client. Some capabilities such as watched files are recommended not to be done statically, but to be done dynamically through this method."""
-        # Each capability needs a unique id, so we'll just generate one and
-        # keep a map of ids to methods for easy unregistering
-        id = str(uuid.uuid4())
-        self._registered_capabilities[method] = id
+    #
+    # Request + Notification Senders
+    #
+
+    def request_refresh_inlay_hints(self) -> None:
+        """Prompt the client to ask for new inlay hints"""
         self._endpoint.request(
-            "client/registerCapability",
-            {
-                "registrations": [
-                    {"id": id, "method": method, "registerOptions": registerOptions}
-                ]
-            },
+            "workspace/inlayHint/refresh",
         )
 
-    def unregister_capability(self, method: str) -> None:
-        """Unregister a capability. See register_capability for more info."""
-        self._endpoint.request(
-            "client/unregisterCapability",
-            {
-                "unregistrations": [
-                    {"id": self._registered_capabilities[method], "method": method}
-                ]
-            },
-        )
-
-    # The client DOES NOT do any merging of diagnostics, and to clear them ALL
-    # out you must send an empty list explicitly.
-    def publish_diagnostics(self, uri: str, diagnostics: DiagnosticsList) -> None:
-        """Publish diagnostics to the client"""
-        before = []
-        # only count before if we're not refreshing the diagnostics (refreshing = user did not change code but a config file or folder or git status changed)
-        if self._diagnostics.get(uri) is not None:
-            before = list(map(lambda d: d["code"], self._diagnostics[uri]))  # type: ignore
-        after = list(map(lambda d: d["code"], diagnostics))  # type: ignore
-        for r in set(before + after):
-            count = after.count(r)
-            closed = before.count(r) - count
-            closed = max(closed, 0)
-            log.info(f"Closing {closed} {count} {r} diagnostics")
-            self._fix_metrics.update(r, count, closed)
-        self._diagnostics[uri] = diagnostics
+    def notify_diagnostics(self, uri: str, diagnostics: List[Diagnostic]) -> None:
+        """Notify the client of new diagnostics"""
         self._endpoint.notify(
             "textDocument/publishDiagnostics",
             {
@@ -404,20 +376,9 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
-    def cleanup_diagnostics(self, uri: str) -> None:
-        """Clear all diagnostics for a given file"""
-        self._diagnostics[uri] = []
-        self.publish_diagnostics(uri, [])
-        self.refresh_inlay_hints()
-
-    def refresh_inlay_hints(self) -> None:
-        """Prompt the client to ask for new inlay hints"""
-        self._endpoint.request(
-            "workspace/inlayHint/refresh",
-        )
-
     def notify_work_done_create(self, message: str, title: str, token: str) -> str:
-        res = self._endpoint.request(
+        """Notify the client of a scan going on"""
+        self._endpoint.request(
             "window/workDoneProgress/create",
             {
                 "token": token,
@@ -450,6 +411,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         return token
 
     def notify_work_done_end(self, token: str, message: str) -> None:
+        """Notify the client of a scan ending"""
         self._endpoint.notify(
             "$/progress",
             {
@@ -462,14 +424,14 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         log.debug(f"Ended notification {token}")
 
-    def show_message_request(
+    def request_show_message(
         self,
         type: int,
         message: str,
         actions: List[str],
         callback: Callable[[Union[str, None]], None],
     ) -> None:
-        """Type can be: Error(1), Warning(2), Info(3), Log(4)"""
+        """Show a message to the user with some actions. The callback will be called with the chosen action."""
         res = self._endpoint.request(
             "window/showMessageRequest",
             {
@@ -480,8 +442,8 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         )
         res.add_done_callback(lambda f: callback(f.result().get("title")))
 
-    def show_message(self, type: int, message: str) -> None:
-        """Type can be: Error(1), Warning(2), Info(3), Log(4)"""
+    def notify_show_message(self, type: int, message: str) -> None:
+        """Show a message to the user"""
         self._endpoint.notify(
             "window/showMessage",
             {
@@ -490,11 +452,71 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             },
         )
 
+    # See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#client_registerCapability since this can be trick to understand
+    def request_register_capability(
+        self, method: str, registerOptions: Optional[JsonObject] = None
+    ) -> None:
+        """General method to register a capability with the client. Some capabilities such as watched files are recommended not to be done statically, but to be done dynamically through this method."""
+        # Each capability needs a unique id, so we'll just generate one and
+        # keep a map of ids to methods for easy unregistering
+        id = str(uuid.uuid4())
+        self._registered_capabilities[method] = id
+        self._endpoint.request(
+            "client/registerCapability",
+            {
+                "registrations": [
+                    {"id": id, "method": method, "registerOptions": registerOptions}
+                ]
+            },
+        )
+
+    def request_unregister_capability(self, method: str) -> None:
+        """Unregister a capability. See register_capability for more info."""
+        self._endpoint.request(
+            "client/unregisterCapability",
+            {
+                "unregistrations": [
+                    {"id": self._registered_capabilities[method], "method": method}
+                ]
+            },
+        )
+
+    #
+    # Request processing
+    #
+
     def init_login(self) -> JsonObject:
         session_id, url = make_login_url()
         return {"url": url, "sessionId": str(session_id)}
 
+    # The client DOES NOT do any merging of diagnostics, and to clear them ALL
+    # out you must send an empty list explicitly.
+    def publish_diagnostics(self, uri: str, diagnostics: List[Diagnostic]) -> None:
+        """Publish diagnostics to the client"""
+
+        # Check if file still exists
+
+        path = Path(urllib.parse.urlparse(uri).path)
+        if not path.exists():
+            self._diagnostics[uri] = []
+            diagnostics = []
+
+        before = []
+        # only count before if we're not refreshing the diagnostics (refreshing = user did not change code but a config file or folder or git status changed)
+        if self._diagnostics.get(uri) is not None:
+            before = list(map(lambda d: d["code"], self._diagnostics[uri]))  # type: ignore
+        after = list(map(lambda d: d["code"], diagnostics))  # type: ignore
+        for r in set(before + after):
+            count = after.count(r)
+            closed = before.count(r) - count
+            closed = max(closed, 0)
+            log.info(f"Closing {closed} {count} {r} diagnostics")
+            self._fix_metrics.update(r, count, closed)
+        self._diagnostics[uri] = diagnostics
+        self.notify_diagnostics(uri, diagnostics)
+
     def process_login(self, session_id: str) -> None:
+        """Check the backend to see if a user has logged in, and if so save the session id"""
         WAIT_BETWEEN_RETRY_IN_SEC = 6  # So every 10 retries is a minute
         MAX_RETRIES = 30  # Give users 3 minutes to log in / open link
 
@@ -507,12 +529,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             if r.status_code == 200:
                 as_json = r.json()
                 if save_token(as_json.get("token"), echo_token=True):
-                    self.show_message(3, f"Successfully logged in to semgrep.")
+                    self.notify_show_message(3, f"Successfully logged in to semgrep.")
                     return
                 else:
-                    self.show_message(1, f"Failed to log in to semgrep.")
+                    self.notify_show_message(1, f"Failed to log in to semgrep.")
             elif r.status_code != 404:
-                self.show_message(
+                self.notify_show_message(
                     1,
                     f"Unexpected failure from {state.env.semgrep_url}: status code {r.status_code}; please contact support@r2c.dev if this persists",
                 )
@@ -541,37 +563,79 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         # We should check if branch or commit changed and refresh
         # Remove all findings if the file is changed
         for c in contentChanges:
-            range = c["range"]
-            if self._diagnostics.get(textDocument["uri"]) is not None:
-                diagnostics = []
-                for d in self._diagnostics[textDocument["uri"]]:
-                    if not self.text_ranges_overlap(range, d["range"]):
-                        diagnostics.append(d)
-                self.publish_diagnostics(textDocument["uri"], diagnostics)
+            diagnostics = []
+            for d in self.diagnostics_over_range(
+                textDocument["uri"], c["range"], complement=True
+            ):
+                diagnostics.append(d)
+            self.publish_diagnostics(textDocument["uri"], diagnostics)
 
-        self.refresh_inlay_hints()
+        self.request_refresh_inlay_hints()
 
-    def process_workspaces(self) -> None:
+    def process_workspaces(self, force: bool = False) -> None:
         """Scan workspace folders and recalculate all diagnostics. This is called every time the workspace changes"""
-        log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
-        self.lsp_scan(self.config.folder_paths, True)
+        if self.config.watch_workspace or force:
+            log.info(f"Running Semgrep on workspaces {self.config.folder_paths}")
+            self.clear_shown_diagnostics()
+            self.lsp_scan(self.config.folder_paths, True)
+
+    #
+    # Helpers
+    #
+
+    def in_active_scans(self, target: str) -> bool:
+        """Check if we are currently scanning the given targets"""
+        # Check if any of the active scans are parents of the target or is the
+        # target This is so we don't scan a file because it was opened but
+        # we're already scanning the whole workspace that contains it
+        return (
+            len(
+                list(
+                    filter(
+                        lambda p: p in Path(target).parents or p == Path(target),
+                        self._active_scans,
+                    )
+                )
+            )
+            > 0
+        )
+
+    def clear_shown_diagnostics(self) -> None:
+        """Clear all diagnostics from the UI of the client. Does not clear self._diagnostics"""
+        for uri in self._diagnostics:
+            self.notify_diagnostics(uri, [])
+        self.request_refresh_inlay_hints()
 
     def lsp_scan(self, targets: List[str], workspaces: bool = False) -> None:
         """Run a scan on targets and update diagnostics"""
-        if workspaces:
-            self._scanning_workspace = True
+
+        # If we're already scanning the whole workspace, don't bother trying to
+        # scan anything else
+
+        # This is a bit hacky and v stateful, but we're dealing with async
+        # python without an async library so it's not going to be the prettiest
+        targets = list(filter(lambda t: not self.in_active_scans(t), targets))
+        if len(targets) == 0:
+            return
+
+        log.debug(f"Active scans: {self._active_scans}")
+        log.debug(f"Targets to scan: {targets}")
+        active_scans = map(lambda t: Path(t), targets)
+        self._active_scans.update(active_scans)
+
+        # Notify scan beginning
         token = str(uuid.uuid4())
         self.notify_work_done_create(
             f"Scanning {len(targets)} location(s)",
             "Running Semgrep",
             token,
         )
+
         # Run a scan on the file and convert to LSP diagnostics
         diagnostics = []
         all_targets: Set[Path] = set()
         self._diagnostics.keys()
         try:
-
             matches, all_targets = run_rules(targets, self.config)
             diagnostics = rule_match_map_to_diagnostics(matches)
             if (
@@ -579,96 +643,74 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
                 and self.config.is_git_dir
                 and self.config.ci_enabled
             ):
+                # Scan for CI issues
                 matches_ci, all_targets_ci = run_rules_ci(targets, self.config)
                 diagnostics_ci = rule_match_map_to_diagnostics(matches_ci)
                 diagnostics.extend(diagnostics_ci)
                 all_targets.update(all_targets_ci)
             self.notify_work_done_end(token, "Scanning complete")
         except SemgrepError as e:
-            self.show_message(1, f"Scan failed: \n{e}")
+            self.notify_show_message(1, f"Scan failed: \n{e}")
             log.error(f"Scan failed: \n{e}")
-            # Check if we have partial results
+            # Check if we have partial results (I.e. local but no CI)
             if len(diagnostics) == 0:
                 self.notify_work_done_end(token, "Scanning failed")
                 return
             self.notify_work_done_end(token, "Scanning partially complete")
+
         sorted_diagnostics: MutableMapping[str, List[JsonObject]] = {}
-        # Record them so we can calculate fixes and inlay hints
+
+        # Make sure we're recording diagnostics for all files scanned even if
+        # they had no result
+        for target in all_targets:
+            sorted_diagnostics[f"file://{target}"] = []
+
+        # Sort diagnostics by file
         for d in diagnostics:
-            if d["data"]["uri"] not in sorted_diagnostics:
-                sorted_diagnostics[d["data"]["uri"]] = []
             sorted_diagnostics[d["data"]["uri"]].append(d)
 
-        # If workspace has changed, make sure we remove all stale diagnostics
-        for target in all_targets:
-            uri = f"file://{target}"
-            if uri not in sorted_diagnostics:
-                if workspaces:
-                    self.cleanup_diagnostics(uri)
-                else:
-                    sorted_diagnostics[f"file://{target}"] = []
+        # Publish diagnostic
         for uri in sorted_diagnostics:
             self.publish_diagnostics(uri, sorted_diagnostics[uri])
-        self.refresh_inlay_hints()
-        if workspaces:
-            self._scanning_workspace = False
 
-    # Create a fix item for a given diagnostic. These are just autofixes! We
-    # probably want to move this to convert at some point and make it more
-    # typed
-    def create_fix_action(
-        self, uri: str, diagnostic: Diagnostic, newText: str
-    ) -> JsonObject:
-        check_id = diagnostic["code"]
-        fix_action = {
-            "title": f"Apply fix suggested by Semgrep rule {check_id}",
-            "kind": "quickfix",
-            "edit": {
-                "changes": {uri: [{"range": diagnostic["range"], "newText": newText}]}
-            },
-        }
-        return fix_action
+        # Prompt client to update relay hints
+        self.request_refresh_inlay_hints()
+        self._active_scans.difference_update(active_scans)
 
-    # Helper method since a lot of request from the client aren't for a whole
-    # document but only for where the client is currently working.
-    @staticmethod
-    def text_ranges_overlap(range1: Range, range2: Range) -> bool:
-        # Check exclusive bounds, as sometimes the client sends just line
-        # numbers no characters
-        return bool(
-            range1["start"]["line"] < range2["end"]["line"]
-            and range1["end"]["line"] > range2["start"]["line"]
-            # Check inclusive bounds
-        ) or bool(
-            range1["start"]["line"] <= range2["end"]["line"]
-            and range1["end"]["line"] >= range2["start"]["line"]
-            and range1["start"]["character"] <= range2["end"]["character"]
-            and range1["end"]["character"] >= range2["start"]["character"]
-        )
-
-    # Compute the fixes for a given document. Basically pull out all autofixes
-    # from diagnostics.
-    def compute_code_actions(self, uri: str, range: Range) -> CodeActionsList:
-        log.debug(f"Compute code actions for uri {uri} and range {range}")
+    def diagnostics_over_range(
+        self, uri: str, range: Range, complement: bool = False
+    ) -> Iterable[Diagnostic]:
+        """Get all diagnostics that overlap the given range"""
         diagnostics = self._diagnostics.get(uri)
         if not diagnostics:
             return []
+        return filter(
+            lambda d: text_ranges_overlap(range, d["range"]) == (not complement),
+            diagnostics,
+        )
 
+    #
+    # Compute Responses
+    #
+
+    def compute_code_actions(self, uri: str, range: Range) -> List[CodeAction]:
+        """Compute code actions for a given range"""
+        log.debug(f"Compute code actions for uri {uri} and range {range}")
         actions = []
-        for d in diagnostics:
-            if self.text_ranges_overlap(range, d["range"]):
-                if "fix" in d["data"]:
-                    actions.append(self.create_fix_action(uri, d, d["data"]["fix"]))
-                if "fix_regex" in d["data"]:
-                    fix_regex = d["data"]["fix_regex"]
-                    source = d["data"]["matchSource"]
-                    fix = re.sub(
-                        fix_regex["regex"],
-                        fix_regex["replacement"],
-                        source,
-                        count=fix_regex.get("count", 0),
-                    )
-                    actions.append(self.create_fix_action(uri, d, fix))
+        for d in self.diagnostics_over_range(uri, range):
+            # Pull out fixes from diagnostics
+            if "fix" in d["data"]:
+                actions.append(diagnostic_to_code_action(uri, d, d["data"]["fix"]))
+            if "fix_regex" in d["data"]:
+                fix_regex = d["data"]["fix_regex"]
+                source = d["data"]["matchSource"]
+                fix = re.sub(
+                    fix_regex["regex"],
+                    fix_regex["replacement"],
+                    source,
+                    count=fix_regex.get("count", 0),
+                )
+                actions.append(diagnostic_to_code_action(uri, d, fix))
 
         log.debug(f"Computed code actions: {actions}")
         return actions
@@ -676,22 +718,36 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
     def compute_inlay_hints(self, uri: str, range: Range) -> List[JsonObject]:
         """Compute inlay hints for a given document. This labels the abstract content associated with a metavar"""
         log.debug(f"Compute inlay hints for uri {uri} and range {range}")
-        diagnostics = self._diagnostics.get(uri)
-        if not diagnostics:
-            return []
 
         hints = []
-        for d in diagnostics:
-            if self.text_ranges_overlap(d["range"], range):
-                if "metavars" in d["data"]:
-                    for metavar in d["data"]["metavars"]:
-                        info = MetavarValue.from_json(d["data"]["metavars"][metavar])
-                        hint = metavar_to_inlay(metavar, info)
-                        if hint not in hints:
-                            hints.append(hint)
+        for d in self.diagnostics_over_range(uri, range):
+            if "metavars" in d["data"]:
+                for metavar in d["data"]["metavars"]:
+                    info = MetavarValue.from_json(d["data"]["metavars"][metavar])
+                    hint = metavar_to_inlay(metavar, info)
+                    if hint not in hints:
+                        hints.append(hint)
 
         log.debug(f"Computed inlay hints: {hints}")
         return hints
+
+
+# Helper method since a lot of request from the client aren't for a whole
+# document but only for where the client is currently working.
+def text_ranges_overlap(range1: Range, range2: Range) -> bool:
+    """Check if two text ranges overlap"""
+    # Check exclusive bounds, as sometimes the client sends just line
+    # numbers no characters
+    return bool(
+        range1["start"]["line"] < range2["end"]["line"]
+        and range1["end"]["line"] > range2["start"]["line"]
+        # Check inclusive bounds
+    ) or bool(
+        range1["start"]["line"] <= range2["end"]["line"]
+        and range1["end"]["line"] >= range2["start"]["line"]
+        and range1["start"]["character"] <= range2["end"]["character"]
+        and range1["end"]["character"] >= range2["start"]["character"]
+    )
 
 
 def run_server() -> None:
