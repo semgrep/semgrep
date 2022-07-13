@@ -148,6 +148,11 @@ def automocks(mocker):
           message: "useless comparison to 3"
           languages: [python]
           severity: INFO
+        - id: experimental-eqeq-two
+          pattern: $X == 2
+          message: "useless comparison to 2"
+          languages: [python]
+          severity: EXPERIMENT
         """
     ).lstrip()
 
