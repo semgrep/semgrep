@@ -89,8 +89,10 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
     terminal = get_state().terminal
     match_results = core.CoreMatchResults.from_json(raw_json)
     if not terminal.is_debug:
-        # skipping the loop below can save seconds with lots of skipped_targets
-        # note that the skip logs will be missing from the last.log file as well
+        # Previously we skipped the loop below to save time with large
+        # skipped_targets. Now, there are no skipped targets returned unless
+        # core is run in debug mode, so this if-statement is left to make
+        # that obvious
         return match_results
 
     for skip in match_results.skipped_targets:

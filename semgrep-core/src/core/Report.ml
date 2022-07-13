@@ -173,7 +173,8 @@ let make_final_result results rules ~debug ~report_time ~rules_parse_time =
   let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
   let errors = results |> Common.map (fun x -> x.errors) |> List.flatten in
 
-  (* These fields take a lot of space and aren't always necessary *)
+  (* These fields take a lot of space and aren't necessary except
+    when running in debugging mode *)
   let skipped_targets =
     if debug then
       results |> Common.map (fun x -> x.skipped_targets) |> List.flatten
