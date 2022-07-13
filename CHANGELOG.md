@@ -4,9 +4,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.104.0](https://github.com/returntocorp/semgrep/releases/tag/v0.104.0) - 2022-07-13
 
-
 ### Added
-
 
 - Added a new feature that was described in CLI-123. This was done support our overarching goal to improve the tool. (cli-123)
 - `semgrep ci` will now not block builds on triage ignored issues (cli-162)
@@ -17,12 +15,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   writing additional rules to find JavaScript in non-JavaScript files, e.g.,
   JavaScript contained in HTML or template files. While this is somewhat possible
   with metavariable-pattern, this reduces the work from an M \* N problem to an M
-  + N one. (gh-4478)
+  - N one. (gh-4478)
 - Added taint traces as part of Semgrep's JSON output. This helps explain how the sink became tainted. (pa-1271)
 
-
 ### Changed
-
 
 - Metavariable-pattern now uses the same metavariable context as its parent. This will potentially
   cause breaking changes for rules that reuse metavariables in the pattern. For example, consider
@@ -41,6 +37,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Previously, the `$OBJ` in the metavariable-pattern would be a new metavariable. The formula would
   behave the same if that `$OBJ` was `$A` instead. Now, `$OBJ` will try to unify with the value bound
   by `$OBJ` in the pattern-inside. (gh-5060)
+
 - The semgrep test output used to produce expected lines and reported lines which is difficult to read and interpret. This change introduces missed lines and incorrect lines to make it easier for the users to pinpoint the differences in output. (gh-5600)
 - Separator lines are no longer drawn between findings that have no source code snippet. (sca-ui)
 - Using ellipses in XML/HTML elements is now more permissive of whitespace.
@@ -49,9 +46,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the only permitted form. Now, leading or trailing whitespace is ignored when
   the substantive content of the element is only an ellipsis. (xml-permissive-ellipsis)
 
-
 ### Fixed
-
 
 - Semgrep App's links to repositories, code snippets, and pull requests are no longer broken for projects that run Semgrep in Circle CI, Bitbucket, and Buildkite. (cli-267)
 - Added a new feature that was described in GitHub Issue #1234. This was done support our overarching goal to improve the tool. (gh-1234)
@@ -63,15 +58,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Memory usage improvement: don't save skipped targets when `--debug` isn't passed
   since it isn't read unless `--debug` is used (pa-1618)
 
-
 ### Infra/Release Changes
-
 
 - Updated the GH Release creation to publish the release instead of drafting one - this avoids a failure of validation jobs on release. (cli-243)
 - Using some building blocks from release, set up a workflow to test `semgrep ci` e2e. (cli-253)
 - Updated our changelog management system to `towncrier` to avoid merge conflicts in changelog on release (cli-77)
 - The opening of PRs in other repos is automated with semgrep release - there is still a manual review required to build confidence. (cli-84)
-
 
 ## Unreleased
 
