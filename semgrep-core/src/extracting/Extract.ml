@@ -171,8 +171,10 @@ let map_res map_loc tmpfile file
 
 let extract_collect_and_comb erule_table xtarget rule_ids matches =
   matches
+  (* Group the matches within this file by rule id *)
   |> collect (fun m m' -> m.Pattern_match.rule_id = m'.Pattern_match.rule_id)
   |> Common.map (fun matches -> nonempty_to_list matches)
+  (* Convert matches to the extract metavariable / bound value *)
   |> Common.map
        (List.filter_map (fun m ->
             match extract_of_match erule_table m with
@@ -182,9 +184,11 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
                 None
             | Some (r, Some mval) -> Some (r, mval)
             | None -> None))
+  (* Factor out rule *)
   |> List.filter_map (function
        | [] -> None
        | (r, _) :: _ as xs -> Some (r, Common.map snd xs))
+  (* Convert mval match to offset of location in file *)
   |> Common.map (fun (r, mvals) ->
          ( r,
            List.filter_map
@@ -193,7 +197,9 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
                if Option.is_none offsets then report_no_source_range r;
                offsets)
              mvals ))
+  (* For every rule ... *)
   |> Common.map (fun (r, offsets) ->
+         (* Sort matches by start position for merging *)
          List.fast_sort (fun x y -> Int.compare x.start_pos y.start_pos) offsets
          |> List.fold_left
               (fun acc curr ->
@@ -209,6 +215,7 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
                     else { last with end_pos = curr.end_pos } :: acc)
               []
          |> List.rev
+         (* Read the extracted text from the source file *)
          |> Common.map (fun { start_pos; start_line; start_col; end_pos } ->
                 let source_file = open_in_bin xtarget.Xtarget.file in
                 let extract_size = end_pos - start_pos in
@@ -220,6 +227,7 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
                    %s"
                   (fst r.Rule.id) xtarget.file start_pos end_pos contents;
                 (contents, map_loc start_pos start_line start_col xtarget.file))
+         (* Combine the extracted snippets *)
          |> List.fold_left
               (fun (consumed_loc, contents, map_contents) (snippet, map_snippet) ->
                 Buffer.add_string contents snippet;
@@ -234,6 +242,9 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
                     start_col = snippet_trailing;
                   },
                   contents,
+                  (* Map results by chaining functions together, successively
+                     moving the offset along from snippet to snippet if the
+                     position to map isn't in the current one *)
                   fun ({ Parse_info.charpos; _ } as loc) ->
                     if charpos < consumed_loc.start_pos then map_contents loc
                     else
@@ -260,6 +271,7 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
            "Extract rule %s combined matches from %s resulting in the following:\n\
             %s"
            (fst r.Rule.id) xtarget.file contents;
+         (* Write out the extracted text in a tmpfile *)
          let f : Common.dirname =
            Common.new_temp_file "extracted" xtarget.file
          in
@@ -296,6 +308,7 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                    report_no_source_range erule;
                    None
              in
+             (* Read the extracted text from the source file *)
              let source_file = open_in_bin m.file in
              let extract_size = end_extract_pos - start_extract_pos in
              seek_in source_file start_extract_pos;
@@ -304,6 +317,7 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                "Extract rule %s extracted the following from %s at bytes %d-%d\n\
                 %s"
                m.rule_id.id m.file start_extract_pos end_extract_pos contents;
+             (* Write out the extracted text in a tmpfile *)
              let f : Common.dirname = Common.new_temp_file "extracted" m.file in
              Common2.write_file ~file:f contents;
              let target =
