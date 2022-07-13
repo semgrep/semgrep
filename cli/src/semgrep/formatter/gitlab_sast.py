@@ -104,7 +104,7 @@ class GitlabSastFormatter(BaseFormatter):
                 self._format_rule_match(rule_match)
                 for rule_match in rule_matches
                 if rule_match.severity
-                in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT]
+                not in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT]
             ],
         }
 
