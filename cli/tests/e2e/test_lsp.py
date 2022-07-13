@@ -140,6 +140,7 @@ def test_lsp_workspace_auto_config(lsp, tmp_path):
     assert lsp.config.configs == [str(tmp_path / "semgrep.yaml")]
 
 
+@pytest.mark.kinda_slow
 def test_lsp_metrics_measurement(lsp, tmp_path, mocker):
     init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
     tmp_file = tmp_path / "foo.py"

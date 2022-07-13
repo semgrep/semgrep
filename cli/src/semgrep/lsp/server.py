@@ -510,7 +510,7 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
             count = after.count(r)
             closed = before.count(r) - count
             closed = max(closed, 0)
-            log.info(f"Closing {closed} {count} {r} diagnostics")
+            log.debug(f"Closed {closed} open: {count} rule: {r} diagnostics")
             self._fix_metrics.update(r, count, closed)
         self._diagnostics[uri] = diagnostics
         self.notify_diagnostics(uri, diagnostics)
@@ -615,12 +615,12 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         # This is a bit hacky and v stateful, but we're dealing with async
         # python without an async library so it's not going to be the prettiest
         targets = list(filter(lambda t: not self.in_active_scans(t), targets))
+        log.debug(f"Active scans: {self._active_scans}")
+        log.debug(f"Targets to scan: {targets}")
         if len(targets) == 0:
             return
 
-        log.debug(f"Active scans: {self._active_scans}")
-        log.debug(f"Targets to scan: {targets}")
-        active_scans = map(lambda t: Path(t), targets)
+        active_scans = set(map(lambda t: Path(t), targets))
         self._active_scans.update(active_scans)
 
         # Notify scan beginning
