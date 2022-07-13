@@ -726,6 +726,7 @@ def test_inventory_finding_output(run_semgrep_in_tmp, snapshot):
         "output.txt",
     )
 
+
 def test_experiment_finding_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(

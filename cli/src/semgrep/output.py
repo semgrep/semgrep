@@ -353,7 +353,9 @@ class OutputHandler:
 
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
-                self.rule_matches, lambda m: m.severity in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT]
+                self.rule_matches,
+                lambda m: m.severity
+                in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT],
             )
             num_findings = len(regular_matches)
             num_targets = len(self.all_targets)
