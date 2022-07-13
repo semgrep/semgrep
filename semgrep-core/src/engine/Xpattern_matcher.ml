@@ -88,12 +88,7 @@ let (matches_of_matcher :
                             }))
               |> List.flatten)
         in
-        {
-          RP.matches = res;
-          errors = [];
-          skipped_targets = [];
-          profiling = { RP.parse_time; match_time };
-        }
+        RP.make_match_result res [] { RP.parse_time; match_time }
 
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101

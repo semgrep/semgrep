@@ -150,6 +150,7 @@ let make_tests ?(unit_testing = false) xs =
              E.g_errors := [];
              Flag_semgrep.with_opt_cache := false;
              let config = Config_semgrep.default_config in
+             Report.mode := MTime;
              let res =
                try
                  Match_rules.check
@@ -160,41 +161,49 @@ let make_tests ?(unit_testing = false) xs =
                    failwith
                      (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
              in
-             res.profiling.rule_times
-             |> List.iter (fun rule_time ->
-                    if not (rule_time.RP.match_time >= 0.) then
-                      (* match_time could be 0.0 if the rule contains no pattern or if the
-                         rules are skipped. Otherwise it's positive. *)
-                      failwith
-                        (spf
-                           "invalid value for match time: %g (rule: %s, \
-                            target: %s)"
-                           rule_time.RP.match_time file target);
-                    if not (rule_time.RP.parse_time >= 0.) then
-                      (* same for parse time *)
-                      failwith
-                        (spf
-                           "invalid value for parse time: %g (rule: %s, \
-                            target: %s)"
-                           rule_time.RP.parse_time file target));
+             match res.extra with
+             | Debug _
+             | No_info ->
+                 failwith
+                   "Impossible; type of res should match Report.mode, which we \
+                    force to be MTime"
+             | Time profiling -> (
+                 profiling.rule_times
+                 |> List.iter (fun rule_time ->
+                        if not (rule_time.RP.match_time >= 0.) then
+                          (* match_time could be 0.0 if the rule contains no pattern or if the
+                             rules are skipped. Otherwise it's positive. *)
+                          failwith
+                            (spf
+                               "invalid value for match time: %g (rule: %s, \
+                                target: %s)"
+                               rule_time.RP.match_time file target);
+                        if not (rule_time.RP.parse_time >= 0.) then
+                          (* same for parse time *)
+                          failwith
+                            (spf
+                               "invalid value for parse time: %g (rule: %s, \
+                                target: %s)"
+                               rule_time.RP.parse_time file target));
 
-             res.matches |> List.iter JSON_report.match_to_error;
-             if not (res.errors = []) then
-               failwith (spf "parsing error on %s" file);
+                 res.matches |> List.iter JSON_report.match_to_error;
+                 if not (res.errors = []) then
+                   failwith (spf "parsing error on %s" file);
 
-             let actual_errors = !E.g_errors in
-             actual_errors
-             |> List.iter (fun e ->
-                    logger#info "found error: %s" (E.string_of_error e));
-             match
-               E.compare_actual_to_expected actual_errors expected_error_lines
-             with
-             | Ok () -> Hashtbl.add newscore file Common2.Ok
-             | Error (num_errors, msg) ->
-                 pr2 msg;
-                 Hashtbl.add newscore file (Common2.Pb msg);
-                 total_mismatch := !total_mismatch + num_errors;
-                 if unit_testing then Alcotest.fail msg
+                 let actual_errors = !E.g_errors in
+                 actual_errors
+                 |> List.iter (fun e ->
+                        logger#info "found error: %s" (E.string_of_error e));
+                 match
+                   E.compare_actual_to_expected actual_errors
+                     expected_error_lines
+                 with
+                 | Ok () -> Hashtbl.add newscore file Common2.Ok
+                 | Error (num_errors, msg) ->
+                     pr2 msg;
+                     Hashtbl.add newscore file (Common2.Pb msg);
+                     total_mismatch := !total_mismatch + num_errors;
+                     if unit_testing then Alcotest.fail msg)
            in
            (file, test))
   in

@@ -233,12 +233,7 @@ let matches_of_patterns ?mvar_context ?range_filter config file_and_more
                 ?mvar_context ?range_filter config mini_rules (file, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-      {
-        RP.matches;
-        errors;
-        skipped_targets = [];
-        profiling = { RP.parse_time; match_time };
-      }
+      RP.make_match_result matches errors { RP.parse_time; match_time }
   | _ -> RP.empty_semgrep_result
 
 (*****************************************************************************)
@@ -595,6 +590,5 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
                     let str = spf "with rule %s" rule_id in
                     hook str m));
     errors = res.errors |> Common.map (error_with_rule_id rule_id);
-    skipped_targets = res.skipped_targets;
-    profiling = res.profiling;
+    extra = res.extra;
   }

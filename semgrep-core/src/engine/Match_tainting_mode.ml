@@ -514,10 +514,6 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
            { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-  ( {
-      RP.matches;
-      errors;
-      skipped_targets = [];
-      profiling = { RP.rule_id = fst rule.Rule.id; parse_time; match_time };
-    },
+  ( RP.make_match_result matches errors
+      { RP.rule_id = fst rule.Rule.id; parse_time; match_time },
     debug_taint )

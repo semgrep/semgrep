@@ -38,6 +38,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
+let phys_mem () =
+  Mem_usage.prettify_bytes Mem_usage.((info ()).process_physical_memory)
+
+let _obj_size o = Mem_usage.prettify_bytes (Obj.reachable_words (Obj.repr o) * 8)
+
 (*
    If the target is a named pipe, copy it into a regular file and return
    that. This allows multiple reads on the file.
@@ -388,33 +393,28 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                          rule.MR.id;
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Parse_info.first_loc_of_file file in
-                   {
-                     RP.matches = [];
-                     errors =
-                       [
-                         E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
-                           (match exn with
-                           | Match_rules.File_timeout ->
-                               logger#info "Timeout on %s" file;
-                               Out.Timeout
-                           | Out_of_memory ->
-                               logger#info "OutOfMemory on %s" file;
-                               Out.OutOfMemory
-                           | _ -> raise Impossible);
-                       ];
-                     skipped_targets = [];
-                     profiling = RP.empty_partial_profiling file;
-                   }
+                   let errors =
+                     [
+                       E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
+                         (match exn with
+                         | Match_rules.File_timeout ->
+                             logger#info "Timeout on %s" file;
+                             Out.Timeout
+                         | Out_of_memory ->
+                             logger#info "OutOfMemory on %s" file;
+                             Out.OutOfMemory
+                         | _ -> raise Impossible);
+                     ]
+                   in
+                   RP.make_match_result [] errors
+                     (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Timeout _ -> assert false
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
-                   {
-                     RP.matches = [];
-                     errors = [ exn_to_error file e ];
-                     skipped_targets = [];
-                     profiling = RP.empty_partial_profiling file;
-                   })
+                   let errors = [ exn_to_error file e ] in
+                   RP.make_match_result [] errors
+                     (RP.empty_partial_profiling file))
          in
          RP.add_run_time run_time res)
 
@@ -535,6 +535,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   logger#info "processing %d files, skipping %d files" (List.length targets)
     (List.length skipped);
   let file_results =
+    pr2 (spf "Before run %s" (phys_mem ()));
     targets
     |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
            let file = target.In.path in
@@ -563,13 +564,19 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            (* Print when each file is done so Python knows *)
            res)
   in
-  let res =
-    RP.make_final_result file_results rules config.report_time rules_parse_time
+  let res = RP.make_final_result file_results rules ~rules_parse_time in
+  logger#info "found %d matches, %d errors" (List.length res.matches)
+    (List.length res.errors);
+  let extra =
+    match res.extra with
+    | RP.Debug { skipped_targets; profiling } ->
+        let skipped_targets = skipped @ skipped_targets in
+        logger#info "%d skipped targets" (List.length skipped_targets);
+        RP.Debug { skipped_targets; profiling }
+    | RP.Time profiling -> RP.Time profiling
+    | RP.No_info -> RP.No_info
   in
-  let res = { res with skipped_targets = skipped @ res.skipped_targets } in
-  logger#info "found %d matches, %d errors, %d skipped targets"
-    (List.length res.matches) (List.length res.errors)
-    (List.length res.skipped_targets);
+  let res = { res with extra } in
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
       config.max_match_per_file res.matches
@@ -578,15 +585,15 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
-  let skipped_targets = new_skipped @ res.skipped_targets in
+  let extra =
+    match res.extra with
+    | RP.Debug { skipped_targets; profiling } ->
+        RP.Debug { skipped_targets = new_skipped @ skipped_targets; profiling }
+    | RP.Time profiling -> RP.Time profiling
+    | RP.No_info -> RP.No_info
+  in
   let errors = new_errors @ res.errors in
-  ( {
-      RP.matches;
-      errors;
-      skipped_targets;
-      skipped_rules = invalid_rules;
-      final_profiling = res.RP.final_profiling;
-    },
+  ( { RP.matches; errors; skipped_rules = invalid_rules; extra },
     targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
@@ -615,6 +622,7 @@ let semgrep_with_raw_results_and_exn_handler config =
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
+  pr2 (spf "After run %s" (phys_mem ()));
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -632,6 +640,7 @@ let semgrep_with_rules_and_formatted_output config =
       let s = Out.string_of_core_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
+      pr2 (spf "Before exit %s" (phys_mem ()));
       match exn with
       | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
       | None -> ())
