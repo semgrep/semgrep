@@ -1,1 +1,0 @@
-Updated our changelog management system to `towncrier` to avoid merge conflicts in changelog on release

@@ -1,2 +1,0 @@
-Memory usage improvement: don't save skipped targets when `--debug` isn't passed
-since it isn't read unless `--debug` is used
