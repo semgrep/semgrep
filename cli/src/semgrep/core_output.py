@@ -91,7 +91,7 @@ def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
     if not terminal.is_debug:
         # Previously we skipped the loop below to save time with large
         # skipped_targets. Now, there are no skipped targets returned unless
-        # core is run in debug mode, so this if-statement is left to make
+        # core is run in debug mode, but this if-statement is left to make
         # that obvious
         return match_results
 
