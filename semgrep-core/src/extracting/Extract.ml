@@ -112,6 +112,12 @@ let offsets_of_mval extract_mvalue =
            end_pos = end_loc.charpos + end_len;
          })
 
+let mk_extract_target dst_lang contents rule_ids =
+  let dst_lang = dst_lang |> Lang.show in
+  let f : Common.dirname = Common.new_temp_file "extracted" dst_lang in
+  Common2.write_file ~file:f contents;
+  { In.path = f; language = dst_lang; rule_ids }
+
 (*****************************************************************************)
 (* Error reporting *)
 (*****************************************************************************)
@@ -272,21 +278,9 @@ let extract_collect_and_comb erule_table xtarget rule_ids matches =
             %s"
            (fst r.Rule.id) xtarget.file contents;
          (* Write out the extracted text in a tmpfile *)
-         let f : Common.dirname =
-           Common.new_temp_file "extracted" xtarget.file
-         in
-         Common2.write_file ~file:f contents;
-         let target =
-           {
-             In.path = f;
-             language =
-               (let (`Extract { Rule.dst_lang; _ }) = r.mode in
-                dst_lang)
-               |> Lang.show;
-             rule_ids;
-           }
-         in
-         (target, map_res map_loc f xtarget.file))
+         let (`Extract { Rule.dst_lang; _ }) = r.mode in
+         let target = mk_extract_target dst_lang contents rule_ids in
+         (target, map_res map_loc target.path xtarget.file))
 
 let extract_as_separate erule_table xtarget rule_ids matches =
   matches
@@ -318,23 +312,13 @@ let extract_as_separate erule_table xtarget rule_ids matches =
                 %s"
                m.rule_id.id m.file start_extract_pos end_extract_pos contents;
              (* Write out the extracted text in a tmpfile *)
-             let f : Common.dirname = Common.new_temp_file "extracted" m.file in
-             Common2.write_file ~file:f contents;
-             let target =
-               {
-                 In.path = f;
-                 language =
-                   (let (`Extract { Rule.dst_lang; _ }) = erule.mode in
-                    dst_lang)
-                   |> Lang.show;
-                 rule_ids;
-               }
-             in
+             let (`Extract { Rule.dst_lang; _ }) = erule.mode in
+             let target = mk_extract_target dst_lang contents rule_ids in
              let map_loc =
                map_loc start_extract_pos line_offset col_offset
                  xtarget.Xtarget.file
              in
-             Some (target, map_res map_loc f xtarget.file)
+             Some (target, map_res map_loc target.path xtarget.file)
          | Some ({ mode = `Extract { Rule.extract; _ }; id = id, _; _ }, None)
            ->
              report_unbound_mvar id extract m;
