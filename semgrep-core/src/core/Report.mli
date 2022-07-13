@@ -66,6 +66,7 @@ val collate_pattern_results : times match_result list -> times match_result
 val make_final_result :
   file_profiling match_result list ->
   Rule.rule list ->
+  debug:bool ->
   report_time:bool ->
   rules_parse_time:float ->
   final_result

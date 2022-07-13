@@ -175,11 +175,16 @@ let collate_rule_results :
     profiling = { file; rule_times = profiling };
   }
 
-let make_final_result results rules ~report_time ~rules_parse_time =
+let make_final_result results rules ~debug ~report_time ~rules_parse_time =
   let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
   let errors = results |> Common.map (fun x -> x.errors) |> List.flatten in
+
+  (* These fields take a lot of space and aren't necessary except
+     when running in debugging mode *)
   let skipped_targets =
-    results |> Common.map (fun x -> x.skipped_targets) |> List.flatten
+    if debug then
+      results |> Common.map (fun x -> x.skipped_targets) |> List.flatten
+    else []
   in
   let file_times = results |> Common.map (fun x -> x.profiling) in
   let final_profiling =

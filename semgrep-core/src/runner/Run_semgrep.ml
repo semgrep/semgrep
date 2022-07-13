@@ -617,7 +617,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            |> Option.fold ~some:(fun f -> f res) ~none:res)
   in
   let res =
-    RP.make_final_result file_results rules config.report_time rules_parse_time
+    RP.make_final_result file_results rules config.debug config.report_time
+      rules_parse_time
   in
   let res = { res with skipped_targets = skipped @ res.skipped_targets } in
   logger#info "found %d matches, %d errors, %d skipped targets"
