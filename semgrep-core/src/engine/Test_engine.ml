@@ -36,11 +36,23 @@ let first_xlang_of_rules rs =
   | [] -> failwith "no rules"
   | { R.languages = x; _ } :: _ -> x
 
+let single_xlang_from_rules file rules =
+  let xlangs = xlangs_of_rules rules in
+  match xlangs with
+  | [] -> failwith (spf "no language found in %s" file)
+  | [ x ] -> x
+  | _ :: _ :: _ ->
+      let fst = first_xlang_of_rules rules in
+      pr2
+        (spf "too many languages found in %s, picking the first one: %s" file
+           (Xlang.show fst));
+      fst
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let make_tests ?(unit_testing = false) xs =
+let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
   let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -68,19 +80,10 @@ let make_tests ?(unit_testing = false) xs =
              let rules = Parse_rule.parse file in
              (* just a sanity check *)
              (* rules |> List.iter Check_rule.check; *)
-             let xlangs = xlangs_of_rules rules in
              let xlang =
-               match xlangs with
-               | [] -> failwith (spf "no language found in %s" file)
-               | [ x ] -> x
-               | _ :: _ :: _ ->
-                   let fst = first_xlang_of_rules rules in
-                   pr2
-                     (spf
-                        "too many languages found in %s, picking the first \
-                         one: %s"
-                        file (Xlang.show fst));
-                   fst
+               match get_xlang with
+               | Some fn -> fn file rules
+               | None -> single_xlang_from_rules file rules
              in
              let target =
                try
@@ -150,6 +153,27 @@ let make_tests ?(unit_testing = false) xs =
              E.g_errors := [];
              Flag_semgrep.with_opt_cache := false;
              let config = Config_semgrep.default_config in
+             let rules, extract_rules =
+               Common.partition_either
+                 (fun r ->
+                   match r.Rule.mode with
+                   | `Extract _ as e -> Right { r with mode = e }
+                   | mode -> Left { r with mode })
+                 rules
+             in
+             let rule_ids = Common.map (fun r -> fst r.R.id) rules in
+             let extracted_ranges =
+               Match_extract_mode.extract_nested_lang
+                 ~match_hook:(fun _ _ -> ())
+                 ~timeout:0. ~timeout_threshold:0 extract_rules xtarget rule_ids
+             in
+             let extract_targets, extract_result_map =
+               (List.fold_right (fun (t, fn) (ts, fn_tbl) ->
+                    Hashtbl.add fn_tbl t.Input_to_core_t.path fn;
+                    (t :: ts, fn_tbl)))
+                 extracted_ranges
+                 ([], Hashtbl.create 5)
+             in
              let res =
                try
                  Match_rules.check
@@ -160,25 +184,70 @@ let make_tests ?(unit_testing = false) xs =
                    failwith
                      (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
              in
-             res.profiling.rule_times
-             |> List.iter (fun rule_time ->
-                    if not (rule_time.RP.match_time >= 0.) then
-                      (* match_time could be 0.0 if the rule contains no pattern or if the
-                         rules are skipped. Otherwise it's positive. *)
-                      failwith
-                        (spf
-                           "invalid value for match time: %g (rule: %s, \
-                            target: %s)"
-                           rule_time.RP.match_time file target);
-                    if not (rule_time.RP.parse_time >= 0.) then
-                      (* same for parse time *)
-                      failwith
-                        (spf
-                           "invalid value for parse time: %g (rule: %s, \
-                            target: %s)"
-                           rule_time.RP.parse_time file target));
+             let eres =
+               try
+                 Common.map
+                   (fun t ->
+                     let file = t.Input_to_core_t.path in
+                     let xlang = Xlang.of_string t.Input_to_core_t.language in
+                     let lazy_ast_and_errors =
+                       lazy
+                         (match xlang with
+                         | L (lang, _) ->
+                             let { Parse_target.ast; skipped_tokens; _ } =
+                               Parse_target.parse_and_resolve_name lang file
+                             in
+                             (ast, skipped_tokens)
+                         | LRegex
+                         | LGeneric ->
+                             assert false)
+                     in
+                     let xtarget =
+                       {
+                         Xtarget.file;
+                         xlang;
+                         lazy_content = lazy (Common.read_file file);
+                         lazy_ast_and_errors;
+                       }
+                     in
 
-             res.matches |> List.iter JSON_report.match_to_error;
+                     let res =
+                       Match_rules.check
+                         ~match_hook:(fun _ _ -> ())
+                         ~timeout:0. ~timeout_threshold:0 (config, []) rules
+                         xtarget
+                     in
+                     Hashtbl.find_opt extract_result_map file
+                     |> Option.fold ~some:(fun f -> f res) ~none:res)
+                   extract_targets
+               with
+               | exn ->
+                   failwith
+                     (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
+             in
+             res :: eres
+             |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
+                    res.RP.profiling.rule_times
+                    |> List.iter (fun rule_time ->
+                           if not (rule_time.RP.match_time >= 0.) then
+                             (* match_time could be 0.0 if the rule contains no pattern or if the
+                                rules are skipped. Otherwise it's positive. *)
+                             failwith
+                               (spf
+                                  "invalid value for match time: %g (rule: %s, \
+                                   target: %s)"
+                                  rule_time.RP.match_time file target);
+                           if not (rule_time.RP.parse_time >= 0.) then
+                             (* same for parse time *)
+                             failwith
+                               (spf
+                                  "invalid value for parse time: %g (rule: %s, \
+                                   target: %s)"
+                                  rule_time.RP.parse_time file target)));
+
+             res :: eres
+             |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
+                    res.matches |> List.iter JSON_report.match_to_error);
              if not (res.errors = []) then
                failwith (spf "parsing error on %s" file);
 
