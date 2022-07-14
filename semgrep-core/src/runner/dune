@@ -3,7 +3,6 @@
  (wrapped false)
  (libraries
     parmap
-    mem_usage
 
     commons
 

@@ -38,11 +38,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
-let phys_mem () =
-  Mem_usage.prettify_bytes Mem_usage.((info ()).process_physical_memory)
-
-let _obj_size o = Mem_usage.prettify_bytes (Obj.reachable_words (Obj.repr o) * 8)
-
 (*
    If the target is a named pipe, copy it into a regular file and return
    that. This allows multiple reads on the file.
@@ -535,7 +530,6 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   logger#info "processing %d files, skipping %d files" (List.length targets)
     (List.length skipped);
   let file_results =
-    pr2 (spf "Before run %s" (phys_mem ()));
     targets
     |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
            let file = target.In.path in
@@ -619,7 +613,6 @@ let semgrep_with_raw_results_and_exn_handler config =
 
 let semgrep_with_rules_and_formatted_output config =
   let exn, res, files = semgrep_with_raw_results_and_exn_handler config in
-  pr2 (spf "After run %s" (phys_mem ()));
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -637,7 +630,6 @@ let semgrep_with_rules_and_formatted_output config =
       let s = Out.string_of_core_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
-      pr2 (spf "Before exit %s" (phys_mem ()));
       match exn with
       | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
       | None -> ())
