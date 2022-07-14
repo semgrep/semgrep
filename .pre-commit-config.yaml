@@ -178,4 +178,4 @@ repos:
     rev: v2.7.1
     hooks:
       - id: prettier
-        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json|^CHANGELOG.md$"
+        exclude: "^perf/bench/dummy/.+$|^cli/tests/e2e/rules/.+$|^.+/Pipfile.lock$|^.devcontainer/devcontainer.json$"

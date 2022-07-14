@@ -99,6 +99,10 @@ jobs:
           pip3 install pipenv==2022.6.7
           pipenv install --dev
           pipenv run towncrier build --yes --version ${{ steps.next-version.outputs.next-version }}
+      - name: Lint (Pre-Commit) Changelog
+        id: lint-changelog
+        run: |
+          pre-commit run --files CHANGELOG.md
       - name: Push release branch
         id: push-release-branch
         env:
