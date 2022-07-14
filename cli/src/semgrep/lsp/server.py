@@ -156,9 +156,10 @@ class SemgrepLSPServer(MethodDispatcher):  # type: ignore
         config = initializationOptions if initializationOptions is not None else {}
         if workspaceFolders is not None:
             self.config = LSPConfig(config, workspaceFolders)
-        else:
-            # We should probably check if rootUri is None
+        elif rootUri is not None:
             self.config = LSPConfig(config, [{"name": "root", "uri": rootUri}])
+        else:
+            self.config = LSPConfig(config, [])
         # Get our capabilities
         return {
             "capabilities": SERVER_CAPABILITIES,

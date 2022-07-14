@@ -28,7 +28,9 @@ def mock_workspace_folder(path, name=None):
     return {"name": name if name is not None else f"{path}", "uri": f"file://{path}"}
 
 
-def init_lsp(lsp, tmp_path, rule_path=None, watch_workspace=False) -> SemgrepLSPServer:
+def init_lsp(
+    lsp, workspace_folder=None, rule_path=None, watch_workspace=False
+) -> SemgrepLSPServer:
     initialization_options: Mapping[str, Any] = {
         "scan": {},
         "lsp": {
@@ -39,21 +41,22 @@ def init_lsp(lsp, tmp_path, rule_path=None, watch_workspace=False) -> SemgrepLSP
         initialization_options["scan"]["configuration"] = [rule_path]
     lsp.m_initialize(
         processId="1",
-        rootUri=tmp_path,
         initializationOptions=initialization_options,
-        workspaceFolders=[{"name": "tmp_path", "uri": f"file://{tmp_path}"}],
+        workspaceFolders=[mock_workspace_folder(workspace_folder, name="root")]
+        if workspace_folder
+        else None,
     )
     lsp.m_initialized()
 
 
 def test_lsp_init(lsp, tmp_path, snapshot):
-    init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
+    init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     assert lsp._ready
     snapshot.assert_match(json.dumps(lsp.config.settings), "settings.json")
 
 
 def test_lsp_diagnostics(lsp, tmp_path, snapshot):
-    init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
+    init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     lsp.m_text_document__did_open(
         textDocument=next(
             mock_text_document_item(tmp_path / "targets/basic/stupid.py", "python")
@@ -64,7 +67,7 @@ def test_lsp_diagnostics(lsp, tmp_path, snapshot):
 
 
 def test_lsp_code_action(lsp, tmp_path, snapshot):
-    init_lsp(lsp, tmp_path, "rules/autofix/autofix.yaml")
+    init_lsp(lsp, rule_path="rules/autofix/autofix.yaml")
     # Open document
     lsp.m_text_document__did_open(
         textDocument=next(
@@ -86,7 +89,7 @@ def test_lsp_code_action(lsp, tmp_path, snapshot):
 
 
 def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
-    init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
+    init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     lsp.m_text_document__did_open(
         textDocument=next(
             mock_text_document_item(tmp_path / "targets/basic/stupid.py", "python")
@@ -108,7 +111,7 @@ def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
 
 
 def test_lsp_workspace_folders(lsp, tmp_path):
-    init_lsp(lsp, tmp_path, watch_workspace=True)
+    init_lsp(lsp, watch_workspace=True)
     dirs = []
     for i in range(10):
         path = tmp_path / f"folder{i}"
@@ -120,8 +123,6 @@ def test_lsp_workspace_folders(lsp, tmp_path):
         "removed": [],
     }
     lsp.m_workspace__did_change_workspace_folders(event)
-    # add in initial workspace folder of tmp_path
-    dirs.insert(0, mock_workspace_folder(tmp_path, "tmp_path"))
     assert lsp.config._workspace_folders == dirs
     event = {
         "added": [],
@@ -142,7 +143,7 @@ def test_lsp_workspace_auto_config(lsp, tmp_path):
 
 @pytest.mark.kinda_slow
 def test_lsp_metrics_measurement(lsp, tmp_path, mocker):
-    init_lsp(lsp, tmp_path, "rules/eqeq-python.yaml")
+    init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     tmp_file = tmp_path / "foo.py"
     tmp_file.touch()
     with open(tmp_path / "targets/basic/stupid.py") as f:
