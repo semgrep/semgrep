@@ -567,28 +567,25 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   let res = RP.make_final_result file_results rules ~rules_parse_time in
   logger#info "found %d matches, %d errors" (List.length res.matches)
     (List.length res.errors);
-  let extra =
-    match res.extra with
-    | RP.Debug { skipped_targets; profiling } ->
-        let skipped_targets = skipped @ skipped_targets in
-        logger#info "%d skipped targets" (List.length skipped_targets);
-        RP.Debug { skipped_targets; profiling }
-    | RP.Time profiling -> RP.Time profiling
-    | RP.No_info -> RP.No_info
-  in
-  let res = { res with extra } in
+
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
       config.max_match_per_file res.matches
   in
+
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
+
+  (* Concatenate all the skipped targets *)
   let extra =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
-        RP.Debug { skipped_targets = new_skipped @ skipped_targets; profiling }
+        let skipped_targets = skipped @ new_skipped @ skipped_targets in
+        logger#info "there were %d skipped targets"
+          (List.length skipped_targets);
+        RP.Debug { skipped_targets; profiling }
     | RP.Time profiling -> RP.Time profiling
     | RP.No_info -> RP.No_info
   in

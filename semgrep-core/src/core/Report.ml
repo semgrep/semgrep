@@ -1,23 +1,46 @@
 (********************************************************************************
  * Full result information
+ *
  * In addition to the results (matches + errors), we also may report extra
  * information, such as the skipped targets or the profiling times. Many
- * of the types here are created to collect profiling information.
+ * of the types here are created to collect profiling information in as
+ * well-typed a manner as possible. Creating a type for practically every
+ * stage that reports matches is annoying, but prevents us from relying on
+ * dummy values or unlabeled tuples.
  *
- * TODO write more
+ * Another challenge we face is that the extra information can take a lot
+ * of memory, which scales with both the number of rules and files. On
+ * large repos, this is the most significant factor driving semgrep's
+ * memory consumption. Therefore, if the skipped targets (for example) are
+ * not being used, we don't want to save them. On the other hand, we want
+ * to feel confident in the correctness of the code and make it easy to
+ * know what is or isn't being saved. And we want our code to be relatively
+ * readable.
  *
- * To try
- * to keep all this information organized, the result types include the
- * always-reported result information as well as an "extra" field that
- * allows us to control what debug_info gets saved. We also have a global
- * mode which is set based on the arguments passed, which we assume is in
- * sync with the debug_info type being used.
+ * The debug_info type attempts to solve this. It has a variant for each
+ * verbosity mode semgrep-core may be invoked with, which contains all
+ * the fields semgrep requests from semgrep-core in that mode. Each result
+ * contains debug_info in addition to the always-reported fields. The
+ * variant of debug_info used in the results is always determined either
+ * by the mode, which is a global set in Main.ml after the arguments are
+ * read, or by a previous result. In this way we ensure that the fields
+ * stored in the result are determined by the arguments passed by the user.
  *
  * Alternatives considered to the extra field:
- * - always storing the information (we did this previously but it used
- *   too much memory, particularly skipped_targets)
- * - using option types within the result types for each piece of information
- *   (this seems error prone)
+ * - storing the information but just ommitting it in the final result (I
+ *   tried this but it still uses too much memory)
+ * - using option types within the result types for field and a global
+ *   config to decide which fields are in use
+ *
+ * I considered the latter, but I'm not a fan of mix-and-match option types.
+ * Maybe I just think it makes it tempting to use map_option, where here
+ * the assumption that is being made feels more obvious. It also makes it
+ * extra clear what information is being used for each mode and encourages
+ * us to do the work of deciding what should be included instead of giving
+ * the user choice that they probably don't know how to make intelligently.
+ * That being said, if we wanted users to be able to "mix-and-match" request
+ * fields, we should move to the option-types paradigm. Also, the collate
+ * functions are quite ugly. I'm open to argument.
  *
  * TODO: We could use atdgen to specify those to factorize type definitions
  * that have to be present anyway in Output_from_core.atd.
@@ -35,14 +58,17 @@ let logger = Logging.get_logger [ __MODULE__ ]
 type debug_mode = MDebug | MTime | MNo_info
 
 type 'a debug_info =
+  (* -debug: save all the information that could be useful *)
   | Debug of {
       skipped_targets : Output_from_core_t.skipped_target list;
       profiling : 'a;
     }
+  (* -json_time: save just profiling information; currently our metrics record this *)
   | Time of 'a
+  (* save nothing else *)
   | No_info
 
-let mode = ref MDebug
+let mode = ref MNo_info
 
 (********************************************************************************)
 (* Different formats for profiling information as we have access to more data *)
