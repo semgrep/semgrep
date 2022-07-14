@@ -29,6 +29,7 @@ def findings_severity_to_diagnostic(severity: RuleSeverity) -> DiagnosticSeverit
     return SeverityMapping.get(severity, DiagnosticSeverity.Information)
 
 
+# According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#inlayHint
 def metavar_to_inlay(metavar: str, info: MetavarValue) -> JsonObject:
     """Convert a Semgrep metavar to an inlay hint"""
     return {
@@ -42,6 +43,7 @@ def metavar_to_inlay(metavar: str, info: MetavarValue) -> JsonObject:
     }
 
 
+# According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#codeAction
 def diagnostic_to_code_action(
     uri: str, diagnostic: Diagnostic, newText: str
 ) -> JsonObject:
@@ -61,6 +63,7 @@ def diagnostic_to_code_action(
 def rule_match_get_related(rule_match: RuleMatch) -> List[JsonObject]:
     """Get related info (metavars + locations) for a rule match"""
 
+    # According to https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnosticRelatedInformation
     def get_metavar_related(m: str, d: MetavarValue) -> JsonObject:
         uri = f"file://{rule_match.path}"
         related = {
@@ -157,6 +160,7 @@ def rule_to_files(rule: Rule, target_manager: TargetManager) -> List[str]:
     return target_files
 
 
+# This is a custom data type :)
 def rule_to_metadata(rule: Rule) -> JsonObject:
     """Get metadata for a rule to be used in the LSP"""
     return {
