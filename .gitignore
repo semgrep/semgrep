@@ -182,3 +182,6 @@ act/
 
 # Ignore .history and be doomed to repeat it
 /.history/
+
+# Artifacts from CI
+scripts/release/release_body.txt

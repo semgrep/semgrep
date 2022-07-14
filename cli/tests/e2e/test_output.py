@@ -116,6 +116,14 @@ def test_omit_inventory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "results.out")
 
 
+def test_omit_experiment(run_semgrep_in_tmp, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/experiment/experiment.yaml",
+        target_name="experiment/experiment.py",
+    )
+    snapshot.assert_match(stdout, "results.out")
+
+
 @pytest.mark.kinda_slow
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
     output, _ = run_semgrep_in_tmp(
@@ -311,8 +319,8 @@ def test_git_repo_output(run_semgrep, git_repo, tmp_path, monkeypatch, snapshot)
 
 
 @pytest.mark.kinda_slow
-def test_sca_output(run_semgrep_in_tmp_no_symlink, snapshot):
-    results, _errors = run_semgrep_in_tmp_no_symlink(
+def test_sca_output(run_semgrep_on_copied_files, snapshot):
+    results, _errors = run_semgrep_on_copied_files(
         "rules/dependency_aware/monorepo_with_first_party.yaml",
         target_name="dependency_aware/monorepo",
         output_format=OutputFormat.TEXT,

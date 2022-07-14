@@ -342,8 +342,14 @@ let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
       return new_binding
 
-let empty_environment opt_cache lang config =
-  { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; lang; config }
+let empty_environment ?(mvar_context = None) opt_cache lang config =
+  let mv =
+    match mvar_context with
+    | None -> Env.empty
+    | Some bindings ->
+        { full_env = bindings; min_env = []; last_stmt_backrefs = Set_.empty }
+  in
+  { mv; stmts_match_span = Empty; cache = opt_cache; lang; config }
 
 (*****************************************************************************)
 (* Helpers *)

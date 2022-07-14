@@ -1,0 +1,14 @@
+rules:
+  - id: metavariable-pattern-keep-env
+    message: open redirect found
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    patterns:
+    - pattern: $B == $B
+    - metavariable-pattern:
+        metavariable: $B
+        patterns:
+           - pattern: ...
+           - pattern-not: $B

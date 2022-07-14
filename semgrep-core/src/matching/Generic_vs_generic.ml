@@ -1359,7 +1359,7 @@ and m_attrs a b =
 and m_xml_bodies a b =
   match (a, b) with
   (* dots: *)
-  | [ XmlText ("...", _) ], _ -> return ()
+  | [ XmlText (s, _) ], _ when String.trim s = "..." -> return ()
   (* dots: metavars:
    * less: we should be more general and use
    * m_list_with_dots_and_metavar_ellipsis() at some point

@@ -19,3 +19,6 @@ def bar():
     baz == 4
 
     potato == 3
+
+    b == b # Triage ignored by syntactic_id
+    a == a # Triage ignored by match_based_id

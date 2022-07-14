@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties may be invalid: 'pattern', 'patterns'\nOne of these properties is missing: 'r2c-internal-project-depends-on'",
+      "long_msg": "These options were both specified, but they are mutually exclusive: 'pattern', 'patterns'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties may be invalid: 'pattern'",
+      "long_msg": "One of these properties is missing: 'pattern-sinks'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

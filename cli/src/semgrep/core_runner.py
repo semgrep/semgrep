@@ -10,7 +10,9 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import cast
+from typing import Coroutine
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -126,6 +128,7 @@ class StreamingSemgrepCore:
 
     This behavior is assumed to be that semgrep-core:
     - prints a "." on a newline for every file it finishes scanning
+    - prints a number on a newline for any extra targets produced during a scan
     - prints a single json blob of all results
 
     Exposes the subprocess.CompletedProcess properties for
@@ -135,7 +138,7 @@ class StreamingSemgrepCore:
     def __init__(self, cmd: List[str], total: int) -> None:
         """
         cmd: semgrep-core command to run
-        total: how many rules to run / how many "." we expect to see
+        total: how many rules to run / how many "." we expect to see a priori
                used to display progress_bar
         """
         self._cmd = cmd
@@ -146,7 +149,7 @@ class StreamingSemgrepCore:
 
     @property
     def stdout(self) -> str:
-        # stdout of semgrep-core sans "."
+        # stdout of semgrep-core sans "." and extra target counts
         return self._stdout
 
     @property
@@ -163,33 +166,50 @@ class StreamingSemgrepCore:
         Updates progress bar one increment for every "." it sees from semgrep-core
         stdout
 
-        When it sees non-"." output it saves it to self._stdout
+        Increases the progress bar total for any number reported from semgrep-core
+        stdout
+
+        When it sees neither output it saves it to self._stdout
         """
         stdout_lines: List[bytes] = []
+        num_total_targets: int = self._total
+        num_scanned_targets: int = 0
 
         # appease mypy. stream is only None if call to create_subproccess_exec
         # sets stdout/stderr stream to None
         assert stream
 
         # Start out reading two bytes at a time (".\n")
-        bytes_to_read = 2
+        get_input: Callable[
+            [asyncio.StreamReader], Coroutine[Any, Any, bytes]
+        ] = lambda s: s.readexactly(2)
+        reading_json = False
         while True:
             # blocking read if buffer doesnt contain any lines or EOF
-            line_bytes = await stream.read(n=bytes_to_read)
+            line_bytes = await get_input(stream)
 
             # read returns empty when EOF
             if not line_bytes:
                 self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
                 break
 
-            if line_bytes == b".\n":
+            if line_bytes == b".\n" and not reading_json:
+                num_scanned_targets += 1
                 if self._progress_bar:
                     self._progress_bar.update()
+            elif chr(line_bytes[0]).isdigit() and not reading_json:
+                if not line_bytes.endswith(b"\n"):
+                    line_bytes = line_bytes + await stream.readline()
+                extra_targets = int(line_bytes)
+                num_total_targets += extra_targets
+                if self._progress_bar:
+                    self._progress_bar.total += extra_targets
             else:
                 stdout_lines.append(line_bytes)
                 # Once we see a non-"." char it means we are reading a large json blob
                 # so increase the buffer read size (kept below subprocess buffer limit below)
-                bytes_to_read = 1024 * 1024 * 512
+                reading_json = True
+                get_input = lambda s: s.read(n=1024 * 1024 * 512)
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]

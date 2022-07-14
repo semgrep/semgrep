@@ -48,6 +48,10 @@ def maybe_set_git_safe_directories() -> None:
 def cli(ctx: click.Context) -> None:
     """
     To get started quickly, run `semgrep scan --config auto`
+
+    Run `semgrep SUBCOMMAND --help` for more information on each subcommand
+
+    If no subcommand is passed, will run `scan` subcommand by default
     """
     state = get_state()
     state.terminal.init_for_cli()

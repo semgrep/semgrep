@@ -47,7 +47,11 @@ val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
 val empty_environment :
-  tout Caching.Cache.t option -> Lang.t -> Config_semgrep.t -> tin
+  ?mvar_context:Metavariable.bindings option ->
+  tout Caching.Cache.t option ->
+  Lang.t ->
+  Config_semgrep.t ->
+  tin
 
 val add_mv_capture : Metavariable.mvar -> Metavariable.mvalue -> tin -> tin
 

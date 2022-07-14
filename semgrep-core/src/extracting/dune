@@ -1,0 +1,9 @@
+(library
+ (public_name semgrep_extracting)
+ (wrapped false)
+ (libraries
+   semgrep_core
+   semgrep_engine
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling))
+)

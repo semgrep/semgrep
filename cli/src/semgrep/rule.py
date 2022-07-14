@@ -140,7 +140,9 @@ class Rule:
 
     @property
     def severity(self) -> RuleSeverity:
-        return RuleSeverity(self._raw["severity"])
+        # TODO: add additional severity for extract rules, or how should this
+        # be handled?
+        return RuleSeverity(self._raw.get("severity", RuleSeverity.INFO))
 
     @property
     def mode(self) -> str:

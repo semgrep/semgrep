@@ -1,6 +1,3 @@
-import tempfile
-from pathlib import Path
-
 import pytest
 
 
@@ -32,34 +29,23 @@ import pytest
     ],
 )
 @pytest.mark.kinda_slow
-def test_autofix(run_semgrep_in_tmp, snapshot, rule, target, dryrun):
-    # Yes, this is fugly. I apologize. T_T
+def test_autofix(run_semgrep_on_copied_files, tmp_path, snapshot, rule, target, dryrun):
+
+    # Use run_semgrep_on_copied_files to prevent alteration of the source-controlled test directory
+    result = run_semgrep_on_copied_files(
+        rule,
+        target_name=target,
+        options=["--autofix", *(["--dryrun"] if dryrun else [])],
+    )
     snapshot.assert_match(
-        # Need --autofix --dryrun so that the `fixed_lines` field will appear in output
-        run_semgrep_in_tmp(
-            rule, target_name=target, options=["--autofix", "--dryrun"]
-        ).stdout,
+        result.stdout,
         "results.json",
     )
-    # Make a copy of the target file b/c autofixes are inline. We
-    # don't want to modify the the actual target file, and there
-    # isn't a way currently to dump the fixed file contents before
-    # writing.
-    # This tempfile will be deleted when the with context closes.
-    with tempfile.NamedTemporaryFile(dir=Path("targets")) as tf:
-        with open(Path("targets") / target) as fin:
-            tf.write(fin.read().encode("utf-8"))
-        tf.flush()  # Make sure file has been copied.
-        tf.seek(
-            0
-        )  # Seek to beginning since Semgrep will be reading from it. Just in case.
-        run_semgrep_in_tmp(
-            rule,
-            target_name=tf.name,
-            options=["--autofix", "--dryrun"] if dryrun else ["--autofix"],
-        )
-        tf.seek(0)  # Seek to beginning again so we can read and compare to snapshot.
-        snapshot.assert_match(
-            tf.read().decode("utf-8", errors="replace"),
-            (f"{target}-dryrun" if dryrun else f"{target}-fixed"),
-        )
+
+    # Now make sure the files are actually updated
+    with open(tmp_path / "targets" / target) as fd:
+        result = fd.read()
+    snapshot.assert_match(
+        result,
+        (f"{target}-dryrun" if dryrun else f"{target}-fixed"),
+    )

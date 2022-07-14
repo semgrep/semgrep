@@ -99,7 +99,7 @@ class TextFormatter(BaseFormatter):
             dedented_lines = textwrap.dedent("".join(lines)).splitlines()
             indent_len = (
                 len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
-                if len(lines) > 0
+                if len(dedented_lines) > 0 and len(lines) > 0
                 else 0
             )
 
@@ -154,11 +154,12 @@ class TextFormatter(BaseFormatter):
             if stripped:
                 stripped_str = f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
                 yield " " * FINDINGS_INDENT_DEPTH + stripped_str
+
             if per_finding_max_lines_limit != 1:
                 if trimmed > 0:
                     trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
                     yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
-                elif show_separator:
+                elif lines and show_separator:
                     yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
 
     @staticmethod

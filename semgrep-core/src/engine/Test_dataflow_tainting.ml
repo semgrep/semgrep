@@ -65,7 +65,7 @@ let test_dfg_tainting rules_file file =
            | Xlang.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
-  let _search_rules, taint_rules = Rule.partition_rules rules in
+  let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
   let rule = List.hd taint_rules in
   pr2 "Tainting";
   pr2 "========";

@@ -21,6 +21,7 @@ SeverityMapping = {
     RuleSeverity.WARNING: DiagnosticSeverity.Warning,
     RuleSeverity.INFO: DiagnosticSeverity.Information,
     RuleSeverity.INVENTORY: DiagnosticSeverity.Hint,
+    RuleSeverity.EXPERIMENT: DiagnosticSeverity.Hint,
 }
 
 

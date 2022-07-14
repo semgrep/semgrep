@@ -14,6 +14,7 @@ type error = {
   (* ?? diff with msg? *)
   details : string option;
 }
+[@@deriving show]
 
 type severity = Error | Warning
 

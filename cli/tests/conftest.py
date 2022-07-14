@@ -277,7 +277,7 @@ def _run_semgrep(
     """Run the semgrep CLI.
 
     :param config: what to pass as --config's value
-    :param target_name: which directory within ./e2e/targets/ to scan
+    :param target_name: which path (either relative or absolute) within ./e2e/targets/ to scan
     :param options: additional CLI flags to add
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
@@ -367,6 +367,9 @@ def run_semgrep():
 
 @pytest.fixture
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
+    """
+    Note that this can cause failures if Semgrep pollutes either the targets or rules path
+    """
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
     monkeypatch.chdir(tmp_path)
@@ -374,12 +377,12 @@ def run_semgrep_in_tmp(monkeypatch, tmp_path):
     yield _run_semgrep
 
 
-# Needed to test the project-depends-on rules
-# pathlib.glob (and semgrep by extension) do not traverse into symlinks
-# Lockfile targeting begins at the parent of the first semgrep target
-# which in this case is tmp_path, which normally contains only symlinks :/
 @pytest.fixture
-def run_semgrep_in_tmp_no_symlink(monkeypatch, tmp_path):
+def run_semgrep_on_copied_files(monkeypatch, tmp_path):
+    """
+    Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
+    directory pollution, also avoids issues with symlink navigation
+    """
     copytree(Path(TESTS_PATH / "e2e" / "targets").resolve(), tmp_path / "targets")
     copytree(Path(TESTS_PATH / "e2e" / "rules").resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)

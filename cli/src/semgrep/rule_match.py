@@ -306,6 +306,8 @@ class RuleMatch:
             app_severity = 2
         elif self.severity.value == RuleSeverity.WARNING.value:
             app_severity = 1
+        elif self.severity.value == RuleSeverity.EXPERIMENT.value:
+            app_severity = 4
         else:
             app_severity = 0
 
@@ -324,6 +326,7 @@ class RuleMatch:
             match_based_id=self.match_based_id,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
+            dataflow_trace=self.match.extra.dataflow_trace,
         )
 
         if self.extra.get("fixed_lines"):
