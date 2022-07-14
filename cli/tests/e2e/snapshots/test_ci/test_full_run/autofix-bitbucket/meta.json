@@ -2,7 +2,7 @@
   "meta": {
     "semgrep_version": "<sanitized version>",
     "repository": "project_name/project_name",
-    "repo_url": "git@bitbucket.org/project_name/project_name.git",
+    "repo_url": "http://bitbucket.org/project_name/project_name",
     "branch": "some/branch-name",
     "ci_job_url": "http://bitbucket.org/project_name/project_name/addon/pipelines/home#!/results/a-uuid",
     "commit": "sanitized",

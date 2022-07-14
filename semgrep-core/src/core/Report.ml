@@ -55,7 +55,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 (* Coupling: the debug_info variant of each result record should always
       be the same as the mode's variant *)
-type debug_mode = MDebug | MTime | MNo_info
+type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
 type 'a debug_info =
   (* -debug: save all the information that could be useful *)
@@ -67,6 +67,7 @@ type 'a debug_info =
   | Time of 'a
   (* save nothing else *)
   | No_info
+[@@deriving show]
 
 let mode = ref MNo_info
 
@@ -81,6 +82,7 @@ type rule_profiling = {
   parse_time : float;
   match_time : float;
 }
+[@@deriving show]
 
 type times = { parse_time : float; match_time : float }
 
@@ -91,11 +93,13 @@ type file_profiling = {
   rule_times : rule_profiling list;
   run_time : float;
 }
+[@@deriving show]
 
 type partial_profiling = {
   file : Common.filename;
   rule_times : rule_profiling list;
 }
+[@@deriving show]
 
 (* Result object for the entire rule *)
 
@@ -104,6 +108,7 @@ type final_profiling = {
   rules_parse_time : float;
   file_times : file_profiling list;
 }
+[@@deriving show]
 
 type final_result = {
   matches : Pattern_match.t list;
@@ -111,6 +116,7 @@ type final_result = {
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
 }
+[@@deriving show]
 
 (* For each file, substitute in the profiling type we have *)
 
@@ -119,6 +125,7 @@ type 'a match_result = {
   errors : Semgrep_error_code.error list;
   extra : 'a debug_info;
 }
+[@@deriving show]
 
 (********************************************************************************)
 (* Create empty versions of profiling/results objects *)

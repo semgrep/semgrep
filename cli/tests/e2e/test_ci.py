@@ -155,6 +155,16 @@ def automocks(mocker):
     mocker.patch.object(
         ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
     )
+    mocker.patch.object(
+        ScanHandler, "skipped_syntactic_ids", ["f3b21c38bc22a1f1f870d49fc3a40244"]
+    )
+    mocker.patch.object(
+        ScanHandler,
+        "skipped_match_based_ids",
+        [
+            "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
+        ],
+    )
     mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
     mocker.patch.object(AppSession, "post")
 
@@ -234,10 +244,10 @@ def mock_autofix(request, mocker):
             "CIRCLECI": "true",
             "CIRCLE_PROJECT_USERNAME": REPO_DIR_NAME,
             "CIRCLE_PROJECT_REPONAME": REPO_DIR_NAME,
-            "CIRCLE_REPOSITORY_URL": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "CIRCLE_REPOSITORY_URL": f"git@github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "CIRCLE_BRANCH": BRANCH_NAME,
             "CIRCLE_BUILD_URL": "https://circle.ci.build.url",
-            "CIRCLE_PR_NUMBER": "35",
+            "CIRCLE_PULL_REQUEST": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}/pull/35",
         },
         {  # Jenkins
             "JENKINS_URL": "some_url",
@@ -250,7 +260,6 @@ def mock_autofix(request, mocker):
             "BITBUCKET_BUILD_NUMBER": "hi",
             "BITBUCKET_REPO_FULL_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "BITBUCKET_GIT_HTTP_ORIGIN": f"http://bitbucket.org/{REPO_DIR_NAME}/{REPO_DIR_NAME}",
-            "BITBUCKET_GIT_SSH_ORIGIN": f"git@bitbucket.org/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "BITBUCKET_BRANCH": BRANCH_NAME,
             "BITBUCKET_PIPELINE_UUID": "a-uuid",
             "BITBUCKET_PR_ID": "35",
@@ -266,7 +275,7 @@ def mock_autofix(request, mocker):
         },
         {  # Buildkite
             "BUILDKITE": "true",
-            "BUILDKITE_PULL_REQUEST_REPO": f"https://github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
+            "BUILDKITE_REPO": f"git@github.com/{REPO_DIR_NAME}/{REPO_DIR_NAME}.git",
             "BUILDKITE_BRANCH": BRANCH_NAME,
             "BUILDKITE_BUILD_URL": "https://buildkite.build.url/something",
             "BUILDKITE_JOB_ID": "42",

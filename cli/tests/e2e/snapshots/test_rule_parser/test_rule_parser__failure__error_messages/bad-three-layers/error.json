@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "One of these properties may be invalid: 'pattern-either'\nOne of these properties is missing: 'languages', 'mode'",
+      "long_msg": "One of these properties is missing: 'languages'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

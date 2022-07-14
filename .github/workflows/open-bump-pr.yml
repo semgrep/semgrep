@@ -13,6 +13,9 @@ on:
       base_branch:
         required: true
         type: string
+      new_branch_name:
+        required: false
+        type: string
       bump_script_path:
         required: true
         type: string

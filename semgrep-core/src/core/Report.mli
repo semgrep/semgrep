@@ -1,6 +1,6 @@
 (* Options for what extra debugging information to output*)
 
-type debug_mode = MDebug | MTime | MNo_info
+type debug_mode = MDebug | MTime | MNo_info [@@deriving show]
 
 type 'a debug_info =
   | Debug of {
@@ -9,6 +9,7 @@ type 'a debug_info =
     }
   | Time of 'a
   | No_info
+[@@deriving show]
 
 (* Global to set the debug mode. Should be set
    exactly once after the arguments are read *)
@@ -24,6 +25,7 @@ type rule_profiling = {
   parse_time : float;
   match_time : float;
 }
+[@@deriving show]
 
 (* Save time information as we run each file *)
 
@@ -31,12 +33,14 @@ type partial_profiling = {
   file : Common.filename;
   rule_times : rule_profiling list;
 }
+[@@deriving show]
 
 type file_profiling = {
   file : Common.filename;
   rule_times : rule_profiling list;
   run_time : float;
 }
+[@@deriving show]
 
 (* Substitute in the profiling type we have *)
 
@@ -45,6 +49,7 @@ type 'a match_result = {
   errors : Semgrep_error_code.error list;
   extra : 'a debug_info;
 }
+[@@deriving show]
 
 (* Result object for the entire rule *)
 
@@ -53,6 +58,7 @@ type final_profiling = {
   rules_parse_time : float;
   file_times : file_profiling list;
 }
+[@@deriving show]
 
 type final_result = {
   matches : Pattern_match.t list;
@@ -60,6 +66,7 @@ type final_result = {
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
 }
+[@@deriving show]
 
 val empty_partial_profiling : Common.filename -> partial_profiling
 val empty_rule_profiling : Rule.t -> rule_profiling

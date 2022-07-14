@@ -103,7 +103,8 @@ class GitlabSastFormatter(BaseFormatter):
             "vulnerabilities": [
                 self._format_rule_match(rule_match)
                 for rule_match in rule_matches
-                if rule_match.severity != RuleSeverity.INVENTORY
+                if rule_match.severity
+                not in [RuleSeverity.INVENTORY, RuleSeverity.EXPERIMENT]
             ],
         }
 

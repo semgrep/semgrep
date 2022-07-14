@@ -18,7 +18,7 @@ tox = "*"
 # type hints
 types-setuptools = "*"
 types-colorama = "~=0.4.0"
-types-jsonschema = "~=3.2"
+types-jsonschema = "==4.6.0"
 pytest-mock = "*"
 pytest-freezegun = "*"
 types-requests = "*"
@@ -29,5 +29,21 @@ pytest-split = "*"
 pypi-parker = "*"
 pytest-rerunfailures = "*"
 
+# pipenv does not support multiple python versions, but the
+# dependencies of jsonschema differ from < 3.8 to >= 3.8. Therefore we just
+# rely on these directly for the dev environment so that an entry for these is
+# always generated for the lockfile, regardless of the local version of python.
+# If we change to Poetry or another system which allows multiple version of
+# python these could likely be removed.
+#
+# Sourced from
+# <https://github.com/python-jsonschema/jsonschema/blob/afc22f09e74d696ab00be8a711bbc5c2a15327b7/pyproject.toml#L39-L41>
+#
+# These _should not_ be added to setup.py
+importlib_metadata = "*"
+typing_extensions = "*"
+importlib_resources = ">=1.4.0"
+
 [packages]
 semgrep = {editable = true,path = "."}
+jsonschema = "==4.6.1"

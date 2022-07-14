@@ -306,6 +306,8 @@ class RuleMatch:
             app_severity = 2
         elif self.severity.value == RuleSeverity.WARNING.value:
             app_severity = 1
+        elif self.severity.value == RuleSeverity.EXPERIMENT.value:
+            app_severity = 4
         else:
             app_severity = 0
 

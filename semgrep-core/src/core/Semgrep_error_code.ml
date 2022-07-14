@@ -38,6 +38,7 @@ type error = {
   msg : string;
   details : string option;
 }
+[@@deriving show]
 
 (* TODO: define also in Output_from_core.atd *)
 type severity = Error | Warning
