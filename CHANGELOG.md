@@ -6,7 +6,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
-- Added a new feature that was described in CLI-123. This was done support our overarching goal to improve the tool. (cli-123)
 - `semgrep ci` will now not block builds on triage ignored issues (cli-162)
 - Add support to cli/scripts/compare.py for podman environments (compare-script-podman)
 - A new experimental 'extract' mode. This mode runs a Semgrep rule on a codebase
@@ -14,8 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   allows users to supplement an existing set of rules, e.g., for JavaScript, by
   writing additional rules to find JavaScript in non-JavaScript files, e.g.,
   JavaScript contained in HTML or template files. While this is somewhat possible
-  with metavariable-pattern, this reduces the work from an M \* N problem to an M
-  - N one. (gh-4478)
+  with metavariable-pattern, this reduces the work from an M \* N problem to an M \+ N one. (gh-4478)
 - Added taint traces as part of Semgrep's JSON output. This helps explain how the sink became tainted. (pa-1271)
 
 ### Changed
@@ -49,7 +47,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 - Semgrep App's links to repositories, code snippets, and pull requests are no longer broken for projects that run Semgrep in Circle CI, Bitbucket, and Buildkite. (cli-267)
-- Added a new feature that was described in GitHub Issue #1234. This was done support our overarching goal to improve the tool. (gh-1234)
 - When running Semgrep via Docker for Mac,
   all volume-mounted files were considered executable and thus a candidate for scanning Bash code,
   making target collection take longer, and sometimes targeting more files than intended.
