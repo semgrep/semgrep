@@ -143,31 +143,44 @@ let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
                }
              in
              let map_res (mr : Report.partial_profiling Report.match_result) =
-               {
-                 Report.matches =
-                   Common.map
-                     (fun (m : Pattern_match.t) ->
-                       {
-                         m with
-                         file = xtarget.file;
-                         range_loc = Common2.pair map_loc m.range_loc;
-                       })
-                     mr.matches;
-                 errors =
-                   Common.map
-                     (fun (e : Semgrep_error_code.error) ->
-                       { e with loc = map_loc e.loc })
-                     mr.errors;
-                 skipped_targets =
-                   Common.map
-                     (fun (st : Output_from_core_t.skipped_target) ->
-                       {
-                         st with
-                         path = (if st.path = f then xtarget.file else st.path);
-                       })
-                     mr.skipped_targets;
-                 profiling = { mr.profiling with Report.file = xtarget.file };
-               }
+               let matches =
+                 Common.map
+                   (fun (m : Pattern_match.t) ->
+                     {
+                       m with
+                       file = xtarget.file;
+                       range_loc = Common2.pair map_loc m.range_loc;
+                     })
+                   mr.matches
+               in
+               let errors =
+                 Common.map
+                   (fun (e : Semgrep_error_code.error) ->
+                     { e with loc = map_loc e.loc })
+                   mr.errors
+               in
+               let extra =
+                 match mr.extra with
+                 | Debug { skipped_targets; profiling } ->
+                     let skipped_targets =
+                       Common.map
+                         (fun (st : Output_from_core_t.skipped_target) ->
+                           {
+                             st with
+                             path =
+                               (if st.path = f then xtarget.file else st.path);
+                           })
+                         skipped_targets
+                     in
+                     let profiling =
+                       { profiling with Report.file = xtarget.file }
+                     in
+                     Report.Debug { skipped_targets; profiling }
+                 | Time profiling ->
+                     Time { profiling with Report.file = xtarget.file }
+                 | No_info -> No_info
+               in
+               { Report.matches; errors; extra }
              in
              Some (target, map_res)
          | Some ({ mode = `Extract { extract; _ }; id = id, _; _ }, None) ->
