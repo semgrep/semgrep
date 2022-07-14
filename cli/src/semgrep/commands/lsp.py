@@ -33,11 +33,8 @@ def init_log(name: str, level: int, logfile: Optional[str] = None) -> None:
     required=False,
     help="Write logs to this file",
 )
-@click.option("--config", type=str, required=True, help="A Semgrep config for LSP mode")
 @handle_command_errors
-def lsp(
-    verbose: Optional[bool], debug: Optional[bool], logfile: Optional[str], config: str
-) -> None:
+def lsp(verbose: Optional[bool], debug: Optional[bool], logfile: Optional[str]) -> None:
     """
     [EXPERIMENTAL] Start the Semgrep LSP server.
     """
@@ -53,4 +50,4 @@ def lsp(
     print(
         "Starting Semgrep LSP server. This mode is experimental and prone to bugs or changes without notice."
     )
-    run_server(config)
+    run_server()
