@@ -196,12 +196,15 @@ type taint_spec = {
 }
 [@@deriving show]
 
+(* Method to combine extracted ranges within a file:
+    - either treat them as separate files; or
+    - concatentate them together
+*)
+type extract_reduction = Separate | Concat [@@deriving show]
+
 type extract_spec = {
   pformula : pformula;
-  (* TODO: determine if we need reductions beyond separate maching; maybe
-               "concat"?
-   * combine_extract: extract_mode;
-   *)
+  reduce : extract_reduction;
   (* TODO: really want Lang.t | Generic --- the requirement that the
      destination is a real langauge is potentially awkward for template files
      with DSLs, though this might require some sort of additional label system

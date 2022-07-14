@@ -59,6 +59,21 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
 val mk_rule_table : Rule.rule list -> (Rule.rule_id, Rule.rule) Hashtbl.t
 (** Helper to create the table of rules to run for each file **)
 
+val extract_targets_of_config :
+  Runner_config.t ->
+  Rule.rule_id list ->
+  Rule.extract_rule list ->
+  Input_to_core_t.targets
+  * ( Common.filename,
+      Report.partial_profiling Report.match_result ->
+      Report.partial_profiling Report.match_result )
+    Hashtbl.t
+(**
+   Generate the list of targets to run extract rules against given a config,
+   the ids for rules to run against the generated targets and a set of extract
+   rules used to perform the extraction.
+*)
+
 val targets_of_config :
   Runner_config.t ->
   Rule.rule_id list ->

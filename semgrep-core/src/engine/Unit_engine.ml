@@ -430,6 +430,35 @@ let filter_irrelevant_rules_tests () =
      |> Common.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
+(* Extract tests *)
+(*****************************************************************************)
+
+let get_extract_source_lang file rules =
+  let _, _, erules = R.partition_rules rules in
+  let erule_langs =
+    erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
+  in
+  match erule_langs with
+  | [] -> failwith (spf "no language for extract rule found in %s" file)
+  | [ x ] -> x
+  | x :: _ ->
+      pr2
+        (spf
+           "too many languages from extract rules found in %s, picking the \
+            first one: %s"
+           file (Xlang.show x));
+      x
+
+let extract_tests () =
+  let path = Filename.concat tests_path "extract" in
+  pack_tests "extract mode"
+    (let tests, _print_summary =
+       Test_engine.make_tests ~unit_testing:true
+         ~get_xlang:(Some get_extract_source_lang) [ path ]
+     in
+     tests)
+
+(*****************************************************************************)
 (* Tainting tests *)
 (*****************************************************************************)
 
@@ -672,6 +701,7 @@ let tests () =
       lang_regression_tests ~with_caching:true;
       eval_regression_tests ();
       filter_irrelevant_rules_tests ();
+      extract_tests ();
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_regression_tests ();

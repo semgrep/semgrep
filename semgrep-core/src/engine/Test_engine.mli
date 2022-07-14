@@ -4,6 +4,7 @@
 *)
 val make_tests :
   ?unit_testing:bool ->
+  ?get_xlang:(Common.filename -> Rule.rules -> Xlang.t) option ->
   Common.filename list ->
   (string * (unit -> unit)) list * (unit -> unit)
 
