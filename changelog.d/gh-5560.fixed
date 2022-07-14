@@ -1,4 +1,0 @@
-When running Semgrep via Docker for Mac,
-all volume-mounted files were considered executable and thus a candidate for scanning Bash code,
-making target collection take longer, and sometimes targeting more files than intended.
-This was fixed by using `os.stat` instead of `os.access` to determine if a file is executable.

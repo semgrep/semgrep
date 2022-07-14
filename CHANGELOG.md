@@ -2,6 +2,66 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.104.0](https://github.com/returntocorp/semgrep/releases/tag/v0.104.0) - 2022-07-13
+
+### Added
+
+- `semgrep ci` will now not block builds on triage ignored issues (cli-162)
+- Add support to cli/scripts/compare.py for podman environments (compare-script-podman)
+- A new experimental 'extract' mode. This mode runs a Semgrep rule on a codebase
+  and "extracts" code from matches, treating it as a different language. This
+  allows users to supplement an existing set of rules, e.g., for JavaScript, by
+  writing additional rules to find JavaScript in non-JavaScript files, e.g.,
+  JavaScript contained in HTML or template files. While this is somewhat possible
+  with metavariable-pattern, this reduces the work from an M \* N problem to an M \+ N one. (gh-4478)
+- Added taint traces as part of Semgrep's JSON output. This helps explain how the sink became tainted. (pa-1271)
+
+### Changed
+
+- Metavariable-pattern now uses the same metavariable context as its parent. This will potentially
+  cause breaking changes for rules that reuse metavariables in the pattern. For example, consider
+  the following formula:
+
+  ```
+  - patterns:
+     - pattern-either:
+         - pattern-inside: $OBJ.output($RESP)
+     - pattern: $RESP
+     - metavariable-pattern:
+         metavariable: $RESP
+         pattern: `...{ $OBJ }...`
+  ```
+
+  Previously, the `$OBJ` in the metavariable-pattern would be a new metavariable. The formula would
+  behave the same if that `$OBJ` was `$A` instead. Now, `$OBJ` will try to unify with the value bound
+  by `$OBJ` in the pattern-inside. (gh-5060)
+
+- The semgrep test output used to produce expected lines and reported lines which is difficult to read and interpret. This change introduces missed lines and incorrect lines to make it easier for the users to pinpoint the differences in output. (gh-5600)
+- Separator lines are no longer drawn between findings that have no source code snippet. (sca-ui)
+- Using ellipses in XML/HTML elements is now more permissive of whitespace.
+  Previously, in order to have a element with an ellipsis no leading/trailing
+  whitespace was permitted in the element contents, i.e., `<tag>...</tag>` was
+  the only permitted form. Now, leading or trailing whitespace is ignored when
+  the substantive content of the element is only an ellipsis. (xml-permissive-ellipsis)
+
+### Fixed
+
+- Semgrep App's links to repositories, code snippets, and pull requests are no longer broken for projects that run Semgrep in Circle CI, Bitbucket, and Buildkite. (cli-267)
+- When running Semgrep via Docker for Mac,
+  all volume-mounted files were considered executable and thus a candidate for scanning Bash code,
+  making target collection take longer, and sometimes targeting more files than intended.
+  This was fixed by using `os.stat` instead of `os.access` to determine if a file is executable. (gh-5560)
+- Semgrep used to crash when trying to print findings that match only whitespace, such as when a rule disallows two newlines at the end of a file. This crash is now fixed. (gh-5633)
+- Memory usage improvement: don't save skipped targets when `--debug` isn't passed
+  since it isn't read unless `--debug` is used (pa-1618)
+
+### Infra/Release Changes
+
+- Updated the GH Release creation to publish the release instead of drafting one - this avoids a failure of validation jobs on release. (cli-243)
+- Using some building blocks from release, set up a workflow to test `semgrep ci` e2e. (cli-253)
+- Updated our changelog management system to `towncrier` to avoid merge conflicts in changelog on release (cli-77)
+- The opening of PRs in other repos is automated with semgrep release - there is still a manual review required to build confidence. (cli-84)
+
 ## Unreleased
 
 ## [0.103.0](https://github.com/returntocorp/semgrep/releases/tag/v0.103.0) - 2022-07-05
