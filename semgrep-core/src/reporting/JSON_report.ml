@@ -254,7 +254,7 @@ let match_results_of_matches_and_errors files res =
     match res.extra with
     | RP.Debug { skipped_targets; profiling } ->
         (skipped_targets, Some profiling)
-    | RP.Time profiling -> ([], Some profiling)
+    | RP.Time { profiling } -> ([], Some profiling)
     | RP.No_info -> ([], None)
   in
   {

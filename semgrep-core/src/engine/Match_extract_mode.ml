@@ -211,7 +211,7 @@ let map_res map_loc tmpfile file
         in
         Report.Debug
           { skipped_targets; profiling = { profiling with Report.file } }
-    | Time profiling -> Time { profiling with Report.file }
+    | Time { profiling } -> Time { profiling = { profiling with Report.file } }
     | No_info -> No_info
   in
   { Report.matches; errors; extra }

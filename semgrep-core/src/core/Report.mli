@@ -7,7 +7,7 @@ type 'a debug_info =
       skipped_targets : Output_from_core_t.skipped_target list;
       profiling : 'a;
     }
-  | Time of 'a
+  | Time of { profiling : 'a }
   | No_info
 [@@deriving show]
 

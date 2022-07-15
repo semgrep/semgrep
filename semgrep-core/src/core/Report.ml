@@ -64,7 +64,7 @@ type 'a debug_info =
       profiling : 'a;
     }
   (* -json_time: save just profiling information; currently our metrics record this *)
-  | Time of 'a
+  | Time of { profiling : 'a }
   (* save nothing else *)
   | No_info
 [@@deriving show]
@@ -142,7 +142,7 @@ let empty_times_profiling = { parse_time = 0.0; match_time = 0.0 }
 let empty_extra profiling =
   match !mode with
   | MDebug -> Debug { skipped_targets = []; profiling }
-  | MTime -> Time profiling
+  | MTime -> Time { profiling }
   | MNo_info -> No_info
 
 let empty_semgrep_result =
@@ -160,7 +160,7 @@ let make_match_result matches errors profiling =
   let extra =
     match !mode with
     | MDebug -> Debug { skipped_targets = []; profiling }
-    | MTime -> Time profiling
+    | MTime -> Time { profiling }
     | MNo_info -> No_info
   in
   { matches; errors; extra }
@@ -173,7 +173,7 @@ let modify_match_result_profiling { matches; errors; extra } f =
     match extra with
     | Debug { skipped_targets; profiling } ->
         Debug { skipped_targets; profiling = f profiling }
-    | Time profiling -> Time (f profiling)
+    | Time { profiling } -> Time { profiling = f profiling }
     | No_info -> No_info
   in
   { matches; errors; extra }
@@ -230,7 +230,7 @@ let collate_pattern_results results =
     | Debug { skipped_targets; profiling } ->
         ( skipped_targets :: all_skipped_targets,
           unzip_profiling profiling all_profiling )
-    | Time profiling ->
+    | Time { profiling } ->
         (all_skipped_targets, unzip_profiling profiling all_profiling)
     | No_info -> (all_skipped_targets, all_profiling)
   in
@@ -243,7 +243,7 @@ let collate_pattern_results results =
     match !mode with
     | MDebug ->
         Debug { skipped_targets = List.flatten skipped_targets; profiling }
-    | MTime -> Time profiling
+    | MTime -> Time { profiling }
     | MNo_info -> No_info
   in
 
@@ -260,7 +260,7 @@ let collate_rule_results :
     match extra with
     | Debug { skipped_targets; profiling } ->
         (skipped_targets :: all_skipped_targets, profiling :: all_profiling)
-    | Time profiling -> (all_skipped_targets, profiling :: all_profiling)
+    | Time { profiling } -> (all_skipped_targets, profiling :: all_profiling)
     | No_info -> (all_skipped_targets, all_profiling)
   in
 
@@ -276,7 +276,7 @@ let collate_rule_results :
             skipped_targets = List.flatten skipped_targets;
             profiling = { file; rule_times = profiling };
           }
-    | MTime -> Time { file; rule_times = profiling }
+    | MTime -> Time { profiling = { file; rule_times = profiling } }
     | MNo_info -> No_info
   in
 
@@ -297,7 +297,7 @@ let make_final_result results rules ~rules_parse_time =
   let get_profiling result =
     match result.extra with
     | Debug { skipped_targets = _skipped_targets; profiling } -> profiling
-    | Time profiling -> profiling
+    | Time { profiling } -> profiling
     | No_info ->
         logger#debug
           "Mismatch between mode and result while creating final result";
@@ -314,7 +314,7 @@ let make_final_result results rules ~rules_parse_time =
           results |> Common.map (fun x -> get_skipped_targets x) |> List.flatten
         in
         Debug { skipped_targets; profiling = mk_profiling () }
-    | MTime -> Time (mk_profiling ())
+    | MTime -> Time { profiling = mk_profiling () }
     | MNo_info -> No_info
   in
   { matches; errors; extra; skipped_rules = [] }

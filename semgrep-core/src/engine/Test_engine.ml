@@ -234,7 +234,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                         failwith
                           "Impossible; type of res should match Report.mode, \
                            which we force to be MTime"
-                    | Time profiling ->
+                    | Time { profiling } ->
                         profiling.rule_times
                         |> List.iter (fun rule_time ->
                                if not (rule_time.RP.match_time >= 0.) then
