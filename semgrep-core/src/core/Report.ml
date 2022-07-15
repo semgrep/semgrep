@@ -305,7 +305,7 @@ let make_final_result results rules ~rules_parse_time =
   in
   let extra =
     let mk_profiling () =
-      let file_times = results |> Common.map (fun x -> get_profiling x) in
+      let file_times = results |> Common.map get_profiling in
       { rules; rules_parse_time; file_times }
     in
     match !mode with

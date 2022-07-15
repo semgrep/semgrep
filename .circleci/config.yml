@@ -7,7 +7,7 @@ jobs:
     working_directory: /src
     steps:
       - checkout
-      - run: semgrep --config semgrep.yml --error --strict --verbose --exclude tests --exclude TODO --exclude _build .
+      - run: semgrep --config semgrep.yml --error --verbose --exclude tests --exclude TODO --exclude _build .
 
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
