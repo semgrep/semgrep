@@ -1,1 +1,0 @@
-Updated the GH Release creation to publish the release instead of drafting one - this avoids a failure of validation jobs on release.

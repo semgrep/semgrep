@@ -525,9 +525,9 @@ let extract_targets_of_config config rule_ids extractors =
       let xlang = Xlang.of_string t.In.language in
       let xtarget = xtarget_of_file config xlang file in
       let extract_targets =
-        Extract.extract_nested_lang ~match_hook ~timeout:config.timeout
-          ~timeout_threshold:config.timeout_threshold extractors xtarget
-          rule_ids
+        Match_extract_mode.extract_nested_lang ~match_hook
+          ~timeout:config.timeout ~timeout_threshold:config.timeout_threshold
+          extractors xtarget rule_ids
       in
       (* Print number of extra targets so Python knows *)
       if config.output_format = Json && extract_targets <> [] then

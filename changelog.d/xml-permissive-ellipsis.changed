@@ -1,5 +1,0 @@
-Using ellipses in XML/HTML elements is now more permissive of whitespace.
-Previously, in order to have a element with an ellipsis no leading/trailing
-whitespace was permitted in the element contents, i.e., `<tag>...</tag>` was
-the only permitted form. Now, leading or trailing whitespace is ignored when
-the substantive content of the element is only an ellipsis.

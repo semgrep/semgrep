@@ -181,7 +181,7 @@ def unit_str(count: int, unit: str, pad: bool = False) -> str:
     return f"{count} {unit}"
 
 
-def git_check_output(command: Sequence[str]) -> str:
+def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
     """
     Helper function to run a GIT command that prints out helpful debugging information
     """
@@ -191,6 +191,7 @@ def git_check_output(command: Sequence[str]) -> str:
 
     env = get_state().env
 
+    cwd = cwd if cwd is not None else os.getcwd()
     try:
         # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
         return subprocess.check_output(
@@ -198,6 +199,7 @@ def git_check_output(command: Sequence[str]) -> str:
             stderr=subprocess.PIPE,
             encoding="utf-8",
             timeout=env.git_command_timeout,
+            cwd=cwd,
         ).strip()
     except subprocess.CalledProcessError as e:
         command_str = " ".join(command)

@@ -25,6 +25,7 @@ from click.testing import CliRunner
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
+from semgrep.lsp.server import SemgrepLSPServer
 
 TESTS_PATH = Path(__file__).parent
 
@@ -150,6 +151,15 @@ def _clean_output_sarif(output_json: str) -> str:
         pass
 
     return json.dumps(output, indent=2, sort_keys=True)
+
+
+def _clean_output_lsp(out) -> str:
+    text = json.dumps(out, indent=2, sort_keys=True)
+    # Regex to match anything starting with file://
+    capture = re.compile(r"\"file:\/\/[^\s]+\"")
+
+    cleaned = capture.sub('"file:///tmp/masked/path"', text)
+    return cleaned
 
 
 Maskers = Iterable[Union[str, re.Pattern, Callable[[str], str]]]
@@ -401,3 +411,14 @@ def git_tmp_path(monkeypatch, tmp_path):
         capture_output=True,
     )
     yield tmp_path
+
+
+@pytest.fixture
+def lsp(monkeypatch, tmp_path):
+    """Return an initialized lsp"""
+
+    (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
+    (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
+    ls = SemgrepLSPServer(StringIO, StringIO)
+    monkeypatch.chdir(tmp_path)
+    return ls

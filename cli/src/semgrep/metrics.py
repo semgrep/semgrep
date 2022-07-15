@@ -102,6 +102,11 @@ class ValueSchema(ValueRequiredSchema, total=False):
     ruleHashesWithFindings: Dict[str, int]
 
 
+class FixRateSchema(TypedDict, total=False):
+    lowerLimits: Dict[str, int]
+    upperLimits: Dict[str, int]
+
+
 class TopLevelSchema(TypedDict, total=False):
     event_id: uuid.UUID
     anonymous_user_id: str
@@ -114,6 +119,7 @@ class PayloadSchema(TopLevelSchema):
     performance: PerformanceSchema
     errors: ErrorsSchema
     value: ValueSchema
+    fix_rate: FixRateSchema
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -162,6 +168,7 @@ class Metrics:
             errors=ErrorsSchema(),
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
+            fix_rate=FixRateSchema(),
         )
     )
 
@@ -331,6 +338,14 @@ class Metrics:
             self.add_feature("registry-query", query_parts[0] + dot_count * ".")
         if prefix == "p":
             self.add_feature("ruleset", name)
+
+    @suppress_errors
+    def add_fix_rate(
+        self, lower_limits: Dict[str, int], upper_limits: Dict[str, int]
+    ) -> None:
+        logger.debug(f"Adding fix rate: {lower_limits} {upper_limits}")
+        self.payload["fix_rate"]["lowerLimits"] = lower_limits
+        self.payload["fix_rate"]["upperLimits"] = upper_limits
 
     def as_json(self) -> str:
         return json.dumps(
