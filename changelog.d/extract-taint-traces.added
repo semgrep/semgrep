@@ -1,0 +1,2 @@
+Extract mode: taint trace positions are now updated to correspond to the source
+file.
