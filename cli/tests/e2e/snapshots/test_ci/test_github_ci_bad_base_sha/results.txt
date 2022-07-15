@@ -133,6 +133,7 @@ Running semgrep-core with command:
 <MASKED>
 <MASKED>
 <MASKED>
+<MASKED>
 --- end semgrep-core stderr ---
 semgrep ran in <MASKED> on 1 files
 findings summary: 1 error, 0 info
