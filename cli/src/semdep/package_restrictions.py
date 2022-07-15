@@ -12,13 +12,6 @@ from semdep.models import PackageManagers
 from semgrep.error import SemgrepError
 
 
-@dataclass(eq=True, order=True, frozen=True)
-class ProjectDependsOnEntry:
-    namespace: PackageManagers
-    package_name: str
-    semver_range: str
-
-
 def semver_matches(expression: str, actual_version: str) -> bool:
 
     try:
