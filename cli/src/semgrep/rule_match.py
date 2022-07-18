@@ -28,6 +28,7 @@ from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
+from semgrep.util import get_lines
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
@@ -127,20 +128,7 @@ class RuleMatch:
         Need to do on initialization instead of on read since file might not be the same
         at read time
         """
-        # Start and end line are one-indexed, but the subsequent slice call is
-        # inclusive for start and exclusive for end, so only subtract from start
-        start_line = self.start.line - 1
-        end_line = self.end.line
-
-        if start_line == -1 and end_line == 0:
-            # Completely empty file
-            return []
-
-        # buffering=1 turns on line-level reads
-        with self.path.open(buffering=1, errors="replace") as fd:
-            result = list(itertools.islice(fd, start_line, end_line))
-
-        return result
+        return get_lines(self.path, self.start.line, self.end.line)
 
     @previous_line.default
     def get_previous_line(self) -> str:

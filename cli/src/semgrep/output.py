@@ -143,6 +143,7 @@ class OutputSettings(NamedTuple):
     strict: bool = False
     output_time: bool = False
     timeout_threshold: int = 0
+    dataflow_traces: bool = False
 
 
 class OutputHandler:
@@ -449,6 +450,7 @@ class OutputHandler:
             extra[
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
+            extra["dataflow_traces"] = self.settings.dataflow_traces
 
         # the rules are used only by the SARIF formatter
         return self.formatter.output(

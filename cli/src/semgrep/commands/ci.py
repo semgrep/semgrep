@@ -175,6 +175,7 @@ def ci(
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
+    dataflow_traces: bool,
     output: Optional[str],
     sarif: bool,
     quiet: bool,
