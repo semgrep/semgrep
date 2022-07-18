@@ -49,12 +49,14 @@ def init_lsp(
     lsp.m_initialized()
 
 
+@pytest.mark.kinda_slow
 def test_lsp_init(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     assert lsp._ready
     snapshot.assert_match(json.dumps(lsp.config.settings), "settings.json")
 
 
+@pytest.mark.kinda_slow
 def test_lsp_diagnostics(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     lsp.m_text_document__did_open(
@@ -66,6 +68,7 @@ def test_lsp_diagnostics(lsp, tmp_path, snapshot):
     snapshot.assert_match(diagonstics, "diagnostics.json")
 
 
+@pytest.mark.kinda_slow
 def test_lsp_code_action(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/autofix/autofix.yaml")
     # Open document
@@ -88,6 +91,7 @@ def test_lsp_code_action(lsp, tmp_path, snapshot):
     snapshot.assert_match(actions, "fixes.json")
 
 
+@pytest.mark.kinda_slow
 def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
     init_lsp(lsp, rule_path="rules/eqeq-python.yaml")
     lsp.m_text_document__did_open(
@@ -110,6 +114,7 @@ def test_lsp_inlay_hint(lsp, tmp_path, snapshot):
     snapshot.assert_match(output, "inlay_hints.json")
 
 
+@pytest.mark.kinda_slow
 def test_lsp_workspace_folders(lsp, tmp_path):
     init_lsp(lsp, watch_workspace=True)
     dirs = []
