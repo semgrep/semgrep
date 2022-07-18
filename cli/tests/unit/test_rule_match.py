@@ -240,20 +240,6 @@ def test_rule_match_set_indexes(mocker):
             ),
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
-        extra=core.CoreMatchExtra(
-            metavars=core.Metavars(
-                {
-                    "$X": core.MetavarValue(
-                        start=core.Position(3, 1, 24),
-                        end=core.Position(3, 1, 24),
-                        abstract_content="5",
-                        unique_id=core.UniqueId(
-                            type_=core.UniqueIdType(value=core.AST())
-                        ),
-                    )
-                }
-            )
-        ).to_json(),
     )
     line4 = RuleMatch(
         message="message",
@@ -267,20 +253,6 @@ def test_rule_match_set_indexes(mocker):
             ),
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
-        extra=core.CoreMatchExtra(
-            metavars=core.Metavars(
-                {
-                    "$X": core.MetavarValue(
-                        start=core.Position(4, 1, 36),
-                        end=core.Position(4, 1, 36),
-                        abstract_content="5",
-                        unique_id=core.UniqueId(
-                            type_=core.UniqueIdType(value=core.AST())
-                        ),
-                    )
-                }
-            )
-        ).to_json(),
     )
     line5 = RuleMatch(
         message="message",
@@ -294,20 +266,6 @@ def test_rule_match_set_indexes(mocker):
             ),
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
-        extra=core.CoreMatchExtra(
-            metavars=core.Metavars(
-                {
-                    "$X": core.MetavarValue(
-                        start=core.Position(5, 1, 48),
-                        end=core.Position(5, 1, 48),
-                        abstract_content="6",
-                        unique_id=core.UniqueId(
-                            type_=core.UniqueIdType(value=core.AST())
-                        ),
-                    )
-                }
-            )
-        ).to_json(),
     )
     line6 = RuleMatch(
         message="message",
@@ -321,20 +279,6 @@ def test_rule_match_set_indexes(mocker):
             ),
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
-        extra=core.CoreMatchExtra(
-            metavars=core.Metavars(
-                {
-                    "$X": core.MetavarValue(
-                        start=core.Position(6, 1, 60),
-                        end=core.Position(6, 1, 60),
-                        abstract_content="5",
-                        unique_id=core.UniqueId(
-                            type_=core.UniqueIdType(value=core.AST())
-                        ),
-                    )
-                }
-            )
-        ).to_json(),
     )
 
     line7 = RuleMatch(
@@ -361,12 +305,11 @@ def test_rule_match_set_indexes(mocker):
         raise AssertionError()
     except ValueError:
         assert True
-
     sorted_matches = list(sorted(matches))
-    for s in sorted_matches:
-        print(s.match_formula_string)
-        print(s.get_match_based_key())
-        print(s.extra)
+    assert sorted_matches[0].index == 0, "1st duplicate match must be assigned index 0"
+    assert sorted_matches[1].index == 1, "2nd duplicate match must be assigned index 1"
+    assert sorted_matches[3].index == 2, "3rd duplicate match must be assigned index 2"
+    assert sorted_matches[2].index == 0, "unique match must be assigned index 0"
 
 
 @pytest.mark.quick

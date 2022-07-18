@@ -74,6 +74,10 @@ class RuleMatch:
     # ???
     index: int = 0
 
+    # Used only for indexing match based IDs since index uses syntactic IDs to
+    # index meaning that there can be index collisions if we use it for mid
+    match_based_index: int = 0
+
     # This is the accompanying formula from the rule that created the match
     # Used for pattern_based_id
     #
@@ -276,9 +280,7 @@ class RuleMatch:
     def get_match_based_id(self) -> str:
         match_id = self.get_match_based_key()
         match_id_str = str(match_id)
-        return (
-            f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.index)}"
-        )
+        return f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
 
     @property
     def uuid(self) -> UUID:
@@ -366,6 +368,7 @@ class RuleMatchSet(Iterable[RuleMatch]):
         self, rule: Rule, __iterable: Optional[Iterable[RuleMatch]] = None
     ) -> None:
         self._match_based_counts: CounterType[Tuple] = Counter()
+        self._ci_key_counts: CounterType[Tuple] = Counter()
         self._rule = rule
         if __iterable is None:
             self._set = set()
@@ -384,8 +387,11 @@ class RuleMatchSet(Iterable[RuleMatch]):
             raise ValueError("Added match must have identical rule id to set rule")
         match = evolve(match, match_formula_string=self._rule.formula_string)
         self._match_based_counts[match.get_match_based_key()] += 1
+        self._ci_key_counts[match.ci_unique_key] += 1
+        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         match = evolve(
-            match, index=self._match_based_counts[match.get_match_based_key()] - 1
+            match,
+            match_based_index=self._match_based_counts[match.get_match_based_key()] - 1,
         )
         self._set.add(match)
 

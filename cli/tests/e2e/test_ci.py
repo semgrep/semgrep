@@ -158,7 +158,7 @@ def automocks(mocker):
     mocker.patch.object(
         ScanHandler,
         "skipped_syntactic_ids",
-        ["f3b21c38bc22a1f1f870d49fc3a40244", "6a22a4714c81674768e55fecba4d78be"],
+        ["f3b21c38bc22a1f1f870d49fc3a40244"],
     )
     mocker.patch.object(
         ScanHandler,
