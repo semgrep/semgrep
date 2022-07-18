@@ -318,7 +318,7 @@ and label = ident * G.sid
 (*****************************************************************************)
 (* See AST_generic.ml *)
 and function_definition = {
-  foarams : name list;
+  fparams : name list;
   frettype : G.type_ option;
   fbody : stmt list;
 }

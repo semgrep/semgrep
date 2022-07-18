@@ -67,8 +67,7 @@ let test_cfg_il ~parse_program file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let body = H.funcbody_to_stmt def.fbody in
-            let xs = AST_to_IL.stmt lang body in
+            let _, xs = AST_to_IL.function_definition lang def in
             let cfg = CFG_build.cfg_of_stmts xs in
             Display_IL.display_cfg cfg);
       }

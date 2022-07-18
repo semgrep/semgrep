@@ -1352,7 +1352,28 @@ and stmt env st =
   try stmt_aux env st with
   | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
-and function_body env fbody = stmt env (H.funcbody_to_stmt fbody)
+and function_body env fbody =
+  let implicit_return_hack body_stmt =
+    match body_stmt with
+    | G.Block (_, ss, _) when env.lang = Lang.Ruby -> (
+        match List.rev ss with
+        | { s = G.ExprStmt (e, tok); _ } :: rev_ss' ->
+            Some (List.rev rev_ss', (e, tok))
+        | _else -> None)
+    | _else -> None
+  in
+  let body_stmt = H.funcbody_to_stmt fbody in
+  match implicit_return_hack body_stmt.s with
+  | Some (gstmts, (ge, tok)) ->
+      (* HACK: This is meant to handle some common cases of implicit return in
+       * Ruby, but we should be more general and infer a return value for
+       * every statement, then insert a `Return` node with the return value of
+       * the function body (if needed). *)
+      let ss = List.concat_map (stmt env) gstmts in
+      let e_ss, e = expr_with_pre_stmts env ge in
+      let e_s = mk_s (Return (tok, e)) in
+      ss @ e_ss @ [ e_s ]
+  | None -> stmt env body_stmt
 
 (*
  *     with MANAGER as PAT:
@@ -1442,9 +1463,9 @@ and python_with_stmt env manager opt_pat body =
 (*****************************************************************************)
 
 and function_definition env fdef =
-  let foarams = parameters env fdef.G.fparams in
+  let fparams = parameters env fdef.G.fparams in
   let fbody = function_body env fdef.G.fbody in
-  { foarams; frettype = fdef.G.frettype; fbody }
+  { fparams; frettype = fdef.G.frettype; fbody }
 
 (*****************************************************************************)
 (* Entry points *)
