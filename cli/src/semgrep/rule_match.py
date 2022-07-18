@@ -205,18 +205,6 @@ class RuleMatch:
         A unique key designed with notification user experience in mind.
 
         Results in fewer unique findings than cli_unique_key.
-
-        We use this to check if a finding matches its baseline equivalent,
-        and to de-duplicate findings when pushing to semgrep.dev from CI,
-        so that you don't get multiple notifications for the same finding
-        when just moving it around commit-after-commit in a pull request.
-
-        Some things that this key deduplicates to reduce useless notifications:
-        - findings that match different metavariables within the same code snippet
-        - findings that differ only in indentation
-        - findings that differ only because one is ignored with `# nosemgrep`
-
-        This key was originally implemented in and ported from semgrep-agent.
         """
         try:
             path = self.path.relative_to(Path.cwd())
@@ -259,6 +247,13 @@ class RuleMatch:
 
     @match_based_key.default
     def get_match_based_key(self) -> Tuple:
+        """
+        A unique key with match based id's notion of uniqueness in mind.
+
+        We use this to check if two different findings will have the same match
+        based id or not. This is so we can then index them accordingly so two
+        similar findings will have unique match based IDs
+        """
         try:
             path = self.path.relative_to(Path.cwd())
         except (ValueError, FileNotFoundError):
