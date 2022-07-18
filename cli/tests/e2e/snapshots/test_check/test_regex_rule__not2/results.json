@@ -56,7 +56,7 @@
         "offset": 36
       },
       "extra": {
-        "fingerprint": "a8af2e109da44a30dc256c60ae9b112f1d166b9256802d0e692bded1367e492fda78409f97aeeb818d21b3269886405d767bb33b0636cb6eecacdf4bc647cb5f_0",
+        "fingerprint": "a8af2e109da44a30dc256c60ae9b112f1d166b9256802d0e692bded1367e492fda78409f97aeeb818d21b3269886405d767bb33b0636cb6eecacdf4bc647cb5f_1",
         "is_ignored": false,
         "lines": "<h4>To:",
         "message": "test regex message",
@@ -97,7 +97,7 @@
         "offset": 131
       },
       "extra": {
-        "fingerprint": "a8af2e109da44a30dc256c60ae9b112f1d166b9256802d0e692bded1367e492fda78409f97aeeb818d21b3269886405d767bb33b0636cb6eecacdf4bc647cb5f_0",
+        "fingerprint": "a8af2e109da44a30dc256c60ae9b112f1d166b9256802d0e692bded1367e492fda78409f97aeeb818d21b3269886405d767bb33b0636cb6eecacdf4bc647cb5f_2",
         "is_ignored": false,
         "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",

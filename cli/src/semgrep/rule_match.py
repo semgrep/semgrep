@@ -91,6 +91,7 @@ class RuleMatch:
     cli_unique_key: Tuple = field(init=False, repr=False)
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
+    match_based_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
 
@@ -256,13 +257,8 @@ class RuleMatch:
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
-    # This will supercede syntactic id, as currently that will change even if
-    # things formatting + line numbers change. By using the formula +
-    # metavariable content itself, we remain sensitive to modifications to a
-    # match, but we no longer count formatting + line number changs + other
-    # things as new findings
-    @match_based_id.default
-    def get_match_based_id(self) -> str:
+    @match_based_key.default
+    def get_match_based_key(self) -> Tuple:
         try:
             path = self.path.relative_to(Path.cwd())
         except (ValueError, FileNotFoundError):
@@ -274,7 +270,16 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
-        match_id = (match_formula_str, path, self.rule_id)
+        return (match_formula_str, path, self.rule_id)
+
+    # This will supercede syntactic id, as currently that will change even if
+    # things formatting + line numbers change. By using the formula +
+    # metavariable content itself, we remain sensitive to modifications to a
+    # match, but we no longer count formatting + line number changs + other
+    # things as new findings
+    @match_based_id.default
+    def get_match_based_id(self) -> str:
+        match_id = self.get_match_based_key()
         match_id_str = str(match_id)
         return (
             f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.index)}"
@@ -365,7 +370,7 @@ class RuleMatchSet(Iterable[RuleMatch]):
     def __init__(
         self, rule: Rule, __iterable: Optional[Iterable[RuleMatch]] = None
     ) -> None:
-        self._ci_key_counts: CounterType[Tuple] = Counter()
+        self._match_based_counts: CounterType[Tuple] = Counter()
         self._rule = rule
         if __iterable is None:
             self._set = set()
@@ -382,9 +387,11 @@ class RuleMatchSet(Iterable[RuleMatch]):
         """
         if match.rule_id != self._rule.id:
             raise ValueError("Added match must have identical rule id to set rule")
-        self._ci_key_counts[match.ci_unique_key] += 1
-        match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
         match = evolve(match, match_formula_string=self._rule.formula_string)
+        self._match_based_counts[match.get_match_based_key()] += 1
+        match = evolve(
+            match, index=self._match_based_counts[match.get_match_based_key()] - 1
+        )
         self._set.add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:

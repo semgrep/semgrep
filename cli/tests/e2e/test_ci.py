@@ -156,7 +156,9 @@ def automocks(mocker):
         ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
     )
     mocker.patch.object(
-        ScanHandler, "skipped_syntactic_ids", ["f3b21c38bc22a1f1f870d49fc3a40244"]
+        ScanHandler,
+        "skipped_syntactic_ids",
+        ["f3b21c38bc22a1f1f870d49fc3a40244", "6a22a4714c81674768e55fecba4d78be"],
     )
     mocker.patch.object(
         ScanHandler,

@@ -90,7 +90,7 @@
         "offset": 66
       },
       "extra": {
-        "fingerprint": "8e03b4973d9bb0c7668c3303aa1319f6fb35dcb09463df4852481165c75d38520592fc1e76a4d97508e1a711bf77deb8768c52cc7ff9d369a2e5d8385f678cd2_1",
+        "fingerprint": "8e03b4973d9bb0c7668c3303aa1319f6fb35dcb09463df4852481165c75d38520592fc1e76a4d97508e1a711bf77deb8768c52cc7ff9d369a2e5d8385f678cd2_0",
         "is_ignored": false,
         "lines": "            print(\"blah\")",
         "message": "'print(\"blah\")' detected in method 'C' in class 'A'",
@@ -315,7 +315,7 @@
         "offset": 144
       },
       "extra": {
-        "fingerprint": "7929e002581b79caca6623a232990aecf2b53518cd0dbf43238fba41a58191430ef5ce624abfbd6a81e116339ffaa6cb4685f52c76a7d0182efaa1be7c80c8d9_1",
+        "fingerprint": "7929e002581b79caca6623a232990aecf2b53518cd0dbf43238fba41a58191430ef5ce624abfbd6a81e116339ffaa6cb4685f52c76a7d0182efaa1be7c80c8d9_0",
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
         "message": "'print(\"asdf\")' detected in method 'E' in class 'A'",

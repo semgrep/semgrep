@@ -51,7 +51,7 @@
         "offset": 234
       },
       "extra": {
-        "fingerprint": "bb160b8fbbc6d1b067a8a1ef7573ce32f5c6b7b2e5bf3d03b8de000affd2484aafba1650e6d73d11ae253db1ea84ce9e17152f868fe7b21cb77275f1b93f817e_0",
+        "fingerprint": "bb160b8fbbc6d1b067a8a1ef7573ce32f5c6b7b2e5bf3d03b8de000affd2484aafba1650e6d73d11ae253db1ea84ce9e17152f868fe7b21cb77275f1b93f817e_1",
         "fix_regex": {
           "regex": "(.*)\\)",
           "replacement": "\\1, quoting=csv.QUOTE_ALL)"

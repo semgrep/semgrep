@@ -107,7 +107,7 @@
         "offset": 266
       },
       "extra": {
-        "fingerprint": "db9a0d9817e921bcdb001e9b19b33cb7453fe1bbec4ccd4e8a0bd03410c7a1e122fad9cd36a6f377666e53e318e3ad80282138a9dff87cff6943a197b0f0f6c0_0",
+        "fingerprint": "db9a0d9817e921bcdb001e9b19b33cb7453fe1bbec4ccd4e8a0bd03410c7a1e122fad9cd36a6f377666e53e318e3ad80282138a9dff87cff6943a197b0f0f6c0_1",
         "is_ignored": false,
         "lines": "assertTrue(x == x)",
         "message": "x == x is a useless equality check",

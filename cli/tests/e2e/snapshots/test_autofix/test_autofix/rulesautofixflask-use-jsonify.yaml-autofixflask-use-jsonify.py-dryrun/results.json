@@ -64,7 +64,7 @@
         "offset": 368
       },
       "extra": {
-        "fingerprint": "35f92d0c722cb740b90ff5f1eba72f67d53a1cd7aff7f880fdc44b53c244d237d962615436c8d32083c7289ccbf9aeb99a19ee77c8d7be3f8d76cf7dd5fb8a75_0",
+        "fingerprint": "35f92d0c722cb740b90ff5f1eba72f67d53a1cd7aff7f880fdc44b53c244d237d962615436c8d32083c7289ccbf9aeb99a19ee77c8d7be3f8d76cf7dd5fb8a75_1",
         "fix_regex": {
           "count": 1,
           "regex": "(json\\.){0,1}dumps",

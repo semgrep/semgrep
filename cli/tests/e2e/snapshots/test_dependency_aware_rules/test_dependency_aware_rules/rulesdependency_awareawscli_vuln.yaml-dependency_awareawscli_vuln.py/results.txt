@@ -93,7 +93,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/Pipfile.lock"
           }
         ],
-        "fingerprint": "2e0cf92327140cfee75c2de6b27e7c118d883d63d683e9dcc15be3b7d69520b522e239d5157f20e41bec411398e073d83734343ef8f2a4e0c9d4423bba49658c_0",
+        "fingerprint": "2e0cf92327140cfee75c2de6b27e7c118d883d63d683e9dcc15be3b7d69520b522e239d5157f20e41bec411398e073d83734343ef8f2a4e0c9d4423bba49658c_1",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
@@ -231,7 +231,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/Pipfile.lock"
           }
         ],
-        "fingerprint": "e9a3985a16c933a2dc2cd834c2fb7eac79967357fd03ad2568fd479ff2eb92af46247696a9178c12fb38ba8383f682fe545bbbb3071b27469ab4977df1231e27_0",
+        "fingerprint": "e9a3985a16c933a2dc2cd834c2fb7eac79967357fd03ad2568fd479ff2eb92af46247696a9178c12fb38ba8383f682fe545bbbb3071b27469ab4977df1231e27_1",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
@@ -323,7 +323,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/Pipfile.lock"
           }
         ],
-        "fingerprint": "09f05fc51b9b412246aa72d449cc302b4c8290887373daccbd9c2aeb07cb3adec6c069d45478a8318deb8ab4a101f64ff78f983f8a3fd3da477442fbf3b85c30_0",
+        "fingerprint": "09f05fc51b9b412246aa72d449cc302b4c8290887373daccbd9c2aeb07cb3adec6c069d45478a8318deb8ab4a101f64ff78f983f8a3fd3da477442fbf3b85c30_1",
         "is_ignored": false,
         "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",

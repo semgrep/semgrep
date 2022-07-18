@@ -61,7 +61,7 @@
         "offset": 36
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_0",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_2",
         "is_ignored": false,
         "lines": "<h4>To:",
         "message": "test regex message",
@@ -84,7 +84,7 @@
         "offset": 126
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_0",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_3",
         "is_ignored": false,
         "lines": "</h4>",
         "message": "test regex message",
@@ -107,7 +107,7 @@
         "offset": 131
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_0",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_4",
         "is_ignored": false,
         "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",
@@ -130,7 +130,7 @@
         "offset": 156
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_1",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_5",
         "is_ignored": false,
         "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",
@@ -153,7 +153,7 @@
         "offset": 342
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_0",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_6",
         "is_ignored": false,
         "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
@@ -176,7 +176,7 @@
         "offset": 358
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_1",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_7",
         "is_ignored": false,
         "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
@@ -199,7 +199,7 @@
         "offset": 370
       },
       "extra": {
-        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_0",
+        "fingerprint": "16db8cc291474ae78b7f320443840fef8badb79296d174eebddfdc71c4748cfe51c308d0c89fb1e62ef69ad2174185fe7d8fc217ea6abc28c56c7099fedf4c57_8",
         "is_ignored": false,
         "lines": "<hr>",
         "message": "test regex message",

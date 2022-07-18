@@ -57,7 +57,7 @@
         "offset": 58
       },
       "extra": {
-        "fingerprint": "9bea0af7038080d9689cbcddeba562ce5b15d36e7baaba682812eb4ac7b9c431b8f10715c399e56cf070bd526fed6502f2587d7209ce4f9f0121e4ef1b8c75e4_1",
+        "fingerprint": "9bea0af7038080d9689cbcddeba562ce5b15d36e7baaba682812eb4ac7b9c431b8f10715c399e56cf070bd526fed6502f2587d7209ce4f9f0121e4ef1b8c75e4_0",
         "fix": "wrap(\"b\")",
         "is_ignored": false,
         "lines": "        return \"a\" + \"b\";",

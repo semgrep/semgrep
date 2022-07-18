@@ -91,12 +91,12 @@
       "end_column": 11,
       "message": "useless comparison",
       "severity": 2,
-      "index": 0,
+      "index": 4,
       "commit_date": "sanitized",
-      "syntactic_id": "f3b21c38bc22a1f1f870d49fc3a40244",
+      "syntactic_id": "6a22a4714c81674768e55fecba4d78be",
       "metadata": {},
       "is_blocking": true,
-      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0"
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_4"
     },
     {
       "check_id": "eqeq-five",

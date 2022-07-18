@@ -66,7 +66,7 @@
         "offset": 180
       },
       "extra": {
-        "fingerprint": "31558914f798bf1ad1fbf2371e9fcd98640d5a06a5a32ae69e5959a4fdad194b4936c1ad42774f2e7ae9c54b49b16d6236ebf859850cff4189e348fe1abd83c2_0",
+        "fingerprint": "31558914f798bf1ad1fbf2371e9fcd98640d5a06a5a32ae69e5959a4fdad194b4936c1ad42774f2e7ae9c54b49b16d6236ebf859850cff4189e348fe1abd83c2_1",
         "fix": "WORKDIR /$WORD",
         "is_ignored": false,
         "lines": "WORKDIR ${dirpath}",
