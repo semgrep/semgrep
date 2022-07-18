@@ -1,0 +1,1 @@
+Do not store time or skipped targets output unless requested. This reduces memory consumption significantly in large repos
