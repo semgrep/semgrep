@@ -116,6 +116,7 @@ def test_omit_inventory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stdout, "results.out")
 
 
+@pytest.mark.kinda_slow
 def test_omit_experiment(run_semgrep_in_tmp, snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/experiment/experiment.yaml",
