@@ -1,0 +1,17 @@
+What:
+Currently, `Impossible` is raised for certain C# programs, when an explicit type is expected 
+where an implicit one was provided (for instance, when introduced by the `var` keyword). An example
+program which triggers this is provided below:
+```
+public class Foo {
+    public void Foo(var a) {
+    }
+}
+```
+
+Why:
+We should reject this program, but with a better error message.
+
+How:
+Change it to be raising an exception, specifically a `Parse_info.Other_error`. This is not a `Parse_info.Parse_error`
+because this is not exactly a parsing bug, c.f. the GitHub discussion in the issue.
