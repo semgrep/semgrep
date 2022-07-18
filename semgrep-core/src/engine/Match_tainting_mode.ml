@@ -379,14 +379,6 @@ let pm_of_finding finding =
   | T.ArgToReturn _ ->
       None
 
-let check_stmt ?in_env ?name lang fun_env taint_config def_body =
-  let xs = AST_to_IL.stmt lang def_body in
-  let flow = CFG_build.cfg_of_stmts xs in
-  let mapping =
-    Dataflow_tainting.fixpoint ?in_env ?name ~fun_env taint_config flow
-  in
-  ignore mapping
-
 let check_fundef lang fun_env taint_config opt_ent fdef =
   let name =
     let* ent = opt_ent in
@@ -440,8 +432,9 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
         | _ -> env)
       Dataflow_core.VarMap.empty fdef.G.fparams
   in
-  check_stmt ?name ~in_env lang fun_env taint_config
-    (H.funcbody_to_stmt fdef.G.fbody)
+  let _, xs = AST_to_IL.function_definition lang fdef in
+  let flow = CFG_build.cfg_of_stmts xs in
+  Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
 
 let check_rule rule match_hook (default_config, equivs) xtarget =
   let matches = ref [] in
@@ -497,7 +490,9 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
    * treat the program itself as an anonymous function. *)
   let (), match_time =
     Common.with_time (fun () ->
-        check_stmt lang fun_env taint_config (G.stmt1 ast))
+        let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+        let flow = CFG_build.cfg_of_stmts xs in
+        Dataflow_tainting.fixpoint ~fun_env taint_config flow |> ignore)
   in
 
   let matches =

@@ -83,7 +83,7 @@ let dump_il file =
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.G.fbody) in
+            let _, xs = AST_to_IL.function_definition lang def in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }

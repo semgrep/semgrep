@@ -1,0 +1,10 @@
+rules:
+- id: test
+  message: Test
+  severity: ERROR
+  languages: [ruby]
+  mode: taint
+  pattern-sources:
+  - pattern: user_input
+  pattern-sinks:
+  - pattern: sink(...)
