@@ -1,0 +1,6 @@
+Reduce memory consumption of semgrep by passing the targets in a more condensed
+structure. Previously, we told semgrep which rules to run on which target by
+listing out all the rule_ids each target should run. Now, we have a separate
+rule_id list and for each target we only ilst the rule_id indices. On large
+repos, particularly when run with multiple processes, this has a significant
+impact.
