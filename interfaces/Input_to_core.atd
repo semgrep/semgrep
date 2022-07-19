@@ -25,13 +25,17 @@ type target = {
    * allow (by design) to use types defined in other files.
    *)
   language: string;
-  (* If there is no rule_id, the default we will use is '-' *)
+  (* Index in the rule_ids list in targets of the rule_id to
+   * run this target on *)
   rule_nums: int list;
 }
 
 (* The same path can be present multiple times in targets below, with
  * different languages each time, so a Python file can be both analyzed
  * with Python rules, but also with generic/regexp rules.
+ *
+ * To avoid repeating the rule_ids, targets contains a list of all the
+ * rule_ids and each target references the index of the rule_id
  *
  * alt: we could have a list of languages instead in target above, but
  * because of the way semgrep-core is designed (with its file_and_more type),
@@ -43,6 +47,7 @@ type target = {
  *)
 type targets = {
    target_mappings: target list;
+   (* If there is no rule_id, the default we will use is '-' *)
    rule_ids: string list
 }
 

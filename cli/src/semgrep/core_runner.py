@@ -305,6 +305,13 @@ class TargetMappings(List[Task]):
 
 
 class Plan:
+    """
+    Saves and displays knowledge of what will be run
+
+    to_json: creates the json passed to semgrep_core - see Input_to_core.atd
+    log: outputs a summary of how many files will be scanned for each file
+    """
+
     def __init__(self, mappings: List[Task], rule_ids: List[str]):
         self.target_mappings = TargetMappings(mappings)
         self.rule_ids = rule_ids
@@ -538,8 +545,9 @@ class CoreRunner:
         """
         Gets the targets to run for each rule
 
-        Returns this information as a list of targets with language and rule ids,
-        which semgrep-core requires to know what rules to run for each file
+        Returns this information as a list of rule ids and a list of targets with
+        language + index of the rule ids for the rules to run each target on.
+        Semgrep-core will use this to determine what to run (see Input_to_core.atd).
         Also updates all_targets, used by core_runner
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
