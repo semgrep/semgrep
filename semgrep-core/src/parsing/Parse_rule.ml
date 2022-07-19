@@ -748,15 +748,6 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarComparison { R.metavariable; comparison; strip; base }
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
-let parse_extract_dest ~id lang : Xlang.t =
-  match lang with
-  | ("none" | "regex"), _ -> LRegex
-  | "generic", _ -> LGeneric
-  | s, t -> (
-      match Lang.lang_of_string_opt s with
-      | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
-      | Some l -> L (l, []))
-
 let parse_language ~id ((s, t) as _lang) : Lang.t =
   match Lang.lang_of_string_opt s with
   | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
@@ -774,6 +765,12 @@ let parse_languages ~id langs : Xlang.t =
             (R.InvalidRule
                (R.InvalidOther "we need at least one language", fst id, snd id))
       | x :: xs -> L (x, xs))
+
+let parse_extract_dest ~id lang : Xlang.t =
+  match lang with
+  | ("none" | "regex"), _ -> LRegex
+  | "generic", _ -> LGeneric
+  | lang -> L (parse_language ~id lang, [])
 
 let parse_severity ~id (s, t) =
   match s with
