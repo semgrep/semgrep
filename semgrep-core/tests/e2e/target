@@ -1,7 +1,7 @@
 { "target_mappings": 
   [{"path": "tests/e2e/targets/basic.py",
    "language": "python",
-   "rule_ids": [0]
+   "rule_nums": [0]
   }],
   "rule_ids": ["-"]
 }
