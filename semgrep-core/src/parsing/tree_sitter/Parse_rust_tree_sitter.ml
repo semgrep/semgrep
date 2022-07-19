@@ -2480,7 +2480,7 @@ and map_return_expression (env : env) (x : CST.return_expression) : G.expr =
 
 and map_scoped_identifier_name (env : env)
     ((v1, v2, v3) : CST.scoped_identifier) : G.name =
-  let _either_opt =
+  let prefix_info =
     match v1 with
     | Some x -> (
         match x with
@@ -2498,7 +2498,7 @@ and map_scoped_identifier_name (env : env)
   let last_id = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   (* TODO: use either_opt *)
-  match _either_opt with
+  match prefix_info with
   | Some (Left (Id (first_id, _))) -> H2.name_of_ids [ first_id; last_id ]
   | Some (Left (IdQualified ({ name_last; name_middle; _ } as q_info))) ->
       let new_name_middle =

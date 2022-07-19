@@ -1,2 +1,3 @@
-let x = A::f;
-let y = B::g;
+// ERROR: match
+static x : () = A::f;
+static y : () = B::g;
