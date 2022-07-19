@@ -457,7 +457,9 @@ let resolve lang prog =
           (* todo: we should first process all fields in the class before
            * processing the methods, as some languages may allow forward ref.
            *)
-          with_new_context InClass env (fun () -> k x));
+          let class_params = params_of_parameters env x.cparams in
+          with_new_context InClass env (fun () ->
+              with_new_function_scope class_params env.names (fun () -> k x)));
       V.kdef =
         (fun (k, _v) x ->
           match x with
