@@ -76,6 +76,8 @@ jobs:
     name: build docker image
     runs-on: ubuntu-latest
     steps:
+      - name: Set up QEMU # required for multiarch
+        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -83,6 +85,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           load: true
+          platforms: linux/amd64,linux/arm64
           tags: candidate-image
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
@@ -119,6 +122,7 @@ jobs:
         if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
         with:
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
@@ -147,7 +151,7 @@ jobs:
         with:
           push: true
           file: dockerfiles/semgrep-dev.Dockerfile
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.dev-meta.outputs.tags }}
           labels: ${{ steps.dev-meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache
