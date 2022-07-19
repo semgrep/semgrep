@@ -314,6 +314,8 @@ class Plan:
 
     def __init__(self, mappings: List[Task], rule_ids: List[str]):
         self.target_mappings = TargetMappings(mappings)
+        # important: this is a list of rule_ids, not a set
+        # target_mappings relies on the index of each rule_id in rule_ids
         self.rule_ids = rule_ids
 
     def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
@@ -332,6 +334,10 @@ class Plan:
             "target_mappings": [asdict(task) for task in self.target_mappings],
             "rule_ids": self.rule_ids,
         }
+
+    @property
+    def num_targets(self) -> int:
+        return len(self.target_mappings)
 
     def log(self) -> None:
         metrics = get_state().metrics
@@ -717,7 +723,7 @@ class CoreRunner:
                 print(" ".join(cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, len(plan.target_mappings))
+            runner = StreamingSemgrepCore(cmd, plan.num_targets)
             returncode = runner.execute()
 
             # Process output
