@@ -689,6 +689,10 @@ let main () =
 
   let config = mk_config () in
 
+  if config.debug then Report.mode := MDebug
+  else if config.report_time then Report.mode := MTime
+  else Report.mode := MNo_info;
+
   Setup_logging.setup config;
 
   logger#info "Executed as: %s" (argv |> String.concat " ");

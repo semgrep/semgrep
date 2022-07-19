@@ -153,6 +153,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              E.g_errors := [];
              Flag_semgrep.with_opt_cache := false;
              let config = Config_semgrep.default_config in
+             Report.mode := MTime;
              let rules, extract_rules =
                Common.partition_either
                  (fun r ->
@@ -227,23 +228,30 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
-                    res.RP.profiling.rule_times
-                    |> List.iter (fun rule_time ->
-                           if not (rule_time.RP.match_time >= 0.) then
-                             (* match_time could be 0.0 if the rule contains no pattern or if the
-                                rules are skipped. Otherwise it's positive. *)
-                             failwith
-                               (spf
-                                  "invalid value for match time: %g (rule: %s, \
-                                   target: %s)"
-                                  rule_time.RP.match_time file target);
-                           if not (rule_time.RP.parse_time >= 0.) then
-                             (* same for parse time *)
-                             failwith
-                               (spf
-                                  "invalid value for parse time: %g (rule: %s, \
-                                   target: %s)"
-                                  rule_time.RP.parse_time file target)));
+                    match res.extra with
+                    | Debug _
+                    | No_info ->
+                        failwith
+                          "Impossible; type of res should match Report.mode, \
+                           which we force to be MTime"
+                    | Time { profiling } ->
+                        profiling.rule_times
+                        |> List.iter (fun rule_time ->
+                               if not (rule_time.RP.match_time >= 0.) then
+                                 (* match_time could be 0.0 if the rule contains no pattern or if the
+                                    rules are skipped. Otherwise it's positive. *)
+                                 failwith
+                                   (spf
+                                      "invalid value for match time: %g (rule: \
+                                       %s, target: %s)"
+                                      rule_time.RP.match_time file target);
+                               if not (rule_time.RP.parse_time >= 0.) then
+                                 (* same for parse time *)
+                                 failwith
+                                   (spf
+                                      "invalid value for parse time: %g (rule: \
+                                       %s, target: %s)"
+                                      rule_time.RP.parse_time file target)));
 
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->

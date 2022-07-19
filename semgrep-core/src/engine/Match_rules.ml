@@ -135,18 +135,22 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                        && !cnt_timeout >= timeout_threshold
                      then raise File_timeout;
                      let loc = Parse_info.first_loc_of_file file in
+                     let error =
+                       E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout
+                     in
                      Left
-                       {
-                         RP.matches = [];
-                         errors =
-                           [
-                             E.mk_error ~rule_id:(Some rule_id) loc ""
-                               Out.Timeout;
-                           ];
-                         skipped_targets = [];
-                         profiling = RP.empty_rule_profiling r;
-                       }))
+                       (RP.make_match_result [] [ error ]
+                          (RP.empty_rule_profiling r))))
   in
-  let skipped = Common.map (skipped_target_of_rule xtarget) skipped_rules in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_rules in
-  { res with skipped_targets = skipped @ res.skipped_targets }
+  let extra =
+    match res.extra with
+    | RP.Debug { skipped_targets; profiling } ->
+        let skipped =
+          Common.map (skipped_target_of_rule xtarget) skipped_rules
+        in
+        RP.Debug { skipped_targets = skipped @ skipped_targets; profiling }
+    | Time profiling -> Time profiling
+    | No_info -> No_info
+  in
+  { res with extra }

@@ -250,10 +250,17 @@ let match_results_of_matches_and_errors files res =
   in
   let count_errors = StrSet.cardinal files_with_errors in
   let count_ok = List.length files - count_errors in
+  let skipped_targets, profiling =
+    match res.extra with
+    | RP.Debug { skipped_targets; profiling } ->
+        (Some skipped_targets, Some profiling)
+    | RP.Time { profiling } -> (None, Some profiling)
+    | RP.No_info -> (None, None)
+  in
   {
     Out.matches;
     errors = errs |> Common.map error_to_error;
-    skipped_targets = res.RP.skipped_targets;
+    skipped_targets;
     skipped_rules =
       (match res.RP.skipped_rules with
       | [] -> None
@@ -268,7 +275,7 @@ let match_results_of_matches_and_errors files res =
                      position = OutH.position_of_token_location loc;
                    })));
     stats = { okfiles = count_ok; errorfiles = count_errors };
-    time = res.RP.final_profiling |> Option.map json_time_of_profiling_data;
+    time = profiling |> Option.map json_time_of_profiling_data;
   }
   |> Output_from_core_util.sort_match_results
   [@@profiling]

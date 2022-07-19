@@ -388,33 +388,28 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                          rule.MR.id;
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Parse_info.first_loc_of_file file in
-                   {
-                     RP.matches = [];
-                     errors =
-                       [
-                         E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
-                           (match exn with
-                           | Match_rules.File_timeout ->
-                               logger#info "Timeout on %s" file;
-                               Out.Timeout
-                           | Out_of_memory ->
-                               logger#info "OutOfMemory on %s" file;
-                               Out.OutOfMemory
-                           | _ -> raise Impossible);
-                       ];
-                     skipped_targets = [];
-                     profiling = RP.empty_partial_profiling file;
-                   }
+                   let errors =
+                     [
+                       E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
+                         (match exn with
+                         | Match_rules.File_timeout ->
+                             logger#info "Timeout on %s" file;
+                             Out.Timeout
+                         | Out_of_memory ->
+                             logger#info "OutOfMemory on %s" file;
+                             Out.OutOfMemory
+                         | _ -> raise Impossible);
+                     ]
+                   in
+                   RP.make_match_result [] errors
+                     (RP.empty_partial_profiling file)
                (* those were converted in Main_timeout in timeout_function()*)
                | Timeout _ -> assert false
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
-                   {
-                     RP.matches = [];
-                     errors = [ exn_to_error file e ];
-                     skipped_targets = [];
-                     profiling = RP.empty_partial_profiling file;
-                   })
+                   let errors = [ exn_to_error file e ] in
+                   RP.make_match_result [] errors
+                     (RP.empty_partial_profiling file))
          in
          RP.add_run_time run_time res)
 
@@ -616,31 +611,33 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
            Hashtbl.find_opt extract_result_map file
            |> Option.fold ~some:(fun f -> f res) ~none:res)
   in
-  let res =
-    RP.make_final_result file_results rules config.debug config.report_time
-      rules_parse_time
-  in
-  let res = { res with skipped_targets = skipped @ res.skipped_targets } in
-  logger#info "found %d matches, %d errors, %d skipped targets"
-    (List.length res.matches) (List.length res.errors)
-    (List.length res.skipped_targets);
+  let res = RP.make_final_result file_results rules ~rules_parse_time in
+  logger#info "found %d matches, %d errors" (List.length res.matches)
+    (List.length res.errors);
+
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout
       config.max_match_per_file res.matches
   in
+
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
-  let skipped_targets = new_skipped @ res.skipped_targets in
+
+  (* Concatenate all the skipped targets *)
+  let extra =
+    match res.extra with
+    | RP.Debug { skipped_targets; profiling } ->
+        let skipped_targets = skipped @ new_skipped @ skipped_targets in
+        logger#info "there were %d skipped targets"
+          (List.length skipped_targets);
+        RP.Debug { skipped_targets; profiling }
+    | RP.Time profiling -> RP.Time profiling
+    | RP.No_info -> RP.No_info
+  in
   let errors = new_errors @ res.errors in
-  ( {
-      RP.matches;
-      errors;
-      skipped_targets;
-      skipped_rules = invalid_rules;
-      final_profiling = res.RP.final_profiling;
-    },
+  ( { RP.matches; errors; skipped_rules = invalid_rules; extra },
     targets |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =

@@ -183,29 +183,38 @@ let map_taint_trace map_loc { Pattern_match.source; tokens; sink } =
 
 let map_res map_loc tmpfile file
     (mr : Report.partial_profiling Report.match_result) =
-  {
-    Report.matches =
-      Common.map
-        (fun (m : Pattern_match.t) ->
-          {
-            m with
-            file;
-            range_loc = Common2.pair map_loc m.range_loc;
-            taint_trace =
-              Option.map (Lazy.map_val (map_taint_trace map_loc)) m.taint_trace;
-          })
-        mr.matches;
-    errors =
-      Common.map
-        (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
-        mr.errors;
-    skipped_targets =
-      Common.map
-        (fun (st : Output_from_core_t.skipped_target) ->
-          { st with path = (if st.path = tmpfile then file else st.path) })
-        mr.skipped_targets;
-    profiling = { mr.profiling with Report.file };
-  }
+  let matches =
+    Common.map
+      (fun (m : Pattern_match.t) ->
+        {
+          m with
+          file;
+          range_loc = Common2.pair map_loc m.range_loc;
+          taint_trace =
+            Option.map (Lazy.map_val (map_taint_trace map_loc)) m.taint_trace;
+        })
+      mr.matches
+  in
+  let errors =
+    Common.map
+      (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
+      mr.errors
+  in
+  let extra =
+    match mr.extra with
+    | Debug { skipped_targets; profiling } ->
+        let skipped_targets =
+          Common.map
+            (fun (st : Output_from_core_t.skipped_target) ->
+              { st with path = (if st.path = tmpfile then file else st.path) })
+            skipped_targets
+        in
+        Report.Debug
+          { skipped_targets; profiling = { profiling with Report.file } }
+    | Time { profiling } -> Time { profiling = { profiling with Report.file } }
+    | No_info -> No_info
+  in
+  { Report.matches; errors; extra }
 
 (*****************************************************************************)
 (* Main logic *)

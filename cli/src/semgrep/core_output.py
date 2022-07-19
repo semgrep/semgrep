@@ -21,7 +21,6 @@ from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
-from semgrep.state import get_state
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
 
@@ -86,23 +85,16 @@ def core_error_to_semgrep_error(err: core.CoreError) -> SemgrepCoreError:
 
 
 def parse_core_output(raw_json: JsonObject) -> core.CoreMatchResults:
-    terminal = get_state().terminal
     match_results = core.CoreMatchResults.from_json(raw_json)
-    if not terminal.is_debug:
-        # Previously we skipped the loop below to save time with large
-        # skipped_targets. Now, there are no skipped targets returned unless
-        # core is run in debug mode, but this if-statement is left to make
-        # that obvious
-        return match_results
-
-    for skip in match_results.skipped_targets:
-        if skip.rule_id:
-            rule_info = f"rule {skip.rule_id}"
-        else:
-            rule_info = "all rules"
-        logger.verbose(
-            f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
-        )
+    if match_results.skipped_targets:
+        for skip in match_results.skipped_targets:
+            if skip.rule_id:
+                rule_info = f"rule {skip.rule_id}"
+            else:
+                rule_info = "all rules"
+            logger.verbose(
+                f"skipped '{skip.path}' [{rule_info}]: {skip.reason}: {skip.details}"
+            )
     return match_results
 
 
