@@ -121,7 +121,11 @@ let mk_extract_target dst_lang contents rule_ids =
   in
   let f : Common.dirname = Common.new_temp_file "extracted" dst_lang in
   Common2.write_file ~file:f contents;
-  { In.path = f; language = dst_lang; rule_ids }
+  {
+    In.path = f;
+    language = dst_lang;
+    rule_nums = List.mapi (fun i _ -> i) rule_ids;
+  }
 
 (*****************************************************************************)
 (* Error reporting *)

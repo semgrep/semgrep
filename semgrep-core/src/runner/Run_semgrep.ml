@@ -427,9 +427,15 @@ let rules_for_xlang xlang rules =
          | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
          | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
 
-let mk_rule_table rules =
+let mk_rule_table rules list_of_rule_ids =
   let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
-  Common.hash_of_list rule_pairs
+  let rule_table = Common.hash_of_list rule_pairs in
+  let id_pairs =
+    List.mapi
+      (fun i rule_id -> (i, Hashtbl.find rule_table rule_id))
+      list_of_rule_ids
+  in
+  Common.hash_of_list id_pairs
 
 let xtarget_of_file config xlang file =
   let lazy_ast_and_errors =
@@ -475,16 +481,17 @@ let targets_of_config (config : Runner_config.t)
         | Xlang.L (_, _) -> assert false
       in
       let files, skipped = Find_target.files_of_dirs_or_files lang_opt roots in
-      let targets =
+      let rule_ids = all_rule_ids_when_no_target_file in
+      let target_mappings =
         files
         |> Common.map (fun file ->
                {
                  In.path = file;
                  language = Xlang.to_string xlang;
-                 rule_ids = all_rule_ids_when_no_target_file;
+                 rule_nums = List.mapi (fun i _ -> i) rule_ids;
                })
       in
-      (targets, skipped)
+      ({ target_mappings; rule_ids }, skipped)
   | "", _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
   | target_file, roots, lang_opt ->
@@ -508,7 +515,10 @@ let targets_of_config (config : Runner_config.t)
 *)
 let extract_targets_of_config config rule_ids extractors =
   let erule_ids = Common.map (fun r -> fst r.R.id) extractors in
-  let extract_targets, extract_skipped = targets_of_config config erule_ids in
+  let extract_target_info, extract_skipped =
+    targets_of_config config erule_ids
+  in
+  let extract_targets = extract_target_info.target_mappings in
   let match_hook str match_ =
     if config.output_format = Text then (
       print_string "extracted content from ";
@@ -577,12 +587,13 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   (* TODO: possibly extract (recursively) from generated stuff *)
   if not (config.metatypes_file = "") then
     process_metatypes config.metatypes_file;
-  let rule_table = mk_rule_table rules in
-  let targets, skipped = targets_of_config config rule_ids in
-  logger#info "processing %d files, skipping %d files" (List.length targets)
+  let target_info, skipped = targets_of_config config rule_ids in
+  let rule_table = mk_rule_table rules target_info.rule_ids in
+  logger#info "processing %d files, skipping %d files"
+    (List.length target_info.target_mappings)
     (List.length skipped);
   let file_results =
-    targets @ extracted_targets
+    target_info.target_mappings @ extracted_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config (fun target ->
            let file = target.In.path in
            let xlang = Xlang.of_string target.In.language in
@@ -590,8 +601,8 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              (* Assumption: find_opt will return None iff a r_id
                  is in skipped_rules *)
              List.filter_map
-               (fun r_id -> Hashtbl.find_opt rule_table r_id)
-               target.In.rule_ids
+               (fun r_num -> Hashtbl.find_opt rule_table r_num)
+               target.In.rule_nums
            in
 
            let xtarget = xtarget_of_file config xlang file in
@@ -638,7 +649,7 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   in
   let errors = new_errors @ res.errors in
   ( { RP.matches; errors; skipped_rules = invalid_rules; extra },
-    targets |> Common.map (fun x -> x.In.path) )
+    target_info.target_mappings |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
   let rules_file = config.rules_file in
@@ -775,10 +786,12 @@ let semgrep_with_one_pattern config =
             [ minirule_of_pattern lang pattern_string pattern ])
       in
       (* simpler code path than in semgrep_with_rules *)
-      let targets, _skipped =
+      let target_info, _skipped =
         targets_of_config config (Common.map (fun r -> r.MR.id) minirule)
       in
-      let files = targets |> Common.map (fun t -> t.In.path) in
+      let files =
+        target_info.target_mappings |> Common.map (fun t -> t.In.path)
+      in
       files
       |> List.iter (fun file ->
              logger#info "processing: %s" file;

@@ -56,14 +56,15 @@ val exn_to_error : Common.filename -> Exception.t -> Semgrep_error_code.error
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val mk_rule_table : Rule.rule list -> (Rule.rule_id, Rule.rule) Hashtbl.t
+val mk_rule_table :
+  Rule.rule list -> Rule.rule_id list -> (int, Rule.rule) Hashtbl.t
 (** Helper to create the table of rules to run for each file **)
 
 val extract_targets_of_config :
   Runner_config.t ->
   Rule.rule_id list ->
   Rule.extract_rule list ->
-  Input_to_core_t.targets
+  Input_to_core_t.target list
   * ( Common.filename,
       Report.partial_profiling Report.match_result ->
       Report.partial_profiling Report.match_result )
