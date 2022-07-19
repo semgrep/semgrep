@@ -205,11 +205,7 @@ type extract_reduction = Separate | Concat [@@deriving show]
 type extract_spec = {
   pformula : pformula;
   reduce : extract_reduction;
-  (* TODO: really want Lang.t | Generic --- the requirement that the
-     destination is a real langauge is potentially awkward for template files
-     with DSLs, though this might require some sort of additional label system
-     to be robust *)
-  dst_lang : Lang.t;
+  dst_lang : Xlang.t;
   extract : string;
 }
 [@@deriving show]

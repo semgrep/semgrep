@@ -766,6 +766,12 @@ let parse_languages ~id langs : Xlang.t =
                (R.InvalidOther "we need at least one language", fst id, snd id))
       | x :: xs -> L (x, xs))
 
+let parse_extract_dest ~id lang : Xlang.t =
+  match lang with
+  | ("none" | "regex"), _ -> LRegex
+  | "generic", _ -> LGeneric
+  | lang -> L (parse_language ~id lang, [])
+
 let parse_severity ~id (s, t) =
   match s with
   | "ERROR" -> R.Error
@@ -863,7 +869,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       let pformula = parse_formula env rule_dict in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
-        |> parse_language ~id:env.id
+        |> parse_extract_dest ~id:env.id
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in

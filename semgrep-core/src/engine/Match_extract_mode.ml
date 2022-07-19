@@ -113,7 +113,12 @@ let offsets_of_mval extract_mvalue =
          })
 
 let mk_extract_target dst_lang contents rule_ids =
-  let dst_lang = dst_lang |> Lang.show in
+  let dst_lang =
+    match dst_lang with
+    | Xlang.LGeneric -> "generic"
+    | Xlang.LRegex -> "regex"
+    | Xlang.L (x, _) -> Lang.show x
+  in
   let f : Common.dirname = Common.new_temp_file "extracted" dst_lang in
   Common2.write_file ~file:f contents;
   { In.path = f; language = dst_lang; rule_ids }
