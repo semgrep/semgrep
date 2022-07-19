@@ -291,21 +291,27 @@ class StreamingSemgrepCore:
 class Task:
     path: str = field(converter=str)
     language: Language
-    rule_ids: Sequence[str]
+    rule_nums: Sequence[int]
 
 
-class Plan(List[Task]):
+class TargetMappings(List[Task]):
     @property
     def rule_count(self) -> int:
-        return len({rule for task in self for rule in task.rule_ids})
+        return len({rule for task in self for rule in task.rule_nums})
 
     @property
     def file_count(self) -> int:
         return len(self)
 
-    def split_by_lang_label(self) -> Dict[str, "Plan"]:
-        result: Dict[str, Plan] = collections.defaultdict(Plan)
-        for task in self:
+
+class Plan:
+    def __init__(self, mappings: List[Task], rule_ids: List[str]):
+        self.target_mappings = TargetMappings(mappings)
+        self.rule_ids = rule_ids
+
+    def split_by_lang_label(self) -> Dict[str, "TargetMappings"]:
+        result: Dict[str, TargetMappings] = collections.defaultdict(TargetMappings)
+        for task in self.target_mappings:
             label = (
                 "<multilang>"
                 if task.language in {Language("regex"), Language("generic")}
@@ -314,18 +320,21 @@ class Plan(List[Task]):
             result[label].append(task)
         return result
 
-    def to_json(self) -> List[Dict[str, Any]]:
-        return [asdict(task) for task in self]
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "target_mappings": [asdict(task) for task in self.target_mappings],
+            "rule_ids": self.rule_ids,
+        }
 
     def log(self) -> None:
         metrics = get_state().metrics
 
-        if self.rule_count == 0:
+        if self.target_mappings.rule_count == 0:
             logger.info("Nothing to scan.")
             return
 
-        if self.rule_count == 1:
-            logger.info(f"Scanning {unit_str(len(self), 'file')}.")
+        if self.target_mappings.rule_count == 1:
+            logger.info(f"Scanning {unit_str(len(self.target_mappings), 'file')}.")
             return
 
         plans_by_language = sorted(
@@ -335,7 +344,7 @@ class Plan(List[Task]):
         )
         if len(plans_by_language) == 1:
             logger.info(
-                f"Scanning {unit_str(self.file_count, 'file')} with {unit_str(self.rule_count, f'{plans_by_language[0][0]} rule')}."
+                f"Scanning {unit_str(self.target_mappings.file_count, 'file')} with {unit_str(self.target_mappings.rule_count, f'{plans_by_language[0][0]} rule')}."
             )
             return
 
@@ -359,7 +368,7 @@ class Plan(List[Task]):
         logger.info("")
 
     def __str__(self) -> str:
-        return f"<Plan of {len(self)} tasks for {list(self.split_by_lang_label())}>"
+        return f"<Plan of {len(self.target_mappings)} tasks for {list(self.split_by_lang_label())}>"
 
 
 class CoreRunner:
@@ -535,27 +544,28 @@ class CoreRunner:
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
-        target_info: Dict[
-            Tuple[Path, Language], List[str]  # TODO: List[core.RuleId]
-        ] = collections.defaultdict(list)
+        target_info: Dict[Tuple[Path, Language], List[int]] = collections.defaultdict(
+            list
+        )
 
-        for rule in rules:
+        for i, rule in enumerate(rules):
             for language in rule.languages:
                 targets = self.get_files_for_language(language, rule, target_manager)
 
                 for target in targets:
                     all_targets.add(target)
-                    target_info[target, language].append(rule.id)  # TODO: core.RuleId
+                    target_info[target, language].append(i)
 
         return Plan(
             [
                 Task(
                     path=target,
                     language=language,
-                    rule_ids=target_info[target, language],
+                    rule_nums=target_info[target, language],
                 )
                 for target, language in target_info
-            ]
+            ],
+            [rule.id for rule in rules],
         )
 
     def _run_rules_direct_to_semgrep_core(
@@ -699,7 +709,7 @@ class CoreRunner:
                 print(" ".join(cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, len(plan))
+            runner = StreamingSemgrepCore(cmd, len(plan.target_mappings))
             returncode = runner.execute()
 
             # Process output

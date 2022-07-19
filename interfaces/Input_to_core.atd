@@ -26,7 +26,7 @@ type target = {
    *)
   language: string;
   (* If there is no rule_id, the default we will use is '-' *)
-  rule_ids: string list;
+  rule_nums: int list;
 }
 
 (* The same path can be present multiple times in targets below, with
@@ -41,7 +41,10 @@ type target = {
  * alt: rule_ids above could also be used to analyze at once the same
  * file with both PL and generic/regexp rules.
  *)
-type targets = target list
+type targets = {
+   target_mappings: target list;
+   rule_ids: string list
+}
 
 
 (*****************************************************************************)
