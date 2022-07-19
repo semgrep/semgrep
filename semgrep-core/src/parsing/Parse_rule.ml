@@ -748,6 +748,15 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       R.MetavarComparison { R.metavariable; comparison; strip; base }
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
+let parse_extract_dest ~id lang : Xlang.t =
+  match lang with
+  | ("none" | "regex"), _ -> LRegex
+  | "generic", _ -> LGeneric
+  | s, t -> (
+      match Lang.lang_of_string_opt s with
+      | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
+      | Some l -> L (l, []))
+
 let parse_language ~id ((s, t) as _lang) : Lang.t =
   match Lang.lang_of_string_opt s with
   | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
@@ -863,7 +872,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       let pformula = parse_formula env rule_dict in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
-        |> parse_language ~id:env.id
+        |> parse_extract_dest ~id:env.id
       in
       (* TODO: determine fmt---string with interpolated metavars? *)
       let extract = take rule_dict env parse_string "extract" in
