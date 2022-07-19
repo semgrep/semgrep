@@ -74,6 +74,10 @@ class RuleMatch:
     # ???
     index: int = 0
 
+    # Used only for indexing match based IDs since index uses syntactic IDs to
+    # index meaning that there can be index collisions if we use it for mid
+    match_based_index: int = 0
+
     # This is the accompanying formula from the rule that created the match
     # Used for pattern_based_id
     #
@@ -91,6 +95,7 @@ class RuleMatch:
     cli_unique_key: Tuple = field(init=False, repr=False)
     ci_unique_key: Tuple = field(init=False, repr=False)
     ordering_key: Tuple = field(init=False, repr=False)
+    match_based_key: Tuple = field(init=False, repr=False)
     syntactic_id: str = field(init=False, repr=False)
     match_based_id: str = field(init=False, repr=False)
 
@@ -204,18 +209,6 @@ class RuleMatch:
         A unique key designed with notification user experience in mind.
 
         Results in fewer unique findings than cli_unique_key.
-
-        We use this to check if a finding matches its baseline equivalent,
-        and to de-duplicate findings when pushing to semgrep.dev from CI,
-        so that you don't get multiple notifications for the same finding
-        when just moving it around commit-after-commit in a pull request.
-
-        Some things that this key deduplicates to reduce useless notifications:
-        - findings that match different metavariables within the same code snippet
-        - findings that differ only in indentation
-        - findings that differ only because one is ignored with `# nosemgrep`
-
-        This key was originally implemented in and ported from semgrep-agent.
         """
         try:
             path = self.path.relative_to(Path.cwd())
@@ -256,13 +249,15 @@ class RuleMatch:
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
-    # This will supercede syntactic id, as currently that will change even if
-    # things formatting + line numbers change. By using the formula +
-    # metavariable content itself, we remain sensitive to modifications to a
-    # match, but we no longer count formatting + line number changs + other
-    # things as new findings
-    @match_based_id.default
-    def get_match_based_id(self) -> str:
+    @match_based_key.default
+    def get_match_based_key(self) -> Tuple:
+        """
+        A unique key with match based id's notion of uniqueness in mind.
+
+        We use this to check if two different findings will have the same match
+        based id or not. This is so we can then index them accordingly so two
+        similar findings will have unique match based IDs
+        """
         try:
             path = self.path.relative_to(Path.cwd())
         except (ValueError, FileNotFoundError):
@@ -274,11 +269,18 @@ class RuleMatch:
                 match_formula_str = match_formula_str.replace(
                     metavar, metavars[metavar]["abstract_content"]
                 )
-        match_id = (match_formula_str, path, self.rule_id)
+        return (match_formula_str, path, self.rule_id)
+
+    # This will supercede syntactic id, as currently that will change even if
+    # things formatting + line numbers change. By using the formula +
+    # metavariable content itself, we remain sensitive to modifications to a
+    # match, but we no longer count formatting + line number changs + other
+    # things as new findings
+    @match_based_id.default
+    def get_match_based_id(self) -> str:
+        match_id = self.get_match_based_key()
         match_id_str = str(match_id)
-        return (
-            f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.index)}"
-        )
+        return f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
 
     @property
     def uuid(self) -> UUID:
@@ -365,6 +367,7 @@ class RuleMatchSet(Iterable[RuleMatch]):
     def __init__(
         self, rule: Rule, __iterable: Optional[Iterable[RuleMatch]] = None
     ) -> None:
+        self._match_based_counts: CounterType[Tuple] = Counter()
         self._ci_key_counts: CounterType[Tuple] = Counter()
         self._rule = rule
         if __iterable is None:
@@ -382,9 +385,14 @@ class RuleMatchSet(Iterable[RuleMatch]):
         """
         if match.rule_id != self._rule.id:
             raise ValueError("Added match must have identical rule id to set rule")
+        match = evolve(match, match_formula_string=self._rule.formula_string)
+        self._match_based_counts[match.get_match_based_key()] += 1
         self._ci_key_counts[match.ci_unique_key] += 1
         match = evolve(match, index=self._ci_key_counts[match.ci_unique_key] - 1)
-        match = evolve(match, match_formula_string=self._rule.formula_string)
+        match = evolve(
+            match,
+            match_based_index=self._match_based_counts[match.get_match_based_key()] - 1,
+        )
         self._set.add(match)
 
     def update(self, *rule_match_iterables: Iterable[RuleMatch]) -> None:

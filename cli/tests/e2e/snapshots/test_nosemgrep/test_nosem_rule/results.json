@@ -100,7 +100,7 @@
         "offset": 180
       },
       "extra": {
-        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_0",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_3",
         "is_ignored": false,
         "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
@@ -123,7 +123,7 @@
         "offset": 364
       },
       "extra": {
-        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_0",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_7",
         "is_ignored": false,
         "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
         "message": "test-nosem-message",
@@ -146,7 +146,7 @@
         "offset": 383
       },
       "extra": {
-        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_6",
+        "fingerprint": "44095901a88c29c203788d0071be228810e9fa5ff0988bc8454ea3f109a3a5733d04a0ed031fd4fe2242ed276206f9ce80f33ff6cf8a5a7c5de77765f1ed6c37_8",
         "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",

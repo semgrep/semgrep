@@ -145,7 +145,7 @@
         "offset": 266
       },
       "extra": {
-        "fingerprint": "199b9d02c882626b8f9329be514a310db00edc2f7b0569beb7d2758f5a3c0cb7d7e4eeaa3909dd5b1cc75d6af8558e59187409030e6cd15274f7663c8079a079_0",
+        "fingerprint": "199b9d02c882626b8f9329be514a310db00edc2f7b0569beb7d2758f5a3c0cb7d7e4eeaa3909dd5b1cc75d6af8558e59187409030e6cd15274f7663c8079a079_1",
         "is_ignored": false,
         "lines": "assertTrue(x == x)",
         "message": "Found redundant comparison",

@@ -73,7 +73,7 @@
         "offset": 8
       },
       "extra": {
-        "fingerprint": "5eb7d86ab17afe5adec8de536741901bcabc1d4a946f6960c81ee511f2e78188ec90e1a6fca9a1b73c2f83749663fc1cf357f5b609d6102199b56203259da3b9_1",
+        "fingerprint": "5eb7d86ab17afe5adec8de536741901bcabc1d4a946f6960c81ee511f2e78188ec90e1a6fca9a1b73c2f83749663fc1cf357f5b609d6102199b56203259da3b9_0",
         "is_ignored": false,
         "lines": "foo(1,2)",
         "message": "Error message with both metavars 2 foo",

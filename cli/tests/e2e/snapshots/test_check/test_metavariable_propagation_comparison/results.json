@@ -56,7 +56,7 @@
         "offset": 123
       },
       "extra": {
-        "fingerprint": "c39802608a579081844eb3aa961f6fa9a69078062095b0e99e9fc535ff2f6906ef725b9955b44987be9ba8770d11a200c9c5423cdb6c4b99d2dfedc9d0645350_1",
+        "fingerprint": "c39802608a579081844eb3aa961f6fa9a69078062095b0e99e9fc535ff2f6906ef725b9955b44987be9ba8770d11a200c9c5423cdb6c4b99d2dfedc9d0645350_0",
         "is_ignored": false,
         "lines": "    b = 10",
         "message": "Semgrep found a match 3\n",
