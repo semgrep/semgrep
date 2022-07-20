@@ -511,6 +511,8 @@ class TargetManager:
         """
         Returns if a path is executable and executes with one of a set of programs
         """
+        if not path.is_file():
+            return False
         try:
             hline = self.get_shebang_line(path)
             if hline is None:
