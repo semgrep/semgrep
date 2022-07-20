@@ -364,7 +364,13 @@ let rec filter_ranges env xs cond =
                    ( fk,
                      [
                        G.Arg (G.L (G.String (re_str, fk)) |> G.e);
-                       G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e);
+                       G.Arg
+                         (G.Call
+                            ( G.N (G.Id (("str", fk), fki)) |> G.e,
+                              ( fk,
+                                [ G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e) ],
+                                fk ) )
+                         |> G.e);
                      ],
                      fk ) )
                |> G.e
@@ -372,7 +378,7 @@ let rec filter_ranges env xs cond =
 
              let env =
                if const_prop && (fst env.config).constant_propagation then
-                 Eval_generic.bindings_to_env_just_strings_const_prop bindings
+                 Eval_generic.bindings_to_env (fst env.config) bindings
                else
                  Eval_generic.bindings_to_env_just_strings (fst env.config)
                    bindings
