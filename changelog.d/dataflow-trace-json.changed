@@ -1,0 +1,1 @@
+Made breaking changes to the dataflow_trace JSON output to make it more easily consumable by the App. Added content for taint_source and intermediate_vars, and collapsed the multile taint_source locations into one.
