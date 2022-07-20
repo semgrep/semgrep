@@ -1,0 +1,10 @@
+Scala/others: Added a fix allowing percolation of name information from class parameters
+
+For example, classes which take in arguments like the following in Scala:
+```scala
+class ExampleClass(val x: TypeName) {
+}
+```
+
+do not properly enter the context. So in our analysis, we would not know that the identifier
+`x` has type `TypeName`, within the body of `ExampleClass`.
