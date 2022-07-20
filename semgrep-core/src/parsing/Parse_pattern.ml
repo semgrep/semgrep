@@ -134,8 +134,10 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.R ->
         let res = Parse_r_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
-    (* not yet handled ?? *)
-    (* Lang.Xxx failwith "No Xxx generic parser yet" *)
+        (* not yet handled ?? *)
+        (* Lang.Xxx failwith "No Xxx generic parser yet" *)
+    | Lang.Dart -> failwith "Dart patterns not supported yet"
+    | Lang.Julia -> failwith "Julia patterns not supported yet"
   in
 
   Caching.prepare_pattern any;
