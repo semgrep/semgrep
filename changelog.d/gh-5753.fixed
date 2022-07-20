@@ -1,0 +1,1 @@
+Fixed the logged message describing the endpoint where rules are fetched from when SEMGREP_URL is set
