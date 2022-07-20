@@ -213,6 +213,7 @@ class Metrics:
             logger.info(
                 f"Fetching rules from {os.environ.get('SEMGREP_URL', 'https://semgrep.dev/registry')}."
             )
+
         self._is_using_registry = value
 
     @suppress_errors
