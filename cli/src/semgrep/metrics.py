@@ -210,7 +210,7 @@ class Metrics:
     @is_using_registry.setter
     def is_using_registry(self, value: bool) -> None:
         if self.is_using_registry is False and value is True:
-            logger.info(f"Fetching rules from {os.environ.get('SEMGREP_URL')}")
+            logger.info(f"Fetching rules from {os.environ.get('SEMGREP_URL', 'https://semgrep.dev/registry')}.")
 
         self._is_using_registry = value
 
