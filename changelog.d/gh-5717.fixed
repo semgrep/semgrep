@@ -1,0 +1,3 @@
+Rust: Fixed a bug with matching for scoped identifiers
+
+Basically, scoped identifiers were only looking at the last identifier. So something like `A::B::C` would result in something like `C`.

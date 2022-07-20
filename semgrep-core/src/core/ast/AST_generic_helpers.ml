@@ -128,6 +128,24 @@ let name_of_ids xs =
           name_info = empty_id_info ();
         }
 
+let add_suffix_to_name suffix name =
+  match name with
+  | Id (first_id, _) -> name_of_ids [ first_id; suffix ]
+  | IdQualified ({ name_last; name_middle; _ } as q_info) ->
+      let new_name_middle =
+        match name_middle with
+        | Some (QDots qualifiers) -> Some (G.QDots (qualifiers @ [ name_last ]))
+        | Some (QExpr (expr, tok)) ->
+            Some (G.QExpr ({ expr with e = N name }, tok))
+        | None -> Some (G.QDots [ name_last ])
+      in
+      IdQualified
+        {
+          q_info with
+          name_last = (suffix, None);
+          name_middle = new_name_middle;
+        }
+
 let name_of_id id = Id (id, empty_id_info ())
 
 let name_of_dot_access e =
