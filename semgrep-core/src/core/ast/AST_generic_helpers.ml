@@ -133,13 +133,11 @@ let add_suffix_to_name suffix name =
   | Id (first_id, _) -> name_of_ids [ first_id; suffix ]
   | IdQualified ({ name_last; name_middle; _ } as q_info) ->
       let new_name_middle =
-        let middle_quals =
-          match name_middle with
-          | Some (QDots qualifiers) -> qualifiers
-          | Some (QExpr _) -> raise Impossible
-          | None -> []
-        in
-        Some (G.QDots (middle_quals @ [ name_last ]))
+        match name_middle with
+        | Some (QDots qualifiers) -> Some (G.QDots (qualifiers @ [ name_last ]))
+        | Some (QExpr (expr, tok)) ->
+            Some (G.QExpr ({ expr with e = N name }, tok))
+        | None -> Some (G.QDots [ name_last ])
       in
       IdQualified
         {
