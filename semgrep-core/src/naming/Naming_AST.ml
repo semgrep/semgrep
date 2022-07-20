@@ -459,6 +459,7 @@ let resolve lang prog =
            *)
           let class_params = params_of_parameters env x.cparams in
           with_new_context InClass env (fun () ->
+              (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
               with_new_function_scope class_params env.names (fun () -> k x)));
       V.kdef =
         (fun (k, _v) x ->
