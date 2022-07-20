@@ -2,6 +2,47 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.105.0](https://github.com/returntocorp/semgrep/releases/tag/v0.105.0) - 2022-07-20
+
+### Added
+
+- _Experimental_ LSP support for: metavariable inlay hints, hot reloading, App integation, scan commands, and much much more (cli-235)
+- Added a concatenation reduction for extract mode, so that disjoint snippets
+  within a file can be treated as one unified file. (extract-reductions)
+- Extract mode: taint trace positions are now updated to correspond to the source
+  file. (extract-taint-traces)
+- Start publishing container image for linux/arm64 along with linux/amd64. (gh-5704)
+- Extract mode: generic is now permitted as a `languages` value (pa-1648)
+- Added handling for EXPERIMENT severity to allow the ability to test rules as experiments. (rules-680)
+
+### Changed
+
+- Do not store time or skipped targets output unless requested. This reduces memory consumption significantly in large repos (pa-1618)
+- Reduce memory consumption of semgrep by passing the targets in a more condensed
+  structure. Previously, we told semgrep which rules to run on which target by
+  listing out all the rule_ids each target should run. Now, we have a separate
+  rule_id list and for each target we only ilst the rule_id indices. On large
+  repos, particularly when run with multiple processes, this has a significant
+  impact. (pa-1618-2)
+
+### Fixed
+
+- C#: Improved error message when function parameters are declared with `var` (gh-5068)
+- Scala/others: Added a fix allowing percolation of name information from class parameters
+
+  For example, classes which take in arguments like the following in Scala:
+
+  ```scala
+  class ExampleClass(val x: TypeName) {
+  }
+  ```
+
+  do not properly enter the context. So in our analysis, we would not know that the identifier
+  `x` has type `TypeName`, within the body of `ExampleClass`. (gh-5506)
+
+- Fixed the logged message describing the endpoint where rules are fetched from when SEMGREP_URL is set (gh-5753)
+- Fixed what data was used for indexing match results to used match based id data (index)
+
 ## [0.104.0](https://github.com/returntocorp/semgrep/releases/tag/v0.104.0) - 2022-07-13
 
 ### Added
