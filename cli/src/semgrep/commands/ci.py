@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 import sys
 import time
@@ -372,38 +373,35 @@ def ci(
                 nonblocking_rules.append(rule)
 
     # Split up matches into respective categories
-    blocking_matches_by_rule: RuleMatchMap = {}
-    nonblocking_matches_by_rule: RuleMatchMap = {}
-    cai_matches_by_rule: RuleMatchMap = {}
+    blocking_matches_by_rule: RuleMatchMap = defaultdict(list)
+    nonblocking_matches_by_rule: RuleMatchMap = defaultdict(list)
+    cai_matches_by_rule: RuleMatchMap = defaultdict(list)
 
     # Since we keep nosemgrep disabled for the actual scan, we have to apply
     # that flag here
     keep_ignored = not enable_nosem or output_handler.formatter.keep_ignores()
     for rule, matches in filtered_matches_by_rule.items():
-        if "r2c-internal-cai" in rule.id:
-            cai_matches_by_rule[rule] = [
-                match for match in matches if not match.is_ignored or keep_ignored
+        # Filter out any matches that are triaged as ignored on the app
+        if scan_handler:
+            matches = [
+                match
+                for match in matches
+                if match.syntactic_id not in scan_handler.skipped_syntactic_ids
+                and match.match_based_id not in scan_handler.skipped_match_based_ids
             ]
-        else:
-            # Filter out any matches that are triaged as ignored on the app
-            if scan_handler:
-                matches = list(
-                    filter(
-                        lambda match: match.syntactic_id  # type: ignore
-                        not in scan_handler.skipped_syntactic_ids
-                        and match.match_based_id
-                        not in scan_handler.skipped_match_based_ids,
-                        matches,
-                    )
-                )
-            if rule.is_blocking:
-                blocking_matches_by_rule[rule] = [
-                    match for match in matches if not match.is_ignored or keep_ignored
-                ]
-            else:
-                nonblocking_matches_by_rule[rule] = [
-                    match for match in matches if not match.is_ignored or keep_ignored
-                ]
+
+        for match in matches:
+            if match.is_ignored and not keep_ignored:
+                continue
+
+            applicable_result_set = (
+                cai_matches_by_rule
+                if "r2c-internal-cai" in rule.id
+                else blocking_matches_by_rule
+                if rule.is_blocking and not match.extra.get("dependency_match_only")
+                else nonblocking_matches_by_rule
+            )
+            applicable_result_set[rule].append(match)
 
     num_nonblocking_findings = sum(len(v) for v in nonblocking_matches_by_rule.values())
     num_blocking_findings = sum(len(v) for v in blocking_matches_by_rule.values())
