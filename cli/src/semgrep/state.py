@@ -4,6 +4,7 @@ from attrs import frozen
 
 from semgrep.app.session import AppSession
 from semgrep.env import Env
+from semgrep.fail_open import FailOpen
 from semgrep.metrics import Metrics
 from semgrep.settings import Settings
 from semgrep.terminal import Terminal
@@ -20,6 +21,7 @@ class SemgrepState:
     app_session: AppSession = Factory(AppSession)
     env: Env = Factory(Env)
     metrics: Metrics = Factory(Metrics)
+    fail_open: FailOpen = Factory(FailOpen)
     settings: Settings = Factory(Settings)
     terminal: Terminal = Factory(Terminal)
 

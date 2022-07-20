@@ -3,7 +3,7 @@ import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 from typing import Iterator
 from typing import List
 from typing import Optional
@@ -11,6 +11,8 @@ from typing import Sequence
 from typing import Tuple
 
 import click
+from click.shell_completion import CompletionItem
+from semgrep.fail_open import FailOpenState
 
 import semgrep.semgrep_main
 from semgrep.app import auth
@@ -43,6 +45,40 @@ ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
 
 # These patterns are excluded via --exclude unless the user provides their own .semgrepignore
 DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
+
+
+class FailOpenStateType(click.ParamType):
+    name = "fail_open_state"
+
+    def get_metavar(self, param: click.Parameter) -> str:
+        return "[on|off]"
+
+    def shell_complete(
+        self, context: click.Context, param: click.Parameter, incomplete: str
+    ) -> List[Any]:
+        return [
+            CompletionItem(e) for e in ["on", "off"] if e.startswith(incomplete)
+        ]
+
+    def convert(
+        self,
+        value: Any,
+        param: Optional["click.Parameter"],
+        ctx: Optional["click.Context"],
+    ) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            lower = value.lower()
+            # Support setting via old environment variable values 0/1/true/false
+            if lower == "on" or lower == "1" or lower == "true":
+                return FailOpenState.ON
+            if lower == "off" or lower == "0" or lower == "false":
+                return FailOpenState.OFF
+        self.fail("expected 'on', or 'off'")
+
+    
+FAIL_OPEN_STATE_TYPE = FailOpenStateType()
 
 
 def yield_valid_patterns(patterns: Iterable[str]) -> Iterable[str]:
@@ -145,6 +181,19 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     is_flag=True,
     hidden=True,
 )
+@click.option(
+    "--fail-open",
+    "fail_open",
+    type=FAIL_OPEN_STATE_TYPE,
+    help="""
+        Configures how scan status is sent to the fail-open server.
+        If 'on', fail-open are always sent.
+        If 'off', fail-open are disabled altogether and not sent.
+        If absent, the SEMGREP_SEND_FAIL_OPEN environment variable value will be used.
+        If no environment variable, defaults to 'off'.
+    """,
+    envvar="SEMGREP_SEND_FAIL_OPEN",
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -160,6 +209,7 @@ def ci(
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
+    fail_open: Optional[FailOpenState],
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
@@ -204,6 +254,7 @@ def ci(
     )
 
     state.metrics.configure(metrics, metrics_legacy)
+    state.fail_open.configure(fail_open)
     scan_handler = None
 
     token = state.app_session.token
