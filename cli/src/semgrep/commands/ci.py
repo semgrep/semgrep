@@ -1,7 +1,7 @@
-from collections import defaultdict
 import os
 import sys
 import time
+from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterable
