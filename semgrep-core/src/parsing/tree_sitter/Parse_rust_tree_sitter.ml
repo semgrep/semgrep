@@ -2499,23 +2499,7 @@ and map_scoped_identifier_name (env : env)
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   (* TODO: use either_opt *)
   match prefix_info with
-  | Some (Left (Id (first_id, _))) -> H2.name_of_ids [ first_id; last_id ]
-  | Some (Left (IdQualified ({ name_last; name_middle; _ } as q_info))) ->
-      let new_name_middle =
-        let middle_quals =
-          match name_middle with
-          | Some (QDots qualifiers) -> qualifiers
-          | Some (QExpr _) -> raise Impossible
-          | None -> []
-        in
-        Some (G.QDots (middle_quals @ [ name_last ]))
-      in
-      IdQualified
-        {
-          q_info with
-          name_last = (last_id, None);
-          name_middle = new_name_middle;
-        }
+  | Some (Left name) -> H2.add_suffix_to_name last_id name
   | Some (Right (l, ty, r)) ->
       H2.add_type_args_to_name (H2.name_of_id last_id) (l, [ ty ], r)
   | None -> H2.name_of_id last_id

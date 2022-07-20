@@ -49,6 +49,10 @@ val add_type_args_to_name :
 val add_type_args_opt_to_name :
   AST_generic.name -> AST_generic.type_arguments option -> AST_generic.name
 
+(* takes in a suffix, and then its name *)
+val add_suffix_to_name :
+  AST_generic.ident -> AST_generic.name -> AST_generic.name
+
 (* Tries to re-interpreted a DotAccess expression a.b.c as an IdQualified. *)
 val name_of_dot_access : AST_generic.expr -> AST_generic.name option
 
