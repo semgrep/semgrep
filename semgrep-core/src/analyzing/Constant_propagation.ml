@@ -686,4 +686,10 @@ let propagate_dataflow lang ast =
                 propagate_dataflow_one_function lang inputs flow);
           }
       in
+      (* Hack to do dataflow on the entire AST.
+         Just think of it as a function body for a function which takes no arguments.
+      *)
+      let stmts = List.concat_map (AST_to_IL.stmt lang) ast in
+      let prog_flow = CFG_build.cfg_of_stmts stmts in
+      propagate_dataflow_one_function lang [] prog_flow;
       v (Pr ast)
