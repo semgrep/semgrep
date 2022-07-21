@@ -420,6 +420,8 @@ let rec m_name a b =
            } as infob) ) ) -> (
       m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
       >||> try_alternate_names resolved
+      (* Try the resolved entity *)
+      >||> m_name a (H.name_of_ids dotted)
       >||>
       (* Try the resolved entity and parents *)
       match a with
@@ -437,8 +439,8 @@ let rec m_name a b =
        *)
       | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
       | _ ->
-          (* try this time a match with the resolved entity *)
-          m_name a (H.name_of_ids dotted) >||> try_parents dotted)
+          (* Try matching against parent classes *)
+          try_parents dotted)
   (* extension: metatypes *)
   | G.Id (((str, t) as a1), a_info), B.Id (b1, b2) -> (
       (* this will handle metavariables in Id *)
