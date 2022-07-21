@@ -1,8 +1,7 @@
-from functools import wraps
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from typing import Optional
 from typing import Set
 
@@ -138,8 +137,9 @@ class AppSession(requests.Session):
         kwargs["headers"].setdefault("User-Agent", str(self.user_agent))
         if self.token:
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")
-        
+
         from semgrep.state import get_state
+
         fail_open = get_state().fail_open
         method, url = args
         fail_open.push_request(method, url, **kwargs)

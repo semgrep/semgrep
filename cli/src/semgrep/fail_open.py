@@ -1,5 +1,3 @@
-from enum import auto
-from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -7,22 +5,11 @@ from typing import Optional
 import requests
 from attr import define
 from attr import Factory
+from attr import field
 
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-
-class FailOpenState(Enum):
-    """
-    Configures metrics upload.
-
-    ON - Fail-open always sent
-    OFF - Fail-open never sent
-    """
-
-    ON = auto()
-    OFF = auto()
 
 
 @define
@@ -31,17 +18,17 @@ class FailOpen:
     Send scan status to the fail-open endpoint
     """
 
-    fail_open_state: FailOpenState = FailOpenState.OFF
+    suppress_errors: bool = field(default=False)
     payload: Dict[str, Any] = Factory(dict)
 
-    def configure(self, fail_open_state: Optional[FailOpenState]) -> None:
+    def configure(self, suppress_errors: Optional[bool] = False) -> None:
         """
         Configures whether to always or never send fail-open status.
 
-        :param fail_open_state: The value of the --fail-open option
+        :param suppress_errors: The value of the --suppress-errors option
         """
-        if fail_open_state:
-            self.fail_open_state = fail_open_state
+        if suppress_errors:
+            self.suppress_errors = suppress_errors
 
     def push_request(self, method: str, url: str, **kwargs: Any) -> None:
         self.payload = {"method": method, "url": url, **kwargs}
@@ -53,12 +40,8 @@ class FailOpen:
     def is_enabled(self) -> bool:
         """
         Returns whether scan status should be sent.
-
-        If fail_open_state is:
-          - on, sends
-          - off, doesn't send
         """
-        return self.fail_open_state == FailOpenState.ON
+        return self.suppress_errors
 
     def send(self, exit_code: int) -> int:
         """
@@ -76,7 +59,7 @@ class FailOpen:
         import traceback
 
         logger.debug(
-            f"Sending to fail-open endpoint {state.env.fail_open_url} since fail-open is configured to {self.fail_open_state.name}"
+            f"Sending to fail-open endpoint {state.env.fail_open_url} since fail-open is configured to {self.suppress_errors}"
         )
 
         headers = self.payload.get("headers", {})
