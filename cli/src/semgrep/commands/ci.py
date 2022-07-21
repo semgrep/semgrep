@@ -216,7 +216,7 @@ def ci(
     )
 
     state.metrics.configure(metrics, metrics_legacy)
-    state.fail_open.configure(suppress_errors)
+    state.error_handler.configure(suppress_errors)
     scan_handler = None
 
     token = state.app_session.token

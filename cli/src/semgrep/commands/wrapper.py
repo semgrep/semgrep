@@ -50,8 +50,8 @@ def handle_command_errors(func: Callable) -> Callable:
             metrics.add_exit_code(exit_code)
             metrics.send()
 
-            fail_open = get_state().fail_open
-            exit_code = fail_open.send(exit_code)
+            error_handler = get_state().error_handler
+            exit_code = error_handler.send(exit_code)
 
         # not inside the finally block to avoid overriding other sys.exits
         sys.exit(exit_code)

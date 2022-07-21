@@ -52,8 +52,8 @@ class Env:
 
     fail_open_url: str = field(
         default=EnvFactory(
-            ["SUPPRESS_ERRORS", "SEMGREP_SUPPRESS_ERRORS"],
-            "https://fail-open.semgrep.dev",
+            ["FAIL_OPEN_URL", "SEMGREP_FAIL_OPEN_URL"],
+            "https://fail-open.semgrep.dev/failure",
         ),
         converter=url,
     )

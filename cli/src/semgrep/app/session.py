@@ -140,9 +140,14 @@ class AppSession(requests.Session):
 
         from semgrep.state import get_state
 
-        fail_open = get_state().fail_open
+        error_handler = get_state().error_handler
         method, url = args
-        fail_open.push_request(method, url, **kwargs)
+        error_handler.push_request(method, url, **kwargs)
         response = super().request(*args, **kwargs)
-        fail_open.pop_request()
+        if response.ok:
+            error_handler.pop_request()
+        else:
+            error_handler.append_request(
+                status_code=response.status_code, response_json=response.json()
+            )
         return response

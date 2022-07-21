@@ -1,3 +1,4 @@
+import sys
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -13,7 +14,7 @@ logger = getLogger(__name__)
 
 
 @define
-class FailOpen:
+class ErrorHandler:
     """
     Send scan status to the fail-open endpoint
     """
@@ -32,6 +33,9 @@ class FailOpen:
 
     def push_request(self, method: str, url: str, **kwargs: Any) -> None:
         self.payload = {"method": method, "url": url, **kwargs}
+
+    def append_request(self, **kwargs: Any) -> None:
+        self.payload = {**self.payload, **kwargs}
 
     def pop_request(self) -> None:
         self.payload = {}
@@ -65,6 +69,10 @@ class FailOpen:
         headers = self.payload.get("headers", {})
         headers["User-Agent"] = str(state.app_session.user_agent)
         self.payload["headers"] = headers
-        self.payload["error"] = traceback.format_exc()
-        requests.post(state.env.fail_open_url, json=self.payload, timeout=3)
+        if sys.exc_info()[0] is not None:
+            self.payload["error"] = traceback.format_exc()
+        try:
+            requests.post(state.env.fail_open_url, json=self.payload, timeout=3)
+        except Exception as e:
+            logger.error(f"Error sending to fail-open endpoint: {e}")
         return 0
