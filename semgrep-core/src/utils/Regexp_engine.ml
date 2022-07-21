@@ -72,12 +72,13 @@ let matching_exact_word s =
 *)
 let pcre_compile pat = (pat, SPcre.regexp ~flags:[ `MULTILINE ] pat)
 
-let anchored_match =
+let anchored_match ?default =
   (* ~iflags are precompiled flags for better performance compared to ~flags *)
   let iflags = Pcre.rflags [ `ANCHORED ] in
-  fun (_, re) str -> SPcre.pmatch_noerr ~iflags ~rex:re str
+  fun (_, re) str -> SPcre.pmatch_noerr ?default ~iflags ~rex:re str
 
-let unanchored_match (_, re) str = SPcre.pmatch_noerr ~rex:re str
+let unanchored_match ?default (_, re) str =
+  SPcre.pmatch_noerr ?default ~rex:re str
 
 let may_contain_end_of_string_assertions =
   (* The absence of the following guarantees (to the best of our knowledge)

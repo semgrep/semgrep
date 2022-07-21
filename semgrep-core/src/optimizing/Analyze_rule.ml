@@ -492,7 +492,9 @@ let run_cnf_step2 cnf big_str =
                   (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under Idents? *)
                   let re = Regexp_engine.matching_exact_string id in
-                  Regexp_engine.unanchored_match re big_str)
+                  (* Note that in case of a PCRE error, we want to assume that the
+                     rule is relevant, hence ~default:true! *)
+                  Regexp_engine.unanchored_match ~default:true re big_str)
        | Regexp2_search re -> Regexp_engine.unanchored_match re big_str)
   [@@profiling]
 
