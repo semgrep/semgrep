@@ -16,6 +16,8 @@ open Common
 module G = AST_generic
 module MV = Metavariable
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -145,7 +147,7 @@ and extra =
 
 (* See also engine/Eval_generic.ml *)
 and metavariable_comparison = {
-  metavariable : MV.mvar;
+  metavariable : MV.mvar option;
   comparison : AST_generic.expr;
   (* I don't think those are really needed; they can be inferred
    * from the values *)
@@ -486,14 +488,14 @@ let rec (convert_formula_old :
   and aux_and e =
     match e with
     | PatExtra (t, x) ->
-        let e = convert_extra ~rule_id x in
+        let e = convert_extra ~t ~rule_id x in
         Middle3 (t, e)
     | PatFocus (t, mvar) -> Right3 (t, mvar)
     | _ -> Left3 (aux e)
   in
   aux (remove_noop e)
 
-and convert_extra ~rule_id x =
+and convert_extra ~t ~rule_id x =
   match x with
   | MetavarRegexp (mvar, re, const_prop) -> CondRegexp (mvar, re, const_prop)
   | MetavarPattern (mvar, opt_xlang, formula_old) ->
@@ -513,11 +515,21 @@ and convert_extra ~rule_id x =
           let cond =
             (* if strip=true we rewrite the condition and insert Python's `int`
              * function to parse the integer value of mvar. *)
-            match strip with
-            | None
-            | Some false ->
+            match (mvar, strip) with
+            | _, None
+            | _, Some false ->
                 comparison
-            | Some true -> rewrite_metavar_comparison_strip mvar comparison
+            | None, Some true ->
+                (* This error should be caught already in Parse_rule, this is just
+                   defensive programming. *)
+                let error_msg =
+                  "'metavariable-comparison' is missing 'metavariable' despite \
+                   'strip: true'"
+                in
+                logger#error "%s" error_msg;
+                raise (InvalidRule (InvalidOther error_msg, rule_id, t))
+            | Some mvar, Some true ->
+                rewrite_metavar_comparison_strip mvar comparison
           in
           CondEval cond)
   | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)

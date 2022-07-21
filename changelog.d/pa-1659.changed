@@ -1,0 +1,14 @@
+`metavariable-comparison` now also works on metavariables that cannot be evaluated
+to simple literals. In such cases, we take the string representation of the code
+bound by the metavariable. The way to access this string representation is via
+`str($MVAR)`. For example:
+
+```
+- metavariable-comparison:
+    metavariable: $X
+    comparison: str($X) == str($Y)
+```
+
+Here `$X` and `$Y` may bind to two different code variables, and we check whether
+these two code variables have the same name (e.g. two different variables but both
+named `x`).

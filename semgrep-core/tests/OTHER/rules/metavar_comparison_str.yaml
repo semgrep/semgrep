@@ -1,0 +1,18 @@
+rules:
+  - id: reinstantiated_variable_in_new_block
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $X := $ASSIGNMENT
+              ...
+              $Y := $REASSIGNMENT
+          - pattern: |
+              ...,$X := $ASSIGNMENT
+              ...
+              ..., $Y := $REASSIGNMENT
+      - metavariable-comparison:
+          comparison: str($X) == str($Y)
+      - focus-metavariable: $Y
+    message: Re-instantiating a variable $X in a block after already declaring $Y
+    languages: [go]
+    severity: WARNING
