@@ -137,7 +137,6 @@ let value_of_lit ~code x =
   (* big integers or floats can't be evaluated (Int (None, ...)) *)
   | G.Int (Some i, _t) -> Int i
   | G.Float (Some f, _t) -> Float f
-  | G.Null _ -> Int 0
   | _ -> raise (NotHandled code)
 
 let rec eval env code =
@@ -224,6 +223,11 @@ let rec eval env code =
 
 and eval_op op values code =
   match (op, values) with
+  | _op, [ AST _; _ ]
+  | _op, [ _; AST _ ] ->
+      (* To compare `AST` values one needs to explicitly use the `str()` function!
+       * Otherwise we would introduce regressions. *)
+      raise (NotHandled code)
   | G.And, [ Bool b1; Bool b2 ] -> Bool (b1 && b2)
   | G.Not, [ Bool b1 ] -> Bool (not b1)
   | G.Or, [ Bool b1; Bool b2 ] -> Bool (b1 || b2)

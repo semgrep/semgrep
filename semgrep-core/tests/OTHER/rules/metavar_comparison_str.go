@@ -9,7 +9,6 @@ func divide_remainder(a int, b int) (int,int) {
 
 // pointless function, but example of the bad pattern
 func bad(a int, b int, c int) int {
-    //todook: reinstantiated_variable_in_new_block
     foo, remainder :=  divide_remainder(a, b)
     if (c != 0) {
         //ruleid: reinstantiated_variable_in_new_block
@@ -20,7 +19,6 @@ func bad(a int, b int, c int) int {
 
 // pointless function, but example of a non problem
 func bad(a int, b int, c int) int {
-    //todook: reinstantiated_variable_in_new_block
     foo, remainder :=  divide_remainder(a, b)
     if (c != 0) {
         //ok: reinstantiated_variable_in_new_block
@@ -31,7 +29,6 @@ func bad(a int, b int, c int) int {
 
 // pointless function, but example of the acceptable pattern
 func good(a int, b int, c int) int {
-    //todook: reinstantiated_variable_in_new_block
     foo, remainder :=  divide_remainder(a, b)
     if (c != 0) {
         //ok: reinstantiated_variable_in_new_block

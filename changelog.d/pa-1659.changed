@@ -1,6 +1,6 @@
 `metavariable-comparison` now also works on metavariables that cannot be evaluated
 to simple literals. In such cases, we take the string representation of the code
-bound by the metariable. The way to access this string representation is via
+bound by the metavariable. The way to access this string representation is via
 `str($MVAR)`. For example:
 
 ```

@@ -11,7 +11,6 @@ rules:
               ...
               ..., $Y := $REASSIGNMENT
       - metavariable-comparison:
-          metavariable: $X
           comparison: str($X) == str($Y)
       - focus-metavariable: $Y
     message: Re-instantiating a variable $X in a block after already declaring $Y
