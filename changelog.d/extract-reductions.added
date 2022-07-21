@@ -1,2 +1,0 @@
-Added a concatenation reduction for extract mode, so that disjoint snippets
-within a file can be treated as one unified file.
