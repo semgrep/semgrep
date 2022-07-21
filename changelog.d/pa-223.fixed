@@ -1,0 +1,3 @@
+Constant propagation: Added a fix which properly does dataflow analysis for constant propagation at the top level.
+
+Basically, it was doing the dataflow correctly inside of functions, but not at the top level. So this PR just regards the whole top-level program as the inside of a function, and uses the method which already works.
