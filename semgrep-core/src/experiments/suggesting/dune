@@ -1,0 +1,19 @@
+(library
+ (public_name semgrep_suggesting)
+ (wrapped false)
+ (libraries
+   ppx_deriving.runtime
+   commons
+   pfff-config
+   pfff-h_program-lang
+   pfff-lang_GENERIC
+   pfff-lang_GENERIC-analyze
+
+   semgrep_core
+   semgrep_core_il
+   semgrep_parsing
+ )
+ (preprocess (pps
+   ppx_deriving.show
+   ppx_profiling))
+)
