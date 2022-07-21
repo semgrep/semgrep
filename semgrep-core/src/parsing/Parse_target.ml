@@ -378,6 +378,8 @@ let rec just_parse_with_lang lang file =
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  | Lang.Dart -> failwith "Dart not supported yet"
+  | Lang.Julia -> failwith "Julia not supported yet"
   [@@profiling]
 
 (*****************************************************************************)

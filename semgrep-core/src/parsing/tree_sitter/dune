@@ -9,6 +9,7 @@
    tree-sitter-lang.c
    tree-sitter-lang.c-sharp
    tree-sitter-lang.cpp
+   tree-sitter-lang.dart
    tree-sitter-lang.dockerfile
    tree-sitter-lang.elixir
    tree-sitter-lang.go
@@ -16,6 +17,7 @@
    tree-sitter-lang.hcl
    tree-sitter-lang.html
    tree-sitter-lang.java
+   tree-sitter-lang.julia
    tree-sitter-lang.kotlin
    tree-sitter-lang.lua
    tree-sitter-lang.ocaml

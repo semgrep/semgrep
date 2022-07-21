@@ -9,6 +9,8 @@ let lang_has_no_dollar_ids =
     | Go
     | C
     | Cpp
+    | Dart
+    | Julia
     | Ocaml
     | Json
     | Yaml

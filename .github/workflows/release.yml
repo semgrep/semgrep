@@ -42,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp ./semgrep-osx/artifacts.zip semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
-          gh release upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
+          gh release --repo returntocorp/semgrep upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
           rm semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
       - name: Upload Release Checksum
         id: upload-checksum-asset-osx
@@ -50,7 +50,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp ./semgrep-osx/artifacts.zip.sha256 semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
-          gh release upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
+          gh release --repo returntocorp/semgrep upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
           rm semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
 
           ## UBUNTU
@@ -66,7 +66,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp ./semgrep-ubuntu/artifacts.tar.gz semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
-          gh release upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
+          gh release --repo returntocorp/semgrep upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
           rm semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
       - name: Upload Release Checksum
         id: upload-release-checksum-ubuntu
@@ -74,22 +74,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp ./semgrep-ubuntu/artifacts.tar.gz.sha256 semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
-          gh release upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
+          gh release --repo returntocorp/semgrep upload ${{ steps.get_version.outputs.VERSION }} semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
           rm semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
       - name: Publish Release
         id: publish_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release edit ${{ steps.get_version.outputs.VERSION }} --draft=false
+          gh release --repo returntocorp/semgrep edit ${{ steps.get_version.outputs.VERSION }} --draft=false
 
   release-docker:
     name: Build and push Semgrep Docker image
     runs-on: ubuntu-latest
     if: ${{ !contains(github.ref,'-test-release') }}
     steps:
-      - name: Set up QEMU # required for multiarch
-        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -97,7 +95,6 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           load: true
-          platforms: linux/amd64,linux/arm64
           tags: candidate-image
           cache-from: type=gha,src=/tmp/.buildx-cache
           cache-to: type=gha,dest=/tmp/.buildx-cache,mode=max
@@ -128,7 +125,6 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,src=/tmp/.buildx-cache

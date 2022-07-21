@@ -739,12 +739,19 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   | "metavariable-comparison" ->
       let mv_comparison_dict = yaml_to_dict env key value in
       let metavariable, comparison, strip, base =
-        ( take mv_comparison_dict env parse_string "metavariable",
+        ( take_opt mv_comparison_dict env parse_string "metavariable",
           take mv_comparison_dict env parse_string "comparison",
           take_opt mv_comparison_dict env parse_bool "strip",
           take_opt mv_comparison_dict env parse_int "base" )
       in
       let comparison = parse_metavar_cond env key comparison in
+      (match (metavariable, strip) with
+      | None, Some true ->
+          error_at_key env key
+            (fst key
+           ^ ": 'metavariable' field is missing, but it is mandatory if \
+              'strip: true'")
+      | __else__ -> ());
       R.MetavarComparison { R.metavariable; comparison; strip; base }
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 

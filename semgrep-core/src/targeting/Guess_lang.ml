@@ -247,12 +247,14 @@ let inspect_file_p (lang : Lang.t) path =
     | C
     | Cpp
     | Csharp
+    | Dart
     | Elixir
     | Go
     | Html
     | Java
     | Js
     | Json
+    | Julia
     | Kotlin
     | Lua
     | Ocaml

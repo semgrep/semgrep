@@ -1,0 +1,13 @@
+rules:
+- id: metavariable-resolution-test
+  patterns:
+    - pattern: ($FOO $VAR).bar()
+    - metavariable-pattern:
+        metavariable: $FOO
+        pattern-either:
+          - pattern: org.foo.Foo
+  languages:
+    - java
+  message: bad
+  severity: ERROR
+

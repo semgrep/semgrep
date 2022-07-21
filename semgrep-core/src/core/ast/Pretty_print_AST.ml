@@ -73,6 +73,9 @@ let print_type t =
 let print_bool env = function
   | true -> (
       match env.lang with
+      | Lang.Dart
+      | Lang.Julia ->
+          raise Todo
       | Lang.Python
       | Lang.Python2
       | Lang.Python3 ->
@@ -106,6 +109,9 @@ let print_bool env = function
       | Lang.R -> "TRUE")
   | false -> (
       match env.lang with
+      | Lang.Dart
+      | Lang.Julia ->
+          raise Todo
       | Lang.Python
       | Lang.Python2
       | Lang.Python3 ->
@@ -230,6 +236,8 @@ and if_stmt env level (tok, e, s, sopt) =
   let bracket_body = F.sprintf "%s %s" (* (if cond) body *) in
   let format_cond, elseif_str, format_block =
     match env.lang with
+    | Lang.Dart
+    | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
     | Lang.Dockerfile
@@ -293,6 +301,8 @@ and while_stmt env level (tok, e, s) =
   let ruby_while = F.sprintf "%s %s\n %s\nend" in
   let while_format =
     match env.lang with
+    | Lang.Dart
+    | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
     | Lang.Php
@@ -332,6 +342,8 @@ and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
   let do_while_format =
     match env.lang with
+    | Lang.Dart
+    | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
     | Lang.Php
@@ -370,6 +382,8 @@ and do_while stmt env level (s, e) =
 and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     match env.lang with
+    | Lang.Dart
+    | Lang.Julia
     | Lang.Elixir
     | Lang.Bash
     | Lang.Php
@@ -445,6 +459,8 @@ and def_stmt env (entity, def_kind) =
   let var_def (ent, def) =
     let no_val, with_val =
       match env.lang with
+      | Lang.Dart
+      | Lang.Julia
       | Lang.Elixir
       | Lang.Bash
       | Lang.Php
@@ -512,6 +528,8 @@ and return env (tok, eopt) _sc =
     | Some e -> expr env e
   in
   match env.lang with
+  | Lang.Dart
+  | Lang.Julia
   | Lang.Elixir
   | Lang.Bash
   | Lang.Php
@@ -554,6 +572,8 @@ and break env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
+  | Lang.Dart
+  | Lang.Julia
   | Lang.Elixir
   | Lang.Bash
   | Lang.Php
@@ -596,6 +616,8 @@ and continue env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
+  | Lang.Dart
+  | Lang.Julia
   | Lang.Elixir
   | Lang.Bash
   | Lang.Php
@@ -710,6 +732,8 @@ and literal env l =
   | Char (s, _) -> F.sprintf "'%s'" s
   | String (s, _) -> (
       match env.lang with
+      | Lang.Dart
+      | Lang.Julia
       | Lang.Elixir
       | Lang.Bash
       | Lang.Php

@@ -2480,7 +2480,7 @@ and map_return_expression (env : env) (x : CST.return_expression) : G.expr =
 
 and map_scoped_identifier_name (env : env)
     ((v1, v2, v3) : CST.scoped_identifier) : G.name =
-  let _either_optTODO =
+  let prefix_info =
     match v1 with
     | Some x -> (
         match x with
@@ -2495,10 +2495,14 @@ and map_scoped_identifier_name (env : env)
   in
   (* TODO: QTop *)
   let _colons = token env v2 (* "::" *) in
-  let ident = ident env v3 in
+  let last_id = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   (* TODO: use either_opt *)
-  H2.name_of_id ident
+  match prefix_info with
+  | Some (Left name) -> H2.add_suffix_to_name last_id name
+  | Some (Right (l, ty, r)) ->
+      H2.add_type_args_to_name (H2.name_of_id last_id) (l, [ ty ], r)
+  | None -> H2.name_of_id last_id
 
 and map_scoped_type_identifier_name (env : env)
     ((v1, v2, v3) : CST.scoped_type_identifier) : G.name =

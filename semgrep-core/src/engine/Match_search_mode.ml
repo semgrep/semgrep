@@ -355,24 +355,33 @@ let rec filter_ranges env xs cond =
                 * an expression manually.
                 *)
                let re_str = Regexp_engine.pcre_pattern re in
-               G.Call
-                 ( G.DotAccess
-                     ( G.N (G.Id (("re", fk), fki)) |> G.e,
-                       fk,
-                       FN (Id (("match", fk), fki)) )
-                   |> G.e,
-                   ( fk,
-                     [
-                       G.Arg (G.L (G.String (re_str, fk)) |> G.e);
-                       G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e);
-                     ],
-                     fk ) )
-               |> G.e
+               let re_exp = G.L (G.String (re_str, fk)) |> G.e in
+               let mvar_exp = G.N (G.Id ((mvar, fk), fki)) |> G.e in
+               let call_re_match re_exp str_exp =
+                 G.Call
+                   ( G.DotAccess
+                       ( G.N (G.Id (("re", fk), fki)) |> G.e,
+                         fk,
+                         FN (Id (("match", fk), fki)) )
+                     |> G.e,
+                     (fk, [ G.Arg re_exp; G.Arg str_exp ], fk) )
+                 |> G.e
+               in
+               let call_str x =
+                 G.Call
+                   (G.N (G.Id (("str", fk), fki)) |> G.e, (fk, [ G.Arg x ], fk))
+                 |> G.e
+               in
+               (* We generate a fake expression:
+                     re.match(re_str, str($MVAR))
+                  that matches `re_str` against the string representation of
+                  $MVAR's value. *)
+               call_re_match re_exp (call_str mvar_exp)
              in
 
              let env =
                if const_prop && (fst env.config).constant_propagation then
-                 Eval_generic.bindings_to_env_just_strings_const_prop bindings
+                 Eval_generic.bindings_to_env (fst env.config) bindings
                else
                  Eval_generic.bindings_to_env_just_strings (fst env.config)
                    bindings
