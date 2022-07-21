@@ -1,0 +1,14 @@
+
+Allowed tainted variables from top-level environments to spread into function bodies.
+
+For instance, a given the following example in Javascript:
+```js
+x = source
+
+function foo () {
+  sink(source)
+}
+```
+
+If we are looking for a `sink($SINK)`, before this Pr it would not be caught, because
+function bodies are all analyzed separately, with empty contexts.
