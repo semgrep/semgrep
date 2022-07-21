@@ -77,7 +77,7 @@ type struct_ = expr
 (*****************************************************************************)
 (* Intermediate AST constructs to AST_generic *)
 (*****************************************************************************)
-let body_to_stmts es = es |> List.map G.exprstmt
+let body_to_stmts es = es |> Common.map G.exprstmt
 
 (*****************************************************************************)
 (* Helpers *)
