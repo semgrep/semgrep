@@ -379,7 +379,7 @@ let pm_of_finding finding =
   | T.ArgToReturn _ ->
       None
 
-let check_fundef lang fun_env taint_config opt_ent fdef =
+let check_fundef lang init_env fun_env taint_config opt_ent fdef =
   let name =
     let* ent = opt_ent in
     let* name = AST_to_IL.name_of_entity ent in
@@ -430,11 +430,13 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
                 | _ -> env)
               env fields
         | _ -> env)
-      Dataflow_core.VarMap.empty fdef.G.fparams
+      init_env fdef.G.fparams
   in
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
-  Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
+  Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow
+    (fun _ _ _ _ _ -> ())
+  |> ignore
 
 let check_rule rule match_hook (default_config, equivs) xtarget =
   let matches = ref [] in
@@ -471,13 +473,15 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
           (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
-                check_fundef lang fun_env taint_config (Some ent) fdef;
+                check_fundef lang Dataflow_core.VarMap.empty fun_env
+                  taint_config (Some ent) fdef;
                 (* go into nested functions *)
                 k def
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
-            check_fundef lang fun_env taint_config None def;
+            check_fundef lang Dataflow_core.VarMap.empty fun_env taint_config
+              None def;
             (* go into nested functions *)
             k def);
       }
@@ -492,7 +496,9 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
         let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint ~fun_env taint_config flow |> ignore)
+        Dataflow_tainting.fixpoint ~fun_env taint_config flow
+          (check_fundef lang)
+        |> ignore)
   in
 
   let matches =

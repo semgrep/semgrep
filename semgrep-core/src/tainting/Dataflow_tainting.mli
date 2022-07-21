@@ -87,6 +87,12 @@ val fixpoint :
   ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
   config ->
   IL.cfg ->
+  (Taint.Taint_set.t Dataflow_core.env ->
+  fun_env ->
+  config ->
+  AST_generic.entity option ->
+  AST_generic.function_definition ->
+  unit) ->
   mapping
 (** Main entry point, [fixpoint config cfg] returns a mapping (effectively a set)
   * containing all the tainted variables in [cfg]. Besides, if it infers any taint

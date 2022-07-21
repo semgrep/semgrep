@@ -560,8 +560,14 @@ let (transfer :
       Taints.t Dataflow_core.env ->
       string option ->
       flow:F.cfg ->
+      (Taints.t Dataflow_core.env ->
+      fun_env ->
+      config ->
+      G.entity option ->
+      G.function_definition ->
+      unit) ->
       Taints.t Dataflow_core.transfn) =
- fun config fun_env enter_env opt_name ~flow
+ fun config fun_env enter_env opt_name ~flow check_fdef
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -612,6 +618,10 @@ let (transfer :
                  Hashtbl.replace fun_env str (PM.Set.union pmatches tained'));
             var_env'
         | None -> var_env')
+    | NOther (DefStmt (ent, FuncDef fdef)) ->
+        Common.pr2 "inside of funcdef nother";
+        check_fdef in' fun_env config (Some ent) fdef;
+        in'
     | _ -> in'
   in
   { D.in_env = in'; out_env = out' }
@@ -626,8 +636,14 @@ let (fixpoint :
       ?fun_env:fun_env ->
       config ->
       F.cfg ->
+      (Taints.t Dataflow_core.env ->
+      fun_env ->
+      config ->
+      G.entity option ->
+      G.function_definition ->
+      unit) ->
       mapping) =
- fun ?in_env ?name:opt_name ?(fun_env = Hashtbl.create 1) config flow ->
+ fun ?in_env ?name:opt_name ?(fun_env = Hashtbl.create 1) config flow check_fdef ->
   let init_mapping =
     DataflowX.new_node_array flow (Dataflow_core.empty_inout ())
   in
@@ -639,6 +655,6 @@ let (fixpoint :
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq:Taints.equal ~init:init_mapping
-    ~trans:(transfer config fun_env enter_env opt_name ~flow)
+    ~trans:(transfer config fun_env enter_env opt_name ~flow check_fdef)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow
