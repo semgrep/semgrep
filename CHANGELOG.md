@@ -2,6 +2,38 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.106.0](https://github.com/returntocorp/semgrep/releases/tag/v0.106.0) - 2022-07-21
+
+### Changed
+
+- `metavariable-comparison`: The `metavariable` field is now optional, except
+  if `strip: true`. When `strip: false` (the default) the `metavaraible` field
+  has no use so it was pointless to require it. (metavariable-comparison-metavariable)
+- `metavariable-comparison` now also works on metavariables that cannot be evaluated
+  to simple literals. In such cases, we take the string representation of the code
+  bound by the metavariable. The way to access this string representation is via
+  `str($MVAR)`. For example:
+
+  ```
+  - metavariable-comparison:
+      metavariable: $X
+      comparison: str($X) == str($Y)
+  ```
+
+  Here `$X` and `$Y` may bind to two different code variables, and we check whether
+  these two code variables have the same name (e.g. two different variables but both
+  named `x`). (pa-1659)
+
+- When running an SCA scan with `semgrep ci --sca`,
+  SCA findings will no longer be considered blocking if they are unreachable. (sca-128)
+
+### Fixed
+
+- Fixed a regression in name resolution that occurred with metavariable patterns (gh-5690)
+- Rust: Fixed a bug with matching for scoped identifiers
+
+  Basically, scoped identifiers were only looking at the last identifier. So something like `A::B::C` would result in something like `C`. (gh-5717)
+
 ## [0.105.0](https://github.com/returntocorp/semgrep/releases/tag/v0.105.0) - 2022-07-20
 
 ### Added

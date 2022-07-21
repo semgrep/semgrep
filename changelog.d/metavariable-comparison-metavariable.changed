@@ -1,3 +1,0 @@
-`metavariable-comparison`: The `metavariable` field is now optional, except
-if `strip: true`. When `strip: false` (the default) the `metavaraible` field
-has no use so it was pointless to require it.
