@@ -688,6 +688,8 @@ let propagate_dataflow lang ast =
       in
       (* Hack to do dataflow on the entire AST.
          Just think of it as a function body for a function which takes no arguments.
+         
+         Shouldn't repeat work, because the overall dataflow engine doesn't know about the inside of functions. (To be changed?)
       *)
       let stmts = List.concat_map (AST_to_IL.stmt lang) ast in
       let prog_flow = CFG_build.cfg_of_stmts stmts in
