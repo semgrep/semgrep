@@ -68,8 +68,10 @@ type call = expr
 (* inside calls *)
 type arg = G.argument
 
-(* ident followed by ':' TODO remove leading ':' *)
-type keyword = ident
+(* Ideally we would want just 'ident * tok',
+ * but Elixir allows also "interpolated{ x }string": atoms
+ *)
+type keyword = expr
 type pair = keyword * expr
 
 (* inside containers (list, bits, maps, tuples), separated by commas *)
@@ -109,6 +111,19 @@ let args_of_exprs_and_keywords (_es : expr list) (_kwds : pair list) : arg list
 let items_of_exprs_and_keywords (_es : expr list) (_kwds : pair list) :
     item list =
   raise Todo
+
+let mk_call_no_parens (_e : expr) (_args : arg list) (_blopt : do_block option)
+    : call =
+  raise Todo
+
+let mk_call_parens (_e : expr) (_args : arg list bracket)
+    (_blopt : do_block option) : call =
+  raise Todo
+
+let binary_call (e1 : expr) op_either (e2 : expr) : expr =
+  match op_either with
+  | Left _id -> raise Todo
+  | Right op -> G.opcall op [ e1; e2 ]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -409,10 +424,12 @@ and map_anon_term_choice_stab_clause_70647b7 (env : env)
   in
   v2
 
-and map_anonymous_call (env : env) ((v1, v2) : CST.anonymous_call) =
-  let v1 = map_anonymous_dot env v1 in
-  let v2 = map_call_arguments_with_parentheses env v2 in
-  todo env (v1, v2)
+and map_anonymous_call (env : env) ((v1, v2) : CST.anonymous_call) : call =
+  let e, tdot = map_anonymous_dot env v1 in
+  let args = map_call_arguments_with_parentheses env v2 in
+  let anon_fld = FDynamic (OtherExpr (("AnonDotField", tdot), []) |> G.e) in
+  let e = DotAccess (e, tdot, anon_fld) |> G.e in
+  mk_call_parens e args None
 
 and map_anonymous_dot (env : env) ((v1, v2) : CST.anonymous_dot) =
   let v1 = map_expression env v1 in
@@ -436,127 +453,127 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `LTDASH tok -> (* "<-" *) token env tok
-        | `BSLASHBSLASH tok -> (* "\\\\" *) token env tok
+        | `LTDASH tok -> (* "<-" *) str env tok
+        | `BSLASHBSLASH tok -> (* "\\\\" *) str env tok
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_when_choice_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "when" *) token env v2 in
+      let v2 = (* "when" *) str env v2 in
       let v3 = map_anon_choice_exp_0094635 env v3 in
       todo env (v1, v2, v3)
   | `Exp_COLONCOLON_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "::" *) token env v2 in
+      let v2 = (* "::" *) str env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_BAR_choice_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "|" *) token env v2 in
+      let v2 = (* "|" *) (BitOr, token env v2) in
       let v3 = map_anon_choice_exp_0094635 env v3 in
-      todo env (v1, v2, v3)
+      todo env (v1, Right v2, v3)
   | `Exp_EQGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "=>" *) token env v2 in
+      let v2 = (* "=>" *) str env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_EQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "=" *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      Assign (v1, v2, v3) |> G.e
   | `Exp_choice_BARBAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `BARBAR tok -> (* "||" *) token env tok
-        | `BARBARBAR tok -> (* "|||" *) token env tok
-        | `Or tok -> (* "or" *) token env tok
+        | `BARBAR tok -> Right (Or, (* "||" *) token env tok)
+        | `BARBARBAR tok -> Left ((* "|||" *) str env tok)
+        | `Or tok -> Right (Or, (* "or" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 v2 v3
   | `Exp_choice_AMPAMP_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `AMPAMP tok -> (* "&&" *) token env tok
-        | `AMPAMPAMP tok -> (* "&&&" *) token env tok
-        | `And tok -> (* "and" *) token env tok
+        | `AMPAMP tok -> Right (And, (* "&&" *) token env tok)
+        | `AMPAMPAMP tok -> Left ((* "&&&" *) str env tok)
+        | `And tok -> Right (And, (* "and" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 v2 v3
   | `Exp_choice_EQEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `EQEQ tok -> (* "==" *) token env tok
-        | `BANGEQ tok -> (* "!=" *) token env tok
-        | `EQTILDE tok -> (* "=~" *) token env tok
-        | `EQEQEQ tok -> (* "===" *) token env tok
-        | `BANGEQEQ tok -> (* "!==" *) token env tok
+        | `EQEQ tok -> Right (Eq, (* "==" *) token env tok)
+        | `BANGEQ tok -> Right (NotEq, (* "!=" *) token env tok)
+        | `EQTILDE tok -> Right (RegexpMatch, (* "=~" *) token env tok)
+        | `EQEQEQ tok -> Right (PhysEq, (* "===" *) token env tok)
+        | `BANGEQEQ tok -> Right (NotPhysEq, (* "!==" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 v2 v3
   | `Exp_choice_LT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `LT tok -> (* "<" *) token env tok
-        | `GT tok -> (* ">" *) token env tok
-        | `LTEQ tok -> (* "<=" *) token env tok
-        | `GTEQ tok -> (* ">=" *) token env tok
+        | `LT tok -> (* "<" *) (Lt, token env tok)
+        | `GT tok -> (* ">" *) (Gt, token env tok)
+        | `LTEQ tok -> (* "<=" *) (LtE, token env tok)
+        | `GTEQ tok -> (* ">=" *) (GtE, token env tok)
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Right v2) v3
   | `Exp_choice_BARGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `BARGT tok -> (* "|>" *) token env tok
-        | `LTLTLT tok -> (* "<<<" *) token env tok
-        | `GTGTGT tok -> (* ">>>" *) token env tok
-        | `LTLTTILDE tok -> (* "<<~" *) token env tok
-        | `TILDEGTGT tok -> (* "~>>" *) token env tok
-        | `LTTILDE tok -> (* "<~" *) token env tok
-        | `TILDEGT tok -> (* "~>" *) token env tok
-        | `LTTILDEGT tok -> (* "<~>" *) token env tok
-        | `LTBARGT tok -> (* "<|>" *) token env tok
+        | `BARGT tok -> (* "|>" *) str env tok
+        | `LTLTLT tok -> (* "<<<" *) str env tok
+        | `GTGTGT tok -> (* ">>>" *) str env tok
+        | `LTLTTILDE tok -> (* "<<~" *) str env tok
+        | `TILDEGTGT tok -> (* "~>>" *) str env tok
+        | `LTTILDE tok -> (* "<~" *) str env tok
+        | `TILDEGT tok -> (* "~>" *) str env tok
+        | `LTTILDEGT tok -> (* "<~>" *) str env tok
+        | `LTBARGT tok -> (* "<|>" *) str env tok
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_choice_in_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `In tok -> (* "in" *) token env tok
-        | `Not_in tok -> (* not_in *) token env tok
+        | `In tok -> (* "in" *) (In, token env tok)
+        | `Not_in tok -> (* not_in *) (NotIn, token env tok)
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Right v2) v3
   | `Exp_HATHATHAT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "^^^" *) token env v2 in
+      let v2 = (* "^^^" *) str env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_SLASHSLASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "//" *) token env v2 in
+      let v2 = (* "//" *) str env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_choice_PLUSPLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
         match v2 with
-        | `PLUSPLUS tok -> (* "++" *) token env tok
-        | `DASHDASH tok -> (* "--" *) token env tok
-        | `PLUSPLUSPLUS tok -> (* "+++" *) token env tok
-        | `DASHDASHDASH tok -> (* "---" *) token env tok
-        | `DOTDOT tok -> (* ".." *) token env tok
-        | `LTGT tok -> (* "<>" *) token env tok
+        | `PLUSPLUS tok -> (* "++" *) str env tok
+        | `DASHDASH tok -> (* "--" *) str env tok
+        | `PLUSPLUSPLUS tok -> (* "+++" *) str env tok
+        | `DASHDASHDASH tok -> (* "---" *) str env tok
+        | `DOTDOT tok -> (* ".." *) str env tok
+        | `LTGT tok -> (* "<>" *) str env tok
       in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Left v2) v3
   | `Exp_choice_PLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
@@ -565,7 +582,7 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
         | `DASH tok -> (Minus, (* "-" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      G.opcall v2 [ v1; v3 ]
+      binary_call v1 (Right v2) v3
   | `Exp_choice_STAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 =
@@ -574,12 +591,12 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
         | `SLASH tok -> (Div, (* "/" *) token env tok)
       in
       let v3 = map_expression env v3 in
-      G.opcall v2 [ v1; v3 ]
+      binary_call v1 (Right v2) v3
   | `Exp_STARSTAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* "**" *) token env v2 in
+      let v2 = (* "**" *) (Pow, token env v2) in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
+      binary_call v1 (Right v2) v3
   | `Op_id_SLASH_int (v1, v2, v3) ->
       let v1 = map_operator_identifier env v1 in
       let v2 = (* "/" *) token env v2 in
@@ -684,23 +701,25 @@ and map_call_without_parentheses (env : env) (x : CST.call_without_parentheses)
     : call =
   match x with
   | `Local_call_with_parens (v1, v2, v3) ->
-      let v1 = map_identifier env v1 in
-      let v2 = map_call_arguments_without_parentheses env v2 in
-      let v3 = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-      todo env (v1, v2, v3)
+      let id = map_identifier env v1 in
+      let args = map_call_arguments_without_parentheses env v2 in
+      let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
+      let e = N (H2.name_of_id id) |> G.e in
+      mk_call_no_parens e args blopt
   | `Local_call_just_do_blk (v1, v2) ->
-      let v1 = map_identifier env v1 in
-      let v2 = map_do_block env v2 in
-      todo env (v1, v2)
+      let id = map_identifier env v1 in
+      let bl = map_do_block env v2 in
+      let e = N (H2.name_of_id id) |> G.e in
+      mk_call_no_parens e [] (Some bl)
   | `Remote_call_with_parens (v1, v2, v3) ->
-      let v1 = map_remote_dot env v1 in
-      let v2 =
+      let e = map_remote_dot env v1 in
+      let args =
         match v2 with
         | Some x -> map_call_arguments_without_parentheses env x
         | None -> []
       in
-      let v3 = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-      todo env (v1, v2, v3)
+      let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
+      mk_call_no_parens e args blopt
 
 and map_capture_expression (env : env) (x : CST.capture_expression) : expr =
   match x with
@@ -751,19 +770,20 @@ and map_do_block (env : env) ((v1, v2, v3, v4, v5) : CST.do_block) : do_block =
   let v5 = (* "end" *) token env v5 in
   todo env (v1, v2, v3, v4, v5)
 
-and map_dot (env : env) ((v1, v2, v3) : CST.dot) =
-  let v1 = map_expression env v1 in
-  let v2 = (* "." *) token env v2 in
+and map_dot (env : env) ((v1, v2, v3) : CST.dot) : expr =
+  let e = map_expression env v1 in
+  let tdot = (* "." *) token env v2 in
   let v3 =
     match v3 with
     | `Alias tok ->
         let al = map_alias env tok in
-        todo env al
+        DotAccess (e, tdot, FN (H2.name_of_id al)) |> G.e
     | `Tuple x ->
-        let _l, xs, _r = map_tuple env x in
-        todo env xs
+        let l, xs, r = map_tuple env x in
+        let tuple = Container (Tuple, (l, xs, r)) |> G.e in
+        DotAccess (e, tdot, FDynamic tuple) |> G.e
   in
-  todo env (v1, v2, v3)
+  v3
 
 and map_else_block (env : env) ((v1, v2, v3) : CST.else_block) =
   let v1 = (* "else" *) token env v1 in
@@ -874,14 +894,16 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let l, xs, r = map_tuple env x in
       Container (Tuple, (l, xs, r)) |> G.e
   | `Bits (v1, v2, v3) ->
-      let v1 = (* "<<" *) token env v1 in
-      let v2 =
+      let l = (* "<<" *) token env v1 in
+      let xs =
         match v2 with
         | Some x -> map_items_with_trailing_separator env x
         | None -> []
       in
-      let v3 = (* ">>" *) token env v3 in
-      todo env (v1, v2, v3)
+      let r = (* ">>" *) token env v3 in
+      OtherExpr
+        (("ContainerBits", l), (xs |> Common.map (fun e -> E e)) @ [ Tk r ])
+      |> G.e
   | `Map (v1, v2, v3, v4, v5) ->
       let v1 = (* "%" *) token env v1 in
       let v2 =
@@ -973,11 +995,11 @@ and map_keyword (env : env) (x : CST.keyword) : keyword =
   | `Kw_ tok ->
       (* todo: remove suffix ':' *)
       let x = (* keyword_ *) str env tok in
-      x
+      L (String x) |> G.e
   | `Quoted_kw (v1, v2) ->
       let v1 = map_anon_choice_quoted_i_double_d7d5f65 env v1 in
-      let v2 = (* pattern :\s *) token env v2 in
-      todo env (v1, v2)
+      let _v2TODO = (* pattern :\s *) token env v2 in
+      v1
 
 and map_keywords (env : env) ((v1, v2) : CST.keywords) : pair list =
   let v1 = map_pair env v1 in
@@ -1007,10 +1029,11 @@ and map_keywords_with_trailing_separator (env : env)
 
 and map_local_call_with_parentheses (env : env)
     ((v1, v2, v3) : CST.local_call_with_parentheses) =
-  let v1 = map_identifier env v1 in
-  let v2 = map_call_arguments_with_parentheses_immediate env v2 in
-  let v3 = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-  todo env (v1, v2, v3)
+  let id = map_identifier env v1 in
+  let args = map_call_arguments_with_parentheses_immediate env v2 in
+  let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
+  let e = N (H2.name_of_id id) |> G.e in
+  mk_call_parens e args blopt
 
 and map_pair (env : env) ((v1, v2) : CST.pair) : pair =
   let v1 = map_keyword env v1 in
@@ -1052,48 +1075,50 @@ and map_quoted_i_square (env : env) ((v1, v2, v3) : CST.quoted_i_square) =
 
 and map_remote_call_with_parentheses (env : env)
     ((v1, v2, v3) : CST.remote_call_with_parentheses) =
-  let v1 = map_remote_dot env v1 in
-  let v2 = map_call_arguments_with_parentheses_immediate env v2 in
-  let v3 = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
-  todo env (v1, v2, v3)
+  let e = map_remote_dot env v1 in
+  let args = map_call_arguments_with_parentheses_immediate env v2 in
+  let blopt = map_anon_opt_opt_nl_before_do_do_blk_3eff85f env v3 in
+  mk_call_parens e args blopt
 
-and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) =
-  let v1 = map_expression env v1 in
-  let v2 = (* "." *) token env v2 in
-  let v3 : (ident, expr) either =
+and map_remote_dot (env : env) ((v1, v2, v3) : CST.remote_dot) : expr =
+  let e = map_expression env v1 in
+  let tdot = (* "." *) token env v2 in
+  let fld : field_name =
     match v3 with
     | `Id x ->
         let id = map_identifier env x in
-        Left id
+        FN (H2.name_of_id id)
     | `Choice_and x ->
-        Left
-          (match x with
-          | `And tok -> (* "and" *) str env tok
-          | `In tok -> (* "in" *) str env tok
-          | `Not tok -> (* "not" *) str env tok
-          | `Or tok -> (* "or" *) str env tok
-          | `When tok -> (* "when" *) str env tok
-          | `True tok -> (* "true" *) str env tok
-          | `False tok -> (* "false" *) str env tok
-          | `Nil tok -> (* "nil" *) str env tok
-          | `After tok -> (* "after" *) str env tok
-          | `Catch tok -> (* "catch" *) str env tok
-          | `Do tok -> (* "do" *) str env tok
-          | `Else tok -> (* "else" *) str env tok
-          | `End tok -> (* "end" *) str env tok
-          | `Fn tok -> (* "fn" *) str env tok
-          | `Rescue tok -> (* "rescue" *) str env tok)
+        FN
+          (H2.name_of_id
+             (match x with
+             | `And tok -> (* "and" *) str env tok
+             | `In tok -> (* "in" *) str env tok
+             | `Not tok -> (* "not" *) str env tok
+             | `Or tok -> (* "or" *) str env tok
+             | `When tok -> (* "when" *) str env tok
+             | `True tok -> (* "true" *) str env tok
+             | `False tok -> (* "false" *) str env tok
+             | `Nil tok -> (* "nil" *) str env tok
+             | `After tok -> (* "after" *) str env tok
+             | `Catch tok -> (* "catch" *) str env tok
+             | `Do tok -> (* "do" *) str env tok
+             | `Else tok -> (* "else" *) str env tok
+             | `End tok -> (* "end" *) str env tok
+             | `Fn tok -> (* "fn" *) str env tok
+             | `Rescue tok -> (* "rescue" *) str env tok))
     | `Op_id x ->
         let id = map_operator_identifier env x in
-        Left id
+        FN (H2.name_of_id id)
     | `Quoted_i_double x ->
+        (* TODO: could detect of the map_quoted_i_xxx is a constant string *)
         let x = map_quoted_i_double env x in
-        Right x
+        FDynamic x
     | `Quoted_i_single x ->
         let x = map_quoted_i_single env x in
-        Right x
+        FDynamic x
   in
-  todo env (v1, v2, v3)
+  DotAccess (e, tdot, fld) |> G.e
 
 and map_rescue_block (env : env) ((v1, v2, v3) : CST.rescue_block) =
   let v1 = (* "rescue" *) token env v1 in
