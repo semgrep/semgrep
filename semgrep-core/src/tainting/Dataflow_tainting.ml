@@ -41,12 +41,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let ( let* ) = Option.bind
 
-module DataflowX = Dataflow_core.Make (struct
+module DataflowX = Dataflow_prog.Make (struct
   type node = F.node
   type edge = F.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
+  let short_string_of_node n =
+    Display_IL.short_string_of_augmented_node_kind n.F.n
 end)
 
 (*****************************************************************************)
@@ -540,10 +541,10 @@ let check_tainted_return env tok e : Taints.t * var_env =
 (* Transfer *)
 (*****************************************************************************)
 
-let input_env ~enter_env ~(flow : F.cfg) mapping ni =
+let input_env ~enter_env ~(flow : IL.cfg) mapping ni =
   let node = flow.graph#nodes#assoc ni in
   match node.F.n with
-  | Enter -> enter_env
+  | Reg Enter -> enter_env
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
@@ -559,7 +560,7 @@ let (transfer :
       fun_env ->
       Taints.t Dataflow_core.env ->
       string option ->
-      flow:F.cfg ->
+      flow:IL.cfg ->
       Taints.t Dataflow_core.transfn) =
  fun config fun_env enter_env opt_name ~flow
      (* the transfer function to update the mapping at node index ni *)
@@ -570,7 +571,7 @@ let (transfer :
   let out' : Taints.t VarMap.t =
     let env = { config; fun_name = opt_name; fun_env; var_env = in' } in
     match node.F.n with
-    | NInstr x -> (
+    | Reg (NInstr x) -> (
         let taints, var_env' = check_tainted_instr env x in
         let var_env' =
           match LV.lvar_of_instr_opt x with
@@ -588,7 +589,7 @@ let (transfer :
         (* There is no variable being assigned, presumably the Instruction
          * returns 'void'. *)
         | _, None -> var_env')
-    | NReturn (tok, e) -> (
+    | Reg (NReturn (tok, e)) -> (
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, var_env' = check_tainted_return env tok e in
         let findings = findings_of_tainted_return taints tok in
@@ -625,7 +626,7 @@ let (fixpoint :
       ?name:Dataflow_core.var ->
       ?fun_env:fun_env ->
       config ->
-      F.cfg ->
+      IL.cfg ->
       mapping) =
  fun ?in_env ?name:opt_name ?(fun_env = Hashtbl.create 1) config flow ->
   let init_mapping =
@@ -640,5 +641,5 @@ let (fixpoint :
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   DataflowX.fixpoint ~eq:Taints.equal ~init:init_mapping
     ~trans:(transfer config fun_env enter_env opt_name ~flow)
-      (* tainting is a forward analysis! *)
-    ~forward:true ~flow
+    ~flow ~forward:true (* tainting is a forward analysis! *)
+    ~get_input_env:(input_env ~enter_env ~flow)

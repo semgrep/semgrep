@@ -329,8 +329,13 @@ and function_definition = {
 (*****************************************************************************)
 (* Similar to controlflow.ml, but with a simpler node_kind.
  * See controlflow.ml for more information. *)
+
+type ('a, 'b) cfg_opaque = ('a, 'b) CFG.t
+
+let pp_cfg_opaque _ _ _ _ = ()
+
 type node = {
-  n : node_kind;
+  n : augmented_node_kind;
       (* old: there are tok in the nodes anyway
        * t: Parse_info.t option;
        *)
@@ -351,10 +356,15 @@ and node_kind =
   | NTodo of stmt
 [@@deriving show { with_path = false }]
 
+and augmented_node_kind =
+  | Reg of node_kind
+  | Func of { fdef : G.function_definition; cfg : (node, edge) cfg_opaque }
+
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
  *)
-type edge = Direct
+and edge = Direct
+
 type cfg = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)

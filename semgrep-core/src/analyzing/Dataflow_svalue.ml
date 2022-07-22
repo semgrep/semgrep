@@ -34,7 +34,8 @@ module DataflowX = Dataflow_core.Make (struct
   type edge = F.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
+  let short_string_of_node n =
+    Display_IL.short_string_of_augmented_node_kind n.F.n
 end)
 
 type constness_type = Constant | NotAlwaysConstant [@@deriving show]
@@ -433,7 +434,7 @@ let union_env =
 let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   let node = flow.graph#nodes#assoc ni in
   match node.F.n with
-  | Enter -> enter_env
+  | Reg Enter -> enter_env
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
@@ -480,19 +481,11 @@ let transfer :
 
   let out' =
     match node.F.n with
-    | Enter
-    | Exit
-    | TrueNode
-    | FalseNode
-    | Join
-    | NCond _
-    | NGoto _
-    | NReturn _
-    | NThrow _
-    | NOther _
-    | NTodo _ ->
+    | Reg
+        ( Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _
+        | NReturn _ | NThrow _ | NOther _ | NTodo _ ) ->
         inp'
-    | NInstr instr -> (
+    | Reg (NInstr instr) -> (
         (* TODO: For now we only handle the simplest cases. *)
         match instr.i with
         | Assign ({ base = Var var; offset = NoOffset }, exp) ->
@@ -506,8 +499,8 @@ let transfer :
             else
               (* symbolic propagation *)
               (* Call to an arbitrary function, we are intraprocedural so we cannot
-               * propagate actual constants in this case, but we can propagate the
-               * call itself as a symbolic expression. *)
+                 * propagate actual constants in this case, but we can propagate the
+                 * call itself as a symbolic expression. *)
               let ccall = sym_prop instr.iorig in
               update_env_with inp' var ccall
         | CallSpecial
@@ -518,16 +511,17 @@ let transfer :
         | Call (None, { e = Fetch { base = Var var; offset = Dot _; _ }; _ }, _)
           ->
             (* Method call `var.f(args)` that returns void, we conservatively
-             * assume that it may be updating `var`; e.g. in Ruby strings are
-             * mutable. *)
+               * assume that it may be updating `var`; e.g. in Ruby strings are
+               * mutable. *)
             D.VarMap.remove (str_of_name var) inp'
         | ___else___ -> (
             (* In any other case, assume non-constant.
-             * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
+               * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
             | Some lvar -> D.VarMap.remove (str_of_name lvar) inp'))
+    | Func _ -> inp'
   in
 
   { D.in_env = inp'; out_env = out' }
@@ -596,7 +590,7 @@ let update_svalue (flow : F.cfg) mapping =
          let node = flow.graph#nodes#assoc ni in
 
          (* Update RHS svalue according to the input env. *)
-         LV.rlvals_of_node node.n
+         LV.rlvals_of_augmented_node_kind node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
                   match

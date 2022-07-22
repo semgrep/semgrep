@@ -24,12 +24,13 @@ module VarSet = Dataflow_core.VarSet
 
 module Make (F : Dataflow_core.Flow) = struct
   module ProgFlow = struct
-    type node = Reg of F.node | Func of flow
-    and edge = F.edge
-    and flow = (node, edge) CFG.t
+    type node = IL.node
+    type edge = IL.edge
+    type flow = IL.cfg
 
-    let short_string_of_node = function
-      | Reg node -> "Reg " ^ F.short_string_of_node node
+    let short_string_of_node { IL.n } =
+      match n with
+      | IL.Reg node -> [%show: IL.node_kind] node
       | Func _ -> "<func>"
   end
 
@@ -39,20 +40,24 @@ module Make (F : Dataflow_core.Flow) = struct
       eq:('a -> 'a -> bool) ->
       init:'a DC.mapping ->
       trans:'a DC.transfn ->
-      flow:ProgFlow.flow ->
+      flow:IL.cfg ->
       get_input_env:('a DC.mapping -> nodei -> 'a DC.env) ->
       forward:bool ->
       'a DC.mapping =
    fun ~eq ~init ~trans ~flow ~get_input_env ~forward ->
     ProgDataflow.fixpoint ~eq ~init
       ~trans:(fun mapping ni ->
-        match flow.graph#nodes#assoc ni with
-        | Reg _ -> trans mapping ni
-        | Func flow ->
+        let { IL.n } = flow.graph#nodes#assoc ni in
+        match n with
+        | IL.Reg _ -> trans mapping ni
+        | Func { cfg = flow; _ } ->
             fixpoint ~eq ~init:mapping ~trans ~flow ~get_input_env ~forward
             |> ignore;
             (* Environment does not change for a function node. *)
             let env = get_input_env mapping ni in
             { in_env = env; out_env = env })
       ~flow ~forward
+
+  let new_node_array = ProgDataflow.new_node_array
+  let display_mapping = ProgDataflow.display_mapping
 end

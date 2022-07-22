@@ -98,19 +98,23 @@ let lvar_of_instr_opt x =
   | Mem _ ->
       None
 
-let rlvals_of_node = function
-  | Enter
-  | Exit
-  | TrueNode
-  | FalseNode
-  | NGoto _
-  | Join ->
-      []
-  | NInstr x -> rlvals_of_instr x
-  | NCond (_, e)
-  | NReturn (_, e)
-  | NThrow (_, e) ->
-      lvals_of_exp e
-  | NOther _
-  | NTodo _ ->
-      []
+let rlvals_of_augmented_node_kind ankind =
+  match ankind with
+  | Reg nkind -> (
+      match nkind with
+      | Enter
+      | Exit
+      | TrueNode
+      | FalseNode
+      | NGoto _
+      | Join ->
+          []
+      | NInstr x -> rlvals_of_instr x
+      | NCond (_, e)
+      | NReturn (_, e)
+      | NThrow (_, e) ->
+          lvals_of_exp e
+      | NOther _
+      | NTodo _ ->
+          [])
+  | Func _ -> []

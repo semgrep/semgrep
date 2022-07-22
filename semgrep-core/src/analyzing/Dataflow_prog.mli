@@ -11,9 +11,9 @@ module VarSet : Set.S with type elt = String.t
 
 module Make (F : Dataflow_core.Flow) : sig
   module ProgFlow : sig
-    type node = Reg of F.node | Func of flow
-    and edge = F.edge
-    and flow = (node, edge) CFG.t
+    type node = IL.node
+    and edge = IL.edge
+    and flow = IL.cfg
 
     val short_string_of_node : node -> string
   end
@@ -24,8 +24,14 @@ module Make (F : Dataflow_core.Flow) : sig
     eq:('a -> 'a -> bool) ->
     init:'a Dataflow_core.mapping ->
     trans:'a Dataflow_core.transfn ->
-    flow:ProgFlow.flow ->
+    flow:IL.cfg ->
     get_input_env:('a Dataflow_core.mapping -> nodei -> 'a Dataflow_core.env) ->
     forward:bool ->
     'a Dataflow_core.mapping
+
+  val new_node_array : IL.cfg -> 'a -> 'a array
+
+  (* debugging output *)
+  val display_mapping :
+    IL.cfg -> 'a Dataflow_core.mapping -> ('a -> string) -> unit
 end

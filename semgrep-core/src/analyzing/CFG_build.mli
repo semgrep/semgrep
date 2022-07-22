@@ -1,1 +1,1 @@
-val cfg_of_stmts : IL.stmt list -> IL.cfg
+val cfg_of_stmts : Lang.t -> IL.stmt list -> IL.cfg

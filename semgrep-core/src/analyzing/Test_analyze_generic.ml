@@ -68,7 +68,7 @@ let test_cfg_il ~parse_program file =
         V.kfunction_definition =
           (fun (_k, _) def ->
             let _, xs = AST_to_IL.function_definition lang def in
-            let cfg = CFG_build.cfg_of_stmts xs in
+            let cfg = CFG_build.cfg_of_stmts lang xs in
             Display_IL.display_cfg cfg);
       }
   in
@@ -81,7 +81,8 @@ module DataflowY = Dataflow_core.Make (struct
   type edge = F2.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
+  let short_string_of_node n =
+    Display_IL.short_string_of_augmented_node_kind n.F2.n
 end)
 
 let test_dfg_svalue ~parse_program file =
@@ -95,7 +96,7 @@ let test_dfg_svalue ~parse_program file =
         V.kfunction_definition =
           (fun (_k, _) def ->
             let inputs, xs = AST_to_IL.function_definition lang def in
-            let flow = CFG_build.cfg_of_stmts xs in
+            let flow = CFG_build.cfg_of_stmts lang xs in
             pr2 "Constness";
             let mapping = Dataflow_svalue.fixpoint lang inputs flow in
             Dataflow_svalue.update_svalue flow mapping;
