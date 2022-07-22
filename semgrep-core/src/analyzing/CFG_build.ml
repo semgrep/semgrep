@@ -264,6 +264,9 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
       | None -> state.g |> add_arc (newi, state.exiti)
       | Some catchesi -> state.g |> add_arc (newi, catchesi));
       CfgFirstLast (newi, None)
+  (* Any DefStmts which are FuncDefs are reified as proper Func nodes
+     within the CFG, which contain their own smaller CFGs.
+  *)
   | MiscStmt (DefStmt (_, G.FuncDef fdef)) ->
       let _, stmts = AST_to_IL.function_definition lang fdef in
       let cfg = cfg_of_stmts lang stmts in

@@ -51,6 +51,7 @@ module Make (F : Dataflow_core.Flow) = struct
         match n with
         | IL.Reg _ -> trans mapping ni
         | Func { cfg = flow; _ } ->
+            (* TODO: change mapping here depending on the function inputs *)
             fixpoint ~eq ~init:mapping ~trans ~flow ~get_input_env ~forward
             |> ignore;
             (* Environment does not change for a function node. *)
