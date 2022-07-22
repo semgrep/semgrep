@@ -1,0 +1,4 @@
+`-filter_irrelevant_rules` was incorrectly skipping files when the PCRE engine threw
+an error, while trying to match a regex that determines whether a rule is relevant
+for a file. This has been fixed so that, in case of a PCRE error, we assume that the
+rule could be relevant and we do run it on the file.

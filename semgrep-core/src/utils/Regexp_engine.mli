@@ -22,11 +22,13 @@ val matching_exact_word : string -> t
 (* Compile a regexp in PCRE syntax. *)
 val pcre_compile : string -> t
 
-(* Match the pattern at the beginning of the string (anchored match) *)
-val anchored_match : t -> string -> bool
+val anchored_match : ?on_error:bool -> t -> string -> bool
+(** Match the pattern at the beginning of the string (anchored match)
+ * @param on_error is the value to return in case we encounter a PCRE error. *)
 
-(* Match the pattern at any position in the string (unanchored match) *)
-val unanchored_match : t -> string -> bool
+val unanchored_match : ?on_error:bool -> t -> string -> bool
+(** Match the pattern at any position in the string (unanchored match)
+* @param on_error is the value to return in case we encounter a PCRE error. *)
 
 (*
    Hack used for -filter_irrelevant_rules and metavariable-regex.

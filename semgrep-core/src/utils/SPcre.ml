@@ -72,12 +72,12 @@ let log_error subj err =
   logger#error "PCRE error: %s on input %S" (string_of_error err)
     string_fragment
 
-let pmatch_noerr ?iflags ?flags ?rex ?pos ?callout subj =
+let pmatch_noerr ?iflags ?flags ?rex ?pos ?callout ?(on_error = false) subj =
   match pmatch ?iflags ?flags ?rex ?pos ?callout subj with
   | Ok res -> res
   | Error err ->
       log_error subj err;
-      false
+      on_error
 
 let exec_noerr ?iflags ?flags ?rex ?pos ?callout subj =
   match exec ?iflags ?flags ?rex ?pos ?callout subj with
