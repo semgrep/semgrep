@@ -6,4 +6,8 @@ PR checklist:
   - \<type> is `added`, `changed`, `fixed`, or `infra`.
 - [ ] Change has no security implications (otherwise, ping security team)
 
-If you're unsure on any of this, please see the [Contribution guidelines](https://semgrep.dev/docs/contributing/how-to-contribute/)!
+If you're unsure on any of this, please see:
+
+- [Changelog guidelines](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+- [Contribution guidelines](https://semgrep.dev/docs/contributing/contributing-code)!
+- [One of the more specific guides located here](https://semgrep.dev/docs/contributing/contributing/)
