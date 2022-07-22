@@ -559,7 +559,8 @@ and expr_kind =
    * Unpack/ArrayAppend in PHP (the AST for $x[] = 1 used to be
    * handled as an AssignOp with special Append).
    * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
-   * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity
+   * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity,
+   * AtomExpr/ in Elixir,
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? of replace 'any list' by 'expr list'? any way there's still
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
