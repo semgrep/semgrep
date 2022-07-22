@@ -1,2 +1,0 @@
-When running an SCA scan with `semgrep ci --sca`,
-SCA findings will no longer be considered blocking if they are unreachable.
