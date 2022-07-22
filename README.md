@@ -47,11 +47,10 @@ Its rules look like the code you already write; no abstract syntax trees, regex 
 
 The Semgrep ecosystem includes:
 
-- Semgrep - the open-source command line tool at the heart of everything (this project)
-- [Semgrep CI](https://semgrep.dev/docs/semgrep-ci/) - a specialized Docker image for running Semgrep in CI environments
-- [Semgrep Playground](https://semgrep.dev/editor) - an online interactive rule builder for writing and sharing rules
-- [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and performance bugs
-- [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers.
+- Semgrep - The open-source command line tool at the heart of everything (this project).
+- [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
+- [Semgrep Registry](https://semgrep.dev/explore) - 2,000+ community-driven rules covering security, correctness, and performance bugs.
+- [Semgrep App](https://semgrep.dev/manage) - Deploy, manage, and monitor Semgrep at scale with free and paid tiers. Integrates with CI providers such as GitHub, GitLab, CircleCI, and more.
 
 Join 100,000 other developers and security engineers already using Semgrep at companies like Chef, Dropbox, Figma, HashiCorp, Snowflake, and Trail of Bits. Also check out [tools powered by Semgrep](https://semgrep.dev/docs/extensions/#semgrep-as-an-engine)!
 
