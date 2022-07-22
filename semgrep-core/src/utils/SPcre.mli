@@ -37,14 +37,14 @@ val pmatch :
   string ->
   (bool, Pcre.error) result
 
-(* Return 'default' in case of a PCRE error. The error is logged. *)
+(* Return 'on_error' in case of a PCRE error. The error is logged. *)
 val pmatch_noerr :
   ?iflags:Pcre.irflag ->
   ?flags:Pcre.rflag list ->
   ?rex:Pcre.regexp ->
   ?pos:int ->
   ?callout:Pcre.callout ->
-  ?default:bool ->
+  ?on_error:bool ->
   string ->
   bool
 
