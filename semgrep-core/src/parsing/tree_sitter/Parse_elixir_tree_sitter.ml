@@ -134,6 +134,7 @@ let binary_call (e1 : expr) op_either (e2 : expr) : expr =
   | Right op -> G.opcall op [ e1; e2 ]
 
 let expr_of_block (_blk : block) : expr = raise Todo
+let expr_of_e_or_kwds (_x : (expr, pair list) either) : expr = raise Todo
 
 (*****************************************************************************)
 (* Helpers *)
@@ -142,7 +143,6 @@ type env = unit H.env
 
 let token = H.token
 let str = H.str
-let todo (_env : env) _ = failwith "not implemented"
 
 (* helper to factorize code *)
 let map_trailing_comma env v1 : tok option =
@@ -470,21 +470,23 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
       let v3 = map_expression env v3 in
       binary_call v1 (Left v2) v3
   | `Exp_when_choice_exp (v1, v2, v3) ->
-      let v1 = map_expression env v1 in
-      let v2 = (* "when" *) str env v2 in
+      let e1 = map_expression env v1 in
+      let twhen = (* "when" *) token env v2 in
       let e_or_kwds = map_anon_choice_exp_0094635 env v3 in
-      todo env (v1, v2, e_or_kwds)
+      OtherExpr (("When", twhen), [ E e1; E (expr_of_e_or_kwds e_or_kwds) ])
+      |> G.e
   | `Exp_COLONCOLON_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "::" *) str env v2 in
       let v3 = map_expression env v3 in
       binary_call v1 (Left v2) v3
   | `Exp_BAR_choice_exp (v1, v2, v3) ->
-      let v1 = map_expression env v1 in
+      let e1 = map_expression env v1 in
       (* join operator (=~ "::" in OCaml, comes from Prolog/Erlang) *)
-      let v2 = (* "|" *) str env v2 in
+      let tbar = (* "|" *) token env v2 in
       let e_or_kwds = map_anon_choice_exp_0094635 env v3 in
-      todo env (v1, Right v2, e_or_kwds)
+      OtherExpr (("Join", tbar), [ E e1; E (expr_of_e_or_kwds e_or_kwds) ])
+      |> G.e
   | `Exp_EQGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       (* less: used in Maps, should convert in 'pair'? *)
@@ -613,8 +615,9 @@ and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
   | `Op_id_SLASH_int (v1, v2, v3) ->
       let id = map_operator_identifier env v1 in
       let tslash = (* "/" *) token env v2 in
-      let i = (* integer *) str env v3 in
-      todo env (id, tslash, i)
+      let s, t = (* integer *) str env v3 in
+      let e = L (Int (int_of_string_opt s, t)) |> G.e in
+      OtherExpr (("OpSlashInt", tslash), [ I id; E e ]) |> G.e
 
 and map_body (env : env) ((v1, v2, v3, v4) : CST.body) : body =
   let _v1 = map_terminator_opt env v1 in
@@ -756,7 +759,7 @@ and map_catch_block (env : env) ((v1, v2, v3) : CST.catch_block) =
   in
   (v1, v3)
 
-and map_charlist (env : env) (x : CST.charlist) =
+and map_charlist (env : env) (x : CST.charlist) : expr =
   match x with
   | `Quoted_i_single x -> map_quoted_i_single env x
   | `Quoted_i_here_single x -> map_quoted_i_heredoc_single env x
@@ -850,16 +853,14 @@ and map_expression (env : env) (x : CST.expression) : expr =
       L (Null nil) |> G.e
   | `Atom x -> map_atom env x
   | `Str x -> map_string_ env x
-  | `Char_a593f90 x ->
-      let xs = map_charlist env x in
-      todo env xs
+  | `Char_a593f90 x -> map_charlist env x
   | `Sigil (v1, v2, v3) ->
-      let v1 = (* "~" *) token env v1 in
-      let v2 =
+      let ttilde = (* "~" *) token env v1 in
+      let letter, any =
         match v2 with
         | `Imm_tok_pat_0db2d54_choice_quoted_i_double (v1, v2) ->
-            let _lowerTODO = (* pattern [a-z] *) str env v1 in
-            let v2 =
+            let lower = (* pattern [a-z] *) str env v1 in
+            let quoted =
               match v2 with
               | `Quoted_i_double x -> map_quoted_i_double env x
               | `Quoted_i_single x -> map_quoted_i_single env x
@@ -872,10 +873,10 @@ and map_expression (env : env) (x : CST.expression) : expr =
               | `Quoted_i_bar x -> map_quoted_i_bar env x
               | `Quoted_i_slash x -> map_quoted_i_slash env x
             in
-            todo env (v1, v2)
+            (lower, E quoted)
         | `Imm_tok_pat_562b724_choice_quoted_double (v1, v2) ->
-            let _upperTODO = (* pattern [A-Z] *) str env v1 in
-            let v2 =
+            let upper = (* pattern [A-Z] *) str env v1 in
+            let quoted =
               match v2 with
               | `Quoted_double x -> map_quoted_double env x
               | `Quoted_single x -> map_quoted_single env x
@@ -888,14 +889,14 @@ and map_expression (env : env) (x : CST.expression) : expr =
               | `Quoted_bar x -> map_quoted_bar env x
               | `Quoted_slash x -> map_quoted_slash env x
             in
-            todo env (v1, v2)
+            (upper, Str quoted)
       in
-      let idopt_TODO =
+      let idopt =
         match v3 with
-        | Some tok -> Some ((* pattern [a-zA-Z0-9]+ *) str env tok)
-        | None -> None
+        | Some tok -> [ I ((* pattern [a-zA-Z0-9]+ *) str env tok) ]
+        | None -> []
       in
-      todo env (v1, v2, idopt_TODO)
+      OtherExpr (("Sigil", ttilde), [ I letter; any ] @ idopt) |> G.e
   | `List (v1, v2, v3) ->
       let l = (* "[" *) token env v1 in
       let xs =
@@ -1253,25 +1254,26 @@ and map_unary_operator (env : env) (x : CST.unary_operator) : expr =
       (* TODO: fn shortcut syntax *)
       let tand = (* "&" *) token env v2 in
       let e = map_capture_expression env v3 in
-      todo env (tand, e)
+      OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
   | `Opt_before_un_op_choice_PLUS_exp (v1, v2, v3) ->
       let _v1 = map_before_unary_op_opt env v1 in
-      let v2 = map_anon_choice_PLUS_8019319 env v2 in
-      let v3 = map_expression env v3 in
-      todo env (v2, v3)
+      let id = map_anon_choice_PLUS_8019319 env v2 in
+      let e2 = map_expression env v3 in
+      let e1 = N (H2.name_of_id id) |> G.e in
+      mk_call_no_parens e1 [ G.arg e2 ] None
   | `Opt_before_un_op_AT_exp (v1, v2, v3) ->
       let _v1 = map_before_unary_op_opt env v1 in
       (* TODO: attributes *)
       let tat = (* "@" *) token env v2 in
       let e = map_expression env v3 in
-      todo env (tat, e)
+      OtherExpr (("AttrExpr", tat), [ E e ]) |> G.e
   | `Opt_before_un_op_AMP_int (v1, v2, v3) ->
       let _v1 = map_before_unary_op_opt env v1 in
       (* TODO: fn shortcut syntax *)
       let tand = (* "&" *) token env v2 in
       let s, t = (* integer *) str env v3 in
       let e = L (Int (int_of_string_opt s, t)) |> G.e in
-      todo env (tand, e)
+      OtherExpr (("Shortcut", tand), [ E e ]) |> G.e
 
 let map_source (env : env) ((v1, v2) : CST.source) : body =
   let _v1 = map_terminator_opt env v1 in
@@ -1302,15 +1304,8 @@ let parse file =
     (fun () -> Tree_sitter_elixir.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      (* TODO: remove this try once todo() is not needed anymore *)
-      try
-        match map_source env cst with
-        | es -> body_to_stmts es
-      with
-      | Failure "not implemented" as exn ->
-          let e = Exception.catch exn in
-          H.debug_sexp_cst_after_error (CST.sexp_of_source cst);
-          Exception.reraise e)
+      let es = map_source env cst in
+      body_to_stmts es)
 
 let parse_pattern str =
   H.wrap_parser

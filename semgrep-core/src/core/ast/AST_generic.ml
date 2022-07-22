@@ -560,9 +560,10 @@ and expr_kind =
    * handled as an AssignOp with special Append).
    * Define/Arguments/NewTarget/YieldStar/Exports/Module/Require/UseStrict JS,
    * UnitLiteral/HexString/UnicodeString/TupleHole/StructExpr in Solidity,
-   * AtomExpr/AnonDotField/ContainerBits in Elixir,
+   * AtomExpr/AnonDotField/ContainerBits/When/Join/OpSlashInt/Sigil/Shortcut
+   * AttrExpr in Elixir,
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
-   * TODO? of replace 'any list' by 'expr list'? any way there's still
+   * TODO? replace 'any list' by 'expr list'? any way there's still
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
