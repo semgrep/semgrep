@@ -902,7 +902,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       in
       let r = (* ">>" *) token env v3 in
       OtherExpr
-        (("ContainerBits", l), (xs |> List.map (fun e -> E e)) @ [ Tk r ])
+        (("ContainerBits", l), (xs |> Common.map (fun e -> E e)) @ [ Tk r ])
       |> G.e
   | `Map (v1, v2, v3, v4, v5) ->
       let v1 = (* "%" *) token env v1 in
