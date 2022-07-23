@@ -34,8 +34,7 @@ module DataflowX = Dataflow_core.Make (struct
   type edge = F.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n =
-    Display_IL.short_string_of_augmented_node_kind n.F.n
+  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
 type constness_type = Constant | NotAlwaysConstant [@@deriving show]
@@ -434,7 +433,7 @@ let union_env =
 let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   let node = flow.graph#nodes#assoc ni in
   match node.F.n with
-  | Reg Enter -> enter_env
+  | Enter -> enter_env
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
@@ -481,11 +480,19 @@ let transfer :
 
   let out' =
     match node.F.n with
-    | Reg
-        ( Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _
-        | NReturn _ | NThrow _ | NOther _ | NTodo _ ) ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         inp'
-    | Reg (NInstr instr) -> (
+    | NInstr instr -> (
         (* TODO: For now we only handle the simplest cases. *)
         match instr.i with
         | Assign ({ base = Var var; offset = NoOffset }, exp) ->
@@ -521,7 +528,7 @@ let transfer :
             match lvar_opt with
             | None -> inp'
             | Some lvar -> D.VarMap.remove (str_of_name lvar) inp'))
-    | Func _ -> inp'
+    | NFunc _ -> inp'
   in
 
   { D.in_env = inp'; out_env = out' }
@@ -590,7 +597,7 @@ let update_svalue (flow : F.cfg) mapping =
          let node = flow.graph#nodes#assoc ni in
 
          (* Update RHS svalue according to the input env. *)
-         LV.rlvals_of_augmented_node_kind node.n
+         LV.rlvals_of_node_kind node.n
          |> List.iter (function
               | { base = Var var; _ } -> (
                   match

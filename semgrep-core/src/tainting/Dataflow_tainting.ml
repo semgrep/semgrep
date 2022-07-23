@@ -46,8 +46,7 @@ module DataflowX = Dataflow_prog.Make (struct
   type edge = F.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n =
-    Display_IL.short_string_of_augmented_node_kind n.F.n
+  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
 (*****************************************************************************)
@@ -560,7 +559,7 @@ let check_tainted_return env tok e : Taints.t * var_env =
 let input_env ~enter_env ~(flow : IL.cfg) mapping ni =
   let node = flow.graph#nodes#assoc ni in
   match node.F.n with
-  | Reg Enter -> enter_env
+  | Enter -> enter_env
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
@@ -633,11 +632,8 @@ let (transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Taints.t VarMap.t =
     let env = { config; fun_name = opt_name; fun_env; var_env = in' } in
-    pr2
-      (spf "transfer analyzing instr %s"
-         ([%show: augmented_node_kind] node.F.n));
     match node.F.n with
-    | Reg (NInstr x) -> (
+    | NInstr x -> (
         let taints, var_env' = check_tainted_instr env x in
         let var_env' =
           match LV.lvar_of_instr_opt x with
@@ -655,7 +651,7 @@ let (transfer :
         (* There is no variable being assigned, presumably the Instruction
          * returns 'void'. *)
         | _, None -> var_env')
-    | Reg (NReturn (tok, e)) -> (
+    | NReturn (tok, e) -> (
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, var_env' = check_tainted_return env tok e in
         let findings = findings_of_tainted_return taints tok in

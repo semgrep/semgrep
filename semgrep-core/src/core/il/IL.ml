@@ -335,7 +335,7 @@ type ('a, 'b) cfg_opaque = ('a, 'b) CFG.t
 let pp_cfg_opaque _ _ _ _ = ()
 
 type node = {
-  n : augmented_node_kind;
+  n : node_kind;
       (* old: there are tok in the nodes anyway
        * t: Parse_info.t option;
        *)
@@ -352,17 +352,14 @@ and node_kind =
   | NGoto of tok * label
   | NReturn of tok * exp
   | NThrow of tok * exp
-  | NOther of other_stmt
-  | NTodo of stmt
-[@@deriving show { with_path = false }]
-
-and augmented_node_kind =
-  | Reg of node_kind
-  | Func of {
+  | NFunc of {
       fdef : G.function_definition;
       cfg : (node, edge) cfg_opaque;
       ent : G.entity;
     }
+  | NOther of other_stmt
+  | NTodo of stmt
+[@@deriving show { with_path = false }]
 
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)

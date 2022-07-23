@@ -132,7 +132,7 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
  fun lang state previ stmt ->
   match stmt.s with
   | Instr x -> (
-      let newi = state.g#add_node { F.n = Reg (F.NInstr x) } in
+      let newi = state.g#add_node { F.n = F.NInstr x } in
       state.g |> add_arc_from_opt (previ, newi);
       match x.i with
       | Call _ ->
@@ -157,7 +157,7 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
            * TODO: In order to handle lambdas properly, we could either inline
            * them, or "lift" them and then use an inter-procedural analysis.
            *)
-          let lasti = state.g#add_node { F.n = Reg F.Join } in
+          let lasti = state.g#add_node { F.n = F.Join } in
           let finallambda =
             cfg_stmt_list lang
               { state with exiti = lasti }
@@ -174,11 +174,11 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
        *
        * The lasti can be a Join when there is no return in either branch.
        *)
-      let newi = state.g#add_node { F.n = Reg (F.NCond (tok, e)) } in
+      let newi = state.g#add_node { F.n = F.NCond (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = Reg F.TrueNode } in
-      let newfakeelse = state.g#add_node { F.n = Reg F.FalseNode } in
+      let newfakethen = state.g#add_node { F.n = F.TrueNode } in
+      let newfakeelse = state.g#add_node { F.n = F.FalseNode } in
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
@@ -193,7 +193,7 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
       | None, Some nodei ->
           CfgFirstLast (newi, Some nodei)
       | Some n1, Some n2 ->
-          let lasti = state.g#add_node { F.n = Reg F.Join } in
+          let lasti = state.g#add_node { F.n = F.Join } in
           state.g |> add_arc (n1, lasti);
           state.g |> add_arc (n2, lasti);
           CfgFirstLast (newi, Some lasti))
@@ -202,11 +202,11 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
        *             |---|-----------------------------------|
        *                 |-> newfakelse
        *)
-      let newi = state.g#add_node { F.n = Reg (NCond (tok, e)) } in
+      let newi = state.g#add_node { F.n = NCond (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = Reg F.TrueNode } in
-      let newfakeelse = state.g#add_node { F.n = Reg F.FalseNode } in
+      let newfakethen = state.g#add_node { F.n = F.TrueNode } in
+      let newfakeelse = state.g#add_node { F.n = F.FalseNode } in
       state.g |> add_arc (newi, newfakethen);
       state.g |> add_arc (newi, newfakeelse);
 
@@ -215,12 +215,12 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
       CfgFirstLast (newi, Some newfakeelse)
   | Label label -> CfgLabel label
   | Goto (tok, label) ->
-      let newi = state.g#add_node { F.n = Reg (F.NGoto (tok, label)) } in
+      let newi = state.g#add_node { F.n = F.NGoto (tok, label) } in
       state.g |> add_arc_from_opt (previ, newi);
       add_pending_goto state newi label;
       CfgFirstLast (newi, None)
   | Return (tok, e) ->
-      let newi = state.g#add_node { F.n = Reg (F.NReturn (tok, e)) } in
+      let newi = state.g#add_node { F.n = F.NReturn (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
       state.g |> add_arc (newi, state.exiti);
       CfgFirstLast (newi, None)
@@ -233,15 +233,13 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
        *                 |-----------|-> newfakefinally -> finally
        *
        *)
-      let newi = state.g#add_node { F.n = Reg (NOther (Noop "try")) } in
+      let newi = state.g#add_node { F.n = NOther (Noop "try") } in
       state.g |> add_arc_from_opt (previ, newi);
-      let catchesi = state.g#add_node { F.n = Reg (NOther (Noop "catch")) } in
+      let catchesi = state.g#add_node { F.n = NOther (Noop "catch") } in
       let state' = { state with try_catches_opt = Some catchesi } in
       let finaltry = cfg_stmt_list lang state' (Some newi) try_st in
       state.g |> add_arc_from_opt (finaltry, catchesi);
-      let newfakefinally =
-        state.g#add_node { F.n = Reg (NOther (Noop "finally")) }
-      in
+      let newfakefinally = state.g#add_node { F.n = NOther (Noop "finally") } in
       state.g |> add_arc (catchesi, newfakefinally);
       catches
       |> List.iter (fun (_, catch_st) ->
@@ -258,7 +256,7 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
       state.g |> add_arc_opt_to_opt (finalfinally, state.try_catches_opt);
       CfgFirstLast (newi, finalfinally)
   | Throw (tok, e) ->
-      let newi = state.g#add_node { F.n = Reg (F.NThrow (tok, e)) } in
+      let newi = state.g#add_node { F.n = F.NThrow (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
       (match state.try_catches_opt with
       | None -> state.g |> add_arc (newi, state.exiti)
@@ -270,17 +268,17 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
   | MiscStmt (DefStmt (ent, G.FuncDef fdef)) ->
       let _, stmts = AST_to_IL.function_definition lang fdef in
       let cfg = cfg_of_stmts lang stmts in
-      let newi = state.g#add_node { F.n = Func { fdef; cfg; ent } } in
+      let newi = state.g#add_node { F.n = NFunc { fdef; cfg; ent } } in
       state.g |> add_arc_from_opt (previ, newi);
       CfgFirstLast (newi, Some newi)
   | MiscStmt x ->
-      let newi = state.g#add_node { F.n = Reg (F.NOther x) } in
+      let newi = state.g#add_node { F.n = F.NOther x } in
       state.g |> add_arc_from_opt (previ, newi);
       CfgFirstLast (newi, Some newi)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
 and cfg_todo state previ stmt =
-  let newi = state.g#add_node { F.n = Reg (F.NTodo stmt) } in
+  let newi = state.g#add_node { F.n = F.NTodo stmt } in
   state.g |> add_arc_from_opt (previ, newi);
   CfgFirstLast (newi, Some newi)
 
@@ -315,7 +313,7 @@ and cfg_stmt_list lang state previ xs =
        * Such labels may be in the original sources, or they may be introduced
        * by the AST-to-IL translation.
        *)
-      let dummyi = state.g#add_node { n = Reg (NOther (Noop "return")) } in
+      let dummyi = state.g#add_node { n = NOther (Noop "return") } in
       label_node state (l :: ls) dummyi;
       state.g |> add_arc_from_opt (lasti_opt, dummyi);
       Some dummyi
@@ -330,8 +328,8 @@ and (cfg_of_stmts : Lang.t -> stmt list -> F.cfg) =
   (* yes, I sometimes use objects, and even mutable objects in OCaml ... *)
   let g = new Ograph_extended.ograph_mutable in
 
-  let enteri = g#add_node { F.n = Reg F.Enter } in
-  let exiti = g#add_node { F.n = Reg F.Exit } in
+  let enteri = g#add_node { F.n = F.Enter } in
+  let exiti = g#add_node { F.n = F.Exit } in
 
   let newi = enteri in
 

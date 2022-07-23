@@ -47,11 +47,7 @@ let short_string_of_node_kind nkind =
             (IL.show_call_special call_special)
       | FixmeInstr _ -> "<fix-me instr>")
   | NTodo _ -> "<to-do stmt>"
-
-let short_string_of_augmented_node_kind ankind =
-  match ankind with
-  | Reg nk -> short_string_of_node_kind nk
-  | Func _ -> "<func>"
+  | NFunc _ -> "<func>"
 
 (* using internally graphviz dot and ghostview on X11 *)
 let (display_cfg : cfg -> unit) =
@@ -59,4 +55,4 @@ let (display_cfg : cfg -> unit) =
   flow.graph
   |> Ograph_extended.print_ograph_mutable_generic
        ~s_of_node:(fun (_nodei, node) ->
-         (short_string_of_augmented_node_kind node.n, None, None))
+         (short_string_of_node_kind node.n, None, None))

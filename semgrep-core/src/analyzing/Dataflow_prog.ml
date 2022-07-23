@@ -30,10 +30,7 @@ module Make (F : Dataflow_core.Flow) = struct
     type edge = IL.edge
     type flow = IL.cfg
 
-    let short_string_of_node { IL.n } =
-      match n with
-      | IL.Reg node -> [%show: IL.node_kind] node
-      | Func _ -> "<func>"
+    let short_string_of_node { IL.n } = [%show: IL.node_kind] n
   end
 
   module CoreDataflow = Dataflow_core.Make (ProgFlow)
@@ -64,8 +61,7 @@ module Make (F : Dataflow_core.Flow) = struct
       CoreDataflow.fixpoint ~eq ~init
         ~trans:(fun mapping ni ->
           match (flow.graph#nodes#assoc ni).n with
-          | IL.Reg _ -> trans name flow enter_env mapping ni
-          | Func { cfg = new_flow; fdef; ent } ->
+          | NFunc { cfg = new_flow; fdef; ent } ->
               (* We want the entrance env to this function node, computed via looking at
                  the current node within the old flow, along with the function definition.
               *)
@@ -87,7 +83,20 @@ module Make (F : Dataflow_core.Flow) = struct
                 ~flow:new_flow ~get_func_input_env ~config ~forward ~name
               |> ignore;
               (* Environment does not change for a function node. *)
-              { in_env = env; out_env = env })
+              { in_env = env; out_env = env }
+          | Enter
+          | Exit
+          | TrueNode
+          | FalseNode
+          | Join
+          | NInstr _
+          | NCond _
+          | NGoto _
+          | NReturn _
+          | NThrow _
+          | NOther _
+          | NTodo _ ->
+              trans name flow enter_env mapping ni)
         ~flow ~forward
     in
 
