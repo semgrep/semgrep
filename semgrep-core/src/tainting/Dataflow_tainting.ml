@@ -480,6 +480,8 @@ let check_tainted_instr env instr : Taints.t * var_env =
     | Assign (_, e) -> check_expr env e
     | AssignAnon _ -> (Taints.empty, env.var_env) (* TODO *)
     | Call (_, e, args) ->
+        (*pr2 "checking if call is tianted";
+          *)
         let args_taints, var_env =
           args
           |> List.fold_left_map
@@ -488,17 +490,31 @@ let check_tainted_instr env instr : Taints.t * var_env =
                env.var_env
           |> Common2.swap
         in
+        (*pr2 (spf "my exp is %s" ([%show: exp] e));
+        *)
         let e_taints, var_env = check_expr { env with var_env } e in
+        (*pr2 (spf "exp taints are:");
+        *)
+        Taints.iter (fun taint -> pr2 ([%show: Taint.taint] taint)) e_taints;
         let call_taints =
           match check_function_signature env e args_taints with
-          | Some call_taints -> call_taints
+          | Some call_taints ->
+              Common.pr2 "CHECKING FUNSIG WORKS\n\n\n";
+              call_taints
           | None ->
+              Common.pr2 "fun sig no go, unioning taints";
               (* Default is to assume that the function will propagate
                * the taint of its arguments. *)
               List.fold_left Taints.union e_taints args_taints
         in
+        (*pr2 (spf "my taints are:");
+        *)
+        Taints.iter (fun taint -> pr2 ([%show: Taint.taint] taint)) call_taints;
         (call_taints, var_env)
-    | CallSpecial (_, _, args) -> union_map_taints_and_vars env check_expr args
+    | CallSpecial (_, _, args) ->
+        (*pr2 "checking if callsp is tianted";
+          *)
+        union_map_taints_and_vars env check_expr args
     | FixmeInstr _ -> (Taints.empty, env.var_env)
   in
   let sanitizer_pms = orig_is_sanitized env.config instr.iorig in
@@ -555,14 +571,61 @@ let input_env ~enter_env ~(flow : IL.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left union_vars penv1 penvs)
 
+let get_func_input_env enter_env flow mapping ni taint_config fdef =
+  let env = input_env ~enter_env ~flow mapping ni in
+  let add_to_env env id ii =
+    let var = str_of_name (AST_to_IL.var_of_id_info id ii) in
+    let taint =
+      taint_config.is_source (G.Tk (snd id))
+      |> Common.map fst |> T.taints_of_pms
+    in
+    Dataflow_core.VarMap.add var taint env
+  in
+  (* For each argument, check if it's a source and, if so, add it to the input
+     * environment. *)
+  List.fold_left
+    (fun env par ->
+      match par with
+      | G.Param { pname = Some id; pinfo; _ } -> add_to_env env id pinfo
+      (* JS: {arg} : type *)
+      | G.ParamPattern
+          (G.OtherPat
+            ( ("ExprToPattern", _),
+              [
+                G.E { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
+              ] ))
+      (* JS: {arg} *)
+      | G.ParamPattern
+          (G.OtherPat
+            (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
+        ->
+          List.fold_left
+            (fun env field ->
+              match field with
+              | G.F
+                  {
+                    s =
+                      G.DefStmt
+                        ( _,
+                          G.FieldDefColon
+                            { vinit = Some { e = G.N (G.Id (id, ii)); _ }; _ }
+                        );
+                    _;
+                  } ->
+                  add_to_env env id ii
+              | _ -> env)
+            env fields
+      | _ -> env)
+    env fdef.G.fparams
+
 let (transfer :
       config ->
       fun_env ->
-      Taints.t Dataflow_core.env ->
       string option ->
-      flow:IL.cfg ->
+      IL.cfg ->
+      Taints.t Dataflow_core.env ->
       Taints.t Dataflow_core.transfn) =
- fun config fun_env enter_env opt_name ~flow
+ fun config fun_env opt_name flow enter_env
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
@@ -570,6 +633,9 @@ let (transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' : Taints.t VarMap.t =
     let env = { config; fun_name = opt_name; fun_env; var_env = in' } in
+    pr2
+      (spf "transfer analyzing instr %s"
+         ([%show: augmented_node_kind] node.F.n));
     match node.F.n with
     | Reg (NInstr x) -> (
         let taints, var_env' = check_tainted_instr env x in
@@ -639,7 +705,7 @@ let (fixpoint :
   in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
-  DataflowX.fixpoint ~eq:Taints.equal ~init:init_mapping
-    ~trans:(transfer config fun_env enter_env opt_name ~flow)
-    ~flow ~forward:true (* tainting is a forward analysis! *)
-    ~get_input_env:(input_env ~enter_env ~flow)
+  DataflowX.fixpoint ~enter_env ~eq:Taints.equal ~init:init_mapping
+    ~trans:(transfer config fun_env) ~flow
+    ~forward:true (* tainting is a forward analysis! *)
+    ~get_func_input_env ~config ~name:opt_name

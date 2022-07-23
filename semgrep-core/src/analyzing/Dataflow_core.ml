@@ -217,6 +217,9 @@ module Make (F : Flow) = struct
     else
       let ni = NodeiSet.choose workset in
       let work' = NodeiSet.remove ni workset in
+      (*pr2 (Printf.sprintf "accessing node %d" ni);
+        display_mapping flow mapping (fun _ -> "<hidden>");
+      *)
       let old = mapping.(ni) in
       let new_ = trans mapping ni in
       let work'' =

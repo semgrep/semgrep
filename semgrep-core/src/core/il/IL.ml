@@ -358,7 +358,11 @@ and node_kind =
 
 and augmented_node_kind =
   | Reg of node_kind
-  | Func of { fdef : G.function_definition; cfg : (node, edge) cfg_opaque }
+  | Func of {
+      fdef : G.function_definition;
+      cfg : (node, edge) cfg_opaque;
+      ent : G.entity;
+    }
 
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)

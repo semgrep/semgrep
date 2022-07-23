@@ -19,6 +19,8 @@ module DC = Dataflow_core
 type nodei = int
 type var = string
 
+let ( let* ) = Option.bind
+
 module VarMap = Dataflow_core.VarMap
 module VarSet = Dataflow_core.VarSet
 
@@ -34,31 +36,66 @@ module Make (F : Dataflow_core.Flow) = struct
       | Func _ -> "<func>"
   end
 
-  module ProgDataflow = Dataflow_core.Make (ProgFlow)
+  module CoreDataflow = Dataflow_core.Make (ProgFlow)
+
+  let str_of_name name = Common.spf "%s:%d" (fst name.IL.ident) name.sid
 
   let rec fixpoint :
+      enter_env:'a DC.env ->
       eq:('a -> 'a -> bool) ->
       init:'a DC.mapping ->
-      trans:'a DC.transfn ->
+      trans:(Dataflow_core.var option -> IL.cfg -> 'a DC.env -> 'a DC.transfn) ->
       flow:IL.cfg ->
-      get_input_env:('a DC.mapping -> nodei -> 'a DC.env) ->
+      get_func_input_env:
+        ('a DC.env ->
+        IL.cfg ->
+        'a DC.mapping ->
+        nodei ->
+        'config ->
+        AST_generic.function_definition ->
+        'a DC.env) ->
+      config:'config ->
       forward:bool ->
+      name:Dataflow_core.var option ->
       'a DC.mapping =
-   fun ~eq ~init ~trans ~flow ~get_input_env ~forward ->
-    ProgDataflow.fixpoint ~eq ~init
-      ~trans:(fun mapping ni ->
-        let { IL.n } = flow.graph#nodes#assoc ni in
-        match n with
-        | IL.Reg _ -> trans mapping ni
-        | Func { cfg = flow; _ } ->
-            (* TODO: change mapping here depending on the function inputs *)
-            fixpoint ~eq ~init:mapping ~trans ~flow ~get_input_env ~forward
-            |> ignore;
-            (* Environment does not change for a function node. *)
-            let env = get_input_env mapping ni in
-            { in_env = env; out_env = env })
-      ~flow ~forward
+   fun ~enter_env ~eq ~init ~trans ~flow ~get_func_input_env ~config ~forward
+       ~name ->
+    let res =
+      CoreDataflow.fixpoint ~eq ~init
+        ~trans:(fun mapping ni ->
+          match (flow.graph#nodes#assoc ni).n with
+          | IL.Reg _ -> trans name flow enter_env mapping ni
+          | Func { cfg = new_flow; fdef; ent } ->
+              (* We want the entrance env to this function node, computed via looking at
+                 the current node within the old flow, along with the function definition.
+              *)
+              (*Common.(pr2 (spf "accesing at node %d" ni));
+                CoreDataflow.display_mapping flow mapping (fun _ -> "thinggoeshere");
+              *)
+              let name =
+                let* name = AST_to_IL.name_of_entity ent in
+                Some (str_of_name name)
+              in
+              let env =
+                get_func_input_env enter_env flow mapping ni config fdef
+              in
+              let new_mapping =
+                CoreDataflow.new_node_array new_flow
+                  (Dataflow_core.empty_inout ())
+              in
+              fixpoint ~enter_env:env ~eq ~init:new_mapping ~trans
+                ~flow:new_flow ~get_func_input_env ~config ~forward ~name
+              |> ignore;
+              (* Environment does not change for a function node. *)
+              { in_env = env; out_env = env })
+        ~flow ~forward
+    in
 
-  let new_node_array = ProgDataflow.new_node_array
-  let display_mapping = ProgDataflow.display_mapping
+    (*Common.pr2 "fixpoint on new function";
+      Display_IL.display_cfg flow;
+    *)
+    res
+
+  let new_node_array = CoreDataflow.new_node_array
+  let display_mapping = CoreDataflow.display_mapping
 end
