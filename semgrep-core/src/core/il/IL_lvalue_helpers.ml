@@ -104,6 +104,8 @@ let rlvals_of_node_kind = function
   | TrueNode
   | FalseNode
   | NGoto _
+  | NFunc _
+  | NClass _
   | Join ->
       []
   | NInstr x -> rlvals_of_instr x
@@ -114,4 +116,3 @@ let rlvals_of_node_kind = function
   | NOther _
   | NTodo _ ->
       []
-  | NFunc _ -> []

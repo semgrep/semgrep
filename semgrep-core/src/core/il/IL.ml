@@ -302,6 +302,12 @@ and stmt_kind =
       * (name * stmt list) list (* catches *)
       * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
+  | FuncStmt of {
+      fdef : G.function_definition;
+      ent : G.entity;
+      body : stmt list;
+    }
+  | ClassStmt of stmt list
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
 
@@ -357,6 +363,7 @@ and node_kind =
       cfg : (node, edge) cfg_opaque;
       ent : G.entity;
     }
+  | NClass of (node, edge) cfg_opaque
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving show { with_path = false }]

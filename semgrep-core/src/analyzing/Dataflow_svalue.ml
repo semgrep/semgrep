@@ -490,6 +490,8 @@ let transfer :
     | NReturn _
     | NThrow _
     | NOther _
+    | NFunc _
+    | NClass _
     | NTodo _ ->
         inp'
     | NInstr instr -> (
@@ -528,7 +530,6 @@ let transfer :
             match lvar_opt with
             | None -> inp'
             | Some lvar -> D.VarMap.remove (str_of_name lvar) inp'))
-    | NFunc _ -> inp'
   in
 
   { D.in_env = inp'; out_env = out' }

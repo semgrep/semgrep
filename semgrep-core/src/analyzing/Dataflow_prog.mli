@@ -27,14 +27,8 @@ module Make (F : Dataflow_core.Flow) : sig
     init:'a DC.mapping ->
     trans:(Dataflow_core.var option -> IL.cfg -> 'a DC.env -> 'a DC.transfn) ->
     flow:IL.cfg ->
-    get_func_input_env:
-      ('a DC.env ->
-      IL.cfg ->
-      'a DC.mapping ->
-      nodei ->
-      'config ->
-      AST_generic.function_definition ->
-      'a DC.env) ->
+    get_input_env:
+      ('a DC.env -> IL.cfg -> 'a DC.mapping -> nodei -> 'config -> 'a DC.env) ->
     config:'config ->
     forward:bool ->
     name:DC.var option ->

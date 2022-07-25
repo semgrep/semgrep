@@ -265,10 +265,14 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
   (* Any DefStmts which are FuncDefs are reified as proper Func nodes
      within the CFG, which contain their own smaller CFGs.
   *)
-  | MiscStmt (DefStmt (ent, G.FuncDef fdef)) ->
-      let _, stmts = AST_to_IL.function_definition lang fdef in
-      let cfg = cfg_of_stmts lang stmts in
+  | FuncStmt { fdef; ent; body } ->
+      let cfg = cfg_of_stmts lang body in
       let newi = state.g#add_node { F.n = NFunc { fdef; cfg; ent } } in
+      state.g |> add_arc_from_opt (previ, newi);
+      CfgFirstLast (newi, Some newi)
+  | ClassStmt stmts ->
+      let cfg = cfg_of_stmts lang stmts in
+      let newi = state.g#add_node { F.n = NClass cfg } in
       state.g |> add_arc_from_opt (previ, newi);
       CfgFirstLast (newi, Some newi)
   | MiscStmt x ->

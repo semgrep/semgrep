@@ -570,52 +570,67 @@ let input_env ~enter_env ~(flow : IL.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left union_vars penv1 penvs)
 
-let get_func_input_env enter_env flow mapping ni taint_config fdef =
-  let env = input_env ~enter_env ~flow mapping ni in
-  let add_to_env env id ii =
-    let var = str_of_name (AST_to_IL.var_of_id_info id ii) in
-    let taint =
-      taint_config.is_source (G.Tk (snd id))
-      |> Common.map fst |> T.taints_of_pms
-    in
-    Dataflow_core.VarMap.add var taint env
-  in
-  (* For each argument, check if it's a source and, if so, add it to the input
-     * environment. *)
-  List.fold_left
-    (fun env par ->
-      match par with
-      | G.Param { pname = Some id; pinfo; _ } -> add_to_env env id pinfo
-      (* JS: {arg} : type *)
-      | G.ParamPattern
-          (G.OtherPat
-            ( ("ExprToPattern", _),
-              [
-                G.E { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
-              ] ))
-      (* JS: {arg} *)
-      | G.ParamPattern
-          (G.OtherPat
-            (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
-        ->
-          List.fold_left
-            (fun env field ->
-              match field with
-              | G.F
-                  {
-                    s =
-                      G.DefStmt
-                        ( _,
-                          G.FieldDefColon
-                            { vinit = Some { e = G.N (G.Id (id, ii)); _ }; _ }
-                        );
-                    _;
-                  } ->
-                  add_to_env env id ii
-              | _ -> env)
-            env fields
-      | _ -> env)
-    env fdef.G.fparams
+(* This function ought to give the input environment to the node, dispatching
+   on the particular kind of node that we're lookign at.
+*)
+let get_input_env enter_env flow mapping ni taint_config =
+  match (flow.CFG.graph#nodes#assoc ni).n with
+  | NFunc { fdef; _ } ->
+      let env = input_env ~enter_env ~flow mapping ni in
+      let add_to_env env id ii =
+        let var = str_of_name (AST_to_IL.var_of_id_info id ii) in
+        let taint =
+          taint_config.is_source (G.Tk (snd id))
+          |> Common.map fst |> T.taints_of_pms
+        in
+        Dataflow_core.VarMap.add var taint env
+      in
+      (* For each argument, check if it's a source and, if so, add it to the input
+         * environment. *)
+      List.fold_left
+        (fun env par ->
+          match par with
+          | G.Param { pname = Some id; pinfo; _ } -> add_to_env env id pinfo
+          (* JS: {arg} : type *)
+          | G.ParamPattern
+              (G.OtherPat
+                ( ("ExprToPattern", _),
+                  [
+                    G.E
+                      {
+                        e = G.Cast (_, _, { e = G.Record (_, fields, _); _ });
+                        _;
+                      };
+                  ] ))
+          (* JS: {arg} *)
+          | G.ParamPattern
+              (G.OtherPat
+                ( ("ExprToPattern", _),
+                  [ G.E { e = G.Record (_, fields, _); _ } ] )) ->
+              List.fold_left
+                (fun env field ->
+                  match field with
+                  | G.F
+                      {
+                        s =
+                          G.DefStmt
+                            ( _,
+                              G.FieldDefColon
+                                {
+                                  vinit = Some { e = G.N (G.Id (id, ii)); _ };
+                                  _;
+                                } );
+                        _;
+                      } ->
+                      add_to_env env id ii
+                  | _ -> env)
+                env fields
+          | _ -> env)
+        env fdef.G.fparams
+  | NClass _ ->
+      (* TODO: add class parameters here *)
+      enter_env
+  | _ -> enter_env
 
 let (transfer :
       config ->
@@ -704,4 +719,4 @@ let (fixpoint :
   DataflowX.fixpoint ~enter_env ~eq:Taints.equal ~init:init_mapping
     ~trans:(transfer config fun_env) ~flow
     ~forward:true (* tainting is a forward analysis! *)
-    ~get_func_input_env ~config ~name:opt_name
+    ~get_input_env ~config ~name:opt_name
