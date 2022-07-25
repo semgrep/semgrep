@@ -3,6 +3,7 @@ import operator
 import os
 import subprocess
 import sys
+from io import TextIOWrapper
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -222,3 +223,17 @@ def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
                 """
             ).strip()
         )
+
+
+def read_range(fd: TextIOWrapper, start_offset: int, end_offset: int) -> str:
+    """
+    Takes a file descriptor and returns the text between the offsets. Start
+    inclusive, end exclusive.
+
+    It is recommended to open the fd with `open(path, errors="replace"). See
+    https://stackoverflow.com/a/56441652.
+    """
+    # Offsets are start inclusive and end exclusive
+    length = end_offset - start_offset
+    fd.seek(start_offset)
+    return fd.read(length)
