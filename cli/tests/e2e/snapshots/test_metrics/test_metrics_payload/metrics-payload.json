@@ -14,6 +14,9 @@
   },
   "event_id": "00000000-0000-0000-0000-000000000000",
   "fix_rate": {},
+  "ignores": {
+    "unsupported_exts": {}
+  },
   "performance": {
     "fileStats": [
       {
