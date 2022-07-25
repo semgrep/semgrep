@@ -170,6 +170,7 @@ r2c will:
 |             | Rule hashes with findings               | Map of rule hashes to number of findings                               | Understand which rules are providing value to the user; diagnose high false-positive rates | `{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}`                                                                                                             | Object         |
 |             | Total Findings                          | Count of all findings                                                  | Understand if rules are super noisy for the user                                           | 7                                                                                                                                                                                     | Number         |
 |             | Total Nosems                            | Count of all `nosem` annotations that tell semgrep to ignore a finding | Understand if rules are super noisy for the user                                           | 3                                                                                                                                                                                     | Number         |
+|             | Unsupported Extensions                  | List of file extensions that did not match language and number of each | Understand demand by language for new rules and language supprt                            | `{".txt": 3, ".erb": 2, ".java": 5}`                                                                                                                                                  |
 
 ### Anonymous user ID
 
@@ -269,6 +270,7 @@ This is a sample blob of the aggregate metrics described above:
         "numFindings": 7,
         "numIgnored": 3,
         "features": ["language/python", "option/deep", "option/no-git-ignore", "key/metavariable-comparison"]
+        "unsupportedExts": {".txt": 3, ".erb": 2, ".java": 5}
     }
 }
 ```

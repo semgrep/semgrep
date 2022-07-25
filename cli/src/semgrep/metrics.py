@@ -101,15 +101,12 @@ class ValueSchema(ValueRequiredSchema, total=False):
     numFindings: int
     numIgnored: int
     ruleHashesWithFindings: Dict[str, int]
+    unsupportedExts: Dict[str, int]
 
 
 class FixRateSchema(TypedDict, total=False):
     lowerLimits: Dict[str, int]
     upperLimits: Dict[str, int]
-
-
-class IgnoresSchema(TypedDict, total=False):
-    unsupported_exts: Dict[str, int]
 
 
 class TopLevelSchema(TypedDict, total=False):
@@ -125,7 +122,6 @@ class PayloadSchema(TopLevelSchema):
     errors: ErrorsSchema
     value: ValueSchema
     fix_rate: FixRateSchema
-    ignores: IgnoresSchema
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -175,7 +171,6 @@ class Metrics:
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
             fix_rate=FixRateSchema(),
-            ignores=IgnoresSchema(),
         )
     )
 
@@ -308,7 +303,7 @@ class Metrics:
     def add_ignores(self, ignored: Set[Path]) -> None:
         ignored_ext_freqs = Counter([os.path.splitext(path)[1] for path in ignored])
         ignored_ext_freqs.pop("", None)  # don't count files with no extension
-        self.payload["ignores"]["unsupported_exts"] = ignored_ext_freqs
+        self.payload["value"]["unsupportedExts"] = ignored_ext_freqs
 
     @suppress_errors
     def add_errors(self, errors: List[SemgrepError]) -> None:
