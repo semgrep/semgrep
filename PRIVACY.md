@@ -109,6 +109,7 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 - Number of ignored findings
 - Pseudoanonymized hashes of the rule definitions that yield findings
 - The [Semgrep features used](#feature-usage) during the scan
+- File extensions of unscanned files
 
 ### Pseudoanonymization
 

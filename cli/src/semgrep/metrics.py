@@ -107,6 +107,10 @@ class FixRateSchema(TypedDict, total=False):
     upperLimits: Dict[str, int]
 
 
+class IgnoresSchema(TypedDict, total=False):
+    unsupported_exts: Dict[str, int]
+
+
 class TopLevelSchema(TypedDict, total=False):
     event_id: uuid.UUID
     anonymous_user_id: str
@@ -120,6 +124,7 @@ class PayloadSchema(TopLevelSchema):
     errors: ErrorsSchema
     value: ValueSchema
     fix_rate: FixRateSchema
+    ignores: IgnoresSchema
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -169,6 +174,7 @@ class Metrics:
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
             fix_rate=FixRateSchema(),
+            ignores=IgnoresSchema(),
         )
     )
 
@@ -296,6 +302,17 @@ class Metrics:
         total_bytes_scanned = sum(t.stat().st_size for t in targets)
         self.payload["performance"]["totalBytesScanned"] = total_bytes_scanned
         self.payload["performance"]["numTargets"] = len(targets)
+
+    @suppress_errors
+    def add_ignores(self, ignored: Set[Path]) -> None:
+        ignored_ext_freqs: Dict[str, int] = {}
+        for path in ignored:
+            ext = os.path.splitext(path)[1]
+            if not ext:
+                continue
+            ignored_ext_freqs[ext] = ignored_ext_freqs.get(ext, 0) + 1
+        print("Ignored Extensions Metrics:", ignored_ext_freqs)
+        self.payload["ignores"]["unsupported_exts"] = ignored_ext_freqs
 
     @suppress_errors
     def add_errors(self, errors: List[SemgrepError]) -> None:
