@@ -446,7 +446,10 @@ def parse_config_string(
         )
     try:
         # we pretend it came from YAML so we can keep later code simple
-        data = YamlTree.wrap(json.loads(contents), EmptySpan)
+        content_json = json.loads(contents)
+        if "rules" not in content_json:
+            content_json = {"rules": content_json}
+        data = YamlTree.wrap(content_json, EmptySpan)
         return {config_id: data}
     except json.decoder.JSONDecodeError:
         pass
