@@ -441,6 +441,7 @@ def main(
     profiler.save("total_time", rule_start_time)
 
     metrics = get_state().metrics
+    metrics.add_ignores(target_manager.ignore_log.unsupported_lang_paths)
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
         metrics.add_configs(configs)
@@ -449,7 +450,6 @@ def main(
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
-        metrics.add_ignores(target_manager.ignore_log.unsupported_lang_paths)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)

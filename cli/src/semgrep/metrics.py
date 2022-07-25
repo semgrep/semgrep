@@ -311,7 +311,6 @@ class Metrics:
             if not ext:
                 continue
             ignored_ext_freqs[ext] = ignored_ext_freqs.get(ext, 0) + 1
-        print("Ignored Extensions Metrics:", ignored_ext_freqs)
         self.payload["ignores"]["unsupported_exts"] = ignored_ext_freqs
 
     @suppress_errors
