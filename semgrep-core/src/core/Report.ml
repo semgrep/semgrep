@@ -208,7 +208,7 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
   let matches, errors, (skipped_targets, profiling) = unzip_results results in
   {
     matches = List.flatten matches;
-    errors = List.flatten errors;
+    errors = List.flatten errors |> List.sort_uniq compare;
     extra = final_extra skipped_targets profiling;
   }
 

@@ -134,7 +134,9 @@ let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
   h
 
 let error_with_rule_id rule_id (error : E.error) =
-  { error with rule_id = Some rule_id }
+  match error.typ with
+  | PartialParsing _ -> error
+  | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
 
@@ -585,6 +587,7 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
   let res, final_ranges =
     matches_of_formula (config, equivs) r xtarget formula None
   in
+  let errors = res.errors |> Common.map (error_with_rule_id rule_id) in
   {
     RP.matches =
       final_ranges
@@ -598,6 +601,6 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
                     hook str m));
-    errors = res.errors |> Common.map (error_with_rule_id rule_id);
+    errors;
     extra = res.extra;
   }

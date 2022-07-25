@@ -38,6 +38,7 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
+from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
@@ -478,7 +479,7 @@ class CoreRunner:
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
                 soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
-                tip = f" Semgrep exceeded system resources. This may be caused by\n\n    1. Stack overflow. Try increasing the stack limit to `{soft_limit}` by running `ulimit -s {soft_limit}` before running Semgrep.\n    2. Out of memory. Try increasing the memory available to your container (if running in CI). If that is not possible, run `semgrep` with `--max-memory $YOUR_MEMORY_LIMIT`.\n    3. Some extremely niche compiler/c-bindings bug. (We've never seen this, but it's always possible.)\n\nYou can also try reducing the number of processes Semgrep uses by running `semgrep` with `--jobs 1` (or some other number of jobs). If you are running in CI, please try running the same command locally."
+                tip = f""" Semgrep exceeded system resources. This may be caused by\n\n    1. Stack overflow. Try increasing the stack limit to `{soft_limit}` by running `ulimit -s {soft_limit}` before running Semgrep.\n    2. Out of memory. Try increasing the memory available to your container (if running in CI). If that is not possible, run `semgrep` with `--max-memory $YOUR_MEMORY_LIMIT`.\n    3. Some extremely niche compiler/c-bindings bug. (We've never seen this, but it's always possible.)\n\nYou can also try reducing the number of processes Semgrep uses by running `semgrep` with `--jobs 1` (or some other number of jobs). If you are running in CI, please try running the same command locally."""
             else:
                 tip = "Semgrep encountered an internal error."
             self._fail(
@@ -588,7 +589,13 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         deep: bool,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
+    ) -> Tuple[
+        RuleMatchMap,
+        List[SemgrepError],
+        Set[Path],
+        ProfilingData,
+        ParsingData,
+    ]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -599,6 +606,7 @@ class CoreRunner:
         max_timeout_files: Set[Path] = set()
 
         profiling_data: ProfilingData = ProfilingData()
+        parsing_data: ParsingData = ParsingData()
 
         rule_file_name = (
             str(state.env.user_data_folder / "semgrep_rules.json")
@@ -617,6 +625,7 @@ class CoreRunner:
 
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
+            parsing_data.add_targets(plan)
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
@@ -753,12 +762,23 @@ class CoreRunner:
                         >= self._timeout_threshold
                     ):
                         max_timeout_files.add(Path(err.location.path))
+                if isinstance(
+                    err.error_type.value,
+                    (
+                        core.LexicalError,
+                        core.ParseError,
+                        core.PartialParsing,
+                        core.SpecifiedParseError,
+                        core.AstBuilderError,
+                    ),
+                ):
+                    parsing_data.add_error(err)
             errors.extend(parsed_errors)
 
         os.remove(rule_file_name)
         os.remove(target_file_name)
 
-        return outputs, errors, all_targets, profiling_data
+        return outputs, errors, all_targets, profiling_data, parsing_data
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -768,7 +788,13 @@ class CoreRunner:
         rules: List[Rule],
         dump_command_for_core: bool,
         deep: bool,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
+    ) -> Tuple[
+        RuleMatchMap,
+        List[SemgrepError],
+        Set[Path],
+        ProfilingData,
+        ParsingData,
+    ]:
         """
         Takes in rules and targets and retuns object with findings
         """
@@ -779,6 +805,7 @@ class CoreRunner:
             errors,
             all_targets,
             profiling_data,
+            parsing_data,
         ) = self._run_rules_direct_to_semgrep_core(
             rules, target_manager, dump_command_for_core, deep
         )
@@ -795,12 +822,7 @@ class CoreRunner:
         ]
         logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
 
-        return (
-            findings_by_rule,
-            errors,
-            all_targets,
-            profiling_data,
-        )
+        return (findings_by_rule, errors, all_targets, profiling_data, parsing_data)
 
     def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
         metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
