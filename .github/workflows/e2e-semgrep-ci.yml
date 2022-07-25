@@ -38,6 +38,25 @@ jobs:
       - uses: actions/checkout@v3
       - run: semgrep ci
 
+  semgrep-ci-fail-open:
+    name: Semgrep CI Fail Open
+    runs-on: ubuntu-22.04
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
+      SEMGREP_APP_URL: https://staging.semgrep.dev
+    needs: get-inputs
+    container:
+      image: "returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Remove Git Exe
+        run: |
+          which git
+          rm /usr/bin/git
+      - name: Run CI
+        run: semgrep ci --fail-open
+
   semgrep-ci-on-pr:
     name: Run Semgrep CI on a PR
     uses: ./.github/workflows/open-bump-pr.yml
