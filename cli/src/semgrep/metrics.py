@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import uuid
+from collections import Counter
 from datetime import datetime
 from enum import auto
 from enum import Enum
@@ -305,12 +306,8 @@ class Metrics:
 
     @suppress_errors
     def add_ignores(self, ignored: Set[Path]) -> None:
-        ignored_ext_freqs: Dict[str, int] = {}
-        for path in ignored:
-            ext = os.path.splitext(path)[1]
-            if not ext:
-                continue
-            ignored_ext_freqs[ext] = ignored_ext_freqs.get(ext, 0) + 1
+        ignored_ext_freqs = Counter([os.path.splitext(path)[1] for path in ignored])
+        ignored_ext_freqs.pop("", None)  # don't count files with no extension
         self.payload["ignores"]["unsupported_exts"] = ignored_ext_freqs
 
     @suppress_errors

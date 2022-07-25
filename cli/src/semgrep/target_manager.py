@@ -133,18 +133,16 @@ class FileTargetingLog:
     @property
     def unsupported_lang_paths(self) -> FrozenSet[Path]:
         # paths of all files that were ignored by ALL non-generic langs
-        return (
-            frozenset(
-                set.intersection(
-                    *[
-                        paths
-                        for lang, paths in self.by_language.items()
-                        if lang not in UNSUPPORTED_EXT_IGNORE_LANGS
-                    ]
-                )
+        return frozenset(
+            set.intersection(
+                *[
+                    paths
+                    for lang, paths in self.by_language.items()
+                    if lang not in UNSUPPORTED_EXT_IGNORE_LANGS
+                ]
             )
             if self.by_language
-            else frozenset()
+            else set()
         )
 
     def __str__(self) -> str:
