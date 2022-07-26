@@ -178,7 +178,11 @@ def run_rules(
 
         for rule in dependency_aware_rules:
             if rule.should_run_on_semgrep_core:
-                (dep_rule_matches, dep_rule_errors,matched_lockfiles) = run_reachability_rule(
+                (
+                    dep_rule_matches,
+                    dep_rule_errors,
+                    matched_lockfiles,
+                ) = run_reachability_rule(
                     rule_matches_by_rule.get(rule, []),
                     rule,
                 )
@@ -188,7 +192,7 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = run_non_reachability_rule(rule, target_manager,matched_lockfiles)
+                ) = run_non_reachability_rule(rule, target_manager, matched_lockfiles)
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 all_targets.union(targeted_lockfiles)
@@ -197,7 +201,7 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = run_non_reachability_rule(rule, target_manager,set())
+                ) = run_non_reachability_rule(rule, target_manager, set())
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 all_targets.union(targeted_lockfiles)
@@ -388,11 +392,14 @@ def main(
     if baseline_handler:
         logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
         logger.info("")
+        baseline_targets: Set[Path] = set(paths_with_matches) - set(
+            baseline_handler.status.added
+        )
         if not paths_with_matches:
             logger.info(
                 "Skipping baseline scan, because there are no current findings."
             )
-        elif not (set(paths_with_matches) - set(baseline_handler.status.added)):
+        elif not baseline_targets:
             logger.info(
                 "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
             )
@@ -403,11 +410,11 @@ def main(
             try:
                 with baseline_handler.baseline_context():
                     baseline_target_manager = TargetManager(
-                        # only include the paths that had a match
-                        includes=[str(path) for path in paths_with_matches],
+                        includes=include,
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
-                        target_strings=list(set(paths_with_matches) - set(baseline_handler.status.added)),
+                        # only target the paths that had a match
+                        target_strings=[str(t) for t in baseline_targets],
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         file_ignore=get_file_ignore(),

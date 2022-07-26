@@ -117,7 +117,7 @@ def make_dependency_trie(
 
 
 @lru_cache(maxsize=None)
-def search_path(p: Path,lockfile_pattern: str) -> Optional[Path]:
+def search_path(p: Path, lockfile_pattern: str) -> Optional[Path]:
     lockfiles = list(p.glob(lockfile_pattern))
     if len(lockfiles) > 1:
         raise SemgrepError(f"target with multiple lockfiles?")
