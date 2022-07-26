@@ -32,6 +32,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * This used to be in Main.ml, but Main.ml started to become really big,
  * and we also need a way to run the semgrep engine from semgrep-core
  * variants, hence this callable library.
+ *
+ * See README.md in this folder for some notes
  *)
 
 (*****************************************************************************)

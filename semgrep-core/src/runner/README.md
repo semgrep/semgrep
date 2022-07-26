@@ -86,5 +86,5 @@ Note that `obj_size` may inadvertently prevent an object from being freed.
 Additionally, OCaml provides `Spacetime` for certain compilers. It works best
 on Linux machines.
 
-We also have had stack overflows. To avoid this, we use `Common.map`, which
-is tail-recursive, instead of `List.map`
+We also have had stack overflows. OCaml <=4.14.0, we avoided this using
+`Common.map`, which is tail-recursive, instead of `List.map`.
