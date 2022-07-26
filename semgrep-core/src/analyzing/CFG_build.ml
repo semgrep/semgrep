@@ -44,6 +44,8 @@ type label_key = string * G.sid
  *)
 type state = {
   g : (F.node, F.edge) Ograph_extended.ograph_mutable;
+  (* We keep this so we can connect to unreachable nodes. *)
+  enteri : F.nodei;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
   (* Attaches labels to nodes. *)
@@ -145,7 +147,7 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
            * may (or may not) raise exceptions. *)
           state.g |> add_arc_opt_to_opt (Some newi, state.try_catches_opt);
           CfgFirstLast (newi, Some newi)
-      | AssignAnon (_, Lambda fdef) ->
+      | AssignAnon (_, Lambda (_, fdef)) ->
           (* Lambdas are treated as statement blocks, kind of like IF-THEN blocks,
            * the CFG does NOT capture the actual flow of data that goes into the
            * lambda through its parameters, and back into the surrounding definition
@@ -265,14 +267,24 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
   (* Any DefStmts which are FuncDefs are reified as proper Func nodes
      within the CFG, which contain their own smaller CFGs.
   *)
-  | FuncStmt { fdef; ent; body } ->
+  | FuncStmt { fdef; ent; body } -> (
       let cfg = cfg_of_stmts lang body in
       let newi = state.g#add_node { F.n = NFunc { fdef; cfg; ent } } in
-      state.g |> add_arc_from_opt (previ, newi);
-      CfgFirstLast (newi, Some newi)
+      match previ with
+      | None ->
+          state.g |> add_arc (state.enteri, newi);
+          CfgFirstLast (newi, Some newi)
+      | _ ->
+          state.g |> add_arc_from_opt (previ, newi);
+          CfgFirstLast (newi, Some newi))
   | ClassStmt stmts ->
       let cfg = cfg_of_stmts lang stmts in
       let newi = state.g#add_node { F.n = NClass cfg } in
+      state.g |> add_arc_from_opt (previ, newi);
+      CfgFirstLast (newi, Some newi)
+  | ModuleStmt stmts ->
+      let cfg = cfg_of_stmts lang stmts in
+      let newi = state.g#add_node { F.n = NModule cfg } in
       state.g |> add_arc_from_opt (previ, newi);
       CfgFirstLast (newi, Some newi)
   | MiscStmt x ->
@@ -340,6 +352,7 @@ and (cfg_of_stmts : Lang.t -> stmt list -> F.cfg) =
   let state =
     {
       g;
+      enteri;
       exiti;
       labels = Hashtbl.create 2;
       gotos = ref [];

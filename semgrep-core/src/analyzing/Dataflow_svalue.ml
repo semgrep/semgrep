@@ -492,6 +492,7 @@ let transfer :
     | NOther _
     | NFunc _
     | NClass _
+    | NModule _
     | NTodo _ ->
         inp'
     | NInstr instr -> (

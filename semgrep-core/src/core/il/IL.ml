@@ -275,7 +275,7 @@ and call_special =
    | StringAccess of string (* for records/hashes *)
 *)
 and anonymous_entity =
-  | Lambda of function_definition
+  | Lambda of G.function_definition * function_definition
   | AnonClass of G.class_definition
 
 (*****************************************************************************)
@@ -308,6 +308,7 @@ and stmt_kind =
       body : stmt list;
     }
   | ClassStmt of stmt list
+  | ModuleStmt of stmt list
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
 
@@ -364,6 +365,7 @@ and node_kind =
       ent : G.entity;
     }
   | NClass of (node, edge) cfg_opaque
+  | NModule of (node, edge) cfg_opaque
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving show { with_path = false }]

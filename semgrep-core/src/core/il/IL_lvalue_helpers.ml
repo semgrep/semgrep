@@ -106,6 +106,7 @@ let rlvals_of_node_kind = function
   | NGoto _
   | NFunc _
   | NClass _
+  | NModule _
   | Join ->
       []
   | NInstr x -> rlvals_of_instr x

@@ -594,8 +594,8 @@ and expr_aux env ?(void = false) e_gen =
       (* TODO: we should have a use def.f_tok *)
       let tok = G.fake "lambda" in
       let lval = fresh_lval env tok in
-      let fdef = function_definition_helper env fdef in
-      add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) eorig);
+      let fdef2 = function_definition_helper env fdef in
+      add_instr env (mk_i (AssignAnon (lval, Lambda (fdef, fdef2))) eorig);
       mk_e (Fetch lval) eorig
   | G.AnonClass def ->
       (* TODO: should use def.ckind *)
@@ -1011,6 +1011,12 @@ and mk_switch_break_label env tok =
   in
   (break_label, [ mk_s (Label break_label) ], switch_env)
 
+(* TODO: non module structs *)
+and module_stmt env = function
+  | G.ModuleAlias _ -> []
+  | ModuleStruct (_, stmts) -> List.concat_map (stmt env) stmts
+  | OtherModule _ -> []
+
 and stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
@@ -1029,6 +1035,9 @@ and stmt_aux env st =
   | G.DefStmt (_, G.ClassDef { cbody = _, fields, _; _ }) ->
       (* TODO: deal with class parameters *)
       [ mk_s (ClassStmt (List.concat_map (fun (G.F s) -> stmt env s) fields)) ]
+  | G.DefStmt (_, G.ModuleDef m) ->
+      (* TODO: deal with class parameters *)
+      [ mk_s (ModuleStmt (module_stmt env m.mbody)) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> G.unbracket |> Common.map (stmt env) |> List.flatten
