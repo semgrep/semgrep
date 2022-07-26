@@ -1,5 +1,5 @@
 === command
-SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/ruby-sca.yaml --json targets/dependency_aware/sca.rb
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/ruby-sca.yaml --json targets/dependency_aware/ruby
 === end of command
 
 === exit code
@@ -12,7 +12,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "targets/dependency_aware/sca.rb"
+      "targets/dependency_aware/ruby/sca.rb"
     ]
   },
   "results": [
@@ -39,10 +39,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "resolved_url": null,
               "version": "1.21.0"
             },
-            "lockfile": "targets/dependency_aware/Gemfile.lock"
+            "lockfile": "targets/dependency_aware/ruby/Gemfile.lock"
           }
         ],
-        "fingerprint": "f58d6ef2e59188a6676d5f1566ca172482e729a0b60a020ce619eed0e68504a781b5e2b0030d727fbedcff84ccbee0de66970f6ab3b03ab891ab25465131e917_0",
+        "fingerprint": "284701519fea96d2fa04e2830244e5a774b619b80065892d41953546757c15325c43f871df3589851be7558330606597db422666b31d7986fac816e39893a1f2_0",
         "is_ignored": false,
         "lines": "x = bad()",
         "message": "oh no",
@@ -50,7 +50,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "metavars": {},
         "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/sca.rb",
+      "path": "targets/dependency_aware/ruby/sca.rb",
       "start": {
         "col": 5,
         "line": 1,
