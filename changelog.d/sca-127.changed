@@ -1,0 +1,11 @@
+Updated SCA finding generation so that the following hold:
+- One SCA finding per vulnerable dependency. If one rule matches multiple dependencies in one lockfile,
+  that will produce multiple findings. This still needs to be codified in the typed interface
+- No findings in files that were not targeted. If foo.py depends on Pipfile.lock,
+  and foo.py is targeted but Pipfile.lock is not, then we can produce reachable findings
+  in foo.py but not non-reachable findings in Pipfile.lock. If Pipfile.lock is included in
+  our targets then we can produce non-reachable findings inside of it
+- No massive single scan for lockfiles. For reachable findings, we do a
+  local search up the directory tree for the nearest lockfile, and memoize
+  the process for speed. For non-reachable findings, we filter update the language
+  filtering capacity of TargetManager to allow us to also filter out everything but lockfiles.
