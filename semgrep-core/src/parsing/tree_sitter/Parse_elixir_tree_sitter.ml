@@ -65,7 +65,9 @@ type alias = G.ident
  * and be also kinda of a name.
  *)
 
-(* exprs separated by terminators (newlines or semicolons) *)
+(* exprs separated by terminators (newlines or semicolons)
+ * can be empty.
+ *)
 type body = expr list
 
 (* less: restrict with special arg? *)
@@ -87,7 +89,7 @@ type item = expr
  * or for parameters (kind of patterns though).
  *)
 type stab_clause =
-  (argument list * (tok (*'when'*) * expr) option) * tok (* '->' *) * expr list
+  (argument list * (tok (*'when'*) * expr) option) * tok (* '->' *) * body
 
 type clauses = stab_clause list
 
@@ -110,15 +112,45 @@ let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
 let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
 let body_to_stmts es = es |> Common.map G.exprstmt
 
+(* TODO: lots of work here to detect when args is really a single
+ * pattern, or tuples *)
+let pat_of_args_and_when (args, when_opt) : pattern =
+  let rest =
+    match when_opt with
+    | None -> []
+    | Some (_tok, e) -> [ E e ]
+  in
+  OtherPat (("ArgsAndWhenOpt", G.fake ""), Args args :: rest) |> G.p
+
+let case_and_body_of_stab_clause (x : stab_clause) : case_and_body =
+  (* body can be empty *)
+  let args_and_when, _tarrow, body = x in
+  let pat = pat_of_args_and_when args_and_when in
+  let stmts = body_to_stmts body in
+  let stmt = G.stmt1 stmts in
+  G.case_of_pat_and_stmt (pat, stmt)
+
 (* TODO: if the list contains just one element, can be a simple lambda
  * as in 'fn (x, y) -> x + y end'. Otherwise it can be a multiple-cases
  * switch/match.
  * The first tk parameter corresponds to 'fn' for lambdas and 'do' when
  * used in a do_block.
  *)
-let stab_clauses_to_function_definition _tk (_xs : stab_clause list) :
+let stab_clauses_to_function_definition tk (xs : stab_clause list) :
     function_definition =
-  raise Todo
+  (* mostly a copy-paste of code to handle Function in ml_to_generic *)
+  let xs = xs |> Common.map case_and_body_of_stab_clause in
+  let id = G.implicit_param_id tk in
+  let params = [ G.Param (G.param_of_id id) ] in
+  let body_stmt =
+    G.Switch (tk, Some (G.Cond (G.N (H2.name_of_id id) |> G.e)), xs) |> G.s
+  in
+  {
+    G.fparams = params;
+    frettype = None;
+    fkind = (G.Function, tk);
+    fbody = G.FBStmt body_stmt;
+  }
 
 (* following Elixir semantic (unsugaring pairs) *)
 let list_container_of_kwds xs =
@@ -143,6 +175,8 @@ let expr_of_body_or_clauses tk (x : body_or_clauses) : expr =
   | Left [ e ] -> e
   | Left xs ->
       let stmts = body_to_stmts xs in
+      (* less: use G.stmt1 instead? or get rid of fake_bracket here
+       * passed down from caller? *)
       let block = Block (G.fake_bracket stmts) |> G.s in
       G.stmt_to_expr block
   | Right clauses ->

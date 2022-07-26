@@ -1840,6 +1840,7 @@ and any =
  * This is bit ugly, but at some point we may want to remove completely
  * VarDef by transforming them in Assign (see vardef_to_assign() below)
  * so this temporary hack is not too bad.
+ * TODO: use EPattern instead
  *)
 let special_multivardef_pattern = AST_generic_.special_multivardef_pattern
 
@@ -2017,6 +2018,9 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
     pattrs;
     pinfo = basic_id_info (Parameter, sid_TODO);
   }
+
+(* for 'function 0 -> 1 ...' in OCaml or 'do 0 -> 1 ...' in Elixir *)
+let implicit_param_id tk = ("!_implicit_param!", tk)
 
 (* ------------------------------------------------------------------------- *)
 (* Types *)
