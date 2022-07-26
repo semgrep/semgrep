@@ -314,6 +314,7 @@ Would have sent complete blob: {
         "findings": 9,
         "errors": [],
         "total_time": <MASKED>
+        "unsupported_exts": {}
     }
 }
   Has findings for blocking rules so exiting with code 1
