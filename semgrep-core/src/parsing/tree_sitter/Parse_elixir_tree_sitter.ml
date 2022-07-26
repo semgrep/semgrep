@@ -111,7 +111,16 @@ type block = body_or_clauses bracket
 let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
 let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
 let body_to_stmts es = es |> Common.map G.exprstmt
-let pat_of_args_and_when (_args, _when_opt) : pattern = raise Todo
+
+(* TODO: lots of work here to detect when args is really a single
+ * pattern, or tuples *)
+let pat_of_args_and_when (args, when_opt) : pattern =
+  let rest =
+    match when_opt with
+    | None -> []
+    | Some (_tok, e) -> [ E e ]
+  in
+  OtherPat (("ArgsAndWhenOpt", G.fake ""), Args args :: rest) |> G.p
 
 let case_and_body_of_stab_clause (x : stab_clause) : case_and_body =
   (* body can be empty *)
