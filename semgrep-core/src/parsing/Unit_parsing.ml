@@ -88,6 +88,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Php "php" ".php";
       pack_parsing_tests_for_lang Lang.R "r" ".r";
       pack_parsing_tests_for_lang Lang.Solidity "solidity" ".sol";
+      pack_parsing_tests_for_lang Lang.Ocaml "ocaml" ".ml";
     ]
 
 (* It's important that our parsers generate classic parsing errors
