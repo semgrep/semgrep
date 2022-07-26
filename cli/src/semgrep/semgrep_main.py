@@ -178,7 +178,7 @@ def run_rules(
 
         for rule in dependency_aware_rules:
             if rule.should_run_on_semgrep_core:
-                (dep_rule_matches, dep_rule_errors,) = run_reachability_rule(
+                (dep_rule_matches, dep_rule_errors,matched_lockfiles) = run_reachability_rule(
                     rule_matches_by_rule.get(rule, []),
                     rule,
                 )
@@ -188,7 +188,7 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = run_non_reachability_rule(rule, target_manager)
+                ) = run_non_reachability_rule(rule, target_manager,matched_lockfiles)
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 all_targets.union(targeted_lockfiles)
@@ -197,7 +197,7 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = run_non_reachability_rule(rule, target_manager)
+                ) = run_non_reachability_rule(rule, target_manager,set())
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 all_targets.union(targeted_lockfiles)

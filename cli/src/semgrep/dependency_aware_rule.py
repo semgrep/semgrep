@@ -56,7 +56,7 @@ def parse_depends_on_yaml(
 
 
 def run_non_reachability_rule(
-    rule: Rule, target_manager: TargetManager
+    rule: Rule, target_manager: TargetManager, exlcude: Set[Path]
 ) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
@@ -69,6 +69,8 @@ def run_non_reachability_rule(
     for namespace in namespaces:
         lockfile_data = target_manager.get_lockfile_dependencies(namespace)
         for lockfile_path, deps in lockfile_data:
+            if lockfile_path in exlcude:
+                continue
             targeted_lockfiles.add(lockfile_path)
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
@@ -108,7 +110,7 @@ def run_non_reachability_rule(
 def run_reachability_rule(
     matches: List[RuleMatch],
     rule: Rule,
-) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
 
@@ -117,6 +119,7 @@ def run_reachability_rule(
 
     # Reachability rule
     reachable_matches = []
+    matched_lockfiles = set()
     for namespace in namespaces:
         for match in matches:
             try:
@@ -127,6 +130,8 @@ def run_reachability_rule(
                 dependency_matches = list(
                     dependencies_range_match_any(depends_on_entries, deps)
                 )
+                if dependency_matches:
+                    matched_lockfiles.add(lockfile_path)
                 for dep_pat, found_dep in dependency_matches:
                     json_dep_match = {
                         "dependency_pattern": vars(dep_pat),
@@ -138,7 +143,7 @@ def run_reachability_rule(
                     reachable_matches.append(match)
             except SemgrepError as e:
                 dep_rule_errors.append(e)
-    return reachable_matches, dep_rule_errors
+    return reachable_matches, dep_rule_errors, matched_lockfiles
 
 
 # def run_dependency_aware_rule(
