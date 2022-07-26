@@ -212,7 +212,7 @@ class ScanHandler:
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
-                "unsupported_exts": ignored_ext_freqs,
+                "unsupported_exts": dict(ignored_ext_freqs),
             },
         }
 
