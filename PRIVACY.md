@@ -290,7 +290,7 @@ The classes of scan data are:
 - Author identity (e.g., committer email)
 - Commit metadata (e.g., commit hash)
 - Review and review-requester identifying data (e.g., pull-request ID, branch, merge base, request author)
-- Scan metadata, including type of scan and scan parameters (e.g., paths scanned)
+- Scan metadata, including type of scan and scan parameters (e.g., paths scanned and extensions of ignored files)
 - Timing metrics (e.g., time taken to scan per-rule and per-path)
 - Semgrep environment (e.g., version, interpreter, timestamp)
 

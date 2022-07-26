@@ -257,7 +257,6 @@ class ScanHandler:
             raise Exception(f"API server returned this error: {response.text}")
 
         # mark as complete
-        print("sending 'complete' blob", complete)
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/complete",
             json=complete,
