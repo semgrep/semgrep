@@ -14,6 +14,14 @@
   },
   "event_id": "00000000-0000-0000-0000-000000000000",
   "fix_rate": {},
+  "parse_rate": {
+    "python": {
+      "bytes_parsed": 6,
+      "num_bytes": 6,
+      "num_targets": 1,
+      "targets_parsed": 1
+    }
+  },
   "performance": {
     "fileStats": [
       {
