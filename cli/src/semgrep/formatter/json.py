@@ -29,7 +29,7 @@ class JsonFormatter(BaseFormatter):
             # 'lines' already contains '\n' at the end of each line
             lines="".join(rule_match.lines).rstrip(),
             metavars=rule_match.match.extra.metavars,
-            dataflow_trace=rule_match.match.extra.dataflow_trace,
+            dataflow_trace=rule_match.dataflow_trace,
         )
 
         if rule_match.extra.get("dependency_matches"):

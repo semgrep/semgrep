@@ -26,6 +26,8 @@ module SJ = Output_from_core_j (* JSON conversions *)
 module Out = Output_from_core_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
+let ( let* ) = Option.bind
+
 (*****************************************************************************)
 (* Unique ID *)
 (*****************************************************************************)
@@ -73,7 +75,6 @@ let range_of_any_opt startp_of_match_range any =
   | Xmls [] ->
       Some empty_range
   | _ ->
-      let ( let* ) = Common.( >>= ) in
       let* min_loc, max_loc = V.range_of_any_opt any in
       let startp, endp = OutH.position_range min_loc max_loc in
       Some (startp, endp)
@@ -148,14 +149,42 @@ let parse_info_to_location pi =
 
 let tokens_to_locations toks = List.filter_map parse_info_to_location toks
 
-let rec taint_call_trace_to_locations = function
-  | Toks toks -> tokens_to_locations toks
-  | Call { call_trace; _ } -> taint_call_trace_to_locations call_trace
+let rec last hd = function
+  | [] -> hd
+  | hd :: tl -> last hd tl
+
+let first_and_last = function
+  | [] -> None
+  | hd :: tl -> Some (hd, last hd tl)
+
+let tokens_to_single_loc toks =
+  (* toks should be nonempty and should contain only origintoks, but since we
+   * can't prove that by construction we have to filter and handle the empty
+   * case here. In theory this could lead to, e.g. a missing taint source for a
+   * taint rule finding but it shouldn't happen in practice. *)
+  let locations =
+    tokens_to_locations
+      (List.filter PI.is_origintok toks |> List.sort PI.compare_pos)
+  in
+  let* first_loc, last_loc = first_and_last locations in
+  Some
+    { Out.path = first_loc.path; start = first_loc.start; end_ = last_loc.end_ }
+
+let rec taint_call_trace_to_taint_source = function
+  | Toks toks -> tokens_to_single_loc toks
+  | Call { call_trace; _ } -> taint_call_trace_to_taint_source call_trace
+
+let token_to_intermediate_var token =
+  let* location = tokens_to_single_loc [ token ] in
+  Some { Out.location }
+
+let tokens_to_intermediate_vars tokens =
+  List.filter_map token_to_intermediate_var tokens
 
 let taint_trace_to_dataflow_trace { source; tokens; sink = _ } =
   {
-    Out.taint_source = Some (taint_call_trace_to_locations source);
-    intermediate_vars = Some (tokens_to_locations tokens);
+    Out.taint_source = taint_call_trace_to_taint_source source;
+    intermediate_vars = Some (tokens_to_intermediate_vars tokens);
   }
 
 let match_to_match x =
