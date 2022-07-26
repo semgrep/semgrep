@@ -168,7 +168,7 @@ class Rule:
                 dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
                 return {PackageManagers(d["namespace"]) for d in dependencies}
             else:
-                return {depends_on["namespace"]}
+                return {PackageManagers(depends_on["namespace"])}
         return set()
 
     @property

@@ -365,9 +365,9 @@ def parse_lockfile_str(
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
-        except Exception as e:
-            logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
-            yield from []
+        except Exception:
+            # logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
+            return
     else:
         raise SemgrepError(
             f"don't know how to parse this filename: {filepath_for_reference}"

@@ -144,7 +144,6 @@ def run_rules(
     dependency_only_rules, rest_of_the_rules = partition(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
-    filtered_rules = rest_of_the_rules
 
     (
         rule_matches_by_rule,
@@ -152,7 +151,7 @@ def run_rules(
         all_targets,
         profiling_data,
     ) = core_runner.invoke_semgrep(
-        target_manager, filtered_rules, dump_command_for_core, deep
+        target_manager, rest_of_the_rules, dump_command_for_core, deep
     )
 
     if join_rules:
@@ -172,27 +171,36 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     if len(dependency_aware_rules) > 0:
-        from semgrep.dependency_aware_rule import run_dependency_aware_rule
-        from semdep.find_lockfiles import make_dependency_trie
-
-        targets = [t.path for t in target_manager.targets]
-        top_level_target_rooted = list(targets[0].parents)
-        top_level_target: Path = (
-            targets[0]
-            if len(top_level_target_rooted) == 0
-            else top_level_target_rooted[-1]
+        from semgrep.dependency_aware_rule import (
+            run_reachability_rule,
+            run_non_reachability_rule,
         )
-        namespaces = list({ns for r in dependency_aware_rules for ns in r.namespaces})
-        dep_trie = make_dependency_trie(top_level_target, namespaces, target_manager)
 
         for rule in dependency_aware_rules:
-            (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
-                rule_matches_by_rule.get(rule, []),
-                rule,
-                dep_trie,
-            )
-            rule_matches_by_rule[rule] = dep_rule_matches
-            output_handler.handle_semgrep_errors(dep_rule_errors)
+            if rule.should_run_on_semgrep_core:
+                (dep_rule_matches, dep_rule_errors,) = run_reachability_rule(
+                    rule_matches_by_rule.get(rule, []),
+                    rule,
+                )
+                rule_matches_by_rule[rule] = dep_rule_matches
+                output_handler.handle_semgrep_errors(dep_rule_errors)
+                (
+                    dep_rule_matches,
+                    dep_rule_errors,
+                    targeted_lockfiles,
+                ) = run_non_reachability_rule(rule, target_manager)
+                rule_matches_by_rule[rule].extend(dep_rule_matches)
+                output_handler.handle_semgrep_errors(dep_rule_errors)
+                all_targets.union(targeted_lockfiles)
+            else:
+                (
+                    dep_rule_matches,
+                    dep_rule_errors,
+                    targeted_lockfiles,
+                ) = run_non_reachability_rule(rule, target_manager)
+                rule_matches_by_rule[rule] = dep_rule_matches
+                output_handler.handle_semgrep_errors(dep_rule_errors)
+                all_targets.union(targeted_lockfiles)
 
     return (
         rule_matches_by_rule,
@@ -399,7 +407,7 @@ def main(
                         includes=[str(path) for path in paths_with_matches],
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
-                        target_strings=target,
+                        target_strings=list(set(paths_with_matches) - set(baseline_handler.status.added)),
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         file_ignore=get_file_ignore(),

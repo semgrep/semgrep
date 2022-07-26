@@ -1,17 +1,21 @@
 # find lockfiles
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from semdep.models import LockfileDependency
 from semdep.models import NAMESPACE_TO_LOCKFILES
 from semdep.models import PackageManagers
 from semdep.parse_lockfile import LOCKFILE_PARSERS
 from semdep.parse_lockfile import parse_lockfile_str
+from semgrep.error import SemgrepError
 from semgrep.target_manager import TargetManager
+
 
 TARGET_LOCKFILE_FILENAMES = LOCKFILE_PARSERS.keys()
 
@@ -110,3 +114,30 @@ def make_dependency_trie(
                 deps = list(parse_lockfile_str(lockfile.read_text(), lockfile))
                 dep_trie.insert(lockfile, deps, namespace)
     return dep_trie
+
+
+@lru_cache(maxsize=None)
+def search_path(p: Path,lockfile_pattern: str) -> Optional[Path]:
+    lockfiles = list(p.glob(lockfile_pattern))
+    if len(lockfiles) > 1:
+        raise SemgrepError(f"target with multiple lockfiles?")
+    elif len(lockfiles) == 1:
+        return lockfiles[0]
+    else:
+        return None
+
+
+def find_single_lockfile(
+    p: Path, ecosystem: PackageManagers
+) -> Optional[Tuple[Path, List[LockfileDependency]]]:
+    parents = list(p.parents)
+    for path in parents:
+        for lockfile_pattern in NAMESPACE_TO_LOCKFILES[ecosystem]:
+            lockfile = search_path(path, lockfile_pattern)
+            if lockfile:
+                return lockfile, list(
+                    parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
+                )
+            else:
+                continue
+    return None

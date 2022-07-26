@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Generator
 from typing import List
 from typing import Tuple
@@ -35,9 +34,8 @@ def semver_matches(expression: str, actual_version: str) -> bool:
 # compare vulnerable range to version in lockfile
 def dependencies_range_match_any(
     search_for_ranges: List[ProjectDependsOnEntry],
-    lockfile_path: Path,
     have_deps: List[LockfileDependency],
-) -> Generator[Tuple[ProjectDependsOnEntry, LockfileDependency, Path], None, None]:
+) -> Generator[Tuple[ProjectDependsOnEntry, LockfileDependency], None, None]:
     for have_dep in have_deps:
         for target_range in search_for_ranges:
             if (
@@ -45,4 +43,4 @@ def dependencies_range_match_any(
                 and target_range.package_name == have_dep.name
                 and semver_matches(target_range.semver_range, have_dep.version)
             ):
-                yield (target_range, have_dep, lockfile_path)
+                yield (target_range, have_dep)
