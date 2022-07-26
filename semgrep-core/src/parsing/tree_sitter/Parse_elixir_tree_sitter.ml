@@ -157,7 +157,7 @@ let kwds_of_do_block (bl : do_block) : pair list =
   let pair1 = (dokwd, e) in
   let rest =
     extras
-    |> List.map (fun ((s, t), body_or_clauses) ->
+    |> Common.map (fun ((s, t), body_or_clauses) ->
            let kwd = kwd_of_id (s ^ ":", t) in
            let e = expr_of_body_or_clauses t body_or_clauses in
            (kwd, e))
