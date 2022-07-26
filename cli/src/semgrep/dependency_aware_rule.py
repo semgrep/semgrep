@@ -55,7 +55,7 @@ def parse_depends_on_yaml(
         )
 
 
-def run_non_reachability_rule(
+def generate_non_reachable_sca_findings(
     rule: Rule, target_manager: TargetManager, exlcude: Set[Path]
 ) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
@@ -107,9 +107,8 @@ def run_non_reachability_rule(
     return non_reachable_matches, dep_rule_errors, targeted_lockfiles
 
 
-def run_reachability_rule(
-    matches: List[RuleMatch],
-    rule: Rule,
+def generate_reachable_sca_findings(
+    matches: List[RuleMatch], rule: Rule
 ) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
@@ -144,88 +143,3 @@ def run_reachability_rule(
             except SemgrepError as e:
                 dep_rule_errors.append(e)
     return reachable_matches, dep_rule_errors, matched_lockfiles
-
-
-# def run_dependency_aware_rule(
-#     matches: List[RuleMatch],
-#     rule: Rule,
-#     dep_trie: DependencyTrie,
-# ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
-#     """
-#     Run a dependency aware rule. These rules filters the results based on the precense or absence
-#     of dependencies. Dependencies are determined by searching for lockfiles under the first entry
-#     in the `targets` argument.
-#     """
-#     depends_on_keys = rule.project_depends_on
-#     dep_rule_errors: List[SemgrepError] = []
-
-#     if len(depends_on_keys) == 0:
-#         # no dependencies to process, so skip
-#         return matches, []
-
-#     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
-#     final_matches: List[RuleMatch] = []
-
-#     namespaces = rule.namespaces
-#     dependencies: List[Tuple[Path, List[LockfileDependency]]] = []
-#     for ns in namespaces:
-#         if ns in dep_trie.all_deps:
-#             dependencies.extend(dep_trie.all_deps[ns].items())
-
-#     for lockfile_path, deps in dependencies:
-#         try:
-#             output = list(
-#                 dependencies_range_match_any(depends_on_entries, lockfile_path, deps)
-#             )
-#             if not output:
-#                 continue
-
-#             output_for_json = [
-#                 {
-#                     "dependency_pattern": vars(dep_pat),
-#                     "found_dependency": vars(found_dep),
-#                     "lockfile": str(lockfile),
-#                 }
-#                 for dep_pat, found_dep, lockfile in output
-#             ]
-
-#             reachable = []
-#             matches_remaining = []
-#             for match in matches:
-#                 if lockfile_path in (dep_trie.find_dependencies(match.path) or {}):
-#                     match.extra["dependency_match_only"] = False
-#                     match.extra["dependency_matches"] = output_for_json
-#                     reachable.append(match)
-#                 else:
-#                     matches_remaining.append(match)
-#             matches = matches_remaining
-#             if not reachable:
-#                 dependency_only_match = RuleMatch(
-#                     message=rule.message,
-#                     metadata=rule.metadata,
-#                     severity=rule.severity,
-#                     fix=None,
-#                     fix_regex=None,
-#                     match=core.CoreMatch(
-#                         rule_id=core.RuleId(rule.id),
-#                         location=core.Location(
-#                             path=str(lockfile_path),
-#                             start=core.Position(0, 0, 0),
-#                             end=core.Position(0, 0, 0),
-#                         ),
-#                         # TODO: we need to define the fields below in
-#                         # Output_from_core.atd so we can reuse core.MatchExtra
-#                         extra=core.CoreMatchExtra(metavars=core.Metavars({})),
-#                     ),
-#                     extra={
-#                         "dependency_match_only": True,
-#                         "dependency_matches": output_for_json,
-#                     },
-#                 )
-#                 final_matches.append(dependency_only_match)
-#             else:
-#                 final_matches.extend(reachable)
-
-#         except SemgrepError as e:
-#             dep_rule_errors.append(e)
-#     return final_matches, dep_rule_errors

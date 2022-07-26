@@ -65,7 +65,7 @@ def parse_Yarnlock_str(lockfile_text: str) -> Generator[LockfileDependency, None
     _comment, all_deps_text = lockfile_text.split("\n\n\n")
     dep_texts = all_deps_text.split("\n\n")
     if dep_texts == [""]:  # No dependencies
-        yield from []
+        return
     for dep_text in dep_texts:
         lines = dep_text.split("\n")
         package_name = extract_yarn_name(lines[0])
@@ -178,7 +178,7 @@ def parse_Gemfile_str(lockfile_text: str) -> Generator[LockfileDependency, None,
     lines = lockfile_text.split("\n")
     # No dependencies specified
     if "GEM" not in lines:
-        yield from []
+        return
     GEM_idx = lines.index("GEM") + 1
     GEM_end_idx = lines[GEM_idx:].index(
         ""
@@ -365,8 +365,8 @@ def parse_lockfile_str(
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
-        except Exception:
-            # logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
+        except Exception as e:
+            logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
             return
     else:
         raise SemgrepError(
