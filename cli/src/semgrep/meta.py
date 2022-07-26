@@ -23,7 +23,10 @@ logger = getLogger(__name__)
 
 
 def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
-    """Gets regular url from sstp url"""
+    """Gets regular url from sstp url.
+    We use repo urls on semgrep-app to link to files, so we need to make sure they are
+    in the right format to be appended to.
+    """
     if sstp_url is None:
         return None
     url = sstp_url
@@ -109,7 +112,7 @@ class GitMeta:
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("SEMGREP_REPO_URL")
+        return get_url_from_sstp_url(os.getenv("SEMGREP_REPO_URL"))
 
     @property
     def commit_sha(self) -> Optional[str]:
@@ -607,7 +610,7 @@ class JenkinsMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("GIT_URL", os.getenv("GIT_URL_1"))
+        return get_url_from_sstp_url(os.getenv("GIT_URL", os.getenv("GIT_URL_1")))
 
     @property
     def branch(self) -> Optional[str]:
@@ -638,7 +641,7 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("BITBUCKET_GIT_HTTP_ORIGIN")
+        return get_url_from_sstp_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
 
     @property
     def branch(self) -> Optional[str]:
@@ -770,7 +773,7 @@ class TravisMeta(GitMeta):
 
     @property
     def repo_url(self) -> Optional[str]:
-        return f"https://github.com/{self.repo_name}.git"
+        return f"https://github.com/{self.repo_name}"
 
     @property
     def branch(self) -> Optional[str]:
