@@ -124,12 +124,7 @@ let v_dotted_name_of_stable_id (v1, v2) =
 let rec v_import_expr tk import_expr =
   match import_expr with
   | Left id ->
-      [
-        {
-          G.d = G.ImportAll (tk, FileName id, Parse_info.fake_info tk "");
-          d_attrs = [];
-        };
-      ]
+      [ { G.d = G.ImportFrom (tk, DottedName [], id, None); d_attrs = [] } ]
   | Right (v1, v2) ->
       let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
       let v2 = v_import_spec v2 in

@@ -1,1 +1,1 @@
-Scala: Fixed erroneous parsing for `import` in Semgrep patterns.
+Scala: Allow metavariables in `import` patterns
