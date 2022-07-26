@@ -68,7 +68,7 @@ Even in that case, your source code and private rules will never be sent.
 ## Data collected as metrics
 
 Semgrep collects data to improve the user experience.
-Four types of data are collected:
+Five types of data are collected:
 
 ### Environmental
 
@@ -92,6 +92,15 @@ Performance data enable understanding of which rules and types of files are slow
 - Total number of rules
 - Total number of files
 - Project size in bytes
+
+### Parse Rates
+
+Semgrep reports aggregated parse rate information on a per-language basis; e.g.,
+
+- Number of targeted files
+- Number of files without any parse-related error
+- Number of bytes across targeted files
+- Number of bytes without any parse-related error
 
 ### Errors
 
@@ -156,6 +165,13 @@ r2c will:
 |             | Total Bytes                             | Summation of target file size                                          | Understand how duration is related to total size of all target files                       | 40838239                                                                                                                                                                              | Number         |
 |             | Rule Stats                              | Performance statistics (w/ rule hashes) for slowest rules              | Debug rule performance                                                                     | `[{"ruleHash": "7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166","parseTime": 0,"matchTime": 0.05480456352233887,"runTime": 0.20836973190307617,"bytesScanned": 0}]` | StatsClass[]   |
 |             | File Stats                              | Performance statistics for slowest files                               | Debug rule performance                                                                     | `[{"size": 6725,"numTimesScanned": 147,"parseTime": 0.013289928436279297,"matchTime": 0.05480456352233887,"runTime": 0.20836973190307617}]`                                           | StatsClass[]   |
+|             |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
+|             |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
+| Parsing     |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
+|             | Total Files                             | Count of files, on a per-language basis                                | Understand parsing performance                                                             | 143                                                                                                                                                                                   | Number         |
+|             | Total Bytes                             | Summation of target file size, likewise grouped                        | Understand parsing performance                                                             | 41244                                                                                                                                                                                 | Number         |
+|             | Parsed Files                            | Count of files without parse errors                                    | Understand parsing performance                                                             | 140                                                                                                                                                                                   | Number         |
+|             | Parsed Bytes                            | Count of bytes without any parse errors                                | Understand parsing performance                                                             | 40312                                                                                                                                                                                 | Number         |
 |             |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
 | Errors      |                                         |                                                                        |                                                                                            |                                                                                                                                                                                       |                |
 |             | Exit Code                               | Numeric exit code                                                      | Debug commonly occurring issues and aggregate error counts                                 | 1                                                                                                                                                                                     | Number         |
@@ -257,6 +273,20 @@ This is a sample blob of the aggregate metrics described above:
           "matchTime": 0.05480456352233887,
           "runTime": 0.20836973190307617
         }]
+    },
+    "parse_rate": {
+      "python": {
+        "num_targets": 102,
+        "targets_parsed": 101,
+        "num_bytes": 985123,
+        "bytes_parsed": 993419
+      },
+      "ruby": {
+        "num_targets": 12,
+        "targets_parsed": 12,
+        "num_bytes": 341027,
+        "bytes_parsed": 341027
+      }
     },
     "errors": {
         "returnCode": 1,
