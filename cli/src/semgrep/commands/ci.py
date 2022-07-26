@@ -271,10 +271,6 @@ def ci(
         if state.env.semgrep_url == "https://semgrep.dev"
         else f" to {state.env.semgrep_url}"
     )
-    if scan_handler:
-        logger.info(
-            f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
-        )
     if sca:
         logger.info("  running an SCA scan")
     logger.info("")
@@ -291,6 +287,9 @@ def ci(
                 # so that metadata of current commit is correct
                 if scan_handler:
                     scan_handler.start_scan(metadata_dict)
+                    logger.info(
+                        f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
+                    )
                     config = (scan_handler.scan_rules_url,)
             except Exception as e:
                 import traceback

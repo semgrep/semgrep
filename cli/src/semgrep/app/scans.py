@@ -25,7 +25,7 @@ logger = getLogger(__name__)
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
-        self.deployment_id, self.deployment_name = self._get_deployment_details()
+        self.deployment_id, self.deployment_name = None, None
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
@@ -56,26 +56,6 @@ class ScanHandler:
         """
         return self._skipped_match_based_ids
 
-    def _get_deployment_details(self) -> Tuple[Optional[int], Optional[str]]:
-        """
-        Returns the deployment_id attached to an api_token as int
-
-        Returns None if api_token is invalid/doesn't have associated deployment
-        """
-        state = get_state()
-        url = f"{state.env.semgrep_url}/api/agent/deployments/current"
-        logger.debug(f"Retrieving deployment details from {url}")
-        r = state.app_session.get(url)
-
-        if r.ok:
-            data = r.json()
-            logger.debug(f"Received: {data}")
-            return data.get("deployment", {}).get("id"), data.get("deployment", {}).get(
-                "name"
-            )
-        else:
-            return None, None
-
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
         Get scan id and file ignores
@@ -84,6 +64,12 @@ class ScanHandler:
         """
         state = get_state()
         logger.debug("Starting scan")
+
+        response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/agent/deployments/scans",
+            json={"meta": meta, "dry_run": self.dry_run},
+        )
+
         if self.dry_run:
             repo_name = meta["repository"]
             self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
@@ -91,11 +77,6 @@ class ScanHandler:
                 f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
             )
             return
-
-        response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/scans",
-            json={"meta": meta},
-        )
 
         if response.status_code == 404:
             raise Exception(
