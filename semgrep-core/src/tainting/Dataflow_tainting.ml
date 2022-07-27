@@ -540,7 +540,7 @@ let check_tainted_return env tok e : Taints.t * var_env =
 (* Transfer *)
 (*****************************************************************************)
 
-let input_env ~enter_env ~(flow : IL.cfg) mapping ni =
+let input_env enter_env (flow : IL.cfg) mapping ni _config =
   let node = flow.graph#nodes#assoc ni in
   match node.F.n with
   | Enter -> enter_env
@@ -554,14 +554,20 @@ let input_env ~enter_env ~(flow : IL.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left union_vars penv1 penvs)
 
-(* This function ought to give the input environment to the node, dispatching
-   on the particular kind of node that we're lookign at.
+(* modify_env resets the environment for "temporally distinct" pieces of code,
+   i.e. anything that can run later.
+   For lambdas and functions, we have to start with a blank environment,
+   as we don't know what has changed in the meantime.
 *)
-let get_input_env enter_env flow mapping ni taint_config =
-  let env = input_env ~enter_env ~flow mapping ni in
-  match (flow.CFG.graph#nodes#assoc ni).n with
+let modify_env env node taint_config =
+  match node.n with
   | NFunc { fdef; _ }
   | NInstr { i = AssignAnon (_, Lambda (fdef, _)); _ } ->
+      let init_env =
+        match node.n with
+        | NFunc _ -> VarMap.empty
+        | _ -> env
+      in
       let add_to_env env id ii =
         let var = str_of_name (AST_to_IL.var_of_id_info id ii) in
         let taint =
@@ -611,7 +617,7 @@ let get_input_env enter_env flow mapping ni taint_config =
                   | _ -> env)
                 env fields
           | _ -> env)
-        env fdef.G.fparams
+        init_env fdef.G.fparams
   | NClass _ ->
       (* TODO: add class parameters here *)
       env
@@ -704,4 +710,4 @@ let (fixpoint :
   DataflowX.fixpoint ~enter_env ~eq:Taints.equal ~init:init_mapping
     ~trans:(transfer config fun_env) ~flow
     ~forward:true (* tainting is a forward analysis! *)
-    ~get_input_env ~config ~name:opt_name
+    ~meet:input_env ~modify_env ~config ~name:opt_name ~conclude:(fun _ _ -> ())

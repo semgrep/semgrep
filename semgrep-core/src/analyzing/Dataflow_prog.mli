@@ -27,11 +27,12 @@ module Make (F : Dataflow_core.Flow) : sig
     init:'a DC.mapping ->
     trans:(Dataflow_core.var option -> IL.cfg -> 'a DC.env -> 'a DC.transfn) ->
     flow:IL.cfg ->
-    get_input_env:
-      ('a DC.env -> IL.cfg -> 'a DC.mapping -> nodei -> 'config -> 'a DC.env) ->
+    meet:('a DC.env -> IL.cfg -> 'a DC.mapping -> nodei -> 'config -> 'a DC.env) ->
+    modify_env:('a DC.env -> IL.node -> 'config -> 'a DC.env) ->
     config:'config ->
     forward:bool ->
-    name:DC.var option ->
+    name:Dataflow_core.var option ->
+    conclude:(IL.cfg -> 'a DC.mapping -> unit) ->
     'a DC.mapping
 
   val new_node_array : IL.cfg -> 'a -> 'a array

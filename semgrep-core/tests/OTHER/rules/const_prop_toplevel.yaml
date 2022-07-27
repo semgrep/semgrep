@@ -1,0 +1,7 @@
+rules:
+- id: const_prop_toplevel 
+  pattern: x = "..."
+  message: Semgrep found a match
+  languages:
+    - python
+  severity: WARNING

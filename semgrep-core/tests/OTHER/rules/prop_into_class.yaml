@@ -1,0 +1,12 @@
+rules:
+- id: prop-into-class 
+  message: variables should be able to flow into classes! 
+  options:
+    symbolic_propagation: true
+  languages:
+    - java
+  severity: ERROR
+  pattern-either:
+    - pattern: |
+        sink("...");
+
