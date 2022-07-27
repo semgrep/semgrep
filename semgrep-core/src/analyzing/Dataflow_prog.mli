@@ -22,17 +22,25 @@ module Make (F : Dataflow_core.Flow) : sig
   module CoreDataflow : module type of Dataflow_core.Make (ProgFlow)
 
   val fixpoint :
-    enter_env:'a DC.env ->
-    eq:('a -> 'a -> bool) ->
-    init:'a DC.mapping ->
+    eq:
+      ((* Arguments that will remain constant throughout the fixpoint.
+      *)
+       'a ->
+      'a ->
+      bool) ->
     trans:(Dataflow_core.var option -> IL.cfg -> 'a DC.env -> 'a DC.transfn) ->
-    flow:IL.cfg ->
     meet:('a DC.env -> IL.cfg -> 'a DC.mapping -> nodei -> 'config -> 'a DC.env) ->
     modify_env:('a DC.env -> IL.node -> 'config -> 'a DC.env) ->
     config:'config ->
     forward:bool ->
-    name:Dataflow_core.var option ->
     conclude:(IL.cfg -> 'a DC.mapping -> unit) ->
+    (* Arguments that will remain change throughout the fixpoint, as
+        we traverse through smaller CFGs.
+    *)
+    enter_env:'a DC.env ->
+    init:'a DC.mapping ->
+    flow:IL.cfg ->
+    name:Dataflow_core.var option ->
     'a DC.mapping
 
   val new_node_array : IL.cfg -> 'a -> 'a array

@@ -38,28 +38,38 @@ module Make (F : Dataflow_core.Flow) = struct
   let str_of_name name = Common.spf "%s:%d" (fst name.IL.ident) name.sid
 
   let rec fixpoint :
-      enter_env:'a DC.env ->
-      eq:('a -> 'a -> bool) ->
-      init:'a DC.mapping ->
+      eq:
+        ((* Arguments that will remain constant throughout the fixpoint.
+       *)
+         'a ->
+        'a ->
+        bool) ->
       trans:(Dataflow_core.var option -> IL.cfg -> 'a DC.env -> 'a DC.transfn) ->
-      flow:IL.cfg ->
       meet:
         ('a DC.env -> IL.cfg -> 'a DC.mapping -> nodei -> 'config -> 'a DC.env) ->
       modify_env:('a DC.env -> IL.node -> 'config -> 'a DC.env) ->
       config:'config ->
       forward:bool ->
-      name:Dataflow_core.var option ->
       conclude:(IL.cfg -> 'a DC.mapping -> unit) ->
+      (* Arguments that will remain change throughout the fixpoint, as
+         we traverse through smaller CFGs.
+      *)
+      enter_env:'a DC.env ->
+      init:'a DC.mapping ->
+      flow:IL.cfg ->
+      name:Dataflow_core.var option ->
       'a DC.mapping =
-   fun ~enter_env ~eq ~init ~trans ~flow ~meet ~modify_env ~config ~forward
-       ~name ~conclude ->
+   fun ~eq ~trans ~meet ~modify_env ~config ~forward ~conclude ~enter_env ~init
+       ~flow ~name ->
+    let fixpoint =
+      fixpoint ~eq ~trans ~meet ~modify_env ~config ~forward ~conclude
+    in
     let enter_new_cfg ~env ~name ~flow:new_flow =
       let new_mapping =
         CoreDataflow.new_node_array new_flow (Dataflow_core.empty_inout ())
       in
       let res =
-        fixpoint ~enter_env:env ~eq ~init:new_mapping ~trans ~flow:new_flow
-          ~meet ~modify_env ~config ~forward ~name ~conclude
+        fixpoint ~enter_env:env ~init:new_mapping ~flow:new_flow ~name
       in
       conclude new_flow new_mapping;
       res
