@@ -386,6 +386,11 @@ _scan_options: List[Callable] = [
         """,
     ),
     optgroup.option(
+        "--dataflow-traces",
+        is_flag=True,
+        help="Explain how non-local values reach the location of a finding (only affects text output).",
+    ),
+    optgroup.option(
         "-o",
         "--output",
         help="Save search results to a file or post to URL. Default is to print to stdout.",
@@ -620,6 +625,7 @@ def scan(
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
+    dataflow_traces: bool,
     output: Optional[str],
     pattern: Optional[str],
     quiet: bool,
@@ -731,6 +737,7 @@ def scan(
         output_time=output_time,
         output_per_finding_max_lines_limit=max_lines_per_finding,
         output_per_line_max_chars_limit=max_chars_per_line,
+        dataflow_traces=dataflow_traces,
     )
 
     if test:
