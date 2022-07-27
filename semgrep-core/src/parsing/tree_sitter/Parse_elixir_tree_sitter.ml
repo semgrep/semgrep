@@ -291,11 +291,30 @@ let map_terminator_opt env v1 : tok list option =
 
 let map_identifier (env : env) (x : CST.identifier) : ident =
   match x with
-  | `Pat_cf9c6c3 tok ->
-      (* pattern [_\p{Ll}\p{Lm}\p{Lo}\p{Nl}\u1885\u1886\u2118\u212E\u309B\u309C][\p{ID_Continue}]*[?!]? *)
-      str env tok
-  (* TODO: part of elixir! not a semgrep construct! *)
-  | `DOTDOTDOT tok -> (* "..." *) str env tok
+  | `Choice_pat_cf9c6c3 y -> (
+      match y with
+      | `Pat_cf9c6c3 tok ->
+          (* pattern [_\p{Ll}\p{Lm}\p{Lo}\p{Nl}\u1885\u1886\u2118\u212E\u309B\u309C][\p{ID_Continue}]*[?!]? *)
+          str env tok
+      (* TODO: part of elixir! not a semgrep construct! *)
+      | `DOTDOTDOT tok -> (* "..." *) str env tok)
+  | `Semg_meta tok -> str env tok
+
+let map_identifier_or_ellipsis (env : env) (x : CST.identifier) : expr =
+  match x with
+  | `Choice_pat_cf9c6c3 y -> (
+      match y with
+      | `Pat_cf9c6c3 tok ->
+          (* pattern [_\p{Ll}\p{Lm}\p{Lo}\p{Nl}\u1885\u1886\u2118\u212E\u309B\u309C][\p{ID_Continue}]*[?!]? *)
+          let id = str env tok in
+          N (H2.name_of_id id) |> G.e
+      (* TODO: part of elixir! not a semgrep construct! *)
+      | `DOTDOTDOT tok ->
+          let tk = (* "..." *) token env tok in
+          Ellipsis tk |> G.e)
+  | `Semg_meta tok ->
+      let id = str env tok in
+      N (H2.name_of_id id) |> G.e
 
 let map_quoted_xxx (env : env) (v1, v2, v3) : string wrap =
   let v1 = (* "/" or another one *) token env v1 in
@@ -913,6 +932,12 @@ and map_else_block (env : env) ((v1, v2, v3) : CST.else_block) =
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
+  (* semgrep-ext: *)
+  | `Deep_ellips (v1, v2, v3) ->
+      let l = token env v1 in
+      let e = map_expression env v2 in
+      let r = token env v3 in
+      DeepEllipsis (l, e, r) |> G.e
   | `Blk (v1, v2, v3, v4) ->
       let l = (* "(" *) token env v1 in
       let _ = map_terminator_opt env v2 in
@@ -926,9 +951,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let r = (* ")" *) token env v4 in
       let blk : block = (l, xs, r) in
       expr_of_block blk
-  | `Id x ->
-      let id = map_identifier env x in
-      N (H2.name_of_id id) |> G.e
+  | `Id x -> map_identifier_or_ellipsis env x
   | `Alias tok ->
       let al = map_alias env tok in
       (* less: should return a Constructor instead? *)
@@ -1322,6 +1345,7 @@ and map_struct_ (env : env) (x : CST.struct_) : (ident, expr) either =
       let at = map_atom env x in
       Right at
   | `Id x ->
+      (* less: map_identifier_or_ellipsis? *)
       let id = map_identifier env x in
       Left id
   | `Un_op x ->

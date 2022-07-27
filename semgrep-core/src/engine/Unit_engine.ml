@@ -140,17 +140,7 @@ let language_exceptions =
     (Lang.Ocaml, [ "deep_exprstmt"; "dots_stmts" ]);
     (* Experimental languages *)
     (Lang.R, [ "deep_exprstmt" ]);
-    ( Lang.Elixir,
-      [
-        "deep_exprstmt";
-        "dots_args";
-        "dots_nested_stmts";
-        "dots_stmts";
-        "dots_string";
-        "metavar_arg";
-        "metavar_call";
-        "metavar_equality_var";
-      ] );
+    (Lang.Elixir, [ "dots_nested_stmts" ]);
   ]
 
 let maturity_tests () =
