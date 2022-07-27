@@ -4,6 +4,8 @@
     "findings": 9,
     "errors": [],
     "total_time": 0.5,
-    "unsupported_exts": {}
+    "unsupported_exts": {
+      ".txt": 1
+    }
   }
 }
