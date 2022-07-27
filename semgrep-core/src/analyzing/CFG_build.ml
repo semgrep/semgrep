@@ -270,6 +270,9 @@ let rec cfg_stmt : Lang.t -> state -> F.nodei option -> stmt -> cfg_stmt_result
   | FuncStmt { fdef; ent; body } -> (
       let cfg = cfg_of_stmts lang body in
       let newi = state.g#add_node { F.n = NFunc { fdef; cfg; ent } } in
+      (* If there is no previous node, we add an edge from the entrance node.
+         Why? This is so that the dataflow can run on unreachable functions.
+      *)
       match previ with
       | None ->
           state.g |> add_arc (state.enteri, newi);

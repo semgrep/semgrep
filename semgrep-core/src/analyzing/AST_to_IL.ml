@@ -1036,7 +1036,6 @@ and stmt_aux env st =
       (* TODO: deal with class parameters *)
       [ mk_s (ClassStmt (List.concat_map (fun (G.F s) -> stmt env s) fields)) ]
   | G.DefStmt (_, G.ModuleDef m) ->
-      (* TODO: deal with class parameters *)
       [ mk_s (ModuleStmt (module_stmt env m.mbody)) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]

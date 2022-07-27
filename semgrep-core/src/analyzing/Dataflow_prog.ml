@@ -108,6 +108,10 @@ module Make (F : Dataflow_core.Flow) = struct
             (* Assume that environment does not change for a class node *)
             { in_env; out_env }
         | NInstr { i = AssignAnon (_, Lambda _); _ } ->
+            (* Lambdas change the environment resulting from the statements in the lambda.
+               This could permit escape of some things within the scope of the lambda, but
+               it already did this, so we're just staying consistent.
+            *)
             let in_env = modify_env in_env (flow.graph#nodes#assoc ni) config in
             { in_env; out_env = in_env }
         | Enter
