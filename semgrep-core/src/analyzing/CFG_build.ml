@@ -46,6 +46,10 @@ type state = {
   lang : Lang.t;
   g : (F.node, F.edge) Ograph_extended.ograph_mutable;
   (* We keep this so we can connect to unreachable nodes. *)
+  (* This is because if there is no previous node to a function, we add
+     an edge from the entrance node.
+     Why? This is so that the dataflow can run on unreachable functions.
+  *)
   enteri : F.nodei;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
