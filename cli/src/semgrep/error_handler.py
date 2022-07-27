@@ -51,7 +51,7 @@ class ErrorHandler:
         """
         Send scan status to the fail-open server.
 
-        Will if is_enabled is True
+        Status will only be emitted if is_enabled is True
         """
         from semgrep.state import get_state  # avoiding circular import
 
