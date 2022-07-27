@@ -208,6 +208,13 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
   let matches, errors, (skipped_targets, profiling) = unzip_results results in
   {
     matches = List.flatten matches;
+    (* We deduplicate errors here to avoid repeat PartialParsing errors
+       which can arise when multiple rules generate the same error. This is
+       done for consistency with other parsing errors, like ParseError or
+       LexicalError, which are only reported once per file, not rule.
+
+       See also the note in semgrep_output_v0.atd.
+    *)
     errors = List.flatten errors |> List.sort_uniq compare;
     extra = final_extra skipped_targets profiling;
   }

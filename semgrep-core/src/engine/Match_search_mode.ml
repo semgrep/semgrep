@@ -135,6 +135,7 @@ let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
 
 let error_with_rule_id rule_id (error : E.error) =
   match error.typ with
+  (* Don't add the rule id for consistency with other parse errors *)
   | PartialParsing _ -> error
   | _ -> { error with rule_id = Some rule_id }
 
