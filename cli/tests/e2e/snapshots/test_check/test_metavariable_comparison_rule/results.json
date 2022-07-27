@@ -42,10 +42,6 @@
               "col": 30,
               "line": 2,
               "offset": 62
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

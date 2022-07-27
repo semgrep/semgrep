@@ -32,10 +32,6 @@
               "col": 14,
               "line": 1,
               "offset": 13
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$STATUS": {
@@ -49,10 +45,6 @@
               "col": 10,
               "line": 1,
               "offset": 9
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

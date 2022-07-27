@@ -42,10 +42,6 @@
               "col": 25,
               "line": 1,
               "offset": 24
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$Y": {
@@ -59,10 +55,6 @@
               "col": 33,
               "line": 1,
               "offset": 32
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
