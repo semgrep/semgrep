@@ -61,6 +61,10 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
     foo = repo_base / "foo.py"
     foo.write_text(f"x = 1\n")
+
+    unknown_ext = repo_base / "xyz.txt"
+    unknown_ext.write_text("xyz")
+
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", COMMIT_MESSAGE],
@@ -884,7 +888,7 @@ def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
 
 
 @pytest.mark.kinda_slow
-def test_unsupported_langs(git_tmp_path, run_semgrep_in_tmp, mocker):
+def test_unsupported_langs(git_tmp_path, run_semgrep_in_tmp, mocker, snapshot):
     mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
     mocker.patch.object(AppSession, "post")
 
@@ -910,8 +914,9 @@ def test_unsupported_langs(git_tmp_path, run_semgrep_in_tmp, mocker):
     )
 
     post_calls = AppSession.post.call_args_list  # type: ignore
-    # print("post     calls:", post_calls)
     findings_json = post_calls[(len(post_calls) // 2) + 1].kwargs["json"]
-    unsupported_exts = findings_json["stats"]["unsupported_exts"]
 
-    assert unsupported_exts == {".rkt": 1}
+    snapshot.assert_match(
+        findings_json,
+        "results.txt",
+    )
