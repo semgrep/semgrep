@@ -254,7 +254,6 @@ let any_is_in_propagators_matches any matches :
   (matches_pfrom, matches_pto)
 
 let lazy_force x = Lazy.force x [@@profiling]
-let ( let* ) = Option.bind
 
 (*****************************************************************************)
 (* Main entry points *)
@@ -379,63 +378,6 @@ let pm_of_finding finding =
   | T.ArgToReturn _ ->
       None
 
-let _check_fundef lang fun_env taint_config opt_ent fdef =
-  let name =
-    let* ent = opt_ent in
-    let* name = AST_to_IL.name_of_entity ent in
-    Some (D.str_of_name name)
-  in
-  let add_to_env env id ii =
-    let var = D.str_of_name (AST_to_IL.var_of_id_info id ii) in
-    let taint =
-      taint_config.D.is_source (G.Tk (snd id))
-      |> Common.map fst |> T.taints_of_pms
-    in
-    Dataflow_core.VarMap.add var taint env
-  in
-  let in_env =
-    (* For each argument, check if it's a source and, if so, add it to the input
-     * environment. *)
-    List.fold_left
-      (fun env par ->
-        match par with
-        | G.Param { pname = Some id; pinfo; _ } -> add_to_env env id pinfo
-        (* JS: {arg} : type *)
-        | G.ParamPattern
-            (G.OtherPat
-              ( ("ExprToPattern", _),
-                [
-                  G.E
-                    { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
-                ] ))
-        (* JS: {arg} *)
-        | G.ParamPattern
-            (G.OtherPat
-              (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
-          ->
-            List.fold_left
-              (fun env field ->
-                match field with
-                | G.F
-                    {
-                      s =
-                        G.DefStmt
-                          ( _,
-                            G.FieldDefColon
-                              { vinit = Some { e = G.N (G.Id (id, ii)); _ }; _ }
-                          );
-                      _;
-                    } ->
-                    add_to_env env id ii
-                | _ -> env)
-              env fields
-        | _ -> env)
-      Dataflow_core.VarMap.empty fdef.G.fparams
-  in
-  let _, xs = AST_to_IL.function_definition lang fdef in
-  let flow = CFG_build.cfg_of_stmts lang xs in
-  Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
-
 let check_rule rule match_hook (default_config, equivs) xtarget =
   let matches = ref [] in
 
@@ -463,29 +405,6 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
 
   let fun_env = Hashtbl.create 8 in
 
-  (*
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kdef =
-          (fun (k, _v) ((ent, def_kind) as def) ->
-            match def_kind with
-            | G.FuncDef fdef ->
-                check_fundef lang fun_env taint_config (Some ent) fdef;
-                (* go into nested functions *)
-                k def
-            | __else__ -> k def);
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            check_fundef lang fun_env taint_config None def;
-            (* go into nested functions *)
-            k def);
-      }
-  in
-  (* Check each function definition. *)
-  v (G.Pr ast);
-  *)
   (* Check the top-level statements.
    * In scripting languages it is not unusual to write code outside
    * function declarations and we want to check this too. We simply
