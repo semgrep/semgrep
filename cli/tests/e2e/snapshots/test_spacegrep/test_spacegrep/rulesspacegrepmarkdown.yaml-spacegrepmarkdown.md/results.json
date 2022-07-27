@@ -32,10 +32,6 @@
               "col": 4,
               "line": 62,
               "offset": 2584
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -73,10 +69,6 @@
               "col": 4,
               "line": 97,
               "offset": 3694
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -114,10 +106,6 @@
               "col": 4,
               "line": 145,
               "offset": 8838
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -155,10 +143,6 @@
               "col": 4,
               "line": 159,
               "offset": 9237
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -196,10 +180,6 @@
               "col": 4,
               "line": 188,
               "offset": 9793
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -237,10 +217,6 @@
               "col": 4,
               "line": 203,
               "offset": 10936
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

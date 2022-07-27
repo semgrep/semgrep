@@ -69,10 +69,6 @@ class SemgrepResult:
             if "lines" in dict2["extra"]:
                 dict2["extra"]["lines"] = "<masked in benchmarks>"
             if "metavars" in dict2["extra"]:
-                # TODO: spacegrep/../Semgrep.ml uses a different unique_id
-                for _, v in dict2["extra"]["metavars"].items():
-                    if "unique_id" in v:
-                        v["unique_id"] = "<masked in benchmarks>"
                 # TODO: core_runner.py dedup_output() depends on the order
                 # of the elements in the list to remove similar findings
                 # but with different metavars
