@@ -980,7 +980,9 @@ let parse_generic ?(error_recovery = false) file ast =
         (* it's also ok to not have the toplevel rules:, anyway we never
          * used another toplevel key
          *)
+        | G.Container (G.Dict, (l, _, _)) -> (l, [ e ])
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
+        (* otherwise, it's bad, and complain *)
         | _ ->
             let loc = PI.first_loc_of_file file in
             yaml_error (PI.mk_info_of_loc loc)
