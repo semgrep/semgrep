@@ -75,9 +75,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 type debug_taint = {
-  sources : RM.ranges;
+  sources : (RM.t * R.taint_source) list;
   sanitizers : RM.ranges;
-  sinks : RM.ranges;
+  sinks : (RM.t * R.taint_sink) list;
 }
 
 (*****************************************************************************)
@@ -96,6 +96,11 @@ end)
 
 let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
 
+let option_bind_list opt f =
+  match opt with
+  | None -> []
+  | Some x -> f x
+
 (* Finds all matches of a taint-spec pattern formula. *)
 let range_w_metas_of_pformula config equivs xtarget rule pformula =
   let rule_id = fst rule.R.id in
@@ -109,13 +114,35 @@ type propagator_match = {
   id : D.var;
       (** An unique identifier for the propagator match. This is used as an
    * auxiliary variable to store the taints flowing from `from` to `to`. *)
+  rwm : RM.t;
   from : Range.t;  (** The range matched by the `from` metavariable. *)
   to_ : Range.t;  (** The range matched by the `to` metavariable. *)
+  spec : Rule.taint_propagator;
 }
 (** Taint will flow from `from` to `to_` through the axiliary variable `id`. *)
 
+(*****************************************************************************)
+(* Finding matches for taint specs *)
+(*****************************************************************************)
+
+let find_range_w_metas config equivs xtarget rule specs =
+  (* TODO: Make an Or formula and run a single query. *)
+  (* if perf is a problem, we could build an interval set here *)
+  specs
+  |> List.concat_map (fun (pf, x) ->
+         range_w_metas_of_pformula config equivs xtarget rule pf
+         |> Common.map (fun rwm -> (rwm, x)))
+
+let find_sanitizers_matches config equivs xtarget rule specs =
+  specs
+  |> List.concat_map (fun sanitizer ->
+         Common.map
+           (fun pf -> (sanitizer.Rule.not_conflicting, pf, sanitizer))
+           (range_w_metas_of_pformula config equivs xtarget rule
+              sanitizer.formula))
+
 (* Finds all matches of `pattern-propagators`. *)
-let find_propagators_ranges config equivs xtarget rule propagators_spec =
+let find_propagators_matches config equivs xtarget rule propagators_spec =
   let ( let* ) = Option.bind in
   let module MV = Metavariable in
   propagators_spec
@@ -174,11 +201,13 @@ let find_propagators_ranges config equivs xtarget rule propagators_spec =
                         loc_pfrom.charpos loc_pto.charpos from.Range.start
                         from.Range.end_ to_.Range.start to_.Range.end_
                     in
-                    Some { id; from; to_ }))
+                    Some { id; rwm; from; to_; spec = p }))
 
-(* Check whether `any` is in one or more taint-spec `matches`, e.g. whether
- * `any` is a `pattern-source`. *)
-let any_is_in_matches any ~p ~f matches =
+(*****************************************************************************)
+(* Testing whether some matches a taint spec *)
+(*****************************************************************************)
+
+let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
@@ -191,67 +220,90 @@ let any_is_in_matches any ~p ~f matches =
         logger#warning
           "Cannot compute range, there are no real tokens in this AST: %s"
           (G.show_any any);
-      []
+      None
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
-      List.filter (p r) matches |> Common.map (f r)
+      Some r
 
-(* Check whether `any` is in one or more taint-spec `matches` given by
- * a list of `Range_with_metavars.t`. For each match, it returns the
- * corresponding `Pattern_match.t`. *)
-let any_is_in_ranges_w_metavars rule any matches =
-  let p r rwm = Range.( $<=$ ) r rwm.RM.r in
-  let f _r rwm = RM.range_to_pattern_match_adjusted rule rwm in
-  any_is_in_matches any ~p ~f matches
+(* Assuming that `r` is a subrange of `match_range` then this computes a
+ * float in [0.0, 1.0]. We expect `r` to be the range of some arbitrary
+ * piece of code,  and `match_range` to be the range of a match of some
+ * taint spec (e.g. a taint source). Then this float indicates how much
+ * overlap there is between the code and the spec. The degree of overlap
+ * is used to determine whether the match is "exact" (overlap > 0.99),
+ * which e.g. triggets the side-effectful propagation of taint. *)
+let overlap_with ~match_range r =
+  let r1 = match_range in
+  float_of_int (r.Range.end_ - r.Range.start + 1)
+  /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
 
-(* Same as `any_is_in_ranges_w_metavars` but it also returns the
- * overlap (a float in [0.0, 1.0] that indicates how much overlap
- * there is between `any` and the taint-spec). The overlap is
- * used for side-effectful propagation of taint, which requires
- * a perfect match (overlap > 0.99). *)
-let any_is_in_ranges_w_metavars_overlap rule any xs =
-  let p r rwm = Range.( $<=$ ) r rwm.RM.r in
-  let f r rwm =
-    let r1 = rwm.RM.r in
-    let overlap =
-      (* We want to know how well the AST node `any' is matching
-         * the taint-annotated code range, this is a ratio in [0.0, 1.0]. *)
-      float_of_int (r.Range.end_ - r.Range.start + 1)
-      /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
-    in
-    let pm = RM.range_to_pattern_match_adjusted rule rwm in
-    (pm, overlap)
+let is_exact_match ~match_range r =
+  let r1 = match_range in
+  let overlap =
+    (* We want to know how well the AST node `any' is matching
+       * the taint-annotated code range, this is a ratio in [0.0, 1.0]. *)
+    float_of_int (r.Range.end_ - r.Range.start + 1)
+    /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
   in
-  any_is_in_matches any ~p ~f xs
+  Range.( $<=$ ) r r1 && overlap > 0.99
+
+let any_is_in_sources_matches rule any matches =
+  let ( let* ) = option_bind_list in
+  let* r = range_of_any any in
+  matches
+  |> List.filter_map (fun (rwm, ts) ->
+         if Range.( $<=$ ) r rwm.RM.r then
+           Some
+             (let pm = RM.range_to_pattern_match_adjusted rule rwm in
+              let overlap = overlap_with ~match_range:rwm.RM.r r in
+              { D.spec = ts; pm; overlap })
+         else None)
 
 (* Check whether `any` matches either the `from` or the `to` of any of the
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
  * taint propagation more precise and predictable. *)
-let any_is_in_propagators_matches any matches :
-    D.propagator_from list * D.propagator_to list =
-  let mk_p ~get_range r x =
-    let r1 = get_range x in
-    let overlap =
-      (* We want to know how well the AST node `any' is matching
-       * the taint-annotated code range, this is a ratio in [0.0, 1.0]. *)
-      float_of_int (r.Range.end_ - r.Range.start + 1)
-      /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
-    in
-    Range.( $<=$ ) r r1 && overlap > 0.99
-  in
-  let matches_pfrom =
-    let get_range x = x.from in
-    let p = mk_p ~get_range in
-    let f _r x = x.id in
-    any_is_in_matches any ~p ~f matches
-  in
-  let matches_pto =
-    let get_range x = x.to_ in
-    let p = mk_p ~get_range in
-    let f _r x = x.id in
-    any_is_in_matches any ~p ~f matches
-  in
-  (matches_pfrom, matches_pto)
+let any_is_in_propagators_matches rule any matches :
+    D.a_propagator D.tmatch list =
+  match range_of_any any with
+  | None -> []
+  | Some r ->
+      matches
+      |> List.concat_map (fun prop ->
+             let var = prop.id in
+             let pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
+             let is_from = is_exact_match ~match_range:prop.from r in
+             let is_to = is_exact_match ~match_range:prop.to_ r in
+             let mk_match kind =
+               let spec : D.a_propagator = { kind; prop = prop.spec; var } in
+               { D.spec; pm; overlap = 1.0 }
+             in
+             (if is_from then [ mk_match `From ] else [])
+             @ (if is_to then [ mk_match `To ] else [])
+             @ [])
+
+let any_is_in_sanitizers_matches rule any matches =
+  let ( let* ) = option_bind_list in
+  let* r = range_of_any any in
+  matches
+  |> List.filter_map (fun (rwm, spec) ->
+         if Range.( $<=$ ) r rwm.RM.r then
+           Some
+             (let pm = RM.range_to_pattern_match_adjusted rule rwm in
+              let overlap = overlap_with ~match_range:rwm.RM.r r in
+              { D.spec; pm; overlap })
+         else None)
+
+let any_is_in_sinks_matches rule any matches =
+  let ( let* ) = option_bind_list in
+  let* r = range_of_any any in
+  matches
+  |> List.filter_map (fun (rwm, spec) ->
+         if Range.( $<=$ ) r rwm.RM.r then
+           Some
+             (let pm = RM.range_to_pattern_match_adjusted rule rwm in
+              let overlap = overlap_with ~match_range:rwm.RM.r r in
+              { D.spec; pm; overlap })
+         else None)
 
 let lazy_force x = Lazy.force x [@@profiling]
 let ( let* ) = Option.bind
@@ -272,66 +324,59 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       lazy_ast_and_errors;
     }
   in
-  let find_range_w_metas pfs =
-    (* TODO: Make an Or formula and run a single query. *)
-    (* if perf is a problem, we could build an interval set here *)
-    pfs
-    |> List.concat_map (range_w_metas_of_pformula config equivs xtarget rule)
-  in
-  let find_range_w_metas_santizers specs =
-    specs
-    |> List.concat_map (fun spec ->
-           Common.map
-             (fun pf -> (spec.Rule.not_conflicting, pf))
-             (range_w_metas_of_pformula config equivs xtarget rule spec.pformula))
-  in
-  let sources_ranges = find_range_w_metas spec.sources
+  let sources_ranges =
+    find_range_w_metas config equivs xtarget rule
+      (spec.sources
+      |> Common.map (fun (src : Rule.taint_source) -> (src.formula, src)))
   and propagators_ranges =
-    find_propagators_ranges config equivs xtarget rule spec.propagators
-  and sinks_ranges = find_range_w_metas spec.sinks in
+    find_propagators_matches config equivs xtarget rule spec.propagators
+  and sinks_ranges =
+    find_range_w_metas config equivs xtarget rule
+      (spec.sinks
+      |> Common.map (fun (sink : Rule.taint_sink) -> (sink.formula, sink)))
+  in
   let sanitizers_ranges =
-    find_range_w_metas_santizers spec.sanitizers
+    find_sanitizers_matches config equivs xtarget rule spec.sanitizers
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
      * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
-    |> List.filter_map (fun (not_conflicting, range) ->
+    |> List.filter_map (fun (not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
              if
                not
                  (List.exists
-                    (fun range' -> range'.RM.r = range.RM.r)
+                    (fun (range', _) -> range'.RM.r = range.RM.r)
                     sinks_ranges
                  || List.exists
-                      (fun range' -> range'.RM.r = range.RM.r)
+                      (fun (range', _) -> range'.RM.r = range.RM.r)
                       sources_ranges)
-             then Some range
+             then Some (range, spec)
              else None
-           else Some range)
+           else Some (range, spec))
   in
   ( {
       Dataflow_tainting.filepath = file;
       rule_id = fst rule.R.id;
-      is_source =
-        (fun x -> any_is_in_ranges_w_metavars_overlap rule x sources_ranges);
+      is_source = (fun x -> any_is_in_sources_matches rule x sources_ranges);
       is_propagator =
-        (fun x -> any_is_in_propagators_matches x propagators_ranges);
+        (fun x -> any_is_in_propagators_matches rule x propagators_ranges);
       is_sanitizer =
-        (fun x -> any_is_in_ranges_w_metavars_overlap rule x sanitizers_ranges);
-      is_sink = (fun x -> any_is_in_ranges_w_metavars rule x sinks_ranges);
+        (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
+      is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
       handle_findings;
     },
     {
       sources = sources_ranges;
-      sanitizers = sanitizers_ranges;
+      sanitizers = sanitizers_ranges |> Common.map fst;
       sinks = sinks_ranges;
     } )
 
 let rec convert_taint_call_trace = function
-  | Taint.PM pm ->
+  | Taint.PM (pm, _) ->
       let toks = Lazy.force pm.PM.tokens |> List.filter PI.is_origintok in
       PM.Toks toks
   | Taint.Call (expr, toks, ct) ->
@@ -370,7 +415,7 @@ let pm_of_finding finding =
       let taint_trace =
         Some (lazy (taint_trace_of_src_to_sink source tokens sink))
       in
-      let sink_pm = T.pm_of_trace sink in
+      let sink_pm, _ = T.pm_of_trace sink in
       Some { sink_pm with env = merged_env; taint_trace }
   | T.SrcToReturn _
   (* TODO: We might want to report functions that let input taint
@@ -389,7 +434,8 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
     let var = D.str_of_name (AST_to_IL.var_of_id_info id ii) in
     let taint =
       taint_config.D.is_source (G.Tk (snd id))
-      |> Common.map fst |> T.taints_of_pms
+      |> Common.map (fun (x : _ D.tmatch) -> (x.pm, x.spec))
+      |> T.taints_of_pms
     in
     Dataflow_core.VarMap.add var taint env
   in

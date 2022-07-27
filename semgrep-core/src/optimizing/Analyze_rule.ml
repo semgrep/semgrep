@@ -548,10 +548,14 @@ let regexp_prefilter_of_formula f : prefilter option =
 let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
-    taint_spec.R.sources |> Common.map (R.formula_of_pformula ~rule_id)
+    taint_spec.R.sources
+    |> Common.map (fun (src : R.taint_source) ->
+           R.formula_of_pformula ~rule_id src.formula)
   in
   let sinks =
-    taint_spec.R.sinks |> Common.map (R.formula_of_pformula ~rule_id)
+    taint_spec.R.sinks
+    |> Common.map (fun (sink : R.taint_sink) ->
+           R.formula_of_pformula ~rule_id sink.formula)
   in
   let f =
     (* Note that this formula would likely not yield any meaningful result
