@@ -70,25 +70,8 @@ let dump_il file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
-
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (_k, _) def ->
-            let s =
-              AST_generic.show_any (G.S (H.funcbody_to_stmt def.G.fbody))
-            in
-            pr2 s;
-            pr2 "==>";
-
-            let _, xs = AST_to_IL.function_definition lang def in
-            let s = IL.show_any (IL.Ss xs) in
-            pr2 s);
-      }
-  in
-  v (G.Pr ast)
+  let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+  List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
   [@@action]
 
 (*****************************************************************************)
