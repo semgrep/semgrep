@@ -1,0 +1,5 @@
+Constant propagation now runs at the top level properly, and it runs from the top-level environment into classes and modules.
+
+This means that we can pass test cases like https://semgrep.dev/s/4KPg now.
+
+This was done via implementing a new kind of dataflow analysis on the CFG of the program.
