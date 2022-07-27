@@ -80,9 +80,8 @@ class ParsingData:
                 pass
         # Partial errors for a subsection of the file
         elif isinstance(err.error_type.value, core.PartialParsing):
-            lang_parse_data.error_bytes += (
-                err.location.end.offset - err.location.start.offset
-            )
+            for loc in err.error_type.value.value:
+                lang_parse_data.error_bytes += loc.end.offset - loc.start.offset
         else:
             # This function should only be called to add information about
             # parsing related errors.
