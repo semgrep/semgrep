@@ -167,5 +167,15 @@ def test_lsp_metrics_measurement(lsp, tmp_path, mocker):
     lsp.m_shutdown()
 
     payload = json.loads(mock_post.call_args.kwargs["data"])
-    assert payload["fix_rate"]["lowerLimits"]["rules.eqeq-is-bad"] == 1
-    assert payload["fix_rate"]["upperLimits"]["rules.eqeq-is-bad"] == 1
+    assert (
+        payload["fix_rate"]["lowerLimits"][
+            "eed07adc473fcdbff2e7970162c5b82d039a83e720f1dbdabbc55783ac91021c"
+        ]
+        == 1
+    )
+    assert (
+        payload["fix_rate"]["upperLimits"][
+            "eed07adc473fcdbff2e7970162c5b82d039a83e720f1dbdabbc55783ac91021c"
+        ]
+        == 1
+    )
