@@ -428,6 +428,7 @@ def ci(
             semgrep_errors,
             filtered_rules,
             all_targets,
+            ignore_log.unsupported_lang_paths,
             total_time,
             metadata.commit_datetime,
         )

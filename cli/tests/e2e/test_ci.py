@@ -61,6 +61,10 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
     foo = repo_base / "foo.py"
     foo.write_text(f"x = 1\n")
+
+    unknown_ext = repo_base / "xyz.txt"
+    unknown_ext.write_text("xyz")
+
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", COMMIT_MESSAGE],

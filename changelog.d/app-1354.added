@@ -1,0 +1,1 @@
+Added metadata in App-connected scans to report extensions of files that do not match the language of any enabled rules in order to enable more effective language prioritization while developing new rules.

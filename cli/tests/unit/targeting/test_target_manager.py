@@ -1,8 +1,10 @@
+import os
 import subprocess
 from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Collection
+from typing import List
 
 import pytest
 
@@ -136,7 +138,9 @@ def paths(request, tmp_path_factory):
     yield Paths
 
 
-PY = Language("python")
+LANG_PY = Language("python")
+LANG_GENERIC = Language("generic")
+LANG_REGEX = Language("regex")
 
 
 @pytest.mark.quick
@@ -175,7 +179,7 @@ def test_get_files_for_language(
     else:
         target_manager = paths.TargetManager(targets)
 
-    actual = target_manager.get_files_for_language(PY).kept
+    actual = target_manager.get_files_for_language(LANG_PY).kept
 
     assert_path_sets_equal(actual, getattr(paths, expected))
 
@@ -358,3 +362,40 @@ def test_ignores(tmp_path, monkeypatch):
     # Ingore nested double star
     files = ignore(["**/dir2/dir3/"])
     assert dir3_a not in files
+
+
+@pytest.mark.quick
+def test_unsupported_lang_paths(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    targets: List[str] = []
+
+    # we will "scan" only for python---others will be unsupported
+    paths = {
+        ".": ["a.py", "b.py", "c.rb", "d.rb", "e.erb"],
+        "dir": ["f.erb", "g.rkt", "h.rkt", "i.rkt"],
+    }
+
+    expected_unsupported = set()
+
+    for dir_name in paths:
+        dir = tmp_path
+        if not dir_name == ".":
+            dir = tmp_path / dir_name
+            dir.mkdir()
+        for file_name in paths[dir_name]:
+            path = dir / file_name
+            path.touch()
+            targets.append(str(path))
+            if os.path.splitext(path)[1] != ".py":
+                expected_unsupported.add(path)
+
+    target_manager = TargetManager(targets)
+
+    target_manager.get_files_for_language(LANG_PY)
+    target_manager.get_files_for_language(LANG_GENERIC)
+    target_manager.get_files_for_language(LANG_REGEX)
+
+    assert_path_sets_equal(
+        target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
+    )
