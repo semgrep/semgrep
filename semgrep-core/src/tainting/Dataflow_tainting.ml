@@ -181,6 +181,7 @@ let labels_in_taint taints : LabelSet.t =
          | Arg _ -> None)
   |> LabelSet.of_seq
 
+(* coupling: if you modify the code here, you may need to modify 'Parse_rule.parse_taint_requires' too. *)
 let rec eval_label_requires ~labels e =
   match e.G.e with
   | G.L (G.Bool (v, _)) -> v

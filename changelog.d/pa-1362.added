@@ -1,6 +1,6 @@
 Add experimental support for _taint labels_, that is the ability to attach labels to
 different kinds of taint. Both sources and sinks can retrict what labels are present
 in the data that passes through them in order to apply. This allows to write more
-complex taint rules that previously required ugly workarounds. Taint labels also
-allows us to write certain classes of typestate analyses (e.g., check that a file
+complex taint rules that previously required ugly workarounds. Taint labels are also
+useful for writing certain classes of typestate analyses (e.g., check that a file
 descriptor is not used after being closed).

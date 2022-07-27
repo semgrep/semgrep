@@ -13,5 +13,6 @@ rules:
         pattern: source(...)
       - label: CLEANED
         pattern: sanitize(...)
+        # Yep, we can now use labels to implement sanitizers!
     severity: ERROR
 

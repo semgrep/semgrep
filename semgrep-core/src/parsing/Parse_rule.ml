@@ -812,8 +812,6 @@ let parse_extract_reduction ~id (s, t) =
 (* Sub parsers taint *)
 (*****************************************************************************)
 
-let builtin_label_SOURCE = "__SOURCE__"
-
 let parse_formula (env : env) (rule_dict : dict) : R.pformula =
   match Hashtbl.find_opt rule_dict.h "match" with
   | Some (_matchkey, v) -> R.New (parse_formula_new env v)
@@ -856,12 +854,12 @@ let parse_taint_source env (key : key) (value : G.expr) : Rule.taint_source =
   let source_dict = yaml_to_dict env key value in
   let label =
     take_opt source_dict env parse_string "label"
-    |> Option.value ~default:builtin_label_SOURCE
+    |> Option.value ~default:R.default_source_label
   in
   let requires =
     let tok = snd key in
     take_opt source_dict env parse_taint_requires "requires"
-    |> Option.value ~default:(G.L (G.Bool (true, tok)) |> G.e)
+    |> Option.value ~default:(R.default_source_requires tok)
   in
   let formula = parse_formula env source_dict in
   { formula; label; requires }
@@ -888,9 +886,7 @@ let parse_taint_sink env (key : key) (value : G.expr) : Rule.taint_sink =
   let requires =
     let tok = snd key in
     take_opt sink_dict env parse_taint_requires "requires"
-    |> Option.value
-         ~default:
-           (G.N (G.Id ((builtin_label_SOURCE, tok), G.empty_id_info ())) |> G.e)
+    |> Option.value ~default:(R.default_sink_requires tok)
   in
   let formula = parse_formula env sink_dict in
   { formula; requires }
