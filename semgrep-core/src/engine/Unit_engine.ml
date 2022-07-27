@@ -367,6 +367,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
       pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
       pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
+      pack_regression_tests_for_lang Lang.Elixir "elixir" ".ex";
       pack_regression_tests_for_lang Lang.R "r" ".r";
     ]
 
