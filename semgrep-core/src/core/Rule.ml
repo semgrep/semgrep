@@ -167,17 +167,51 @@ type pformula = New of formula | Old of formula_old [@@deriving show, eq]
 (* Taint-specific types *)
 (*****************************************************************************)
 
-type sanitizer_spec = {
+type taint_source = {
+  formula : pformula;
+  label : string;
+      (** The label to attach to the data.
+  Alt: We could have an optional label instead, allow taint that is not labeled,
+       and allow sinks that work for any kind of taint? *)
+  requires : AST_generic.expr;
+      (** A Boolean expression over taint labels, using Python syntax.
+       The operators allowed are 'not', 'or', and 'and'. The expression is
+       evaluated using the `Eval_generic` machinery.
+
+       The expression that is being checked as a source must satisfy this in order
+       to the label to be produced. Note that with 'requires' a taint source behaves
+       a bit like a propagator. *)
+}
+[@@deriving show]
+
+let default_source_label = "__SOURCE__"
+let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
+
+type taint_sanitizer = {
   not_conflicting : bool;
       (** If [not_conflicting] is enabled, the sanitizer cannot conflict with
     a sink or a source (i.e., match the exact same range) otherwise
     it is filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
     to assume that any other function will handle tainted data safely.
     Without this, `$F(...)` would automatically sanitize any other function
-    call acting as a sink or a source. *)
-  pformula : pformula;
+    call acting as a sink or a source.
+
+    THINK: In retrospective, I'm not sure this was a good idea. We should add
+    an option to disable the assumption that function calls always propagate
+    taint, and deprecate not-conflicting sanitizers. *)
+  formula : pformula;
 }
 [@@deriving show]
+(** Note that, with taint labels, we can attach a label "SANITIZED" to the data
+ to flag that it has been sanitized... so do we still need sanitizers? I am not
+ sure to be honest, I think we will have to gain some experience in using labels
+ first. Sanitizers do allow you to completely remove taint from data, although I
+ think that can be simulated with labels too. We could translate (internally)
+ `pattern-sanitizers` as `pattern-sources` with a `"__SANITIZED__"` label, and
+ then rewrite the `requires` of all sinks as `(...) not __SANITIZED__`. But
+ not-conflicting sanitizers cannot be simulated that way. That said, I think we
+ should replace not-conflicting sanitizers with some `options:`, because they are
+ a bit confusing to use sometimes. *)
 
 type taint_propagator = {
   formula : pformula;
@@ -190,11 +224,23 @@ type taint_propagator = {
  * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
  * will also be marked as tainted. *)
 
+type taint_sink = {
+  formula : pformula;
+  requires : AST_generic.expr;
+      (** A Boolean expression over taint labels. See also 'taint_source'.
+     The sink will only trigger a finding if the data that reaches it
+     has a set of labels attached that satisfies the 'requires'.  *)
+}
+[@@deriving show]
+
+let default_sink_requires tok =
+  G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+
 type taint_spec = {
-  sources : pformula list;
+  sources : taint_source list;
   propagators : taint_propagator list;
-  sanitizers : sanitizer_spec list;
-  sinks : pformula list;
+  sanitizers : taint_sanitizer list;
+  sinks : taint_sink list;
 }
 [@@deriving show]
 

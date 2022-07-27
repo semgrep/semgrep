@@ -19,13 +19,17 @@ module PM = Pattern_match
 type tainted_tokens = G.tok list [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
  * all potential paths. So a set of tokens seems more appropriate than a list.
+ * TODO: May have to annotate each tainted token with a `call_trace` that explains
+ * how it got tainted.
  *)
 
-type call_trace = PM of PM.t | Call of G.expr * tainted_tokens * call_trace
+type 'a call_trace =
+  | PM of PM.t * 'a
+  | Call of G.expr * tainted_tokens * 'a call_trace
 [@@deriving show]
 
-type source = call_trace [@@deriving show]
-type sink = call_trace [@@deriving show]
+type source = Rule.taint_source call_trace [@@deriving show]
+type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = int [@@deriving show]
 
 type source_to_sink = {
@@ -65,7 +69,9 @@ module Taint_set = Set.Make (struct
 
   let rec compare_dm dm1 dm2 =
     match (dm1, dm2) with
-    | PM p, PM q -> compare_pm p q
+    | PM (p, x), PM (q, y) ->
+        let pq_cmp = compare_pm p q in
+        if pq_cmp <> 0 then pq_cmp else Stdlib.compare x y
     | PM _, Call _ -> -1
     | Call _, PM _ -> 1
     | Call (c1, _t1, d1), Call (c2, _t2, d2) ->
@@ -89,13 +95,21 @@ end)
 type taints = Taint_set.t
 
 let rec pm_of_trace = function
-  | PM pm -> pm
+  | PM (pm, x) -> (pm, x)
   | Call (_, _, trace) -> pm_of_trace trace
 
-let trace_of_pm pm = PM pm
-let src_of_pm pm = Src (PM pm)
+let trace_of_pm (pm, x) = PM (pm, x)
+let src_of_pm (pm, x) = Src (PM (pm, x))
 let taint_of_pm pm = { orig = src_of_pm pm; tokens = [] }
 let taints_of_pms pms = pms |> Common.map taint_of_pm |> Taint_set.of_list
+
+(* USEFUL FOR DEBUGGING *)
+let _show_taint_label taint =
+  match taint.orig with
+  | Arg i -> Printf.sprintf "arg#%d" i
+  | Src src ->
+      let _, ts = pm_of_trace src in
+      ts.label
 
 let show_taints taints =
   taints |> Taint_set.elements |> Common.map show_taint |> String.concat ", "
