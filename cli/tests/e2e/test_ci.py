@@ -885,38 +885,3 @@ def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
-
-
-@pytest.mark.kinda_slow
-def test_unsupported_langs(git_tmp_path, run_semgrep_in_tmp, mocker, snapshot):
-    mocker.patch("semgrep.app.auth.is_valid_token", return_value=True)
-    mocker.patch.object(AppSession, "post")
-
-    env = {"SEMGREP_APP_TOKEN": "fake_api_token"}
-
-    shutil.copy(
-        Path(__file__).parent.parent
-        / "e2e"
-        / "targets"
-        / "unsupported_langs"
-        / "test.rkt",
-        git_tmp_path / "test.rkt",
-    )
-    subprocess.run(["git", "add", "."], check=True, capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", "dummy commit"],
-        check=True,
-        capture_output=True,
-    )
-
-    result = run_semgrep_in_tmp(
-        target_name=None, options=["ci"], strict=False, env=env, assert_exit_code=None
-    )
-
-    post_calls = AppSession.post.call_args_list  # type: ignore
-    findings_json = post_calls[(len(post_calls) // 2) + 1].kwargs["json"]
-
-    snapshot.assert_match(
-        findings_json,
-        "results.txt",
-    )
