@@ -1131,7 +1131,7 @@ and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
 
 and map_else_options (env : env) (x : CST.else_options) =
   match x with
-  | `Blk x -> map_function_body env x
+  | `Blk x -> map_block env x
   | `If_stmt x -> map_if_statement env x
 
 and map_enum_class_body (env : env) ((v1, v2, v3) : CST.enum_class_body) =
@@ -1361,6 +1361,9 @@ and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
   let v1 = (* "if" *) token env v1 in
   let v2 = map_if_condition_sequence_item env v2 in
   let v3 =
+    (* TODO: looks like we could desugar this to a bunch of And expressions, but
+     * need to double-check semantics. For now just raise if we encounter this.
+     * *)
     Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
@@ -1368,16 +1371,16 @@ and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
         todo env (v1, v2))
       v3
   in
-  let v4 = map_function_body env v4 in
+  let v4 = map_block env v4 in
   let v5 =
     match v5 with
     | Some (v1, v2) ->
         let v1 = (* else *) token env v1 in
         let v2 = map_else_options env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some v2
+    | None -> None
   in
-  todo env (v1, v2, v3, v4, v5)
+  G.If (v1, G.Cond v2, v4, v5) |> G.s
 
 and map_import_declaration (env : env)
     ((v1, v2, v3, v4) : CST.import_declaration) =
@@ -1490,8 +1493,8 @@ and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
 and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
     match v1 with
-    | Some tok -> (* statement_label *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* statement_label *) token env tok |> todo env
+    | None -> ()
   in
   let v2 =
     match v2 with
@@ -1503,7 +1506,7 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
     | `Guard_stmt x -> map_guard_statement env x
     | `Switch_stmt x -> map_switch_statement env x
   in
-  todo env (v1, v2)
+  v2
 
 and map_lambda_function_type (env : env)
     ((v1, v2, v3, v4) : CST.lambda_function_type) : G.parameter list =
@@ -1628,16 +1631,17 @@ and map_lambda_parameter (env : env) ((v1, v2) : CST.lambda_parameter) :
   in
   v2
 
-and map_local_declaration (env : env) (x : CST.local_declaration) =
+and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
+    =
   match x with
   | `Local_prop_decl (v1, v2) ->
       let v1 =
         match v1 with
-        | Some x -> map_locally_permitted_modifiers env x
-        | None -> todo env ()
+        | Some x -> map_locally_permitted_modifiers env x |> todo env
+        | None -> ()
       in
       let v2 = map_modifierless_property_declaration env v2 in
-      todo env (v1, v2)
+      v2
   | `Local_typeas_decl (v1, v2) ->
       let v1 =
         match v1 with
@@ -1664,7 +1668,7 @@ and map_local_declaration (env : env) (x : CST.local_declaration) =
       todo env (v1, v2)
 
 and map_local_statement (env : env) (x : CST.local_statement)
-    (semi : CST.semi option) : G.stmt =
+    (semi : CST.semi option) : G.stmt list =
   let semi =
     match semi with
     | Some semi -> token env semi
@@ -1673,10 +1677,10 @@ and map_local_statement (env : env) (x : CST.local_statement)
   match x with
   | `Exp x ->
       let expr = map_expression env x in
-      G.ExprStmt (expr, semi) |> G.s
+      [ G.ExprStmt (expr, semi) |> G.s ]
   | `Local_decl x -> map_local_declaration env x
-  | `Labe_stmt x -> map_labeled_statement env x |> todo env
-  | `Cont_tran_stmt x -> map_control_transfer_statement env x semi
+  | `Labe_stmt x -> [ map_labeled_statement env x ]
+  | `Cont_tran_stmt x -> [ map_control_transfer_statement env x semi ]
 
 and map_locally_permitted_modifiers (env : env)
     (xs : CST.locally_permitted_modifiers) =
@@ -2338,7 +2342,7 @@ and map_simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
 
 and map_statements (env : env) ((v1, v2, v3) : CST.statements) =
   let stmts = associate_statement_semis v1 v2 v3 in
-  Common.map (fun (stmt, semi) -> map_local_statement env stmt semi) stmts
+  List.concat_map (fun (stmt, semi) -> map_local_statement env stmt semi) stmts
 
 and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
   match x with
@@ -2911,7 +2915,7 @@ let map_top_level_statement (env : env) (x : CST.top_level_statement)
       in
       [ G.ExprStmt (expr, semi) |> G.s ]
   | `Global_decl x -> map_global_declaration env x
-  | `Labe_stmt x -> map_labeled_statement env x
+  | `Labe_stmt x -> [ map_labeled_statement env x ]
   | `Throw_stmt x -> map_throw_statement env x |> todo env
 
 let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
