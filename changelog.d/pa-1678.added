@@ -1,0 +1,3 @@
+Metrics now include language-aggregated parse rates (files, bytes). The purpose
+of this is to help drive parsing improvements more intelligently. See
+[PRIVACY.md](PRIVACY.md) for more details.
