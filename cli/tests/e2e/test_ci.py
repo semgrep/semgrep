@@ -152,9 +152,11 @@ def automocks(mocker):
     ).lstrip()
 
     mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
-    mocker.patch.object(
-        ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
-    )
+    # mocker.patch.object(ScanHandler, "deployment_id", DEPLOYMENT_ID)
+    # mocker.patch.object(ScanHandler, "deployment_name", "org_name")
+    # mocker.patch.object(
+    #     ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
+    # )
     mocker.patch.object(
         ScanHandler,
         "skipped_syntactic_ids",
@@ -175,6 +177,13 @@ def automocks(mocker):
 def mock_autofix(request, mocker):
     mocker.patch.object(ScanHandler, "autofix", request.param)
 
+@pytest.fixture(params=[DEPLOYMENT_ID])
+def mock_deployment_id(request, mocker):
+    mocker.patch.object(ScanHandler, "deployment_id", request.param)
+
+@pytest.fixture(params=["org_name"])
+def mock_deployment_name(request, mocker):
+    mocker.patch.object(ScanHandler, "deployment_name", request.param)
 
 @pytest.mark.parametrize(
     "env",
@@ -322,6 +331,8 @@ def test_full_run(
     env,
     run_semgrep,
     mock_autofix,
+    mock_deployment_id,
+    mock_deployment_name
 ):
     _, base_commit, head_commit = git_tmp_path_with_commit
 
@@ -727,7 +738,7 @@ def test_shallow_wrong_merge_base(
     ), "Potentially scanning wrong files/commits"
 
 
-def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
+def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix, mock_deployment_id, mock_deployment_name):
     result = run_semgrep(
         "p/something",
         options=["ci"],
@@ -743,7 +754,7 @@ def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofi
     "format",
     ["--json", "--gitlab-sast", "--gitlab-secrets", "--sarif", "--emacs", "--vim"],
 )
-def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep):
+def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, mock_deployment_id, mock_deployment_name, run_semgrep):
     result = run_semgrep(
         options=["ci", format],
         target_name=None,
@@ -756,7 +767,7 @@ def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_s
 
 
 @pytest.mark.parametrize("nosem", ["--enable-nosem", "--disable-nosem"])
-def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep):
+def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, mock_deployment_id, mock_deployment_name, nosem, run_semgrep):
     result = run_semgrep(
         "p/something",
         options=["ci", nosem],

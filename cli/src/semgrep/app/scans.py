@@ -23,7 +23,7 @@ logger = getLogger(__name__)
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
-        self.deployment_id, self.deployment_name = None, None
+        self._deployment_id, self._deployment_name = None, None
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
@@ -32,6 +32,20 @@ class ScanHandler:
         self._dry_run_rules_url: str = ""
         self._skipped_syntactic_ids: List[str] = []
         self._skipped_match_based_ids: List[str] = []
+
+    @property
+    def deployment_id(self) -> int:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._deployment_id
+
+    @property
+    def deployment_name(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._deployment_name
 
     @property
     def autofix(self) -> bool:
@@ -70,7 +84,7 @@ class ScanHandler:
 
         if self.dry_run:
             repo_name = meta["repository"]
-            self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
+            self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self._deployment_id}/repos/{repo_name}/rules.yaml"
             logger.debug(
                 f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
             )
@@ -91,6 +105,8 @@ class ScanHandler:
             )
 
         body = response.json()
+        self._deployment_id = body["scan"]["deployment_id"]
+        self._deployment_name = body["deployment_name"]
         self.scan_id = body["scan"]["id"]
         self._autofix = body.get("autofix", False)
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
