@@ -153,9 +153,11 @@ let any_of_orig = function
 (* Lvalue *)
 (*****************************************************************************)
 
-(* An lvalue, represented as in CIL as a pair. *)
-(* The offset list is *backwards* *)
-type lval = { base : base; offset : offset list }
+type lval = { base : base; rev_offset : offset list }
+(** An lvalue, represented as in CIL as a pair.
+
+  The offset list is *reversed*, so the first element in this list is the _last_
+  offset! *)
 
 and base =
   | Var of name

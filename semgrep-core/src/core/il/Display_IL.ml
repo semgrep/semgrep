@@ -12,7 +12,7 @@ let string_of_lval x =
         match o with
         | Dot n -> s ^ "." ^ str_of_name n
         | Index _ -> s ^ "[...]")
-      "" x.offset
+      "" x.rev_offset
 
 let string_of_exp e =
   match e.e with

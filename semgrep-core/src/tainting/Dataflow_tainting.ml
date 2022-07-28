@@ -301,7 +301,7 @@ let exp_is_sanitized env exp =
   | [] -> None
   | sanitizer_pms -> (
       match exp.e with
-      | Fetch { base = Var var; offset = []; _ } ->
+      | Fetch { base = Var var; rev_offset = []; _ } ->
           Some (sanitize_var env.var_env sanitizer_pms var)
       | _ -> Some env.var_env)
 
@@ -453,14 +453,14 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
   in
   let check_subexpr exp =
     match exp.e with
-    | Fetch { base = VarSpecial (This, _); offset = Dot fld :: _; _ } ->
+    | Fetch { base = VarSpecial (This, _); rev_offset = Dot fld :: _; _ } ->
         (* TODO: Move this to check_tainted_instr ? *)
         let taints =
           Hashtbl.find_opt env.fun_env (str_of_name fld)
           |> Option.value ~default:Taints.empty
         in
         (taints, env.var_env)
-    | Fetch ({ base; offset; _ } as lval) -> (
+    | Fetch ({ base; rev_offset; _ } as lval) -> (
         let dotted_lvars = IL_lvalue_helpers.dotted_lvars_of_lval lval in
         (* Find the first dotted lvar that we know something definitive about *)
         let known_lvar_status =
@@ -480,7 +480,8 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
         | `CheckTaint (var_taints, var_env) ->
             let base_taints, var_env = check_base { env with var_env } base in
             let offset_taints, var_env =
-              union_map_taints_and_vars { env with var_env } check_offset offset
+              union_map_taints_and_vars { env with var_env } check_offset
+                rev_offset
             in
             ( Taints.union var_taints (Taints.union base_taints offset_taints),
               var_env ))
@@ -550,7 +551,7 @@ let check_function_signature env fun_exp args_taints =
                       };
                     _;
                   };
-              offset = _;
+              rev_offset = _;
               _;
             };
         eorig = SameAs eorig;

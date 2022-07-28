@@ -77,7 +77,7 @@ and lvals_in_lval lval =
       (function
         | Index e -> lvals_of_exp e
         | _ -> [])
-      lval.offset
+      lval.rev_offset
   in
   base_lvals @ offset_lvals
 
@@ -93,7 +93,7 @@ let rlvals_of_instr x =
 (*****************************************************************************)
 
 let dotted_lvars_of_lval = function
-  | { base = Var name; offset } -> (
+  | { base = Var name; rev_offset } -> (
       let id, tok = name.ident in
       let str_of_name name = Common.spf "%s-%d" (fst name.ident) name.sid in
       let dot_strs =
@@ -110,7 +110,7 @@ let dotted_lvars_of_lval = function
             | Some _, Index _
             | None, _ ->
                 None)
-          offset (Some [])
+          rev_offset (Some [])
       in
       match dot_strs with
       | None -> []
