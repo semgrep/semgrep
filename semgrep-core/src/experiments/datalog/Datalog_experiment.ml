@@ -62,19 +62,6 @@ module D = Datalog_fact
 type env = { facts : Datalog_fact.t list ref }
 
 (*****************************************************************************)
-(* Dumper *)
-(*****************************************************************************)
-
-(* mostly a copy paste of pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
-let dump_il file =
-  let lang = List.hd (Lang.langs_of_filename file) in
-  let ast = Parse_target.parse_program file in
-  Naming_AST.resolve lang ast;
-  let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-  List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
-  [@@action]
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 let add env x = Common.push x env.facts

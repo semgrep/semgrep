@@ -1,1 +1,0 @@
-Changed it such that `dump-il` prints out all the top-level IL statements of a program, rather than individually printing out all of the statements in each function.
