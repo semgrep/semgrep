@@ -1324,6 +1324,9 @@ and keyword_attribute =
   | DefaultImpl (* Rust unstable, RFC 1210 *)
   (* Scala *)
   | Lazy
+  (* Swift *)
+  | Throws
+  | Rethrows
 
 (* By name application in Scala, via => T, in parameter *)
 

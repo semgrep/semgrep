@@ -651,6 +651,8 @@ and vof_keyword_attribute = function
   | NotNull -> OCaml.VSum ("NotNull", [])
   | Unsafe -> OCaml.VSum ("Unsafe", [])
   | DefaultImpl -> OCaml.VSum ("DefaultImpl", [])
+  | Throws -> OCaml.VSum ("Throws", [])
+  | Rethrows -> OCaml.VSum ("Rethrows", [])
 
 and vof_attribute = function
   | KeywordAttr x ->
