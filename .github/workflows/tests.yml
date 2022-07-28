@@ -511,20 +511,24 @@ jobs:
       - name: Check semgrep-interfaces
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: "${GITHUB_WORKSPACE}/cli/src/semgrep/semgrep_interfaces"
+          # Looks like this uses the value from
+          # git config --file .gitmodules --name-only --get-regexp path
+          # (per https://github.com/jtmullen/submodule-branch-check-action/blob/6c6f99f42640ce5247e478880be431940ad3c515/entrypoint.sh#L94)
+          # instead of the actual path?
+          path: cli/src/semgrep/semgrep-interfaces
           branch: main
       - name: Check semgrep-langs
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: "${GITHUB_WORKSPACE}/cli/src/semgrep/lang"
+          path: cli/src/semgrep/lang
           branch: main
       - name: Check ocaml-tree-sitter-core
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: "${GITHUB_WORKSPACE}/semgrep-core/src/ocaml-tree-sitter-core"
+          path: semgrep-core/src/ocaml-tree-sitter-core
           branch: main
       - name: Check pfff
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: "${GITHUB_WORKSPACE}/semgrep-core/src/pfff"
+          path: semgrep-core/src/pfff
           branch: develop
