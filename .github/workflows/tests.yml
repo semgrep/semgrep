@@ -501,3 +501,30 @@ jobs:
         with:
           name: semgrep-ubuntu-16.04-${{ github.sha }}
           path: artifacts.tar.gz
+
+  check-submodules:
+    name: check submodule branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check semgrep-interfaces
+        uses: jtmullen/submodule-branch-check-action@v1
+        with:
+          path: "cli/src/semgrep/semgrep_interfaces"
+          branch: "main"
+      - name: Check semgrep-langs
+        uses: jtmullen/submodule-branch-check-action@v1
+        with:
+          path: "cli/src/semgrep/lang"
+          branch: "main"
+      - name: Check ocaml-tree-sitter-core
+        uses: jtmullen/submodule-branch-check-action@v1
+        with:
+          path: "semgrep-core/src/ocaml-tree-sitter-core"
+          branch: "main"
+      - name: Check pfff
+        uses: jtmullen/submodule-branch-check-action@v1
+        with:
+          path: "semgrep-core/src/pfff"
+          branch: "develop"
