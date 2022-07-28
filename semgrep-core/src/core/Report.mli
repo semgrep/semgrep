@@ -44,9 +44,11 @@ type file_profiling = {
 
 (* Substitute in the profiling type we have *)
 
+module ErrorSet : Set.S with type elt = Semgrep_error_code.error
+
 type 'a match_result = {
   matches : Pattern_match.t list;
-  errors : Semgrep_error_code.error list;
+  errors : ErrorSet.t;
   extra : 'a debug_info;
 }
 [@@deriving show]
@@ -74,7 +76,7 @@ val empty_semgrep_result : times match_result
 val empty_final_result : final_result
 
 val make_match_result :
-  Pattern_match.t list -> Semgrep_error_code.error list -> 'a -> 'a match_result
+  Pattern_match.t list -> ErrorSet.t -> 'a -> 'a match_result
 
 val add_run_time :
   float -> partial_profiling match_result -> file_profiling match_result

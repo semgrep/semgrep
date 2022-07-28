@@ -389,17 +389,16 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                        logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Parse_info.first_loc_of_file file in
                    let errors =
-                     [
-                       E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
-                         (match exn with
-                         | Match_rules.File_timeout ->
-                             logger#info "Timeout on %s" file;
-                             Out.Timeout
-                         | Out_of_memory ->
-                             logger#info "OutOfMemory on %s" file;
-                             Out.OutOfMemory
-                         | _ -> raise Impossible);
-                     ]
+                     RP.ErrorSet.singleton
+                       (E.mk_error ~rule_id:!Rule.last_matched_rule loc ""
+                          (match exn with
+                          | Match_rules.File_timeout ->
+                              logger#info "Timeout on %s" file;
+                              Out.Timeout
+                          | Out_of_memory ->
+                              logger#info "OutOfMemory on %s" file;
+                              Out.OutOfMemory
+                          | _ -> raise Impossible))
                    in
                    RP.make_match_result [] errors
                      (RP.empty_partial_profiling file)
@@ -407,7 +406,7 @@ let iter_targets_and_get_matches_and_exn_to_errors config f targets =
                | Timeout _ -> assert false
                | exn when not !Flag_semgrep.fail_fast ->
                    let e = Exception.catch exn in
-                   let errors = [ exn_to_error file e ] in
+                   let errors = RP.ErrorSet.singleton (exn_to_error file e) in
                    RP.make_match_result [] errors
                      (RP.empty_partial_profiling file))
          in

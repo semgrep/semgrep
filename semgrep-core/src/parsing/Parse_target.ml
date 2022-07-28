@@ -77,12 +77,12 @@ let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 
 let errors_from_skipped_tokens xs =
   match xs with
-  | [] -> []
+  | [] -> Report.ErrorSet.empty
   | x :: _ ->
       let e = exn_of_loc x in
       let err = E.exn_to_error x.PI.file e in
       let locs = xs |> Common.map OutH.location_of_token_location in
-      [ { err with typ = Out.PartialParsing locs } ]
+      Report.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
   {

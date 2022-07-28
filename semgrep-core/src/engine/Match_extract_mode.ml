@@ -205,7 +205,7 @@ let map_res map_loc tmpfile file
       mr.matches
   in
   let errors =
-    Common.map
+    Report.ErrorSet.map
       (fun (e : Semgrep_error_code.error) -> { e with loc = map_loc e.loc })
       mr.errors
   in

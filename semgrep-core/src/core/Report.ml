@@ -120,9 +120,23 @@ type final_result = {
 
 (* For each file, substitute in the profiling type we have *)
 
+module ErrorSet = Set.Make (struct
+  type t = Semgrep_error_code.error
+
+  let compare = compare
+end)
+
 type 'a match_result = {
   matches : Pattern_match.t list;
-  errors : Semgrep_error_code.error list;
+  errors : ErrorSet.t;
+      [@printer
+        fun fmt errors ->
+          fprintf fmt "{ ";
+          ErrorSet.iter
+            (fun error ->
+              fprintf fmt "%s, " (Semgrep_error_code.show_error error))
+            errors;
+          fprintf fmt "}"]
   extra : 'a debug_info;
 }
 [@@deriving show]
@@ -146,7 +160,11 @@ let empty_extra profiling =
   | MNo_info -> No_info
 
 let empty_semgrep_result =
-  { matches = []; errors = []; extra = empty_extra empty_times_profiling }
+  {
+    matches = [];
+    errors = ErrorSet.empty;
+    extra = empty_extra empty_times_profiling;
+  }
 
 let empty_final_result =
   { matches = []; errors = []; skipped_rules = []; extra = No_info }
@@ -215,7 +233,7 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
 
        See also the note in semgrep_output_v0.atd.
     *)
-    errors = List.flatten errors |> List.sort_uniq compare;
+    errors = List.fold_left ErrorSet.union ErrorSet.empty errors;
     extra = final_extra skipped_targets profiling;
   }
 
@@ -292,7 +310,11 @@ let collate_rule_results :
 (* Aggregate a list of target results into one final result *)
 let make_final_result results rules ~rules_parse_time =
   let matches = results |> Common.map (fun x -> x.matches) |> List.flatten in
-  let errors = results |> Common.map (fun x -> x.errors) |> List.flatten in
+  let errors =
+    results
+    |> Common.map (fun x -> x.errors |> ErrorSet.elements)
+    |> List.flatten
+  in
 
   (* Create extra *)
   let get_skipped_targets result =
