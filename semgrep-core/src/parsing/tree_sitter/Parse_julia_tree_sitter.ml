@@ -41,6 +41,7 @@ let sc tok = PI.sc tok
  *)
 
 let todo (_env : env) _ = failwith "not implemented"
+let stmts_of_exprs xs = xs |> Common.map G.exprstmt
 
 let map_trailing_comma env v =
   match v with
@@ -1199,7 +1200,7 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       try
         let xs = map_source_file env cst in
-        xs |> List.map G.exprstmt
+        stmts_of_exprs xs
       with
       (* TODO: to delete once todo() has been removed *)
       | Failure "not implemented" as exn ->
@@ -1214,4 +1215,4 @@ let parse_pattern str =
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       match map_source_file env cst with
       | [ e ] -> G.E e
-      | es -> G.Ss (es |> List.map G.exprstmt))
+      | es -> G.Ss (stmts_of_exprs es))
