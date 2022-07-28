@@ -15,6 +15,7 @@ from glom import T
 from glom.core import TType
 
 from semgrep import __VERSION__
+from semgrep.external.git_url_parser import Parser
 from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
@@ -25,54 +26,28 @@ logger = getLogger(__name__)
 def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     """Gets regular url from sstp url.
     We use repo urls on semgrep-app to link to files, so we need to make sure they are
-    in the right format to be appended to.
+    in the right format to be appended to. We do this by parsing the url with a git url
+    parser and rebuilding it into an HTTP/S url
     """
+
     if sstp_url is None:
         return None
-    url = sstp_url
-    # trim start
-    possible_starts = ["ssh://", "rsync://", "git://"]
-    for start in possible_starts:
-        if url.startswith(start):
-            url = url[len(start) :]
-            break
-    at_symbol_index = url.find("@")
-    if at_symbol_index != -1:
-        url = url[at_symbol_index + 1 :]
+    p = Parser(sstp_url)
+    result = p.parse()
+    protocol = result.protocol
+    if protocol != "http" and protocol != "http":
+        # let's just pick https
+        protocol = "https"
 
-    # trim end
-    possible_ends = [".git", ".git/", "/"]
-    for end in possible_ends:
-        if url.endswith(end):
-            end_index = len(end) * -1
-            url = url[0:end_index]
-            break
-
-    if url.startswith("https://") or url.startswith("http://"):
-        return url
-    else:
-        return "https://" + url
+    return f"{protocol}://{result.resource}/{result.owner}/{result.name}"
 
 
 def get_repo_name_from_github_repo_url(repo_url: str) -> str:
-    """Pulls repository name from the url, assuming it is a GitHub repo url.
-    If url can't be parsed, just returns the full url as the repo name.
-    """
-    # make sure url in right format - might be ssh
-    url = get_url_from_sstp_url(repo_url)
-    if url is None:
-        # this is just for type checking, shouldn't ever reach here
-        return repo_url
+    """Pulls repository name from the url using a git url parser"""
+    p = Parser(repo_url)
+    result = p.parse()
 
-    # url in format https://github.com/org/reponame.git or https://github.com/org/reponame
-    # and we want org/reponame
-    second_to_last_slash = url.rfind("/", 0, url.rfind("/"))
-    if second_to_last_slash == -1:
-        return url
-    # slice of beginning of string to last slash and ".git" at the end
-    if url.endswith(".git"):
-        return url[second_to_last_slash + 1 : -4]
-    return url[second_to_last_slash + 1 :]
+    return f"{result.owner}/{result.name}"
 
 
 @dataclass
