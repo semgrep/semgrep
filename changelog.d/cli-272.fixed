@@ -1,0 +1,1 @@
+Fixed issue when scan fails due to pending changes in submodule.
