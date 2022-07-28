@@ -500,7 +500,7 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
       |> Common.map (fun (x : _ D.tmatch) -> (x.pm, x.spec))
       |> T.taints_of_pms
     in
-    Var_env.VarMap.add var taint env
+    Var_env.VarMap.add var (Dataflow_tainting.Tainted taint) env
   in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
