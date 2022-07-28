@@ -26,36 +26,7 @@ module SJ = Output_from_core_j (* JSON conversions *)
 module Out = Output_from_core_t (* atdgen definitions *)
 module OutH = Output_from_core_util
 
-(*****************************************************************************)
-(* Unique ID *)
-(*****************************************************************************)
-
-(* Returning scoping-aware information about a metavariable, so that
- * the callers of semgrep (semgrep python) can check if multiple metavariables
- * reference the same entity, or reference exactly the same code.
- * See Naming_AST.ml for more information.
- * TODO: can we delete now that the boolean logic is done in semgrep-core?
- *)
-let unique_id any =
-  match any with
-  | E { e = N (Id (_, { id_resolved = { contents = Some (_, sid) }; _ })); _ }
-    ->
-      { Out.type_ = `ID; md5sum = None; sid = Some sid }
-  (* not an Id, return a md5sum of its AST as a "single unique id" *)
-  | _ ->
-      (* todo? note that if the any use a parameter, or a local,
-       * as in foo(x): return complex(x), then they will have different
-       * md5sum because the parameter will be different! We may
-       * want to abstract also the resolved information in those cases.
-       *)
-      let any = AST_generic_helpers.abstract_for_comparison_any any in
-      (* alt: Using the AST dumper should work also.
-       * let v = Meta_AST.vof_any any in
-       * let s = OCaml.string_of_v v in
-       *)
-      let s = Marshal.to_string any [] in
-      let md5 = Digest.string s in
-      { Out.type_ = `AST; md5sum = Some (Digest.to_hex md5); sid = None }
+let ( let* ) = Option.bind
 
 (*****************************************************************************)
 (* JSON *)
@@ -73,7 +44,6 @@ let range_of_any_opt startp_of_match_range any =
   | Xmls [] ->
       Some empty_range
   | _ ->
-      let ( let* ) = Common.( >>= ) in
       let* min_loc, max_loc = V.range_of_any_opt any in
       let startp, endp = OutH.position_range min_loc max_loc in
       Some (startp, endp)
@@ -135,7 +105,6 @@ let metavars startp_of_match_range (s, mval) =
           end_ = endp;
           abstract_content = metavar_string_of_any any;
           propagated_value = get_propagated_value startp_of_match_range any;
-          unique_id = unique_id any;
         } )
 
 (* None if pi has no location information. Fake tokens should have been filtered
@@ -148,14 +117,42 @@ let parse_info_to_location pi =
 
 let tokens_to_locations toks = List.filter_map parse_info_to_location toks
 
-let rec taint_call_trace_to_locations = function
-  | Toks toks -> tokens_to_locations toks
-  | Call { call_trace; _ } -> taint_call_trace_to_locations call_trace
+let rec last hd = function
+  | [] -> hd
+  | hd :: tl -> last hd tl
+
+let first_and_last = function
+  | [] -> None
+  | hd :: tl -> Some (hd, last hd tl)
+
+let tokens_to_single_loc toks =
+  (* toks should be nonempty and should contain only origintoks, but since we
+   * can't prove that by construction we have to filter and handle the empty
+   * case here. In theory this could lead to, e.g. a missing taint source for a
+   * taint rule finding but it shouldn't happen in practice. *)
+  let locations =
+    tokens_to_locations
+      (List.filter PI.is_origintok toks |> List.sort PI.compare_pos)
+  in
+  let* first_loc, last_loc = first_and_last locations in
+  Some
+    { Out.path = first_loc.path; start = first_loc.start; end_ = last_loc.end_ }
+
+let rec taint_call_trace_to_taint_source = function
+  | Toks toks -> tokens_to_single_loc toks
+  | Call { call_trace; _ } -> taint_call_trace_to_taint_source call_trace
+
+let token_to_intermediate_var token =
+  let* location = tokens_to_single_loc [ token ] in
+  Some { Out.location }
+
+let tokens_to_intermediate_vars tokens =
+  List.filter_map token_to_intermediate_var tokens
 
 let taint_trace_to_dataflow_trace { source; tokens; sink = _ } =
   {
-    Out.taint_source = Some (taint_call_trace_to_locations source);
-    intermediate_vars = Some (tokens_to_locations tokens);
+    Out.taint_source = taint_call_trace_to_taint_source source;
+    intermediate_vars = Some (tokens_to_intermediate_vars tokens);
   }
 
 let match_to_match x =

@@ -146,6 +146,17 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     is_flag=True,
     hidden=True,
 )
+@click.option(
+    "--suppress-errors/--no-suppress-errors",
+    "suppress_errors",
+    default=False,
+    help="""
+        Configures how the CI command reacts when an error occurs.
+        If true, encountered errors are suppressed and the exit code is zero (success).
+        If false, encountered errors are not suppressed and the exit code is non-zero (success).
+    """,
+    envvar="SEMGREP_SUPPRESS_ERRORS",
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -161,6 +172,7 @@ def ci(
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
+    suppress_errors: bool,
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
@@ -175,6 +187,7 @@ def ci(
     metrics: Optional[MetricsState],
     metrics_legacy: Optional[MetricsState],
     optimizations: str,
+    dataflow_traces: bool,
     output: Optional[str],
     sarif: bool,
     quiet: bool,
@@ -205,6 +218,7 @@ def ci(
     )
 
     state.metrics.configure(metrics, metrics_legacy)
+    state.error_handler.configure(suppress_errors)
     scan_handler = None
 
     token = state.app_session.token
@@ -428,6 +442,7 @@ def ci(
             semgrep_errors,
             filtered_rules,
             all_targets,
+            ignore_log.unsupported_lang_paths,
             total_time,
             metadata.commit_datetime,
         )

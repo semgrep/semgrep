@@ -39,7 +39,7 @@ from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 from boltons.iterutils import partition
 
-from semgrep.constants import Colors
+from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import FilesNotFoundError
 from semgrep.formatter.text import width
 from semgrep.ignores import FileIgnore
@@ -128,6 +128,21 @@ class FileTargetingLog:
                 *(rule_id for rule_id, skips in self.rule_includes.items() if skips),
                 *(rule_id for rule_id, skips in self.rule_excludes.items() if skips),
             }
+        )
+
+    @property
+    def unsupported_lang_paths(self) -> Set[Path]:
+        # paths of all files that were ignored by ALL non-generic langs
+        return (
+            set.intersection(
+                *[
+                    paths
+                    for lang, paths in self.by_language.items()
+                    if lang not in UNSUPPORTED_EXT_IGNORE_LANGS
+                ]
+            )
+            if self.by_language
+            else set()
         )
 
     def __str__(self) -> str:

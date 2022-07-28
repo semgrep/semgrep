@@ -1,3 +1,4 @@
+import hashlib
 from typing import List
 from typing import MutableMapping
 from typing import Optional
@@ -39,12 +40,13 @@ class LSPMetrics:
 
     def update(self, rule_id: str, opened: int, closed: int) -> None:
         """Update the metrics with the given rule and count."""
-        self.rule_seen_max_map[rule_id] = max(
-            self.rule_seen_max_map.get(rule_id, 0), opened
+        rule_hash = hashlib.sha256(rule_id.encode("utf-8")).hexdigest()
+        self.rule_seen_max_map[rule_hash] = max(
+            self.rule_seen_max_map.get(rule_hash, 0), opened
         )
-        self.rules_seen_last_map[rule_id] = opened
-        self.rule_seen_closed_map[rule_id] = closed + self.rule_seen_closed_map.get(
-            rule_id, 0
+        self.rules_seen_last_map[rule_hash] = opened
+        self.rule_seen_closed_map[rule_hash] = closed + self.rule_seen_closed_map.get(
+            rule_hash, 0
         )
 
     def send(

@@ -32,10 +32,6 @@
               "col": 7,
               "line": 1,
               "offset": 6
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$FUNC": {
@@ -49,10 +45,6 @@
               "col": 9,
               "line": 2,
               "offset": 19
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$MSG": {
@@ -66,10 +58,6 @@
               "col": 15,
               "line": 3,
               "offset": 38
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -107,10 +95,6 @@
               "col": 7,
               "line": 1,
               "offset": 6
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$FUNC": {
@@ -124,10 +108,6 @@
               "col": 9,
               "line": 5,
               "offset": 55
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$MSG": {
@@ -141,10 +121,6 @@
               "col": 15,
               "line": 6,
               "offset": 74
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -182,10 +158,6 @@
               "col": 7,
               "line": 1,
               "offset": 6
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$FUNC": {
@@ -199,10 +171,6 @@
               "col": 9,
               "line": 8,
               "offset": 90
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$MSG": {
@@ -216,10 +184,6 @@
               "col": 15,
               "line": 9,
               "offset": 109
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -257,10 +221,6 @@
               "col": 7,
               "line": 14,
               "offset": 151
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$FUNC": {
@@ -274,10 +234,6 @@
               "col": 9,
               "line": 15,
               "offset": 164
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$MSG": {
@@ -291,10 +247,6 @@
               "col": 15,
               "line": 16,
               "offset": 183
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

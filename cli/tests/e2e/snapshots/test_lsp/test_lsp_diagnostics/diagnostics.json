@@ -19,10 +19,6 @@
               "col": 12,
               "line": 3,
               "offset": 55
-            },
-            "unique_id": {
-              "md5sum": "aca68f1483a3c0badcd1b2f72d3954d7",
-              "type": "AST"
             }
           }
         },

@@ -5,14 +5,14 @@ type tainted_tokens = AST_generic.tok list [@@deriving show]
 (** A call trace to a source or sink match.
   * E.g. Call('foo(a)', PM('sink(x)')) is an indirect match for 'sink(x)'
   * through the function call 'foo(a)'. *)
-type call_trace =
-  | PM of Pattern_match.t  (** A direct match.  *)
-  | Call of AST_generic.expr * tainted_tokens * call_trace
+type 'a call_trace =
+  | PM of Pattern_match.t * 'a  (** A direct match.  *)
+  | Call of AST_generic.expr * tainted_tokens * 'a call_trace
       (** An indirect match through a function call. *)
 [@@deriving show]
 
-type source = call_trace [@@deriving show]
-type sink = call_trace [@@deriving show]
+type source = Rule.taint_source call_trace [@@deriving show]
+type sink = Rule.taint_sink call_trace [@@deriving show]
 type arg_pos = int [@@deriving show]
 
 type source_to_sink = {
@@ -60,8 +60,8 @@ module Taint_set : Set.S with type elt = taint
 
 type taints = Taint_set.t
 
-val trace_of_pm : Pattern_match.t -> call_trace
-val pm_of_trace : call_trace -> Pattern_match.t
-val taint_of_pm : Pattern_match.t -> taint
-val taints_of_pms : Pattern_match.t list -> taints
+val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
+val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
+val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
+val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
 val show_taints : taints -> string

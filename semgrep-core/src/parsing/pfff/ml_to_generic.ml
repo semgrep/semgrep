@@ -361,7 +361,7 @@ and expr e =
       G.Lambda def
   | Function (t, xs) ->
       let xs = list (fun a -> a |> match_case |> G.case_of_pat_and_expr) xs in
-      let id = ("!_implicit_param!", t) in
+      let id = G.implicit_param_id t in
       let params = [ G.Param (G.param_of_id id) ] in
       let body_stmt =
         G.Switch

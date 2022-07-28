@@ -1,6 +1,7 @@
 # Handle communication of findings / errors to semgrep.app
 import json
 import os
+from collections import Counter
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -158,6 +159,7 @@ class ScanHandler:
         errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
+        ignored_targets: Set[Path],
         total_time: float,
         commit_date: str,
     ) -> None:
@@ -196,6 +198,12 @@ class ScanHandler:
                 for match in new_ignored
             ],
         }
+
+        ignored_ext_freqs = Counter(
+            [os.path.splitext(path)[1] for path in ignored_targets]
+        )
+        ignored_ext_freqs.pop("", None)  # don't count files with no extension
+
         complete = {
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
@@ -204,6 +212,7 @@ class ScanHandler:
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
+                "unsupported_exts": dict(ignored_ext_freqs),
             },
         }
 

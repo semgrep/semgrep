@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -282,6 +282,8 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.Elixir ->
       run file [ TreeSitter Parse_elixir_tree_sitter.parse ] (fun x -> x)
+  | Lang.Julia ->
+      run file [ TreeSitter Parse_julia_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
       run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
@@ -379,7 +381,6 @@ let rec just_parse_with_lang lang file =
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
   | Lang.Dart -> failwith "Dart not supported yet"
-  | Lang.Julia -> failwith "Julia not supported yet"
   [@@profiling]
 
 (*****************************************************************************)

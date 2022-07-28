@@ -231,6 +231,7 @@ Sending complete blob: {
         "findings": 1,
         "errors": [],
         "total_time":<MASKED>
+        "unsupported_exts": {}
     }
 }
   No blocking findings so exiting with code 0
