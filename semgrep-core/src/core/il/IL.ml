@@ -154,7 +154,8 @@ let any_of_orig = function
 (*****************************************************************************)
 
 (* An lvalue, represented as in CIL as a pair. *)
-type lval = { base : base; offset : offset }
+(* The offset list is *backwards* *)
+type lval = { base : base; offset : offset list }
 
 and base =
   | Var of name
@@ -164,7 +165,6 @@ and base =
   | Mem of exp
 
 and offset =
-  | NoOffset
   (* What about nested field access? foo.x.y?
    * - use intermediate variable for that. TODO? same semantic?
    * - do as in CIL and have recursive offset and stop with NoOffset.
