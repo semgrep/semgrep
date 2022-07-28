@@ -15,6 +15,8 @@ type a_propagator = {
   var : var; (* REMOVE USE prop.id *)
 }
 
+type taint_info = Tainted of Taint.taints | MarkedClean
+
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
@@ -61,7 +63,7 @@ type config = {
   handle_findings :
     var option (** function name ('None' if anonymous) *) ->
     Taint.finding list ->
-    Taint.taints Dataflow_var_env.t ->
+    taint_info Dataflow_var_env.t ->
     unit;
       (** Callback to report findings. *)
 }
@@ -70,7 +72,7 @@ type config = {
   * For a source to taint a sink, the bindings of both source and sink must be
   * unifiable. See 'unify_meta_envs'. *)
 
-type mapping = Taint.taints Dataflow_var_env.mapping
+type mapping = taint_info Dataflow_var_env.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
@@ -86,7 +88,7 @@ val hook_function_taint_signature :
 (** Deep Semgrep *)
 
 val fixpoint :
-  ?in_env:Taint.taints Dataflow_var_env.VarMap.t ->
+  ?in_env:taint_info Dataflow_var_env.VarMap.t ->
   ?name:var ->
   ?fun_env:fun_env (** Poor-man's interprocedural HACK (TO BE DEPRECATED) *) ->
   config ->

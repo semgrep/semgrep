@@ -7,11 +7,12 @@ let string_of_lval x =
       Common.spf "%s:%d" (fst n.ident) n.sid
   | VarSpecial _ -> "<varspecial>"
   | Mem _ -> "<Mem>")
-  ^
-  match x.offset with
-  | NoOffset -> ""
-  | Dot n -> "." ^ str_of_name n
-  | Index _ -> "[...]"
+  ^ List.fold_left
+      (fun s o ->
+        match o with
+        | Dot n -> s ^ "." ^ str_of_name n
+        | Index _ -> s ^ "[...]")
+      "" x.offset
 
 let string_of_exp e =
   match e.e with

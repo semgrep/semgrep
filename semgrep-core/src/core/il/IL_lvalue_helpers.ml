@@ -73,9 +73,11 @@ and lvals_in_lval lval =
     | _else_ -> []
   in
   let offset_lvals =
-    match lval.offset with
-    | Index e -> lvals_of_exp e
-    | __else_ -> []
+    List.concat_map
+      (function
+        | Index e -> lvals_of_exp e
+        | _ -> [])
+      lval.offset
   in
   base_lvals @ offset_lvals
 
@@ -90,13 +92,40 @@ let rlvals_of_instr x =
 (* API *)
 (*****************************************************************************)
 
+let dotted_lvars_of_lval = function
+  | { base = Var name; offset } -> (
+      let id, tok = name.ident in
+      let str_of_name name = Common.spf "%s-%d" (fst name.ident) name.sid in
+      let dot_strs =
+        List.fold_right
+          (fun o s ->
+            match (s, o) with
+            | Some (s :: ss), Dot name ->
+                let x = s ^ "." ^ str_of_name name in
+                Some (x :: s :: ss)
+            | Some [], Dot name -> Some [ "." ^ str_of_name name ]
+            (* We only care about tracking taint through fields
+             * So if we hit a non-Dot offset, we just give up
+             *)
+            | Some _, Index _
+            | None, _ ->
+                None)
+          offset (Some [])
+      in
+      match dot_strs with
+      | None -> []
+      | Some dot_strs ->
+          let add_dots dots = { name with ident = (id ^ ";" ^ dots, tok) } in
+          Common.map add_dots dot_strs)
+  | _ -> []
+
 let lvar_of_instr_opt x =
   let* lval = lval_of_instr_opt x in
-  match lval.base with
-  | Var n -> Some n
-  | VarSpecial _
-  | Mem _ ->
-      None
+  match lval with
+  | { base = Var base_name; _ } ->
+      let dots = dotted_lvars_of_lval lval in
+      Some (base_name, dots)
+  | _ -> None
 
 let rlvals_of_node = function
   | Enter
