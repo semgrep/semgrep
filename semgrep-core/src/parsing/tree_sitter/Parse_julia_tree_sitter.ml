@@ -12,13 +12,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
 module CST = Tree_sitter_julia.CST
 module H = Parse_tree_sitter_helpers
 module G = AST_generic
 open AST_generic
-(*
 module H2 = AST_generic_helpers
-*)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -178,7 +177,7 @@ let map_anon_choice_id_1ca53ff (env : env) (x : CST.anon_choice_id_1ca53ff) =
       todo env (v1, v2, v3, v4)
 
 let rec map_anon_choice_arg_list_38b50f0 (env : env)
-    (x : CST.anon_choice_arg_list_38b50f0) =
+    (x : CST.anon_choice_arg_list_38b50f0) : argument list bracket =
   match x with
   | `Arg_list x -> map_argument_list env x
   | `Gene_exp x -> map_generator_expression env x
@@ -189,10 +188,15 @@ and map_anon_choice_exp_44a61a9 (env : env) (x : CST.anon_choice_exp_44a61a9) :
   | `Exp x -> map_expression env x
   | `Assign_exp x -> map_assignment_expression env x
 
-and map_anon_choice_exp_91c2553 (env : env) (x : CST.anon_choice_exp_91c2553) =
+and map_anon_choice_exp_91c2553 (env : env) (x : CST.anon_choice_exp_91c2553) :
+    argument =
   match x with
-  | `Exp x -> map_expression env x
-  | `Named_field x -> map_named_field env x
+  | `Exp x ->
+      let e = map_expression env x in
+      Arg e
+  | `Named_field x ->
+      let fld = map_named_field env x in
+      todo env fld
 
 and map_anon_choice_exp_b71eb95 (env : env) (x : CST.anon_choice_exp_b71eb95) :
     expr =
@@ -250,7 +254,7 @@ and map_anon_choice_id_e9e133c (env : env) (x : CST.anon_choice_id_e9e133c) =
 and map_anon_choice_str_content_838a78d (env : env)
     (x : CST.anon_choice_str_content_838a78d) =
   match x with
-  | `Str_content tok -> (* string_content *) token env tok
+  | `Str_content tok -> Left3 ((* string_content *) str env tok)
   | `Str_interp (v1, v2) ->
       let v1 = (* "$" *) token env v1 in
       let v2 =
@@ -265,7 +269,7 @@ and map_anon_choice_str_content_838a78d (env : env)
             todo env (v1, v2, v3)
       in
       todo env (v1, v2)
-  | `Esc_seq tok -> (* escape_sequence *) token env tok
+  | `Esc_seq tok -> Left3 ((* escape_sequence *) str env tok)
 
 and map_anon_exp_rep_COMMA_exp_0bb260c (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : expr list =
@@ -282,8 +286,8 @@ and map_anon_exp_rep_COMMA_exp_0bb260c (env : env)
 
 and map_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.argument_list) :
     argument list bracket =
-  let v1 = (* "(" *) token env v1 in
-  let v2 =
+  let l = (* "(" *) token env v1 in
+  let args =
     match v2 with
     | Some (v1, v2) ->
         let v1 = map_anon_choice_exp_91c2553 env v1 in
@@ -295,13 +299,13 @@ and map_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.argument_list) :
               v2)
             v2
         in
-        todo env (v1, v2)
-    | None -> todo env ()
+        v1 :: v2
+    | None -> []
   in
-  let v3 =
+  let kwdargs =
     match v3 with
     | Some (v1, v2, v3) ->
-        let v1 = (* ";" *) token env v1 in
+        let _v1 = (* ";" *) token env v1 in
         let v2 = map_named_field env v2 in
         let v3 =
           Common.map
@@ -311,12 +315,12 @@ and map_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.argument_list) :
               v2)
             v3
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ()
+        v2 :: v3
+    | None -> []
   in
-  let v4 = map_trailing_comma env v4 in
-  let v5 = (* ")" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  let _v4 = map_trailing_comma env v4 in
+  let r = (* ")" *) token env v5 in
+  (l, args @ kwdargs, r)
 
 and map_assignment_expression (env : env)
     ((v1, v2, v3) : CST.assignment_expression) : expr =
@@ -644,13 +648,13 @@ and map_expression_list (env : env) ((v1, v2, v3) : CST.expression_list) :
   let v2 =
     Common.map
       (fun (v1, v2) ->
-        let v1 = map_terminator env v1 in
+        let _v1 = map_terminator env v1 in
         let v2 = map_anon_choice_exp_b71eb95 env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
-  let v3 = map_terminator_opt env v3 in
-  todo env (v1, v2, v3)
+  let _v3 = map_terminator_opt env v3 in
+  v1 :: v2
 
 and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) :
     expr =
@@ -760,10 +764,10 @@ and map_literal (env : env) (x : CST.literal) : expr =
       let v3 = (* "'" *) token env v3 in
       todo env (v1, v2, v3)
   | `Str_lit (v1, v2, v3) ->
-      let v1 = (* string_start *) token env v1 in
-      let v2 = Common.map (map_anon_choice_str_content_838a78d env) v2 in
-      let v3 = (* string_end *) token env v3 in
-      todo env (v1, v2, v3)
+      let l = (* string_start *) token env v1 in
+      let xs = Common.map (map_anon_choice_str_content_838a78d env) v2 in
+      let r = (* string_end *) token env v3 in
+      G.interpolated (l, xs, r)
   | `Cmd_lit (v1, v2, v3) ->
       let v1 = (* command_start *) token env v1 in
       let v2 = Common.map (map_anon_choice_str_content_838a78d env) v2 in
@@ -853,7 +857,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
   match x with
   | `Id tok ->
       let id = map_identifier env tok in
-      todo env id
+      N (H2.name_of_id id) |> G.e
   | `Array_exp (v1, v2, v3, v4) ->
       let v1 = (* "[" *) token env v1 in
       let v2 =
@@ -895,21 +899,21 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       let v4 = (* "]" *) token env v4 in
       todo env (v1, v2, v3, v4)
   | `Call_exp (v1, v2, v3, v4) ->
-      let v1 =
+      let e1 =
         match v1 with
         | `Prim_exp x -> map_primary_expression env x
         | `Op x ->
             let op = map_operator env x in
             todo env op
       in
-      let v2 = (* immediate_paren *) token env v2 in
-      let v3 = map_anon_choice_arg_list_38b50f0 env v3 in
-      let v4 =
+      let _l = (* immediate_paren *) token env v2 in
+      let l, args, r = map_anon_choice_arg_list_38b50f0 env v3 in
+      let _do_optTODO =
         match v4 with
-        | Some x -> map_do_clause env x
-        | None -> todo env ()
+        | Some x -> Some (map_do_clause env x)
+        | None -> None
       in
-      todo env (v1, v2, v3, v4)
+      Call (e1, (l, args, r)) |> G.e
   | `Field_exp x ->
       let fld = map_field_expression env x in
       todo env fld
@@ -948,8 +952,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
 and map_source_file (env : env) (opt : CST.source_file) : expr list =
   match opt with
   | Some x ->
-      let x = map_expression_list env x in
-      x
+      let xs = map_expression_list env x in
+      xs
   | None -> []
 
 and map_spread_expression (env : env) ((v1, v2) : CST.spread_expression) : expr
