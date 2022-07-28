@@ -511,20 +511,20 @@ jobs:
       - name: Check semgrep-interfaces
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: ./cli/src/semgrep/semgrep_interfaces
+          path: "${GITHUB_WORKSPACE}/cli/src/semgrep/semgrep_interfaces"
           branch: main
       - name: Check semgrep-langs
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: ./cli/src/semgrep/lang
+          path: "${GITHUB_WORKSPACE}/cli/src/semgrep/lang"
           branch: main
       - name: Check ocaml-tree-sitter-core
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: ./semgrep-core/src/ocaml-tree-sitter-core
+          path: "${GITHUB_WORKSPACE}/semgrep-core/src/ocaml-tree-sitter-core"
           branch: main
       - name: Check pfff
         uses: jtmullen/submodule-branch-check-action@v1
         with:
-          path: ./semgrep-core/src/pfff
+          path: "${GITHUB_WORKSPACE}/semgrep-core/src/pfff"
           branch: develop
