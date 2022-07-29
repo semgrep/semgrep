@@ -1,1 +1,0 @@
-Kotlin: support for ellipsis in field access (e.g., `obj. ... .bar()`)
