@@ -75,7 +75,10 @@ class Parser(str):
     """
 
     def __init__(self, url: str):
+        # to fix an open bug with trailing slashes: https://github.com/coala/git-url-parse/issues/46
         self._url: str = url
+        if url[-1] == "/":
+          self._url = url[:-1]
 
     def parse(self) -> Parsed:
         """

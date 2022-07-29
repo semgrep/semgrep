@@ -258,7 +258,14 @@ def mock_autofix(request, mocker):
         },
         {  # Jenkins
             "JENKINS_URL": "some_url",
-            "GIT_URL": "https://github.com/org/repo.git",
+            "GIT_URL": "https://github.com/org/repo.git/",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
+        {  # Jenkins, not defined GIT_URL
+            "JENKINS_URL": "some_url",
+            "SEMGREP_REPO_URL": "https://random.url.org/some/path",
+            "SEMGREP_REPO_NAME": "a/repo/name",
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
@@ -310,6 +317,7 @@ def mock_autofix(request, mocker):
         "gitlab-push",
         "circleci",
         "jenkins",
+        "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
         "buildkite",

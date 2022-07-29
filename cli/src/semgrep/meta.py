@@ -42,8 +42,10 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     return f"{protocol}://{result.resource}/{result.owner}/{result.name}"
 
 
-def get_repo_name_from_github_repo_url(repo_url: str) -> str:
+def get_repo_name_from_repo_url(repo_url: Optional[str]) -> Optional[str]:
     """Pulls repository name from the url using a git url parser"""
+    if repo_url is None:
+        return None
     p = Parser(repo_url)
     result = p.parse()
 
@@ -544,13 +546,16 @@ class CircleCIMeta(GitMeta):
         project_name = os.getenv("CIRCLE_PROJECT_USERNAME", "")
         repo_name = os.getenv("CIRCLE_PROJECT_REPONAME", "")
         if repo_name == "" and project_name == "":
-            return super().repo_name
+            # try using the repo url
+            name = get_repo_name_from_repo_url(os.getenv("CIRCLE_REPOSITORY_URL"))
+            return name if name else super().repo_name
         return f"{project_name}/{repo_name}"
 
     @property
     def repo_url(self) -> Optional[str]:
         # may be in SSH url format
-        return get_url_from_sstp_url(os.getenv("CIRCLE_REPOSITORY_URL"))
+        url = get_url_from_sstp_url(os.getenv("CIRCLE_REPOSITORY_URL"))
+        return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
@@ -581,11 +586,13 @@ class JenkinsMeta(GitMeta):
         """Constructs the repo name from the git url.
         This assumes that the url is in the github format.
         """
-        return get_repo_name_from_github_repo_url(os.getenv("GIT_URL", ""))
+        name = get_repo_name_from_repo_url(os.getenv("GIT_URL"))
+        return name if name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_sstp_url(os.getenv("GIT_URL", os.getenv("GIT_URL_1")))
+        url = get_url_from_sstp_url(os.getenv("GIT_URL", os.getenv("GIT_URL_1")))
+        return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
@@ -611,12 +618,16 @@ class BitbucketMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        repo_name = os.getenv("BITBUCKET_REPO_FULL_NAME")
-        return repo_name if repo_name else super().repo_name
+        name = os.getenv("BITBUCKET_REPO_FULL_NAME")
+        if name is None:
+            # try pulling from url
+            name = get_repo_name_from_repo_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
+        return name if name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_sstp_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
+        url = get_url_from_sstp_url(os.getenv("BITBUCKET_GIT_HTTP_ORIGIN"))
+        return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
@@ -648,13 +659,15 @@ class AzurePipelinesMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return get_repo_name_from_github_repo_url(self.repo_url or "")
+        name = get_repo_name_from_repo_url(self.repo_url)
+        return name if name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        return os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI") or os.getenv(
+        url = os.getenv("SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI") or os.getenv(
             "BUILD_REPOSITORY_URI"
         )
+        return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
@@ -700,11 +713,13 @@ class BuildkiteMeta(GitMeta):
 
     @property
     def repo_name(self) -> str:
-        return get_repo_name_from_github_repo_url(os.getenv("BUILDKITE_REPO", ""))
+        name = get_repo_name_from_repo_url(os.getenv("BUILDKITE_REPO"))
+        return name if name else super().repo_name
 
     @property
     def repo_url(self) -> Optional[str]:
-        return get_url_from_sstp_url(os.getenv("BUILDKITE_REPO"))
+        url = get_url_from_sstp_url(os.getenv("BUILDKITE_REPO"))
+        return url if url else super().repo_url
 
     @property
     def branch(self) -> Optional[str]:
