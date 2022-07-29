@@ -453,7 +453,7 @@ let rec check_tainted_expr env exp : Taints.t * var_env =
   in
   let check_subexpr exp =
     match exp.e with
-    | Fetch { base = VarSpecial (This, _); rev_offset = Dot fld :: _; _ } ->
+    | Fetch { base = VarSpecial (This, _); rev_offset = [ Dot fld ]; _ } ->
         (* TODO: Move this to check_tainted_instr ? *)
         let taints =
           Hashtbl.find_opt env.fun_env (str_of_name fld)
@@ -671,20 +671,12 @@ let parse_str str =
       | _ -> None)
   | _ -> None
 
-let rec is_prefix prefix str =
-  match (prefix, str) with
-  | c0 :: prefix, c1 :: str -> Char.equal c0 c1 && is_prefix prefix str
-  | [], _ -> true
-  | _ :: _, [] -> false
-
 let is_dotted_prefix clean_var new_var =
   let ( let* ) x f = Option.fold x ~none:false ~some:f in
   let* id0, dots0, sid0 = parse_str clean_var in
   let* id1, dots1, sid1 = parse_str new_var in
   String.equal id0 id1 && String.equal sid0 sid1
-  && is_prefix
-       (List.of_seq (String.to_seq dots0))
-       (List.of_seq (String.to_seq dots1))
+  && String.starts_with ~prefix:dots0 dots1
 
 (*****************************************************************************)
 (* Transfer *)

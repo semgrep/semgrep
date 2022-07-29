@@ -236,27 +236,24 @@ let rec lval env eorig =
             let attr = expr env e2orig in
             Index attr
       in
-      let e1 = nested_lval env tok e1orig in
-      { e1 with rev_offset = offset' :: e1.rev_offset }
+      let lv1 = nested_lval env tok e1orig in
+      { lv1 with rev_offset = offset' :: lv1.rev_offset }
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
-      let e1 = nested_lval env (G.fake "[]") e1orig in
+      let lv1 = nested_lval env (G.fake "[]") e1orig in
       let e2 = expr env e2orig in
-      { e1 with rev_offset = Index e2 :: e1.rev_offset }
+      { lv1 with rev_offset = Index e2 :: lv1.rev_offset }
   | G.DeRef (_, e1orig) ->
       let e1 = expr env e1orig in
       lval_of_base (Mem e1)
   | _ -> todo (G.E eorig)
 
 and nested_lval env tok e_gen : lval =
-  let lval =
-    match expr env e_gen with
-    | { e = Fetch lval; _ } -> lval
-    | rhs ->
-        let fresh = fresh_lval env tok in
-        add_instr env (mk_i (Assign (fresh, rhs)) (related_exp e_gen));
-        fresh
-  in
-  lval
+  match expr env e_gen with
+  | { e = Fetch lval; _ } -> lval
+  | rhs ->
+      let fresh = fresh_lval env tok in
+      add_instr env (mk_i (Assign (fresh, rhs)) (related_exp e_gen));
+      fresh
 
 and name env = function
   | G.Id (("_", tok), _) ->

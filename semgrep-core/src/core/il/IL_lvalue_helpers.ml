@@ -92,6 +92,7 @@ let rlvals_of_instr x =
 (* API *)
 (*****************************************************************************)
 
+(* ????? *)
 let dotted_lvars_of_lval = function
   | { base = Var name; rev_offset } -> (
       let id, tok = name.ident in
@@ -119,13 +120,16 @@ let dotted_lvars_of_lval = function
           Common.map add_dots dot_strs)
   | _ -> []
 
+(* ????? *)
 let lvar_of_instr_opt x =
   let* lval = lval_of_instr_opt x in
-  match lval with
-  | { base = Var base_name; _ } ->
+  match lval.base with
+  | Var base_name ->
       let dots = dotted_lvars_of_lval lval in
       Some (base_name, dots)
-  | _ -> None
+  | VarSpecial _
+  | Mem _ ->
+      None
 
 let rlvals_of_node = function
   | Enter

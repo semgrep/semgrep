@@ -522,11 +522,14 @@ let transfer :
             update_env_with inp' var cexp
         | Call
             ( None,
-              { e = Fetch { base = Var var; rev_offset = Dot _ :: _; _ }; _ },
+              { e = Fetch { base = Var var; rev_offset = [ Dot _ ]; _ }; _ },
               _ ) ->
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
-             * mutable. *)
+             * mutable.
+             * TODO: If we make const-prop field sensitive, then we should
+             * handle the more general `rev_offset = Dot _ :: _` case.
+             *)
             VarMap.remove (str_of_name var) inp'
         | ___else___ -> (
             (* In any other case, assume non-constant.
@@ -534,6 +537,7 @@ let transfer :
             let lvar_opt = LV.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
+            (* ????? *)
             | Some (lvar, [])
             | Some (_, lvar :: _) ->
                 VarMap.remove (str_of_name lvar) inp'))
