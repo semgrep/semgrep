@@ -1,2 +1,0 @@
-Removed the unique_id field from the semgrep (and semgrep-core) JSON output
-for metavariables.

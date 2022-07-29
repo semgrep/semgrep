@@ -1,1 +1,0 @@
-Introduced the `--dataflow-traces` flag, which directs the Semgrep CLI to explain how non-local values lead to a finding. Currently, this only applies to taint mode findings and it will trace the path from the taint source to the taint sink.

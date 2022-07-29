@@ -1,1 +1,0 @@
-Support fail-open in CI: adds --suppress-errors/--no-suppress-errors (defaults to --no-suppress-errors)

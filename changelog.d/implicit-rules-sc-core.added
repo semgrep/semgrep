@@ -1,1 +1,0 @@
-Changed `semgrep-core` so that it can now be run with `-rules` on `.yaml` files which do not have a top-level `rules: ...` key. This means you can now copy paste from the playground editor directly into a `.yaml` file for use with `semgrep-core`.
