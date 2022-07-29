@@ -45,6 +45,35 @@ let unsafe_fake s = Parse_info.unsafe_fake_info s
 let fb = G.fake_bracket
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
 
+(*
+   Concatenate the literal fragments of regexp templates.
+
+   This is a lot of code for doing something that may not even be necessary.
+   It concatenates escape sequences such as \s with ordinary text, but
+   this may not make a difference at all at matching time.
+
+   TODO: make reusable/generic functions for this stuff?
+*)
+let collapse_strchars xs =
+  let append_pending res pending =
+    match List.rev pending |> List.split with
+    | _, [] -> res
+    | strs, (first_tok :: more_toks) ->
+       let str = String.concat "" strs in
+       let tok = PI.combine_infos first_tok more_toks in
+       StrChars (str, tok) :: res
+  in
+  let rec aux res pending xs =
+    match xs with
+    | [] ->
+       append_pending res pending |> List.rev
+    | StrChars x :: xs ->
+       aux res (x :: pending) xs
+    | StrExpr _ as x :: xs ->
+       aux (x :: append_pending res pending) [] xs
+  in
+  aux [] [] xs
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -454,18 +483,29 @@ and literal x =
           G.OtherExpr
             (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) ->
-      let rec f strs toks = function
-        | [ StrChars (s, t) ] ->
-            let str = String.concat "" (s :: strs) in
-            let tok = PI.combine_infos t toks in
-            G.L (G.Regexp ((l, (str, tok), r), opt))
-        | StrChars (s, t) :: tl -> f (s :: strs) (t :: toks) tl
-        | StrExpr _ :: _
-        | [] ->
-            (* TODO *)
-            string_contents_list (l, xs, r)
-      in
-      f [] [] (List.rev xs)
+     let xs = collapse_strchars xs in
+     let regexp_fragments =
+       Common.map (function
+           | StrChars ("...", tok) -> G.Ellipsis tok |> G.e
+(* TODO: resolve dependencies between semgrep libraries to enable this:
+           | StrChars ((s, _tok) as x) when Metavariable.is_metavar_name s ->
+              G.N (G.Id (x, G.empty_id_info ())) |> G.e
+*)
+           | StrChars x -> G.L (G.String x) |> G.e
+           | StrExpr (l, e, r) ->
+              (* Some wrapping is needed to avoid confusing e.g.
+                 /#{"x"}/ with /x/.
+                 The wrapping in a Call could be avoided with
+                 a dedicated OCaml constructor 'RegexpEval', but then
+                 the AST and the matching code would become more
+                 complicated. *)
+              let special =
+                G.IdSpecial (G.InterpolatedElement, l) |> G.e
+              in
+              (G.Call (special, (l, [ G.Arg (expr e) ], r)) |> G.e)
+         ) xs
+     in
+     G.Regexp ((l, regexp_fragments, r), opt)
 
 and expr_special_cases e =
   (* Code parsed as expressions in Ruby that we want to represent

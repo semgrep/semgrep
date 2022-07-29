@@ -201,21 +201,21 @@ and xml_kind = function
 
 and xhp_attr v = expr v
 
-and literal x =
+and literal x : G.expr_kind =
   match x with
   | Bool v1 ->
-      let v1 = wrap bool v1 in
-      G.Bool v1
+     let v1 = wrap bool v1 in
+     G.L (G.Bool v1)
   | Num v1 ->
-      let v1 = wrap string v1 in
-      G.Float v1
+     let v1 = wrap string v1 in
+     G.L (G.Float v1)
   | String v1 ->
-      let v1 = wrap string v1 in
-      G.String v1
-  | Regexp (v1, v2) ->
-      let v1 = bracket (wrap string) v1 in
-      let v2 = option (wrap string) v2 in
-      G.Regexp (v1, v2)
+     let v1 = wrap string v1 in
+     G.L (G.String v1)
+  | Regexp ((l, v1, r), v2) ->
+     let v1 = (l, [G.L (G.String (wrap string v1)) |> G.e], r) in
+     let v2 = option (wrap string) v2 in
+     G.Regexp (v1, v2)
 
 and expr (x : expr) =
   (match x with
@@ -235,7 +235,7 @@ and expr (x : expr) =
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
       G.OtherExpr (v1, v2 |> List.map (fun e -> G.E e))
-  | L x -> G.L (literal x)
+  | L x -> literal x
   | Id v1 ->
       let v1 = name v1 in
       G.N (G.Id (v1, G.empty_id_info ()))
@@ -454,7 +454,7 @@ and type_ x =
   (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
       let l = literal l in
-      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
+      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (l |> G.e) ])
       |> G.t
   | TyQuestion (tok, t) ->
       let t = type_ t in

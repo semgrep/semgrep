@@ -924,6 +924,19 @@ and m_expr a b =
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
+  | G.Regexp (a_re, a_opt), B.Regexp (b_re, b_opt) ->
+     (let* () =
+        m_bracket (
+            m_list_with_dots
+              ~less_is_ok:false
+              m_expr
+              (function { e = Ellipsis _; _ } -> true | _ -> false)
+          ) a_re b_re in
+      match (a_opt, b_opt) with
+      (* less_is_ok: *)
+      | None, _ -> return ()
+      | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
+      | Some _, None -> fail ())
   | G.Comprehension (a1, a2), B.Comprehension (b1, b2) ->
       let* () = m_container_operator a1 b1 in
       m_bracket m_comprehension a2 b2
@@ -971,6 +984,7 @@ and m_expr a b =
   | G.Comprehension _, _
   | G.Record _, _
   | G.Constructor _, _
+  | G.Regexp _, _
   | G.Lambda _, _
   | G.AnonClass _, _
   | G.N _, _
@@ -1062,13 +1076,6 @@ and m_literal a b =
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
   | G.Atom (_, a), B.Atom (_, b) -> m_ellipsis_or_metavar_or_string a b
-  | G.Regexp (a1, a2), B.Regexp (b1, b2) -> (
-      let* () = m_bracket m_ellipsis_or_metavar_or_string a1 b1 in
-      match (a2, b2) with
-      (* less_is_ok: *)
-      | None, _ -> return ()
-      | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
-      | Some _, None -> fail ())
   (* boilerplate *)
   | G.Unit a1, B.Unit b1 -> m_tok a1 b1
   | G.Bool a1, B.Bool b1 -> (m_wrap m_bool) a1 b1
@@ -1085,7 +1092,6 @@ and m_literal a b =
   | G.Float _, _
   | G.Char _, _
   | G.String _, _
-  | G.Regexp _, _
   | G.Null _, _
   | G.Undefined _, _
   | G.Imag _, _

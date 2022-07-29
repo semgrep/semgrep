@@ -669,6 +669,8 @@ and expr_aux env ?(void = false) e_gen =
       let cname = var_of_name cname in
       let es = esorig |> Common.map (fun eiorig -> expr env eiorig) in
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
+  | G.Regexp ((l, exprs, r), _opt) ->
+     mk_e (Composite (Regexp, (l, Common.map (expr env) exprs, r))) NoOrig
   | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml xml -> xml_expr env xml
   | G.Cast (typ, _, e) ->

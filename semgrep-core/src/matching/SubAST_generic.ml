@@ -179,6 +179,7 @@ let subexprs_of_expr with_symbolic_propagation e =
           xml_body
   (* currently skipped over but could recurse *)
   | Constructor _
+  | Regexp _
   | AnonClass _
   | LetPattern _ ->
       []
@@ -258,6 +259,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | Alias (_, _e1) -> []
   | Xml _xmlbody -> []
   | Constructor _ -> []
+  | Regexp _ -> []
   | AnonClass _def -> []
   | Lambda _def -> []
   | LetPattern _ -> []

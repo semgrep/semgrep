@@ -218,6 +218,10 @@ and vof_expr e =
   | Constructor (v1, v2) ->
       let v1 = vof_name v1 and v2 = vof_bracket (OCaml.vof_list vof_expr) v2 in
       OCaml.VSum ("Constructor", [ v1; v2 ])
+  | Regexp (v1, v2) ->
+      let v1 = vof_bracket (OCaml.vof_list vof_expr) v1 in
+      let v2 = OCaml.vof_option (vof_wrap OCaml.vof_string) v2 in
+      OCaml.VSum ("Regexp", [ v1; v2 ])
   | Lambda v1 ->
       let v1 = vof_function_definition v1 in
       OCaml.VSum ("Lambda", [ v1 ])
@@ -354,10 +358,6 @@ and vof_literal = function
   | String v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("String", [ v1 ])
-  | Regexp (v1, v2) ->
-      let v1 = vof_bracket (vof_wrap OCaml.vof_string) v1 in
-      let v2 = OCaml.vof_option (vof_wrap OCaml.vof_string) v2 in
-      OCaml.VSum ("Regexp", [ v1; v2 ])
   | Null v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("Null", [ v1 ])

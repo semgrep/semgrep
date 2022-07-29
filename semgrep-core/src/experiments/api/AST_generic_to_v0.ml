@@ -218,6 +218,15 @@ and map_expr x : B.expr =
       let v1 = map_dotted_ident v1 in
       let v2 = map_of_list map_expr v2 in
       `Constructor (v1, v2)
+  | Regexp ((l, v1, _r), _opt) ->
+     (* new: TODO in next version: support regexp templates found in Ruby
+        like /hello #{name}/ *)
+     `L (match v1 with
+         | { e = G.L (G.String x); _ } :: _dropped_template ->
+            let static_regexp = map_wrap map_of_string x in
+            `Regexp static_regexp
+         | _dropped_template ->
+            `Regexp ("", map_tok l))
   | Lambda v1 ->
       let v1 = map_function_definition v1 in
       `Lambda v1
@@ -341,10 +350,6 @@ and map_literal = function
   | String v1 ->
       let v1 = map_wrap map_of_string v1 in
       `String v1
-  (* new: TODO: lots of tokens skipped, should use PI.combine_info *)
-  | Regexp ((_, v1, _), _) ->
-      let v1 = map_wrap map_of_string v1 in
-      `Regexp v1
   | Null v1 ->
       let v1 = map_tok v1 in
       `Null v1

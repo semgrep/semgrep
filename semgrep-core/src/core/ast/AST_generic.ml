@@ -447,6 +447,9 @@ and expr_kind =
    * how user think.
    *)
   | Constructor of name * expr list bracket
+  (* In Ruby, a regexp may be a template i.e. an alternation of
+     literal strings and expressions such as /hello #{name}/. *)
+  | Regexp of expr list bracket (* // *) * string wrap option (* modifiers *)
   (* see also New(...) for other values *)
   | N of name
   | IdSpecial of
@@ -592,7 +595,6 @@ and literal =
                   escaped  unescaped
   *)
   | String of string wrap
-  | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
   (* a.k.a Void *)
@@ -601,6 +603,18 @@ and literal =
   | Imag of string wrap
   (* Go, Python *)
   | Ratio of string wrap
+
+(*
+(*
+   A regexp is a list of template fragment. For example, /a*/ has one fragment
+   and the Ruby template /hello #{name}/ has two fragments.
+*)
+and regexp_fragment =
+  | RegexpLiteral of string wrap
+  | RegexpTemplate of expr bracket (* #{ } *)
+  | RegexpEllipsis of tok
+  | RegexpMetavar of string wrap
+*)
 
 (* The type of an unknown constant. *)
 and const_type = Cbool | Cint | Cstr | Cany
