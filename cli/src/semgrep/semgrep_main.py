@@ -109,6 +109,7 @@ def invoke_semgrep(
         filtered_rules,
         profiler,
         profiling_data,
+        _,
         shown_severities,
     ) = main(
         output_handler=output_handler,
@@ -267,6 +268,7 @@ def main(
     List[Rule],
     ProfileManager,
     ProfilingData,
+    ParsingData,
     Collection[RuleSeverity],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
@@ -473,5 +475,6 @@ def main(
         filtered_rules,
         profiler,
         profiling_data,
+        parsing_data,
         shown_severities,
     )
