@@ -363,6 +363,68 @@ def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -
     return cte
 
 
+def cli_intermediate_vars_to_core_intermediate_vars(
+    i_vars: List[core.CliMatchIntermediateVar],
+) -> List[core.CoreMatchIntermediateVar]:
+    return [core.CoreMatchIntermediateVar(location=v.location) for v in i_vars]
+
+
+def cli_trace_to_core_trace(
+    trace: core.CliMatchDataflowTrace,
+) -> core.CoreMatchDataflowTrace:
+    taint_source = trace.taint_source.location if trace.taint_source else None
+    intermediate_vars = (
+        cli_intermediate_vars_to_core_intermediate_vars(trace.intermediate_vars)
+        if trace.intermediate_vars
+        else None
+    )
+    return core.CoreMatchDataflowTrace(
+        taint_source=taint_source,
+        intermediate_vars=intermediate_vars,
+    )
+
+
+# For join mode, we get the final output of Semgrep and then need to construct
+# RuleMatches from that. Ideally something would be refactored so that we don't
+# need to move backwards in the pipeline like this.
+def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> RuleMatch:
+    cli_match_extra = core.CliMatchExtra.from_json(match.get("extra", {}))
+    dataflow_trace = (
+        cli_trace_to_core_trace(cli_match_extra.dataflow_trace)
+        if cli_match_extra.dataflow_trace
+        else None
+    )
+    extra = core.CoreMatchExtra(
+        message=cli_match_extra.message,
+        # cli_match_extra.metavars is optional, but core_match_extra.metavars is
+        # not. This is unsafe, but before it was just implicitly unsafe.
+        metavars=cli_match_extra.metavars,  # type: ignore[arg-type]
+        dataflow_trace=dataflow_trace,
+    )
+    return RuleMatch(
+        message=join_rule.get(
+            "message", match.get("extra", {}).get("message", "[empty]")
+        ),
+        metadata=join_rule.get("metadata", match.get("extra", {}).get("metadata", {})),
+        severity=RuleSeverity(
+            join_rule.get("severity", match.get("severity", RuleSeverity.INFO.value))
+        ),
+        match=core.CoreMatch(
+            rule_id=core.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
+            location=core.Location(
+                path=match.get("path", "[empty]"),
+                start=core.Position.from_json(match["start"]),
+                end=core.Position.from_json(match["end"]),
+            ),
+            extra=extra,
+        ),
+        # still needed?
+        extra=match.get("extra", {}),
+        fix=None,
+        fix_regex=None,
+    )
+
+
 def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
@@ -532,37 +594,7 @@ def run_join_rule(
             except AttributeError:
                 matches.append(json.loads(match.raw))
 
-    rule_matches = [
-        RuleMatch(
-            message=join_rule.get(
-                "message", match.get("extra", {}).get("message", "[empty]")
-            ),
-            metadata=join_rule.get(
-                "metadata", match.get("extra", {}).get("metadata", {})
-            ),
-            severity=RuleSeverity(
-                join_rule.get(
-                    "severity", match.get("severity", RuleSeverity.INFO.value)
-                )
-            ),
-            match=core.CoreMatch(
-                rule_id=core.RuleId(
-                    join_rule.get("id", match.get("check_id", "[empty]"))
-                ),
-                location=core.Location(
-                    path=match.get("path", "[empty]"),
-                    start=core.Position.from_json(match["start"]),
-                    end=core.Position.from_json(match["end"]),
-                ),
-                extra=core.CoreMatchExtra.from_json(match.get("extra", {})),
-            ),
-            # still needed?
-            extra=match.get("extra", {}),
-            fix=None,
-            fix_regex=None,
-        )
-        for match in matches
-    ]
+    rule_matches = [json_to_rule_match(join_rule, match) for match in matches]
 
     db.close()
     return rule_matches, parsed_errors
