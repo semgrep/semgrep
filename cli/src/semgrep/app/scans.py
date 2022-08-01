@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Set
 
 import click
@@ -25,7 +26,8 @@ logger = getLogger(__name__)
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
-        self._deployment_id, self._deployment_name = None, None
+        self._deployment_id: Optional[int] = None
+        self._deployment_name: str = ""
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
@@ -36,7 +38,7 @@ class ScanHandler:
         self._skipped_match_based_ids: List[str] = []
 
     @property
-    def deployment_id(self) -> int:
+    def deployment_id(self) -> Optional[int]:
         """
         Seperate property for easy of mocking in test
         """
