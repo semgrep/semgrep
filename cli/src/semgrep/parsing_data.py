@@ -52,7 +52,15 @@ class ParsingData:
         registered from the original plan with `add_targets`.
         """
         path = err.location.path
-        (lang, no_error_yet) = self._file_info[path]
+        try:
+            (lang, no_error_yet) = self._file_info[path]
+        except KeyError:
+            # We may be told to register an error for a file we didn't know
+            # about from the plan. This can occur due to rules that involve
+            # generating new targets, namely ones involving extract mode or
+            # metavariable-pattern. In this case, just don't report the parsing
+            # statistics for this right now.
+            return
         lang_parse_data = self._parse_errors_by_lang[lang]
         if no_error_yet:
             lang_parse_data.targets_with_errors += 1
