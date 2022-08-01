@@ -22,6 +22,7 @@ def run_rules(
         _,
         _,
         _,
+        _,
     ) = config.scanner(target=targets)
     # ignore this type since we're doing weird things with partial :O
     return (filtered_matches_by_rule, all_targets)
@@ -34,6 +35,7 @@ def run_rules_ci(
         filtered_matches_by_rule,
         _,
         all_targets,
+        _,
         _,
         _,
         _,

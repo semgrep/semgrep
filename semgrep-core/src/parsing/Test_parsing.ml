@@ -134,6 +134,12 @@ let dump_tree_sitter_cst lang file =
   | Lang.Elixir ->
       Tree_sitter_elixir.Parse.file file
       |> dump_and_print_errors Tree_sitter_elixir.CST.dump_tree
+  | Lang.Julia ->
+      Tree_sitter_julia.Parse.file file
+      |> dump_and_print_errors Tree_sitter_julia.CST.dump_tree
+  | Lang.Dart ->
+      Tree_sitter_dart.Parse.file file
+      |> dump_and_print_errors Tree_sitter_dart.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =

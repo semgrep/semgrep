@@ -231,6 +231,15 @@ Sending complete blob: {
         "findings": 1,
         "errors": [],
         "total_time":<MASKED>
+        "unsupported_exts": {},
+        "parse_rate": {
+            "python": {
+                "targets_parsed": 1,
+                "num_targets": 1,
+                "bytes_parsed": 10,
+                "num_bytes": 10
+            }
+        }
     }
 }
   No blocking findings so exiting with code 0

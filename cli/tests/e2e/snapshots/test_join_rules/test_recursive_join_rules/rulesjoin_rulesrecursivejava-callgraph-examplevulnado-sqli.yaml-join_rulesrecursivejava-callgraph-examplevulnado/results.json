@@ -30,10 +30,6 @@
               "col": 22,
               "line": 43,
               "offset": 1140
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$PARAMETER": {
@@ -47,10 +43,6 @@
               "col": 65,
               "line": 51,
               "offset": 1423
-            },
-            "unique_id": {
-              "sid": 23,
-              "type": "id"
             }
           },
           "$RETURNTYPE": {
@@ -64,10 +56,6 @@
               "col": 17,
               "line": 43,
               "offset": 1135
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$SQLSTATEMENT": {
@@ -81,10 +69,6 @@
               "col": 23,
               "line": 51,
               "offset": 1381
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$TYPE": {
@@ -98,10 +82,6 @@
               "col": 28,
               "line": 43,
               "offset": 1146
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

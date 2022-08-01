@@ -23,10 +23,12 @@ from attrs import frozen
 
 import semgrep.output_from_core as core
 import semgrep.semgrep_interfaces.semgrep_output_v0 as out
+import semgrep.util as util
 from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleSeverity
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
+from semgrep.util import get_lines
 
 if TYPE_CHECKING:
     from semgrep.rule import Rule
@@ -126,20 +128,7 @@ class RuleMatch:
         Need to do on initialization instead of on read since file might not be the same
         at read time
         """
-        # Start and end line are one-indexed, but the subsequent slice call is
-        # inclusive for start and exclusive for end, so only subtract from start
-        start_line = self.start.line - 1
-        end_line = self.end.line
-
-        if start_line == -1 and end_line == 0:
-            # Completely empty file
-            return []
-
-        # buffering=1 turns on line-level reads
-        with self.path.open(buffering=1, errors="replace") as fd:
-            result = list(itertools.islice(fd, start_line, end_line))
-
-        return result
+        return get_lines(self.path, self.start.line, self.end.line)
 
     @previous_line.default
     def get_previous_line(self) -> str:
@@ -296,6 +285,45 @@ class RuleMatch:
         """
         return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
 
+    @property
+    def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
+        dataflow_trace = self.match.extra.dataflow_trace
+        if dataflow_trace:
+            taint_source = None
+            intermediate_vars = None
+            if dataflow_trace.taint_source:
+                location = dataflow_trace.taint_source
+                with open(location.path, errors="replace") as fd:
+                    content = util.read_range(
+                        fd, location.start.offset, location.end.offset
+                    )
+                taint_source = core.CliMatchTaintSource(
+                    location=location,
+                    content=content,
+                )
+            if dataflow_trace.intermediate_vars:
+                intermediate_vars = []
+                for var in dataflow_trace.intermediate_vars:
+                    location = var.location
+                    # TODO avoid repeated opens in the common case (i.e. not
+                    # DeepSemgrep) where all of these locations are in the same
+                    # file?
+                    with open(location.path, errors="replace") as fd:
+                        content = util.read_range(
+                            fd, location.start.offset, location.end.offset
+                        )
+                    intermediate_vars.append(
+                        core.CliMatchIntermediateVar(
+                            location=location,
+                            content=content,
+                        )
+                    )
+            return core.CliMatchDataflowTrace(
+                taint_source=taint_source,
+                intermediate_vars=intermediate_vars,
+            )
+        return None
+
     def to_app_finding_format(self, commit_date: str) -> out.Finding:
         """
         commit_date here for legacy reasons.
@@ -328,7 +356,7 @@ class RuleMatch:
             match_based_id=self.match_based_id,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
-            dataflow_trace=self.match.extra.dataflow_trace,
+            dataflow_trace=self.dataflow_trace,
         )
 
         if self.extra.get("fixed_lines"):

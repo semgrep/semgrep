@@ -140,6 +140,7 @@ let language_exceptions =
     (Lang.Ocaml, [ "deep_exprstmt"; "dots_stmts" ]);
     (* Experimental languages *)
     (Lang.R, [ "deep_exprstmt" ]);
+    (Lang.Elixir, [ "dots_nested_stmts" ]);
   ]
 
 let maturity_tests () =
@@ -207,6 +208,8 @@ let maturity_tests () =
          check_maturity Lang.Rust "rust" ".rust" Experimental;
       *)
       check_maturity Lang.Solidity "solidity" ".sol" Experimental;
+      check_maturity Lang.Elixir "elixir" ".ex" Experimental;
+      check_maturity Lang.Swift "swift" ".swift" Experimental;
       (* YAML has too many NA, not worth it *)
       check_maturity Lang.R "r" ".r" Experimental
       (* Not even experimental *)
@@ -354,6 +357,7 @@ let lang_regression_tests ~with_caching =
       pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
       pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
       pack_regression_tests_for_lang Lang.Solidity "solidity" ".sol";
+      pack_regression_tests_for_lang Lang.Elixir "elixir" ".ex";
       pack_regression_tests_for_lang Lang.R "r" ".r";
     ]
 

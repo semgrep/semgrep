@@ -36,10 +36,6 @@
               "col": 3,
               "line": 5,
               "offset": 45
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
             }
           },
           "$KEY": {
@@ -53,10 +49,6 @@
               "col": 10,
               "line": 5,
               "offset": 52
-            },
-            "unique_id": {
-              "sid": 2,
-              "type": "id"
             }
           }
         },
@@ -98,10 +90,6 @@
               "col": 6,
               "line": 6,
               "offset": 64
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
             }
           },
           "$KEY": {
@@ -115,10 +103,6 @@
               "col": 13,
               "line": 6,
               "offset": 71
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

@@ -1538,31 +1538,40 @@ and modifiers_opt env x =
   | None -> []
   | Some x -> modifiers env x
 
-and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
-  let op = member_access_operator env v1 in
-  let fld =
-    match v2 with
-    | `Simple_id x ->
-        let id = simple_identifier env x in
-        FN (Id (id, empty_id_info ()))
-    | `Paren_exp x ->
-        let e = parenthesized_expression env x in
-        FDynamic e
-    | `Class tok ->
-        let id = str env tok in
-        (* "class" *)
-        FN (Id (id, empty_id_info ()))
-  in
-  fun e ->
-    match op with
-    | Left tdot -> DotAccess (e, tdot, fld) |> G.e
-    | Right otherop ->
-        let any_fld =
-          match fld with
-          | FN n -> E (N n |> G.e)
-          | FDynamic e -> E e
-        in
-        OtherExpr (otherop, [ any_fld; E e ]) |> G.e
+and navigation_suffix (env : env) (x : CST.navigation_suffix) =
+  match x with
+  | `Member_access_op_choice_simple_id (v1, v2) -> (
+      let op = member_access_operator env v1 in
+      let fld =
+        match v2 with
+        | `Simple_id x ->
+            let id = simple_identifier env x in
+            FN (Id (id, empty_id_info ()))
+        | `Paren_exp x ->
+            let e = parenthesized_expression env x in
+            FDynamic e
+        | `Class tok ->
+            let id = str env tok in
+            (* "class" *)
+            FN (Id (id, empty_id_info ()))
+      in
+      fun e ->
+        match op with
+        | Left tdot -> DotAccess (e, tdot, fld) |> G.e
+        | Right otherop ->
+            let any_fld =
+              match fld with
+              | FN n -> E (N n |> G.e)
+              | FDynamic e -> E e
+            in
+            OtherExpr (otherop, [ any_fld; E e ]) |> G.e)
+  | `Member_access_op_ellips (v1, v2) -> (
+      let op = member_access_operator env v1 in
+      let tellipsis = token env v2 in
+      fun e ->
+        match op with
+        | Left _tdot -> DotAccessEllipsis (e, tellipsis) |> G.e
+        | Right otherop -> OtherExpr (otherop, [ Tk tellipsis ]) |> G.e)
 
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =

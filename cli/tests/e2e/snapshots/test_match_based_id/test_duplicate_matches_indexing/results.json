@@ -33,10 +33,6 @@
               "col": 4,
               "line": 1,
               "offset": 3
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -74,10 +70,6 @@
               "col": 4,
               "line": 4,
               "offset": 34
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -115,10 +107,6 @@
               "col": 4,
               "line": 1,
               "offset": 3
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -156,10 +144,6 @@
               "col": 4,
               "line": 4,
               "offset": 34
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -197,10 +181,6 @@
               "col": 4,
               "line": 1,
               "offset": 3
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -238,10 +218,6 @@
               "col": 4,
               "line": 4,
               "offset": 34
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -279,10 +255,6 @@
               "col": 4,
               "line": 1,
               "offset": 3
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -320,10 +292,6 @@
               "col": 4,
               "line": 4,
               "offset": 34
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -72,6 +72,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Elixir ->
         let res = Parse_elixir_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Julia ->
+        let res = Parse_julia_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Solidity ->
         let res = Parse_solidity_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
@@ -137,7 +140,6 @@ let parse_pattern lang ?(print_errors = false) str =
         (* not yet handled ?? *)
         (* Lang.Xxx failwith "No Xxx generic parser yet" *)
     | Lang.Dart -> failwith "Dart patterns not supported yet"
-    | Lang.Julia -> failwith "Julia patterns not supported yet"
   in
 
   Caching.prepare_pattern any;

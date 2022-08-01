@@ -33,6 +33,7 @@ from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
@@ -108,6 +109,7 @@ def invoke_semgrep(
         filtered_rules,
         profiler,
         profiling_data,
+        _,
         shown_severities,
     ) = main(
         output_handler=output_handler,
@@ -136,7 +138,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     deep: bool,
-) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
+) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData, ParsingData,]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -150,6 +152,7 @@ def run_rules(
         semgrep_errors,
         all_targets,
         profiling_data,
+        parsing_data,
     ) = core_runner.invoke_semgrep(
         target_manager, rest_of_the_rules, dump_command_for_core, deep
     )
@@ -213,6 +216,7 @@ def run_rules(
         semgrep_errors,
         all_targets,
         profiling_data,
+        parsing_data,
     )
 
 
@@ -278,6 +282,7 @@ def main(
     List[Rule],
     ProfileManager,
     ProfilingData,
+    ParsingData,
     Collection[RuleSeverity],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
@@ -374,7 +379,13 @@ def main(
     for ruleid in sorted(rule.id for rule in filtered_rules):
         logger.verbose(f"- {ruleid}")
 
-    rule_matches_by_rule, semgrep_errors, all_targets, profiling_data = run_rules(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiling_data,
+        parsing_data,
+    ) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -388,6 +399,7 @@ def main(
     paths_with_matches = list(
         {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
+
     findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
 
     # Run baseline if needed
@@ -427,6 +439,7 @@ def main(
                         baseline_semgrep_errors,
                         baseline_targets,
                         baseline_profiling_data,
+                        baseline_parsing_data,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -466,6 +479,7 @@ def main(
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
+        metrics.add_parse_rates(parsing_data)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)
@@ -478,5 +492,6 @@ def main(
         filtered_rules,
         profiler,
         profiling_data,
+        parsing_data,
         shown_severities,
     )

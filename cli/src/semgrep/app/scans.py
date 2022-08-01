@@ -1,6 +1,7 @@
 # Handle communication of findings / errors to semgrep.app
 import json
 import os
+from collections import Counter
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -14,6 +15,7 @@ import requests
 from boltons.iterutils import partition
 
 from semgrep.error import SemgrepError
+from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
@@ -158,6 +160,8 @@ class ScanHandler:
         errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
+        ignored_targets: Set[Path],
+        parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
     ) -> None:
@@ -196,6 +200,12 @@ class ScanHandler:
                 for match in new_ignored
             ],
         }
+
+        ignored_ext_freqs = Counter(
+            [os.path.splitext(path)[1] for path in ignored_targets]
+        )
+        ignored_ext_freqs.pop("", None)  # don't count files with no extension
+
         complete = {
             "exit_code": 1
             if any(match.is_blocking and not match.is_ignored for match in all_matches)
@@ -204,6 +214,16 @@ class ScanHandler:
                 "findings": len(new_matches),
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
+                "unsupported_exts": dict(ignored_ext_freqs),
+                "parse_rate": {
+                    lang: {
+                        "targets_parsed": data.num_targets - data.targets_with_errors,
+                        "num_targets": data.num_targets,
+                        "bytes_parsed": data.num_bytes - data.error_bytes,
+                        "num_bytes": data.num_bytes,
+                    }
+                    for (lang, data) in parse_rate.get_errors_by_lang().items()
+                },
             },
         }
 

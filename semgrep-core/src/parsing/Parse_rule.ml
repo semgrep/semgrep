@@ -377,17 +377,19 @@ let pcre_error_to_string s exn =
   in
   spf "'%s': %s" s message
 
-let parse_metavar_cond env key s =
+let parse_python_expression env key s =
   try
     let lang = Lang.Python in
     (* todo? use lang in env? *)
     match Parse_pattern.parse_pattern lang ~print_errors:false s with
     | AST_generic.E e -> e
-    | _ -> error_at_key env key "not an expression"
+    | _ -> error_at_key env key "not a Python expression"
   with
   | Timeout _ as e -> Exception.catch_and_reraise e
   | UnixExit _n as e -> Exception.catch_and_reraise e
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
+
+let parse_metavar_cond env key s = parse_python_expression env key s
 
 let parse_regexp env (s, t) =
   try Regexp_engine.pcre_compile s with
@@ -819,6 +821,49 @@ let parse_formula (env : env) (rule_dict : dict) : R.pformula =
       let _new = Rule.convert_formula_old ~rule_id:env.id old in
       R.Old old
 
+let parse_taint_requires env key x =
+  let parse_error () =
+    error_at_key env key "Expected a Boolean (Python) expression over labels"
+  in
+  let rec check e =
+    match e.G.e with
+    | G.L (G.Bool (_v, _)) -> ()
+    | G.N (G.Id ((str, _), _)) when Metavariable.is_metavar_name str ->
+        error_at_key env key ("Metavariables cannot be used as labels: " ^ str)
+    | G.N (G.Id (_id, _)) -> ()
+    | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg _e1 ], _)) -> ()
+    | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
+        List.iter check_arg args;
+        match op with
+        | G.And
+        | G.Or ->
+            ()
+        | _ -> parse_error ())
+    | G.ParenExpr (_, e, _) -> check e
+    | ___else__ -> parse_error ()
+  and check_arg = function
+    | G.Arg e -> check e
+    | __else_ -> parse_error ()
+  in
+  let s = parse_string env key x in
+  let e = parse_python_expression env key s in
+  check e;
+  e
+
+let parse_taint_source env (key : key) (value : G.expr) : Rule.taint_source =
+  let source_dict = yaml_to_dict env key value in
+  let label =
+    take_opt source_dict env parse_string "label"
+    |> Option.value ~default:R.default_source_label
+  in
+  let requires =
+    let tok = snd key in
+    take_opt source_dict env parse_taint_requires "requires"
+    |> Option.value ~default:(R.default_source_requires tok)
+  in
+  let formula = parse_formula env source_dict in
+  { formula; label; requires }
+
 let parse_taint_propagator env (key : key) (value : G.expr) :
     Rule.taint_propagator =
   let propagator_dict = yaml_to_dict env key value in
@@ -833,8 +878,18 @@ let parse_taint_sanitizer env (key : key) (value : G.expr) =
     take_opt sanitizer_dict env parse_bool "not_conflicting"
     |> Option.value ~default:false
   in
-  let pformula = parse_formula env sanitizer_dict in
-  { R.not_conflicting; pformula }
+  let formula = parse_formula env sanitizer_dict in
+  { R.not_conflicting; formula }
+
+let parse_taint_sink env (key : key) (value : G.expr) : Rule.taint_sink =
+  let sink_dict = yaml_to_dict env key value in
+  let requires =
+    let tok = snd key in
+    take_opt sink_dict env parse_taint_requires "requires"
+    |> Option.value ~default:(R.default_sink_requires tok)
+  in
+  let formula = parse_formula env sink_dict in
+  { formula; requires }
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -847,23 +902,20 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       let formula = parse_formula env rule_dict in
       `Search formula
   | Some ("taint", _) ->
-      let parse_sub_formula env name pattern =
-        parse_formula env (yaml_to_dict env name pattern)
-      in
       let parse_specs parse_spec env key x =
         parse_list env key
           (fun env -> parse_spec env (fst key ^ "list item", snd key))
           x
       in
       let sources, propagators_opt, sanitizers_opt, sinks =
-        ( take rule_dict env (parse_specs parse_sub_formula) "pattern-sources",
+        ( take rule_dict env (parse_specs parse_taint_source) "pattern-sources",
           take_opt rule_dict env
             (parse_specs parse_taint_propagator)
             "pattern-propagators",
           take_opt rule_dict env
             (parse_specs parse_taint_sanitizer)
             "pattern-sanitizers",
-          take rule_dict env (parse_specs parse_sub_formula) "pattern-sinks" )
+          take rule_dict env (parse_specs parse_taint_sink) "pattern-sinks" )
       in
       `Taint
         {
@@ -980,7 +1032,9 @@ let parse_generic ?(error_recovery = false) file ast =
         (* it's also ok to not have the toplevel rules:, anyway we never
          * used another toplevel key
          *)
+        | G.Container (G.Dict, (l, _, _)) -> (l, [ e ])
         | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
+        (* otherwise, it's bad, and complain *)
         | _ ->
             let loc = PI.first_loc_of_file file in
             yaml_error (PI.mk_info_of_loc loc)

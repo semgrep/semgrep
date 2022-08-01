@@ -1,0 +1,1 @@
+Fixed a crash that occurred when reporting results when join mode and taint mode were used together
