@@ -322,6 +322,7 @@ The classes of scan data are:
 - Review and review-requester identifying data (e.g., pull-request ID, branch, merge base, request author)
 - Scan metadata, including type of scan and scan parameters (e.g., paths scanned and extensions of ignored files)
 - Timing metrics (e.g., time taken to scan per-rule and per-path)
+- Parse metrics (e.g., number of files targeted and parsed per-language)
 - Semgrep environment (e.g., version, interpreter, timestamp)
 
 **Findings data** are used to provide human readable content for notifications and integrations,

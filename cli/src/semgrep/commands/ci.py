@@ -333,6 +333,7 @@ def ci(
                 filtered_rules,
                 profiler,
                 profiling_data,
+                parsing_data,
                 shown_severities,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
@@ -443,6 +444,7 @@ def ci(
             filtered_rules,
             all_targets,
             ignore_log.unsupported_lang_paths,
+            parsing_data,
             total_time,
             metadata.commit_datetime,
         )

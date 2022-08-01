@@ -810,6 +810,7 @@ def scan(
                     filtered_rules,
                     profiler,
                     profiling_data,
+                    _,
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
