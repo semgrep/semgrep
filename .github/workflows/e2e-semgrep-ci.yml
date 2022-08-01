@@ -55,7 +55,7 @@ jobs:
           which git
           rm /usr/bin/git
       - name: Run CI
-        run: semgrep ci --fail-open
+        run: semgrep ci --suppress-errors
 
   semgrep-ci-on-pr:
     name: Run Semgrep CI on a PR
@@ -113,7 +113,7 @@ jobs:
           gh pr -R returntocorp/e2e checks "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}" --interval 30 --watch
 
   notify-failure:
-    needs: [semgrep-ci, semgrep-ci-on-pr, wait-for-checks]
+    needs: [semgrep-ci, semgrep-ci-on-pr, wait-for-checks, semgrep-ci-fail-open]
     name: Notify of Failure
     runs-on: ubuntu-20.04
     if: failure()
