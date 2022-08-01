@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generator
+from typing import Iterator
 from typing import List
 from typing import Tuple
 

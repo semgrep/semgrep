@@ -13,7 +13,6 @@ from semdep.models import NAMESPACE_TO_LOCKFILES
 from semdep.models import PackageManagers
 from semdep.parse_lockfile import LOCKFILE_PARSERS
 from semdep.parse_lockfile import parse_lockfile_str
-from semgrep.error import SemgrepError
 from semgrep.target_manager import TargetManager
 
 
@@ -118,11 +117,9 @@ def make_dependency_trie(
 
 @lru_cache(maxsize=None)
 def search_path(p: Path, lockfile_pattern: str) -> Optional[Path]:
-    lockfiles = list(p.glob(lockfile_pattern))
-    if len(lockfiles) > 1:
-        raise SemgrepError(f"target with multiple lockfiles?")
-    elif len(lockfiles) == 1:
-        return lockfiles[0]
+    path = p / lockfile_pattern
+    if path.exists:
+        return path
     else:
         return None
 
@@ -130,8 +127,7 @@ def search_path(p: Path, lockfile_pattern: str) -> Optional[Path]:
 def find_single_lockfile(
     p: Path, ecosystem: PackageManagers
 ) -> Optional[Tuple[Path, List[LockfileDependency]]]:
-    parents = list(p.parents)
-    for path in parents:
+    for path in p.parents:
         for lockfile_pattern in NAMESPACE_TO_LOCKFILES[ecosystem]:
             lockfile = search_path(path, lockfile_pattern)
             if lockfile:

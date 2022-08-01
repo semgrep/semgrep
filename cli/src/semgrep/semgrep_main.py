@@ -172,7 +172,7 @@ def run_rules(
 
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import (
-            generate_non_reachable_sca_findings,
+            generate_unreachable_sca_findings,
             generate_reachable_sca_findings,
         )
 
@@ -192,7 +192,7 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = generate_non_reachable_sca_findings(
+                ) = generate_unreachable_sca_findings(
                     rule, target_manager, matched_lockfiles
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
@@ -203,7 +203,7 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                     targeted_lockfiles,
-                ) = generate_non_reachable_sca_findings(rule, target_manager, set())
+                ) = generate_unreachable_sca_findings(rule, target_manager, set())
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 all_targets.union(targeted_lockfiles)
