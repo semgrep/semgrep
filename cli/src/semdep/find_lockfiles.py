@@ -118,7 +118,7 @@ def make_dependency_trie(
 @lru_cache(maxsize=None)
 def search_path(p: Path, lockfile_pattern: str) -> Optional[Path]:
     path = p / lockfile_pattern
-    if path.exists:
+    if path.exists():
         return path
     else:
         return None
