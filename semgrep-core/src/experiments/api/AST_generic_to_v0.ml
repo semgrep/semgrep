@@ -222,7 +222,7 @@ and map_expr x : B.expr =
      (* new: TODO in next version: support regexp templates found in Ruby
         like /hello #{name}/ *)
      `L (match v1 with
-         | { e = G.L (G.String x); _ } :: _dropped_template ->
+         | { e = G.L (G.String x); _ } ->
             let static_regexp = map_wrap map_of_string x in
             `Regexp static_regexp
          | _dropped_template ->

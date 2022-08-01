@@ -924,14 +924,8 @@ and m_expr a b =
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
-  | G.Regexp (a_re, a_opt), B.Regexp (b_re, b_opt) ->
-     (let* () =
-        m_bracket (
-            m_list_with_dots
-              ~less_is_ok:false
-              m_expr
-              (function { e = Ellipsis _; _ } -> true | _ -> false)
-          ) a_re b_re in
+  | G.Regexp (a, a_opt), B.Regexp (b, b_opt) ->
+     (let* () = m_bracket m_expr a b in
       match (a_opt, b_opt) with
       (* less_is_ok: *)
       | None, _ -> return ()
@@ -1424,6 +1418,7 @@ and m_xml_body a b =
 (* Arguments list iso *)
 (*---------------------------------------------------------------------------*)
 and m_arguments a b =
+  Trace_matching.(if on then print_arguments_pair a b);
   match (a, b) with
   | a, b -> m_bracket m_list__m_argument a b
 
@@ -1535,6 +1530,7 @@ and m_arguments_concat a b =
       fail ()
 
 and m_argument a b =
+  Trace_matching.(if on then print_argument_pair a b);
   match (a, b) with
   (* TODO: iso on keyword argument, keyword is optional in pattern.
    * TODO: maybe Arg (N (Id "$S")) should be allowed to match

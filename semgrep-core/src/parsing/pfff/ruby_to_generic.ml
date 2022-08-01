@@ -17,6 +17,7 @@ open Ast_ruby
 module G = AST_generic
 module H = AST_generic_helpers
 module PI = Parse_info
+module MV = Metavariable
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,35 +45,6 @@ let fake tok s = Parse_info.fake_info tok s
 let unsafe_fake s = Parse_info.unsafe_fake_info s
 let fb = G.fake_bracket
 let nonbasic_entity id_or_e = { G.name = id_or_e; attrs = []; tparams = [] }
-
-(*
-   Concatenate the literal fragments of regexp templates.
-
-   This is a lot of code for doing something that may not even be necessary.
-   It concatenates escape sequences such as \s with ordinary text, but
-   this may not make a difference at all at matching time.
-
-   TODO: make reusable/generic functions for this stuff?
-*)
-let collapse_strchars xs =
-  let append_pending res pending =
-    match List.rev pending |> List.split with
-    | _, [] -> res
-    | strs, (first_tok :: more_toks) ->
-       let str = String.concat "" strs in
-       let tok = PI.combine_infos first_tok more_toks in
-       StrChars (str, tok) :: res
-  in
-  let rec aux res pending xs =
-    match xs with
-    | [] ->
-       append_pending res pending |> List.rev
-    | StrChars x :: xs ->
-       aux res (x :: pending) xs
-    | StrExpr _ as x :: xs ->
-       aux (x :: append_pending res pending) [] xs
-  in
-  aux [] [] xs
 
 (*****************************************************************************)
 (* Entry point *)
@@ -346,11 +318,11 @@ and method_name (mn : method_name) : (G.ident, G.expr) Common.either =
           | [ StrChars (s, t2) ] ->
               let t = PI.combine_infos l [ t2; r ] in
               Left (s, t)
-          | _ -> Right (string_contents_list (l, xs, r) |> G.e)))
+          | _ -> Right (interpolated_string (l, xs, r) |> G.e)))
   (* sgrep-ext: this should be covered in the caller *)
   | MethodEllipsis t -> raise (Parse_info.Parsing_error t)
 
-and string_contents_list (t1, xs, t2) : G.expr_kind =
+and interpolated_string (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
   G.Call
     ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
@@ -450,7 +422,7 @@ and atom tcolon x =
       | [ StrChars (s, t2) ] ->
           let t = PI.combine_infos l [ t2; r ] in
           G.L (G.Atom (tcolon, (s, t)))
-      | _ -> string_contents_list (l, xs, r))
+      | _ -> interpolated_string (l, xs, r))
 
 and literal x =
   match x with
@@ -477,35 +449,28 @@ and literal x =
       | Double (l, [ StrChars (s, t2) ], r) ->
           let t = PI.combine_infos l [ t2; r ] in
           G.L (G.String (s, t))
-      (* TODO: generate interpolation Special *)
-      | Double xs -> string_contents_list xs
+      | Double x ->
+         interpolated_string x
       | Tick (l, xs, r) ->
           G.OtherExpr
-            (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
+            (("Subshell", l), [ G.E (interpolated_string (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) ->
-     let xs = collapse_strchars xs in
-     let regexp_fragments =
-       Common.map (function
-           | StrChars ("...", tok) -> G.Ellipsis tok |> G.e
-(* TODO: resolve dependencies between semgrep libraries to enable this:
-           | StrChars ((s, _tok) as x) when Metavariable.is_metavar_name s ->
-              G.N (G.Id (x, G.empty_id_info ())) |> G.e
-*)
-           | StrChars x -> G.L (G.String x) |> G.e
-           | StrExpr (l, e, r) ->
-              (* Some wrapping is needed to avoid confusing e.g.
-                 /#{"x"}/ with /x/.
-                 The wrapping in a Call could be avoided with
-                 a dedicated OCaml constructor 'RegexpEval', but then
-                 the AST and the matching code would become more
-                 complicated. *)
-              let special =
-                G.IdSpecial (G.InterpolatedElement, l) |> G.e
-              in
-              (G.Call (special, (l, [ G.Arg (expr e) ], r)) |> G.e)
-         ) xs
+     let e =
+       match xs with
+       (* /.../ matches any constant or interpolated regexp *)
+       | [StrChars ("...", tok)] ->
+          G.Ellipsis tok
+       (* /$X/ matches any constant or interpolated regexp *)
+       | [StrChars ((s, _tok) as x)] when MV.is_metavar_name s ->
+          G.N (G.Id (x, G.empty_id_info ()))
+       (* regexps are otherwise handled like 'String (Double _)' *)
+       | [ StrChars (s, t2) ] ->
+          let t = PI.combine_infos l [ t2; r ] in
+          G.L (G.String (s, t))
+       | xs ->
+          interpolated_string (l, xs, r)
      in
-     G.Regexp ((l, regexp_fragments, r), opt)
+     G.Regexp ((l, e |> G.e, r), opt)
 
 and expr_special_cases e =
   (* Code parsed as expressions in Ruby that we want to represent

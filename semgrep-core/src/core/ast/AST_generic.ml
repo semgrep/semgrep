@@ -447,9 +447,8 @@ and expr_kind =
    * how user think.
    *)
   | Constructor of name * expr list bracket
-  (* In Ruby, a regexp may be a template i.e. an alternation of
-     literal strings and expressions such as /hello #{name}/. *)
-  | Regexp of expr list bracket (* // *) * string wrap option (* modifiers *)
+  (* Regexp contents are interpolated strings. *)
+  | Regexp of expr bracket (* // *) * string wrap option (* modifiers *)
   (* see also New(...) for other values *)
   | N of name
   | IdSpecial of
