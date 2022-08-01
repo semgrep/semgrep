@@ -427,8 +427,12 @@ def main(
                         includes=include,
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
-                        # only target the paths that had a match
-                        target_strings=[str(t) for t in baseline_targets],
+                        # only target the paths that had a match, ignoring symlinks and non-existent files
+                        target_strings=[
+                            str(t)
+                            for t in baseline_targets
+                            if t.exists() and not t.is_symlink()
+                        ],
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         file_ignore=get_file_ignore(),
