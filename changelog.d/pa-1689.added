@@ -1,0 +1,4 @@
+Swift: Added parsing for ellipses in class declarations for patterns.
+
+So like:
+class $CLASS { ... }
