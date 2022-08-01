@@ -137,4 +137,17 @@ class AppSession(requests.Session):
         kwargs["headers"].setdefault("User-Agent", str(self.user_agent))
         if self.token:
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")
-        return super().request(*args, **kwargs)
+
+        from semgrep.state import get_state
+
+        error_handler = get_state().error_handler
+        method, url = args
+        error_handler.push_request(method, url, **kwargs)
+        response = super().request(*args, **kwargs)
+        if response.ok:
+            error_handler.pop_request()
+        else:
+            error_handler.append_request(
+                status_code=response.status_code, response_json=response.json()
+            )
+        return response

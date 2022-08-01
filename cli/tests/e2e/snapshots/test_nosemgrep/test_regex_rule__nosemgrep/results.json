@@ -35,10 +35,6 @@
               "col": 1,
               "line": 3,
               "offset": 44
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$3": {
@@ -52,10 +48,6 @@
               "col": 5,
               "line": 3,
               "offset": 48
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$4": {
@@ -69,10 +61,6 @@
               "col": 13,
               "line": 3,
               "offset": 56
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           },
           "$6": {
@@ -86,10 +74,6 @@
               "col": 15,
               "line": 3,
               "offset": 58
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

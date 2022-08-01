@@ -1,9 +1,10 @@
 type debug_taint = {
-  sources : Range_with_metavars.ranges;
+  sources : (Range_with_metavars.t * Rule.taint_source) list;
       (** Ranges matched by `pattern-sources:` *)
   sanitizers : Range_with_metavars.ranges;
       (** Ranges matched by `pattern-sanitizers:` *)
-  sinks : Range_with_metavars.ranges;  (** Ranges matched by `pattern-sinks:` *)
+  sinks : (Range_with_metavars.t * Rule.taint_sink) list;
+      (** Ranges matched by `pattern-sinks:` *)
 }
 (** To facilitate debugging of taint rules. *)
 

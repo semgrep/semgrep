@@ -50,6 +50,13 @@ class Env:
     between multiple invocations.
     """
 
+    fail_open_url: str = field(
+        default=EnvFactory(
+            ["SEMGREP_FAIL_OPEN_URL"],
+            "https://fail-open.prod.semgrep.dev/failure",
+        ),
+        converter=url,
+    )
     semgrep_url: str = field(
         default=EnvFactory(["SEMGREP_URL", "SEMGREP_APP_URL"], "https://semgrep.dev"),
         converter=url,

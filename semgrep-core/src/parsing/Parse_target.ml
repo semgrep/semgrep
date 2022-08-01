@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -77,12 +77,12 @@ let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 
 let errors_from_skipped_tokens xs =
   match xs with
-  | [] -> []
+  | [] -> Report.ErrorSet.empty
   | x :: _ ->
       let e = exn_of_loc x in
       let err = E.exn_to_error x.PI.file e in
       let locs = xs |> Common.map OutH.location_of_token_location in
-      [ { err with typ = Out.PartialParsing locs } ]
+      Report.ErrorSet.singleton { err with typ = Out.PartialParsing locs }
 
 let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
   {
@@ -282,6 +282,8 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.Elixir ->
       run file [ TreeSitter Parse_elixir_tree_sitter.parse ] (fun x -> x)
+  | Lang.Julia ->
+      run file [ TreeSitter Parse_julia_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
       run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
@@ -379,7 +381,6 @@ let rec just_parse_with_lang lang file =
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
   | Lang.Dart -> failwith "Dart not supported yet"
-  | Lang.Julia -> failwith "Julia not supported yet"
   [@@profiling]
 
 (*****************************************************************************)

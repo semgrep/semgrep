@@ -27,9 +27,11 @@ from typing_extensions import TypedDict
 
 from semgrep import __VERSION__
 from semgrep.error import SemgrepError
+from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
+from semgrep.semgrep_types import Language
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
@@ -107,6 +109,14 @@ class FixRateSchema(TypedDict, total=False):
     upperLimits: Dict[str, int]
 
 
+class ParseStatSchema(TypedDict, total=False):
+    targets_parsed: int
+    num_targets: int
+    # Number of bytes
+    bytes_parsed: int
+    num_bytes: int
+
+
 class TopLevelSchema(TypedDict, total=False):
     event_id: uuid.UUID
     anonymous_user_id: str
@@ -120,6 +130,7 @@ class PayloadSchema(TopLevelSchema):
     errors: ErrorsSchema
     value: ValueSchema
     fix_rate: FixRateSchema
+    parse_rate: Dict[Language, ParseStatSchema]
 
 
 class MetricsJsonEncoder(json.JSONEncoder):
@@ -169,6 +180,7 @@ class Metrics:
             performance=PerformanceSchema(),
             value=ValueSchema(features=set()),
             fix_rate=FixRateSchema(),
+            parse_rate=dict(),
         )
     )
 
@@ -348,6 +360,21 @@ class Metrics:
         logger.debug(f"Adding fix rate: {lower_limits} {upper_limits}")
         self.payload["fix_rate"]["lowerLimits"] = lower_limits
         self.payload["fix_rate"]["upperLimits"] = upper_limits
+
+    @suppress_errors
+    def add_parse_rates(self, parse_rates: ParsingData) -> None:
+        """
+        Adds parse rates, grouped by language
+        """
+        self.payload["parse_rate"] = {
+            lang: ParseStatSchema(
+                targets_parsed=data.num_targets - data.targets_with_errors,
+                num_targets=data.num_targets,
+                bytes_parsed=data.num_bytes - data.error_bytes,
+                num_bytes=data.num_bytes,
+            )
+            for (lang, data) in parse_rates.get_errors_by_lang().items()
+        }
 
     def as_json(self) -> str:
         return json.dumps(

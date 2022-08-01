@@ -78,7 +78,6 @@ def _clean_output_json(output_json: str, clean_fingerprint: bool = False) -> str
 
     masked_keys = [
         "tool.driver.semanticVersion",
-        "results.extra.metavars.*.unique_id.md5sum",
         "results.*.checks.*.matches",
     ]
     for path in masked_keys:

@@ -242,6 +242,58 @@ let dump_ast ?(naming = false) lang file =
           |> String.concat "\n");
         Runner_exit.(exit_semgrep False)))
 
+(* mostly a copy paste of pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
+let dump_il file =
+  let lang = List.hd (Lang.langs_of_filename file) in
+  let ast = Parse_target.parse_program file in
+  Naming_AST.resolve lang ast;
+  let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
+  List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
+  [@@action]
+
+let dump_il_functions file =
+  let module G = AST_generic in
+  let module V = Visitor_AST in
+  let lang = List.hd (Lang.langs_of_filename file) in
+  let ast = Parse_target.parse_program file in
+  Naming_AST.resolve lang ast;
+  let report_func_def_with_name fdef name =
+    let name =
+      match name with
+      | None -> "<lambda>"
+      | Some name -> G.show_name name
+    in
+    pr2 (spf "Function name: %s" name);
+    let s =
+      AST_generic.show_any
+        (G.S (AST_generic_helpers.funcbody_to_stmt fdef.G.fbody))
+    in
+    pr2 s;
+    pr2 "==>";
+
+    let _, xs = AST_to_IL.function_definition lang fdef in
+    let s = IL.show_any (IL.Ss xs) in
+    pr2 s
+  in
+  let v =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kexpr =
+          (fun (_k, _) expr ->
+            match expr.e with
+            | Lambda fdef -> report_func_def_with_name fdef None
+            | _ -> ());
+        V.kdef =
+          (fun (_k, _) (ent, dkind) ->
+            match (ent, dkind) with
+            | { name = EN n; _ }, FuncDef fdef ->
+                report_func_def_with_name fdef (Some n)
+            | _ -> ());
+      }
+  in
+  v (AST_generic.Pr ast)
+
 let dump_v0_json file =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
@@ -399,7 +451,8 @@ let all_actions () =
         Common.mk_action_1_arg
           (dump_ast ~naming:true (Xlang.lang_of_opt_xlang !lang))
           file );
-    ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
+    ("-dump_il", " <file>", Common.mk_action_1_arg dump_il);
+    ("-dump_il_functions", " <file>", Common.mk_action_1_arg dump_il_functions);
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
     ( "-dump_equivalences",
       " <file> (deprecated)",

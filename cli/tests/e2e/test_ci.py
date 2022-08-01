@@ -15,6 +15,7 @@ from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.app.session import AppSession
 from semgrep.config_resolver import ConfigPath
+from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
@@ -61,6 +62,10 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
 
     foo = repo_base / "foo.py"
     foo.write_text(f"x = 1\n")
+
+    unknown_ext = repo_base / "xyz.txt"
+    unknown_ext.write_text("xyz")
+
     subprocess.run(["git", "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "commit", "-m", COMMIT_MESSAGE],
@@ -253,7 +258,14 @@ def mock_autofix(request, mocker):
         },
         {  # Jenkins
             "JENKINS_URL": "some_url",
-            "GIT_URL": "https://github.com/org/repo.git",
+            "GIT_URL": "https://github.com/org/repo.git/",
+            "GIT_BRANCH": BRANCH_NAME,
+            "BUILD_URL": "https://jenkins.build.url",
+        },
+        {  # Jenkins, not defined GIT_URL
+            "JENKINS_URL": "some_url",
+            "SEMGREP_REPO_URL": "https://random.url.org/some/path",
+            "SEMGREP_REPO_NAME": "a/repo/name",
             "GIT_BRANCH": BRANCH_NAME,
             "BUILD_URL": "https://jenkins.build.url",
         },
@@ -305,6 +317,7 @@ def mock_autofix(request, mocker):
         "gitlab-push",
         "circleci",
         "jenkins",
+        "jenkins-missing-vars",
         "bitbucket",
         "azure-pipelines",
         "buildkite",
@@ -816,6 +829,23 @@ def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
+def test_fail_auth_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test that failure to authenticate with --suppres-errors returns exit code 0
+    """
+    mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
+    mock_send = mocker.spy(ErrorHandler, "send")
+    run_semgrep(
+        options=["ci", "--suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+
+    mock_send.assert_called_once_with(mocker.ANY, 2)
+
+
 def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     Test that failing to start scan does not have exit code 0 or 1
@@ -828,6 +858,23 @@ def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
+
+
+def test_fail_start_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test that failing to start scan with --suppres-errors returns exit code 0
+    """
+    mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
+    mock_send = mocker.spy(ErrorHandler, "send")
+    run_semgrep(
+        options=["ci", "--suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+
+    mock_send.assert_called_once_with(mocker.ANY, 2)
 
 
 def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
@@ -855,6 +902,33 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
     assert "Invalid rule schema" in result.stderr
 
 
+def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test that bad rules with --suppres-errors returns exit code 0
+    """
+    file_content = dedent(
+        """
+        rules:
+        - id: eqeq-bad
+          message: "missing pattern"
+          languages: [python]
+          severity: ERROR
+        """
+    ).lstrip()
+    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
+    mock_send = mocker.spy(ErrorHandler, "send")
+
+    result = run_semgrep(
+        options=["ci", "--suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    assert "Invalid rule schema" in result.stderr
+    mock_send.assert_called_once_with(mocker.ANY, 7)
+
+
 def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
@@ -869,6 +943,22 @@ def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     )
 
 
+def test_fail_finish_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test failure to send findings with --suppres-errors returns exit code 0
+    """
+    mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
+    mock_send = mocker.spy(ErrorHandler, "send")
+    run_semgrep(
+        options=["ci", "--suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    mock_send.assert_called_once_with(mocker.ANY, 2)
+
+
 def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
     """
     Test failure from using git has exit code > 1
@@ -881,3 +971,19 @@ def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
         assert_exit_code=2,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
     )
+
+
+def test_git_failure_error_handler(run_semgrep, git_tmp_path_with_commit, mocker):
+    """
+    Test failure from using git --suppres-errors returns exit code 0
+    """
+    mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
+    mock_send = mocker.spy(ErrorHandler, "send")
+    run_semgrep(
+        options=["ci", "--suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=0,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    mock_send.assert_called_once_with(mocker.ANY, 2)

@@ -2,6 +2,39 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.107.0](https://github.com/returntocorp/semgrep/releases/tag/v0.107.0) - 2022-07-29
+
+### Added
+
+- Added metadata in App-connected scans to report extensions of files that do not match the language of any enabled rules in order to enable more effective language prioritization while developing new rules. (app-1354)
+- Support fail-open in CI: adds --suppress-errors/--no-suppress-errors (defaults to --no-suppress-errors) (cli-254)
+- New language Elixir with experimental support. (gh-3698)
+- Kotlin: support for ellipsis in field access (e.g., `obj. ... .bar()`) (gh-5819)
+- Changed `semgrep-core` so that it can now be run with `-rules` on `.yaml` files which do not have a top-level `rules: ...` key. This means you can now copy paste from the playground editor directly into a `.yaml` file for use with `semgrep-core`. (implicit-rules-sc-core)
+- Add experimental support for _taint labels_, that is the ability to attach labels to
+  different kinds of taint. Both sources and sinks can retrict what labels are present
+  in the data that passes through them in order to apply. This allows to write more
+  complex taint rules that previously required ugly workarounds. Taint labels are also
+  useful for writing certain classes of typestate analyses (e.g., check that a file
+  descriptor is not used after being closed). (pa-1362)
+- Introduced the `--dataflow-traces` flag, which directs the Semgrep CLI to explain how non-local values lead to a finding. Currently, this only applies to taint mode findings and it will trace the path from the taint source to the taint sink. (pa-1599)
+
+### Changed
+
+- Made breaking changes to the dataflow_trace JSON output to make it more easily consumable by the App. Added content for taint_source and intermediate_vars, and collapsed the multile taint_source locations into one. (dataflow-trace-json)
+- Removed the unique_id field from the semgrep (and semgrep-core) JSON output
+  for metavariables. (unique-id-json)
+
+### Fixed
+
+- Fixed format of repository urls so links to findings can be properly displayed on semgrep.dev (cli-278)
+- Scala: Allow metavariables in `import` patterns (gh-5219)
+- Rules reported for LSP metrics now are hashed before sending (lsp-metrixs)
+- `-filter_irrelevant_rules` was incorrectly skipping files when the PCRE engine threw
+  an error, while trying to match a regex that determines whether a rule is relevant
+  for a file. This has been fixed so that, in case of a PCRE error, we assume that the
+  rule could be relevant and we do run it on the file. (pa-1635)
+
 ## [0.106.0](https://github.com/returntocorp/semgrep/releases/tag/v0.106.0) - 2022-07-21
 
 ### Changed

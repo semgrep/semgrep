@@ -35,7 +35,7 @@ let test_tainting lang file config def =
       let show_taint t =
         match t.Taint.orig with
         | Taint.Src src ->
-            let tok1, tok2 = (Taint.pm_of_trace src).range_loc in
+            let tok1, tok2 = (fst (Taint.pm_of_trace src)).range_loc in
             let r = Range.range_of_token_locations tok1 tok2 in
             Range.content_at_range file r
         | Taint.Arg i -> spf "arg %d" i
@@ -76,13 +76,13 @@ let test_dfg_tainting rules_file file =
   in
   Common.pr2 "\nSources";
   Common.pr2 "-------";
-  pr2_ranges file debug_taint.sources;
+  pr2_ranges file (debug_taint.sources |> Common.map fst);
   Common.pr2 "\nSanitizers";
   Common.pr2 "----------";
   pr2_ranges file debug_taint.sanitizers;
   Common.pr2 "\nSinks";
   Common.pr2 "-----";
-  pr2_ranges file debug_taint.sinks;
+  pr2_ranges file (debug_taint.sinks |> Common.map fst);
   let v =
     V.mk_visitor
       {

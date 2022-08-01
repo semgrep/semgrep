@@ -96,3 +96,33 @@ class foo<bar: baz> { }
 // TODO
 // class foo<bar> where bar: baz { }
 // class foo<bar> where bar: baz, bar: asdf { }
+
+// TODO test other varieties
+struct foo { }
+
+// TODO test other varieties
+extension bar { }
+
+// TODO test other varieties
+enum baz { }
+
+// Protocol
+
+protocol foo {
+    // The grammar allows bodies for functions/initializers/deinitializers but
+    // Swift actually does not.
+    //
+    // The grammar allows deinits here but Swift does not.
+    func foo()
+    init()
+    var foo: Int { get }
+    var foo: Int { get set }
+    var foo: Int { set get }
+    // TODO other options
+}
+
+protocol foo<T> { }
+protocol foo: bar { }
+protocol foo: bar, baz { }
+// TODO
+// protocol foo<T> where T: bar { }

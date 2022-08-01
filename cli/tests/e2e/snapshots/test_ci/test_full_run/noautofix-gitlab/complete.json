@@ -3,6 +3,15 @@
   "stats": {
     "findings": 9,
     "errors": [],
-    "total_time": 0.5
+    "total_time": 0.5,
+    "unsupported_exts": {},
+    "parse_rate": {
+      "python": {
+        "targets_parsed": 1,
+        "num_targets": 1,
+        "bytes_parsed": 336,
+        "num_bytes": 336
+      }
+    }
   }
 }
