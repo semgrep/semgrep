@@ -23,7 +23,7 @@ Findings:
 Scan environment:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is pull_request
-  semgrep.dev - authenticated as org_name
+<MASKED> <MASKED> <MASKED>s<MASKED>e<MASKED>r<MASKED>v<MASKED>e<MASKED>r<MASKED> <MASKED> <MASKED> <MASKED> <MASKED> <MASKED> <MASKED>-<MASKED> <MASKED>h<MASKED>t<MASKED>t<MASKED>p<MASKED>s<MASKED>:<MASKED>/<MASKED>/<MASKED>s<MASKED>e<MASKED>m<MASKED>g<MASKED>r<MASKED>e<MASKED>p<MASKED>.<MASKED>d<MASKED>e<MASKED>v<MASKED>
 
 head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0, fetching that commit now.
 Trying to shallow fetch branch foo from origin
@@ -39,6 +39,7 @@ Trying to fetch branch bar as commit from origin as head branch tip commit
 Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
 Fetching configuration from semgrep.dev
 Starting scan
+Authenticated as <MagicMock name='post().json().__getitem__()' id='4371094256'>
 Using https://semgrep.dev<MASKED>
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 semgrep version <MASKED>
