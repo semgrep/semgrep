@@ -44,7 +44,7 @@ type env = {
   rule : Rule.t;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
-  errors : E.error list ref;
+  errors : Report.ErrorSet.t ref;
 }
 
 (*****************************************************************************)
@@ -62,7 +62,7 @@ let error env msg =
   let err =
     E.mk_error ~rule_id:(Some (fst env.rule.Rule.id)) loc msg Out.MatchingError
   in
-  Common.push err env.errors
+  env.errors := Report.ErrorSet.add err !(env.errors)
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =

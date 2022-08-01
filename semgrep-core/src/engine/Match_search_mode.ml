@@ -134,7 +134,10 @@ let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
   h
 
 let error_with_rule_id rule_id (error : E.error) =
-  { error with rule_id = Some rule_id }
+  match error.typ with
+  (* Don't add the rule id for consistency with other parse errors *)
+  | PartialParsing _ -> error
+  | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
 
@@ -420,7 +423,7 @@ and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
     matches_of_formula env.config env.rule env.xtarget formula opt_context
   in
-  env.errors := res.RP.errors @ !(env.errors);
+  env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
   match final_ranges with
   | [] -> false
   | _ :: _ -> true
@@ -563,13 +566,15 @@ and matches_of_formula config rule xtarget formula opt_context :
       pattern_matches = pattern_matches_per_id;
       xtarget;
       rule;
-      errors = ref [];
+      errors = ref Report.ErrorSet.empty;
     }
   in
   logger#trace "evaluating the formula";
   let final_ranges = evaluate_formula env opt_context formula in
   logger#trace "found %d final ranges" (List.length final_ranges);
-  let res' = { res with RP.errors = res.RP.errors @ !(env.errors) } in
+  let res' =
+    { res with RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors) }
+  in
   (res', final_ranges)
   [@@profiling]
 
@@ -585,6 +590,7 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
   let res, final_ranges =
     matches_of_formula (config, equivs) r xtarget formula None
   in
+  let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in
   {
     RP.matches =
       final_ranges
@@ -598,6 +604,6 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook
              |> List.iter (fun (m : Pattern_match.t) ->
                     let str = spf "with rule %s" rule_id in
                     hook str m));
-    errors = res.errors |> Common.map (error_with_rule_id rule_id);
+    errors;
     extra = res.extra;
   }

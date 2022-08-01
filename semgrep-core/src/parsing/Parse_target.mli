@@ -29,7 +29,7 @@ val parse_and_resolve_name_fail_if_partial :
 
 (* returns a Output_from_core.PartialParsing error *)
 val errors_from_skipped_tokens :
-  Parse_info.token_location list -> Semgrep_error_code.error list
+  Parse_info.token_location list -> Report.ErrorSet.t
 
 (* used by Parse_pattern *)
 val lang_to_python_parsing_mode : Lang.t -> Parse_python.parsing_mode

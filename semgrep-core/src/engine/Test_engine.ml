@@ -256,7 +256,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
                     res.matches |> List.iter JSON_report.match_to_error);
-             if not (res.errors = []) then
+             if not (Report.ErrorSet.is_empty res.errors) then
                failwith (spf "parsing error on %s" file);
 
              let actual_errors = !E.g_errors in
