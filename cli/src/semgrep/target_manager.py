@@ -550,11 +550,12 @@ class TargetManager:
         self, language: Union[Language, PackageManagers], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
-        Returns only paths that have the correct extension or shebang.
+        Returns only paths that have the correct extension or shebang, or are the correct lockfile format
 
         Finds all files in a collection of paths that either:
         - end with one of a set of extension
         - is a script that executes with one of a set of programs
+        - are lockfiles associated with a given ecosystem
         """
         if isinstance(language, Language):
             kept = frozenset(
@@ -644,7 +645,7 @@ class TargetManager:
     ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
-        an extension matching LANG that match any pattern in INCLUDES and do not
+        an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
