@@ -55,7 +55,7 @@ def parse_depends_on_yaml(
         )
 
 
-def generate_non_reachable_sca_findings(
+def generate_unreachable_sca_findings(
     rule: Rule, target_manager: TargetManager, exlcude: Set[Path]
 ) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
