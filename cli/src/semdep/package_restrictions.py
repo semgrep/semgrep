@@ -35,7 +35,7 @@ def semver_matches(expression: str, actual_version: str) -> bool:
 def dependencies_range_match_any(
     search_for_ranges: List[ProjectDependsOnEntry],
     have_deps: List[LockfileDependency],
-) -> Generator[Tuple[ProjectDependsOnEntry, LockfileDependency], None, None]:
+) -> Iterator[Tuple[ProjectDependsOnEntry, LockfileDependency]]:
     for have_dep in have_deps:
         for target_range in search_for_ranges:
             if (
