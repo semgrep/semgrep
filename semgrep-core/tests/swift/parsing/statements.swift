@@ -126,3 +126,7 @@ protocol foo: bar { }
 protocol foo: bar, baz { }
 // TODO
 // protocol foo<T> where T: bar { }
+
+foo: if 1 < 150 {
+    var thing = 122
+}

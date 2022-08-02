@@ -1503,11 +1503,13 @@ and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
       let v3 = (* "]" *) token env v3 in
       todo env (v1, v2, v3)
 
-and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
+and map_labeled_statement (env : env) ((v1_orig, v2) : CST.labeled_statement) =
   let v1 =
-    match v1 with
-    | Some tok -> (* statement_label *) token env tok |> todo env
-    | None -> ()
+    let ident_of x =
+      let tok = token env x in
+      (PI.str_of_info tok, tok)
+    in
+    Option.map ident_of v1_orig
   in
   let v2 =
     match v2 with
@@ -1519,7 +1521,9 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
     | `Guard_stmt x -> map_guard_statement env x
     | `Switch_stmt x -> map_switch_statement env x
   in
-  v2
+  match v1 with
+  | None -> v2
+  | Some ident -> G.Label (ident, v2) |> G.s
 
 and map_lambda_function_type (env : env)
     ((v1, v2, v3, v4) : CST.lambda_function_type) : G.parameter list =
