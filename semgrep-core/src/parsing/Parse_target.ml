@@ -282,6 +282,8 @@ let rec just_parse_with_lang lang file =
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.Elixir ->
       run file [ TreeSitter Parse_elixir_tree_sitter.parse ] (fun x -> x)
+  | Lang.Dart ->
+      run file [ TreeSitter Parse_dart_tree_sitter.parse ] (fun x -> x)
   | Lang.Julia ->
       run file [ TreeSitter Parse_julia_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
@@ -380,7 +382,6 @@ let rec just_parse_with_lang lang file =
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
   | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
-  | Lang.Dart -> failwith "Dart not supported yet"
   [@@profiling]
 
 (*****************************************************************************)
