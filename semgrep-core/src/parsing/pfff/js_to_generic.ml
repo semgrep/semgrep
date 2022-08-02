@@ -204,18 +204,18 @@ and xhp_attr v = expr v
 and literal x : G.expr_kind =
   match x with
   | Bool v1 ->
-     let v1 = wrap bool v1 in
-     G.L (G.Bool v1)
+      let v1 = wrap bool v1 in
+      G.L (G.Bool v1)
   | Num v1 ->
-     let v1 = wrap string v1 in
-     G.L (G.Float v1)
+      let v1 = wrap string v1 in
+      G.L (G.Float v1)
   | String v1 ->
-     let v1 = wrap string v1 in
-     G.L (G.String v1)
+      let v1 = wrap string v1 in
+      G.L (G.String v1)
   | Regexp ((l, v1, r), v2) ->
-     let v1 = (l, (G.L (G.String (wrap string v1)) |> G.e), r) in
-     let v2 = option (wrap string) v2 in
-     G.Regexp (v1, v2)
+      let v1 = (l, G.L (G.String (wrap string v1)) |> G.e, r) in
+      let v2 = option (wrap string) v2 in
+      G.Regexp (v1, v2)
 
 and expr (x : expr) =
   (match x with

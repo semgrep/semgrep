@@ -33,4 +33,8 @@ val print_directive_pair :
 val print_expr_pair : AST_generic.expr -> AST_generic.expr -> unit
 val print_stmt_pair : AST_generic.stmt -> AST_generic.stmt -> unit
 val print_argument_pair : AST_generic.argument -> AST_generic.argument -> unit
-val print_arguments_pair : AST_generic.argument list AST_generic.bracket -> AST_generic.argument list AST_generic.bracket -> unit
+
+val print_arguments_pair :
+  AST_generic.argument list AST_generic.bracket ->
+  AST_generic.argument list AST_generic.bracket ->
+  unit

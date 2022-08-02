@@ -449,28 +449,25 @@ and literal x =
       | Double (l, [ StrChars (s, t2) ], r) ->
           let t = PI.combine_infos l [ t2; r ] in
           G.L (G.String (s, t))
-      | Double x ->
-         interpolated_string x
+      | Double x -> interpolated_string x
       | Tick (l, xs, r) ->
           G.OtherExpr
             (("Subshell", l), [ G.E (interpolated_string (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) ->
-     let e =
-       match xs with
-       (* /.../ matches any constant or interpolated regexp *)
-       | [StrChars ("...", tok)] ->
-          G.Ellipsis tok
-       (* /$X/ matches any constant or interpolated regexp *)
-       | [StrChars ((s, _tok) as x)] when MV.is_metavar_name s ->
-          G.N (G.Id (x, G.empty_id_info ()))
-       (* regexps are otherwise handled like 'String (Double _)' *)
-       | [ StrChars (s, t2) ] ->
-          let t = PI.combine_infos l [ t2; r ] in
-          G.L (G.String (s, t))
-       | xs ->
-          interpolated_string (l, xs, r)
-     in
-     G.Regexp ((l, e |> G.e, r), opt)
+      let e =
+        match xs with
+        (* /.../ matches any constant or interpolated regexp *)
+        | [ StrChars ("...", tok) ] -> G.Ellipsis tok
+        (* /$X/ matches any constant or interpolated regexp *)
+        | [ StrChars ((s, _tok) as x) ] when MV.is_metavar_name s ->
+            G.N (G.Id (x, G.empty_id_info ()))
+        (* regexps are otherwise handled like 'String (Double _)' *)
+        | [ StrChars (s, t2) ] ->
+            let t = PI.combine_infos l [ t2; r ] in
+            G.L (G.String (s, t))
+        | xs -> interpolated_string (l, xs, r)
+      in
+      G.Regexp ((l, e |> G.e, r), opt)
 
 and expr_special_cases e =
   (* Code parsed as expressions in Ruby that we want to represent

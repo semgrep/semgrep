@@ -341,8 +341,8 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
       | Some { e = L (String (_, tok)); _ } -> make_type string_str tok
       | Some { e = Regexp ((l, _fragments, _r), _); _ } ->
-         (* TODO: need proper location instead of just the opening '/'? *)
-         make_type "regexp" l
+          (* TODO: need proper location instead of just the opening '/'? *)
+          make_type "regexp" l
       | Some { e = L (Unit tok); _ } -> make_type "unit" tok
       | Some { e = L (Null tok); _ } -> make_type "null" tok
       | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
