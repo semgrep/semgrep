@@ -181,6 +181,11 @@ def run_rules(
 
         for rule in dependency_aware_rules:
             if rule.should_run_on_semgrep_core:
+                # If we have a reachability rule (contains a pattern)
+                # First we check if each match has a lockfile with the correct vulnerability and turn these into SCA findings
+                # Then we generate unreachable findings in all the remaining targeted lockfiles
+                # For each rule, we do not want to generate an unreachable finding in a lockfile
+                # that already has a reachable finding, so we exclude them
                 (
                     dep_rule_matches,
                     dep_rule_errors,
