@@ -29,6 +29,7 @@ class ScanHandler:
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
+        self._policy: List[str] = []
         self._autofix = False
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
@@ -48,6 +49,13 @@ class ScanHandler:
         Seperate property for easy of mocking in test
         """
         return self._deployment_name
+
+    @property
+    def policy(self) -> List[str]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._policy
 
     @property
     def autofix(self) -> bool:
@@ -70,6 +78,33 @@ class ScanHandler:
         """
         return self._skipped_match_based_ids
 
+    def get_scan_config(self, meta: Dict[str, Any]) -> None:
+        """
+        Get configurations for scan
+        """
+        state = get_state()
+        logger.debug("Getting scan configurations")
+
+        response = state.app_session.get(
+            f"{state.env.semgrep_url}/api/agent/deployments/scans/config",
+            json={"meta": meta},
+        )
+
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            )
+
+        body = response.json()
+        self._deployment_id = body["deployment_id"]
+        self._deployment_name = body["deployment_name"]
+        self._policy = body["policy"]
+        self._autofix = body.get("autofix", False)
+        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
+        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
+
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
         Get scan id and file ignores
@@ -81,7 +116,7 @@ class ScanHandler:
 
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
-            json={"meta": meta, "dry_run": self.dry_run},
+            json={"meta": meta, "policy": self._policy},
         )
 
         if self.dry_run:
@@ -107,13 +142,8 @@ class ScanHandler:
             )
 
         body = response.json()
-        self._deployment_id = body["scan"]["deployment_id"]
-        self._deployment_name = body["deployment_name"]
         self.scan_id = body["scan"]["id"]
-        self._autofix = body.get("autofix", False)
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
 
     @property
     def scan_rules_url(self) -> str:
