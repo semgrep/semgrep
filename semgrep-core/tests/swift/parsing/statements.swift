@@ -131,6 +131,22 @@ repeat {} while true
 repeat {} while case x = true
 repeat {} while async let x = 1
 
+// Do-statements
+do {
+  var x = 2
+} catch foo {}
+
+do {
+  var x = 2
+} catch {}
+
+do {
+  var x = 2
+} catch foo {
+} catch bar where true == true {
+} catch {
+}
+
 // Protocol
 
 protocol foo {

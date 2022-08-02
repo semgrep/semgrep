@@ -981,19 +981,18 @@ and map_capture_list_item (env : env) (x : CST.capture_list_item) =
       todo env (v1, v2, v3)
 
 and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
-  let v1 = (* catch_keyword *) token env v1 in
-  let v2 =
-    match v2 with
-    | Some x -> map_binding_pattern_no_expr env x
-    | None -> todo env ()
+  let catch_tok = (* catch_keyword *) token env v1 in
+  let pat =
+    match (v2, v3) with
+    (* Similar to how Python does it: *)
+    | None, None -> G.PatUnderscore (Parse_info.fake_info catch_tok "_")
+    | Some v2, None -> map_binding_pattern_no_expr env v2
+    | None, Some _ -> raise Common.Impossible
+    | Some v2, Some v3 ->
+        G.PatWhen (map_binding_pattern_no_expr env v2, map_where_clause env v3)
   in
-  let v3 =
-    match v3 with
-    | Some x -> map_where_clause env x
-    | None -> todo env ()
-  in
-  let v4 = map_function_body env v4 in
-  todo env (v1, v2, v3, v4)
+  let stmt = map_function_body env v4 in
+  (catch_tok, G.CatchPattern pat, stmt)
 
 and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = (* "{" *) token env v1 in
@@ -1078,7 +1077,12 @@ and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
   let entity = G.basic_entity v2 in
   let definition_kind =
     G.FuncDef
-      { fkind = (G.Method, snd v2); fparams = []; frettype = None; fbody = v3 }
+      {
+        fkind = (G.Method, snd v2);
+        fparams = [];
+        frettype = None;
+        fbody = G.FBStmt v3;
+      }
   in
   G.DefStmt (entity, definition_kind) |> G.s
 
@@ -1138,10 +1142,13 @@ and map_directly_assignable_expression (env : env)
   | `Self_exp tok -> map_self_expression env tok
 
 and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
-  let v1 = (* "do" *) token env v1 in
+  let do_tok = (* "do" *) token env v1 in
   let v2 = map_function_body env v2 in
   let v3 = Common.map (map_catch_block env) v3 in
-  todo env (v1, v2, v3)
+  (* TODO? A do statement is not quite the same as a `try`... but it's close
+     enough?
+  *)
+  G.Try (do_tok, v2, v3, None) |> G.s
 
 and map_else_options (env : env) (x : CST.else_options) =
   match x with
@@ -1273,20 +1280,16 @@ and map_for_statement (env : env)
     let exp = map_expression env v7 in
     G.ForEach (pat, in_tok, exp)
   in
-  let body =
-    match map_function_body env v9 with
-    | FBStmt stmt -> stmt
-    | _ -> raise Common.Impossible
-  in
+  let body = map_function_body env v9 in
   G.For (for_tok, header, body) |> G.s
 
-and map_function_body (env : env) (x : CST.function_body) : G.function_body =
-  G.FBStmt (map_block env x)
+and map_function_body (env : env) (x : CST.function_body) : G.stmt =
+  map_block env x
 
 and map_function_declaration (env : env) ~in_class
     ((v1, v2) : CST.function_declaration) =
   let v2 = map_function_body env v2 in
-  let v1 = map_bodyless_function_declaration env ~in_class v1 v2 in
+  let v1 = map_bodyless_function_declaration env ~in_class v1 (G.FBStmt v2) in
   v1
 
 and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
@@ -1830,7 +1833,9 @@ and map_modifierless_function_declaration (env : env)
     ((v1, v2) : CST.modifierless_function_declaration) =
   let v2 = map_function_body env v2 in
   let in_class = todo env () in
-  let v1 = map_modifierless_function_declaration_no_body env ~in_class v1 v2 in
+  let v1 =
+    map_modifierless_function_declaration_no_body env ~in_class v1 (G.FBStmt v2)
+  in
   todo env (v1, v2)
 
 and map_type_with_modifiers env ty attrs =
@@ -2297,7 +2302,7 @@ and map_protocol_member_declaration (env : env)
   | `Body_func_decl_opt_func_body (v1, v2) ->
       let v2 =
         match v2 with
-        | Some x -> map_function_body env x
+        | Some x -> G.FBStmt (map_function_body env x)
         | None -> G.FBNothing
       in
       let v1 = map_bodyless_function_declaration env ~in_class:true v1 v2 in
