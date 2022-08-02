@@ -2660,17 +2660,22 @@ and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
 and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
     G.stmt list =
   match x with
-  | `Import_decl x -> [ map_import_declaration env x ]
-  | `Prop_decl x -> map_property_declaration env x
-  | `Typeas_decl x -> [ map_typealias_declaration env x ]
-  | `Func_decl x -> [ map_function_declaration env ~in_class:true x ]
-  | `Class_decl x -> [ map_class_declaration env x ]
-  | `Prot_decl x -> [ map_protocol_declaration env x ]
-  | `Deinit_decl x -> [ map_deinit_declaration env x ]
-  | `Subs_decl x -> [ map_subscript_declaration env x ]
-  | `Op_decl x -> map_operator_declaration env x
-  | `Prec_group_decl x -> map_precedence_group_declaration env x
-  | `Asso_decl x -> [ map_associatedtype_declaration env x ]
+  | `Choice_import_decl x -> (
+      match x with
+      | `Import_decl x -> [ map_import_declaration env x ]
+      | `Prop_decl x -> map_property_declaration env x
+      | `Typeas_decl x -> [ map_typealias_declaration env x ]
+      | `Func_decl x -> [ map_function_declaration env ~in_class:true x ]
+      | `Class_decl x -> [ map_class_declaration env x ]
+      | `Prot_decl x -> [ map_protocol_declaration env x ]
+      | `Deinit_decl x -> [ map_deinit_declaration env x ]
+      | `Subs_decl x -> [ map_subscript_declaration env x ]
+      | `Op_decl x -> map_operator_declaration env x
+      | `Prec_group_decl x -> map_precedence_group_declaration env x
+      | `Asso_decl x -> [ map_associatedtype_declaration env x ])
+  | `Semg_ellips tok (* "..." *) ->
+      let tok = (* three_dot_operator_custom *) token env tok in
+      [ G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s ]
 
 and map_type_modifiers (env : env) (x : CST.type_modifiers) =
   map_type_parameter_modifiers env x
