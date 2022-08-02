@@ -208,8 +208,8 @@ let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
 
 let map_throws (env : env) (x : CST.throws) =
   match x with
-  | `Throws_kw tok -> (* throws_keyword *) token env tok
-  | `Rethrs_kw tok -> (* rethrows_keyword *) token env tok
+  | `Throws_kw tok -> (* throws_keyword *) G.attr G.Throws (token env tok)
+  | `Rethrs_kw tok -> (* rethrows_keyword *) G.attr G.Rethrows (token env tok)
 
 let map_postfix_unary_operator (env : env) (x : CST.postfix_unary_operator)
     (e : G.expr) =
@@ -485,7 +485,7 @@ let map_getter_effects (env : env) (xs : CST.getter_effects) =
     (fun x ->
       match x with
       | `Async_kw tok -> (* async_keyword_custom *) token env tok
-      | `Throws x -> map_throws env x)
+      | `Throws x -> map_throws env x |> todo env)
     xs
 
 let map_precedence_group_attributes (env : env)
@@ -1816,6 +1816,9 @@ and map_modifierless_function_declaration (env : env)
   let v1 = map_modifierless_function_declaration_no_body env ~in_class v1 v2 in
   todo env (v1, v2)
 
+and map_type_with_modifiers env ty attrs =
+  { ty with G.t_attrs = ty.G.t_attrs @ attrs }
+
 and map_modifierless_function_declaration_no_body (env : env) ~in_class
     ((v1, v2, v3, v4, v5, v6, v7) :
       CST.modifierless_function_declaration_no_body) (body : G.function_body) =
@@ -1830,30 +1833,35 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
     | None -> []
   in
   let v3 = map_function_value_parameters env v3 in
-  let v4 =
-    match v4 with
-    | Some tok -> (* async_keyword_custom *) token env tok |> todo env
-    | None -> ()
-  in
-  let v5 =
-    match v5 with
-    | Some x -> map_throws env x |> todo env
-    | None -> ()
+  let rettype_attrs =
+    let v4 =
+      match v4 with
+      | Some tok ->
+          (* async_keyword_custom *) [ G.attr G.Async (token env tok) ]
+      | None -> []
+    in
+    let v5 =
+      match v5 with
+      | Some x -> [ map_throws env x ]
+      | None -> []
+    in
+    v4 @ v5
   in
   let v6 =
     match v6 with
     | Some (v1, v2) ->
-        let v1 = (* arrow_operator_custom *) token env v1 in
-        let v2 = map_possibly_implicitly_unwrapped_type env v2 in
-        Some v2
+        let _ = (* arrow_operator_custom *) token env v1 in
+        let ty = map_possibly_implicitly_unwrapped_type env v2 in
+        let res = map_type_with_modifiers env ty rettype_attrs in
+        Some res
     | None -> None
   in
   let v7 =
     match v7 with
-    | Some x -> map_type_constraints env x |> todo env
-    | None -> ()
+    | Some x -> map_type_constraints env x
+    | None -> []
   in
-  let entity = G.basic_entity ~tparams:v2 v1 in
+  let entity = G.basic_entity ~tparams:v2 ~attrs:v7 v1 in
   let kind = if in_class then G.Method else G.Function in
   let definition_kind =
     G.FuncDef
@@ -2070,11 +2078,6 @@ and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter) default
 and map_possibly_implicitly_unwrapped_type (env : env)
     ((v1, v2) : CST.possibly_implicitly_unwrapped_type) =
   let v1 = map_type_ env v1 in
-  let v2 =
-    match v2 with
-    | Some tok -> (* "!" *) token env tok |> todo env
-    | None -> ()
-  in
   v1
 
 and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
