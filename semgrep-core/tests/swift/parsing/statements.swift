@@ -126,6 +126,11 @@ while case x = true {}
 while async let x = true {}
 while async var x : true = true {}
 
+// Repeat-while loops
+repeat {} while true
+repeat {} while case x = true
+repeat {} while async let x = 1
+
 // Protocol
 
 protocol foo {

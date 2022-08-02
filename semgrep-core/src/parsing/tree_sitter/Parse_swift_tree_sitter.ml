@@ -1366,7 +1366,7 @@ and map_if_condition_sequence_item (env : env)
       let v1 = map_direct_or_indirect_binding env v1 in
       let v2 = (* eq_custom *) token env v2 in
       let v3 = map_expression env v3 in
-      G.OtherCond (("LetBind", v2), [ G.E (G.LetPattern (v1, v3) |> G.e) ])
+      G.Cond (G.LetPattern (v1, v3) |> G.e)
   | `Exp x -> G.Cond (map_expression env x)
   | `Avai_cond (v1, v2, v3, v4, v5) ->
       let v1 = (* "#available" *) token env v1 in
@@ -2362,16 +2362,24 @@ and map_raw_str_interpolation (env : env)
 
 and map_repeat_while_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.repeat_while_statement) =
-  let v1 = (* "repeat" *) token env v1 in
-  let v2 = (* "{" *) token env v2 in
-  let v3 =
-    match v3 with
-    | Some x -> map_statements env x
-    | None -> todo env ()
+  let repeat_tok = (* "repeat" *) token env v1 in
+  let stmt =
+    let left = (* "{" *) token env v2 in
+    let right = (* "}" *) token env v4 in
+    let stmts =
+      match v3 with
+      | Some x -> map_statements env x
+      | None -> []
+    in
+    G.Block (left, stmts, right) |> G.s
   in
-  let v4 = (* "}" *) token env v4 in
   let v5 = (* "while" *) token env v5 in
-  let v6 = map_if_condition_sequence_item env v6 in
+  let expr =
+    match map_if_condition_sequence_item env v6 with
+    | Cond expr -> expr
+    | _ -> raise Common.Impossible (* for now *)
+  in
+  (* TODO: multiple conds *)
   let v7 =
     Common.map
       (fun (v1, v2) ->
@@ -2380,7 +2388,7 @@ and map_repeat_while_statement (env : env)
         todo env (v1, v2))
       v7
   in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  G.DoWhile (repeat_tok, stmt, expr) |> G.s
 
 and map_simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
     G.ident * G.type_arguments option =
