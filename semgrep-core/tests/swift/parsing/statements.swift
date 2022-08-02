@@ -147,6 +147,12 @@ do {
 } catch {
 }
 
+// If-statements
+if true {}
+if true {} else {}
+if async let x = true {} else {}
+if case x = true {} else if case x = false {} else {}
+
 // Protocol
 
 protocol foo {
