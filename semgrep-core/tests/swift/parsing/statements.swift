@@ -198,3 +198,11 @@ foo: if 1 < 150 {
 
 bar: for x in collection {
 }
+
+baz: while async let x = true {}
+
+qux: do { var x = 2 } catch {}
+
+corn: switch foo {}
+
+learn: repeat {} while true
