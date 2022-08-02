@@ -1,6 +1,5 @@
 # find lockfiles
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 from typing import Dict
 from typing import Iterable
@@ -115,24 +114,21 @@ def make_dependency_trie(
     return dep_trie
 
 
-@lru_cache(maxsize=None)
-def search_path(p: Path, lockfile_pattern: str) -> Optional[Path]:
-    path = p / lockfile_pattern
-    if path.exists():
-        return path
-    else:
-        return None
-
-
 def find_single_lockfile(
     p: Path, ecosystem: PackageManagers
 ) -> Optional[Tuple[Path, List[LockfileDependency]]]:
+    """
+    Find the nearest lockfile in a given ecosystem to P
+    Searches only up the directory tree
+    """
     for path in p.parents:
         for lockfile_pattern in NAMESPACE_TO_LOCKFILES[ecosystem]:
-            lockfile = search_path(path, lockfile_pattern)
-            if lockfile:
-                return lockfile, list(
-                    parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
+            lockfile_path = path / lockfile_pattern
+            if lockfile_path.exists():
+                return lockfile_path, list(
+                    parse_lockfile_str(
+                        lockfile_path.read_text(encoding="utf8"), lockfile_path
+                    )
                 )
             else:
                 continue
