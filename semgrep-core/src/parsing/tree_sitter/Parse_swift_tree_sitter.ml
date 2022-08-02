@@ -2487,18 +2487,18 @@ and map_subscript_declaration (env : env)
 and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
-  let v2 =
+  let case =
     match v2 with
     | `Case_switch_pat_opt_where_kw_exp_rep_COMMA_switch_pat (v1, v2, v3, v4) ->
-        let v1 = (* "case" *) token env v1 in
-        let v2 = map_switch_pattern env v2 in
-        let v3 =
+        let case_tok = (* "case" *) token env v1 in
+        let pat_init = map_switch_pattern env v2 in
+        let add_pat_where pat =
           match v3 with
-          | Some x -> map_where_clause env x
-          | None -> todo env ()
+          | Some x -> G.PatWhen (pat, map_where_clause env x)
+          | None -> pat
         in
         let v4 =
           Common.map
@@ -2508,29 +2508,31 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
               todo env (v1, v2))
             v4
         in
-        todo env (v1, v2, v3, v4)
-    | `Defa_kw tok -> (* default_keyword *) token env tok
+        let pat = pat_init |> add_pat_where in
+        G.Case (case_tok, pat)
+    | `Defa_kw tok -> (* default_keyword *) G.Default (token env tok)
   in
   let v3 = (* ":" *) token env v3 in
-  let v4 = map_statements env v4 in
+  let stmt = G.Block (G.fake_bracket (map_statements env v4)) in
+  (* For now, don't deal with fallthrough. *)
   let v5 =
     match v5 with
-    | Some tok -> (* "fallthrough" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "fallthrough" *) token env tok |> todo env
+    | None -> ()
   in
-  todo env (v1, v2, v3, v4, v5)
+  G.CasesAndBody ([ case ], stmt |> G.s)
 
 and map_switch_pattern (env : env) (x : CST.switch_pattern) =
   map_binding_pattern_with_expr env x
 
 and map_switch_statement (env : env)
     ((v1, v2, v3, v4, v5) : CST.switch_statement) =
-  let v1 = (* "switch" *) token env v1 in
-  let v2 = map_expression env v2 in
+  let switch_tok = (* "switch" *) token env v1 in
+  let expr = map_expression env v2 in
   let v3 = (* "{" *) token env v3 in
   let v4 = Common.map (map_switch_entry env) v4 in
   let v5 = (* "}" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  G.Switch (switch_tok, Some (G.Cond expr), v4) |> G.s
 
 and map_expr_hack_at_ternary_binary_suffix (env : env)
     (x : CST.expr_hack_at_ternary_binary_suffix) =

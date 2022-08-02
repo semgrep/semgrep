@@ -153,6 +153,25 @@ if true {} else {}
 if async let x = true {} else {}
 if case x = true {} else if case x = false {} else {}
 
+// Switch statements
+switch foo {
+}
+
+switch foo {
+  case y:
+    var x = 2
+    var x = 3
+  case x where true == true:
+    return 2
+  case let x where true == true:
+    return 2
+  case var x:
+    return 2
+  case _:
+    return 3
+  default:
+}
+
 // Protocol
 
 protocol foo {
