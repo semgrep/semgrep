@@ -1059,7 +1059,7 @@ and map_constructor_value_arguments (env : env)
 and map_control_transfer_statement (env : env)
     (x : CST.control_transfer_statement) semi =
   match x with
-  | `Throw_stmt x -> map_throw_statement env x
+  | `Throw_stmt x -> map_throw_statement env x semi
   | `Opti_valu_cont_kw_opt_exp (v1, v2) ->
       let v2 =
         match v2 with
@@ -1679,6 +1679,11 @@ and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
       in
       let v2 = map_modifierless_class_declaration env v2 in
       todo env (v1, v2)
+
+and map_semi (env : env) (semi : CST.semi option) : G.sc =
+  match semi with
+  | None -> G.sc
+  | Some semi -> token env semi
 
 and map_local_statement (env : env) (x : CST.local_statement)
     (semi : CST.semi option) : G.stmt list =
@@ -2513,10 +2518,11 @@ and map_ternary_expression (env : env)
   let v5 = map_expr_hack_at_ternary_binary_suffix env v5 in
   G.Conditional (v1, v3, v5) |> G.e
 
-and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
+and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement)
+    (semi : G.sc) =
   let v1 = (* "throw" *) token env v1 in
   let v2 = map_expression env v2 in
-  todo env (v1, v2)
+  G.Throw (v1, v2, semi) |> G.s
 
 and map_tuple_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.tuple_expression) : G.expr =
@@ -2945,7 +2951,7 @@ let map_top_level_statement (env : env) (x : CST.top_level_statement)
       [ G.ExprStmt (expr, semi) |> G.s ]
   | `Global_decl x -> map_global_declaration env x
   | `Labe_stmt x -> [ map_labeled_statement env x ]
-  | `Throw_stmt x -> map_throw_statement env x |> todo env
+  | `Throw_stmt x -> [ map_throw_statement env x (map_semi env semi) ]
 
 let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
     =
