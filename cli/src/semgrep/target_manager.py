@@ -20,7 +20,12 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Union
 
+from semdep.models import NAMESPACE_TO_LOCKFILES
+from semdep.models import PackageManagers
+from semdep.package_restrictions import LockfileDependency
+from semdep.parse_lockfile import parse_lockfile_str
 from semgrep.git import BaselineHandler
 
 # usually this would be a try...except ImportError
@@ -111,7 +116,9 @@ class FileTargetingLog:
     # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
-    by_language: Dict[Language, Set[Path]] = Factory(lambda: defaultdict(set))
+    by_language: Dict[Union[Language, PackageManagers], Set[Path]] = Factory(
+        lambda: defaultdict(set)
+    )
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
@@ -555,21 +562,32 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Language, *, candidates: FrozenSet[Path]
+        self, language: Union[Language, PackageManagers], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
-        Returns only paths that have the correct extension or shebang.
+        Returns only paths that have the correct extension or shebang, or are the correct lockfile format
 
         Finds all files in a collection of paths that either:
         - end with one of a set of extension
         - is a script that executes with one of a set of programs
+        - are lockfiles associated with a given ecosystem
         """
-        kept = frozenset(
-            path
-            for path in candidates
-            if any(str(path).endswith(ext) for ext in language.definition.exts)
-            or self.executes_with_shebang(path, language.definition.shebangs)
-        )
+        if isinstance(language, Language):
+            kept = frozenset(
+                path
+                for path in candidates
+                if any(str(path).endswith(ext) for ext in language.definition.exts)
+                or self.executes_with_shebang(path, language.definition.shebangs)
+            )
+        else:
+            kept = frozenset(
+                path
+                for path in candidates
+                if any(
+                    str(path.parts[-1]) == lockfile_name
+                    for lockfile_name in NAMESPACE_TO_LOCKFILES[language]
+                )
+            )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
@@ -637,10 +655,12 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(self, lang: Language) -> FilteredFiles:
+    def get_files_for_language(
+        self, lang: Union[Language, PackageManagers]
+    ) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
-        an extension matching LANG that match any pattern in INCLUDES and do not
+        an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
@@ -712,3 +732,16 @@ class TargetManager:
         self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return paths.kept
+
+    @lru_cache(maxsize=None)
+    def get_lockfile_dependencies(
+        self, ecosystem: PackageManagers
+    ) -> List[Tuple[Path, List[LockfileDependency]]]:
+        lockfiles = self.get_files_for_language(ecosystem).kept
+        return [
+            (
+                lockfile,
+                list(parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)),
+            )
+            for lockfile in lockfiles
+        ]

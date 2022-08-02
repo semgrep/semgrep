@@ -1,5 +1,5 @@
 === command
-SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/java-gradle-sca.yaml --json targets/dependency_aware/sca-gradle.java
+SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERSION_CACHE_PATH="<MASKED>" SEMGREP_ENABLE_VERSION_CHECK="0" SEMGREP_SEND_METRICS="off" semgrep --strict --config rules/dependency_aware/java-gradle-sca.yaml --json targets/dependency_aware/gradle
 === end of command
 
 === exit code
@@ -12,7 +12,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": [
-      "targets/dependency_aware/sca-gradle.java"
+      "targets/dependency_aware/gradle/sca-gradle.java"
     ]
   },
   "results": [
@@ -39,10 +39,10 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "resolved_url": null,
               "version": "3.35.2"
             },
-            "lockfile": "targets/dependency_aware/gradle.lockfile"
+            "lockfile": "targets/dependency_aware/gradle/gradle.lockfile"
           }
         ],
-        "fingerprint": "285628a0ecedf3d0a50221c80471258de9efded72478da7f01cd2efa4247fc6a1b0c792976aaedf4161b1f91f40d6f4228521dd460b47ada1fed806086a4c803_0",
+        "fingerprint": "fb37301199de446d37504950b022ee8f468b1ebb9620feb425f9434966d9537655d6575823e946c2ab5d458038b8b62d03048384e100a8d274ac82dc2931f480_0",
         "is_ignored": false,
         "lines": "        return bad()",
         "message": "oh no",
@@ -50,7 +50,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "metavars": {},
         "severity": "WARNING"
       },
-      "path": "targets/dependency_aware/sca-gradle.java",
+      "path": "targets/dependency_aware/gradle/sca-gradle.java",
       "start": {
         "col": 16,
         "line": 3,
