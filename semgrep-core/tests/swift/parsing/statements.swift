@@ -120,6 +120,12 @@ for try! await x in collection {
 for x in collection where true == true {
 }
 
+// While loops
+while true {}
+while case x = true {}
+while async let x = true {}
+while async var x : true = true {}
+
 // Protocol
 
 protocol foo {
