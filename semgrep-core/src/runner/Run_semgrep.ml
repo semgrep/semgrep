@@ -33,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * and we also need a way to run the semgrep engine from semgrep-core
  * variants, hence this callable library.
  *
- * See README.md in this folder for some notes
+ * See mli file for some notes on performance
  *)
 
 (*****************************************************************************)
