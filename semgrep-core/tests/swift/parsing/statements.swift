@@ -106,6 +106,20 @@ extension bar { }
 // TODO test other varieties
 enum baz { }
 
+// For-in loops
+for x in collection {
+}
+for await x in collection {
+}
+for try await x in collection {
+}
+for try? await x in collection {
+}
+for try! await x in collection {
+}
+for x in collection where true == true {
+}
+
 // Protocol
 
 protocol foo {
@@ -128,5 +142,7 @@ protocol foo: bar, baz { }
 // protocol foo<T> where T: bar { }
 
 foo: if 1 < 150 {
-    var thing = 122
+}
+
+bar: for x in collection {
 }
