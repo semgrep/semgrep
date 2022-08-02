@@ -126,3 +126,7 @@ protocol foo: bar { }
 protocol foo: bar, baz { }
 // TODO
 // protocol foo<T> where T: bar { }
+
+// Throws
+throw badthing
+throw badthingagain;
