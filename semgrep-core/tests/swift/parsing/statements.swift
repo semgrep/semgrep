@@ -130,3 +130,10 @@ protocol foo: bar, baz { }
 // Throws
 throw badthing
 throw badthingagain;
+
+// Operator
+
+prefix operator !!!;
+infix operator !!!;
+postfix operator !!!;
+prefix operator !!!: precedence;
