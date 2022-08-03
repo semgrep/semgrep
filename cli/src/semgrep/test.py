@@ -579,7 +579,13 @@ def generate_test_results(
         for file_results in results_output.values()
         for check_results in file_results["checks"].values()
     )
-    exit_code = int(strict_error or any_failures)
+
+    any_fixtest_failures = any(
+        not fixtest_file_results["passed"]
+        for fixtest_file_results in fixtest_results_output.values()
+    )
+
+    exit_code = int(strict_error or any_failures or any_fixtest_failures)
 
     if json_output:
         print(json.dumps(output, indent=4, separators=(",", ": ")))
