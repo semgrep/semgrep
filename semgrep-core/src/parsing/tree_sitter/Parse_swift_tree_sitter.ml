@@ -577,6 +577,9 @@ and map_enum_entry_suffix_union (env : env) (ident : G.ident)
       let fields =
         match v2 with
         | Some (v1, v2, v3, v4) ->
+            (* This is like how CPP does it. If there's no name, the entity just
+               has an anonymous name.
+            *)
             let mk_field id_opt ty expr_opt =
               let name =
                 match id_opt with
@@ -604,6 +607,9 @@ and map_enum_entry_suffix_union (env : env) (ident : G.ident)
       G.TyRecordAnon ((G.Class, v1), (v1, fields, v3)) |> G.t
   | `Equal_sign_exp (v1, v2) -> raise Common.Impossible
 
+(* Similarly to how Java handles enum fields, each are parsed as an
+   EnumEntryDef.
+*)
 and map_enum_entry_suffix_raw (env : env) (ent : G.entity)
     (x : CST.enum_entry_suffix) : G.stmt =
   match x with
@@ -1166,7 +1172,9 @@ and map_enum_class_body (is_raw : bool) (enum_ident : G.ident) (env : env)
       fields
     else
       (* Get all of the enum variants, and put them at the front as an OrType declaration.
-     *)
+         This is because we can't really leave them strewn about and preserve ordering, if we're
+         gonna put them in an OrType.
+      *)
       let collect_entries entries =
         List.fold_right
           (fun entry (variants, decls) ->
