@@ -194,7 +194,7 @@ let semgrep_check config metachecks rules =
       config with
       Runner_config.lang = Some (Xlang.of_lang Yaml);
       rules_file = metachecks;
-      output_format = Json;
+      output_format = No_output;
       (* the targets are actually the rules! metachecking! *)
       roots = rules;
     }
@@ -260,6 +260,7 @@ let check_files mk_config fparser input =
     | metachecks :: xs -> run_checks config fparser metachecks xs
   in
   match config.output_format with
+  | No_output -> ()
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
   | Json ->
       let res = { RP.empty_final_result with errors } in

@@ -682,6 +682,7 @@ let semgrep_with_rules_and_formatted_output config =
    * Common2.write_value matches "/tmp/debug_matches";
    *)
   match config.output_format with
+  | No_output -> ()
   | Json -> (
       let res = JSON_report.match_results_of_matches_and_errors files res in
       (*
@@ -770,6 +771,7 @@ let semgrep_with_one_pattern config =
   let pattern, pattern_string = pattern_of_config lang config in
 
   match config.output_format with
+  | No_output -> ()
   | Json ->
       let rule, rules_parse_time =
         Common.with_time (fun () -> rule_of_pattern lang pattern_string pattern)

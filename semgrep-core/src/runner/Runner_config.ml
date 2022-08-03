@@ -4,7 +4,8 @@ open Common
    Type definitions, mostly.
 *)
 
-type output_format = Text | Json [@@deriving show]
+(* No_output is for internal utilities that wrap semgrep *)
+type output_format = No_output | Text | Json [@@deriving show]
 
 type t = {
   (* Debugging/profiling/logging flags *)

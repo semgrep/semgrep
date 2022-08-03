@@ -208,6 +208,7 @@ let json_of_v (v : OCaml.v) =
 
 let dump_v_to_format (v : OCaml.v) =
   match !output_format with
+  | No_output -> ""
   | Text -> OCaml.string_of_v v
   | Json -> J.string_of_json (json_of_v v)
 
@@ -382,6 +383,12 @@ let all_actions () =
           Test_parsing.parsing_stats
             (Xlang.lang_of_opt_xlang !lang)
             ~json:(!output_format = Json) ~verbose:true xs) );
+    ( "-pattern_parsing_stats",
+      " <files or dirs> generate pattern parsing statistics",
+      Common.mk_action_n_arg (fun xs ->
+          Pattern_parse_stats.get_pattern_parse_stats mk_config
+            (Xlang.lang_of_opt_xlang !lang)
+            xs) );
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
