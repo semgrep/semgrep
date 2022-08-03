@@ -105,6 +105,37 @@ extension bar { }
 
 // TODO test other varieties
 enum baz { }
+enum Error: Int {
+    case a = 1
+    case b
+}
+enum Error: String {
+    case a = "hi"
+    case b
+}
+enum Error: Character {
+    case a = "h"
+    case b
+}
+enum Error: Float {
+    case a = 0.0
+    func foo() { return 2 }
+    case b
+}
+enum SumType {
+  case a(Int, String)
+  case b
+}
+enum SumType<T> {
+  case a(Int, String)
+  case b(T)
+}
+enum SumTypeWithNames<T> {
+  case a(x: Int, String)
+  func foo() { return 2 }
+  case b(z: T)
+  case c(i: Int, Int, k: Character)
+}
 
 // For-in loops
 for x in collection {

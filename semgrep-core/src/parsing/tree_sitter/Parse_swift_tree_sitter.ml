@@ -459,14 +459,15 @@ let map_precedence_group_attribute (env : env)
 
 let map_tuple_type_item_identifier (env : env)
     ((v1, v2, v3) : CST.tuple_type_item_identifier) =
+  (* I don't really know why we permit underscores here. *)
   let v1 =
     match v1 with
-    | Some tok -> (* "_" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "_" *) token env tok |> todo env
+    | None -> ()
   in
   let v2 = map_simple_identifier env v2 in
   let v3 = (* ":" *) token env v3 in
-  todo env (v1, v2, v3)
+  v2
 
 let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
   match x with
@@ -579,57 +580,54 @@ let rec map_annotated_inheritance_specifier (env : env)
   let v2 = map_inheritance_specifier env v2 in
   v2
 
-and map_enum_entry_suffix (env : env) (x : CST.enum_entry_suffix) =
+and map_enum_entry_suffix_union (env : env) (ident : G.ident)
+    (x : CST.enum_entry_suffix) : G.type_ =
   match x with
   | `Enum_type_params (v1, v2, v3) ->
       let v1 = (* "(" *) token env v1 in
-      let v2 =
+      let init_tok = v1 in
+      let fields =
         match v2 with
         | Some (v1, v2, v3, v4) ->
-            let v1 =
-              match v1 with
-              | Some x -> map_tuple_type_item_identifier env x
-              | None -> todo env ()
+            let mk_field id_opt ty expr_opt =
+              let name =
+                match id_opt with
+                | Some x ->
+                    let ident = map_tuple_type_item_identifier env x in
+                    G.EN (G.Id (ident, G.empty_id_info ()))
+                | None -> G.OtherEntity (("AnonTupleField", init_tok), [])
+              in
+              let ty = map_type_ env ty in
+              let ent = { G.name; attrs = []; tparams = [] } in
+              G.DefStmt (ent, G.FieldDefColon { vinit = None; vtype = Some ty })
             in
-            let v2 = map_type_ env v2 in
-            let v3 =
-              match v3 with
-              | Some (v1, v2) ->
-                  let v1 = (* eq_custom *) token env v1 in
-                  let v2 = map_expression env v2 in
-                  todo env (v1, v2)
-              | None -> todo env ()
-            in
-            let v4 =
+            let field_first = mk_field v1 v2 v3 in
+            let field_rest =
               Common.map
                 (fun (v1, v2, v3, v4) ->
                   let v1 = (* "," *) token env v1 in
-                  let v2 =
-                    match v2 with
-                    | Some x -> map_tuple_type_item_identifier env x
-                    | None -> todo env ()
-                  in
-                  let v3 = map_type_ env v3 in
-                  let v4 =
-                    match v4 with
-                    | Some (v1, v2) ->
-                        let v1 = (* eq_custom *) token env v1 in
-                        let v2 = map_expression env v2 in
-                        todo env (v1, v2)
-                    | None -> todo env ()
-                  in
-                  todo env (v1, v2, v3, v4))
+                  mk_field v2 v3 v4)
                 v4
             in
-            todo env (v1, v2, v3, v4)
-        | None -> todo env ()
+            Common.map (fun x -> G.F (x |> G.s)) (field_first :: field_rest)
+        | None -> []
       in
       let v3 = (* ")" *) token env v3 in
-      todo env (v1, v2, v3)
+      G.TyRecordAnon ((G.Class, v1), (v1, fields, v3)) |> G.t
+  | `Equal_sign_exp (v1, v2) -> raise Common.Impossible
+
+and map_enum_entry_suffix_raw (env : env) (ent : G.entity)
+    (x : CST.enum_entry_suffix) : G.stmt =
+  match x with
+  | `Enum_type_params (v1, v2, v3) -> raise Common.Impossible
   | `Equal_sign_exp (v1, v2) ->
       let v1 = (* eq_custom *) token env v1 in
-      let v2 = map_expression env v2 in
-      todo env (v1, v2)
+      let exp = map_expression env v2 in
+      let defkind =
+        G.EnumEntryDef
+          { ee_args = Some (G.fake_bracket [ G.arg exp ]); ee_body = None }
+      in
+      G.DefStmt (ent, defkind) |> G.s
 
 and map_type_casting_pattern (env : env) (x : CST.type_casting_pattern) =
   match x with
@@ -1168,58 +1166,99 @@ and map_else_options (env : env) (x : CST.else_options) =
   | `Blk x -> map_block env x
   | `If_stmt x -> map_if_statement env x
 
-and map_enum_class_body (env : env) ((v1, v2, v3) : CST.enum_class_body) =
+and map_enum_class_body (is_raw : bool) (enum_ident : G.ident) (env : env)
+    ((v1, v2, v3) : CST.enum_class_body) =
   let v1 = (* "{" *) token env v1 in
-  let v2 =
-    Common.map
-      (fun x ->
-        match x with
-        | `Enum_entry x -> map_enum_entry env x
-        | `Type_level_decl x -> map_type_level_declaration env x)
-      v2
-    |> List.concat_map (fun entries ->
-           Common.map (fun entry -> G.F entry) entries)
-  in
   let v3 = (* "}" *) token env v3 in
-  (v1, v2, v3)
+  (* If it's raw, we expect initialized fields, and not constructors.
+     Vice versa for the opposite.
+  *)
+  let fields =
+    if is_raw then
+      let fields =
+        Common.map
+          (fun x ->
+            match x with
+            | `Enum_entry x -> map_enum_entry_raw env x
+            | `Type_level_decl x -> map_type_level_declaration env x)
+          v2
+        |> List.concat_map (fun fields -> Common.map (fun x -> G.F x) fields)
+      in
+      fields
+    else
+      (* Get all of the enum variants, and put them at the front as an OrType declaration.
+     *)
+      let collect_entries entries =
+        List.fold_right
+          (fun entry (variants, decls) ->
+            match entry with
+            | Either.Left new_variants -> (new_variants @ variants, decls)
+            | Right new_decls -> (variants, new_decls @ decls))
+          entries ([], [])
+      in
+      let or_type_elems, stmts =
+        Common.map
+          (fun x ->
+            match x with
+            | `Enum_entry x -> Either.Left (map_enum_entry_union env x)
+            | `Type_level_decl x ->
+                Either.Right (map_type_level_declaration env x))
+          v2
+        |> collect_entries
+      in
+      let type_def = { G.tbody = OrType or_type_elems } in
+      (G.DefStmt (G.basic_entity enum_ident, G.TypeDef type_def) |> G.s)
+      :: stmts
+      |> Common.map (fun x -> G.F x)
+  in
+  (v1, fields, v3)
 
-and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.enum_entry) =
-  let v1 =
+and map_enum_entry_raw (env : env)
+    ((v1, v2, v3, v4, v5, v6, _v7) : CST.enum_entry) : G.stmt list =
+  let modifiers =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> []
   in
   let v2 =
     match v2 with
-    | Some tok -> (* "indirect" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "indirect" *) token env tok |> todo env
+    | None -> []
   in
-  let v3 = (* "case" *) token env v3 in
-  let v4 = map_simple_identifier env v4 in
-  let v5 =
+  let mk_variant id suffix_opt =
+    let ent = G.basic_entity (map_simple_identifier env v4) in
     match v5 with
-    | Some x -> map_enum_entry_suffix env x
-    | None -> todo env ()
+    | Some x -> map_enum_entry_suffix_raw env ent x
+    | None ->
+        G.DefStmt (ent, G.EnumEntryDef { ee_args = None; ee_body = None })
+        |> G.s
   in
-  let v6 =
-    Common.map
-      (fun (v1, v2, v3) ->
-        let v1 = (* "," *) token env v1 in
-        let v2 = map_simple_identifier env v2 in
-        let v3 =
-          match v3 with
-          | Some x -> map_enum_entry_suffix env x
-          | None -> todo env ()
-        in
-        todo env (v1, v2, v3))
-      v6
+  let variant_first = mk_variant v4 v5 in
+  let variants_rest = Common.map (fun (v1, v2, v3) -> mk_variant v2 v3) v6 in
+  variant_first :: variants_rest
+
+and map_enum_entry_union (env : env)
+    ((v1, v2, v3, v4, v5, v6, _v7) : CST.enum_entry) : G.or_type_element list =
+  let modifiers =
+    match v1 with
+    | Some x -> map_modifiers env x |> todo env
+    | None -> []
   in
-  let v7 =
-    match v7 with
-    | Some tok -> (* ";" *) token env tok
-    | None -> todo env ()
+  let v2 =
+    match v2 with
+    | Some tok -> (* "indirect" *) token env tok |> todo env
+    | None -> []
   in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  let mk_variant id suffix_opt =
+    let ident = map_simple_identifier env v4 in
+    match v5 with
+    | Some x ->
+        G.OrConstructor (ident, [ map_enum_entry_suffix_union env ident x ])
+    | None -> G.OrConstructor (ident, [])
+  in
+  let variant_first = mk_variant v4 v5 in
+  let variants_rest = Common.map (fun (v1, v2, v3) -> mk_variant v2 v3) v6 in
+  variant_first :: variants_rest
 
 and map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
@@ -1792,6 +1831,18 @@ and construct_class_def :
   in
   G.ClassDef definition_kind
 
+(* TODO?: probably not complete, but that's OK *)
+and is_raw_type env s =
+  match s with
+  | "Int"
+  | "Double"
+  | "String"
+  | "Float"
+  | "UInt"
+  | "Character" ->
+      true
+  | _ -> false
+
 and map_modifierless_class_declaration (env : env)
     (x : CST.modifierless_class_declaration) =
   match x with
@@ -1840,13 +1891,30 @@ and map_modifierless_class_declaration (env : env)
       let v2 = (* "enum" *) token env v2 in
       let attrs = [ G.KeywordAttr (G.EnumClass, v2) ] in
       let v3 = map_simple_identifier env v3 in
+      (* If there are any tparams, then this must be a raw-value style enum. *)
       let tparams =
         match v4 with
         | Some x -> map_type_parameters env x
         | None -> []
       in
+      (* Basically, we can tell if we have a raw type if it's a certain kind of
+         base type like integers, floating point values, or whatever.
+         It's just kind of a pain to extract that information.
+      *)
+      let is_raw =
+        match v5 with
+        | None -> false
+        (* Yeah, I know, but this should cover the use cases that matter.
+         *)
+        | Some (_, (([], `User_type ((bid, None), [])), [])) ->
+            let s, _ = map_bound_identifier env bid in
+            is_raw_type env s
+        | _ -> false
+      in
       let entity = G.basic_entity ~attrs ~tparams v3 in
-      let classdef = construct_class_def env v2 v5 v6 v7 map_enum_class_body in
+      let classdef =
+        construct_class_def env v2 v5 v6 v7 (map_enum_class_body is_raw v3)
+      in
       G.DefStmt (entity, classdef) |> G.s
 
 and map_modifierless_function_declaration (env : env)
