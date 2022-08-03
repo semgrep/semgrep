@@ -139,7 +139,8 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                        E.mk_error ~rule_id:(Some rule_id) loc "" Out.Timeout
                      in
                      Left
-                       (RP.make_match_result [] [ error ]
+                       (RP.make_match_result []
+                          (Report.ErrorSet.singleton error)
                           (RP.empty_rule_profiling r))))
   in
   let res = RP.collate_rule_results xtarget.Xtarget.file res_rules in

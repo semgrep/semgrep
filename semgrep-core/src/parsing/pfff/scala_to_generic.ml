@@ -121,10 +121,14 @@ let v_dotted_name_of_stable_id (v1, v2) =
   let id = id_of_simple_ref v1 in
   id :: v2
 
-let rec v_import_expr tk (v1, v2) =
-  let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
-  let v2 = v_import_spec v2 in
-  v2 tk module_name
+let rec v_import_expr tk import_expr =
+  match import_expr with
+  | Left id ->
+      [ { G.d = G.ImportFrom (tk, DottedName [], id, None); d_attrs = [] } ]
+  | Right (v1, v2) ->
+      let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
+      let v2 = v_import_spec v2 in
+      v2 tk module_name
 
 and v_import_spec = function
   | ImportId v1 ->

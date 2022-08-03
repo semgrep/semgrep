@@ -1,0 +1,31 @@
+rules:
+  - id: ruby-module
+    message: Found a module
+    severity: INFO
+    patterns:
+      - pattern: module $MOD ... end
+      - focus-metavariable: $MOD
+    languages: [ ruby ]
+  - id: ocaml-let
+    message: Found a let
+    severity: INFO
+    patterns:
+      - pattern: let $PAT = ...
+      - focus-metavariable: $PAT
+    languages: [ ocaml ]
+  - id: scala-if
+    message: Found an if
+    severity: INFO
+    patterns:
+      - pattern: if ($COND) { ... }
+      - focus-metavariable: $COND
+    languages: [ scala ]
+  - id: php-fn
+    message: Found a function
+    severity: INFO
+    patterns:
+      - pattern: function $FN(...) { ... }
+      - focus-metavariable: $FN
+    languages: [ php ]
+
+

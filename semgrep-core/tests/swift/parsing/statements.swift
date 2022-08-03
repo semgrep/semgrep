@@ -96,3 +96,124 @@ class foo<bar: baz> { }
 // TODO
 // class foo<bar> where bar: baz { }
 // class foo<bar> where bar: baz, bar: asdf { }
+
+// TODO test other varieties
+struct foo { }
+
+// TODO test other varieties
+extension bar { }
+
+// TODO test other varieties
+enum baz { }
+
+// For-in loops
+for x in collection {
+}
+for await x in collection {
+}
+for try await x in collection {
+}
+for try? await x in collection {
+}
+for try! await x in collection {
+}
+for x in collection where true == true {
+}
+
+// While loops
+while true {}
+while case x = true {}
+while async let x = true {}
+while async var x : true = true {}
+
+// Repeat-while loops
+repeat {} while true
+repeat {} while case x = true
+repeat {} while async let x = 1
+
+// Do-statements
+do {
+  var x = 2
+} catch foo {}
+
+do {
+  var x = 2
+} catch {}
+
+do {
+  var x = 2
+} catch foo {
+} catch bar where true == true {
+} catch {
+}
+
+// If-statements
+if true {}
+if true {} else {}
+if async let x = true {} else {}
+if case x = true {} else if case x = false {} else {}
+
+// Switch statements
+switch foo {
+}
+
+switch foo {
+  case y:
+    var x = 2
+    var x = 3
+  case x where true == true:
+    return 2
+  case let x where true == true:
+    return 2
+  case var x:
+    return 2
+  case _:
+    return 3
+  default:
+}
+
+// Protocol
+
+protocol foo {
+    // The grammar allows bodies for functions/initializers/deinitializers but
+    // Swift actually does not.
+    //
+    // The grammar allows deinits here but Swift does not.
+    func foo()
+    init()
+    var foo: Int { get }
+    var foo: Int { get set }
+    var foo: Int { set get }
+    // TODO other options
+}
+
+protocol foo<T> { }
+protocol foo: bar { }
+protocol foo: bar, baz { }
+// TODO
+// protocol foo<T> where T: bar { }
+
+foo: if 1 < 150 {
+}
+
+bar: for x in collection {
+}
+
+baz: while async let x = true {}
+
+qux: do { var x = 2 } catch {}
+
+corn: switch foo {}
+
+learn: repeat {} while true
+
+// Throws
+throw badthing
+throw badthingagain;
+
+// Operator
+
+prefix operator !!!;
+infix operator !!!;
+postfix operator !!!;
+prefix operator !!!: precedence;

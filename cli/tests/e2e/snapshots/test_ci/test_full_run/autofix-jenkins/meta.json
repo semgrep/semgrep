@@ -2,7 +2,7 @@
   "meta": {
     "semgrep_version": "<sanitized version>",
     "repository": "org/repo",
-    "repo_url": "https://github.com/org/repo.git",
+    "repo_url": "https://github.com/org/repo",
     "branch": "some/branch-name",
     "ci_job_url": "https://jenkins.build.url",
     "commit": "sanitized",

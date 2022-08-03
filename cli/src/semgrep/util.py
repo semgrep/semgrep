@@ -1,8 +1,10 @@
 import functools
+import itertools
 import operator
 import os
 import subprocess
 import sys
+from io import TextIOWrapper
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -222,3 +224,42 @@ def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
                 """
             ).strip()
         )
+
+
+def read_range(fd: TextIOWrapper, start_offset: int, end_offset: int) -> str:
+    """
+    Takes a file descriptor and returns the text between the offsets. Start
+    inclusive, end exclusive.
+
+    It is recommended to open the fd with `open(path, errors="replace"). See
+    https://stackoverflow.com/a/56441652.
+    """
+    # Offsets are start inclusive and end exclusive
+    length = end_offset - start_offset
+    fd.seek(start_offset)
+    return fd.read(length)
+
+
+def get_lines(
+    path: Path,
+    start_line: int,
+    end_line: int,
+) -> List[str]:
+    """
+    Return lines in the given file.
+
+    Assumes file exists.
+    """
+    # Start and end line are one-indexed, but the subsequent slice call is
+    # inclusive for start and exclusive for end, so only subtract from start
+    start_line = start_line - 1
+
+    if start_line == -1 and end_line == 0:
+        # Completely empty file
+        return []
+
+    # buffering=1 turns on line-level reads
+    with path.open(buffering=1, errors="replace") as fd:
+        result = list(itertools.islice(fd, start_line, end_line))
+
+    return result

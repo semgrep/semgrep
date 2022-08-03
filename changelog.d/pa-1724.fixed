@@ -1,0 +1,4 @@
+Quick fix for a regression introduced in 0.107.0 (presumably by taint labels)
+that could cause some taint rules to crash Semgrep with:
+
+    Invalid_argument "output_value: abstract value (Custom)"

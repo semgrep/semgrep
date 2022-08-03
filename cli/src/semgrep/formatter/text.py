@@ -28,6 +28,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.util import format_bytes
+from semgrep.util import get_lines
 from semgrep.util import truncate
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -74,6 +75,87 @@ class TextFormatter(BaseFormatter):
         return line
 
     @staticmethod
+    def _format_lines(
+        path: Path,
+        start_line: int,
+        start_col: int,
+        end_line: int,
+        end_col: int,
+        lines: List[str],
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
+        show_separator: bool,
+    ) -> Iterator[str]:
+        trimmed = 0
+        stripped = False
+
+        if per_finding_max_lines_limit:
+            trimmed = len(lines) - per_finding_max_lines_limit
+            lines = lines[:per_finding_max_lines_limit]
+
+        # we remove indentation at the start of the snippet to avoid wasting space
+        dedented_lines = textwrap.dedent("".join(lines)).splitlines()
+        indent_len = (
+            len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
+            if len(dedented_lines) > 0 and len(lines) > 0
+            else 0
+        )
+
+        # since we dedented each line, we need to adjust where the highlighting is
+        start_col -= indent_len
+        end_col -= indent_len
+
+        for i, line in enumerate(dedented_lines):
+            line = line.rstrip()
+            line_number = ""
+            if start_line:
+                if color_output:
+                    line = TextFormatter._color_line(
+                        line,
+                        start_line + i,
+                        start_line,
+                        start_col,
+                        end_line,
+                        end_col,
+                    )
+                    line_number = f"{start_line + i}"
+                else:
+                    line_number = f"{start_line + i}"
+
+                if per_line_max_chars_limit and len(line) > per_line_max_chars_limit:
+                    stripped = True
+                    is_first_line = i == 0
+                    if is_first_line:
+                        line = (
+                            line[
+                                start_col - 1 : start_col - 1 + per_line_max_chars_limit
+                            ]
+                            + ELLIPSIS_STRING
+                        )
+                        if start_col > 1:
+                            line = ELLIPSIS_STRING + line
+                    else:
+                        line = line[:per_line_max_chars_limit] + ELLIPSIS_STRING
+                    # while stripping a string, the ANSI code for resetting color might also get stripped.
+                    line = line + colorama.Style.RESET_ALL
+
+            yield f" " * (
+                11 - len(line_number)
+            ) + f"{line_number}┆ {line}" if line_number else f"{line}"
+
+        if stripped:
+            stripped_str = f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
+            yield " " * FINDINGS_INDENT_DEPTH + stripped_str
+
+        if per_finding_max_lines_limit != 1:
+            if trimmed > 0:
+                trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
+                yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
+            elif lines and show_separator:
+                yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
+
+    @staticmethod
     def _finding_to_line(
         rule_match: RuleMatch,
         color_output: bool,
@@ -86,81 +168,71 @@ class TextFormatter(BaseFormatter):
         end_line = rule_match.end.line
         start_col = rule_match.start.col
         end_col = rule_match.end.col
-        trimmed = 0
-        stripped = False
         if path:
             lines = rule_match.extra.get("fixed_lines") or rule_match.lines
-
-            if per_finding_max_lines_limit:
-                trimmed = len(lines) - per_finding_max_lines_limit
-                lines = lines[:per_finding_max_lines_limit]
-
-            # we remove indentation at the start of the snippet to avoid wasting space
-            dedented_lines = textwrap.dedent("".join(lines)).splitlines()
-            indent_len = (
-                len(lines[0].rstrip()) - len(dedented_lines[0].rstrip())
-                if len(dedented_lines) > 0 and len(lines) > 0
-                else 0
+            yield from TextFormatter._format_lines(
+                path,
+                start_line,
+                start_col,
+                end_line,
+                end_col,
+                lines,
+                color_output,
+                per_finding_max_lines_limit,
+                per_line_max_chars_limit,
+                show_separator,
             )
 
-            # since we dedented each line, we need to adjust where the highlighting is
-            start_col -= indent_len
-            end_col -= indent_len
-
-            for i, line in enumerate(dedented_lines):
-                line = line.rstrip()
-                line_number = ""
-                if start_line:
-                    if color_output:
-                        line = TextFormatter._color_line(
-                            line,
-                            start_line + i,
-                            start_line,
-                            start_col,
-                            end_line,
-                            end_col,
-                        )
-                        line_number = f"{start_line + i}"
-                    else:
-                        line_number = f"{start_line + i}"
-
-                    if (
-                        per_line_max_chars_limit
-                        and len(line) > per_line_max_chars_limit
-                    ):
-                        stripped = True
-                        is_first_line = i == 0
-                        if is_first_line:
-                            line = (
-                                line[
-                                    start_col
-                                    - 1 : start_col
-                                    - 1
-                                    + per_line_max_chars_limit
-                                ]
-                                + ELLIPSIS_STRING
-                            )
-                            if start_col > 1:
-                                line = ELLIPSIS_STRING + line
-                        else:
-                            line = line[:per_line_max_chars_limit] + ELLIPSIS_STRING
-                        # while stripping a string, the ANSI code for resetting color might also get stripped.
-                        line = line + colorama.Style.RESET_ALL
-
-                yield f" " * (
-                    11 - len(line_number)
-                ) + f"{line_number}┆ {line}" if line_number else f"{line}"
-
-            if stripped:
-                stripped_str = f"[shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
-                yield " " * FINDINGS_INDENT_DEPTH + stripped_str
-
-            if per_finding_max_lines_limit != 1:
-                if trimmed > 0:
-                    trimmed_str = f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
-                    yield " " * FINDINGS_INDENT_DEPTH + trimmed_str
-                elif lines and show_separator:
-                    yield f" " * FINDINGS_INDENT_DEPTH + f"⋮┆" + f"-" * 40
+    @staticmethod
+    def _dataflow_trace_to_lines(
+        dataflow_trace: Optional[out.CliMatchDataflowTrace],
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
+    ) -> Iterator[str]:
+        if dataflow_trace:
+            source = dataflow_trace.taint_source
+            intermediate_vars = dataflow_trace.intermediate_vars
+            if source:
+                yield (8 * " " + "Taint comes from:")
+                path = Path(source.location.path)
+                lines = get_lines(
+                    path, source.location.start.line, source.location.end.line
+                )
+                # TODO with DeepSemgrep is it possible for the source (and
+                # intermediate vars) to be in a different file? If so, make sure
+                # we print the filename when needed.
+                yield from TextFormatter._format_lines(
+                    path,
+                    source.location.start.line,
+                    source.location.start.col,
+                    source.location.end.line,
+                    source.location.end.col,
+                    lines,
+                    color_output,
+                    per_finding_max_lines_limit,
+                    per_line_max_chars_limit,
+                    False,
+                )
+            if intermediate_vars and len(intermediate_vars) > 0:
+                # TODO change this message based on rule kind of we ever use
+                # dataflow traces for more than just taint
+                yield (8 * " " + "Taint flows through these intermediate variables:")
+                for var in intermediate_vars:
+                    loc = var.location
+                    lines = get_lines(Path(loc.path), loc.start.line, loc.end.line)
+                    yield from TextFormatter._format_lines(
+                        Path(loc.path),
+                        loc.start.line,
+                        loc.start.col,
+                        loc.end.line,
+                        loc.end.col,
+                        lines,
+                        color_output,
+                        per_finding_max_lines_limit,
+                        per_line_max_chars_limit,
+                        False,
+                    )
 
     @staticmethod
     def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
@@ -329,6 +401,7 @@ class TextFormatter(BaseFormatter):
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
+        dataflow_traces: bool,
     ) -> Iterator[str]:
 
         last_file = None
@@ -400,6 +473,14 @@ class TextFormatter(BaseFormatter):
                 is_same_file,
             )
 
+            if dataflow_traces:
+                yield from TextFormatter._dataflow_trace_to_lines(
+                    rule_match.dataflow_trace,
+                    color_output,
+                    per_finding_max_lines_limit,
+                    per_line_max_chars_limit,
+                )
+
     def format(
         self,
         rules: Iterable[Rule],
@@ -440,6 +521,7 @@ class TextFormatter(BaseFormatter):
                 extra.get("color_output", False),
                 extra["per_finding_max_lines_limit"],
                 extra["per_line_max_chars_limit"],
+                extra["dataflow_traces"],
             )
 
             findings_output.append(
@@ -453,6 +535,7 @@ class TextFormatter(BaseFormatter):
                 extra.get("color_output", False),
                 extra["per_finding_max_lines_limit"],
                 extra["per_line_max_chars_limit"],
+                extra["dataflow_traces"],
             )
 
             findings_output.append(
@@ -466,6 +549,7 @@ class TextFormatter(BaseFormatter):
                 extra.get("color_output", False),
                 extra["per_finding_max_lines_limit"],
                 extra["per_line_max_chars_limit"],
+                extra["dataflow_traces"],
             )
             findings_output.append(
                 "\nFirst-Party Findings:\n" + "\n".join(first_party_output)
@@ -476,6 +560,7 @@ class TextFormatter(BaseFormatter):
                 extra.get("color_output", False),
                 extra["per_finding_max_lines_limit"],
                 extra["per_line_max_chars_limit"],
+                extra["dataflow_traces"],
             )
             findings_output.append("\nFindings:\n" + "\n".join(first_party_output))
 

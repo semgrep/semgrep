@@ -538,7 +538,7 @@ and vof_type_kind = function
   | TyRecordAnon (v0, v1) ->
       let v0 = vof_class_kind v0 in
       let v1 = vof_bracket (OCaml.vof_list vof_field) v1 in
-      OCaml.VSum ("TyRecordAnd", [ v0; v1 ])
+      OCaml.VSum ("TyRecordAnon", [ v0; v1 ])
   | TyOr (v1, v2, v3) ->
       let v1 = vof_type_ v1 in
       let v2 = vof_tok v2 in
@@ -651,6 +651,8 @@ and vof_keyword_attribute = function
   | NotNull -> OCaml.VSum ("NotNull", [])
   | Unsafe -> OCaml.VSum ("Unsafe", [])
   | DefaultImpl -> OCaml.VSum ("DefaultImpl", [])
+  | Throws -> OCaml.VSum ("Throws", [])
+  | Rethrows -> OCaml.VSum ("Rethrows", [])
 
 and vof_attribute = function
   | KeywordAttr x ->

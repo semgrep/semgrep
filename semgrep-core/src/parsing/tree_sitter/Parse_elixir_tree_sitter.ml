@@ -65,7 +65,9 @@ type alias = G.ident
  * and be also kinda of a name.
  *)
 
-(* exprs separated by terminators (newlines or semicolons) *)
+(* exprs separated by terminators (newlines or semicolons)
+ * can be empty.
+ *)
 type body = expr list
 
 (* less: restrict with special arg? *)
@@ -87,7 +89,7 @@ type item = expr
  * or for parameters (kind of patterns though).
  *)
 type stab_clause =
-  (argument list * (tok (*'when'*) * expr) option) * tok (* '->' *) * expr list
+  (argument list * (tok (*'when'*) * expr) option) * tok (* '->' *) * body
 
 type clauses = stab_clause list
 
@@ -106,35 +108,130 @@ type block = body_or_clauses bracket
 (*****************************************************************************)
 (* Intermediate AST constructs to AST_generic *)
 (*****************************************************************************)
+let keyval_of_kwd (k, v) = G.keyval k (G.fake "=>") v
+let kwd_of_id (id : ident) : keyword = N (H2.name_of_id id) |> G.e
 let body_to_stmts es = es |> Common.map G.exprstmt
 
-let stab_clauses_to_function_definition (_xs : stab_clause list) :
+(* TODO: lots of work here to detect when args is really a single
+ * pattern, or tuples *)
+let pat_of_args_and_when (args, when_opt) : pattern =
+  let rest =
+    match when_opt with
+    | None -> []
+    | Some (_tok, e) -> [ E e ]
+  in
+  OtherPat (("ArgsAndWhenOpt", G.fake ""), Args args :: rest) |> G.p
+
+let case_and_body_of_stab_clause (x : stab_clause) : case_and_body =
+  (* body can be empty *)
+  let args_and_when, _tarrow, body = x in
+  let pat = pat_of_args_and_when args_and_when in
+  let stmts = body_to_stmts body in
+  let stmt = G.stmt1 stmts in
+  G.case_of_pat_and_stmt (pat, stmt)
+
+(* TODO: if the list contains just one element, can be a simple lambda
+ * as in 'fn (x, y) -> x + y end'. Otherwise it can be a multiple-cases
+ * switch/match.
+ * The first tk parameter corresponds to 'fn' for lambdas and 'do' when
+ * used in a do_block.
+ *)
+let stab_clauses_to_function_definition tk (xs : stab_clause list) :
     function_definition =
-  raise Todo
+  (* mostly a copy-paste of code to handle Function in ml_to_generic *)
+  let xs = xs |> Common.map case_and_body_of_stab_clause in
+  let id = G.implicit_param_id tk in
+  let params = [ G.Param (G.param_of_id id) ] in
+  let body_stmt =
+    G.Switch (tk, Some (G.Cond (G.N (H2.name_of_id id) |> G.e)), xs) |> G.s
+  in
+  {
+    G.fparams = params;
+    frettype = None;
+    fkind = (G.Function, tk);
+    fbody = G.FBStmt body_stmt;
+  }
 
-let args_of_exprs_and_keywords (_es : expr list) (_kwds : pair list) :
+(* following Elixir semantic (unsugaring pairs) *)
+let list_container_of_kwds xs =
+  let es = xs |> Common.map keyval_of_kwd in
+  Container (List, G.fake_bracket es) |> G.e
+
+let args_of_exprs_and_keywords (es : expr list) (kwds : pair list) :
     argument list =
-  raise Todo
+  let rest =
+    match kwds with
+    | [] -> []
+    | kwds -> [ list_container_of_kwds kwds ]
+  in
+  Common.map G.arg (es @ rest)
 
-let items_of_exprs_and_keywords (_es : expr list) (_kwds : pair list) :
-    item list =
-  raise Todo
+let items_of_exprs_and_keywords (es : expr list) (kwds : pair list) : item list
+    =
+  es @ (kwds |> Common.map keyval_of_kwd)
 
-let mk_call_no_parens (_e : expr) (_args : argument list)
-    (_blopt : do_block option) : call =
-  raise Todo
+let expr_of_body_or_clauses tk (x : body_or_clauses) : expr =
+  match x with
+  | Left [ e ] -> e
+  | Left xs ->
+      let stmts = body_to_stmts xs in
+      (* less: use G.stmt1 instead? or get rid of fake_bracket here
+       * passed down from caller? *)
+      let block = Block (G.fake_bracket stmts) |> G.s in
+      G.stmt_to_expr block
+  | Right clauses ->
+      let fdef = stab_clauses_to_function_definition tk clauses in
+      Lambda fdef |> G.e
 
-let mk_call_parens (_e : expr) (_args : argument list bracket)
-    (_blopt : do_block option) : call =
-  raise Todo
+(* following Elixir semantic (unsugaring do/end block in keywords) *)
+let kwds_of_do_block (bl : do_block) : pair list =
+  let tdo, (body_or_clauses, extras), _tend = bl in
+  let dokwd = kwd_of_id ("do:", tdo) in
+  let e = expr_of_body_or_clauses tdo body_or_clauses in
+  let pair1 = (dokwd, e) in
+  let rest =
+    extras
+    |> Common.map (fun ((s, t), body_or_clauses) ->
+           let kwd = kwd_of_id (s ^ ":", t) in
+           let e = expr_of_body_or_clauses t body_or_clauses in
+           (kwd, e))
+  in
+  pair1 :: rest
+
+let expr_of_block (blk : block) : expr =
+  (* TODO: could pass a 'body_or_clauses bracket' to
+   * expr_of_body_or_clauses to avoid the fake_bracket above
+   *)
+  let l, body_or_clauses, _r = blk in
+  expr_of_body_or_clauses l body_or_clauses
+
+let args_of_do_block_opt (blopt : do_block option) : argument list =
+  match blopt with
+  | None -> []
+  | Some bl ->
+      let kwds = kwds_of_do_block bl in
+      args_of_exprs_and_keywords [] kwds
+
+let mk_call_no_parens (e : expr) (args : argument list)
+    (blopt : do_block option) : call =
+  Call (e, G.fake_bracket (args @ args_of_do_block_opt blopt)) |> G.e
+
+let mk_call_parens (e : expr) (args : argument list bracket)
+    (blopt : do_block option) : call =
+  let l, xs, r = args in
+  Call (e, (l, xs @ args_of_do_block_opt blopt, r)) |> G.e
 
 let binary_call (e1 : expr) op_either (e2 : expr) : expr =
   match op_either with
-  | Left _id -> raise Todo
+  | Left id ->
+      let n = N (H2.name_of_id id) |> G.e in
+      Call (n, G.fake_bracket ([ e1; e2 ] |> Common.map G.arg)) |> G.e
   | Right op -> G.opcall op [ e1; e2 ]
 
-let expr_of_block (_blk : block) : expr = raise Todo
-let expr_of_e_or_kwds (_x : (expr, pair list) either) : expr = raise Todo
+let expr_of_e_or_kwds (x : (expr, pair list) either) : expr =
+  match x with
+  | Left e -> e
+  | Right kwds -> list_container_of_kwds kwds
 
 (*****************************************************************************)
 (* Helpers *)
@@ -194,11 +291,30 @@ let map_terminator_opt env v1 : tok list option =
 
 let map_identifier (env : env) (x : CST.identifier) : ident =
   match x with
-  | `Pat_cf9c6c3 tok ->
-      (* pattern [_\p{Ll}\p{Lm}\p{Lo}\p{Nl}\u1885\u1886\u2118\u212E\u309B\u309C][\p{ID_Continue}]*[?!]? *)
-      str env tok
-  (* TODO: part of elixir! not a semgrep construct! *)
-  | `DOTDOTDOT tok -> (* "..." *) str env tok
+  | `Choice_pat_cf9c6c3 y -> (
+      match y with
+      | `Pat_cf9c6c3 tok ->
+          (* pattern [_\p{Ll}\p{Lm}\p{Lo}\p{Nl}\u1885\u1886\u2118\u212E\u309B\u309C][\p{ID_Continue}]*[?!]? *)
+          str env tok
+      (* TODO: part of elixir! not a semgrep construct! *)
+      | `DOTDOTDOT tok -> (* "..." *) str env tok)
+  | `Semg_meta tok -> str env tok
+
+let map_identifier_or_ellipsis (env : env) (x : CST.identifier) : expr =
+  match x with
+  | `Choice_pat_cf9c6c3 y -> (
+      match y with
+      | `Pat_cf9c6c3 tok ->
+          (* pattern [_\p{Ll}\p{Lm}\p{Lo}\p{Nl}\u1885\u1886\u2118\u212E\u309B\u309C][\p{ID_Continue}]*[?!]? *)
+          let id = str env tok in
+          N (H2.name_of_id id) |> G.e
+      (* TODO: part of elixir! not a semgrep construct! *)
+      | `DOTDOTDOT tok ->
+          let tk = (* "..." *) token env tok in
+          Ellipsis tk |> G.e)
+  | `Semg_meta tok ->
+      let id = str env tok in
+      N (H2.name_of_id id) |> G.e
 
 let map_quoted_xxx (env : env) (v1, v2, v3) : string wrap =
   let v1 = (* "/" or another one *) token env v1 in
@@ -816,6 +932,12 @@ and map_else_block (env : env) ((v1, v2, v3) : CST.else_block) =
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
+  (* semgrep-ext: *)
+  | `Deep_ellips (v1, v2, v3) ->
+      let l = token env v1 in
+      let e = map_expression env v2 in
+      let r = token env v3 in
+      DeepEllipsis (l, e, r) |> G.e
   | `Blk (v1, v2, v3, v4) ->
       let l = (* "(" *) token env v1 in
       let _ = map_terminator_opt env v2 in
@@ -829,9 +951,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let r = (* ")" *) token env v4 in
       let blk : block = (l, xs, r) in
       expr_of_block blk
-  | `Id x ->
-      let id = map_identifier env x in
-      N (H2.name_of_id id) |> G.e
+  | `Id x -> map_identifier_or_ellipsis env x
   | `Alias tok ->
       let al = map_alias env tok in
       (* less: should return a Constructor instead? *)
@@ -954,10 +1074,10 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v4 = (* "]" *) token env v4 in
       ArrayAccess (v1, (v2, v3, v4)) |> G.e
   | `Anon_func (v1, v2, v3, v4, v5) ->
-      let v1 = (* "fn" *) token env v1 in
+      let tfn = (* "fn" *) token env v1 in
       let _v2 = map_terminator_opt env v2 in
-      let v3 = map_stab_clause env v3 in
-      let v4 =
+      let x = map_stab_clause env v3 in
+      let xs =
         Common.map
           (fun (v1, v2) ->
             let _v1 = map_terminator env v1 in
@@ -966,9 +1086,9 @@ and map_expression (env : env) (x : CST.expression) : expr =
           v4
       in
       let _v5TODO = (* "end" *) token env v5 in
-      let clauses = v3 :: v4 in
-      let fdef = stab_clauses_to_function_definition clauses in
-      let fdef = { fdef with fkind = (LambdaKind, v1) } in
+      let clauses = x :: xs in
+      let fdef = stab_clauses_to_function_definition tfn clauses in
+      let fdef = { fdef with fkind = (LambdaKind, tfn) } in
       Lambda fdef |> G.e
 
 and map_interpolation (env : env) ((v1, v2, v3) : CST.interpolation) :
@@ -1225,6 +1345,7 @@ and map_struct_ (env : env) (x : CST.struct_) : (ident, expr) either =
       let at = map_atom env x in
       Right at
   | `Id x ->
+      (* less: map_identifier_or_ellipsis? *)
       let id = map_identifier env x in
       Left id
   | `Un_op x ->
@@ -1309,9 +1430,7 @@ let parse file =
 
 let parse_pattern str =
   H.wrap_parser
-    (fun () ->
-      (*TODO parse_expression_or_source_file*)
-      Tree_sitter_elixir.Parse.string str)
+    (fun () -> Tree_sitter_elixir.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in

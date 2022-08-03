@@ -621,6 +621,8 @@ and map_keyword_attribute = function
   | Setter -> Left `Setter
   | Unsafe -> Left `Unsafe
   | DefaultImpl -> Left `DefaultImpl
+  | Throws -> Left `Throws
+  | Rethrows -> Left `Rethrows
   (* new: *)
   | Lazy -> Right "lazy"
   | RecordClass -> Right "RecordClass"

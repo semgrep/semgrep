@@ -47,6 +47,18 @@ let in_pattern env =
   | Program -> false
   | Pattern -> true
 
+let entity_of_pattern (pat : G.pattern) : G.entity =
+  (* TODO Desugar single-element tuples? *)
+  let entity_name =
+    match pat with
+    (* Unwrap PatId into a regular name. map_property_binding_pattern has to
+     * return a pattern because it is recursive, and might need to compose its
+     * return value into larger patterns. So, we have to unwrap here. *)
+    | G.PatId (id, id_info) -> G.EN (G.Id (id, id_info))
+    | pattern -> G.EPattern pattern
+  in
+  { G.name = entity_name; attrs = []; tparams = [] }
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -70,20 +82,22 @@ let map_function_modifier (env : env) (x : CST.function_modifier) =
   | `Post tok -> (* "postfix" *) token env tok
   | `Prefix tok -> (* "prefix" *) token env tok
 
-let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) =
+let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) :
+    G.ident list =
   match x with
-  | `Var tok -> (* "var" *) token env tok
-  | `Let tok -> (* "let" *) token env tok
+  | `Var tok -> (* "var" *) [ str env tok ]
+  | `Let tok -> (* "let" *) [ str env tok ]
 
 let map_possibly_async_binding_pattern_kind (env : env)
     ((v1, v2) : CST.possibly_async_binding_pattern_kind) =
-  let v1 =
+  let async =
     match v1 with
-    | Some tok -> (* async_modifier *) token env tok |> todo env
-    | None -> ()
+    | Some tok ->
+        (* async_modifier *)
+        [ str env tok ]
+    | None -> []
   in
-  let v2 = map_binding_pattern_kind env v2 in
-  v2
+  async @ map_binding_pattern_kind env v2
 
 let map_comparison_operator (env : env) (x : CST.comparison_operator) =
   match x with
@@ -195,8 +209,8 @@ let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
 
 let map_throws (env : env) (x : CST.throws) =
   match x with
-  | `Throws_kw tok -> (* throws_keyword *) token env tok
-  | `Rethrs_kw tok -> (* rethrows_keyword *) token env tok
+  | `Throws_kw tok -> (* throws_keyword *) G.attr G.Throws (token env tok)
+  | `Rethrs_kw tok -> (* rethrows_keyword *) G.attr G.Rethrows (token env tok)
 
 let map_postfix_unary_operator (env : env) (x : CST.postfix_unary_operator)
     (e : G.expr) =
@@ -226,11 +240,11 @@ let map_custom_operator (env : env) ((v1, v2) : CST.custom_operator) =
 let map_setter_specifier (env : env) ((v1, v2) : CST.setter_specifier) =
   let v1 =
     match v1 with
-    | Some x -> map_mutation_modifier env x
-    | None -> todo env ()
+    | Some x -> map_mutation_modifier env x |> todo env
+    | None -> ()
   in
   let v2 = (* "set" *) token env v2 in
-  todo env (v1, v2)
+  (v2, `Set)
 
 let map_modify_specifier (env : env) ((v1, v2) : CST.modify_specifier) =
   let v1 =
@@ -380,12 +394,12 @@ let map_as_operator (env : env) (x : CST.as_operator) =
   | `As_bang tok -> (* as_bang_custom *) token env tok
 
 let map_operator_declaration (env : env)
-    ((v1, v2, v3, v4) : CST.operator_declaration) =
+    ((v1, v2, v3, v4) : CST.operator_declaration) : G.stmt =
   let v1 =
     match v1 with
-    | `Prefix tok -> (* "prefix" *) token env tok
-    | `Infix tok -> (* "infix" *) token env tok
-    | `Post tok -> (* "postfix" *) token env tok
+    | `Prefix tok -> (* "prefix" *) str env tok
+    | `Infix tok -> (* "infix" *) str env tok
+    | `Post tok -> (* "postfix" *) str env tok
   in
   let v2 = (* "operator" *) token env v2 in
   let v3 = map_custom_operator env v3 in
@@ -394,10 +408,21 @@ let map_operator_declaration (env : env)
     | Some (v1, v2) ->
         let v1 = (* ":" *) token env v1 in
         let v2 = map_simple_identifier env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some v2
+    | None -> None
   in
-  todo env (v1, v2, v3, v4)
+  (* Swift allows you to declare custom operators. The operator declaration just
+   * introduces the operator and specifies whether it is a prefix, infix, or
+   * postfix operator, as well as optionally allows a precedence declaration.
+   * Defining the actual behavior of an operator is done in another construct.
+   *
+   * Hopefully we can get good enough results without tracking the precedence
+   * and fixity of every custom operator and using that to inform parsing.
+   *
+   * https://docs.swift.org/swift-book/LanguageGuide/AdvancedOperators.html#ID46
+   *)
+  let anys = [ v1; v3 ] @ Option.to_list v4 |> Common.map (fun x -> G.I x) in
+  G.OtherStmt (G.OS_Todo, anys) |> G.s
 
 let map_identifier (env : env) ((v1, v2) : CST.identifier) =
   let v1 = map_simple_identifier env v1 in
@@ -472,7 +497,7 @@ let map_getter_effects (env : env) (xs : CST.getter_effects) =
     (fun x ->
       match x with
       | `Async_kw tok -> (* async_keyword_custom *) token env tok
-      | `Throws x -> map_throws env x)
+      | `Throws x -> map_throws env x |> todo env)
     xs
 
 let map_precedence_group_attributes (env : env)
@@ -493,16 +518,16 @@ let map_non_constructor_function_decl (env : env)
 let map_getter_specifier (env : env) ((v1, v2, v3) : CST.getter_specifier) =
   let v1 =
     match v1 with
-    | Some x -> map_mutation_modifier env x
-    | None -> todo env ()
+    | Some x -> map_mutation_modifier env x |> todo env
+    | None -> ()
   in
   let v2 = (* "get" *) token env v2 in
   let v3 =
     match v3 with
-    | Some x -> map_getter_effects env x
-    | None -> todo env ()
+    | Some x -> map_getter_effects env x |> todo env
+    | None -> ()
   in
-  todo env (v1, v2, v3)
+  (v2, `Get)
 
 let map_availability_argument (env : env) (x : CST.availability_argument) =
   match x with
@@ -545,7 +570,7 @@ let map_protocol_property_requirements (env : env)
       v2
   in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 let rec map_annotated_inheritance_specifier (env : env)
     ((v1, v2) : CST.annotated_inheritance_specifier) =
@@ -842,15 +867,13 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let v3 = map_expression env v3 in
       G.opcall v2 [ v1; v3 ]
 
-and map_binding_pattern (env : env) ((v1, v2, v3) : CST.binding_pattern) =
-  let v1 =
-    match v1 with
-    | Some tok -> (* "case" *) token env tok
-    | None -> todo env ()
-  in
-  let v2 = map_binding_pattern_kind env v2 in
-  let v3 = map_no_expr_pattern_already_bound env v3 in
-  todo env (v1, v2, v3)
+and apply_pattern_kinds (env : env) (pat : G.pattern) kinds =
+  List.fold_right (fun kind pat -> G.OtherPat (kind, [ G.P pat ])) kinds pat
+
+and map_binding_pattern (env : env) ((_v1, v2, v3) : CST.binding_pattern) =
+  let pat = map_no_expr_pattern_already_bound env v3 in
+  let kinds = map_binding_pattern_kind env v2 in
+  apply_pattern_kinds env pat kinds
 
 and map_binding_pattern_with_expr (env : env)
     ((v1, v2) : CST.binding_pattern_with_expr) =
@@ -969,19 +992,21 @@ and map_capture_list_item (env : env) (x : CST.capture_list_item) =
       todo env (v1, v2, v3)
 
 and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
-  let v1 = (* catch_keyword *) token env v1 in
-  let v2 =
-    match v2 with
-    | Some x -> map_binding_pattern_no_expr env x
-    | None -> todo env ()
+  let catch_tok = (* catch_keyword *) token env v1 in
+  let pat =
+    match (v2, v3) with
+    (* Similar to how Python does it: *)
+    | None, None -> G.PatUnderscore (Parse_info.fake_info catch_tok "_")
+    | Some v2, None -> map_binding_pattern_no_expr env v2
+    (* This is impossible according to the Swift grammar - you can't have a `where`
+       on the caught thing unless there was a pattern to modify in the first place.
+    *)
+    | None, Some _ -> raise Common.Impossible
+    | Some v2, Some v3 ->
+        G.PatWhen (map_binding_pattern_no_expr env v2, map_where_clause env v3)
   in
-  let v3 =
-    match v3 with
-    | Some x -> map_where_clause env x
-    | None -> todo env ()
-  in
-  let v4 = map_function_body env v4 in
-  todo env (v1, v2, v3, v4)
+  let stmt = map_function_body env v4 in
+  (catch_tok, G.CatchPattern pat, stmt)
 
 and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = (* "{" *) token env v1 in
@@ -1046,7 +1071,7 @@ and map_constructor_value_arguments (env : env)
 and map_control_transfer_statement (env : env)
     (x : CST.control_transfer_statement) semi =
   match x with
-  | `Throw_stmt x -> map_throw_statement env x
+  | `Throw_stmt x -> map_throw_statement env x semi
   | `Opti_valu_cont_kw_opt_exp (v1, v2) ->
       let v2 =
         match v2 with
@@ -1066,7 +1091,12 @@ and map_deinit_declaration (env : env) ((v1, v2, v3) : CST.deinit_declaration) =
   let entity = G.basic_entity v2 in
   let definition_kind =
     G.FuncDef
-      { fkind = (G.Method, snd v2); fparams = []; frettype = None; fbody = v3 }
+      {
+        fkind = (G.Method, snd v2);
+        fparams = [];
+        frettype = None;
+        fbody = G.FBStmt v3;
+      }
   in
   G.DefStmt (entity, definition_kind) |> G.s
 
@@ -1090,27 +1120,28 @@ and map_dictionary_type (env : env) ((v1, v2, v3, v4, v5) : CST.dictionary_type)
   G.TyApply (G.TyN dict_name |> G.t, (v1, [ G.TA v2; G.TA v4 ], v5)) |> G.t
 
 and map_binding_kind_and_pattern (env : env)
-    ((v1, v2) : CST.binding_kind_and_pattern) =
-  let v1 = map_possibly_async_binding_pattern_kind env v1 in
-  let v2 = map_no_expr_pattern_already_bound env v2 in
-  todo env (v1, v2)
+    ((v1, v2) : CST.binding_kind_and_pattern) : G.ident list * G.pattern =
+  let pat = map_no_expr_pattern_already_bound env v2 in
+  let kinds = map_possibly_async_binding_pattern_kind env v1 in
+  (kinds, pat)
 
 and map_direct_or_indirect_binding (env : env)
     ((v1, v2) : CST.direct_or_indirect_binding) =
-  let v1 =
+  let pat =
     match v1 with
-    | `Bind_kind_and_pat x -> map_binding_kind_and_pattern env x
+    | `Bind_kind_and_pat x ->
+        let kinds, pat = map_binding_kind_and_pattern env x in
+        apply_pattern_kinds env pat kinds
     | `Case_bind_pat_no_expr (v1, v2) ->
         let v1 = (* "case" *) token env v1 in
-        let v2 = map_binding_pattern_no_expr env v2 in
-        todo env (v1, v2)
+        map_binding_pattern_no_expr env v2
   in
-  let v2 =
+  let add_pat_type pat =
     match v2 with
-    | Some x -> map_type_annotation env x
-    | None -> todo env ()
+    | Some x -> G.PatTyped (pat, map_type_annotation env x)
+    | None -> pat
   in
-  todo env (v1, v2)
+  pat |> add_pat_type
 
 and map_directly_assignable_expression (env : env)
     (x : CST.directly_assignable_expression) =
@@ -1124,14 +1155,17 @@ and map_directly_assignable_expression (env : env)
   | `Self_exp tok -> map_self_expression env tok
 
 and map_do_statement (env : env) ((v1, v2, v3) : CST.do_statement) =
-  let v1 = (* "do" *) token env v1 in
+  let do_tok = (* "do" *) token env v1 in
   let v2 = map_function_body env v2 in
   let v3 = Common.map (map_catch_block env) v3 in
-  todo env (v1, v2, v3)
+  (* TODO? A do statement is not quite the same as a `try`... but it's close
+     enough?
+  *)
+  G.Try (do_tok, v2, v3, None) |> G.s
 
 and map_else_options (env : env) (x : CST.else_options) =
   match x with
-  | `Blk x -> map_function_body env x
+  | `Blk x -> map_block env x
   | `If_stmt x -> map_if_statement env x
 
 and map_enum_class_body (env : env) ((v1, v2, v3) : CST.enum_class_body) =
@@ -1227,40 +1261,48 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =
-  let v1 = (* "for" *) token env v1 in
-  let v2 =
-    match v2 with
-    | Some x -> map_try_operator env x
-    | None -> todo env ()
+  let for_tok = (* "for" *) token env v1 in
+  let pat =
+    let pat_init = map_binding_pattern_no_expr env v4 in
+    let add_pat_ty pat =
+      match v5 with
+      | Some x -> G.PatTyped (pat, map_type_annotation env x)
+      | None -> pat
+    in
+    let add_pat_where pat =
+      match v8 with
+      | Some x -> G.PatWhen (pat, map_where_clause env x)
+      | None -> pat
+    in
+    let add_pat_try pat =
+      match v2 with
+      | Some x (* "try" *) ->
+          G.OtherPat (("Try", map_try_operator env x), [ G.P pat ])
+      | None -> pat
+    in
+    let add_pat_await pat =
+      match v3 with
+      | Some tok (* "await" *) ->
+          G.OtherPat (("Await", token env tok), [ G.P pat ])
+      | None -> pat
+    in
+    pat_init |> add_pat_ty |> add_pat_where |> add_pat_try |> add_pat_await
   in
-  let v3 =
-    match v3 with
-    | Some tok -> (* "await" *) token env tok
-    | None -> todo env ()
+  let header =
+    let in_tok = (* "in" *) token env v6 in
+    let exp = map_expression env v7 in
+    G.ForEach (pat, in_tok, exp)
   in
-  let v4 = map_binding_pattern_no_expr env v4 in
-  let v5 =
-    match v5 with
-    | Some x -> map_type_annotation env x
-    | None -> todo env ()
-  in
-  let v6 = (* "in" *) token env v6 in
-  let v7 = map_expression env v7 in
-  let v8 =
-    match v8 with
-    | Some x -> map_where_clause env x
-    | None -> todo env ()
-  in
-  let v9 = map_function_body env v9 in
-  todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+  let body = map_function_body env v9 in
+  G.For (for_tok, header, body) |> G.s
 
-and map_function_body (env : env) (x : CST.function_body) : G.function_body =
-  G.FBStmt (map_block env x)
+and map_function_body (env : env) (x : CST.function_body) : G.stmt =
+  map_block env x
 
 and map_function_declaration (env : env) ~in_class
     ((v1, v2) : CST.function_declaration) =
   let v2 = map_function_body env v2 in
-  let v1 = map_bodyless_function_declaration env ~in_class v1 v2 in
+  let v1 = map_bodyless_function_declaration env ~in_class v1 (G.FBStmt v2) in
   v1
 
 and map_function_type (env : env) ((v1, v2, v3, v4, v5) : CST.function_type) =
@@ -1334,14 +1376,14 @@ and map_guard_statement (env : env) ((v1, v2, v3, v4, v5) : CST.guard_statement)
   todo env (v1, v2, v3, v4, v5)
 
 and map_if_condition_sequence_item (env : env)
-    (x : CST.if_condition_sequence_item) =
+    (x : CST.if_condition_sequence_item) : G.condition =
   match x with
   | `If_let_bind (v1, v2, v3) ->
       let v1 = map_direct_or_indirect_binding env v1 in
       let v2 = (* eq_custom *) token env v2 in
       let v3 = map_expression env v3 in
-      todo env (v1, v2, v3)
-  | `Exp x -> map_expression env x
+      G.Cond (G.LetPattern (v1, v3) |> G.e)
+  | `Exp x -> G.Cond (map_expression env x)
   | `Avai_cond (v1, v2, v3, v4, v5) ->
       let v1 = (* "#available" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1355,12 +1397,17 @@ and map_if_condition_sequence_item (env : env)
           v4
       in
       let v5 = (* ")" *) token env v5 in
+      (* See `map_repeat_while_statement` if this returns a non-`Cond`.
+       *)
       todo env (v1, v2, v3, v4, v5)
 
 and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
   let v1 = (* "if" *) token env v1 in
   let v2 = map_if_condition_sequence_item env v2 in
   let v3 =
+    (* TODO: looks like we could desugar this to a bunch of And expressions, but
+     * need to double-check semantics. For now just raise if we encounter this.
+     * *)
     Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
@@ -1368,16 +1415,16 @@ and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
         todo env (v1, v2))
       v3
   in
-  let v4 = map_function_body env v4 in
+  let v4 = map_block env v4 in
   let v5 =
     match v5 with
     | Some (v1, v2) ->
         let v1 = (* else *) token env v1 in
         let v2 = map_else_options env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some v2
+    | None -> None
   in
-  todo env (v1, v2, v3, v4, v5)
+  G.If (v1, v2, v4, v5) |> G.s
 
 and map_import_declaration (env : env)
     ((v1, v2, v3, v4) : CST.import_declaration) =
@@ -1489,9 +1536,11 @@ and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
 
 and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
-    match v1 with
-    | Some tok -> (* statement_label *) token env tok
-    | None -> todo env ()
+    let ident_of x =
+      let tok = token env x in
+      (PI.str_of_info tok, tok)
+    in
+    Option.map ident_of v1
   in
   let v2 =
     match v2 with
@@ -1503,7 +1552,9 @@ and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
     | `Guard_stmt x -> map_guard_statement env x
     | `Switch_stmt x -> map_switch_statement env x
   in
-  todo env (v1, v2)
+  match v1 with
+  | None -> v2
+  | Some ident -> G.Label (ident, v2) |> G.s
 
 and map_lambda_function_type (env : env)
     ((v1, v2, v3, v4) : CST.lambda_function_type) : G.parameter list =
@@ -1628,16 +1679,17 @@ and map_lambda_parameter (env : env) ((v1, v2) : CST.lambda_parameter) :
   in
   v2
 
-and map_local_declaration (env : env) (x : CST.local_declaration) =
+and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
+    =
   match x with
   | `Local_prop_decl (v1, v2) ->
       let v1 =
         match v1 with
-        | Some x -> map_locally_permitted_modifiers env x
-        | None -> todo env ()
+        | Some x -> map_locally_permitted_modifiers env x |> todo env
+        | None -> ()
       in
       let v2 = map_modifierless_property_declaration env v2 in
-      todo env (v1, v2)
+      v2
   | `Local_typeas_decl (v1, v2) ->
       let v1 =
         match v1 with
@@ -1663,8 +1715,13 @@ and map_local_declaration (env : env) (x : CST.local_declaration) =
       let v2 = map_modifierless_class_declaration env v2 in
       todo env (v1, v2)
 
+and map_semi (env : env) (semi : CST.semi option) : G.sc =
+  match semi with
+  | None -> G.sc
+  | Some semi -> token env semi
+
 and map_local_statement (env : env) (x : CST.local_statement)
-    (semi : CST.semi option) : G.stmt =
+    (semi : CST.semi option) : G.stmt list =
   let semi =
     match semi with
     | Some semi -> token env semi
@@ -1673,10 +1730,10 @@ and map_local_statement (env : env) (x : CST.local_statement)
   match x with
   | `Exp x ->
       let expr = map_expression env x in
-      G.ExprStmt (expr, semi) |> G.s
+      [ G.ExprStmt (expr, semi) |> G.s ]
   | `Local_decl x -> map_local_declaration env x
-  | `Labe_stmt x -> map_labeled_statement env x |> todo env
-  | `Cont_tran_stmt x -> map_control_transfer_statement env x semi
+  | `Labe_stmt x -> [ map_labeled_statement env x ]
+  | `Cont_tran_stmt x -> [ map_control_transfer_statement env x semi ]
 
 and map_locally_permitted_modifiers (env : env)
     (xs : CST.locally_permitted_modifiers) =
@@ -1687,27 +1744,18 @@ and map_locally_permitted_modifiers (env : env)
       | `Loca_perm_modi x -> map_locally_permitted_modifier env x |> todo env)
     xs
 
-and construct_class_declaration :
+and construct_class_def :
       'body.
       env ->
       ?kind:G.class_kind ->
-      ?attrs:'attrs ->
       G.tok ->
-      CST.simple_identifier ->
-      CST.type_parameters option ->
       'inheritance_specifiers ->
       CST.type_constraints option ->
       'body ->
       (env -> 'body -> G.field list G.bracket) ->
-      G.stmt =
- fun env ?(kind = G.Class) ?attrs class_token name tparams
-     inheritance_specifiers type_constraints body map_body ->
-  let name = map_simple_identifier env name in
-  let tparams =
-    match tparams with
-    | Some x -> map_type_parameters env x
-    | None -> []
-  in
+      G.definition_kind =
+ fun env ?(kind = G.Class) class_token inheritance_specifiers type_constraints
+     body map_body ->
   let extends =
     (* Swift allows classes to have at most one superclass, followed by a list
      * of protocols that the class implements. If there is a superclass, it must
@@ -1732,7 +1780,6 @@ and construct_class_declaration :
     | None -> ()
   in
   let body = map_body env body in
-  let entity = G.basic_entity ?attrs ~tparams name in
   let definition_kind =
     {
       G.ckind = (kind, class_token);
@@ -1743,7 +1790,7 @@ and construct_class_declaration :
       cbody = body;
     }
   in
-  G.DefStmt (entity, G.ClassDef definition_kind) |> G.s
+  G.ClassDef definition_kind
 
 and map_modifierless_class_declaration (env : env)
     (x : CST.modifierless_class_declaration) =
@@ -1757,31 +1804,32 @@ and map_modifierless_class_declaration (env : env)
         | `Class tok -> (* "class" *) token env tok
         | `Struct tok -> (* "struct" *) token env tok
       in
-      construct_class_declaration env v1 v2 v3 v4 v5 v6 map_class_body
+      let v2 = map_simple_identifier env v2 in
+      let tparams =
+        match v3 with
+        | Some x -> map_type_parameters env x
+        | None -> []
+      in
+      let entity = G.basic_entity ~tparams v2 in
+      let classdef = construct_class_def env v1 v4 v5 v6 map_class_body in
+      G.DefStmt (entity, classdef) |> G.s
   | `Exte_user_type_opt_type_params_opt_COLON_inhe_specis_opt_type_consts_class_body
       (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "extension" *) token env v1 in
-      let v2 = map_user_type env v2 in
-      let v3 =
+      let name = name_of_user_type env v2 in
+      let tparams =
         match v3 with
         | Some x -> map_type_parameters env x
-        | None -> todo env ()
+        | None -> []
       in
-      let v4 =
-        match v4 with
-        | Some (v1, v2) ->
-            let v1 = (* ":" *) token env v1 in
-            let v2 = map_inheritance_specifiers env v2 in
-            todo env (v1, v2)
-        | None -> todo env ()
-      in
-      let v5 =
-        match v5 with
-        | Some x -> map_type_constraints env x
-        | None -> todo env ()
-      in
-      let v6 = map_class_body env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      let entity = { G.name = EN name; attrs = []; tparams } in
+      (* Extensions basically allow you to reopen an existing class. They don't
+       * really fit in perfectly to the existing class kinds that we have in the
+       * generic AST, but an ordinary class is probably the closest.
+       *
+       * https://docs.swift.org/swift-book/LanguageGuide/Extensions.html *)
+      let classdef = construct_class_def env v1 v4 v5 v6 map_class_body in
+      G.DefStmt (entity, classdef) |> G.s
   | `Opt_indi_enum_simple_id_opt_type_params_opt_COLON_inhe_specis_opt_type_consts_enum_class_body
       (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1791,15 +1839,27 @@ and map_modifierless_class_declaration (env : env)
       in
       let v2 = (* "enum" *) token env v2 in
       let attrs = [ G.KeywordAttr (G.EnumClass, v2) ] in
-      construct_class_declaration env ~attrs v2 v3 v4 v5 v6 v7
-        map_enum_class_body
+      let v3 = map_simple_identifier env v3 in
+      let tparams =
+        match v4 with
+        | Some x -> map_type_parameters env x
+        | None -> []
+      in
+      let entity = G.basic_entity ~attrs ~tparams v3 in
+      let classdef = construct_class_def env v2 v5 v6 v7 map_enum_class_body in
+      G.DefStmt (entity, classdef) |> G.s
 
 and map_modifierless_function_declaration (env : env)
     ((v1, v2) : CST.modifierless_function_declaration) =
   let v2 = map_function_body env v2 in
   let in_class = todo env () in
-  let v1 = map_modifierless_function_declaration_no_body env ~in_class v1 v2 in
+  let v1 =
+    map_modifierless_function_declaration_no_body env ~in_class v1 (G.FBStmt v2)
+  in
   todo env (v1, v2)
+
+and map_type_with_modifiers env ty attrs =
+  { ty with G.t_attrs = ty.G.t_attrs @ attrs }
 
 and map_modifierless_function_declaration_no_body (env : env) ~in_class
     ((v1, v2, v3, v4, v5, v6, v7) :
@@ -1815,30 +1875,35 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
     | None -> []
   in
   let v3 = map_function_value_parameters env v3 in
-  let v4 =
-    match v4 with
-    | Some tok -> (* async_keyword_custom *) token env tok |> todo env
-    | None -> ()
-  in
-  let v5 =
-    match v5 with
-    | Some x -> map_throws env x |> todo env
-    | None -> ()
+  let rettype_attrs =
+    let v4 =
+      match v4 with
+      | Some tok ->
+          (* async_keyword_custom *) [ G.attr G.Async (token env tok) ]
+      | None -> []
+    in
+    let v5 =
+      match v5 with
+      | Some x -> [ map_throws env x ]
+      | None -> []
+    in
+    v4 @ v5
   in
   let v6 =
     match v6 with
     | Some (v1, v2) ->
-        let v1 = (* arrow_operator_custom *) token env v1 in
-        let v2 = map_possibly_implicitly_unwrapped_type env v2 in
-        Some v2
+        let _ = (* arrow_operator_custom *) token env v1 in
+        let ty = map_possibly_implicitly_unwrapped_type env v2 in
+        let res = map_type_with_modifiers env ty rettype_attrs in
+        Some res
     | None -> None
   in
   let v7 =
     match v7 with
-    | Some x -> map_type_constraints env x |> todo env
-    | None -> ()
+    | Some x -> map_type_constraints env x
+    | None -> []
   in
-  let entity = G.basic_entity ~tparams:v2 v1 in
+  let entity = G.basic_entity ~tparams:v2 ~attrs:v7 v1 in
   let kind = if in_class then G.Method else G.Function in
   let definition_kind =
     G.FuncDef
@@ -1850,18 +1915,7 @@ and map_single_modifierless_property_declaration (env : env)
     ((pat, tannot, tconstraints, init) :
       CST.single_modifierless_property_declaration) : G.stmt =
   let pat = map_no_expr_pattern_already_bound env pat in
-  (* TODO Desugar single-element tuples? *)
-  let pat =
-    let entity_name =
-      match pat with
-      (* Unwrap PatId into a regular name. map_property_binding_pattern has to
-       * return a pattern because it is recursive, and might need to compose its
-       * return value into larger patterns. So, we have to unwrap here. *)
-      | G.PatId (id, id_info) -> G.EN (G.Id (id, id_info))
-      | pattern -> G.EPattern pattern
-    in
-    { G.name = entity_name; attrs = []; tparams = [] }
-  in
+  let entity = entity_of_pattern pat in
   let tannot =
     match tannot with
     | Some x -> Some (map_type_annotation env x)
@@ -1886,7 +1940,7 @@ and map_single_modifierless_property_declaration (env : env)
         Some x
     | None -> None
   in
-  G.DefStmt (pat, G.VarDef { vinit = init; vtype = tannot }) |> G.s
+  G.DefStmt (entity, G.VarDef { vinit = init; vtype = tannot }) |> G.s
 
 and map_modifierless_property_declaration (env : env)
     ((v1, v2, v3) : CST.modifierless_property_declaration) : G.stmt list =
@@ -1963,7 +2017,7 @@ and map_tuple_pattern_item (env : env) (x : CST.tuple_pattern_item) =
   | `Bind_pat_with_expr x -> map_switch_pattern env x
 
 and map_tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) :
-    G.pattern =
+    G.pattern list G.bracket =
   let v1 = (* "(" *) token env v1 in
   let v2 = map_tuple_pattern_item env v2 in
   let v3 =
@@ -1975,10 +2029,10 @@ and map_tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) :
       v3
   in
   let v4 = (* ")" *) token env v4 in
-  G.PatTuple (v1, v2 :: v3, v4)
+  (v1, v2 :: v3, v4)
 
 and map_no_expr_pattern_already_bound (env : env)
-    ((v1, v2) : CST.no_expr_pattern_already_bound) =
+    ((v1, v2) : CST.no_expr_pattern_already_bound) : G.pattern =
   let v1 =
     match v1 with
     | `Univ_allo_pat x -> map_universally_allowed_pattern env x
@@ -1987,33 +2041,40 @@ and map_no_expr_pattern_already_bound (env : env)
         let id_info = G.empty_id_info () in
         G.PatId (id, id_info)
   in
-  let v2 =
+  let add_quest pat =
     match v2 with
-    | Some tok -> (* "?" *) token env tok |> todo env
-    | None -> ()
+    | Some tok ->
+        (* "?" *)
+        G.OtherPat (("?", token env tok), [ G.P pat ])
+    | None -> v1
   in
-  v1
+  v1 |> add_quest
 
 and map_binding_pattern_no_expr (env : env)
     ((v1, v2) : CST.binding_pattern_no_expr) =
-  let v1 =
+  let pat =
     match v1 with
     | `Univ_allo_pat x -> map_universally_allowed_pattern env x
     | `Bind_pat x -> map_binding_pattern env x
-    | `Bound_id x -> map_bound_identifier env x |> todo env
+    | `Bound_id x ->
+        let info = map_bound_identifier env x in
+        let id_info = G.empty_id_info () in
+        G.PatId (info, id_info)
   in
-  let v2 =
+  let add_pat_quest pat =
     match v2 with
-    | Some tok -> (* "?" *) token env tok
-    | None -> todo env ()
+    | Some tok ->
+        (* "?" *)
+        G.OtherPat (("?", token env tok), [ G.P pat ])
+    | None -> pat
   in
-  todo env (v1, v2)
+  pat |> add_pat_quest
 
 and map_universally_allowed_pattern (env : env)
     (x : CST.universally_allowed_pattern) : G.pattern =
   match x with
-  | `Wild_pat tok -> (* "_" *) token env tok |> todo env
-  | `Tuple_pat x -> map_tuple_pattern env x
+  | `Wild_pat tok -> (* "_" *) G.PatUnderscore (token env tok)
+  | `Tuple_pat x -> G.PatTuple (map_tuple_pattern env x)
   | `Type_cast_pat x -> map_type_casting_pattern env x
   | `Case_pat (v1, v2, v3, v4, v5) ->
       let v1 =
@@ -2021,19 +2082,21 @@ and map_universally_allowed_pattern (env : env)
         | Some tok -> (* "case" *) token env tok
         | None -> todo env ()
       in
-      let v2 =
-        match v2 with
-        | Some x -> map_user_type env x
-        | None -> todo env ()
-      in
       let v3 = (* dot_custom *) token env v3 in
-      let v4 = map_bound_identifier env v4 in
-      let v5 =
-        match v5 with
-        | Some x -> map_tuple_pattern env x
-        | None -> todo env ()
+      let id = map_bound_identifier env v4 in
+      let id_info = G.empty_id_info () in
+      let pat_init = G.PatId (id, id_info) in
+      let add_pat_args name pat =
+        match Option.map (map_tuple_pattern env) v5 with
+        | None -> pat
+        | Some (_, pats, _) -> G.PatConstructor (name, pats)
       in
-      todo env (v1, v2, v3, v4, v5)
+      let add_pat_type pat =
+        match v2 with
+        | Some x -> G.PatTyped (pat, map_user_type env x)
+        | None -> pat
+      in
+      pat_init |> add_pat_args (G.Id (id, id_info)) |> add_pat_type
 
 and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter) default
     =
@@ -2066,11 +2129,6 @@ and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter) default
 and map_possibly_implicitly_unwrapped_type (env : env)
     ((v1, v2) : CST.possibly_implicitly_unwrapped_type) =
   let v1 = map_type_ env v1 in
-  let v2 =
-    match v2 with
-    | Some tok -> (* "!" *) token env tok |> todo env
-    | None -> ()
-  in
   v1
 
 and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
@@ -2226,7 +2284,8 @@ and map_property_declaration (env : env) ((v1, v2) : CST.property_declaration) =
   let v2 = map_modifierless_property_declaration env v2 in
   v2
 
-and map_protocol_body (env : env) ((v1, v2, v3) : CST.protocol_body) =
+and map_protocol_body (env : env) ((v1, v2, v3) : CST.protocol_body) :
+    G.field list G.bracket =
   let v1 = (* "{" *) token env v1 in
   let v2 =
     match v2 with
@@ -2244,61 +2303,79 @@ and map_protocol_declaration (env : env)
     | None -> ()
   in
   let v2 = (* "protocol" *) token env v2 in
-  construct_class_declaration env ~kind:G.Interface v2 v3 None None v6 v7
-    map_protocol_body
+  let v3 = map_simple_identifier env v3 in
+  let tparams =
+    match v4 with
+    | Some x -> Some (map_type_parameters env x)
+    | None -> None
+  in
+  let entity = G.basic_entity ?tparams v3 in
+  let classdef =
+    construct_class_def env ~kind:G.Interface v2 v5 v6 v7 map_protocol_body
+  in
+  G.DefStmt (entity, classdef) |> G.s
 
 and map_protocol_member_declaration (env : env)
-    (x : CST.protocol_member_declaration) =
+    (x : CST.protocol_member_declaration) : G.field =
   match x with
   | `Body_func_decl_opt_func_body (v1, v2) ->
       let v2 =
         match v2 with
-        | Some x -> map_function_body env x
+        | Some x -> G.FBStmt (map_function_body env x)
         | None -> G.FBNothing
       in
       let v1 = map_bodyless_function_declaration env ~in_class:true v1 v2 in
-      todo env v1
-  | `Deinit_decl x -> map_deinit_declaration env x
+      G.F v1
+  | `Deinit_decl x -> G.F (map_deinit_declaration env x)
   | `Prot_prop_decl (v1, v2, v3, v4, v5) ->
       let v1 =
         match v1 with
-        | Some x -> map_modifiers env x
-        | None -> todo env ()
+        | Some x -> map_modifiers env x |> todo env
+        | None -> ()
       in
-      let v2 = map_binding_kind_and_pattern env v2 in
+      let kinds, pat = map_binding_kind_and_pattern env v2 in
+      let pat = apply_pattern_kinds env pat kinds in
+      let entity = entity_of_pattern pat in
       let v3 =
         match v3 with
-        | Some x -> map_type_annotation env x
-        | None -> todo env ()
+        | Some x -> Some (map_type_annotation env x)
+        | None -> None
       in
       let v4 =
         match v4 with
-        | Some x -> map_type_constraints env x
-        | None -> todo env ()
+        | Some x -> map_type_constraints env x |> todo env
+        | None -> ()
       in
+      (* TODO do something with these *)
       let v5 = map_protocol_property_requirements env v5 in
-      todo env (v1, v2, v3, v4, v5)
-  | `Typeas_decl x -> map_typealias_declaration env x
-  | `Asso_decl x -> map_associatedtype_declaration env x
-  | `Subs_decl x -> map_subscript_declaration env x
+      (* TODO desugar PatID? *)
+      let stmt =
+        G.DefStmt (entity, G.VarDef { vinit = None; vtype = v3 }) |> G.s
+      in
+      G.F stmt
+  | `Typeas_decl x -> G.F (map_typealias_declaration env x)
+  | `Asso_decl x -> G.F (map_associatedtype_declaration env x)
+  | `Subs_decl x -> G.F (map_subscript_declaration env x)
 
 and map_protocol_member_declarations (env : env)
-    ((v1, v2, v3) : CST.protocol_member_declarations) =
+    ((v1, v2, v3) : CST.protocol_member_declarations) : G.field list =
   let v1 = map_protocol_member_declaration env v1 in
   let v2 =
     Common.map
       (fun (v1, v2) ->
         let v1 = (* semi *) token env v1 in
         let v2 = map_protocol_member_declaration env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
   let v3 =
     match v3 with
-    | Some tok -> (* semi *) token env tok
-    | None -> todo env ()
+    | Some tok ->
+        let sc = (* semi *) token env tok in
+        ()
+    | None -> ()
   in
-  todo env (v1, v2, v3)
+  v1 :: v2
 
 and map_raw_str_interpolation (env : env)
     ((v1, v2, v3) : CST.raw_str_interpolation) =
@@ -2309,16 +2386,28 @@ and map_raw_str_interpolation (env : env)
 
 and map_repeat_while_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.repeat_while_statement) =
-  let v1 = (* "repeat" *) token env v1 in
-  let v2 = (* "{" *) token env v2 in
-  let v3 =
-    match v3 with
-    | Some x -> map_statements env x
-    | None -> todo env ()
+  let repeat_tok = (* "repeat" *) token env v1 in
+  let stmt =
+    let left = (* "{" *) token env v2 in
+    let right = (* "}" *) token env v4 in
+    let stmts =
+      match v3 with
+      | Some x -> map_statements env x
+      | None -> []
+    in
+    G.Block (left, stmts, right) |> G.s
   in
-  let v4 = (* "}" *) token env v4 in
   let v5 = (* "while" *) token env v5 in
-  let v6 = map_if_condition_sequence_item env v6 in
+  let expr =
+    match map_if_condition_sequence_item env v6 with
+    | Cond expr -> expr
+    (* TODO: For now, `map_if_condition_sequence_item` only returns a `Cond`. I
+       can imagine that the `Avail_cond` might not, when we implement it in the
+       future, however. When that happens, refactor this.
+    *)
+    | _ -> raise Common.Impossible
+  in
+  (* TODO: multiple conds *)
   let v7 =
     Common.map
       (fun (v1, v2) ->
@@ -2327,7 +2416,7 @@ and map_repeat_while_statement (env : env)
         todo env (v1, v2))
       v7
   in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  G.DoWhile (repeat_tok, stmt, expr) |> G.s
 
 and map_simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
     G.ident * G.type_arguments option =
@@ -2338,7 +2427,7 @@ and map_simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
 
 and map_statements (env : env) ((v1, v2, v3) : CST.statements) =
   let stmts = associate_statement_semis v1 v2 v3 in
-  Common.map (fun (stmt, semi) -> map_local_statement env stmt semi) stmts
+  List.concat_map (fun (stmt, semi) -> map_local_statement env stmt semi) stmts
 
 and map_string_literal (env : env) (x : CST.string_literal) : G.expr =
   match x with
@@ -2421,18 +2510,18 @@ and map_subscript_declaration (env : env)
 and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
   let v1 =
     match v1 with
-    | Some x -> map_modifiers env x
-    | None -> todo env ()
+    | Some x -> map_modifiers env x |> todo env
+    | None -> ()
   in
-  let v2 =
+  let case =
     match v2 with
     | `Case_switch_pat_opt_where_kw_exp_rep_COMMA_switch_pat (v1, v2, v3, v4) ->
-        let v1 = (* "case" *) token env v1 in
-        let v2 = map_switch_pattern env v2 in
-        let v3 =
+        let case_tok = (* "case" *) token env v1 in
+        let pat_init = map_switch_pattern env v2 in
+        let add_pat_where pat =
           match v3 with
-          | Some x -> map_where_clause env x
-          | None -> todo env ()
+          | Some x -> G.PatWhen (pat, map_where_clause env x)
+          | None -> pat
         in
         let v4 =
           Common.map
@@ -2442,29 +2531,31 @@ and map_switch_entry (env : env) ((v1, v2, v3, v4, v5) : CST.switch_entry) =
               todo env (v1, v2))
             v4
         in
-        todo env (v1, v2, v3, v4)
-    | `Defa_kw tok -> (* default_keyword *) token env tok
+        let pat = pat_init |> add_pat_where in
+        G.Case (case_tok, pat)
+    | `Defa_kw tok -> (* default_keyword *) G.Default (token env tok)
   in
   let v3 = (* ":" *) token env v3 in
-  let v4 = map_statements env v4 in
+  let stmt = G.Block (G.fake_bracket (map_statements env v4)) in
+  (* For now, don't deal with fallthrough. *)
   let v5 =
     match v5 with
-    | Some tok -> (* "fallthrough" *) token env tok
-    | None -> todo env ()
+    | Some tok -> (* "fallthrough" *) token env tok |> todo env
+    | None -> ()
   in
-  todo env (v1, v2, v3, v4, v5)
+  G.CasesAndBody ([ case ], stmt |> G.s)
 
 and map_switch_pattern (env : env) (x : CST.switch_pattern) =
   map_binding_pattern_with_expr env x
 
 and map_switch_statement (env : env)
     ((v1, v2, v3, v4, v5) : CST.switch_statement) =
-  let v1 = (* "switch" *) token env v1 in
-  let v2 = map_expression env v2 in
+  let switch_tok = (* "switch" *) token env v1 in
+  let expr = map_expression env v2 in
   let v3 = (* "{" *) token env v3 in
   let v4 = Common.map (map_switch_entry env) v4 in
   let v5 = (* "}" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  G.Switch (switch_tok, Some (G.Cond expr), v4) |> G.s
 
 and map_expr_hack_at_ternary_binary_suffix (env : env)
     (x : CST.expr_hack_at_ternary_binary_suffix) =
@@ -2488,10 +2579,11 @@ and map_ternary_expression (env : env)
   let v5 = map_expr_hack_at_ternary_binary_suffix env v5 in
   G.Conditional (v1, v3, v5) |> G.e
 
-and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement) =
+and map_throw_statement (env : env) ((v1, v2) : CST.throw_statement)
+    (semi : G.sc) =
   let v1 = (* "throw" *) token env v1 in
   let v2 = map_expression env v2 in
-  todo env (v1, v2)
+  G.Throw (v1, v2, semi) |> G.s
 
 and map_tuple_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.tuple_expression) : G.expr =
@@ -2638,17 +2730,22 @@ and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
 and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
     G.stmt list =
   match x with
-  | `Import_decl x -> [ map_import_declaration env x ]
-  | `Prop_decl x -> map_property_declaration env x
-  | `Typeas_decl x -> [ map_typealias_declaration env x ]
-  | `Func_decl x -> [ map_function_declaration env ~in_class:true x ]
-  | `Class_decl x -> [ map_class_declaration env x ]
-  | `Prot_decl x -> [ map_protocol_declaration env x ]
-  | `Deinit_decl x -> [ map_deinit_declaration env x ]
-  | `Subs_decl x -> [ map_subscript_declaration env x ]
-  | `Op_decl x -> map_operator_declaration env x
-  | `Prec_group_decl x -> map_precedence_group_declaration env x
-  | `Asso_decl x -> [ map_associatedtype_declaration env x ]
+  | `Choice_import_decl x -> (
+      match x with
+      | `Import_decl x -> [ map_import_declaration env x ]
+      | `Prop_decl x -> map_property_declaration env x
+      | `Typeas_decl x -> [ map_typealias_declaration env x ]
+      | `Func_decl x -> [ map_function_declaration env ~in_class:true x ]
+      | `Class_decl x -> [ map_class_declaration env x ]
+      | `Prot_decl x -> [ map_protocol_declaration env x ]
+      | `Deinit_decl x -> [ map_deinit_declaration env x ]
+      | `Subs_decl x -> [ map_subscript_declaration env x ]
+      | `Op_decl x -> [ map_operator_declaration env x ]
+      | `Prec_group_decl x -> map_precedence_group_declaration env x
+      | `Asso_decl x -> [ map_associatedtype_declaration env x ])
+  | `Semg_ellips tok (* "..." *) ->
+      let tok = (* three_dot_operator_custom *) token env tok in
+      [ G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s ]
 
 and map_type_modifiers (env : env) (x : CST.type_modifiers) =
   map_type_parameter_modifiers env x
@@ -2795,7 +2892,7 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       let op = (G.Range, v2) in
       G.opcall op [ v1; G.L (G.Null v2) |> G.e ]
 
-and map_user_type (env : env) ((v1, v2) : CST.user_type) : G.type_ =
+and name_of_user_type (env : env) ((v1, v2) : CST.user_type) : G.name =
   let v1 = map_simple_user_type env v1 in
   let v2 =
     Common.map
@@ -2804,7 +2901,10 @@ and map_user_type (env : env) ((v1, v2) : CST.user_type) : G.type_ =
         map_simple_user_type env v2)
       v2
   in
-  let name = H2.name_of_ids_with_opt_typeargs (v1 :: v2) in
+  H2.name_of_ids_with_opt_typeargs (v1 :: v2)
+
+and map_user_type (env : env) (t : CST.user_type) : G.type_ =
+  let name = name_of_user_type env t in
   G.TyN name |> G.t
 
 and map_value_argument (env : env) ((v1, v2) : CST.value_argument) :
@@ -2863,13 +2963,16 @@ and map_value_arguments (env : env) (v1 : CST.value_arguments) : G.arguments =
 and map_where_clause (env : env) ((v1, v2) : CST.where_clause) =
   let v1 = (* where_keyword *) token env v1 in
   let v2 = map_expression env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_while_statement (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.while_statement) =
-  let v1 = (* "while" *) token env v1 in
-  let v2 = map_if_condition_sequence_item env v2 in
-  let v3 =
+  let while_tok = (* "while" *) token env v1 in
+  let cond = map_if_condition_sequence_item env v2 in
+  (* TODO: As with if: looks like we could desugar this to a bunch of And expressions, but
+     * need to double-check semantics. For now just raise if we encounter this.
+     * *)
+  let _v3 =
     Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
@@ -2877,14 +2980,17 @@ and map_while_statement (env : env)
         todo env (v1, v2))
       v3
   in
-  let v4 = (* "{" *) token env v4 in
-  let v5 =
-    match v5 with
-    | Some x -> map_statements env x
-    | None -> todo env ()
+  let stmt =
+    let left = (* "{" *) token env v4 in
+    let right = (* "}" *) token env v6 in
+    let stmts =
+      match v5 with
+      | Some x -> map_statements env x
+      | None -> []
+    in
+    G.Block (left, stmts, right) |> G.s
   in
-  let v6 = (* "}" *) token env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  G.While (while_tok, cond, stmt) |> G.s
 
 let map_global_declaration (env : env) (x : CST.global_declaration) :
     G.stmt list =
@@ -2895,7 +3001,7 @@ let map_global_declaration (env : env) (x : CST.global_declaration) :
   | `Func_decl x -> [ map_function_declaration env ~in_class:false x ]
   | `Class_decl x -> [ map_class_declaration env x ]
   | `Prot_decl x -> [ map_protocol_declaration env x ]
-  | `Op_decl x -> map_operator_declaration env x
+  | `Op_decl x -> [ map_operator_declaration env x ]
   | `Prec_group_decl x -> map_precedence_group_declaration env x
   | `Asso_decl x -> [ map_associatedtype_declaration env x ]
 
@@ -2911,8 +3017,8 @@ let map_top_level_statement (env : env) (x : CST.top_level_statement)
       in
       [ G.ExprStmt (expr, semi) |> G.s ]
   | `Global_decl x -> map_global_declaration env x
-  | `Labe_stmt x -> map_labeled_statement env x
-  | `Throw_stmt x -> map_throw_statement env x |> todo env
+  | `Labe_stmt x -> [ map_labeled_statement env x ]
+  | `Throw_stmt x -> [ map_throw_statement env x (map_semi env semi) ]
 
 let map_source_file (env : env) ((_shebang, program) : CST.source_file) : G.any
     =

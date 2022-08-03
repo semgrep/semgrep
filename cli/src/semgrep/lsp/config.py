@@ -1,11 +1,15 @@
 import glob
 import urllib
 from functools import partial
+from pathlib import Path
 from typing import Any
 from typing import Callable
+from typing import Collection
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Set
+from typing import Tuple
 from typing import Union
 
 import semgrep.commands.ci
@@ -13,13 +17,20 @@ import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
 from semgrep.constants import OutputFormat
+from semgrep.constants import RuleSeverity
+from semgrep.error import SemgrepError
 from semgrep.meta import generate_meta_from_environment
 from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.parsing_data import ParsingData
+from semgrep.profile_manager import ProfileManager
+from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
+from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.types import JsonObject
 from semgrep.util import git_check_output
@@ -215,7 +226,22 @@ class LSPConfig:
         except Exception:
             return False
 
-    def _scanner(self, configs: List[str]) -> Callable:
+    def _scanner(
+        self, configs: List[str]
+    ) -> Callable[
+        ...,
+        Tuple[
+            RuleMatchMap,
+            List[SemgrepError],
+            Set[Path],
+            FileTargetingLog,
+            List[Rule],
+            ProfileManager,
+            ProfilingData,
+            ParsingData,
+            Collection[RuleSeverity],
+        ],
+    ]:
         """Generate a scanner according to the config"""
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
         output_handler = OutputHandler(output_settings)
@@ -242,11 +268,41 @@ class LSPConfig:
     # I like doing it this way because then it's all in one spot
     # but I can see an argument for this being a function that takes a config
     @property
-    def scanner(self) -> Callable:
+    def scanner(
+        self,
+    ) -> Callable[
+        ...,
+        Tuple[
+            RuleMatchMap,
+            List[SemgrepError],
+            Set[Path],
+            FileTargetingLog,
+            List[Rule],
+            ProfileManager,
+            ProfilingData,
+            ParsingData,
+            Collection[RuleSeverity],
+        ],
+    ]:
         return self._scanner(configs=self.configs)
 
     @property
-    def scanner_ci(self) -> Callable:
+    def scanner_ci(
+        self,
+    ) -> Callable[
+        ...,
+        Tuple[
+            RuleMatchMap,
+            List[SemgrepError],
+            Set[Path],
+            FileTargetingLog,
+            List[Rule],
+            ProfileManager,
+            ProfilingData,
+            ParsingData,
+            Collection[RuleSeverity],
+        ],
+    ]:
         return self._scanner(configs=[self.scan_url])
 
     # =====================

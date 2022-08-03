@@ -315,6 +315,17 @@ Would have sent complete blob: {
         "findings": 9,
         "errors": [],
         "total_time": <MASKED>
+        "unsupported_exts": {
+            ".txt": 1
+        },
+        "parse_rate": {
+            "python": {
+                "targets_parsed": 1,
+                "num_targets": 1,
+                "bytes_parsed": 336,
+                "num_bytes": 336
+            }
+        }
     }
 }
   Has findings for blocking rules so exiting with code 1

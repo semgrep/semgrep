@@ -48,10 +48,6 @@
               "col": 13,
               "line": 3,
               "offset": 24
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
             }
           }
         },
@@ -102,10 +98,6 @@
               "col": 13,
               "line": 3,
               "offset": 24
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
             }
           }
         },
@@ -156,10 +148,6 @@
               "col": 13,
               "line": 3,
               "offset": 24
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
             }
           }
         },
@@ -210,10 +198,6 @@
               "col": 13,
               "line": 3,
               "offset": 24
-            },
-            "unique_id": {
-              "sid": 1,
-              "type": "id"
             }
           }
         },

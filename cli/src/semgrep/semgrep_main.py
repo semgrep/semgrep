@@ -33,6 +33,7 @@ from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.project import get_project_url
@@ -108,6 +109,7 @@ def invoke_semgrep(
         filtered_rules,
         profiler,
         profiling_data,
+        _,
         shown_severities,
     ) = main(
         output_handler=output_handler,
@@ -136,7 +138,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     deep: bool,
-) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData,]:
+) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData, ParsingData,]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -144,15 +146,15 @@ def run_rules(
     dependency_only_rules, rest_of_the_rules = partition(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
-    filtered_rules = rest_of_the_rules
 
     (
         rule_matches_by_rule,
         semgrep_errors,
         all_targets,
         profiling_data,
+        parsing_data,
     ) = core_runner.invoke_semgrep(
-        target_manager, filtered_rules, dump_command_for_core, deep
+        target_manager, rest_of_the_rules, dump_command_for_core, deep
     )
 
     if join_rules:
@@ -172,33 +174,54 @@ def run_rules(
             output_handler.handle_semgrep_errors(join_rule_errors)
 
     if len(dependency_aware_rules) > 0:
-        from semgrep.dependency_aware_rule import run_dependency_aware_rule
-        from semdep.find_lockfiles import make_dependency_trie
-
-        targets = [t.path for t in target_manager.targets]
-        top_level_target_rooted = list(targets[0].parents)
-        top_level_target: Path = (
-            targets[0]
-            if len(top_level_target_rooted) == 0
-            else top_level_target_rooted[-1]
+        from semgrep.dependency_aware_rule import (
+            generate_unreachable_sca_findings,
+            generate_reachable_sca_findings,
         )
-        namespaces = list({ns for r in dependency_aware_rules for ns in r.namespaces})
-        dep_trie = make_dependency_trie(top_level_target, namespaces, target_manager)
 
         for rule in dependency_aware_rules:
-            (dep_rule_matches, dep_rule_errors,) = run_dependency_aware_rule(
-                rule_matches_by_rule.get(rule, []),
-                rule,
-                dep_trie,
-            )
-            rule_matches_by_rule[rule] = dep_rule_matches
-            output_handler.handle_semgrep_errors(dep_rule_errors)
+            if rule.should_run_on_semgrep_core:
+                # If we have a reachability rule (contains a pattern)
+                # First we check if each match has a lockfile with the correct vulnerability and turn these into SCA findings
+                # Then we generate unreachable findings in all the remaining targeted lockfiles
+                # For each rule, we do not want to generate an unreachable finding in a lockfile
+                # that already has a reachable finding, so we exclude them
+                (
+                    dep_rule_matches,
+                    dep_rule_errors,
+                    matched_lockfiles,
+                ) = generate_reachable_sca_findings(
+                    rule_matches_by_rule.get(rule, []),
+                    rule,
+                )
+                rule_matches_by_rule[rule] = dep_rule_matches
+                output_handler.handle_semgrep_errors(dep_rule_errors)
+                (
+                    dep_rule_matches,
+                    dep_rule_errors,
+                    targeted_lockfiles,
+                ) = generate_unreachable_sca_findings(
+                    rule, target_manager, matched_lockfiles
+                )
+                rule_matches_by_rule[rule].extend(dep_rule_matches)
+                output_handler.handle_semgrep_errors(dep_rule_errors)
+                all_targets.union(targeted_lockfiles)
+            else:
+                (
+                    dep_rule_matches,
+                    dep_rule_errors,
+                    targeted_lockfiles,
+                ) = generate_unreachable_sca_findings(rule, target_manager, set())
+                rule_matches_by_rule[rule] = dep_rule_matches
+                output_handler.handle_semgrep_errors(dep_rule_errors)
+                all_targets.union(targeted_lockfiles)
 
     return (
         rule_matches_by_rule,
         semgrep_errors,
         all_targets,
         profiling_data,
+        parsing_data,
     )
 
 
@@ -264,6 +287,7 @@ def main(
     List[Rule],
     ProfileManager,
     ProfilingData,
+    ParsingData,
     Collection[RuleSeverity],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
@@ -360,7 +384,13 @@ def main(
     for ruleid in sorted(rule.id for rule in filtered_rules):
         logger.verbose(f"- {ruleid}")
 
-    rule_matches_by_rule, semgrep_errors, all_targets, profiling_data = run_rules(
+    (
+        rule_matches_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiling_data,
+        parsing_data,
+    ) = run_rules(
         filtered_rules,
         target_manager,
         core_runner,
@@ -374,17 +404,21 @@ def main(
     paths_with_matches = list(
         {match.path for matches in rule_matches_by_rule.values() for match in matches}
     )
+
     findings_count = sum(len(matches) for matches in rule_matches_by_rule.values())
 
     # Run baseline if needed
     if baseline_handler:
         logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
         logger.info("")
+        baseline_targets: Set[Path] = set(paths_with_matches) - set(
+            baseline_handler.status.added
+        )
         if not paths_with_matches:
             logger.info(
                 "Skipping baseline scan, because there are no current findings."
             )
-        elif not (set(paths_with_matches) - set(baseline_handler.status.added)):
+        elif not baseline_targets:
             logger.info(
                 "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
             )
@@ -395,11 +429,15 @@ def main(
             try:
                 with baseline_handler.baseline_context():
                     baseline_target_manager = TargetManager(
-                        # only include the paths that had a match
-                        includes=[str(path) for path in paths_with_matches],
+                        includes=include,
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
-                        target_strings=target,
+                        # only target the paths that had a match, ignoring symlinks and non-existent files
+                        target_strings=[
+                            str(t)
+                            for t in baseline_targets
+                            if t.exists() and not t.is_symlink()
+                        ],
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         file_ignore=get_file_ignore(),
@@ -410,6 +448,7 @@ def main(
                         baseline_semgrep_errors,
                         baseline_targets,
                         baseline_profiling_data,
+                        baseline_parsing_data,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -449,6 +488,7 @@ def main(
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
+        metrics.add_parse_rates(parsing_data)
 
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)
@@ -461,5 +501,6 @@ def main(
         filtered_rules,
         profiler,
         profiling_data,
+        parsing_data,
         shown_severities,
     )

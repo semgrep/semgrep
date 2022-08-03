@@ -32,10 +32,6 @@
               "col": 2,
               "line": 1,
               "offset": 1
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -73,10 +69,6 @@
               "col": 2,
               "line": 2,
               "offset": 33
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -114,10 +106,6 @@
               "col": 2,
               "line": 7,
               "offset": 128
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -155,10 +143,6 @@
               "col": 6,
               "line": 14,
               "offset": 338
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },
@@ -196,10 +180,6 @@
               "col": 2,
               "line": 16,
               "offset": 367
-            },
-            "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
             }
           }
         },

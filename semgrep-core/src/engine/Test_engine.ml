@@ -177,6 +177,8 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              in
              let res =
                try
+                 (* TODO: Maybe we should be using Run_semgrep running the same functions
+                    as for Semgrep CLI. *)
                  Match_rules.check
                    ~match_hook:(fun _ _ -> ())
                    ~timeout:0. ~timeout_threshold:0 (config, []) rules xtarget
@@ -185,6 +187,12 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
                    failwith
                      (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
              in
+             (* Check that the result can be marshalled, as this will be needed
+                 when using Parmap! See PA-1724. *)
+             (try Marshal.to_string res [ Marshal.Closures ] |> ignore with
+             | exn ->
+                 failwith
+                   (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn)));
              let eres =
                try
                  Common.map
@@ -256,7 +264,7 @@ let make_tests ?(unit_testing = false) ?(get_xlang = None) xs =
              res :: eres
              |> List.iter (fun (res : RP.partial_profiling RP.match_result) ->
                     res.matches |> List.iter JSON_report.match_to_error);
-             if not (res.errors = []) then
+             if not (Report.ErrorSet.is_empty res.errors) then
                failwith (spf "parsing error on %s" file);
 
              let actual_errors = !E.g_errors in
