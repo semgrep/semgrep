@@ -84,7 +84,9 @@ def _basic_fix(
     contents_after_fix = before_lines + modified_lines + after_lines
 
     # update offsets
-    file_offsets.line_offset = len(contents_after_fix) - len(lines)
+    file_offsets.line_offset = (
+        len(contents_after_fix) - len(lines) + file_offsets.line_offset
+    )
     if start_line == end_line:
         file_offsets.col_offset = len(fix) - (end_col - start_col)
 

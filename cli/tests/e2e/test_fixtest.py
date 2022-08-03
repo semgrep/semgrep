@@ -64,6 +64,7 @@ def test_fixtest_test3_no_json(run_semgrep_in_tmp, snapshot):
         target_name="fixtest/test3.py",
         options=["--test"],
         output_format=OutputFormat.TEXT,
+        assert_exit_code=1,
     )
 
     snapshot.assert_match(
@@ -79,6 +80,7 @@ def test_fixtest_test3_json(run_semgrep_in_tmp, snapshot):
         target_name="fixtest/test3.py",
         options=["--test"],
         output_format=OutputFormat.JSON,
+        assert_exit_code=1,
     )
     snapshot.assert_match(stdout, "test-results.json")
 
