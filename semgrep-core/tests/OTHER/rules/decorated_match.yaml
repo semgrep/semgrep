@@ -1,4 +1,4 @@
-id: decorator_match  
+id: decorated_match  
 patterns:
   - pattern-inside: |
       $VAR = 5
