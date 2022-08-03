@@ -85,8 +85,8 @@ let map_function_modifier (env : env) (x : CST.function_modifier) =
 let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) :
     (string * PI.t) list =
   match x with
-  | `Var tok -> (* "var" *) [ ("Var", token env tok) ]
-  | `Let tok -> (* "let" *) [ ("Let", token env tok) ]
+  | `Var tok -> (* "var" *) [ str env tok ]
+  | `Let tok -> (* "let" *) [ str env tok ]
 
 let map_possibly_async_binding_pattern_kind (env : env)
     ((v1, v2) : CST.possibly_async_binding_pattern_kind) =
@@ -94,7 +94,7 @@ let map_possibly_async_binding_pattern_kind (env : env)
     match v1 with
     | Some tok ->
         (* async_modifier *)
-        [ ("async", token env tok) ]
+        [ str env tok ]
     | None -> []
   in
   async @ map_binding_pattern_kind env v2
