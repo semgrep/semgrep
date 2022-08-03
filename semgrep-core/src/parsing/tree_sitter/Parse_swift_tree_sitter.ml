@@ -393,12 +393,12 @@ let map_as_operator (env : env) (x : CST.as_operator) =
   | `As_bang tok -> (* as_bang_custom *) token env tok
 
 let map_operator_declaration (env : env)
-    ((v1, v2, v3, v4) : CST.operator_declaration) =
+    ((v1, v2, v3, v4) : CST.operator_declaration) : G.stmt =
   let v1 =
     match v1 with
-    | `Prefix tok -> (* "prefix" *) token env tok
-    | `Infix tok -> (* "infix" *) token env tok
-    | `Post tok -> (* "postfix" *) token env tok
+    | `Prefix tok -> (* "prefix" *) str env tok
+    | `Infix tok -> (* "infix" *) str env tok
+    | `Post tok -> (* "postfix" *) str env tok
   in
   let v2 = (* "operator" *) token env v2 in
   let v3 = map_custom_operator env v3 in
@@ -407,10 +407,21 @@ let map_operator_declaration (env : env)
     | Some (v1, v2) ->
         let v1 = (* ":" *) token env v1 in
         let v2 = map_simple_identifier env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some v2
+    | None -> None
   in
-  todo env (v1, v2, v3, v4)
+  (* Swift allows you to declare custom operators. The operator declaration just
+   * introduces the operator and specifies whether it is a prefix, infix, or
+   * postfix operator, as well as optionally allows a precedence declaration.
+   * Defining the actual behavior of an operator is done in another construct.
+   *
+   * Hopefully we can get good enough results without tracking the precedence
+   * and fixity of every custom operator and using that to inform parsing.
+   *
+   * https://docs.swift.org/swift-book/LanguageGuide/AdvancedOperators.html#ID46
+   *)
+  let anys = [ v1; v3 ] @ Option.to_list v4 |> Common.map (fun x -> G.I x) in
+  G.OtherStmt (G.OS_Todo, anys) |> G.s
 
 let map_identifier (env : env) ((v1, v2) : CST.identifier) =
   let v1 = map_simple_identifier env v1 in
@@ -2679,7 +2690,7 @@ and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
       | `Prot_decl x -> [ map_protocol_declaration env x ]
       | `Deinit_decl x -> [ map_deinit_declaration env x ]
       | `Subs_decl x -> [ map_subscript_declaration env x ]
-      | `Op_decl x -> map_operator_declaration env x
+      | `Op_decl x -> [ map_operator_declaration env x ]
       | `Prec_group_decl x -> map_precedence_group_declaration env x
       | `Asso_decl x -> [ map_associatedtype_declaration env x ])
   | `Semg_ellips tok (* "..." *) ->
@@ -2934,7 +2945,7 @@ let map_global_declaration (env : env) (x : CST.global_declaration) :
   | `Func_decl x -> [ map_function_declaration env ~in_class:false x ]
   | `Class_decl x -> [ map_class_declaration env x ]
   | `Prot_decl x -> [ map_protocol_declaration env x ]
-  | `Op_decl x -> map_operator_declaration env x
+  | `Op_decl x -> [ map_operator_declaration env x ]
   | `Prec_group_decl x -> map_precedence_group_declaration env x
   | `Asso_decl x -> [ map_associatedtype_declaration env x ]
 
