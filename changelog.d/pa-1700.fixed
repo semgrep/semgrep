@@ -1,0 +1,2 @@
+All: Applied a fix so that qualified identifiers can match to metavariables. Notably, this
+affected Python decorators, among others.
