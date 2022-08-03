@@ -206,3 +206,7 @@ qux: do { var x = 2 } catch {}
 corn: switch foo {}
 
 learn: repeat {} while true
+
+// Throws
+throw badthing
+throw badthingagain;
