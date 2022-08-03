@@ -83,7 +83,7 @@ let map_function_modifier (env : env) (x : CST.function_modifier) =
   | `Prefix tok -> (* "prefix" *) token env tok
 
 let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) :
-    (string * PI.t) list =
+    G.ident list =
   match x with
   | `Var tok -> (* "var" *) [ str env tok ]
   | `Let tok -> (* "let" *) [ str env tok ]
@@ -987,6 +987,9 @@ and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
     (* Similar to how Python does it: *)
     | None, None -> G.PatUnderscore (Parse_info.fake_info catch_tok "_")
     | Some v2, None -> map_binding_pattern_no_expr env v2
+    (* This is impossible according to the Swift grammar - you can't have a `where`
+       on the caught thing unless there was a pattern to modify in the first place.
+    *)
     | None, Some _ -> raise Common.Impossible
     | Some v2, Some v3 ->
         G.PatWhen (map_binding_pattern_no_expr env v2, map_where_clause env v3)
@@ -1106,8 +1109,7 @@ and map_dictionary_type (env : env) ((v1, v2, v3, v4, v5) : CST.dictionary_type)
   G.TyApply (G.TyN dict_name |> G.t, (v1, [ G.TA v2; G.TA v4 ], v5)) |> G.t
 
 and map_binding_kind_and_pattern (env : env)
-    ((v1, v2) : CST.binding_kind_and_pattern) : (string * PI.t) list * G.pattern
-    =
+    ((v1, v2) : CST.binding_kind_and_pattern) : G.ident list * G.pattern =
   let pat = map_no_expr_pattern_already_bound env v2 in
   let kinds = map_possibly_async_binding_pattern_kind env v1 in
   (kinds, pat)
@@ -1384,6 +1386,8 @@ and map_if_condition_sequence_item (env : env)
           v4
       in
       let v5 = (* ")" *) token env v5 in
+      (* See `map_repeat_while_statement` if this returns a non-`Cond`.
+       *)
       todo env (v1, v2, v3, v4, v5)
 
 and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
@@ -1519,13 +1523,13 @@ and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
       let v3 = (* "]" *) token env v3 in
       todo env (v1, v2, v3)
 
-and map_labeled_statement (env : env) ((v1_orig, v2) : CST.labeled_statement) =
+and map_labeled_statement (env : env) ((v1, v2) : CST.labeled_statement) =
   let v1 =
     let ident_of x =
       let tok = token env x in
       (PI.str_of_info tok, tok)
     in
-    Option.map ident_of v1_orig
+    Option.map ident_of v1
   in
   let v2 =
     match v2 with
@@ -2002,7 +2006,7 @@ and map_tuple_pattern_item (env : env) (x : CST.tuple_pattern_item) =
   | `Bind_pat_with_expr x -> map_switch_pattern env x
 
 and map_tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) :
-    G.pattern =
+    G.pattern list G.bracket =
   let v1 = (* "(" *) token env v1 in
   let v2 = map_tuple_pattern_item env v2 in
   let v3 =
@@ -2014,7 +2018,7 @@ and map_tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) :
       v3
   in
   let v4 = (* ")" *) token env v4 in
-  G.PatTuple (v1, v2 :: v3, v4)
+  (v1, v2 :: v3, v4)
 
 and map_no_expr_pattern_already_bound (env : env)
     ((v1, v2) : CST.no_expr_pattern_already_bound) : G.pattern =
@@ -2059,7 +2063,7 @@ and map_universally_allowed_pattern (env : env)
     (x : CST.universally_allowed_pattern) : G.pattern =
   match x with
   | `Wild_pat tok -> (* "_" *) G.PatUnderscore (token env tok)
-  | `Tuple_pat x -> map_tuple_pattern env x
+  | `Tuple_pat x -> G.PatTuple (map_tuple_pattern env x)
   | `Type_cast_pat x -> map_type_casting_pattern env x
   | `Case_pat (v1, v2, v3, v4, v5) ->
       let v1 =
@@ -2074,8 +2078,7 @@ and map_universally_allowed_pattern (env : env)
       let add_pat_args name pat =
         match Option.map (map_tuple_pattern env) v5 with
         | None -> pat
-        | Some (G.PatTuple (_, pats, _)) -> G.PatConstructor (name, pats)
-        | _ -> raise Common.Impossible
+        | Some (_, pats, _) -> G.PatConstructor (name, pats)
       in
       let add_pat_type pat =
         match v2 with
@@ -2387,7 +2390,11 @@ and map_repeat_while_statement (env : env)
   let expr =
     match map_if_condition_sequence_item env v6 with
     | Cond expr -> expr
-    | _ -> raise Common.Impossible (* for now *)
+    (* TODO: For now, `map_if_condition_sequence_item` only returns a `Cond`. I
+       can imagine that the `Avail_cond` might not, when we implement it in the
+       future, however. When that happens, refactor this.
+    *)
+    | _ -> raise Common.Impossible
   in
   (* TODO: multiple conds *)
   let v7 =
