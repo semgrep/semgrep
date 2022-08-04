@@ -87,6 +87,7 @@ class ScanHandler:
         state = get_state()
         logger.debug("Getting scan configurations")
 
+        meta["dry_run"] = self.dry_run
         response = state.app_session.get(
             f"{state.env.semgrep_url}/api/agent/deployments/scans/config",
             json={"meta": meta},
