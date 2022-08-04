@@ -1,1 +1,0 @@
-Increase timeout for network calls to semgrep.dev from 30s to 60s
