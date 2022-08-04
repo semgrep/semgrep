@@ -280,15 +280,8 @@ def ci(
     logger.info(
         f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
     )
-    to_server = (
-        ""
-        if state.env.semgrep_url == "https://semgrep.dev"
-        else f" to {state.env.semgrep_url}"
-    )
     if scan_handler:
-        logger.info(
-            f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
-        )
+        logger.info(f"  server      - {state.env.semgrep_url}")
     if sca:
         logger.info("  running an SCA scan")
     logger.info("")
@@ -304,7 +297,9 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
+                    scan_handler.get_scan_config(metadata_dict)
                     scan_handler.start_scan(metadata_dict)
+                    logger.info(f"Authenticated as {scan_handler.deployment_name}")
                     config = (scan_handler.scan_rules_url,)
             except Exception as e:
                 import traceback
