@@ -836,7 +836,7 @@ def test_fail_auth_error_handler(run_semgrep, mocker, git_tmp_path_with_commit):
     mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci", "--suppress-errors"],
+        options=["ci"],
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -867,7 +867,7 @@ def test_fail_start_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_co
     mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci", "--suppress-errors"],
+        options=["ci"],
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -919,7 +919,7 @@ def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit)
     mock_send = mocker.spy(ErrorHandler, "send")
 
     result = run_semgrep(
-        options=["ci", "--suppress-errors"],
+        options=["ci"],
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -950,7 +950,7 @@ def test_fail_finish_scan_error_handler(run_semgrep, mocker, git_tmp_path_with_c
     mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci", "--suppress-errors"],
+        options=["ci"],
         target_name=None,
         strict=False,
         assert_exit_code=0,
@@ -980,7 +980,7 @@ def test_git_failure_error_handler(run_semgrep, git_tmp_path_with_commit, mocker
     mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
-        options=["ci", "--suppress-errors"],
+        options=["ci"],
         target_name=None,
         strict=False,
         assert_exit_code=0,
