@@ -8,6 +8,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
+from urllib.parse import urlencode
 
 import click
 import requests
@@ -37,6 +38,7 @@ class ScanHandler:
         self._dry_run_rules_url: str = ""
         self._skipped_syntactic_ids: List[str] = []
         self._skipped_match_based_ids: List[str] = []
+        self._scan_params: str = ""
 
     @property
     def deployment_id(self) -> Optional[int]:
@@ -80,6 +82,13 @@ class ScanHandler:
         """
         return self._skipped_match_based_ids
 
+    @property
+    def scan_params(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._scan_params
+
     def get_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
@@ -87,10 +96,18 @@ class ScanHandler:
         state = get_state()
         logger.debug("Getting scan configurations")
 
-        meta["dry_run"] = self.dry_run
+        self._scan_params = urlencode(
+            {
+                "dry_run": self.dry_run,
+                "repository": meta.get("repository"),
+                "sca": meta.get("is_sca_scan", False),
+                "full_scan": meta.get("is_full_scan", False),
+                "semgrep_version": meta.get("semgrep_version", "0.0.0"),
+            }
+        )
+
         response = state.app_session.get(
-            f"{state.env.semgrep_url}/api/agent/deployments/scans/config",
-            json={"meta": meta},
+            f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
         )
 
         try:
@@ -122,14 +139,6 @@ class ScanHandler:
             json={"meta": meta, "policy": self._policy},
         )
 
-        if self.dry_run:
-            repo_name = meta["repository"]
-            self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self._deployment_id}/repos/{repo_name}/rules.yaml"
-            logger.debug(
-                f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
-            )
-            return
-
         if response.status_code == 404:
             raise Exception(
                 "Failed to create a scan with given token and deployment_id."
@@ -151,10 +160,7 @@ class ScanHandler:
     @property
     def scan_rules_url(self) -> str:
         state = get_state()
-        if self.dry_run:
-            url = self._dry_run_rules_url
-        else:
-            url = f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+        url = f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
 
         logger.debug(f"Using {url} as scan rules url")
         return url
