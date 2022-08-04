@@ -36,6 +36,16 @@ var foo = 1;
 var bar: Int = 2;
 var baz: Int;
 
+var x {
+  var x = 2
+  var y = 3
+}
+
+var y { }
+
+// Type
+var x : Int? = 1
+
 // TODO computed variables
 // var computed: Int {
 //     get { 4 }
@@ -62,6 +72,28 @@ func foo(x y: Int) { }
 // func foo(x: inout Int) { }
 func foo(x: Int = 5) { }
 func foo(x: Int...) { }
+
+infix func foo() { }
+postfix func foo() { }
+prefix func foo() { }
+mutating func foo() { }
+nonmutating func foo() { }
+private func foo() { }
+public func foo() { }
+open func foo() { }
+fileprivate func foo() { }
+internal func foo() { }
+private(set) func foo() { }
+public(set) func foo() { }
+open(set) func foo() { }
+fileprivate(set) func foo() { }
+internal(set) func foo() { }
+@attr func foo ( ) { }
+
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
+func foo () { }
 // TODO
 // func foo() throws { }
 // func foo() throws -> Int { }
@@ -93,6 +125,11 @@ class bar: foo { }
 class bar: foo, baz, asdf { }
 class foo<bar, baz> { }
 class foo<bar: baz> { }
+
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
+class foo { }
 // TODO
 // class foo<bar> where bar: baz { }
 // class foo<bar> where bar: baz, bar: asdf { }
@@ -101,6 +138,11 @@ class foo<bar: baz> { }
 struct foo { }
 
 // TODO test other varieties
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
+extension bar { }
+
 extension bar { }
 
 // TODO test other varieties
@@ -136,6 +178,11 @@ enum SumTypeWithNames<T> {
   case b(z: T)
   case c(i: Int, Int, k: Character)
 }
+
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr indirect 
+enum bar { }
 
 // For-in loops
 for x in collection {
@@ -201,6 +248,13 @@ switch foo {
   case _:
     return 3
   default:
+}
+
+switch foo {
+  case true, false:
+    return 1
+  case true where true, false:
+    return 2
 }
 
 // Protocol

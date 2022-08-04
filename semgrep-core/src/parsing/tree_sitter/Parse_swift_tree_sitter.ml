@@ -962,6 +962,9 @@ and map_bodyless_function_declaration (env : env) ~in_class
     | Some x -> map_modifiers env x
     | None -> []
   in
+  (* I'm not sure this does anything. "class" is already a possible modifier
+     from the `map_modifiers` - it's a property modifier.
+  *)
   let v2 =
     match v2 with
     | Some tok -> (* "class" *) token env tok |> todo env
