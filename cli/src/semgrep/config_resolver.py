@@ -16,7 +16,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import requests
-import yaml as pyyaml  # type: ignore
+import yaml as pyyaml
 from ruamel.yaml import YAMLError
 from yaml import SafeDumper
 
