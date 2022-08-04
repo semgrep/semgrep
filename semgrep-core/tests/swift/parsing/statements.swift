@@ -251,7 +251,8 @@ switch foo {
 }
 
 switch foo {
-  case true, false:
+  // Literal patterns
+  case 1, 2:
     return 1
   case true where true, false:
     return 2
