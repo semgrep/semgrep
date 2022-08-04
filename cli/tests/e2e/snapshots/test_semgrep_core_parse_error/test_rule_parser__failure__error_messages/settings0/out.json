@@ -19,12 +19,12 @@
         },
         {
           "end": {
-            "col": 14,
+            "col": 12,
             "line": 10
           },
           "file": "targets/bad/invalid_go.go",
           "start": {
-            "col": 13,
+            "col": 10,
             "line": 10
           }
         }
