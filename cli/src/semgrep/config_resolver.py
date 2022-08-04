@@ -1,7 +1,6 @@
 import json
 import os
 import time
-import urllib.parse
 from collections import OrderedDict
 from enum import auto
 from enum import Enum
@@ -13,15 +12,21 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
 import requests
+import yaml as pyyaml  # type: ignore
 from ruamel.yaml import YAMLError
+from yaml import SafeDumper
 
+from semgrep import __VERSION__
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
+from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -136,7 +141,7 @@ class ConfigPath:
         of raw YAML.
         Replaces '/c/' in semgrep urls with '/'.
         """
-        parsed = urllib.parse.urlparse(url)
+        parsed = urlparse(url)
         if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
             return url.replace("/c/", "/")
         return url
@@ -192,15 +197,19 @@ class ConfigPath:
 
     def _make_config_request(self) -> str:
         app_session = get_state().app_session
-        r = app_session.get(
+        resp = app_session.get(
             self._config_path,
             headers={"Accept": "application/json", **self._extra_headers},
         )
-        if r.status_code == requests.codes.ok:
-            return r.content.decode("utf-8", errors="replace")
+        if resp.status_code == requests.codes.ok:
+            try:
+                rules_dict = resp.json().get("rules")
+                return pyyaml.dump(rules_dict, Dumper=SafeDumper)  # type: ignore
+            except json.JSONDecodeError:
+                return resp.content.decode("utf-8", errors="replace")
         else:
             raise SemgrepError(
-                f"bad status code: {r.status_code} returned by config url: {self._config_path}"
+                f"bad status code: {resp.status_code} returned by config url: {self._config_path}"
             )
 
     def is_registry_url(self) -> bool:
@@ -535,26 +544,29 @@ def url_for_policy(config_str: str) -> str:
     Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
     """
     deployment_id = auth.get_deployment_id()
-
     if deployment_id is None:
         raise SemgrepError(
             "Invalid API Key. Run `semgrep logout` and `semgrep login` again."
         )
 
     repo_name = os.environ.get("SEMGREP_REPO_NAME")
-    include_cai = os.environ.get("SEMGREP_POLICY_INCLUDE_CAI")
-
     if repo_name is None:
         raise SemgrepError(
             "Need to set env var SEMGREP_REPO_NAME to use `--config policy`"
         )
 
     env = get_state().env
-    request_url = f"{env.semgrep_url}/api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml"
 
-    if include_cai:
-        return f"{request_url}?include_cai=1"
-    return request_url
+    # The app considers anything that will not POST back to it to be a dry_run
+    params = {
+        "sca": False,
+        "dry_run": True,
+        "full_scan": True,
+        "repository": repo_name,
+        "semgrep_version": __VERSION__,
+    }
+    params_str = urlencode(params)
+    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
 def is_policy_id(config_str: str) -> bool:
@@ -562,14 +574,19 @@ def is_policy_id(config_str: str) -> bool:
 
 
 def url_for_sca() -> str:
-    deployment_id = auth.get_deployment_id()
-    if deployment_id is None:
-        raise SemgrepError(
-            "Invalid API Key. Run `semgrep logout` and `semgrep login` again."
-        )
     env = get_state().env
     repo_name = os.environ.get("SEMGREP_REPO_NAME")
-    return f"{env.semgrep_url}/api/agent/deployments/{deployment_id}/repos/{repo_name}/rules.yaml?sca=true"
+
+    # The app considers anything that will not POST back to it to be a dry_run
+    params = {
+        "sca": True,
+        "dry_run": True,
+        "full_scan": True,
+        "repository": repo_name,
+        "semgrep_version": __VERSION__,
+    }
+    params_str = urlencode(params)
+    return f"{env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{params_str}"
 
 
 def is_sca(config_str: str) -> bool:
