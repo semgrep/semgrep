@@ -90,6 +90,7 @@ repos:
           - types-freezegun
           - types-python-dateutil
           - types-Jinja2
+          - types-PyYAML
       - id: mypy
         alias: mypy-test
         name: mypy (test files)

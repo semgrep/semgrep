@@ -8,11 +8,13 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import Tuple
+from urllib.parse import urlencode
 
 import click
 import requests
+import yaml as pyyaml
 from boltons.iterutils import partition
+from yaml import SafeDumper
 
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -27,15 +29,40 @@ logger = getLogger(__name__)
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
-        self.deployment_id, self.deployment_name = self._get_deployment_details()
+        self._deployment_id: Optional[int] = None
+        self._deployment_name: str = ""
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
+        self._policy: List[str] = []
         self._autofix = False
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
         self._skipped_syntactic_ids: List[str] = []
         self._skipped_match_based_ids: List[str] = []
+        self._scan_params: str = ""
+        self._rules: str = ""
+
+    @property
+    def deployment_id(self) -> Optional[int]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._deployment_id
+
+    @property
+    def deployment_name(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._deployment_name
+
+    @property
+    def policy(self) -> List[str]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._policy
 
     @property
     def autofix(self) -> bool:
@@ -58,25 +85,56 @@ class ScanHandler:
         """
         return self._skipped_match_based_ids
 
-    def _get_deployment_details(self) -> Tuple[Optional[int], Optional[str]]:
+    @property
+    def scan_params(self) -> str:
         """
-        Returns the deployment_id attached to an api_token as int
+        Seperate property for easy of mocking in test
+        """
+        return self._scan_params
 
-        Returns None if api_token is invalid/doesn't have associated deployment
+    @property
+    def rules(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._rules
+
+    def get_scan_config(self, meta: Dict[str, Any]) -> None:
+        """
+        Get configurations for scan
         """
         state = get_state()
-        url = f"{state.env.semgrep_url}/api/agent/deployments/current"
-        logger.debug(f"Retrieving deployment details from {url}")
-        r = state.app_session.get(url)
+        logger.debug("Getting scan configurations")
 
-        if r.ok:
-            data = r.json()
-            logger.debug(f"Received: {data}")
-            return data.get("deployment", {}).get("id"), data.get("deployment", {}).get(
-                "name"
+        self._scan_params = urlencode(
+            {
+                "dry_run": self.dry_run,
+                "repository": meta.get("repository"),
+                "sca": meta.get("is_sca_scan", False),
+                "full_scan": meta.get("is_full_scan", False),
+                "semgrep_version": meta.get("semgrep_version", "0.0.0"),
+            }
+        )
+
+        response = state.app_session.get(
+            f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
+        )
+
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
-        else:
-            return None, None
+
+        body = response.json()
+        self._deployment_id = body["deployment_id"]
+        self._deployment_name = body["deployment_name"]
+        self._policy = body["policy"]
+        self._autofix = body.get("autofix", False)
+        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
+        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
+        self._rules = pyyaml.dump(body.get("rules"), Dumper=SafeDumper)
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
@@ -86,17 +144,10 @@ class ScanHandler:
         """
         state = get_state()
         logger.debug("Starting scan")
-        if self.dry_run:
-            repo_name = meta["repository"]
-            self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
-            logger.debug(
-                f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
-            )
-            return
 
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/scans",
-            json={"meta": meta},
+            f"{state.env.semgrep_url}/api/agent/deployments/scans",
+            json={"meta": meta, "policy": self._policy},
         )
 
         if response.status_code == 404:
@@ -115,21 +166,16 @@ class ScanHandler:
 
         body = response.json()
         self.scan_id = body["scan"]["id"]
-        self._autofix = body.get("autofix", False)
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
 
-    @property
-    def scan_rules_url(self) -> str:
-        state = get_state()
-        if self.dry_run:
-            url = self._dry_run_rules_url
-        else:
-            url = f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/rules.yaml"
+    # TODO: Talk to Austin so it doesn't affect LSP
+    # @property
+    # def scan_rules_url(self) -> str:
+    #     state = get_state()
+    #     url = f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
 
-        logger.debug(f"Using {url} as scan rules url")
-        return url
+    #     logger.debug(f"Using {url} as scan rules url")
+    #     return url
 
     def report_failure(self, exit_code: int) -> None:
         """
