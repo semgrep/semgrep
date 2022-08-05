@@ -168,15 +168,6 @@ class ScanHandler:
         self.scan_id = body["scan"]["id"]
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
 
-    # TODO: Talk to Austin so it doesn't affect LSP
-    # @property
-    # def scan_rules_url(self) -> str:
-    #     state = get_state()
-    #     url = f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
-
-    #     logger.debug(f"Using {url} as scan rules url")
-    #     return url
-
     def report_failure(self, exit_code: int) -> None:
         """
         Send semgrep cli non-zero exit code information to server
