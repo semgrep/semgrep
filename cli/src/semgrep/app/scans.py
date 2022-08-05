@@ -12,7 +12,9 @@ from urllib.parse import urlencode
 
 import click
 import requests
+import yaml as pyyaml
 from boltons.iterutils import partition
+from yaml import SafeDumper
 
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
@@ -39,6 +41,7 @@ class ScanHandler:
         self._skipped_syntactic_ids: List[str] = []
         self._skipped_match_based_ids: List[str] = []
         self._scan_params: str = ""
+        self._rules: str = ""
 
     @property
     def deployment_id(self) -> Optional[int]:
@@ -89,6 +92,13 @@ class ScanHandler:
         """
         return self._scan_params
 
+    @property
+    def rules(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._rules
+
     def get_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
@@ -124,6 +134,7 @@ class ScanHandler:
         self._autofix = body.get("autofix", False)
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
+        self._rules = pyyaml.dump(body.get("rules"), Dumper=SafeDumper)
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
@@ -157,13 +168,14 @@ class ScanHandler:
         self.scan_id = body["scan"]["id"]
         self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
 
-    @property
-    def scan_rules_url(self) -> str:
-        state = get_state()
-        url = f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
+    # TODO: Talk to Austin so it doesn't affect LSP
+    # @property
+    # def scan_rules_url(self) -> str:
+    #     state = get_state()
+    #     url = f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
 
-        logger.debug(f"Using {url} as scan rules url")
-        return url
+    #     logger.debug(f"Using {url} as scan rules url")
+    #     return url
 
     def report_failure(self, exit_code: int) -> None:
         """

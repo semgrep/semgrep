@@ -120,6 +120,7 @@ class LSPConfig:
     def project_url(self) -> Union[str, None]:
         return get_project_url()
 
+    # TODO: Talk to Austin, so it doesn't affect LSP
     @property
     def scan_url(self) -> str:
         scan_handler = ScanHandler(True)
@@ -132,7 +133,8 @@ class LSPConfig:
         )
         metadata_dict = metadata.to_dict()
         scan_handler.start_scan(metadata_dict)
-        return scan_handler.scan_rules_url
+        # return scan_handler.scan_rules_url
+        return f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{scan_handler.scan_params}"
 
     # =====================
     # Semgrep LSP settings

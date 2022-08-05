@@ -45,7 +45,7 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
 from semgrep.util import is_config_suffix
-from semgrep.util import is_url
+from semgrep.util import is_rules
 from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -94,9 +94,12 @@ class ConfigPath:
         if config_str == "r2c":
             state.metrics.add_feature("config", "r2c")
             self._config_path = "https://semgrep.dev/c/p/r2c"
-        elif is_url(config_str):
-            state.metrics.add_feature("config", "url")
+        elif is_rules(config_str):
+            state.metrics.add_feature("config", "rules")
             self._config_path = config_str
+        # elif is_url(config_str):
+        #     state.metrics.add_feature("config", "url")
+        #     self._config_path = config_str
         elif is_policy_id(config_str):
             state.metrics.add_feature("config", "policy")
             self._config_path = url_for_policy(config_str)
@@ -155,7 +158,7 @@ class ConfigPath:
         try:
             config = parse_config_string(
                 "remote-url",
-                self._make_config_request(),
+                config_url,
                 filename=f"{config_url[:20]}...",
             )
             logger.debug(f"finished downloading from {config_url}")

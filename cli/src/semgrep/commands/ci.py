@@ -300,7 +300,7 @@ def ci(
                     scan_handler.get_scan_config(metadata_dict)
                     scan_handler.start_scan(metadata_dict)
                     logger.info(f"Authenticated as {scan_handler.deployment_name}")
-                    config = (scan_handler.scan_rules_url,)
+                    config = (scan_handler.rules,)
             except Exception as e:
                 import traceback
 
