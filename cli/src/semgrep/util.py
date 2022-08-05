@@ -38,6 +38,10 @@ def is_url(url: str) -> bool:
         return False
 
 
+def is_rules(rules: str) -> bool:
+    return rules[:6] == "rules:"
+
+
 def path_has_permissions(path: Path, permissions: int) -> bool:
     return path.exists() and path.stat().st_mode & permissions == permissions
 
