@@ -386,7 +386,12 @@ def test_full_run(
         env["TRAVIS_COMMIT"] = head_commit
     env["SEMGREP_APP_TOKEN"] = "fake-key-from-tests"
 
-    result = run_semgrep(options=["ci"], strict=False, assert_exit_code=None, env=env)
+    result = run_semgrep(
+        options=["ci", "--no-suppress-errors"],
+        strict=False,
+        assert_exit_code=None,
+        env=env,
+    )
 
     snapshot.assert_match(
         result.as_snapshot(
@@ -547,7 +552,7 @@ def test_github_ci_bad_base_sha(
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
     result = run_semgrep(
-        options=["ci", "--debug", "--no-force-color"],
+        options=["ci", "--debug", "--no-force-color", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -696,7 +701,7 @@ def test_shallow_wrong_merge_base(
 
     # Scan the wrong thing first and verify we get more findings than expected (2 > 1)
     result = run_semgrep(
-        options=["ci", "--no-force-color"],
+        options=["ci", "--no-force-color", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env=env,
@@ -717,7 +722,7 @@ def test_shallow_wrong_merge_base(
 
     # Run again with greater depth
     result = run_semgrep(
-        options=["ci", "--no-force-color"],
+        options=["ci", "--no-force-color", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env={**env, "SEMGREP_GHA_MIN_FETCH_DEPTH": "100"},
@@ -743,7 +748,7 @@ def test_shallow_wrong_merge_base(
 def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofix):
     result = run_semgrep(
         "p/something",
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": ""},
@@ -758,7 +763,7 @@ def test_config_run(run_semgrep, git_tmp_path_with_commit, snapshot, mock_autofi
 )
 def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_semgrep):
     result = run_semgrep(
-        options=["ci", format],
+        options=["ci", "--no-suppress-errors", format],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -772,7 +777,7 @@ def test_outputs(git_tmp_path_with_commit, snapshot, format, mock_autofix, run_s
 def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semgrep):
     result = run_semgrep(
         "p/something",
-        options=["ci", nosem],
+        options=["ci", "--no-suppress-errors", nosem],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -784,7 +789,7 @@ def test_nosem(git_tmp_path_with_commit, snapshot, mock_autofix, nosem, run_semg
 def test_dryrun(tmp_path, git_tmp_path_with_commit, snapshot, run_semgrep):
     _, base_commit, head_commit = git_tmp_path_with_commit
     result = run_semgrep(
-        options=["ci", "--dry-run"],
+        options=["ci", "--dry-run", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=None,
@@ -812,7 +817,7 @@ def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     mocker.patch("semgrep.app.auth.is_valid_token", return_value=False)
     run_semgrep(
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=13,
@@ -821,7 +826,7 @@ def test_fail_auth(run_semgrep, mocker, git_tmp_path_with_commit):
 
     mocker.patch("semgrep.app.auth.is_valid_token", side_effect=Exception)
     run_semgrep(
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -852,7 +857,7 @@ def test_fail_start_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     mocker.patch.object(ScanHandler, "start_scan", side_effect=Exception("Timeout"))
     run_semgrep(
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -893,7 +898,7 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
     mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
 
     result = run_semgrep(
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=7,
@@ -935,7 +940,7 @@ def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     mocker.patch.object(ScanHandler, "report_findings", side_effect=Exception)
     run_semgrep(
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
@@ -965,7 +970,7 @@ def test_git_failure(run_semgrep, git_tmp_path_with_commit, mocker):
     """
     mocker.patch.object(GitMeta, "to_dict", side_effect=Exception)
     run_semgrep(
-        options=["ci"],
+        options=["ci", "--no-suppress-errors"],
         target_name=None,
         strict=False,
         assert_exit_code=2,
