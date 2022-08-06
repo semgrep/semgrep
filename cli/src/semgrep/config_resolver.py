@@ -95,9 +95,6 @@ class ConfigPath:
         if config_str == "r2c":
             state.metrics.add_feature("config", "r2c")
             self._config_path = "https://semgrep.dev/c/p/r2c"
-        elif is_rules(config_str):
-            state.metrics.add_feature("config", "rules")
-            self._config_path = config_str
         elif is_url(config_str):
             state.metrics.add_feature("config", "url")
             self._config_path = config_str
@@ -154,14 +151,12 @@ class ConfigPath:
         """
         Download a configuration from semgrep.dev
         """
-        config_url: str = (
-            self._config_path if is_rules(config_url) else self._make_config_request()
-        )
+        config_url = self._config_path
         logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
         try:
             config = parse_config_string(
                 "remote-url",
-                config_url,
+                self._make_config_request(),
                 filename=f"{config_url[:20]}...",
             )
             logger.debug(f"finished downloading from {config_url}")
@@ -239,6 +234,23 @@ class Config:
     ) -> Tuple["Config", Sequence[SemgrepError]]:
         config_dict = manual_config(pattern, lang, replacement)
         valid, errors = cls._validate(config_dict)
+        return cls(valid), errors
+
+    @classmethod
+    def from_rules_yaml(cls, config: str) -> Tuple["Config", Sequence[SemgrepError]]:
+        config_dict: Dict[str, YamlTree] = {}
+        errors: List[SemgrepError] = []
+
+        try:
+            resolved_config_key = "rules-yaml-string"
+            config_dict.update(
+                parse_config_string(resolved_config_key, config, filename=None)
+            )
+        except SemgrepError as e:
+            errors.append(e)
+
+        valid, parse_errors = cls._validate(config_dict)
+        errors.extend(parse_errors)
         return cls(valid), errors
 
     @classmethod
@@ -622,6 +634,8 @@ def get_config(
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
         config, errors = Config.from_pattern_lang(pattern, lang, replacement)
+    elif is_rules(config_strs[0]):
+        config, errors = Config.from_rules_yaml(config_strs[0])
     else:
         if replacement:
             raise SemgrepError(
