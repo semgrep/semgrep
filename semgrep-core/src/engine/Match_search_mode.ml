@@ -210,10 +210,13 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter config file_and_more
-    patterns =
+let matches_of_patterns ?mvar_context ?range_filter
+    (config : Config_semgrep.t * Equivalence.equivalences) (xtarget : Xtarget.t)
+    (patterns :
+      (Pattern.t * R.inside option * Xpattern.pattern_id * string) list) :
+    RP.times RP.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
-    file_and_more
+    xtarget
   in
   match xlang with
   | Xlang.L (lang, _) ->
@@ -308,8 +311,11 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
-  let { Xtarget.file; lazy_content; _ } = file_and_more in
+let matches_of_xpatterns ~mvar_context
+    (config : Config_semgrep.t * Equivalence.equivalences) (xtarget : Xtarget.t)
+    (xpatterns : (Xpattern.t * R.inside option) list) : RP.times RP.match_result
+    =
+  let { Xtarget.file; lazy_content; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -320,7 +326,7 @@ let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context config file_and_more patterns;
+      matches_of_patterns ~mvar_context config xtarget patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
       Xpattern_match_comby.matches_of_combys combys lazy_content file;
@@ -331,7 +337,8 @@ let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
 (* Formula evaluation *)
 (*****************************************************************************)
 
-let rec filter_ranges env xs cond =
+let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
+    RM.ranges =
   xs
   |> List.filter (fun r ->
          let bindings = r.RM.mvars in
@@ -429,8 +436,8 @@ and nested_formula_has_matches env formula opt_context =
   | _ :: _ -> true
 
 (* less: use Set instead of list? *)
-and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
- fun env opt_context e ->
+and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
+    RM.t list =
   match e with
   | S.Leaf (xpat, inside) ->
       let id = xpat.XP.pid in

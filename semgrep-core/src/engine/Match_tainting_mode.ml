@@ -23,6 +23,7 @@ module RM = Range_with_metavars
 module RP = Report
 module T = Taint
 module PI = Parse_info
+module MV = Metavariable
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -144,7 +145,6 @@ let find_sanitizers_matches config equivs xtarget rule specs =
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches config equivs xtarget rule propagators_spec =
   let ( let* ) = Option.bind in
-  let module MV = Metavariable in
   propagators_spec
   |> List.concat_map (fun (p : Rule.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
