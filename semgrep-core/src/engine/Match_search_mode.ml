@@ -437,7 +437,7 @@ and nested_formula_has_matches env formula opt_context =
 
 (* less: use Set instead of list? *)
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
-    RM.t list =
+    RM.ranges =
   match e with
   | S.Leaf (xpat, inside) ->
       let id = xpat.XP.pid in
