@@ -56,4 +56,4 @@ $ docker build -t semgrep .
 
 Contribution guidelines and developer documentation
 are [available from Semgrep's documentation
-website](https://semgrep.dev/docs/contributing/how-to-contribute/).
+website](https://semgrep.dev/docs/contributing/contributing/).
