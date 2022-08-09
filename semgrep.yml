@@ -24,6 +24,7 @@ rules:
         - scripts/*
         - Test.ml
         - Matching_report.ml
+        - Matching_explanations.ml
         - Unit_*.ml
         - Test_*.ml
         - runner/*.ml
