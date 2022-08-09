@@ -459,8 +459,7 @@ and nested_formula_has_matches env formula opt_context =
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
     RM.ranges * matching_explanation option =
   match e with
-  | S.Leaf (xpat, inside) ->
-      let id = xpat.XP.pid in
+  | S.Leaf (({ XP.pid = id; pstr = _, tok; _ } as xpat), inside) ->
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
@@ -476,11 +475,9 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
         |> Common.map RM.match_result_to_range
         |> Common.map (fun r -> { r with RM.kind })
       in
-      let exp =
-        Some { op = OpXPattern; ranges; children = []; pos = snd xpat.XP.pstr }
-      in
+      let exp = Some { op = OpXPattern; ranges; children = []; pos = tok } in
       (ranges, exp)
-  | S.Or xs ->
+  | S.Or (tok, xs) ->
       let ranges, exps =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
       in
@@ -490,19 +487,20 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           {
             op = OpOr;
             ranges;
-            pos = G.fake "";
+            pos = tok;
             children = exps |> Common.map_filter (fun x -> x);
           }
       in
       (ranges, exp)
   | S.And
-      {
-        selector_opt;
-        positives = pos;
-        negatives = neg;
-        conditionals = conds;
-        focus;
-      } -> (
+      ( tok,
+        {
+          selector_opt;
+          positives = pos;
+          negatives = neg;
+          conditionals = conds;
+          focus;
+        } ) -> (
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
@@ -600,7 +598,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
                 op = OpAnd;
                 ranges;
                 (* TODO: add some intermediate OpNot *)
-                pos = G.fake "";
+                pos = tok;
                 children =
                   posrs_exps @ negs_exps |> Common.map_filter (fun x -> x);
               }
