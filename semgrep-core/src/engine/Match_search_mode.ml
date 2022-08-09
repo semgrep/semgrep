@@ -24,8 +24,6 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module E = Semgrep_error_code
-module Resp = Output_from_core_t
-module Out = Output_from_core_t
 module ME = Matching_explanation
 open Match_env
 
@@ -450,7 +448,7 @@ and nested_formula_has_matches env formula opt_context =
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
     RM.ranges * Matching_explanation.t option =
   match e with
-  | S.Leaf (({ XP.pid = id; pstr = _, tok; _ } as xpat), inside) ->
+  | S.Leaf (({ XP.pid = id; pstr = pstr, tok; _ } as xpat), inside) ->
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
@@ -468,7 +466,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       in
       let exp =
         if_explanations env ranges [] (fun children matches ->
-            { ME.op = OpXPattern; matches; children; pos = tok })
+            { ME.op = ME.XPat pstr; matches; children; pos = tok })
       in
       (ranges, exp)
   | S.Or (tok, xs) ->
@@ -478,7 +476,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       let ranges = List.flatten ranges in
       let exp =
         if_explanations env ranges exps (fun children matches ->
-            { op = OpOr; matches; pos = tok; children })
+            { op = ME.Or; matches; pos = tok; children })
       in
       (ranges, exp)
   | S.And
@@ -585,7 +583,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           let exp =
             if_explanations env ranges (posrs_exps @ negs_exps)
               (fun children matches ->
-                { op = OpAnd; matches; pos = tok; children })
+                { op = ME.And; matches; pos = tok; children })
           in
           (ranges, exp))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
@@ -615,10 +613,14 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     }
   in
   logger#trace "evaluating the formula";
-  let final_ranges, _exp = evaluate_formula env opt_context formula in
+  let final_ranges, explanation = evaluate_formula env opt_context formula in
   logger#trace "found %d final ranges" (List.length final_ranges);
   let res' =
-    { res with RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors) }
+    {
+      res with
+      RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors);
+      explanations = Option.to_list explanation;
+    }
   in
   (res', final_ranges)
   [@@profiling]
@@ -634,6 +636,7 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook xconf xtarget =
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in
   {
+    res with
     RP.matches =
       final_ranges
       |> Common.map (RM.range_to_pattern_match_adjusted r)
@@ -647,5 +650,4 @@ let check_rule ({ R.mode = `Search pformula; _ } as r) hook xconf xtarget =
                     let str = spf "with rule %s" rule_id in
                     hook str m));
     errors;
-    extra = res.extra;
   }

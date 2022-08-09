@@ -223,7 +223,7 @@ let map_res map_loc tmpfile file
     | Time { profiling } -> Time { profiling = { profiling with Report.file } }
     | No_info -> No_info
   in
-  { Report.matches; errors; extra }
+  { Report.matches; errors; extra; explanations = [] }
 
 (*****************************************************************************)
 (* Main logic *)

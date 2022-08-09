@@ -653,7 +653,13 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
     | RP.No_info -> RP.No_info
   in
   let errors = new_errors @ res.errors in
-  ( { RP.matches; errors; skipped_rules = invalid_rules; extra },
+  ( {
+      RP.matches;
+      errors;
+      skipped_rules = invalid_rules;
+      extra;
+      explanations = res.explanations;
+    },
     target_info.target_mappings |> Common.map (fun x -> x.In.path) )
 
 let semgrep_with_raw_results_and_exn_handler config =
@@ -703,6 +709,9 @@ let semgrep_with_rules_and_formatted_output config =
       | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
       | None -> ())
   | Text ->
+      if config.matching_explanations then
+        res.explanations
+        |> List.iter (fun explain -> Matching_explanation.print explain);
       (* the match has already been printed above. We just print errors here *)
       if not (null res.errors) then (
         pr "WARNING: some files were skipped on only partially analyzed:";

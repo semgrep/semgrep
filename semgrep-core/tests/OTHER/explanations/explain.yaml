@@ -1,0 +1,7 @@
+- id: explain
+  patterns:
+    - pattern-inside: foo(...)
+    - pattern: bar()
+  message: found it
+  languages: [python]
+  severity: WARNING

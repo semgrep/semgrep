@@ -12,6 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+open Common
+module Out = Output_from_core_t
+module Out2 = Output_from_core_util
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,8 +42,34 @@ type t = {
  * - Where filters (metavar-comparison, etc)
  *)
 and matching_operation =
-  | OpAnd
-  | OpOr
+  | And
+  | Or
   (*  | OpNot *)
-  | OpXPattern
-[@@deriving show]
+  | XPat of string
+[@@deriving show { with_path = false }]
+
+(*****************************************************************************)
+(* Debug output *)
+(*****************************************************************************)
+
+(* less: could also display short info on metavar values *)
+let match_to_charpos_range (pm : Pattern_match.t) : string =
+  let min_loc, max_loc = pm.range_loc in
+  let startp, endp = Out2.position_range min_loc max_loc in
+  spf "%d-%d" startp.Out.offset endp.Out.offset
+
+(* alt: use Format module *)
+let rec print_indent indent { op; children; matches; pos } =
+  let s =
+    spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
+      (show_matching_operation op)
+      (Parse_info.pos_of_info pos)
+      (matches |> Common.map match_to_charpos_range |> Common.join " ")
+  in
+  pr s;
+  children |> List.iter (print_indent (indent + 2))
+
+(* used by semgrep-core -matching_explanations in Text mode output *)
+let print x =
+  pr " Matching explanations:";
+  print_indent 2 x
