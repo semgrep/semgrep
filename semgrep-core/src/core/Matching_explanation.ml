@@ -13,7 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-module Out = Output_from_core_t
+module Out = Output_from_core_j
 module Out2 = Output_from_core_util
 
 (*****************************************************************************)
@@ -27,26 +27,16 @@ module Out2 = Output_from_core_util
 (* Types *)
 (*****************************************************************************)
 
+(* coupling: semgrep_output_v0.atd matching_explanation type *)
 type t = {
-  op : matching_operation;
+  op : Out.matching_operation;
   children : t list;
   (* resulting ranges *)
   matches : Pattern_match.t list;
   (* TODO: should be a range loc in the rule file *)
   pos : Rule.tok;
 }
-
-(* TODO:
- * - tainting source/sink/sanitizer
- * - subpattern EllipsisAndStmt, ClassHeaderAndElems
- * - Where filters (metavar-comparison, etc)
- *)
-and matching_operation =
-  | And
-  | Or
-  (*  | OpNot *)
-  | XPat of string
-[@@deriving show { with_path = false }]
+[@@deriving show]
 
 (*****************************************************************************)
 (* Debug output *)
@@ -62,7 +52,7 @@ let match_to_charpos_range (pm : Pattern_match.t) : string =
 let rec print_indent indent { op; children; matches; pos } =
   let s =
     spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
-      (show_matching_operation op)
+      (Out.show_matching_operation op)
       (Parse_info.pos_of_info pos)
       (matches |> Common.map match_to_charpos_range |> Common.join " ")
   in

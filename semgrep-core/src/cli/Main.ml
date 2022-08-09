@@ -212,7 +212,7 @@ let json_of_v (v : OCaml.v) =
 let dump_v_to_format (v : OCaml.v) =
   match !output_format with
   | Text -> OCaml.string_of_v v
-  | Json -> J.string_of_json (json_of_v v)
+  | Json _ -> J.string_of_json (json_of_v v)
 
 (* works with -lang *)
 let dump_pattern (file : Common.filename) =
@@ -438,7 +438,7 @@ let all_actions () =
       Common.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
             (Xlang.lang_of_opt_xlang !lang)
-            ~json:(!output_format = Json) ~verbose:true xs) );
+            ~json:(!output_format <> Text) ~verbose:true xs) );
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
@@ -590,11 +590,16 @@ let options () =
     ( "-oneline",
       Arg.Unit (fun () -> match_format := Matching_report.OneLine),
       " print matches on one line, in normalized form" );
-    ("-json", Arg.Unit (fun () -> output_format := Json), " output JSON format");
+    ( "-json",
+      Arg.Unit (fun () -> output_format := Json true),
+      " output JSON format" );
+    ( "-json_nodots",
+      Arg.Unit (fun () -> output_format := Json false),
+      " output JSON format but without intermediate dots" );
     ( "-json_time",
       Arg.Unit
         (fun () ->
-          output_format := Json;
+          output_format := Json true;
           report_time := true),
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );

@@ -466,7 +466,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       in
       let exp =
         if_explanations env ranges [] (fun children matches ->
-            { ME.op = ME.XPat pstr; matches; children; pos = tok })
+            { ME.op = Out.XPat pstr; matches; children; pos = tok })
       in
       (ranges, exp)
   | S.Or (tok, xs) ->
@@ -476,7 +476,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       let ranges = List.flatten ranges in
       let exp =
         if_explanations env ranges exps (fun children matches ->
-            { op = ME.Or; matches; pos = tok; children })
+            { op = Out.Or; matches; pos = tok; children })
       in
       (ranges, exp)
   | S.And
@@ -583,7 +583,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           let exp =
             if_explanations env ranges (posrs_exps @ negs_exps)
               (fun children matches ->
-                { op = ME.And; matches; pos = tok; children })
+                { op = Out.And; matches; pos = tok; children })
           in
           (ranges, exp))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"

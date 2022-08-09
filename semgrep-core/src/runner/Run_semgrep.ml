@@ -541,8 +541,10 @@ let extract_targets_of_config config rule_ids extractors =
           extractors xtarget rule_ids
       in
       (* Print number of extra targets so Python knows *)
-      if config.output_format = Json && extract_targets <> [] then
-        pr (string_of_int (List.length extract_targets));
+      (match config.output_format with
+      | Json true when extract_targets <> [] ->
+          pr (string_of_int (List.length extract_targets))
+      | _ -> ());
       extract_targets)
     extract_targets
   |> fun extracted_ranges ->
@@ -622,7 +624,9 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
              Match_rules.check ~match_hook ~timeout:config.timeout
                ~timeout_threshold:config.timeout_threshold xconf rules xtarget
            in
-           if config.output_format = Json then pr ".";
+           (match config.output_format with
+           | Json true -> pr "."
+           | _ -> ());
            (* Print when each file is done so Python knows *)
            Hashtbl.find_opt extract_result_map file
            |> Option.fold ~some:(fun f -> f res) ~none:res)
@@ -693,7 +697,7 @@ let semgrep_with_rules_and_formatted_output config =
    * Common2.write_value matches "/tmp/debug_matches";
    *)
   match config.output_format with
-  | Json -> (
+  | Json _ -> (
       let res = JSON_report.match_results_of_matches_and_errors files res in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
@@ -784,7 +788,7 @@ let semgrep_with_one_pattern config =
   let pattern, pattern_string = pattern_of_config lang config in
 
   match config.output_format with
-  | Json ->
+  | Json _ ->
       let rule, rules_parse_time =
         Common.with_time (fun () -> rule_of_pattern lang pattern_string pattern)
       in
