@@ -334,6 +334,7 @@ def ci(
                 profiler,
                 profiling_data,
                 parsing_data,
+                _explanations,
                 shown_severities,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,

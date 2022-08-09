@@ -811,6 +811,7 @@ def scan(
                     profiler,
                     profiling_data,
                     _,
+                    explanations,
                     shown_severities,
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
@@ -852,6 +853,7 @@ def scan(
                 profiler=profiler,
                 filtered_rules=filtered_rules,
                 profiling_data=profiling_data,
+                explanations=explanations,
                 severities=shown_severities,
                 print_summary=True,
             )
