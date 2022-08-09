@@ -63,7 +63,7 @@ type formula =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of Xpattern.t (* a leaf pattern *) * inside option
-  | And of conjunction
+  | And of tok * conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -77,7 +77,6 @@ type formula =
  * See also split_and().
  *)
 and conjunction = {
-  tok : tok;
   (* pattern-inside:'s and pattern:'s *)
   conjuncts : formula list;
   (* metavariable-xyz:'s *)
@@ -417,12 +416,12 @@ let rec visit_new_formula f formula =
   | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
-  | And { conjuncts = xs; _ } ->
+  | And (_, { conjuncts = xs; _ }) ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And { tok = t; _ }
+  | And (t, _)
   | Or (t, _)
   | Not (t, _) ->
       t
@@ -522,7 +521,7 @@ let rec (convert_formula_old :
         let pos, _ = split_and fs in
         if pos = [] && not in_metavariable_pattern then
           raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
-        And { tok = t; conjuncts = fs; conditions = conds; focus }
+        And (t, { conjuncts = fs; conditions = conds; focus })
     | PatExtra (t, _) ->
         raise
           (InvalidYaml

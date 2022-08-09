@@ -77,7 +77,7 @@ let formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
     | R.P (p, inside) -> Leaf (p, inside)
-    | R.And { tok; conjuncts = fs; conditions = conds; focus } ->
+    | R.And (tok, { conjuncts = fs; conditions = conds; focus }) ->
         And (tok, convert_and_formulas fs conds focus)
     | R.Or (tok, fs) -> Or (tok, Common.map formula_to_sformula fs)
     | R.Not (tok, f) -> Not (tok, formula_to_sformula f)

@@ -110,7 +110,7 @@ let unknown_metavar_in_comparison env f =
            *)
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
-    | And { tok = _; conjuncts; conditions; focus } ->
+    | And (_, { conjuncts; conditions; focus }) ->
         let mv_sets = Common.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
