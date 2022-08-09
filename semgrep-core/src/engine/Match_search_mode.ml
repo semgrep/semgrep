@@ -548,10 +548,14 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           let ranges, negs_exps =
             neg
             |> List.fold_left
-                 (fun (ranges, acc_exps) x ->
+                 (fun (ranges, acc_exps) (tok, x) ->
                    let ranges_neg, exp = evaluate_formula env opt_context x in
                    let ranges =
                      RM.difference_ranges env.xconf.config ranges ranges_neg
+                   in
+                   let exp =
+                     if_explanations env ranges [ exp ] (fun children matches ->
+                         { op = Out.Negation; matches; pos = tok; children })
                    in
                    (ranges, exp :: acc_exps))
                  (ranges, [])

@@ -488,7 +488,7 @@ let remove_noop (e : formula_old) : formula_old =
   aux e
 
 (* return list of "positive" x list of Not *)
-let split_and : formula list -> formula list * formula list =
+let split_and : formula list -> formula list * (tok * formula) list =
  fun xs ->
   xs
   |> Common.partition_either (fun e ->
@@ -499,7 +499,7 @@ let split_and : formula list -> formula list * formula list =
          | Or _ ->
              Left e
          (* negatives *)
-         | Not (_, f) -> Right f)
+         | Not (tok, f) -> Right (tok, f))
 
 let rec (convert_formula_old :
           ?in_metavariable_pattern:bool ->

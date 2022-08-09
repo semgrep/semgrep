@@ -24,7 +24,7 @@ and sformula_and = {
       (** Invariant: [not (Option.is_some selector_opt) || positives <> []]
           that is, we can only select from a non-empty context. *)
   positives : sformula list;
-  negatives : sformula list;
+  negatives : (Rule.tok * sformula) list;
   conditionals : Rule.metavar_cond list;
   focus : Metavariable.mvar list;
 }

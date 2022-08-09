@@ -25,7 +25,7 @@ type sformula =
 and sformula_and = {
   selector_opt : selector option;
   positives : sformula list;
-  negatives : sformula list;
+  negatives : (Rule.tok * sformula) list;
   conditionals : R.metavar_cond list;
   focus : MV.mvar list;
 }
@@ -84,7 +84,7 @@ let formula_to_sformula formula =
   and convert_and_formulas fs cond focus =
     let pos, neg = Rule.split_and fs in
     let pos = Common.map formula_to_sformula pos in
-    let neg = Common.map formula_to_sformula neg in
+    let neg = Common.map (fun (t, f) -> (t, formula_to_sformula f)) neg in
     let sel, pos =
       (* We only want a selector if there is something to select from. *)
       match remove_selectors (None, []) pos with
@@ -112,4 +112,4 @@ let rec visit_sformula f formula =
   | Or (_, xs) -> xs |> List.iter (visit_sformula f)
   | And (_, fand) ->
       fand.positives |> List.iter (visit_sformula f);
-      fand.negatives |> List.iter (visit_sformula f)
+      fand.negatives |> List.iter (fun (_tk, x) -> visit_sformula f x)
