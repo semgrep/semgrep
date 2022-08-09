@@ -13,10 +13,39 @@ type selector = {
 }
 [@@deriving show]
 
-type sformula =
-  | Leaf of Xpattern.t * R.inside option
+(* These are exactly the same as what are in `Rule.ml`.
+   I'm doing it this way to avoid having to make like, 10 different types polymorphic,
+   which would make me feel bad and want to kick small puppies.
+*)
+type taint_source = {
+  source_formula : sformula;
+  label : string;
+  source_requires : AST_generic.expr;
+}
+
+and taint_sanitizer = { not_conflicting : bool; sanitizer_formula : sformula }
+
+and taint_propagator = {
+  propagate_formula : sformula;
+  from : MV.mvar R.wrap;
+  to_ : MV.mvar R.wrap;
+}
+
+and taint_sink = { sink_formula : sformula; sink_requires : AST_generic.expr }
+
+and taint_spec = {
+  sources : taint_source list;
+  propagators : taint_propagator list;
+  sanitizers : taint_sanitizer list;
+  sinks : taint_sink list;
+}
+
+and sformula =
+  | Leaf of Xpattern.t
   | And of sformula_and
   | Or of sformula list
+  | Inside of sformula
+  | Taint of taint_spec
   (* There are restrictions on where a Not can appear in a formula. It
    * should always be inside an And to be intersected with "positive" formula.
    *)
@@ -107,7 +136,7 @@ let formula_to_sformula formula =
 (* currently used in Match_rules.ml to extract patterns *)
 let rec visit_sformula f formula =
   match formula with
-  | Leaf (p, i) -> f p i
+  | Leaf (p, i) -> f p
   | Not x -> visit_sformula f x
   | Or xs -> xs |> List.iter (visit_sformula f)
   | And fand ->

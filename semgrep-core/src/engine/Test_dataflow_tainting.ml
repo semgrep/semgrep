@@ -44,62 +44,67 @@ let test_tainting lang file config def =
       |> String.concat ", "
       |> fun str -> "{ " ^ str ^ " }")
 
-let test_dfg_tainting rules_file file =
-  let lang = List.hd (Lang.langs_of_filename file) in
-  let rules =
-    try Parse_rule.parse rules_file with
-    | exn ->
-        failwith
-          (spf "fail to parse tainting rules %s (exn = %s)" rules_file
-             (Common.exn_to_s exn))
-  in
-  let ast =
-    try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
-    | exn ->
-        failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
-  in
-  let rules =
-    rules
-    |> List.filter (fun r ->
-           match r.Rule.languages with
-           | Xlang.L (x, xs) -> List.mem lang (x :: xs)
-           | _ -> false)
-  in
-  let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
-  let rule = List.hd taint_rules in
-  pr2 "Tainting";
-  pr2 "========";
-  let handle_findings _ _ _ = () in
-  let config, debug_taint =
-    Match_tainting_mode.taint_config_of_rule Config_semgrep.default_config []
-      file (ast, []) rule handle_findings
-  in
-  Common.pr2 "\nSources";
-  Common.pr2 "-------";
-  pr2_ranges file (debug_taint.sources |> Common.map fst);
-  Common.pr2 "\nSanitizers";
-  Common.pr2 "----------";
-  pr2_ranges file debug_taint.sanitizers;
-  Common.pr2 "\nSinks";
-  Common.pr2 "-----";
-  pr2_ranges file (debug_taint.sinks |> Common.map fst);
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            test_tainting lang file config def;
-            (* go into nested functions *)
-            k def);
-      }
-  in
-  (* Check each function definition. *)
-  v (AST_generic.Pr ast)
+(* TODO: kill
+   let test_dfg_tainting rules_file file =
+     let lang = List.hd (Lang.langs_of_filename file) in
+     let rules =
+       try Parse_rule.parse rules_file with
+       | exn ->
+           failwith
+             (spf "fail to parse tainting rules %s (exn = %s)" rules_file
+                (Common.exn_to_s exn))
+     in
+     let ast =
+       try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
+       | exn ->
+           failwith (spf "fail to parse %s (exn = %s)" file (Common.exn_to_s exn))
+     in
+     let rules =
+       rules
+       |> List.filter (fun r ->
+              match r.Rule.languages with
+              | Xlang.L (x, xs) -> List.mem lang (x :: xs)
+              | _ -> false)
+     in
+     (* TODO *)
+     let _search_rules, taint_rules, _extract_rules = Rule.partition_rules rules in
+     let rule = List.hd taint_rules in
+     pr2 "Tainting";
+     pr2 "========";
+     let handle_findings _ _ _ = () in
+     let config, debug_taint =
+       Match_tainting_mode.taint_config_of_rule Config_semgrep.default_config []
+         file (ast, []) rule handle_findings
+     in
+     Common.pr2 "\nSources";
+     Common.pr2 "-------";
+     pr2_ranges file (debug_taint.sources |> Common.map fst);
+     Common.pr2 "\nSanitizers";
+     Common.pr2 "----------";
+     pr2_ranges file debug_taint.sanitizers;
+     Common.pr2 "\nSinks";
+     Common.pr2 "-----";
+     pr2_ranges file (debug_taint.sinks |> Common.map fst);
+     let v =
+       V.mk_visitor
+         {
+           V.default_visitor with
+           V.kfunction_definition =
+             (fun (k, _v) def ->
+               test_tainting lang file config def;
+               (* go into nested functions *)
+               k def);
+         }
+     in
+     (* Check each function definition. *)
+     v (AST_generic.Pr ast)
+*)
 
+(*
 let actions () =
   [
     ( "-dfg_tainting",
       "<rules> <target>",
       Common.mk_action_2_arg test_dfg_tainting );
   ]
+*)

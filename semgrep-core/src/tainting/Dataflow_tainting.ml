@@ -216,7 +216,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
   let ( let* ) = Option.bind in
   let labels = labels_in_taint taints in
   let sink_pm, ts = T.pm_of_trace sink in
-  let req = eval_label_requires ~labels ts.requires in
+  let req = eval_label_requires ~labels ts.sink_requires in
   if req then
     (* TODO: With taint labels it's less clear what is "the source",
      * in fact, there could be many sources, each one providing a
@@ -258,7 +258,7 @@ let union_taints_filtering_labels ~new_ curr =
       | Arg _ -> Taints.add new_taint taints
       | Src src ->
           let _, ts = T.pm_of_trace src in
-          let req = eval_label_requires ~labels ts.requires in
+          let req = eval_label_requires ~labels ts.source_requires in
           if req then Taints.add new_taint taints else taints)
     new_ curr
 

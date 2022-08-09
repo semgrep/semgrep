@@ -36,20 +36,43 @@ val pp_loc :
 val show_loc : (Format.formatter -> 'a -> unit) -> 'a loc -> string
 val equal_loc : ('a -> 'a -> bool) -> 'a loc -> 'a loc -> bool
 
-type formula =
-  | P of Xpattern.t * inside option
+type taint_source = {
+  source_formula : formula;
+  label : string;
+  source_requires : G.expr;
+}
+
+and taint_sanitizer = { not_conflicting : bool; sanitizer_formula : formula }
+
+and taint_propagator = {
+  propagate_formula : formula;
+  from : string wrap;
+  to_ : string wrap;
+}
+
+and taint_sink = { sink_formula : formula; sink_requires : G.expr }
+
+and taint_spec = {
+  sources : taint_source list;
+  propagators : taint_propagator list;
+  sanitizers : taint_sanitizer list;
+  sinks : taint_sink list;
+}
+
+and formula =
+  | P of Xpattern.t
+  | Inside of tok * formula
+  | Taint of tok * taint_spec
   | And of conjunction
   | Or of tok * formula list
   | Not of tok * formula
 
 and conjunction = {
-  tok : tok;
+  conj_tok : tok;
   conjuncts : formula list;
   conditions : (tok * metavar_cond) list;
   focus : (tok * string) list;
 }
-
-and inside = Inside
 
 and metavar_cond =
   | CondEval of G.expr
@@ -63,20 +86,18 @@ val pp_formula : Format.formatter -> formula -> unit
 val show_formula : formula -> string
 val pp_conjunction : Format.formatter -> conjunction -> unit
 val show_conjunction : conjunction -> string
-val pp_inside : Format.formatter -> inside -> unit
-val show_inside : inside -> string
 val pp_metavar_cond : Format.formatter -> metavar_cond -> unit
 val show_metavar_cond : metavar_cond -> string
 val pp_metavar_analysis_kind : Format.formatter -> metavar_analysis_kind -> unit
 val show_metavar_analysis_kind : metavar_analysis_kind -> string
 val equal_formula : formula -> formula -> bool
 val equal_conjunction : conjunction -> conjunction -> bool
-val equal_inside : inside -> inside -> bool
 val equal_metavar_cond : metavar_cond -> metavar_cond -> bool
 
 val equal_metavar_analysis_kind :
   metavar_analysis_kind -> metavar_analysis_kind -> bool
 
+(*
 type formula_old =
   | Pat of Xpattern.t
   | PatNot of tok * Xpattern.t
@@ -126,46 +147,18 @@ val equal_extra : extra -> extra -> bool
 val equal_metavariable_comparison :
   metavariable_comparison -> metavariable_comparison -> bool
 
-type pformula = New of formula | Old of formula_old
-
-val pp_pformula : Format.formatter -> pformula -> unit
-val show_pformula : pformula -> string
-val equal_pformula : pformula -> pformula -> bool
-
-type taint_source = { formula : pformula; label : string; requires : G.expr }
-
+*)
 val pp_taint_source : Format.formatter -> taint_source -> unit
 val show_taint_source : taint_source -> string
 val default_source_label : string
 val default_source_requires : G.tok -> G.expr
-
-type taint_sanitizer = { not_conflicting : bool; formula : pformula }
-
 val pp_taint_sanitizer : Format.formatter -> taint_sanitizer -> unit
 val show_taint_sanitizer : taint_sanitizer -> string
-
-type taint_propagator = {
-  formula : pformula;
-  from : string wrap;
-  to_ : string wrap;
-}
-
 val pp_taint_propagator : Format.formatter -> taint_propagator -> unit
 val show_taint_propagator : taint_propagator -> string
-
-type taint_sink = { formula : pformula; requires : G.expr }
-
 val pp_taint_sink : Format.formatter -> taint_sink -> unit
 val show_taint_sink : taint_sink -> string
 val default_sink_requires : G.tok -> G.expr
-
-type taint_spec = {
-  sources : taint_source list;
-  propagators : taint_propagator list;
-  sanitizers : taint_sanitizer list;
-  sinks : taint_sink list;
-}
-
 val pp_taint_spec : Format.formatter -> taint_spec -> unit
 val show_taint_spec : taint_spec -> string
 
@@ -173,9 +166,10 @@ type extract_reduction = Separate | Concat
 
 val pp_extract_reduction : Format.formatter -> extract_reduction -> unit
 val show_extract_reduction : extract_reduction -> string
+val equal_extract_reduction : extract_reduction -> extract_reduction -> bool
 
 type extract_spec = {
-  pformula : pformula;
+  formula : formula;
   reduce : extract_reduction;
   dst_lang : Xlang.t;
   extract : string;
@@ -183,6 +177,7 @@ type extract_spec = {
 
 val pp_extract_spec : Format.formatter -> extract_spec -> unit
 val show_extract_spec : extract_spec -> string
+val equal_extract_spec : extract_spec -> extract_spec -> bool
 
 type severity = Error | Warning | Info | Inventory | Experiment
 
@@ -220,7 +215,7 @@ val show_rule_id : rule_id -> string
 val pp_paths : Format.formatter -> paths -> unit
 val show_paths : paths -> string
 
-type search_mode = [ `Search of pformula ]
+type search_mode = [ `Search of formula ]
 
 val pp_search_mode : Format.formatter -> search_mode -> unit
 val show_search_mode : search_mode -> string
@@ -235,8 +230,7 @@ type extract_mode = [ `Extract of extract_spec ]
 val pp_extract_mode : Format.formatter -> extract_mode -> unit
 val show_extract_mode : extract_mode -> string
 
-type mode =
-  [ `Extract of extract_spec | `Search of pformula | `Taint of taint_spec ]
+type mode = [ `Extract of extract_spec | `Search of formula ]
 
 val pp_mode : Format.formatter -> mode -> unit
 val show_mode : mode -> string
@@ -270,10 +264,7 @@ type rules = t list
 
 val pp_rules : Format.formatter -> rules -> unit
 val show_rules : rules -> string
-
-val partition_rules :
-  rules -> search_rule list * taint_rule list * extract_rule list
-
+val partition_rules : rules -> search_rule list * extract_rule list
 val last_matched_rule : rule_id option ref
 
 type invalid_rule_error = invalid_rule_error_kind * rule_id * tok
@@ -308,11 +299,16 @@ val visit_new_formula : (Xpattern.t -> unit) -> formula -> unit
 val tok_of_formula : formula -> tok
 val kind_of_formula : formula -> string
 val rewrite_metavar_comparison_strip : AST_generic.expr -> AST_generic.expr
-val remove_noop : formula_old -> formula_old
+
+(* TODO: kill
+   val remove_noop : formula_old -> formula_old
+*)
 val split_and : formula list -> formula list * formula list
 
-val convert_formula_old :
-  ?in_metavariable_pattern:bool -> rule_id:rule_id -> formula_old -> formula
+(* TODO: kill
+   val convert_formula_old :
+     ?in_metavariable_pattern:bool -> rule_id:rule_id -> formula_old -> formula
 
-val formula_of_pformula :
-  ?in_metavariable_pattern:bool -> rule_id:rule_id -> pformula -> formula
+   val formula_of_pformula :
+     ?in_metavariable_pattern:bool -> rule_id:rule_id -> pformula -> formula
+*)

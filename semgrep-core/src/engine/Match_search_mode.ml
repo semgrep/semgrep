@@ -102,10 +102,10 @@ let debug_matches = ref false
 (* Helpers *)
 (*****************************************************************************)
 
-let (xpatterns_in_formula : S.sformula -> (Xpattern.t * R.inside option) list) =
+let (xpatterns_in_formula : S.sformula -> (Xpattern.t * 'a option) list) =
  fun e ->
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat inside -> Common.push (xpat, inside) res);
+  e |> S.visit_sformula (fun xpat -> Common.push (xpat, None) res);
   !res
 
 let partition_xpatterns xs =
@@ -152,9 +152,7 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      Xlang.t ->
-      Pattern.t * R.inside option * Xpattern.pattern_id * string ->
-      MR.t) =
+      Xlang.t -> Pattern.t * 'a option * Xpattern.pattern_id * string -> MR.t) =
  fun xlang (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
@@ -447,6 +445,8 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       match_results
       |> Common.map RM.match_result_to_range
       |> Common.map (fun r -> { r with RM.kind })
+  | S.Taint _ -> failwith "TODO"
+  | S.Inside _ -> failwtih "TODO"
   | S.Or xs ->
       xs |> Common.map (evaluate_formula env opt_context) |> List.flatten
   | S.And

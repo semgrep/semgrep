@@ -461,6 +461,57 @@ let parse_options env (key : key) value =
 (* Sub parsers patterns and formulas *)
 (*****************************************************************************)
 
+let parse_language ~id ((s, t) as _lang) : Lang.t =
+  match Lang.lang_of_string_opt s with
+  | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
+  | Some l -> l
+
+let parse_languages ~id langs : Xlang.t =
+  match langs with
+  | [ (("none" | "regex"), _t) ] -> LRegex
+  | [ ("generic", _t) ] -> LGeneric
+  | xs -> (
+      let languages = xs |> Common.map (parse_language ~id:(fst id)) in
+      match languages with
+      | [] ->
+          raise
+            (R.InvalidRule
+               (R.InvalidOther "we need at least one language", fst id, snd id))
+      | x :: xs -> L (x, xs))
+
+let parse_extract_dest ~id lang : Xlang.t =
+  match lang with
+  | ("none" | "regex"), _ -> LRegex
+  | "generic", _ -> LGeneric
+  | lang -> L (parse_language ~id lang, [])
+
+let parse_severity ~id (s, t) =
+  match s with
+  | "ERROR" -> R.Error
+  | "WARNING" -> R.Warning
+  | "INFO" -> R.Info
+  | "INVENTORY" -> R.Inventory
+  | "EXPERIMENT" -> R.Experiment
+  | s ->
+      raise
+        (R.InvalidRule
+           ( R.InvalidOther
+               (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
+             id,
+             t ))
+
+let parse_extract_reduction ~id (s, t) =
+  match s with
+  | "concat" -> R.Concat
+  | "separate" -> R.Separate
+  | s ->
+      raise
+        (R.InvalidRule
+           ( R.InvalidOther
+               (spf "Bad extract reduction: %s (expected concat or separate)" s),
+             id,
+             t ))
+
 (* less: could move in a separate Parse_xpattern.ml *)
 let parse_xpattern xlang (str, tok) =
   match xlang with
@@ -521,7 +572,7 @@ let parse_xpattern_expr env e =
              env.id,
              t ))
 
-let find_formula_old env (rule_dict : dict) : key * G.expr =
+let find_formula env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
   match
     ( find "pattern",
@@ -598,7 +649,7 @@ let find_constraint dict =
           | _ -> None))
     dict None
 
-let rec parse_pattern env (value : G.expr) : R.formula_old =
+let rec parse_pattern env (value : G.expr) : R.formula =
   (* First, try to parse as a string *)
   match parse_str_or_dict env value with
   | Left (s, t) ->
@@ -615,7 +666,7 @@ let rec parse_pattern env (value : G.expr) : R.formula_old =
            (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
            (* TODO put in *)
          in *)
-      R.Pat
+      R.P
         (try parse_xpattern env.languages (s, t) with
         | (Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
         (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
@@ -629,8 +680,8 @@ let rec parse_pattern env (value : G.expr) : R.formula_old =
   (* If that doesn't work, it should be a key-value pairing.
    *)
   | Right [ (key, value) ] -> parse_pair env (key, value)
-  (* A key-value pairing may also be a two-element map, where the second component
-     is a `where:` modifying the first.
+  (* A key-value pairing may also be a two-element map, consisting of a `where:`
+     modifying the other.
      This lets us avoid the `yaml_to_dict` stuff, which becomes quickly disgusting
      because of the fact that we don't actually know what the key other than "where"
      actually is.
@@ -644,31 +695,43 @@ let rec parse_pattern env (value : G.expr) : R.formula_old =
       |> constrain_where env (t, key |> snd) (s, t) where_value
   | _ -> error_at_expr env value "Wrong parse_formula fields"
 
-and constrain_where env (t1, t2) where_key (value : G.expr) formula :
-    R.formula_old =
+and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
+    =
   let env = { env with path = "where" :: env.path } in
   (* TODO: first token, or principal token? *)
-  let parse_where_pair env (where_value : G.expr) : R.where_constraint =
+  let parse_where_pair env (where_value : G.expr) =
     let dict = yaml_to_dict env where_key where_value in
     match find_constraint dict with
     | Some Ccompare ->
         let ((s, t) as compare_key) =
           take dict env parse_string_wrap "comparison"
         in
-        let strip, base =
+        let cond = parse_metavar_cond env compare_key s in
+        (* This base is pretty unnecessary. *)
+        let strip, _base =
           ( take_opt dict env parse_bool "strip",
             take_opt dict env parse_int "base" )
         in
-        R.WhereComparison
-          {
-            tok = t;
-            comparison = parse_metavar_cond env compare_key s;
-            strip;
-            base;
-          }
+        let cond =
+          (* if strip=true we rewrite the condition and insert Python's `int`
+             * function to parse the integer value of mvar. *)
+          match strip with
+          | Some true -> R.rewrite_metavar_comparison_strip cond
+          | _ -> cond
+          (* This error should be caught already in Parse_rule, this is just
+                 defensive programming.
+             let error_msg =
+               "'metavariable-comparison' is missing 'metavariable' despite \
+                 'strip: true'"
+             in
+             logger#error "%s" error_msg;
+             raise (InvalidRule (InvalidOther error_msg, rule_id, t))
+          *)
+        in
+        Left (t, R.CondEval cond)
     | Some Cfocus ->
         let s, t = take dict env parse_string_wrap "focus" in
-        R.WhereFocus (t, s)
+        Right (t, s)
     | Some Cmetavar ->
         let metavar, t = take dict env parse_string_wrap "metavariable" in
         let env', opt_xlang =
@@ -685,30 +748,74 @@ and constrain_where env (t1, t2) where_key (value : G.expr) formula :
               (env', Some xlang)
           | ___else___ -> (env, None)
         in
-        let formula = parse_pair env' (find_formula_old env dict) in
-        R.WherePattern (t, metavar, opt_xlang, formula)
+        let formula = parse_pair env' (find_formula env dict) in
+        Left (t, CondNestedFormula (metavar, opt_xlang, formula))
     | _ -> error_at_expr env value "Wrong where constraint fields"
   in
-  let constraints = parse_listi env where_key parse_where_pair value in
-  R.PatWhere (t1, t2, formula, constraints)
+  (* TODO *)
+  let conditions, focus =
+    parse_listi env where_key parse_where_pair value
+    |> Common.partition_either (fun x -> x)
+  in
+  let tok, conditions, focus, conjuncts =
+    (* If the modified pattern is also an `And`, collect the conditions and focus
+        and fold them together.
+    *)
+    match formula with
+    | And { conj_tok; conjuncts; conditions = conditions2; focus = focus2 } ->
+        (conj_tok, conditions @ conditions2, focus @ focus2, conjuncts)
+    (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
+    *)
+    | _ -> (t1, conditions, focus, [ formula ])
+  in
+  R.And { conj_tok = tok; conjuncts; conditions; focus }
 
-and parse_pair env ((key, value) : key * G.expr) : R.formula_old =
+and parse_pair env ((key, value) : key * G.expr) : R.formula =
   let env = { env with path = fst key :: env.path } in
-  let get_pattern str_e = parse_xpattern_expr env str_e in
+  let get_string_pattern str_e = parse_xpattern_expr env str_e in
   let s, t = key in
   match s with
-  | "pattern" -> R.Pat (get_pattern value)
-  | "not" -> R.PatNot (t, get_pattern value)
-  | "inside" -> R.PatInside (get_pattern value)
-  | "and" -> R.PatAnd (t, parse_listi env key parse_pattern value)
-  | "or" -> R.PatOr (t, parse_listi env key parse_pattern value)
+  | "pattern" -> R.P (get_string_pattern value)
+  | "not" -> R.Not (t, parse_pattern env value)
+  | "inside" -> R.Inside (t, parse_pattern env value)
+  | "and" ->
+      R.And
+        {
+          conj_tok = t;
+          conjuncts = parse_listi env key parse_pattern value;
+          focus = [];
+          conditions = [];
+        }
+  | "or" -> R.Or (t, parse_listi env key parse_pattern value)
   | "regex" ->
       let x = parse_string_wrap env key value in
       let xpat = XP.mk_xpat (Regexp (parse_regexp env x)) x in
-      R.Pat xpat
+      R.P xpat
   | "taint" ->
       let dict = yaml_to_dict env key value in
-      ()
+      let parse_specs parse_spec env key x =
+        parse_list env key
+          (fun env -> parse_spec env (fst key ^ "list item", snd key))
+          x
+      in
+      let sources, propagators_opt, sanitizers_opt, sinks =
+        ( take dict env (parse_specs parse_taint_source) "pattern-sources",
+          take_opt dict env
+            (parse_specs parse_taint_propagator)
+            "pattern-propagators",
+          take_opt dict env
+            (parse_specs parse_taint_sanitizer)
+            "pattern-sanitizers",
+          take dict env (parse_specs parse_taint_sink) "pattern-sinks" )
+      in
+      R.Taint
+        ( t,
+          {
+            sources;
+            propagators = optlist_to_list propagators_opt;
+            sanitizers = optlist_to_list sanitizers_opt;
+            sinks;
+          } )
   (* TODO?| "metavariable-analysis"
      | "metavariable-pattern"
      | "metavariable-comparison" ->
@@ -731,6 +838,7 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula_old =
  * old style formula to new formula, but we always use the old
  * syntax formula in yaml files).
  *)
+(*
 and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
   | G.Container
@@ -755,7 +863,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
             raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
           R.And
             {
-              tok = t;
+              conj_tok = t;
               conjuncts = fs;
               conditions = conds;
               (* TODO: 'focus-metavariable:' *)
@@ -763,17 +871,13 @@ and parse_formula_new env (x : G.expr) : R.formula =
             }
       | "or" -> R.Or (t, parse_list env key parse_formula_new value)
       | "not" -> R.Not (t, parse_formula_new env value)
-      | "inside" -> R.P (parse_xpattern_expr env value, Some Inside)
+      | "inside" -> R.Inside (t, parse_pattern env value)
       | "regex" ->
           let x = parse_string_wrap env key value in
           let xpat = XP.mk_xpat (XP.Regexp (parse_regexp env x)) x in
-          R.P (xpat, None)
-      | "comby" ->
-          let x = parse_string_wrap env key value in
-          let xpat = XP.mk_xpat (XP.Comby (fst x)) x in
-          R.P (xpat, None)
+          R.P (xpat)
       | _ -> error_at_key env key ("Invalid key for formula_new " ^ fst key))
-  | _ -> R.P (parse_xpattern_expr env x, None)
+  | _ -> R.P (parse_xpattern_expr env x)
 
 and parse_formula_and_new env (x : G.expr) :
     (R.formula, R.tok * R.metavar_cond) Common.either =
@@ -808,76 +912,20 @@ and parse_formula_and_new env (x : G.expr) :
           | _ -> error_at_expr env value "Expected a metavariable and regex")
       | _ -> Left (parse_formula_new env x))
   | _ -> Left (R.P (parse_xpattern_expr env x, None))
-
-let parse_language ~id ((s, t) as _lang) : Lang.t =
-  match Lang.lang_of_string_opt s with
-  | None -> raise (R.InvalidRule (R.InvalidLanguage s, id, t))
-  | Some l -> l
-
-let parse_languages ~id langs : Xlang.t =
-  match langs with
-  | [ (("none" | "regex"), _t) ] -> LRegex
-  | [ ("generic", _t) ] -> LGeneric
-  | xs -> (
-      let languages = xs |> Common.map (parse_language ~id:(fst id)) in
-      match languages with
-      | [] ->
-          raise
-            (R.InvalidRule
-               (R.InvalidOther "we need at least one language", fst id, snd id))
-      | x :: xs -> L (x, xs))
-
-let parse_extract_dest ~id lang : Xlang.t =
-  match lang with
-  | ("none" | "regex"), _ -> LRegex
-  | "generic", _ -> LGeneric
-  | lang -> L (parse_language ~id lang, [])
-
-let parse_severity ~id (s, t) =
-  match s with
-  | "ERROR" -> R.Error
-  | "WARNING" -> R.Warning
-  | "INFO" -> R.Info
-  | "INVENTORY" -> R.Inventory
-  | "EXPERIMENT" -> R.Experiment
-  | s ->
-      raise
-        (R.InvalidRule
-           ( R.InvalidOther
-               (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
-             id,
-             t ))
-
-let parse_extract_reduction ~id (s, t) =
-  match s with
-  | "concat" -> R.Concat
-  | "separate" -> R.Separate
-  | s ->
-      raise
-        (R.InvalidRule
-           ( R.InvalidOther
-               (spf "Bad extract reduction: %s (expected concat or separate)" s),
-             id,
-             t ))
+*)
 
 (*****************************************************************************)
 (* Sub parsers taint *)
 (*****************************************************************************)
 
-let parse_formula (env : env) (rule_dict : dict) : R.pformula =
-  match Hashtbl.find_opt rule_dict.h "match" with
-  | Some (_matchkey, v) -> R.New (parse_formula_new env v)
-  | None -> (
-      let old = parse_pair env (find_formula_old env rule_dict) in
-      (* sanity check *)
-      let _new = Rule.convert_formula_old ~rule_id:env.id old in
-      match Analyze_rule.regexp_prefilter_of_formula _new with
-      | None -> failwith " i think bad things happen here "
-      | _ ->
-          ();
-          R.Old old)
+and parse_formula (env : env) (rule_dict : dict) : R.formula =
+  let formula = parse_pair env (find_formula env rule_dict) in
+  (* sanity check *)
+  match Analyze_rule.regexp_prefilter_of_formula formula with
+  | None -> failwith " i think bad things happen here "
+  | _ -> formula
 
-let parse_taint_requires env key x =
+and parse_taint_requires env key x =
   let parse_error () =
     error_at_key env key "Expected a Boolean (Python) expression over labels"
   in
@@ -906,46 +954,46 @@ let parse_taint_requires env key x =
   check e;
   e
 
-let parse_taint_source env (key : key) (value : G.expr) : Rule.taint_source =
+and parse_taint_source env (key : key) (value : G.expr) : Rule.taint_source =
   let source_dict = yaml_to_dict env key value in
   let label =
     take_opt source_dict env parse_string "label"
     |> Option.value ~default:R.default_source_label
   in
-  let requires =
+  let source_requires =
     let tok = snd key in
     take_opt source_dict env parse_taint_requires "requires"
     |> Option.value ~default:(R.default_source_requires tok)
   in
-  let formula = parse_formula env source_dict in
-  { formula; label; requires }
+  let source_formula = parse_formula env source_dict in
+  { source_formula; label; source_requires }
 
-let parse_taint_propagator env (key : key) (value : G.expr) :
+and parse_taint_propagator env (key : key) (value : G.expr) :
     Rule.taint_propagator =
   let propagator_dict = yaml_to_dict env key value in
   let from = take propagator_dict env parse_string_wrap "from" in
   let to_ = take propagator_dict env parse_string_wrap "to" in
-  let formula = parse_formula env propagator_dict in
-  { formula; from; to_ }
+  let propagate_formula = parse_formula env propagator_dict in
+  { propagate_formula; from; to_ }
 
-let parse_taint_sanitizer env (key : key) (value : G.expr) =
+and parse_taint_sanitizer env (key : key) (value : G.expr) =
   let sanitizer_dict = yaml_to_dict env key value in
   let not_conflicting =
     take_opt sanitizer_dict env parse_bool "not_conflicting"
     |> Option.value ~default:false
   in
-  let formula = parse_formula env sanitizer_dict in
-  { R.not_conflicting; formula }
+  let sanitizer_formula = parse_formula env sanitizer_dict in
+  { R.not_conflicting; sanitizer_formula }
 
-let parse_taint_sink env (key : key) (value : G.expr) : Rule.taint_sink =
+and parse_taint_sink env (key : key) (value : G.expr) : Rule.taint_sink =
   let sink_dict = yaml_to_dict env key value in
-  let requires =
+  let sink_requires =
     let tok = snd key in
     take_opt sink_dict env parse_taint_requires "requires"
     |> Option.value ~default:(R.default_sink_requires tok)
   in
-  let formula = parse_formula env sink_dict in
-  { formula; requires }
+  let sink_formula = parse_formula env sink_dict in
+  { sink_formula; sink_requires }
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -957,21 +1005,21 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   | Some ("search", _) ->
       let formula = parse_formula env rule_dict in
       `Search formula
-  | Some ("taint", _) ->
+  (* | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
         parse_list env key
           (fun env -> parse_spec env (fst key ^ "list item", snd key))
           x
       in
       let sources, propagators_opt, sanitizers_opt, sinks =
-        ( take rule_dict env (parse_specs parse_taint_source) "pattern-sources",
+        ( take rule_dict env (parse_specs parse_taint_source) "sources",
           take_opt rule_dict env
             (parse_specs parse_taint_propagator)
-            "pattern-propagators",
+            "propagators",
           take_opt rule_dict env
             (parse_specs parse_taint_sanitizer)
-            "pattern-sanitizers",
-          take rule_dict env (parse_specs parse_taint_sink) "pattern-sinks" )
+            "sanitizers",
+          take rule_dict env (parse_specs parse_taint_sink) "sinks" )
       in
       `Taint
         {
@@ -980,8 +1028,9 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
           sanitizers = optlist_to_list sanitizers_opt;
           sinks;
         }
+  *)
   | Some ("extract", _) ->
-      let pformula = parse_formula env rule_dict in
+      let formula = parse_formula env rule_dict in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
         |> parse_extract_dest ~id:env.id
@@ -993,7 +1042,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         |> Option.map (parse_extract_reduction ~id:env.id)
         |> Option.value ~default:R.Separate
       in
-      `Extract { pformula; dst_lang; extract; reduce }
+      `Extract { formula; dst_lang; extract; reduce }
   | Some key ->
       error_at_key env key
         (spf

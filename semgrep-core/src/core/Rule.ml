@@ -46,6 +46,95 @@ type 'a loc = {
 [@@deriving show, eq]
 
 (*****************************************************************************)
+(* Taint-specific types *)
+(*****************************************************************************)
+
+let default_source_label = "__SOURCE__"
+let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
+
+let default_sink_requires tok =
+  G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
+
+type taint_source = {
+  source_formula : formula;
+  label : string;
+      (** The label to attach to the data.
+  Alt: We could have an optional label instead, allow taint that is not labeled,
+       and allow sinks that work for any kind of taint? *)
+  source_requires : AST_generic.expr;
+      (** A Boolean expression over taint labels, using Python syntax.
+       The operators allowed are 'not', 'or', and 'and'. The expression is
+       evaluated using the `Eval_generic` machinery.
+
+       The expression that is being checked as a source must satisfy this in order
+       to the label to be produced. Note that with 'requires' a taint source behaves
+       a bit like a propagator. *)
+}
+
+and taint_sanitizer = {
+  not_conflicting : bool;
+      (** If [not_conflicting] is enabled, the sanitizer cannot conflict with
+    a sink or a source (i.e., match the exact same range) otherwise
+    it is filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
+    to assume that any other function will handle tainted data safely.
+    Without this, `$F(...)` would automatically sanitize any other function
+    call acting as a sink or a source.
+
+    THINK: In retrospective, I'm not sure this was a good idea. We should add
+    an option to disable the assumption that function calls always propagate
+    taint, and deprecate not-conflicting sanitizers. *)
+  sanitizer_formula : formula;
+}
+(** Note that, with taint labels, we can attach a label "SANITIZED" to the data
+ to flag that it has been sanitized... so do we still need sanitizers? I am not
+ sure to be honest, I think we will have to gain some experience in using labels
+ first. Sanitizers do allow you to completely remove taint from data, although I
+ think that can be simulated with labels too. We could translate (internally)
+ `pattern-sanitizers` as `pattern-sources` with a `"__SANITIZED__"` label, and
+ then rewrite the `requires` of all sinks as `(...) not __SANITIZED__`. But
+ not-conflicting sanitizers cannot be simulated that way. That said, I think we
+ should replace not-conflicting sanitizers with some `options:`, because they are
+ a bit confusing to use sometimes. *)
+
+and taint_propagator = {
+  propagate_formula : formula;
+  from : MV.mvar wrap;
+  to_ : MV.mvar wrap;
+}
+(** e.g. if we want to specify that adding tainted data to a `HashMap` makes the
+ * `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
+ * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
+ * will also be marked as tainted. *)
+
+and taint_sink = {
+  sink_formula : formula;
+  sink_requires : AST_generic.expr;
+      (** A Boolean expression over taint labels. See also 'taint_source'.
+     The sink will only trigger a finding if the data that reaches it
+     has a set of labels attached that satisfies the 'requires'.  *)
+}
+
+and taint_spec = {
+  sources : taint_source list;
+  propagators : taint_propagator list;
+  sanitizers : taint_sanitizer list;
+  sinks : taint_sink list;
+}
+
+(* Method to combine extracted ranges within a file:
+    - either treat them as separate files; or
+    - concatentate them together
+*)
+and extract_reduction = Separate | Concat
+
+and extract_spec = {
+  formula : formula;
+  reduce : extract_reduction;
+  dst_lang : Xlang.t;
+  extract : string;
+}
+
+(*****************************************************************************)
 (* Formula (patterns boolean composition) *)
 (*****************************************************************************)
 
@@ -55,14 +144,16 @@ type 'a loc = {
  *
  * less? enforce invariant that Not can only appear in And?
  *)
-type formula =
+and formula =
   (* pattern: and pattern-inside: are actually slightly different so
    * we need to keep the information around.
    * (see tests/OTHER/rules/inside.yaml)
    * The same is true for pattern-not and pattern-not-inside
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
-  | P of Xpattern.t (* a leaf pattern *) * inside option
+  | P of Xpattern.t (* a leaf pattern *)
+  | Inside of tok * formula
+  | Taint of tok * taint_spec
   | And of conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
@@ -77,7 +168,7 @@ type formula =
  * See also split_and().
  *)
 and conjunction = {
-  tok : tok;
+  conj_tok : tok;
   (* pattern-inside:'s and pattern:'s *)
   conjuncts : formula list;
   (* metavariable-xyz:'s *)
@@ -89,8 +180,6 @@ and conjunction = {
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
  *)
-and inside = Inside
-
 and metavar_cond =
   | CondEval of AST_generic.expr (* see Eval_generic.ml *)
   (* todo: at some point we should remove CondRegexp and have just
@@ -108,6 +197,7 @@ and metavar_cond =
 
 and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
 
+(*
 (*****************************************************************************)
 (* Old Formula style *)
 (*****************************************************************************)
@@ -115,7 +205,7 @@ and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
 (* Unorthodox original pattern compositions.
  * See also the JSON schema in rule_schema.yaml
  *)
-type formula_old =
+type el_formula =
   (* pattern: *)
   | Pat of Xpattern.t
   (* not: *)
@@ -123,13 +213,14 @@ type formula_old =
   (* inside: *)
   | PatInside of Xpattern.t
   (* or: *)
-  | PatOr of tok * formula_old list
+  | PatOr of tok * el_formula list
   (* and: *)
-  | PatAnd of tok * formula_old list
+  | PatAnd of tok * el_formula list
+  | PatTaint of tok * taint_spec
   (* pat: _ where: _
      The tokens correspond to the keys.
   *)
-  | PatWhere of tok * tok * formula_old * where_constraint list
+  | PatWhere of tok * tok * el_formula * where_constraint list
 
 and where_constraint =
   | WhereComparison of {
@@ -139,12 +230,12 @@ and where_constraint =
       base : int option;
     }
   | WhereFocus of tok * MV.mvar
-  | WherePattern of tok * MV.mvar * Xlang.t option * formula_old
+  | WherePattern of tok * MV.mvar * Xlang.t option * el_formula
 
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
-  | MetavarPattern of MV.mvar * Xlang.t option * formula_old
+  | MetavarPattern of MV.mvar * Xlang.t option * el_formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * metavar_analysis_kind
 (* old: | PatWherePython of string, but it was too dangerous.
@@ -167,102 +258,10 @@ and metavariable_comparison = {
 (*****************************************************************************)
 
 (* pattern formula *)
-type pformula = New of formula | Old of formula_old [@@deriving show, eq]
-
-(*****************************************************************************)
-(* Taint-specific types *)
-(*****************************************************************************)
-
-type taint_source = {
-  formula : pformula;
-  label : string;
-      (** The label to attach to the data.
-  Alt: We could have an optional label instead, allow taint that is not labeled,
-       and allow sinks that work for any kind of taint? *)
-  requires : AST_generic.expr;
-      (** A Boolean expression over taint labels, using Python syntax.
-       The operators allowed are 'not', 'or', and 'and'. The expression is
-       evaluated using the `Eval_generic` machinery.
-
-       The expression that is being checked as a source must satisfy this in order
-       to the label to be produced. Note that with 'requires' a taint source behaves
-       a bit like a propagator. *)
-}
-[@@deriving show]
-
-let default_source_label = "__SOURCE__"
-let default_source_requires tok = G.L (G.Bool (true, tok)) |> G.e
-
-type taint_sanitizer = {
-  not_conflicting : bool;
-      (** If [not_conflicting] is enabled, the sanitizer cannot conflict with
-    a sink or a source (i.e., match the exact same range) otherwise
-    it is filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
-    to assume that any other function will handle tainted data safely.
-    Without this, `$F(...)` would automatically sanitize any other function
-    call acting as a sink or a source.
-
-    THINK: In retrospective, I'm not sure this was a good idea. We should add
-    an option to disable the assumption that function calls always propagate
-    taint, and deprecate not-conflicting sanitizers. *)
-  formula : pformula;
-}
-[@@deriving show]
-(** Note that, with taint labels, we can attach a label "SANITIZED" to the data
- to flag that it has been sanitized... so do we still need sanitizers? I am not
- sure to be honest, I think we will have to gain some experience in using labels
- first. Sanitizers do allow you to completely remove taint from data, although I
- think that can be simulated with labels too. We could translate (internally)
- `pattern-sanitizers` as `pattern-sources` with a `"__SANITIZED__"` label, and
- then rewrite the `requires` of all sinks as `(...) not __SANITIZED__`. But
- not-conflicting sanitizers cannot be simulated that way. That said, I think we
- should replace not-conflicting sanitizers with some `options:`, because they are
- a bit confusing to use sometimes. *)
-
-type taint_propagator = {
-  formula : pformula;
-  from : MV.mvar wrap;
-  to_ : MV.mvar wrap;
-}
-[@@deriving show]
-(** e.g. if we want to specify that adding tainted data to a `HashMap` makes the
- * `HashMap` tainted too, then "formula" could be `(HashMap $H).add($X)`,
- * with "from" being `$X` and "to" being `$H`. So if `$X` is tainted then `$H`
- * will also be marked as tainted. *)
-
-type taint_sink = {
-  formula : pformula;
-  requires : AST_generic.expr;
-      (** A Boolean expression over taint labels. See also 'taint_source'.
-     The sink will only trigger a finding if the data that reaches it
-     has a set of labels attached that satisfies the 'requires'.  *)
-}
-[@@deriving show]
-
-let default_sink_requires tok =
-  G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
-
-type taint_spec = {
-  sources : taint_source list;
-  propagators : taint_propagator list;
-  sanitizers : taint_sanitizer list;
-  sinks : taint_sink list;
-}
-[@@deriving show]
-
-(* Method to combine extracted ranges within a file:
-    - either treat them as separate files; or
-    - concatentate them together
+(* type formula = New of formula | Old of formula_old [@@deriving show, eq]
 *)
-type extract_reduction = Separate | Concat [@@deriving show]
 
-type extract_spec = {
-  pformula : pformula;
-  reduce : extract_reduction;
-  dst_lang : Xlang.t;
-  extract : string;
-}
-[@@deriving show]
+ *)
 
 (*****************************************************************************)
 (* The rule *)
@@ -299,10 +298,10 @@ and paths = {
 }
 [@@deriving show]
 
-type search_mode = [ `Search of pformula ] [@@deriving show]
+type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
+type mode = [ search_mode | extract_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
@@ -316,14 +315,12 @@ type rules = rule list [@@deriving show]
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list =
+let partition_rules (rules : rules) : search_rule list * extract_rule list =
   rules
-  |> Common.partition_either3 (fun r ->
+  |> Common.partition_either (fun r ->
          match r.mode with
-         | `Search _ as s -> Left3 { r with mode = s }
-         | `Taint _ as t -> Middle3 { r with mode = t }
-         | `Extract _ as e -> Right3 { r with mode = e })
+         | `Search _ as s -> Left { r with mode = s }
+         | `Extract _ as e -> Right { r with mode = e })
 
 (*****************************************************************************)
 (* Error Management *)
@@ -420,7 +417,9 @@ let register_exception_printer () = Printexc.register_printer opt_string_of_exn
 (* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
   match formula with
-  | P (p, _) -> f p
+  | P p -> f p
+  | Inside (_, formula) -> visit_new_formula f formula
+  | Taint _ -> failwith "TODO"
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
   | And { conjuncts = xs; _ } ->
@@ -428,16 +427,20 @@ let rec visit_new_formula f formula =
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And { tok = t; _ }
+  | And { conj_tok = t; _ }
   | Or (t, _)
   | Not (t, _) ->
       t
-  | P (p, _) -> snd p.pstr
+  | P p -> snd p.pstr
+  | Inside (t, _) -> t
+  | Taint (t, _) -> t
 
 let kind_of_formula = function
   | P _ -> "pattern"
   | Or _
   | And _
+  | Inside _
+  | Taint _
   | Not _ ->
       "formula"
 
@@ -471,32 +474,35 @@ let rewrite_metavar_comparison_strip cond =
 (* TODO This is ugly because depends-on is inside the formula
    but handled in Python. It might be that the only sane answer is
    to port it to OCaml *)
-let remove_noop (e : formula_old) : formula_old =
-  let valid_formula x =
-    match x with
-    | _ -> true
-  in
-  let rec aux e =
-    match e with
-    | PatOr (t, xs) ->
-        let xs = Common.map aux (List.filter valid_formula xs) in
-        PatOr (t, xs)
-    | PatAnd (t, xs) -> (
-        let xs' = Common.map aux (List.filter valid_formula xs) in
-        (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
-           after this filter it will be an empty And. To prevent
-           an error, check for that *)
-        match (xs, xs') with
-        | [ x ], [] -> aux x
-        | _ -> PatAnd (t, xs'))
-    (* TODO: kill? | PatFilteredInPythonTodo t ->
-        (* If a PatFilteredInPythonTodo key is the only thing on the top
-           level, return no matches *)
-        PatEither (t, [])
-    *)
-    | _ -> e
-  in
-  aux e
+(* TODO?: I'm killing this, since it depends on the TODO thing.
+   let remove_noop (e : formula) : formula =
+     let valid_formula x =
+       match x with
+       | _ -> true
+     in
+     let rec aux e =
+       match e with
+       | Or (t, xs) ->
+           let xs = Common.map aux (List.filter valid_formula xs) in
+           Or (t, xs)
+       | And conj -> (
+           (* TODO: fill this in *)
+           let xs' = Common.map aux (List.filter valid_formula xs) in
+           (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
+              after this filter it will be an empty And. To prevent
+              an error, check for that *)
+           match (xs, xs') with
+           | [ x ], [] -> aux x
+           | _ -> And (t, xs'))
+       (* TODO: kill? | PatFilteredInPythonTodo t ->
+           (* If a PatFilteredInPythonTodo key is the only thing on the top
+              level, return no matches *)
+           PatEither (t, [])
+       *)
+       | _ -> e
+     in
+     aux e
+*)
 
 (* return list of "positive" x list of Not *)
 let split_and : formula list -> formula list * formula list =
@@ -509,91 +515,96 @@ let split_and : formula list -> formula list * formula list =
          | And _
          | Or _ ->
              Left e
+         | Inside _
+         | Taint _ ->
+             failwith "TODO"
          (* negatives *)
          | Not (_, f) -> Right f)
 
-let rec (convert_formula_old :
-          ?in_metavariable_pattern:bool ->
-          rule_id:rule_id ->
-          formula_old ->
-          formula) =
- fun ?(in_metavariable_pattern = false) ~rule_id e ->
-  let rec aux e =
-    match e with
-    | Pat x -> P (x, None)
-    | PatInside x -> P (x, Some Inside)
-    | PatNot (t, x) -> Not (t, P (x, None))
-    | PatOr (t, xs) ->
-        let xs = Common.map aux xs in
-        Or (t, xs)
-    | PatAnd (t, xs) ->
-        let fs = Common.map aux xs in
-        let pos, _ = split_and fs in
-        if pos = [] && not in_metavariable_pattern then
-          raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
-        And { tok = t; conjuncts = fs; conditions = []; focus = [] }
-        (*let fs, conds, focus = Common.partition_either3 aux_and xs in
-          let pos, _ = split_and fs in
-          if pos = [] && not in_metavariable_pattern then
-            raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
-          And { tok = t; conjuncts = fs; conditions = conds; focus }
-        *)
-    | PatWhere (t1, _t2, formula, constraints) ->
-        let formula =
-          convert_formula_old ~in_metavariable_pattern ~rule_id formula
-        in
-        let conditions, focus =
-          Common.partition_either aux_constraint constraints
-        in
-        let tok, conditions, focus, conjuncts =
-          (* If the modified pattern is also an `And`, collect the conditions and focus
-             and fold them together.
-          *)
-          match formula with
-          | And { tok; conjuncts; conditions = conditions2; focus = focus2 } ->
-              (tok, conditions @ conditions2, focus @ focus2, conjuncts)
-          (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
-         *)
-          | _ -> (t1, conditions, focus, [ formula ])
-        in
-        And { tok; conjuncts; conditions; focus }
-  and aux_constraint = function
-    | WhereComparison { tok = t; comparison = expr; base = _NOT_NEEDED; strip }
-      ->
-        let cond =
-          (* if strip=true we rewrite the condition and insert Python's `int`
-             * function to parse the integer value of mvar. *)
-          match strip with
-          | Some true -> rewrite_metavar_comparison_strip expr
-          | _ -> expr
-          (* This error should be caught already in Parse_rule, this is just
-                 defensive programming.
-             let error_msg =
-               "'metavariable-comparison' is missing 'metavariable' despite \
-                 'strip: true'"
-             in
-             logger#error "%s" error_msg;
-             raise (InvalidRule (InvalidOther error_msg, rule_id, t))
-          *)
-        in
-        Left (t, CondEval cond)
-    | WhereFocus (t, mvar) -> Right (t, mvar)
-    | WherePattern (t, mvar, xlang_opt, formula) ->
-        let formula =
-          convert_formula_old ~in_metavariable_pattern ~rule_id formula
-        in
-        Left (t, CondNestedFormula (mvar, xlang_opt, formula))
-  in
-  (*and aux_and e =
-      match e with
-      | PatExtra (t, x) ->
-          let e = convert_extra ~t ~rule_id x in
-          Middle3 (t, e)
-      | PatFocus (t, mvar) -> Right3 (t, mvar)
-      | _ -> Left3 (aux e)
-    in
-  *)
-  aux (remove_noop e)
+(* todo: KILL
+   let rec (convert_formula :
+             ?in_metavariable_pattern:bool ->
+             rule_id:rule_id ->
+             formula ->
+             formula) =
+    fun ?(in_metavariable_pattern = false) ~rule_id e ->
+     let rec aux e =
+       match e with
+       | Pat x -> P (x, None)
+       | PatInside x -> P (x, Some Inside)
+       | PatNot (t, x) -> Not (t, P (x, None))
+       | PatOr (t, xs) ->
+           let xs = Common.map aux xs in
+           Or (t, xs)
+       | PatAnd (t, xs) ->
+           let fs = Common.map aux xs in
+           let pos, _ = split_and fs in
+           if pos = [] && not in_metavariable_pattern then
+             raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
+           And { tok = t; conjuncts = fs; conditions = []; focus = [] }
+           (*let fs, conds, focus = Common.partition_either3 aux_and xs in
+             let pos, _ = split_and fs in
+             if pos = [] && not in_metavariable_pattern then
+               raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
+             And { tok = t; conjuncts = fs; conditions = conds; focus }
+           *)
+       | PatWhere (t1, _t2, formula, constraints) ->
+           let formula =
+             convert_formula_old ~in_metavariable_pattern ~rule_id formula
+           in
+           let conditions, focus =
+             Common.partition_either aux_constraint constraints
+           in
+           let tok, conditions, focus, conjuncts =
+             (* If the modified pattern is also an `And`, collect the conditions and focus
+                and fold them together.
+             *)
+             match formula with
+             | And { tok; conjuncts; conditions = conditions2; focus = focus2 } ->
+                 (tok, conditions @ conditions2, focus @ focus2, conjuncts)
+             (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
+            *)
+             | _ -> (t1, conditions, focus, [ formula ])
+           in
+           And { tok; conjuncts; conditions; focus }
+     and aux_constraint = function
+       | WhereComparison { tok = t; comparison = expr; base = _NOT_NEEDED; strip }
+         ->
+           let cond =
+             (* if strip=true we rewrite the condition and insert Python's `int`
+                * function to parse the integer value of mvar. *)
+             match strip with
+             | Some true -> rewrite_metavar_comparison_strip expr
+             | _ -> expr
+             (* This error should be caught already in Parse_rule, this is just
+                    defensive programming.
+                let error_msg =
+                  "'metavariable-comparison' is missing 'metavariable' despite \
+                    'strip: true'"
+                in
+                logger#error "%s" error_msg;
+                raise (InvalidRule (InvalidOther error_msg, rule_id, t))
+             *)
+           in
+           Left (t, CondEval cond)
+       | WhereFocus (t, mvar) -> Right (t, mvar)
+       | WherePattern (t, mvar, xlang_opt, formula) ->
+           let formula =
+             convert_formula_old ~in_metavariable_pattern ~rule_id formula
+           in
+           Left (t, CondNestedFormula (mvar, xlang_opt, formula))
+     in
+     (*and aux_and e =
+         match e with
+         | PatExtra (t, x) ->
+             let e = convert_extra ~t ~rule_id x in
+             Middle3 (t, e)
+         | PatFocus (t, mvar) -> Right3 (t, mvar)
+         | _ -> Left3 (aux e)
+       in
+     *)
+     aux (remove_noop e)
+*)
 
 (*
 and convert_extra ~t ~rule_id x =
@@ -636,6 +647,8 @@ and convert_extra ~t ~rule_id x =
   | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
 *)
 
-let formula_of_pformula ?in_metavariable_pattern ~rule_id = function
-  | New f -> f
-  | Old oldf -> convert_formula_old ?in_metavariable_pattern ~rule_id oldf
+(* TODO: kill
+   let formula_of_formula ?in_metavariable_pattern ~rule_id = function
+     | New f -> f
+     | Old oldf -> convert_formula_old ?in_metavariable_pattern ~rule_id oldf
+*)

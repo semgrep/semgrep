@@ -102,9 +102,7 @@ let option_bind_list opt f =
   | Some x -> f x
 
 (* Finds all matches of a taint-spec pattern formula. *)
-let range_w_metas_of_pformula config equivs xtarget rule pformula =
-  let rule_id = fst rule.R.id in
-  let formula = Rule.formula_of_pformula ~rule_id pformula in
+let range_w_metas_of_pformula config equivs xtarget rule formula =
   (* !! Calling Match_search_mode here !! *)
   Match_search_mode.matches_of_formula (config, equivs) rule xtarget formula
     None
@@ -139,7 +137,7 @@ let find_sanitizers_matches config equivs xtarget rule specs =
          Common.map
            (fun pf -> (sanitizer.Rule.not_conflicting, pf, sanitizer))
            (range_w_metas_of_pformula config equivs xtarget rule
-              sanitizer.formula))
+              sanitizer.sanitizer_formula))
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches config equivs xtarget rule propagators_spec =
@@ -150,7 +148,8 @@ let find_propagators_matches config equivs xtarget rule propagators_spec =
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
          let ranges_w_metavars =
-           range_w_metas_of_pformula config equivs xtarget rule p.formula
+           range_w_metas_of_pformula config equivs xtarget rule
+             p.propagate_formula
          in
          (* Now, for each match of the propagator pattern, we try to construct
           * a `propagator_match`. We just need to look up what code is captured
@@ -327,13 +326,15 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   let sources_ranges =
     find_range_w_metas config equivs xtarget rule
       (spec.sources
-      |> Common.map (fun (src : Rule.taint_source) -> (src.formula, src)))
+      |> Common.map (fun (src : Rule.taint_source) -> (src.source_formula, src))
+      )
   and propagators_ranges =
     find_propagators_matches config equivs xtarget rule spec.propagators
   and sinks_ranges =
     find_range_w_metas config equivs xtarget rule
       (spec.sinks
-      |> Common.map (fun (sink : Rule.taint_sink) -> (sink.formula, sink)))
+      |> Common.map (fun (sink : Rule.taint_sink) -> (sink.sink_formula, sink))
+      )
   in
   let sanitizers_ranges =
     find_sanitizers_matches config equivs xtarget rule spec.sanitizers
