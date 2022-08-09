@@ -403,9 +403,15 @@ let extract_as_separate erule_table xtarget rule_ids matches =
 let extract_nested_lang ~match_hook ~timeout ~timeout_threshold
     (erules : Rule.extract_rule list) xtarget rule_ids =
   let erule_table = mk_rule_table erules in
+  let xconf =
+    {
+      Match_env.config = Config_semgrep.default_config;
+      equivs = [];
+      matching_explanations = false;
+    }
+  in
   let res =
-    Match_rules.check ~match_hook ~timeout ~timeout_threshold
-      (Config_semgrep.default_config, [] (* no equiv *))
+    Match_rules.check ~match_hook ~timeout ~timeout_threshold xconf
       (erules :> Rule.rules)
       xtarget
   in

@@ -96,7 +96,7 @@ let debug_matches = ref false
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* Now in Match_env.ml *)
+(* The types are now defined in Match_env.ml *)
 
 type matching_explanation = {
   op : matching_operation;
@@ -121,9 +121,10 @@ and matching_operation =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+let ( let* ) = Option.bind
 
-let (xpatterns_in_formula : S.sformula -> (Xpattern.t * R.inside option) list) =
- fun e ->
+let xpatterns_in_formula (e : S.sformula) : (Xpattern.t * R.inside option) list
+    =
   let res = ref [] in
   e |> S.visit_sformula (fun xpat inside -> Common.push (xpat, inside) res);
   !res
@@ -143,9 +144,8 @@ let partition_xpatterns xs =
          | XP.Comby x -> Common.push (x, pid, str) comby);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
-let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
-    =
- fun xs ->
+let group_matches_per_pattern_id (xs : Pattern_match.t list) :
+    id_to_match_results =
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun m ->
@@ -160,6 +160,10 @@ let error_with_rule_id rule_id (error : E.error) =
   | _ -> { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
+
+let _if_explanations env f xs =
+  if env.matching_explanations then Some (f (Common.map_filter (fun x -> x) xs))
+  else None
 
 (*****************************************************************************)
 (* Adapters *)
@@ -230,14 +234,15 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter
-    (config : Config_semgrep.t * Equivalence.equivalences) (xtarget : Xtarget.t)
+let matches_of_patterns ?mvar_context ?range_filter (xconf : xconfig)
+    (xtarget : Xtarget.t)
     (patterns :
       (Pattern.t * R.inside option * Xpattern.pattern_id * string) list) :
     RP.times RP.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     xtarget
   in
+  let config = (xconf.config, xconf.equivs) in
   match xlang with
   | Xlang.L (lang, _) ->
       let (ast, skipped_tokens), parse_time =
@@ -284,16 +289,15 @@ let run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.config env.xtarget patterns
+        matches_of_patterns ~range_filter env.xconf env.xtarget patterns
       in
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
       res.matches
       |> Common.map RM.match_result_to_range
-      |> RM.intersect_ranges (fst env.config) !debug_matches ranges
+      |> RM.intersect_ranges env.xconf.config !debug_matches ranges
 
 let apply_focus_on_ranges env focus ranges : RM.ranges =
-  let ( let* ) = Option.bind in
   let apply_focus_mvar range focus_mvar =
     let* _mvar, mval =
       List.find_opt
@@ -331,8 +335,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context
-    (config : Config_semgrep.t * Equivalence.equivalences) (xtarget : Xtarget.t)
+let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
     (xpatterns : (Xpattern.t * R.inside option) list) : RP.times RP.match_result
     =
   let { Xtarget.file; lazy_content; _ } = xtarget in
@@ -346,8 +349,9 @@ let matches_of_xpatterns ~mvar_context
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context config xtarget patterns;
-      Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file;
+      matches_of_patterns ~mvar_context xconf xtarget patterns;
+      (let config = (xconf.config, xconf.equivs) in
+       Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file);
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
       Xpattern_match_comby.matches_of_combys combys lazy_content file;
     ]
@@ -364,7 +368,7 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
-             let env = Eval_generic.bindings_to_env (fst env.config) bindings in
+             let env = Eval_generic.bindings_to_env env.xconf.config bindings in
              Eval_generic.eval_bool env e
          | R.CondNestedFormula (mvar, opt_lang, formula) ->
              Metavariable_pattern.satisfies_metavar_pattern_condition
@@ -408,13 +412,11 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
                   $MVAR's value. *)
                call_re_match re_exp (call_str mvar_exp)
              in
-
+             let config = env.xconf.config in
              let env =
-               if const_prop && (fst env.config).constant_propagation then
-                 Eval_generic.bindings_to_env (fst env.config) bindings
-               else
-                 Eval_generic.bindings_to_env_just_strings (fst env.config)
-                   bindings
+               if const_prop && config.constant_propagation then
+                 Eval_generic.bindings_to_env config bindings
+               else Eval_generic.bindings_to_env_just_strings config bindings
              in
              Eval_generic.eval_bool env e
          | R.CondAnalysis (mvar, CondEntropy) ->
@@ -448,7 +450,7 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
 
 and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
-    matches_of_formula env.config env.rule env.xtarget formula opt_context
+    matches_of_formula env.xconf env.rule env.xtarget formula opt_context
   in
   env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
   match final_ranges with
@@ -550,7 +552,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   RM.intersect_ranges (fst env.config) !debug_matches acc r)
+                   RM.intersect_ranges env.xconf.config !debug_matches acc r)
                  ranges
           in
 
@@ -564,7 +566,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
                  (fun (ranges, acc_exps) x ->
                    let ranges_neg, exp = evaluate_formula env opt_context x in
                    let ranges =
-                     RM.difference_ranges (fst env.config) ranges ranges_neg
+                     RM.difference_ranges env.xconf.config ranges ranges_neg
                    in
                    (ranges, exp :: acc_exps))
                  (ranges, [])
@@ -606,7 +608,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           (ranges, exp))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
-and matches_of_formula config rule xtarget formula opt_context :
+and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
@@ -614,7 +616,7 @@ and matches_of_formula config rule xtarget formula opt_context :
     Option.map (fun s -> s.RM.mvars) opt_context
   in
   let res =
-    matches_of_xpatterns mvar_context config xtarget xpatterns
+    matches_of_xpatterns mvar_context xconf xtarget xpatterns
     |> RP.add_rule rule
   in
   logger#trace "found %d matches" (List.length res.matches);
@@ -623,7 +625,7 @@ and matches_of_formula config rule xtarget formula opt_context :
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
   let env =
     {
-      config;
+      xconf;
       pattern_matches = pattern_matches_per_id;
       xtarget;
       rule;
@@ -643,14 +645,11 @@ and matches_of_formula config rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search pformula; _ } as r) hook
-    (default_config, equivs) xtarget =
-  let config = r.R.options ||| default_config in
+let check_rule ({ R.mode = `Search pformula; _ } as r) hook xconf xtarget =
+  let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let rule_id = fst r.id in
   let formula = R.formula_of_pformula ~rule_id pformula in
-  let res, final_ranges =
-    matches_of_formula (config, equivs) r xtarget formula None
-  in
+  let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in
   {
     RP.matches =
