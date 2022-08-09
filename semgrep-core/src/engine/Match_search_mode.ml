@@ -26,6 +26,7 @@ module RM = Range_with_metavars
 module E = Semgrep_error_code
 module Resp = Output_from_core_t
 module Out = Output_from_core_t
+module ME = Matching_explanation
 open Match_env
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -98,26 +99,6 @@ let debug_matches = ref false
 (*****************************************************************************)
 (* The types are now defined in Match_env.ml *)
 
-type matching_explanation = {
-  op : matching_operation;
-  children : matching_explanation list;
-  (* resulting ranges *)
-  ranges : RM.ranges;
-  (* TODO: should be a range loc in the rule file *)
-  pos : Rule.tok;
-}
-
-(* TODO:
- * - tainting source/sink/sanitizer
- * - subpattern EllipsisAndStmt, ClassHeaderAndElems
- * - Where filters (metavar-comparison, etc)
- *)
-and matching_operation =
-  | OpAnd
-  | OpOr
-  (*  | OpNot *)
-  | OpXPattern
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -161,8 +142,16 @@ let error_with_rule_id rule_id (error : E.error) =
 
 let lazy_force x = Lazy.force x [@@profiling]
 
-let _if_explanations env f xs =
-  if env.matching_explanations then Some (f (Common.map_filter (fun x -> x) xs))
+let if_explanations (env : env) (ranges : RM.ranges)
+    (children : ME.t option list) f : ME.t option =
+  if env.xconf.matching_explanations then
+    let matches =
+      ranges
+      |> Common.map (fun range ->
+             RM.range_to_pattern_match_adjusted env.rule range)
+    in
+    let xs = Common.map_filter (fun x -> x) children in
+    Some (f xs matches)
   else None
 
 (*****************************************************************************)
@@ -459,7 +448,7 @@ and nested_formula_has_matches env formula opt_context =
 
 (* less: use Set instead of list? *)
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
-    RM.ranges * matching_explanation option =
+    RM.ranges * Matching_explanation.t option =
   match e with
   | S.Leaf (({ XP.pid = id; pstr = _, tok; _ } as xpat), inside) ->
       let match_results =
@@ -477,7 +466,10 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
         |> Common.map RM.match_result_to_range
         |> Common.map (fun r -> { r with RM.kind })
       in
-      let exp = Some { op = OpXPattern; ranges; children = []; pos = tok } in
+      let exp =
+        if_explanations env ranges [] (fun children matches ->
+            { ME.op = OpXPattern; matches; children; pos = tok })
+      in
       (ranges, exp)
   | S.Or (tok, xs) ->
       let ranges, exps =
@@ -485,13 +477,8 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       in
       let ranges = List.flatten ranges in
       let exp =
-        Some
-          {
-            op = OpOr;
-            ranges;
-            pos = tok;
-            children = exps |> Common.map_filter (fun x -> x);
-          }
+        if_explanations env ranges exps (fun children matches ->
+            { op = OpOr; matches; pos = tok; children })
       in
       (ranges, exp)
   | S.And
@@ -594,16 +581,11 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           in
 
           let ranges = apply_focus_on_ranges env focus ranges in
+          (* TODO: add some intermediate OpNot *)
           let exp =
-            Some
-              {
-                op = OpAnd;
-                ranges;
-                (* TODO: add some intermediate OpNot *)
-                pos = tok;
-                children =
-                  posrs_exps @ negs_exps |> Common.map_filter (fun x -> x);
-              }
+            if_explanations env ranges (posrs_exps @ negs_exps)
+              (fun children matches ->
+                { op = OpAnd; matches; pos = tok; children })
           in
           (ranges, exp))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
