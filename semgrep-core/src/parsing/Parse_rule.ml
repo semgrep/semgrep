@@ -22,6 +22,8 @@ module G = AST_generic
 module PI = Parse_info
 module Set = Set_
 
+[@@@warning "-27"]
+
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
@@ -223,7 +225,7 @@ let yaml_to_dict_no_env =
 let parse_string_wrap_no_env (key : key) x =
   match read_string_wrap x.G.e with
   | Some (value, t) -> (value, t)
-  | None -> yaml_error_at_key key ("Expected a string value for " ^ fst key)
+  | None -> raise Common.Todo
 
 let parse_list_no_env (key : key) f x =
   match x.G.e with
@@ -246,7 +248,7 @@ let parse_string_wrap_list_no_env (key : key) e =
 let parse_string_wrap env (key : key) x =
   match read_string_wrap x.G.e with
   | Some (value, t) -> (value, t)
-  | None -> error_at_key env key ("Expected a string value for " ^ fst key)
+  | None -> raise Common.Todo
 
 (* TODO: delete at some point, should use parse_string_wrap instead *)
 let parse_string env (key : key) x = parse_string_wrap env key x |> fst
@@ -546,7 +548,7 @@ let parse_xpattern_expr env e =
   let s, t =
     match read_string_wrap e.G.e with
     | Some (s, t) -> (s, t)
-    | None -> error_at_expr env e ("Expected a string value for " ^ env.id)
+    | None -> raise Common.Todo
   in
 
   (* emma: This is for later, but note that start and end_ are currently the
