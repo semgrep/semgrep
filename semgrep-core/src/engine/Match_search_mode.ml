@@ -98,6 +98,26 @@ let debug_matches = ref false
 (*****************************************************************************)
 (* Now in Match_env.ml *)
 
+type matching_explanation = {
+  op : matching_operation;
+  children : matching_explanation list;
+  (* resulting ranges *)
+  ranges : RM.ranges;
+  (* TODO: should be a range loc in the rule file *)
+  pos : Rule.tok;
+}
+
+(* TODO:
+ * - tainting source/sink/sanitizer
+ * - subpattern EllipsisAndStmt, ClassHeaderAndElems
+ * - Where filters (metavar-comparison, etc)
+ *)
+and matching_operation =
+  | OpAnd
+  | OpOr
+  (*  | OpNot *)
+  | OpXPattern
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -437,7 +457,7 @@ and nested_formula_has_matches env formula opt_context =
 
 (* less: use Set instead of list? *)
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
-    RM.ranges =
+    RM.ranges * matching_explanation option =
   match e with
   | S.Leaf (xpat, inside) ->
       let id = xpat.XP.pid in
@@ -451,11 +471,30 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
         | None when Xpattern.is_regexp xpat -> RM.Regexp
         | None -> RM.Plain
       in
-      match_results
-      |> Common.map RM.match_result_to_range
-      |> Common.map (fun r -> { r with RM.kind })
+      let ranges =
+        match_results
+        |> Common.map RM.match_result_to_range
+        |> Common.map (fun r -> { r with RM.kind })
+      in
+      let exp =
+        Some { op = OpXPattern; ranges; children = []; pos = snd xpat.XP.pstr }
+      in
+      (ranges, exp)
   | S.Or xs ->
-      xs |> Common.map (evaluate_formula env opt_context) |> List.flatten
+      let ranges, exps =
+        xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
+      in
+      let ranges = List.flatten ranges in
+      let exp =
+        Some
+          {
+            op = OpOr;
+            ranges;
+            pos = G.fake "";
+            children = exps |> Common.map_filter (fun x -> x);
+          }
+      in
+      (ranges, exp)
   | S.And
       {
         selector_opt;
@@ -479,7 +518,9 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
        *)
 
       (* let's start with the positive ranges *)
-      let posrs = Common.map (evaluate_formula env opt_context) pos in
+      let posrs, posrs_exps =
+        Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
+      in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -506,26 +547,29 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
       match all_posr with
       | [] -> failwith "FIXME"
       | posr :: posrs ->
-          let res = posr in
-          let res =
+          let ranges = posr in
+          let ranges =
             posrs
             |> List.fold_left
                  (fun acc r ->
                    RM.intersect_ranges (fst env.config) !debug_matches acc r)
-                 res
+                 ranges
           in
 
           (* optimization of `pattern: $X` *)
-          let res = run_selector_on_ranges env selector_opt res in
+          let ranges = run_selector_on_ranges env selector_opt ranges in
 
           (* let's remove the negative ranges *)
-          let res =
+          let ranges, negs_exps =
             neg
             |> List.fold_left
-                 (fun acc x ->
-                   RM.difference_ranges (fst env.config) acc
-                     (evaluate_formula env opt_context x))
-                 res
+                 (fun (ranges, acc_exps) x ->
+                   let ranges_neg, exp = evaluate_formula env opt_context x in
+                   let ranges =
+                     RM.difference_ranges (fst env.config) ranges ranges_neg
+                   in
+                   (ranges, exp :: acc_exps))
+                 (ranges, [])
           in
           (* let's apply additional filters.
            * TODO: Note that some metavariable-regexp may be part of an
@@ -542,14 +586,26 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
            *  - distribute filter_range in intersect_range?
            * See https://github.com/returntocorp/semgrep/issues/2664
            *)
-          let res =
+          let ranges =
             conds
-            |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
+            |> List.fold_left
+                 (fun acc cond -> filter_ranges env acc cond)
+                 ranges
           in
 
-          let res = apply_focus_on_ranges env focus res in
-
-          res)
+          let ranges = apply_focus_on_ranges env focus ranges in
+          let exp =
+            Some
+              {
+                op = OpAnd;
+                ranges;
+                (* TODO: add some intermediate OpNot *)
+                pos = G.fake "";
+                children =
+                  posrs_exps @ negs_exps |> Common.map_filter (fun x -> x);
+              }
+          in
+          (ranges, exp))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and matches_of_formula config rule xtarget formula opt_context :
@@ -577,7 +633,7 @@ and matches_of_formula config rule xtarget formula opt_context :
     }
   in
   logger#trace "evaluating the formula";
-  let final_ranges = evaluate_formula env opt_context formula in
+  let final_ranges, _exp = evaluate_formula env opt_context formula in
   logger#trace "found %d final ranges" (List.length final_ranges);
   let res' =
     { res with RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors) }
