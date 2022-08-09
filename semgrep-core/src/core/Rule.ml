@@ -118,22 +118,28 @@ and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
 type formula_old =
   (* pattern: *)
   | Pat of Xpattern.t
-  (* pattern-not: *)
+  (* not: *)
   | PatNot of tok * Xpattern.t
-  (* metavariable-xyz: *)
-  | PatExtra of tok * extra
-  (* focus-metavariable: *)
-  | PatFocus of tok * MV.mvar
-  (* pattern-inside: *)
+  (* inside: *)
   | PatInside of Xpattern.t
-  (* pattern-not-inside: *)
-  | PatNotInside of tok * Xpattern.t
-  (* pattern-either: Or *)
-  | PatEither of tok * formula_old list
-  (* patterns: And *)
-  | Patterns of tok * formula_old list
-  (* for fields handled in Python like depends-on *)
-  | PatFilteredInPythonTodo of tok
+  (* or: *)
+  | PatOr of tok * formula_old list
+  (* and: *)
+  | PatAnd of tok * formula_old list
+  (* pat: _ where: _
+     The tokens correspond to the keys.
+  *)
+  | PatWhere of tok * tok * formula_old * where_constraint list
+
+and where_constraint =
+  | WhereComparison of {
+      tok : tok;
+      comparison : AST_generic.expr;
+      strip : bool option;
+      base : int option;
+    }
+  | WhereFocus of tok * MV.mvar
+  | WherePattern of tok * MV.mvar * Xlang.t option * formula_old
 
 (* extra conditions, usually on metavariable content *)
 and extra =
@@ -440,7 +446,10 @@ let kind_of_formula = function
 (*****************************************************************************)
 
 (* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
-let rewrite_metavar_comparison_strip mvar cond =
+(* This now changes all such metavariables. We expect in most cases there should
+   just be one, anyways.
+*)
+let rewrite_metavar_comparison_strip cond =
   let visitor =
     Map_AST.mk_visitor
       {
@@ -450,7 +459,8 @@ let rewrite_metavar_comparison_strip mvar cond =
             (* apply on children *)
             let e = k e in
             match e.G.e with
-            | G.N (G.Id ((s, tok), _idinfo)) when s = mvar ->
+            | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s
+              ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
                 G.Call (G.N py_int |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
             | _ -> e);
@@ -464,26 +474,26 @@ let rewrite_metavar_comparison_strip mvar cond =
 let remove_noop (e : formula_old) : formula_old =
   let valid_formula x =
     match x with
-    | PatFilteredInPythonTodo _ -> false
     | _ -> true
   in
   let rec aux e =
     match e with
-    | PatEither (t, xs) ->
+    | PatOr (t, xs) ->
         let xs = Common.map aux (List.filter valid_formula xs) in
-        PatEither (t, xs)
-    | Patterns (t, xs) -> (
+        PatOr (t, xs)
+    | PatAnd (t, xs) -> (
         let xs' = Common.map aux (List.filter valid_formula xs) in
         (* If the only thing in Patterns is a PatFilteredInPythonTodo key,
            after this filter it will be an empty And. To prevent
            an error, check for that *)
         match (xs, xs') with
         | [ x ], [] -> aux x
-        | _ -> Patterns (t, xs'))
-    | PatFilteredInPythonTodo t ->
+        | _ -> PatAnd (t, xs'))
+    (* TODO: kill? | PatFilteredInPythonTodo t ->
         (* If a PatFilteredInPythonTodo key is the only thing on the top
            level, return no matches *)
         PatEither (t, [])
+    *)
     | _ -> e
   in
   aux e
@@ -513,34 +523,79 @@ let rec (convert_formula_old :
     | Pat x -> P (x, None)
     | PatInside x -> P (x, Some Inside)
     | PatNot (t, x) -> Not (t, P (x, None))
-    | PatNotInside (t, x) -> Not (t, P (x, Some Inside))
-    | PatEither (t, xs) ->
+    | PatOr (t, xs) ->
         let xs = Common.map aux xs in
         Or (t, xs)
-    | Patterns (t, xs) ->
-        let fs, conds, focus = Common.partition_either3 aux_and xs in
+    | PatAnd (t, xs) ->
+        let fs = Common.map aux xs in
         let pos, _ = split_and fs in
         if pos = [] && not in_metavariable_pattern then
           raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
-        And { tok = t; conjuncts = fs; conditions = conds; focus }
-    | PatExtra (t, _) ->
-        raise
-          (InvalidYaml
-             ("metavariable conditions must be inside a 'patterns:'", t))
-    | PatFocus (t, _) ->
-        raise
-          (InvalidYaml ("'focus-metavariable:' must be inside a 'patterns:'", t))
-    | PatFilteredInPythonTodo t -> raise (InvalidYaml ("Unexpected key", t))
-  and aux_and e =
-    match e with
-    | PatExtra (t, x) ->
-        let e = convert_extra ~t ~rule_id x in
-        Middle3 (t, e)
-    | PatFocus (t, mvar) -> Right3 (t, mvar)
-    | _ -> Left3 (aux e)
+        And { tok = t; conjuncts = fs; conditions = []; focus = [] }
+        (*let fs, conds, focus = Common.partition_either3 aux_and xs in
+          let pos, _ = split_and fs in
+          if pos = [] && not in_metavariable_pattern then
+            raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
+          And { tok = t; conjuncts = fs; conditions = conds; focus }
+        *)
+    | PatWhere (t1, _t2, formula, constraints) ->
+        let formula =
+          convert_formula_old ~in_metavariable_pattern ~rule_id formula
+        in
+        let conditions, focus =
+          Common.partition_either aux_constraint constraints
+        in
+        let tok, conditions, focus, conjuncts =
+          (* If the modified pattern is also an `And`, collect the conditions and focus
+             and fold them together.
+          *)
+          match formula with
+          | And { tok; conjuncts; conditions = conditions2; focus = focus2 } ->
+              (tok, conditions @ conditions2, focus @ focus2, conjuncts)
+          (* Otherwise, we consider the modified pattern a degenerate singleton `And`.
+         *)
+          | _ -> (t1, conditions, focus, [ formula ])
+        in
+        And { tok; conjuncts; conditions; focus }
+  and aux_constraint = function
+    | WhereComparison { tok = t; comparison = expr; base = _NOT_NEEDED; strip }
+      ->
+        let cond =
+          (* if strip=true we rewrite the condition and insert Python's `int`
+             * function to parse the integer value of mvar. *)
+          match strip with
+          | Some true -> rewrite_metavar_comparison_strip expr
+          | _ -> expr
+          (* This error should be caught already in Parse_rule, this is just
+                 defensive programming.
+             let error_msg =
+               "'metavariable-comparison' is missing 'metavariable' despite \
+                 'strip: true'"
+             in
+             logger#error "%s" error_msg;
+             raise (InvalidRule (InvalidOther error_msg, rule_id, t))
+          *)
+        in
+        Left (t, CondEval cond)
+    | WhereFocus (t, mvar) -> Right (t, mvar)
+    | WherePattern (t, mvar, xlang_opt, formula) ->
+        let formula =
+          convert_formula_old ~in_metavariable_pattern ~rule_id formula
+        in
+        Left (t, CondNestedFormula (mvar, xlang_opt, formula))
   in
+  (*and aux_and e =
+      match e with
+      | PatExtra (t, x) ->
+          let e = convert_extra ~t ~rule_id x in
+          Middle3 (t, e)
+      | PatFocus (t, mvar) -> Right3 (t, mvar)
+      | _ -> Left3 (aux e)
+    in
+  *)
   aux (remove_noop e)
 
+(*
 and convert_extra ~t ~rule_id x =
   match x with
   | MetavarRegexp (mvar, re, const_prop) -> CondRegexp (mvar, re, const_prop)
@@ -579,6 +634,7 @@ and convert_extra ~t ~rule_id x =
           in
           CondEval cond)
   | MetavarAnalysis (mvar, kind) -> CondAnalysis (mvar, kind)
+*)
 
 let formula_of_pformula ?in_metavariable_pattern ~rule_id = function
   | New f -> f
