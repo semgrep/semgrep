@@ -521,17 +521,16 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
   let fun_env = Hashtbl.create 8 in
 
   let v =
-    V.mk_visitor
+    V.mk_visitor ~foo:false
       {
         V.default_visitor with
         V.kdef =
-          (fun (k, v) ((ent, def_kind) as def) ->
+          (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
                 check_fundef lang fun_env taint_config (Some ent) fdef;
                 (* go into nested functions *)
-                let body = H.funcbody_to_stmt fdef.G.fbody in
-                v (G.S body)
+                k def
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->

@@ -100,9 +100,11 @@ let (mk_visitor :
       ?vardef_assign:bool ->
       ?flddef_assign:bool ->
       ?attr_expr:bool ->
+      ?foo:bool ->
       visitor_in ->
       visitor_out) =
- fun ?(vardef_assign = false) ?(flddef_assign = false) ?(attr_expr = false) vin ->
+ fun ?(vardef_assign = false) ?(flddef_assign = false) ?(attr_expr = false)
+     ?(foo = true) vin ->
   (* start of auto generation *)
   (* NOTE: we do a few subtle things at a few places now for semgrep
    * to trigger a few more artificial visits:
@@ -1025,7 +1027,15 @@ let (mk_visitor :
         let v1 = v_enum_entry_definition v1 in
         ()
     | FuncDef v1 ->
-        let v1 = v_function_definition v1 in
+        let v1 =
+          if foo then v_function_definition v1
+          else (
+            v_wrap v_function_kind v1.fkind;
+            let arg = v_parameters v1.fparams in
+            let arg = v_option v_type_ v1.frettype in
+            let arg = v_function_body v1.fbody in
+            ())
+        in
         ()
     | VarDef v1 ->
         let v1 = v_variable_definition v1 in

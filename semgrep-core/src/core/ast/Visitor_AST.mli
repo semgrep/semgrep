@@ -39,6 +39,7 @@ val mk_visitor :
   ?vardef_assign:bool ->
   ?flddef_assign:bool ->
   ?attr_expr:bool ->
+  ?foo:bool ->
   visitor_in ->
   visitor_out
 (** @param vardef_assign VarDef-Assign equivalence (default is [false])
