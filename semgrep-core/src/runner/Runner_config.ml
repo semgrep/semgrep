@@ -16,6 +16,7 @@ type t = {
   report_time : bool;
   error_recovery : bool;
   profile_start : float;
+  matching_explanations : bool;
   (* Main flags *)
   pattern_string : string;
   pattern_file : filename;

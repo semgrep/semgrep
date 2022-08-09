@@ -90,6 +90,9 @@ let report_time = ref false
 (* used for -json -profile *)
 let profile_start = ref 0.
 
+(* step-by-step matching debugger *)
+let matching_explanations = ref false
+
 (* ------------------------------------------------------------------------- *)
 (* main flags *)
 (* ------------------------------------------------------------------------- *)
@@ -251,9 +254,10 @@ let dump_il file =
   List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
   [@@action]
 
+module G = AST_generic
+module V = Visitor_AST
+
 let dump_il_functions file =
-  let module G = AST_generic in
-  let module V = Visitor_AST in
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
@@ -381,6 +385,7 @@ let mk_config () =
     report_time = !report_time;
     error_recovery = !error_recovery;
     profile_start = !profile_start;
+    matching_explanations = !matching_explanations;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
     rules_file = !rules_file;
@@ -655,6 +660,9 @@ let options () =
     ( "-debug_matching",
       Arg.Set Flag.debug_matching,
       " raise an exception at the first match failure" );
+    ( "-matching_explanations",
+      Arg.Set matching_explanations,
+      " output intermediate matching explanations" );
     ( "-log_config_file",
       Arg.Set_string log_config_file,
       " <file> logging configuration file" );
