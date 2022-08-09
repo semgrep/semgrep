@@ -107,8 +107,6 @@ let metavars startp_of_match_range (s, mval) =
           propagated_value = get_propagated_value startp_of_match_range any;
         } )
 
-(* TOFIX with latest semgrep-interfaces
-
 (* None if pi has no location information. Fake tokens should have been filtered
  * out earlier, but in case one slipped through we handle this case. *)
 let parse_info_to_location pi =
@@ -116,7 +114,6 @@ let parse_info_to_location pi =
   |> Result.to_option
   |> Option.map (fun token_location ->
          OutH.location_of_token_location token_location)
-
 
 let tokens_to_locations toks = List.filter_map parse_info_to_location toks
 
@@ -127,7 +124,6 @@ let rec last hd = function
 let first_and_last = function
   | [] -> None
   | hd :: tl -> Some (hd, last hd tl)
-
 
 let tokens_to_single_loc toks =
   (* toks should be nonempty and should contain only origintoks, but since we
@@ -153,14 +149,12 @@ let token_to_intermediate_var token =
 let tokens_to_intermediate_vars tokens =
   List.filter_map token_to_intermediate_var tokens
 
-let taint_trace_to_dataflow_trace { source; tokens; sink = _ } =
+let taint_trace_to_dataflow_trace { source; tokens; sink = _ } :
+    Out.core_match_dataflow_trace =
   {
     Out.taint_source = taint_call_trace_to_taint_source source;
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
   }
- *)
-
-let taint_trace_to_dataflow_trace _ = failwith "TOFIX"
 
 let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
   let min_loc, max_loc = x.range_loc in
