@@ -1129,9 +1129,8 @@ and parse_formula_and_new env (x : G.expr) :
 and parse_formula (env : env) (rule_dict : dict) : R.formula =
   let formula = parse_pair env (find_formula env rule_dict) in
   (* sanity check *)
-  match Analyze_rule.regexp_prefilter_of_formula formula with
-  | None -> failwith " i think bad things happen here "
-  | _ -> formula
+  (* bTODO: filter out unconstrained nots *)
+  formula
 
 and parse_taint_requires env key x =
   let parse_error () =
