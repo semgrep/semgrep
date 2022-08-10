@@ -444,7 +444,6 @@ and nested_formula_has_matches env formula opt_context =
   | [] -> false
   | _ :: _ -> true
 
-(* less: use Set instead of list? *)
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
     RM.ranges * Matching_explanation.t option =
   match e with
