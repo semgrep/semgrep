@@ -1217,7 +1217,7 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       | None
       | Some ("search", _) ->
           `Search formula
-      (* | Some ("taint", _) ->
+      | Some ("taint", _) ->
           let parse_specs parse_spec env key x =
             parse_list env key
               (fun env -> parse_spec env (fst key ^ "list item", snd key))
@@ -1233,14 +1233,15 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
                 "sanitizers",
               take rule_dict env (parse_specs parse_taint_sink) "sinks" )
           in
-          `Taint
-            {
-              sources;
-              propagators = optlist_to_list propagators_opt;
-              sanitizers = optlist_to_list sanitizers_opt;
-              sinks;
-            }
-      *)
+          `Search
+            (R.Taint
+               ( G.fake "xd",
+                 {
+                   sources;
+                   propagators = optlist_to_list propagators_opt;
+                   sanitizers = optlist_to_list sanitizers_opt;
+                   sinks;
+                 } ))
       | Some ("extract", _) ->
           let dst_lang =
             take rule_dict env parse_string_wrap "dest-language"
