@@ -159,9 +159,44 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       | R.And _ ->
           logger#warning "Not And";
           None
-      | R.Taint _ -> failwith "TODO"
-      | R.Inside _ -> failwith "TODO")
-  | R.Taint _ -> failwith "TODO"
+      | R.Taint _ ->
+          logger#warning "Not Taint";
+          None
+      | R.Inside _ ->
+          logger#warning "Not Inside";
+          None)
+  | R.Taint (t, { sources; sinks; propagators; sanitizers }) ->
+      let sources =
+        List.filter_map
+          (fun source ->
+            let* source_formula = remove_not source.R.source_formula in
+            Some { source with R.source_formula })
+          sources
+      in
+      let propagators =
+        List.filter_map
+          (fun propagator ->
+            let* propagate_formula =
+              remove_not propagator.R.propagate_formula
+            in
+            Some { propagator with R.propagate_formula })
+          propagators
+      in
+      let sinks =
+        List.filter_map
+          (fun sink ->
+            let* sink_formula = remove_not sink.R.sink_formula in
+            Some { sink with R.sink_formula })
+          sinks
+      in
+      let sanitizers =
+        List.filter_map
+          (fun sanitizer ->
+            let* sanitizer_formula = remove_not sanitizer.R.sanitizer_formula in
+            Some { sanitizer with R.sanitizer_formula })
+          sanitizers
+      in
+      Some (R.Taint (t, { sources; sinks; sanitizers; propagators }))
   | R.Inside (t, formula) ->
       let* formula = remove_not formula in
       Some (R.Inside (t, formula))
@@ -203,7 +238,23 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    *)
   (* Check this... *)
   | R.Inside (_, formula) -> cnf formula
-  | R.Taint _ -> failwith "TODO"
+  | R.Taint (_, { sources; sanitizers; propagators; sinks }) ->
+      let collected =
+        Common.map (fun source -> cnf source.R.source_formula) sources
+        @ Common.map (fun sink -> cnf sink.R.sink_formula) sinks
+        @ Common.map
+            (fun propagator -> cnf propagator.R.propagate_formula)
+            propagators
+        @ Common.map
+            (fun sanitizer -> cnf sanitizer.R.sanitizer_formula)
+            sanitizers
+      in
+      And
+        (Common.map
+           (function
+             | And ors -> ors)
+           collected
+        |> List.flatten)
   | R.And { conjuncts = xs; conditions = conds; _ } ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in

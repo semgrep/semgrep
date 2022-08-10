@@ -459,6 +459,49 @@ and visit_sink f { sink_formula; _ } = f sink_formula
 and visit_propagate f { propagate_formula; _ } = f propagate_formula
 and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula
 
+let rec map_formula f formula =
+  match formula with
+  | P p -> f (P p)
+  | Inside (t, formula) -> f (Inside (t, map_formula f formula))
+  | Taint (t, { sources; propagators; sanitizers; sinks }) ->
+      let map_source source =
+        { source with source_formula = map_formula f source.source_formula }
+      in
+      let map_sink sink =
+        { sink with sink_formula = map_formula f sink.sink_formula }
+      in
+      let map_propagate propagator =
+        {
+          propagator with
+          propagate_formula = map_formula f propagator.propagate_formula;
+        }
+      in
+      let map_sanitizer sanitizer =
+        {
+          sanitizer with
+          sanitizer_formula = map_formula f sanitizer.sanitizer_formula;
+        }
+      in
+      let apply g l = Common.map g l in
+      f
+        (Taint
+           ( t,
+             {
+               sources = apply map_source sources;
+               sinks = apply map_sink sinks;
+               propagators = apply map_propagate propagators;
+               sanitizers = apply map_sanitizer sanitizers;
+             } ))
+  | Not (t, formula) -> f (Not (t, map_formula f formula))
+  | Or (t, xs) -> f (Or (t, Common.map (map_formula f) xs))
+  | And conjunction ->
+      f
+        (And
+           {
+             conjunction with
+             conjuncts = Common.map (map_formula f) conjunction.conjuncts;
+           })
+
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
   | And { conj_tok = t; _ }
