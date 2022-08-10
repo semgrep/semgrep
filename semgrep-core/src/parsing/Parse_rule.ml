@@ -1224,14 +1224,17 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
               x
           in
           let sources, propagators_opt, sanitizers_opt, sinks =
-            ( take rule_dict env (parse_specs parse_taint_source) "sources",
+            ( take rule_dict env
+                (parse_specs parse_taint_source)
+                "pattern-sources",
               take_opt rule_dict env
                 (parse_specs parse_taint_propagator)
-                "propagators",
+                "pattern-propagators",
               take_opt rule_dict env
                 (parse_specs parse_taint_sanitizer)
-                "sanitizers",
-              take rule_dict env (parse_specs parse_taint_sink) "sinks" )
+                "pattern-sanitizers",
+              take rule_dict env (parse_specs parse_taint_sink) "pattern-sinks"
+            )
           in
           `Search
             (R.Taint
