@@ -100,6 +100,12 @@ let fixme_stmt kind gany =
 (* Helpers *)
 (*****************************************************************************)
 let fresh_var ?(str = "_tmp") _env tok =
+  let tok =
+    (* We don't want "fake" auxiliary variables to have non-fake tokens, otherwise
+       we confuse ourselves! E.g. during taint-tracking we don't want to add these
+       variables to the taint trace. *)
+    if Parse_info.is_fake tok then tok else Parse_info.fake_info tok str
+  in
   let i = H.gensym () in
   { ident = (str, tok); sid = i; id_info = G.empty_id_info () }
 
