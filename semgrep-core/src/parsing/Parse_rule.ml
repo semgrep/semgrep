@@ -1208,63 +1208,63 @@ and parse_taint_sink env (key : key) (value : G.expr) : Rule.taint_sink =
 (*****************************************************************************)
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
-  let formula =
-    take_opt rule_dict env (fun env _ expr -> parse_pattern env expr) "match"
-  in
-  match formula with
-  | Some formula -> (
-      match mode_opt with
-      | None
-      | Some ("search", _) ->
-          `Search formula
-      | Some ("taint", _) ->
-          let parse_specs parse_spec env key x =
-            parse_list env key
-              (fun env -> parse_spec env (fst key ^ "list item", snd key))
-              x
-          in
-          let sources, propagators_opt, sanitizers_opt, sinks =
-            ( take rule_dict env
-                (parse_specs parse_taint_source)
-                "pattern-sources",
-              take_opt rule_dict env
-                (parse_specs parse_taint_propagator)
-                "pattern-propagators",
-              take_opt rule_dict env
-                (parse_specs parse_taint_sanitizer)
-                "pattern-sanitizers",
-              take rule_dict env (parse_specs parse_taint_sink) "pattern-sinks"
-            )
-          in
-          `Search
-            (R.Taint
-               ( G.fake "xd",
-                 {
-                   sources;
-                   propagators = optlist_to_list propagators_opt;
-                   sanitizers = optlist_to_list sanitizers_opt;
-                   sinks;
-                 } ))
-      | Some ("extract", _) ->
-          let dst_lang =
-            take rule_dict env parse_string_wrap "dest-language"
-            |> parse_extract_dest ~id:env.id
-          in
-          (* TODO: determine fmt---string with interpolated metavars? *)
-          let extract = take rule_dict env parse_string "extract" in
-          let reduce =
-            take_opt rule_dict env parse_string_wrap "reduce"
-            |> Option.map (parse_extract_reduction ~id:env.id)
-            |> Option.value ~default:R.Separate
-          in
-          `Extract { formula; dst_lang; extract; reduce }
-      | Some key ->
-          error_at_key env key
-            (spf
-               "Unexpected value for mode, should be 'search', 'taint', or \
-                'extract', not %s"
-               (fst key)))
-  | None -> `Search (parse_formula_old env (find_formula_old env rule_dict))
+  match mode_opt with
+  | None
+  | Some ("search", _) -> (
+      let formula =
+        take_opt rule_dict env
+          (fun env _ expr -> parse_pattern env expr)
+          "match"
+      in
+      match formula with
+      | Some formula -> `Search formula
+      | None -> `Search (parse_formula_old env (find_formula_old env rule_dict))
+      )
+  | Some ("taint", _) ->
+      let parse_specs parse_spec env key x =
+        parse_list env key
+          (fun env -> parse_spec env (fst key ^ "list item", snd key))
+          x
+      in
+      let sources, propagators_opt, sanitizers_opt, sinks =
+        ( take rule_dict env (parse_specs parse_taint_source) "pattern-sources",
+          take_opt rule_dict env
+            (parse_specs parse_taint_propagator)
+            "pattern-propagators",
+          take_opt rule_dict env
+            (parse_specs parse_taint_sanitizer)
+            "pattern-sanitizers",
+          take rule_dict env (parse_specs parse_taint_sink) "pattern-sinks" )
+      in
+      `Search
+        (R.Taint
+           ( G.fake "xd",
+             {
+               sources;
+               propagators = optlist_to_list propagators_opt;
+               sanitizers = optlist_to_list sanitizers_opt;
+               sinks;
+             } ))
+  | Some ("extract", _) ->
+      let formula = parse_formula_old env (find_formula_old env rule_dict) in
+      let dst_lang =
+        take rule_dict env parse_string_wrap "dest-language"
+        |> parse_extract_dest ~id:env.id
+      in
+      (* TODO: determine fmt---string with interpolated metavars? *)
+      let extract = take rule_dict env parse_string "extract" in
+      let reduce =
+        take_opt rule_dict env parse_string_wrap "reduce"
+        |> Option.map (parse_extract_reduction ~id:env.id)
+        |> Option.value ~default:R.Separate
+      in
+      `Extract { formula; dst_lang; extract; reduce }
+  | Some key ->
+      error_at_key env key
+        (spf
+           "Unexpected value for mode, should be 'search', 'taint', or \
+            'extract', not %s"
+           (fst key))
 
 (* sanity check there are no remaining fields in rd *)
 let report_unparsed_fields rd =
