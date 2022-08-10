@@ -583,21 +583,19 @@ let find_formula env (rule_dict : dict) : key * G.expr =
       find "regex",
       find "taint",
       find "not",
-      find "inside",
-      find "taint" )
+      find "inside" )
   with
-  | None, None, None, None, None, None, None, None ->
+  | None, None, None, None, None, None, None ->
       error env rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, `pattern-comby` to be present"
-  | Some (key, value), None, None, None, None, None, None, None
-  | None, Some (key, value), None, None, None, None, None, None
-  | None, None, Some (key, value), None, None, None, None, None
-  | None, None, None, Some (key, value), None, None, None, None
-  | None, None, None, None, Some (key, value), None, None, None
-  | None, None, None, None, None, Some (key, value), None, None
-  | None, None, None, None, None, None, Some (key, value), None
-  | None, None, None, None, None, None, None, Some (key, value) ->
+  | Some (key, value), None, None, None, None, None, None
+  | None, Some (key, value), None, None, None, None, None
+  | None, None, Some (key, value), None, None, None, None
+  | None, None, None, Some (key, value), None, None, None
+  | None, None, None, None, Some (key, value), None, None
+  | None, None, None, None, None, Some (key, value), None
+  | None, None, None, None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
       error env rule_dict.first_tok
