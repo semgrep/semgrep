@@ -99,6 +99,7 @@ and rule_id = {
   message : string;
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
+  fix : string option;
 }
 [@@deriving show, eq]
 

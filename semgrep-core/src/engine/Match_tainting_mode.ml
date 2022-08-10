@@ -94,7 +94,8 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
+let convert_rule_id (id, _tok) =
+  { PM.id; message = ""; pattern_string = id; fix = None }
 
 let option_bind_list opt f =
   match opt with

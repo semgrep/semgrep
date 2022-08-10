@@ -153,9 +153,10 @@ let lazy_force x = Lazy.force x [@@profiling]
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
       Xlang.t ->
+      Rule.t ->
       Pattern.t * R.inside option * Xpattern.pattern_id * string ->
       MR.t) =
- fun xlang (pattern, inside, id, pstr) ->
+ fun xlang rule (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
@@ -173,6 +174,7 @@ let (mini_rule_of_pattern :
           raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
+    fix = rule.Rule.fix;
   }
 
 (*****************************************************************************)
@@ -210,7 +212,7 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter config file_and_more
+let matches_of_patterns ?mvar_context ?range_filter rule config file_and_more
     patterns =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
     file_and_more
@@ -223,7 +225,7 @@ let matches_of_patterns ?mvar_context ?range_filter config file_and_more
       let matches, match_time =
         Common.with_time (fun () ->
             let mini_rules =
-              patterns |> Common.map (mini_rule_of_pattern xlang)
+              patterns |> Common.map (mini_rule_of_pattern xlang rule)
             in
 
             if !debug_timeout || !debug_matches then
@@ -261,7 +263,8 @@ let run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.config env.xtarget patterns
+        matches_of_patterns ~range_filter env.rule env.config env.xtarget
+          patterns
       in
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
@@ -308,7 +311,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
+let matches_of_xpatterns ~mvar_context rule config file_and_more xpatterns =
   let { Xtarget.file; lazy_content; _ } = file_and_more in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -320,7 +323,7 @@ let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context config file_and_more patterns;
+      matches_of_patterns ~mvar_context rule config file_and_more patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file;
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
       Xpattern_match_comby.matches_of_combys combys lazy_content file;
@@ -553,7 +556,7 @@ and matches_of_formula config rule xtarget formula opt_context :
     Option.map (fun s -> s.RM.mvars) opt_context
   in
   let res =
-    matches_of_xpatterns mvar_context config xtarget xpatterns
+    matches_of_xpatterns mvar_context rule config xtarget xpatterns
     |> RP.add_rule rule
   in
   logger#trace "found %d matches" (List.length res.matches);

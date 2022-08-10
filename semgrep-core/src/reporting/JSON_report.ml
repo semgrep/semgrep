@@ -165,6 +165,7 @@ let match_to_match x =
           | (lazy trace) -> taint_trace_to_dataflow_trace trace)
         x.taint_trace
     in
+    let metavars = x.env |> Common.map (metavars startp) in
     Left
       ({
          Out.rule_id = x.rule_id.id;
@@ -172,8 +173,12 @@ let match_to_match x =
          extra =
            {
              message = Some x.rule_id.message;
-             metavars = x.env |> Common.map (metavars startp);
+             metavars;
              dataflow_trace;
+             (* TODO *)
+             applied_fix =
+               Option.bind x.rule_id.fix
+                 (Autofix.synthesize_fix Lang.Python x.env);
            };
        }
         : Out.core_match)

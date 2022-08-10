@@ -717,6 +717,7 @@ let minirule_of_pattern lang pattern_string pattern =
     message = "";
     severity = R.Error;
     languages = [ lang ];
+    fix = None;
   }
 
 let rule_of_pattern lang pattern_string pattern =
