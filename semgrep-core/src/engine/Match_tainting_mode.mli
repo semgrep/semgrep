@@ -20,6 +20,10 @@ val taint_config_of_rule :
   unit) ->
   Dataflow_tainting.config * debug_taint
 
+val hook_file_taint_config :
+  (Rule.rule_id -> Common.path -> (Dataflow_tainting.config * debug_taint) option) option ref
+(** Deep Semgrep *)
+
 val check_rule :
   Rule.taint_rule ->
   (string -> Pattern_match.t -> unit) ->

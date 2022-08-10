@@ -81,6 +81,12 @@ type debug_taint = {
 }
 
 (*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+let hook_file_taint_config = ref None
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -457,9 +463,25 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
              pm_of_finding finding
              |> Option.iter (fun pm -> Common.push pm matches))
     in
-    taint_config_of_rule default_config equivs file (ast, []) rule
-      handle_findings
+    match !hook_file_taint_config with
+    | None ->
+      logger#flash "Could not get taint config (1) for rule %s and file %s" (fst rule.Rule.id) file;
+      taint_config_of_rule default_config equivs file (ast, []) rule handle_findings
+    | Some hook ->
+      match hook (fst rule.Rule.id) file with
+      | None ->
+      logger#flash "Could not get taint config (2) for rule %s and file %s" (fst rule.Rule.id) file;
+      taint_config_of_rule default_config equivs file (ast, []) rule handle_findings
+      | Some (taint_config, debug_taint) ->
+        logger#flash "Got cached taint config for rule %s and file %s" (fst rule.Rule.id) file;
+        ({ taint_config with handle_findings = handle_findings; }, debug_taint)
   in
+  debug_taint.sources |> List.iter (fun s ->
+    logger#flash "source: %d-%d" s.RM.r.Range.start s.RM.r.Range.end_;
+  );
+  debug_taint.sinks |> List.iter (fun s ->
+    logger#flash "sink: %d-%d" s.RM.r.Range.start s.RM.r.Range.end_;
+  );
 
   let fun_env = Hashtbl.create 8 in
 
