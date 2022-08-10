@@ -197,6 +197,26 @@ and metavar_cond =
 
 and metavar_analysis_kind = CondEntropy | CondReDoS [@@deriving show, eq]
 
+(* extra conditions, usually on metavariable content *)
+type extra =
+  | MetavarRegexp of MV.mvar * Xpattern.regexp * bool
+  | MetavarPattern of MV.mvar * Xlang.t option * formula
+  | MetavarComparison of metavariable_comparison
+  | MetavarAnalysis of MV.mvar * metavar_analysis_kind
+(* old: | PatWherePython of string, but it was too dangerous.
+ * MetavarComparison is not as powerful, but safer.
+ *)
+
+(* See also engine/Eval_generic.ml *)
+and metavariable_comparison = {
+  metavariable : MV.mvar option;
+  comparison : AST_generic.expr;
+  (* I don't think those are really needed; they can be inferred
+   * from the values *)
+  strip : bool option;
+  base : int option;
+}
+
 (*
 (*****************************************************************************)
 (* Old Formula style *)
