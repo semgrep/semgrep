@@ -801,14 +801,10 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
           x
       in
       let sources, propagators_opt, sanitizers_opt, sinks =
-        ( take dict env (parse_specs parse_taint_source) "pattern-sources",
-          take_opt dict env
-            (parse_specs parse_taint_propagator)
-            "pattern-propagators",
-          take_opt dict env
-            (parse_specs parse_taint_sanitizer)
-            "pattern-sanitizers",
-          take dict env (parse_specs parse_taint_sink) "pattern-sinks" )
+        ( take dict env (parse_specs parse_taint_source) "sources",
+          take_opt dict env (parse_specs parse_taint_propagator) "propagators",
+          take_opt dict env (parse_specs parse_taint_sanitizer) "sanitizers",
+          take dict env (parse_specs parse_taint_sink) "sinks" )
       in
       R.Taint
         ( t,
@@ -1002,10 +998,12 @@ and parse_taint_sink env (key : key) (value : G.expr) : Rule.taint_sink =
 (*****************************************************************************)
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
+  let formula =
+    take rule_dict env (fun env _ expr -> parse_pattern env expr) "match"
+  in
   match mode_opt with
   | None
   | Some ("search", _) ->
-      let formula = parse_formula env rule_dict in
       `Search formula
   (* | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
@@ -1032,7 +1030,6 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
         }
   *)
   | Some ("extract", _) ->
-      let formula = parse_formula env rule_dict in
       let dst_lang =
         take rule_dict env parse_string_wrap "dest-language"
         |> parse_extract_dest ~id:env.id

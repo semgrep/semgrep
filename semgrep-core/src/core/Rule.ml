@@ -419,11 +419,25 @@ let rec visit_new_formula f formula =
   match formula with
   | P p -> f p
   | Inside (_, formula) -> visit_new_formula f formula
-  | Taint _ -> failwith "TODO"
+  | Taint (_, { sources; propagators; sanitizers; sinks }) ->
+      let apply g l =
+        Common.map (g (visit_new_formula f)) l |> ignore;
+        ()
+      in
+      apply visit_source sources;
+      apply visit_propagate propagators;
+      apply visit_sink sinks;
+      apply visit_sanitizer sanitizers;
+      ()
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
   | And { conjuncts = xs; _ } ->
       xs |> List.iter (visit_new_formula f)
+
+and visit_source f { source_formula; _ } = f source_formula
+and visit_sink f { sink_formula; _ } = f sink_formula
+and visit_propagate f { propagate_formula; _ } = f propagate_formula
+and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
@@ -513,11 +527,10 @@ let split_and : formula list -> formula list * formula list =
          (* positives *)
          | P _
          | And _
-         | Or _ ->
-             Left e
+         | Or _
          | Inside _
          | Taint _ ->
-             failwith "TODO"
+             Left e
          (* negatives *)
          | Not (_, f) -> Right f)
 

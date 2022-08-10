@@ -41,10 +41,10 @@ and taint_spec = {
 
 and sformula =
   | Leaf of Xpattern.t
-  | Inside of sformula
-  | Taint of taint_spec
   | And of sformula_and
   | Or of sformula list
+  | Inside of sformula
+  | Taint of taint_spec
   | Not of sformula
 
 and sformula_and = {

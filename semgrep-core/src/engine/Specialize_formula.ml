@@ -72,7 +72,7 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 
 let selector_from_formula f =
   match f with
-  | Leaf ({ pat = Sem (pattern, _); pid; pstr }, None) -> (
+  | Leaf { pat = Sem (pattern, _); pid; pstr } -> (
       match pattern with
       | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
           Some { mvar; pattern; pid; pstr }
@@ -105,11 +105,35 @@ let formula_to_sformula formula =
   let rec formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
-    | R.P (p, inside) -> Leaf (p, inside)
-    | R.And { tok = _; conjuncts = fs; conditions = conds; focus } ->
+    | R.P p -> Leaf p
+    | R.And { conj_tok = _; conjuncts = fs; conditions = conds; focus } ->
         And (convert_and_formulas fs conds focus)
     | R.Or (_, fs) -> Or (Common.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
+    | R.Inside (_, f) -> Inside (formula_to_sformula f)
+    | R.Taint (_, { sources; propagators; sanitizers; sinks }) ->
+        Taint
+          {
+            sources = List.map convert_taint_source sources;
+            propagators = List.map convert_taint_propagator propagators;
+            sanitizers = List.map convert_taint_sanitizer sanitizers;
+            sinks = List.map convert_taint_sink sinks;
+          }
+  and convert_taint_source { R.source_formula; label; source_requires } =
+    {
+      source_formula = formula_to_sformula source_formula;
+      label;
+      source_requires;
+    }
+  and convert_taint_sanitizer { R.sanitizer_formula; not_conflicting } =
+    {
+      sanitizer_formula = formula_to_sformula sanitizer_formula;
+      not_conflicting;
+    }
+  and convert_taint_sink { R.sink_formula; sink_requires } =
+    { sink_formula = formula_to_sformula sink_formula; sink_requires }
+  and convert_taint_propagator { R.propagate_formula; from; to_ } =
+    { propagate_formula = formula_to_sformula propagate_formula; from; to_ }
   and convert_and_formulas fs cond focus =
     let pos, neg = Rule.split_and fs in
     let pos = Common.map formula_to_sformula pos in
@@ -136,9 +160,25 @@ let formula_to_sformula formula =
 (* currently used in Match_rules.ml to extract patterns *)
 let rec visit_sformula f formula =
   match formula with
-  | Leaf (p, i) -> f p
+  | Leaf p -> f p
   | Not x -> visit_sformula f x
+  | Inside sformula -> visit_sformula f sformula
+  | Taint { sources; sinks; sanitizers; propagators } ->
+      let apply g l =
+        Common.map (g (visit_sformula f)) l |> ignore;
+        ()
+      in
+      apply visit_source sources;
+      apply visit_propagate propagators;
+      apply visit_sink sinks;
+      apply visit_sanitizer sanitizers;
+      ()
   | Or xs -> xs |> List.iter (visit_sformula f)
   | And fand ->
       fand.positives |> List.iter (visit_sformula f);
       fand.negatives |> List.iter (visit_sformula f)
+
+and visit_source f { source_formula; _ } = f source_formula
+and visit_sink f { sink_formula; _ } = f sink_formula
+and visit_propagate f { propagate_formula; _ } = f propagate_formula
+and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula
