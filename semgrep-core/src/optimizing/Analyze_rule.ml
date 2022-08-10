@@ -238,16 +238,10 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    *)
   (* Check this... *)
   | R.Inside (_, formula) -> cnf formula
-  | R.Taint (_, { sources; sanitizers; propagators; sinks }) ->
+  | R.Taint (_, { sources; sinks; _ }) ->
       let collected =
         Common.map (fun source -> cnf source.R.source_formula) sources
         @ Common.map (fun sink -> cnf sink.R.sink_formula) sinks
-        @ Common.map
-            (fun propagator -> cnf propagator.R.propagate_formula)
-            propagators
-        @ Common.map
-            (fun sanitizer -> cnf sanitizer.R.sanitizer_formula)
-            sanitizers
       in
       And
         (Common.map

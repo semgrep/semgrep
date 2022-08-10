@@ -703,20 +703,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "patterns" ->
       let parse_pattern _i expr =
         match parse_str_or_dict env expr with
-        | Left (s, t) ->
-            Left3
-              (R.P
-                 (try parse_xpattern env.languages (s, t) with
-                 | (Timeout _ | UnixExit _) as e ->
-                     Exception.catch_and_reraise e
-                 (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
-                 | exn ->
-                     raise
-                       (R.InvalidRule
-                          ( R.InvalidPattern
-                              (s, env.languages, Common.exn_to_s exn, env.path),
-                            env.id,
-                            t ))))
+        | Left (s, t) -> failwith "use patterns:"
         | Right dict -> (
             let find key_str = Hashtbl.find_opt dict.h key_str in
             let process_extra extra =
@@ -912,6 +899,10 @@ let rec parse_pattern env (value : G.expr) : R.formula =
 and produce_constraint env dict indicator =
   match indicator with
   | Ccompare ->
+      (* comparison: ...
+         [strip: ...]
+         [base: ...]
+      *)
       let ((s, t) as compare_key) =
         take dict env parse_string_wrap "comparison"
       in
@@ -939,9 +930,14 @@ and produce_constraint env dict indicator =
       in
       Left (t, R.CondEval cond)
   | Cfocus ->
+      (* focus: ...
+       *)
       let s, t = take dict env parse_string_wrap "focus" in
       Right (t, s)
   | Canalyzer ->
+      (* metavariable: ...
+         analyzer: ...
+      *)
       let metavar, t = take dict env parse_string_wrap "metavariable" in
       let analyzer, t = take dict env parse_string_wrap "analyzer" in
       let kind =
@@ -953,6 +949,10 @@ and produce_constraint env dict indicator =
       in
       Left (t, CondAnalysis (metavar, kind))
   | Cmetavar -> (
+      (* metavariable: ...
+         <pattern-pair>
+         [language: ...]
+      *)
       let metavar, t = take dict env parse_string_wrap "metavariable" in
       let env', opt_xlang =
         match take_opt dict env parse_string "language" with
