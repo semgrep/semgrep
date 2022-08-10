@@ -791,7 +791,7 @@ and m_expr a b =
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
    * TODO: too late, must do that before 'metavar:' so that
-   * const a = "foo"; ... a == "foo" would be catched by $X == $X.
+   * const a = "foo"; ... a == "foo" would be caught by $X == $X.
    *)
   | G.L a1, _b ->
       if_config
