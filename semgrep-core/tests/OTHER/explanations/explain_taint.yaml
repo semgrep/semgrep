@@ -1,0 +1,10 @@
+rules:
+- id: explain
+  mode: taint
+  pattern-sources:
+    - pattern: source(...)
+  pattern-sinks:
+    - pattern: sink(...)
+  message: found it
+  languages: [python]
+  severity: WARNING

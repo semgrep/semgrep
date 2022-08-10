@@ -25,6 +25,7 @@ module T = Taint
 module PI = Parse_info
 module MV = Metavariable
 module ME = Matching_explanation
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -347,18 +348,18 @@ let taint_config_of_rule xconf file ast_and_errors
       lazy_ast_and_errors;
     }
   in
-  let (sources_ranges : (RM.t * R.taint_source) list), _exps_sources =
+  let (sources_ranges : (RM.t * R.taint_source) list), exps_sources =
     find_range_w_metas xconf xtarget rule
-      (spec.sources
+      (spec.sources |> snd
       |> Common.map (fun (src : Rule.taint_source) -> (src.formula, src)))
   and (propagators_ranges : propagator_match list) =
     find_propagators_matches xconf xtarget rule spec.propagators
-  and (sinks_ranges : (RM.t * R.taint_sink) list), _exps_sinks =
+  and (sinks_ranges : (RM.t * R.taint_sink) list), exps_sinks =
     find_range_w_metas xconf xtarget rule
-      (spec.sinks
+      (spec.sinks |> snd
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.formula, sink)))
   in
-  let sanitizers_ranges, _exps_sanitizers =
+  let sanitizers_ranges, _exps_sanitizersTODO =
     find_sanitizers_matches xconf xtarget rule spec.sanitizers
   in
   let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
@@ -383,6 +384,30 @@ let taint_config_of_rule xconf file ast_and_errors
              else None
            else Some (range, spec))
   in
+  let exps =
+    if xconf.matching_explanations then
+      let ranges_to_pms ranges_and_stuff =
+        ranges_and_stuff
+        |> Common.map (fun (rwm, _) ->
+               RM.range_to_pattern_match_adjusted rule rwm)
+      in
+      [
+        {
+          ME.op = Out.TaintSource;
+          pos = fst spec.sources;
+          children = exps_sources;
+          matches = ranges_to_pms sources_ranges;
+        };
+        {
+          ME.op = Out.TaintSink;
+          pos = fst spec.sinks;
+          children = exps_sinks;
+          matches = ranges_to_pms sinks_ranges;
+        }
+        (* TODO: sanitizer and propagators *);
+      ]
+    else []
+  in
   let config = xconf.config in
   ( {
       Dataflow_tainting.filepath = file;
@@ -400,7 +425,8 @@ let taint_config_of_rule xconf file ast_and_errors
       sources = sources_ranges;
       sanitizers = sanitizers_ranges |> Common.map fst;
       sinks = sinks_ranges;
-    } )
+    },
+    exps )
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
@@ -520,7 +546,8 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   let flow = CFG_build.cfg_of_stmts xs in
   Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
 
-let check_rule rule match_hook xconf xtarget =
+let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) =
   let matches = ref [] in
 
   let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
@@ -534,7 +561,7 @@ let check_rule rule match_hook xconf xtarget =
   let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
-  let taint_config, debug_taint =
+  let taint_config, debug_taint, exps =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
@@ -577,7 +604,6 @@ let check_rule rule match_hook xconf xtarget =
         let flow = CFG_build.cfg_of_stmts xs in
         Dataflow_tainting.fixpoint ~fun_env taint_config flow |> ignore)
   in
-
   let matches =
     !matches
     (* same post-processing as for search-mode in Match_rules.ml *)
@@ -592,6 +618,21 @@ let check_rule rule match_hook xconf xtarget =
            { m with PM.rule_id = convert_rule_id rule.Rule.id })
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-  ( RP.make_match_result matches errors
-      { RP.rule_id = fst rule.Rule.id; parse_time; match_time },
-    debug_taint )
+  let report =
+    RP.make_match_result matches errors
+      { RP.rule_id = fst rule.Rule.id; parse_time; match_time }
+  in
+  let explanations =
+    if xconf.matching_explanations then
+      [
+        {
+          ME.op = Out.Taint;
+          children = exps;
+          matches = report.matches;
+          pos = snd rule.id;
+        };
+      ]
+    else []
+  in
+  let report = { report with explanations } in
+  (report, debug_taint)

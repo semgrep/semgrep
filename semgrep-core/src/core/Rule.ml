@@ -236,10 +236,10 @@ let default_sink_requires tok =
   G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
 
 type taint_spec = {
-  sources : taint_source list;
+  sources : tok * taint_source list;
   propagators : taint_propagator list;
   sanitizers : taint_sanitizer list;
-  sinks : taint_sink list;
+  sinks : tok * taint_sink list;
 }
 [@@deriving show]
 
