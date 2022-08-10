@@ -26,7 +26,7 @@ and sformula_and = {
   positives : sformula list;
   negatives : (Rule.tok * sformula) list;
   conditionals : (Rule.tok * Rule.metavar_cond) list;
-  focus : Metavariable.mvar list;
+  focus : (Rule.tok * Metavariable.mvar) list;
 }
 [@@deriving show]
 

@@ -287,8 +287,9 @@ let run_selector_on_ranges env selector_opt ranges =
       |> Common.map RM.match_result_to_range
       |> RM.intersect_ranges env.xconf.config !debug_matches ranges
 
-let apply_focus_on_ranges env focus ranges : RM.ranges =
-  let apply_focus_mvar range focus_mvar =
+let apply_focus_on_ranges env focus_mvars ranges : RM.ranges =
+  (* this will return a new range (or a no match) *)
+  let apply_focus_mvar (range : RM.t) (focus_mvar : MV.mvar) : RM.t option =
     let* _mvar, mval =
       List.find_opt
         (fun (mvar, _mval) -> MV.equal_mvar focus_mvar mvar)
@@ -311,15 +312,16 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
     else if Range.( $<=$ ) range.r focus_range.r then Some range
     else None
   in
-  let apply_focus init_range =
-    focus
+  let apply_focus_mvars init_range =
+    focus_mvars
     |> List.fold_left
-         (fun opt_range focus_mvar ->
+         (fun opt_range (_tok, focus_mvar) ->
            let* range = opt_range in
-           apply_focus_mvar range focus_mvar)
+           let final = apply_focus_mvar range focus_mvar in
+           final)
          (Some init_range)
   in
-  ranges |> List.filter_map apply_focus
+  ranges |> List.filter_map apply_focus_mvars
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -590,11 +592,20 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
                    (ranges, expl :: acc_expls))
                  (ranges, [])
           in
-          (* TODO: explanations also for focus vars *)
           let ranges = apply_focus_on_ranges env focus ranges in
+          let focus_expls =
+            match focus with
+            | [] -> []
+            (* less: what if have multiple focus-metavariable? *)
+            | (tok, _mvar) :: _rest ->
+                [
+                  if_explanations env ranges []
+                    (Out.Filter "metavariable-focus", tok);
+                ]
+          in
           let expl =
             if_explanations env ranges
-              (posrs_expls @ negs_expls @ filter_expls)
+              (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
               (Out.And, tok)
           in
           (ranges, expl))

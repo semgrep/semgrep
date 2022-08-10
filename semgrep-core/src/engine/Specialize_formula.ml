@@ -27,7 +27,7 @@ and sformula_and = {
   positives : sformula list;
   negatives : (Rule.tok * sformula) list;
   conditionals : (Rule.tok * R.metavar_cond) list;
-  focus : MV.mvar list;
+  focus : (Rule.tok * MV.mvar) list;
 }
 [@@deriving show]
 
@@ -81,7 +81,7 @@ let formula_to_sformula formula =
         And (tok, convert_and_formulas fs conds focus)
     | R.Or (tok, fs) -> Or (tok, Common.map formula_to_sformula fs)
     | R.Not (tok, f) -> Not (tok, formula_to_sformula f)
-  and convert_and_formulas fs cond focus =
+  and convert_and_formulas fs conditionals focus =
     let pos, neg = Rule.split_and fs in
     let pos = Common.map formula_to_sformula pos in
     let neg = Common.map (fun (t, f) -> (t, formula_to_sformula f)) neg in
@@ -95,8 +95,8 @@ let formula_to_sformula formula =
       selector_opt = sel;
       positives = pos;
       negatives = neg;
-      conditionals = cond;
-      focus = focus |> Common.map snd;
+      conditionals;
+      focus;
     }
   in
   formula_to_sformula formula
