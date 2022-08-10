@@ -130,25 +130,40 @@ type propagator_match = {
 (* Finding matches for taint specs *)
 (*****************************************************************************)
 
+(* =~ List.concat_map with automatic management of matching-explanations *)
+let concat_map_with_exps f xs =
+  let all_exps = ref [] in
+  let res =
+    xs
+    |> List.concat_map (fun x ->
+           let ys, exps = f x in
+           Common.push exps all_exps;
+           ys)
+  in
+  (res, List.flatten !all_exps)
+
 let find_range_w_metas (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    (rule : Rule.t) (specs : (R.pformula * 'a) list) : (RM.t * 'a) list =
+    (rule : Rule.t) (specs : (R.pformula * 'a) list) :
+    (RM.t * 'a) list * ME.t list =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
-  |> List.concat_map (fun (pf, x) ->
-         range_w_metas_of_pformula xconf xtarget rule pf
-         |> fst
-         |> Common.map (fun rwm -> (rwm, x)))
+  |> concat_map_with_exps (fun (pf, x) ->
+         let ranges, exps = range_w_metas_of_pformula xconf xtarget rule pf in
+         (ranges |> Common.map (fun rwm -> (rwm, x)), exps))
 
 let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (rule : Rule.t) (specs : R.taint_sanitizer list) :
-    (bool * RM.t * R.taint_sanitizer) list =
+    (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
-  |> List.concat_map (fun sanitizer ->
-         Common.map
-           (fun x -> (sanitizer.Rule.not_conflicting, x, sanitizer))
-           (range_w_metas_of_pformula xconf xtarget rule sanitizer.formula
-           |> fst))
+  |> concat_map_with_exps (fun (sanitizer : R.taint_sanitizer) ->
+         let ranges, exps =
+           range_w_metas_of_pformula xconf xtarget rule sanitizer.formula
+         in
+         ( ranges
+           |> Common.map (fun x ->
+                  (sanitizer.Rule.not_conflicting, x, sanitizer)),
+           exps ))
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
@@ -157,8 +172,8 @@ let find_propagators_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
   |> List.concat_map (fun (p : Rule.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
-         let ranges_w_metavars =
-           range_w_metas_of_pformula xconf xtarget rule p.formula |> fst
+         let ranges_w_metavars, _expsTODO =
+           range_w_metas_of_pformula xconf xtarget rule p.formula
          in
          (* Now, for each match of the propagator pattern, we try to construct
           * a `propagator_match`. We just need to look up what code is captured
@@ -332,24 +347,27 @@ let taint_config_of_rule xconf file ast_and_errors
       lazy_ast_and_errors;
     }
   in
-  let (sources_ranges : (RM.t * R.taint_source) list) =
+  let (sources_ranges : (RM.t * R.taint_source) list), _exps_sources =
     find_range_w_metas xconf xtarget rule
       (spec.sources
       |> Common.map (fun (src : Rule.taint_source) -> (src.formula, src)))
   and (propagators_ranges : propagator_match list) =
     find_propagators_matches xconf xtarget rule spec.propagators
-  and (sinks_ranges : (RM.t * R.taint_sink) list) =
+  and (sinks_ranges : (RM.t * R.taint_sink) list), _exps_sinks =
     find_range_w_metas xconf xtarget rule
       (spec.sinks
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.formula, sink)))
   in
-  let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
+  let sanitizers_ranges, _exps_sanitizers =
     find_sanitizers_matches xconf xtarget rule spec.sanitizers
+  in
+  let (sanitizers_ranges : (RM.t * R.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
      * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
+    sanitizers_ranges
     |> List.filter_map (fun (not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
