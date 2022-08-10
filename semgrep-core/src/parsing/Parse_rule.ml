@@ -723,7 +723,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula =
             let find key_str = Hashtbl.find_opt dict.h key_str in
             let process_extra extra =
               match extra with
-              | R.MetavarRegexp _ -> failwith "TODO"
+              | R.MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
               | MetavarPattern (mvar, xlang_opt, formula) ->
                   R.CondNestedFormula (mvar, xlang_opt, formula)
               | MetavarComparison { metavariable; comparison; strip; base } ->
@@ -948,7 +948,7 @@ and produce_constraint env dict indicator =
             error_at_key env ("analyzer", t) ("Unsupported analyzer: " ^ other)
       in
       Left (t, CondAnalysis (metavar, kind))
-  | Cmetavar ->
+  | Cmetavar -> (
       let metavar, t = take dict env parse_string_wrap "metavariable" in
       let env', opt_xlang =
         match take_opt dict env parse_string "language" with
@@ -965,7 +965,11 @@ and produce_constraint env dict indicator =
         | ___else___ -> (env, None)
       in
       let formula = parse_pair env' (find_formula env dict) in
-      Left (t, CondNestedFormula (metavar, opt_xlang, formula))
+      match formula with
+      | R.P { pat = Xpattern.Regexp regexp; _ } ->
+          (* TODO: always on by default *)
+          Left (t, CondRegexp (metavar, regexp, true))
+      | _ -> Left (t, CondNestedFormula (metavar, opt_xlang, formula)))
 
 and constrain_where env (t1, _t2) where_key (value : G.expr) formula : R.formula
     =
