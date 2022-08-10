@@ -21,7 +21,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type regexp = Regexp_engine.t [@@deriving show, eq]
+type regexp = string [@@deriving show, eq]
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 type pattern_id = int [@@deriving show, eq]

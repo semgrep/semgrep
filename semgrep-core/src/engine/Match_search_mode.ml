@@ -119,7 +119,7 @@ let partition_xpatterns xs =
          match pat with
          | XP.Sem (x, _lang) -> Common.push (x, inside, pid, str) semgrep
          | XP.Spacegrep x -> Common.push (x, pid, str) spacegrep
-         | XP.Regexp x -> Common.push (x, pid, str) regexp
+         | XP.Regexp x -> Common.push (Regexp_engine.pcre_compile x, pid, str) regexp
          | XP.Comby x -> Common.push (x, pid, str) comby);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
@@ -354,7 +354,7 @@ let rec filter_ranges env xs cond =
                 * but too many possible escaping problems, so easier to build
                 * an expression manually.
                 *)
-               let re_str = Regexp_engine.pcre_pattern re in
+               let re_str = Regexp_engine.pcre_pattern (Regexp_engine.pcre_compile re) in
                let re_exp = G.L (G.String (re_str, fk)) |> G.e in
                let mvar_exp = G.N (G.Id ((mvar, fk), fki)) |> G.e in
                let call_re_match re_exp str_exp =

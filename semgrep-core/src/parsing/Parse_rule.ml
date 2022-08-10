@@ -390,7 +390,7 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try Regexp_engine.pcre_compile s with
+  try Regexp_engine.pcre_compile s |> ignore; s with
   | Pcre.Error exn ->
       raise
         (R.InvalidRule (R.InvalidRegexp (pcre_error_to_string s exn), env.id, t))

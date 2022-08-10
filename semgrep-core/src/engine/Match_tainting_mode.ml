@@ -374,7 +374,7 @@ let pm_of_finding finding =
        * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
        *)
       let taint_trace =
-        Some (lazy (taint_trace_of_src_to_sink source tokens sink))
+        Some (Lazy.from_val (taint_trace_of_src_to_sink source tokens sink))
       in
       let sink_pm = T.pm_of_trace sink in
       Some { sink_pm with env = merged_env; taint_trace }

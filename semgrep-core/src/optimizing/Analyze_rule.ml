@@ -356,7 +356,7 @@ let and_step1bis_filter_general (And xs) =
 type step2 =
   | Idents of string list
   (* a And *)
-  | Regexp2_search of Xpattern.regexp
+  | Regexp2_search of Regexp_engine.t
 [@@deriving show]
 
 type cnf_step2 = step2 cnf [@@deriving show]
@@ -366,12 +366,12 @@ let or_step2 (Or xs) =
     Common.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
-      | Regexp re -> Regexp2_search re
+      | Regexp re -> Regexp2_search (Regexp_engine.pcre_compile re)
       | MvarRegexp (_mvar, re, _const_prop) ->
           (* The original regexp is meant to apply on a substring.
              We rewrite them to remove end-of-string anchors if possible. *)
           let re =
-            match Regexp_engine.remove_end_of_string_assertions re with
+            match Regexp_engine.remove_end_of_string_assertions (Regexp_engine.pcre_compile re) with
             | None -> raise GeneralPattern
             | Some re -> re
           in
