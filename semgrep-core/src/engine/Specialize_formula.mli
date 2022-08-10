@@ -25,7 +25,7 @@ and sformula_and = {
           that is, we can only select from a non-empty context. *)
   positives : sformula list;
   negatives : (Rule.tok * sformula) list;
-  conditionals : Rule.metavar_cond list;
+  conditionals : (Rule.tok * Rule.metavar_cond) list;
   focus : Metavariable.mvar list;
 }
 [@@deriving show]

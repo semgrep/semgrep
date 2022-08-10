@@ -132,16 +132,16 @@ type propagator_match = {
 (*****************************************************************************)
 
 (* =~ List.concat_map with automatic management of matching-explanations *)
-let concat_map_with_exps f xs =
-  let all_exps = ref [] in
+let concat_map_with_expls f xs =
+  let all_expls = ref [] in
   let res =
     xs
     |> List.concat_map (fun x ->
-           let ys, exps = f x in
-           Common.push exps all_exps;
+           let ys, expls = f x in
+           Common.push expls all_expls;
            ys)
   in
-  (res, List.flatten !all_exps)
+  (res, List.flatten !all_expls)
 
 let find_range_w_metas (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (rule : Rule.t) (specs : (R.pformula * 'a) list) :
@@ -149,15 +149,15 @@ let find_range_w_metas (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
-  |> concat_map_with_exps (fun (pf, x) ->
-         let ranges, exps = range_w_metas_of_pformula xconf xtarget rule pf in
-         (ranges |> Common.map (fun rwm -> (rwm, x)), exps))
+  |> concat_map_with_expls (fun (pf, x) ->
+         let ranges, expls = range_w_metas_of_pformula xconf xtarget rule pf in
+         (ranges |> Common.map (fun rwm -> (rwm, x)), expls))
 
 let find_sanitizers_matches (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     (rule : Rule.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
-  |> concat_map_with_exps (fun (sanitizer : R.taint_sanitizer) ->
+  |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
          let ranges, exps =
            range_w_metas_of_pformula xconf xtarget rule sanitizer.formula
          in
@@ -348,13 +348,13 @@ let taint_config_of_rule xconf file ast_and_errors
       lazy_ast_and_errors;
     }
   in
-  let (sources_ranges : (RM.t * R.taint_source) list), exps_sources =
+  let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
     find_range_w_metas xconf xtarget rule
       (spec.sources |> snd
       |> Common.map (fun (src : Rule.taint_source) -> (src.formula, src)))
   and (propagators_ranges : propagator_match list) =
     find_propagators_matches xconf xtarget rule spec.propagators
-  and (sinks_ranges : (RM.t * R.taint_sink) list), exps_sinks =
+  and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
     find_range_w_metas xconf xtarget rule
       (spec.sinks |> snd
       |> Common.map (fun (sink : Rule.taint_sink) -> (sink.formula, sink)))
@@ -384,7 +384,7 @@ let taint_config_of_rule xconf file ast_and_errors
              else None
            else Some (range, spec))
   in
-  let exps =
+  let expls =
     if xconf.matching_explanations then
       let ranges_to_pms ranges_and_stuff =
         ranges_and_stuff
@@ -395,13 +395,13 @@ let taint_config_of_rule xconf file ast_and_errors
         {
           ME.op = Out.TaintSource;
           pos = fst spec.sources;
-          children = exps_sources;
+          children = expls_sources;
           matches = ranges_to_pms sources_ranges;
         };
         {
           ME.op = Out.TaintSink;
           pos = fst spec.sinks;
-          children = exps_sinks;
+          children = expls_sinks;
           matches = ranges_to_pms sinks_ranges;
         }
         (* TODO: sanitizer and propagators *);
@@ -426,7 +426,7 @@ let taint_config_of_rule xconf file ast_and_errors
       sanitizers = sanitizers_ranges |> Common.map fst;
       sinks = sinks_ranges;
     },
-    exps )
+    expls )
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
@@ -561,7 +561,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
-  let taint_config, debug_taint, exps =
+  let taint_config, debug_taint, expls =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
@@ -627,7 +627,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
       [
         {
           ME.op = Out.Taint;
-          children = exps;
+          children = expls;
           matches = report.matches;
           pos = snd rule.id;
         };

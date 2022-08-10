@@ -463,21 +463,21 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
         |> Common.map RM.match_result_to_range
         |> Common.map (fun r -> { r with RM.kind })
       in
-      let exp =
+      let expl =
         if_explanations env ranges [] (fun children matches ->
             { ME.op = Out.XPat pstr; matches; children; pos = tok })
       in
-      (ranges, exp)
+      (ranges, expl)
   | S.Or (tok, xs) ->
-      let ranges, exps =
+      let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List.flatten ranges in
-      let exp =
-        if_explanations env ranges exps (fun children matches ->
+      let expl =
+        if_explanations env ranges expls (fun children matches ->
             { op = Out.Or; matches; pos = tok; children })
       in
-      (ranges, exp)
+      (ranges, expl)
   | S.And
       ( tok,
         {
@@ -502,7 +502,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
        *)
 
       (* let's start with the positive ranges *)
-      let posrs, posrs_exps =
+      let posrs, posrs_expls =
         Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
@@ -544,19 +544,20 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
           let ranges = run_selector_on_ranges env selector_opt ranges in
 
           (* let's remove the negative ranges *)
-          let ranges, negs_exps =
+          let ranges, negs_expls =
             neg
             |> List.fold_left
-                 (fun (ranges, acc_exps) (tok, x) ->
-                   let ranges_neg, exp = evaluate_formula env opt_context x in
+                 (fun (ranges, acc_expls) (tok, x) ->
+                   let ranges_neg, expl = evaluate_formula env opt_context x in
                    let ranges =
                      RM.difference_ranges env.xconf.config ranges ranges_neg
                    in
-                   let exp =
-                     if_explanations env ranges [ exp ] (fun children matches ->
+                   let expl =
+                     if_explanations env ranges [ expl ]
+                       (fun children matches ->
                          { op = Out.Negation; matches; pos = tok; children })
                    in
-                   (ranges, exp :: acc_exps))
+                   (ranges, expl :: acc_expls))
                  (ranges, [])
           in
           (* let's apply additional filters.
@@ -574,21 +575,34 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
            *  - distribute filter_range in intersect_range?
            * See https://github.com/returntocorp/semgrep/issues/2664
            *)
-          let ranges =
+          let ranges, filter_expls =
             conds
             |> List.fold_left
-                 (fun acc cond -> filter_ranges env acc cond)
-                 ranges
+                 (fun (ranges, acc_expls) (tok, cond) ->
+                   let ranges = filter_ranges env ranges cond in
+                   let expl =
+                     if_explanations env ranges [] (fun children matches ->
+                         let filter_kind = PI.str_of_info tok in
+                         {
+                           op = Out.Filter filter_kind;
+                           matches;
+                           pos = tok;
+                           children;
+                         })
+                   in
+                   (ranges, expl :: acc_expls))
+                 (ranges, [])
           in
 
           let ranges = apply_focus_on_ranges env focus ranges in
           (* TODO: add some intermediate OpNot *)
-          let exp =
-            if_explanations env ranges (posrs_exps @ negs_exps)
+          let expl =
+            if_explanations env ranges
+              (posrs_expls @ negs_expls @ filter_expls)
               (fun children matches ->
                 { op = Out.And; matches; pos = tok; children })
           in
-          (ranges, exp))
+          (ranges, expl))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
 and matches_of_formula xconf rule xtarget formula opt_context :
@@ -616,13 +630,13 @@ and matches_of_formula xconf rule xtarget formula opt_context :
     }
   in
   logger#trace "evaluating the formula";
-  let final_ranges, explanation = evaluate_formula env opt_context formula in
+  let final_ranges, expl = evaluate_formula env opt_context formula in
   logger#trace "found %d final ranges" (List.length final_ranges);
   let res' =
     {
       res with
       RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors);
-      explanations = Option.to_list explanation;
+      explanations = Option.to_list expl;
     }
   in
   (res', final_ranges)

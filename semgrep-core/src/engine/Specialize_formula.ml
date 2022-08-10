@@ -26,7 +26,7 @@ and sformula_and = {
   selector_opt : selector option;
   positives : sformula list;
   negatives : (Rule.tok * sformula) list;
-  conditionals : R.metavar_cond list;
+  conditionals : (Rule.tok * R.metavar_cond) list;
   focus : MV.mvar list;
 }
 [@@deriving show]
@@ -95,7 +95,7 @@ let formula_to_sformula formula =
       selector_opt = sel;
       positives = pos;
       negatives = neg;
-      conditionals = cond |> Common.map snd;
+      conditionals = cond;
       focus = focus |> Common.map snd;
     }
   in
