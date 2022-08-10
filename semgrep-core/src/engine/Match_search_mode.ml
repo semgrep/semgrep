@@ -29,7 +29,9 @@ open Match_env
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(* debugging flags *)
+(* Debugging flags.
+ * Note that semgrep-core -matching_explanations can also be useful to debug.
+ *)
 let debug_timeout = ref false
 let debug_matches = ref false
 
@@ -47,7 +49,7 @@ let debug_matches = ref false
  *  - visiting code (=~ Match_patterns.ml)
  *  - matching code (=~ Generic_vs_generic.ml)
  *
- * There are also "preprocessing" work before:
+ * There are also "preprocessing" steps before:
  *  - parsing (lexing, parsing) rules, code, patterns
  *  - normalizing (convert to a generic AST)
  *  - naming (but bugs probably)
@@ -60,7 +62,7 @@ let debug_matches = ref false
  *    to get the right scope (right now we accept the wrong scope but
  *    this forces to extend some ranges with metavars from other ranges)
  *
- * LATER (if really decide to rewrite the whole python wrapper code in OCaml):
+ * LATER (if we decide to rewrite the whole python wrapper code in OCaml):
  *  - paths
  *  - autofix
  *  - adjust messages with metavariable content
@@ -141,7 +143,7 @@ let error_with_rule_id rule_id (error : E.error) =
 let lazy_force x = Lazy.force x [@@profiling]
 
 let if_explanations (env : env) (ranges : RM.ranges)
-    (children : ME.t option list) f : ME.t option =
+    (children : ME.t option list) (op, tok) : ME.t option =
   if env.xconf.matching_explanations then
     let matches =
       ranges
@@ -149,7 +151,8 @@ let if_explanations (env : env) (ranges : RM.ranges)
              RM.range_to_pattern_match_adjusted env.rule range)
     in
     let xs = Common.map_filter (fun x -> x) children in
-    Some (f xs matches)
+    let expl = { ME.op; pos = tok; children = xs; matches } in
+    Some expl
   else None
 
 (*****************************************************************************)
@@ -345,7 +348,7 @@ let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
   [@@profiling]
 
 (*****************************************************************************)
-(* Formula evaluation *)
+(* Metavariable condition evaluation *)
 (*****************************************************************************)
 
 let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
@@ -358,6 +361,7 @@ let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
              let env = Eval_generic.bindings_to_env env.xconf.config bindings in
              Eval_generic.eval_bool env e
          | R.CondNestedFormula (mvar, opt_lang, formula) ->
+             (* TODO: could return expl for nested matching! *)
              Metavariable_pattern.satisfies_metavar_pattern_condition
                nested_formula_has_matches env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
@@ -444,6 +448,10 @@ and nested_formula_has_matches env formula opt_context =
   | [] -> false
   | _ :: _ -> true
 
+(*****************************************************************************)
+(* Formula evaluation *)
+(*****************************************************************************)
+
 and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
     RM.ranges * Matching_explanation.t option =
   match e with
@@ -463,20 +471,17 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
         |> Common.map RM.match_result_to_range
         |> Common.map (fun r -> { r with RM.kind })
       in
-      let expl =
-        if_explanations env ranges [] (fun children matches ->
-            { ME.op = Out.XPat pstr; matches; children; pos = tok })
-      in
+      (* TODO: we could decompose the pattern in subpatterns to provide
+       * intermediate explanations for complex patterns like A...B
+       *)
+      let expl = if_explanations env ranges [] (Out.XPat pstr, tok) in
       (ranges, expl)
   | S.Or (tok, xs) ->
       let ranges, expls =
         xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List.flatten ranges in
-      let expl =
-        if_explanations env ranges expls (fun children matches ->
-            { op = Out.Or; matches; pos = tok; children })
-      in
+      let expl = if_explanations env ranges expls (Out.Or, tok) in
       (ranges, expl)
   | S.And
       ( tok,
@@ -553,9 +558,7 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
                      RM.difference_ranges env.xconf.config ranges ranges_neg
                    in
                    let expl =
-                     if_explanations env ranges [ expl ]
-                       (fun children matches ->
-                         { op = Out.Negation; matches; pos = tok; children })
+                     if_explanations env ranges [ expl ] (Out.Negation, tok)
                    in
                    (ranges, expl :: acc_expls))
                  (ranges, [])
@@ -581,26 +584,18 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
                  (fun (ranges, acc_expls) (tok, cond) ->
                    let ranges = filter_ranges env ranges cond in
                    let expl =
-                     if_explanations env ranges [] (fun children matches ->
-                         let filter_kind = PI.str_of_info tok in
-                         {
-                           op = Out.Filter filter_kind;
-                           matches;
-                           pos = tok;
-                           children;
-                         })
+                     if_explanations env ranges []
+                       (Out.Filter (PI.str_of_info tok), tok)
                    in
                    (ranges, expl :: acc_expls))
                  (ranges, [])
           in
-
+          (* TODO: explanations also for focus vars *)
           let ranges = apply_focus_on_ranges env focus ranges in
-          (* TODO: add some intermediate OpNot *)
           let expl =
             if_explanations env ranges
               (posrs_expls @ negs_expls @ filter_expls)
-              (fun children matches ->
-                { op = Out.And; matches; pos = tok; children })
+              (Out.And, tok)
           in
           (ranges, expl))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
