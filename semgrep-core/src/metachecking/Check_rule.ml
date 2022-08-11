@@ -96,8 +96,40 @@ let unknown_metavar_in_comparison env f =
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
-    | Inside _ -> failwith "TODO"
-    | Taint _ -> failwith "TODO"
+    | Inside (_, f) -> collect_metavars f
+    | Taint (_, { sources; sanitizers; sinks; propagators }) ->
+        let union_sets sets =
+          List.fold_left
+            (* TODO originally we took the intersection, since strictly
+             * speaking a metavariable needs to be in all cases of a pattern-either
+             * to be bound. However, due to how the pattern is transformed, this
+             * is not always enforced, so the metacheck is too strict
+             *
+          (fun acc mv_set ->
+            if acc == Set.empty then mv_set else Set.inter acc mv_set)
+             *)
+              (fun acc mv_set -> Set.union acc mv_set)
+            Set.empty sets
+        in
+        [
+          Common.map collect_metavars
+            (Common.map (fun source -> source.R.source_formula) sources)
+          |> union_sets;
+          Common.map collect_metavars
+            (Common.map (fun sink -> sink.R.sink_formula) sinks)
+          |> union_sets;
+          Common.map collect_metavars
+            (Common.map
+               (fun propagator -> propagator.R.propagate_formula)
+               propagators)
+          |> union_sets;
+          Common.map collect_metavars
+            (Common.map
+               (fun sanitizer -> sanitizer.R.sanitizer_formula)
+               sanitizers)
+          |> union_sets;
+        ]
+        |> union_sets
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = Common.map collect_metavars xs in
