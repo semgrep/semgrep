@@ -547,7 +547,11 @@ class CoreRunner:
 
         for i, rule in enumerate(rules):
             for language in rule.languages:
-                targets = list(target_manager.get_files_for_rule(language, rule.includes, rule.excludes, rule.id))
+                targets = list(
+                    target_manager.get_files_for_rule(
+                        language, rule.includes, rule.excludes, rule.id
+                    )
+                )
 
                 for target in targets:
                     all_targets.add(target)
