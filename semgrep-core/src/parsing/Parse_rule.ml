@@ -1125,12 +1125,13 @@ let parse_template file template_ast =
                take_no_env td (fun k e -> generic_to_json env k e) "contents"
              in
              match content_json with
-             | Array _ | Object _ -> 
+             | Array _
+             | Object _ ->
                  (* interpret as the json object *)
-                  JSON.string_of_json content_json
-             | String x -> 
+                 JSON.string_of_json content_json
+             | String x ->
                  (* interpret as pure jsonnet *)
-                 x 
+                 x
              | _ -> failwith "Not valid json format"
            in
            spf "   %s :: %s,\n" declaration contents)
