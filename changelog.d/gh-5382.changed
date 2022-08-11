@@ -1,0 +1,1 @@
+Parse several built-in PHP functions in the same way in pfff and tree-sitter. This makes it possible to match exit, eval, empty and isset, even if the pattern is parsed with pfff and the PHP file with tree-sitter.
