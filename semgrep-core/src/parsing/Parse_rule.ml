@@ -56,6 +56,8 @@ type env = {
   languages : Xlang.t;
   (* emma: save the path within the yaml file for each pattern
    * (this will allow us to later report errors in playground basic mode)
+   * TODO the playground (now the editor) no longer allows multiple
+   * rules, so in each path the first number should be removed 
    *)
   path : string list;
 }
@@ -123,6 +125,11 @@ let generic_to_json env (key : key) ast =
                        ("Expected key/value pair in " ^ fst key ^ " dictionary"))
           )
     | G.Alias (_alias, e) -> aux e
+    | G.N (Id ((s, _), _)) ->
+        (* this is possible because templates may include strings that
+           the parser interprets as metavariables. TODO turn that 
+           interpretation off *)
+        J.String s
     | _ ->
         Common.pr2 (G.show_expr_kind x.G.e);
         error_at_expr env x "Unexpected generic representation of yaml"
@@ -1005,8 +1012,9 @@ let parse_one_rule t i rule =
     options = options_opt;
   }
 
-let parse_generic ?(error_recovery = false) file ast =
-  let t, rules =
+(* file_kind should be "rules" or "templates" *)
+let parse_rules_or_templates file_kind file ast =
+  let t, xs =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
         match e.G.e with
@@ -1018,22 +1026,25 @@ let parse_generic ?(error_recovery = false) file ast =
                     e =
                       Container
                         ( Tuple,
-                          (_, [ { e = L (String ("rules", _)); _ }; rules ], _)
-                        );
+                          ( _,
+                            [ { e = L (String (top_level_word, _)); _ }; xs ],
+                            _ ) );
                     _;
                   };
                 ],
-                _ ) ) -> (
-            match rules.G.e with
-            | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
+                _ ) )
+          when top_level_word = file_kind -> (
+            match xs.G.e with
+            | G.Container (G.Array, (l, xs, _r)) -> (l, xs)
             | _ ->
-                yaml_error_at_expr rules
-                  "expected a list of rules following `rules:`")
+                yaml_error_at_expr xs
+                  (spf "expected a list of %s following `%s:`" file_kind
+                     file_kind))
         (* it's also ok to not have the toplevel rules:, anyway we never
          * used another toplevel key
          *)
         | G.Container (G.Dict, (l, _, _)) -> (l, [ e ])
-        | G.Container (G.Array, (l, rules, _r)) -> (l, rules)
+        | G.Container (G.Array, (l, xs, _r)) -> (l, xs)
         (* otherwise, it's bad, and complain *)
         | _ ->
             let loc = PI.first_loc_of_file file in
@@ -1042,6 +1053,10 @@ let parse_generic ?(error_recovery = false) file ast =
     | _ -> assert false
     (* yaml_to_generic should always return a ExprStmt *)
   in
+  (t, xs)
+
+let parse_generic ?(error_recovery = false) file ast =
+  let t, rules = parse_rules_or_templates "rules" file ast in
   let xs =
     rules
     |> List.mapi (fun i rule ->
@@ -1055,49 +1070,305 @@ let parse_generic ?(error_recovery = false) file ast =
   in
   Common.partition_either (fun x -> x) xs
 
-let parse_bis ?error_recovery file =
-  let ast =
-    match FT.file_type_of_file file with
-    | FT.Config FT.Json ->
-        (* in a parsing-rule context, we don't want the parsed strings by
-         * Parse_json.parse_program to remain escaped. For example with this
-         * JSON rule:
-         * { "rules": [ {
-         *       "id": "x",
-         *       "message": "",
-         *       "languages": ["python"],
-         *       "severity": "WARNING",
-         *       "pattern": "\"hello\""
-         *     }
-         *   ]
-         * }
-         * we want the pattern in the generic AST of the rule to contain the
-         * string '"hello"', without the antislash, otherwise
-         * Parse_python.parse_any will fail parsing it.
-         *
-         * Note that we didn't have this problem before when we were using
-         * Yojson to parse a JSON rule, because Yojson correctly unescaped
-         * and returned the "final string".
-         *
-         * Note that this is handled correctly by Yaml_to_generic.parse_rule
-         * below.
-         *)
-        Json_to_generic.program ~unescape_strings:true
-          (Parse_json.parse_program file)
-    | FT.Config FT.Jsonnet ->
-        Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet %s -o %s" file tmpfile in
-            let n = Sys.command cmd in
-            if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program ~unescape_strings:true
-              (Parse_json.parse_program tmpfile))
-    | FT.Config FT.Yaml -> Yaml_to_generic.parse_rule file
-    | _ ->
-        logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
-        logger#info "trying to parse %s as YAML" file;
-        Yaml_to_generic.parse_rule file
+(*****************************************************************************)
+(* Translation to jsonnet *)
+(*****************************************************************************)
+
+(* Converts templates that have been parsed into the generic ast to jsonnet
+
+   The YAML template format looks like:
+   ```
+   templates:
+   - declaration: $FUNCTION_NAME
+     contents: $YAML
+   - ...
+   ```
+
+   And gets translated, after the yaml is jsonified to $JSON, to
+
+   `{ $FUNCTION_NAME :: $JSON, ... }
+
+   As an example, you could have
+   ```   
+   templates:
+   - declaration: sources()
+     contents: 
+        pattern: $X
+   ```
+
+   This would get translated to
+
+   `{ sources() :: { pattern: "$X" }`
+
+   Right now, this feature is limited by what can be expressed in YAML. But
+   we could make it way more expressive by adding an option to insert pure
+   jsonnet instead of contents! TODO for later
+  *)
+let parse_template file template_ast =
+  let t, templates = parse_rules_or_templates "templates" file template_ast in
+  let xs =
+    templates
+    |> List.mapi (fun i template ->
+           let td = yaml_to_dict_no_env ("templates", t) template in
+           let declaration =
+             take_no_env td parse_string_wrap_no_env "declaration" |> fst
+           in
+           let env =
+            {
+               id = declaration;
+               languages = Xlang.LGeneric;
+               path = [ string_of_int i; "templates" ];
+             }
+           in
+           let contents =
+             take_no_env td (fun k e -> generic_to_json env k e) "contents"
+             |> JSON.string_of_json
+           in
+           spf "   %s :: %s,\n" declaration contents)
   in
-  parse_generic ?error_recovery file ast
+  (* The `\n`s here and above aren't necessary, but they add little
+     and make the templates much more readable *)
+  spf "{\n%s\n}" (String.concat "\n" xs)
+
+(* Creates a jsonnet string for the parsed imports 
+  
+   Imports in the yaml look like:
+   ```
+      uses:
+        - $NAME: $PATH
+        - ...
+   ```
+
+   where $PATH is a string.
+
+   This produces
+   
+   ```
+   local $NAME = import '$PATH';
+   ...
+   ``` 
+  *)
+  let create_imports libsonnet_defs =
+  let create_import (name, path) = spf "local %s = import '%s';" name path in
+  let imported_folder =
+    match libsonnet_defs with
+    | [] ->
+        failwith
+          "No import definitions (given by the uses key) even though we are \
+           creating imports for the import definitions. This should be \
+           impossible"
+    | (_, path) :: _ -> Filename.dirname path
+  in
+  let imports = String.concat "\n" (List.map create_import libsonnet_defs) in
+  (imports, imported_folder)
+
+let parse_uses uses uses_key =
+  let env = { id = "templates"; languages = Xlang.LGeneric; path = [] } in
+  let parse_use use =
+    match use with
+    | {
+     G.e =
+       G.Container
+         ( Dict,
+           ( _,
+             [
+               {
+                 e =
+                   Container
+                     ( Tuple,
+                       ( _,
+                         [
+                           { e = L (String (name, _)); _ };
+                           { e = L (String (path, _)); _ };
+                         ],
+                         _ ) );
+                 _;
+               };
+             ],
+             _ ) );
+     _;
+    } ->
+        (* TODO name cannot contain hyphens; add a warning
+           or figure out how to support this *)
+        (name, path)
+    | _ ->
+        error_at_expr env uses
+          "An entry in `uses` should be a mapping from the nickname of the \
+           library to the path of the library (aka a string)"
+  in
+  parse_list_no_env uses_key parse_use uses
+
+(* Note on ~unescape_strings:true:
+   *
+   * in a parsing-rule context, we don't want the parsed strings by
+   * Parse_json.parse_program to remain escaped. For example with this
+   * JSON rule:
+   * { "rules": [ {
+   *       "id": "x",
+   *       "message": "",
+   *       "languages": ["python"],
+   *       "severity": "WARNING",
+   *       "pattern": "\"hello\""
+   *     }
+   *   ]
+   * }
+   * we want the pattern in the generic AST of the rule to contain the
+   * string '"hello"', without the antislash, otherwise
+   * Parse_python.parse_any will fail parsing it.
+   *
+   * Note that we didn't have this problem before when we were using
+   * Yojson to parse a JSON rule, because Yojson correctly unescaped
+   * and returned the "final string".
+   *
+   * Note that this is handled correctly by Yaml_to_generic.parse_rule
+*)
+let parse_json file =
+  Json_to_generic.program ~unescape_strings:true (Parse_json.parse_program file)
+
+let parse_as_jsonnet file tmpfile =
+  let cmd = spf "jsonnet %s -o %s" file tmpfile in
+  let n = Sys.command cmd in
+  if n <> 0 then failwith (spf "error executing %s" cmd);
+  Json_to_generic.program ~unescape_strings:true
+    (Parse_json.parse_program tmpfile)
+
+let parse_templated_rules rules_with_templates rules_keyword =
+  (* Separate templates from templated rules *)
+  let rules, template_defs =
+    List.fold_right
+      (fun rule (acc_rules, acc_templates) ->
+        let rules, templates = rule in
+        (rules :: acc_rules, templates :: acc_templates))
+      rules_with_templates ([], [])
+  in
+  let template_defs = List.flatten template_defs in
+
+  (* Create the libsonnet file for each template *)
+  let libsonnet_defs =
+    List.map
+      (fun (name, yaml_path) ->
+        (* TODO Support JSON as well *)
+        let template_ast = Yaml_to_generic.program yaml_path in
+        let template = parse_template yaml_path template_ast in
+        let libsonnet_path = Filename.chop_extension yaml_path ^ ".libsonnet" in
+        write_file ~file:libsonnet_path template;
+        (name, libsonnet_path))
+      template_defs
+  in
+
+  (* Generate the Jsonnet string *)
+  (* - Replace `{"ref": $ref}` with $ref
+     - Prepend the imports *)
+  let dummy_id = "JSON of rules generated by semgrep-core" in
+  let env = { id = dummy_id; languages = Xlang.LGeneric; path = [] } in
+  let t = snd rules_keyword in
+  let rules =
+    G.Container (G.Array, (t, rules, Parse_info.fake_info t "]")) |> G.e
+  in
+  let jsonnet_string =
+    rules
+    |> generic_to_json env rules_keyword
+    |> JSON.string_of_json  
+    |> Str.global_replace (Str.regexp {|{"ref":"\([^\"]*\)"}|}) {|\1|}
+  in
+  let imports, jsonnet_folder = create_imports libsonnet_defs in
+  let jsonnet_string = imports ^ "\n" ^ jsonnet_string in
+
+  (* Write to jsonnet file *)
+  let jsonnet_filename = jsonnet_folder ^ "/" ^ "rules.jsonnet" in
+  write_file ~file:jsonnet_filename jsonnet_string;
+
+  (* Run jsonnet *)
+  let rules_filename = jsonnet_folder ^ "/" ^ "compiled_rules.json" in
+  parse_as_jsonnet jsonnet_filename rules_filename
+
+(* Notes on performance and error reporting: *)
+let parse_possibly_templated_rules error_recovery file ast =
+  let uses_def field =
+    match field.G.e with
+    | G.Container (G.Tuple, (_, [ { e = L (String ("uses", t)); _ }; value ], _))
+      ->
+        Some (parse_uses value ("uses", t))
+    | _ -> None
+  in
+
+  let split_rules_into_normal_or_templated rules_ast =
+    let t, rules = parse_rules_or_templates "rules" file rules_ast in
+    let normal_rules, templated_rules =
+      rules
+      |> List.partition_map (fun rule ->
+             match rule.G.e with
+             | G.Container (Dict, (l, fields, r)) -> (
+                 match List.find_map uses_def fields with
+                 | None ->
+                     (* Normal rule, just return it *)
+                     Left rule
+                 | Some uses ->
+                     (* Templated rule, return the template defs
+                        and the rules without the uses *)
+                     let fields =
+                       List.filter
+                         (fun field ->
+                           (* TODO This will unnecesarily parse the uses a second time *)
+                           match uses_def field with
+                           | None -> true
+                           | Some _ -> false)
+                         fields
+                     in
+                     let rule = G.Container (Dict, (l, fields, r)) |> G.e in
+                     Right (rule, uses))
+             | _ -> yaml_error_at_expr rule "rules")
+    in
+    (normal_rules, templated_rules, t)
+  in
+  (* Separate rules that require templates for further processing *)
+  let normal_rules, templated_rules, t =
+    split_rules_into_normal_or_templated ast
+  in
+  (* For simplicity, wrap the normal rules as a list instead of a dict *)
+  let recreated_normal_rules =
+    [
+      G.ExprStmt (G.Container (G.Array, (t, normal_rules, t)) |> G.e, t) |> G.s;
+    ]
+  in
+  (* TODO: parse templated rules and normal rules, combine *)
+  let parsed_templated_rules, templated_errors =
+    parse_templated_rules templated_rules ("rules", t) |> parse_generic file
+  in
+  let parsed_normal_rules, normal_errors =
+    parse_generic ~error_recovery file recreated_normal_rules
+  in
+  ( parsed_normal_rules @ parsed_templated_rules,
+    templated_errors @ normal_errors )
+
+let translate_to_jsonnet_and_parse ?(error_recovery = false) file =
+  (* Semgrep templated rules are actually a thin wrapper for jsonnet.
+   * Rules that invoke templates are converted to jsonnet, and the
+   * templates to libsonnet. We do this instead of just writing jsonnet
+   * directly because we already have a tradition of YAML rules, and this
+   * method allows us to implement templated rules while being compatible
+   * with all our existing infrastructure. However, it certainly must be
+   * observed that it would be simpler to just write all rules in jsonnet 
+   *)
+  match FT.file_type_of_file file with
+  | FT.Config FT.Json ->
+      file |> parse_json |> parse_possibly_templated_rules error_recovery file
+  | FT.Config FT.Jsonnet ->
+      Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun x ->
+          parse_as_jsonnet file x |> parse_generic file)
+  | FT.Config FT.Yaml ->
+      logger#warning "Templated rules are not supported in core for YAML\n";
+      Yaml_to_generic.parse_rule file
+      |> parse_possibly_templated_rules error_recovery file
+  | _ ->
+      logger#error "wrong rule format, only YAML/JSON/JSONNET is valid";
+      logger#info "trying to parse %s as YAML" file;
+      Yaml_to_generic.parse_rule file
+      |> parse_possibly_templated_rules error_recovery file
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let parse_metatypes file =
   let ast =
@@ -1111,8 +1382,9 @@ let parse_metatypes file =
   parse_generic_metatypes file ast
 
 let parse file =
-  let xs, skipped = parse_bis ~error_recovery:false file in
+  let xs, skipped = translate_to_jsonnet_and_parse ~error_recovery:false file in
   assert (skipped = []);
   xs
 
-let parse_and_filter_invalid_rules file = parse_bis ~error_recovery:true file
+let parse_and_filter_invalid_rules file =
+  translate_to_jsonnet_and_parse ~error_recovery:true file
