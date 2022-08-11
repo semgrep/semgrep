@@ -1,5 +1,6 @@
 import json
 import time
+import requests
 from io import StringIO
 from os import environ
 from pathlib import Path
