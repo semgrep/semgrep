@@ -436,7 +436,10 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
       in
-      match_results |> Common.map RM.match_result_to_range
+      let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
+      match_results
+      |> Common.map RM.match_result_to_range
+      |> Common.map (fun r -> { r with RM.kind })
   | S.Taint tspec ->
       let evaluate_formula sformula =
         evaluate_formula env opt_context sformula
