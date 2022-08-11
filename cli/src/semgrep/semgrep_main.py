@@ -138,6 +138,7 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     deep: bool,
+    ci: bool,
 ) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData, ParsingData,]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
@@ -154,7 +155,7 @@ def run_rules(
         profiling_data,
         parsing_data,
     ) = core_runner.invoke_semgrep(
-        target_manager, rest_of_the_rules, dump_command_for_core, deep
+        target_manager, rest_of_the_rules, dump_command_for_core, deep, ci
     )
 
     if join_rules:
@@ -256,6 +257,7 @@ def main(
     core_opts_str: Optional[str] = None,
     dump_command_for_core: bool = False,
     deep: bool = False,
+    ci: bool = False,
     output_handler: OutputHandler,
     target: Sequence[str],
     pattern: Optional[str],
@@ -397,6 +399,7 @@ def main(
         output_handler,
         dump_command_for_core,
         deep,
+        ci,
     )
     profiler.save("core_time", core_start_time)
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -461,6 +464,7 @@ def main(
                         output_handler,
                         dump_command_for_core,
                         deep,
+                        ci,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule, baseline_rule_matches_by_rule

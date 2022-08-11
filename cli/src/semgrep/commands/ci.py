@@ -157,6 +157,13 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
     """,
     envvar="SEMGREP_SUPPRESS_ERRORS",
 )
+@click.option(
+    "--deep",
+    "-x",
+    is_flag=True,
+    hidden=True
+    # help="contact support@r2c.dev for more information on this"
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -167,6 +174,7 @@ def ci(
     core_opts: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
+    deep: bool,
     dry_run: bool,
     emacs: bool,
     enable_nosem: bool,
@@ -212,6 +220,7 @@ def ci(
 
     Only displays findings that were marked as blocking.
     """
+    print("deep: ", deep)
     state = get_state()
     state.terminal.configure(
         verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
@@ -337,6 +346,8 @@ def ci(
                 shown_severities,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
+                deep=deep,
+                ci=True,
                 output_handler=output_handler,
                 target=[os.curdir],  # semgrep ci only scans cwd
                 pattern=None,

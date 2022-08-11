@@ -816,6 +816,7 @@ def scan(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,
                     deep=deep,
+                    ci=False,
                     output_handler=output_handler,
                     target=targets,
                     pattern=pattern,

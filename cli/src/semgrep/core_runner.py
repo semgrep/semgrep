@@ -589,6 +589,7 @@ class CoreRunner:
         target_manager: TargetManager,
         dump_command_for_core: bool,
         deep: bool,
+        ci: bool,
     ) -> Tuple[
         RuleMatchMap,
         List[SemgrepError],
@@ -596,6 +597,7 @@ class CoreRunner:
         ProfilingData,
         ParsingData,
     ]:
+        print("ci: ", ci)
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
@@ -611,23 +613,26 @@ class CoreRunner:
         rule_file_name = (
             str(state.env.user_data_folder / "semgrep_rules.json")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w", suffix=".json").name
+            else tempfile.NamedTemporaryFile("w", suffix=".json", delete=False).name
         )
         target_file_name = (
             str(state.env.user_data_folder / "semgrep_targets.txt")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w").name
+            else tempfile.NamedTemporaryFile("w", delete=False).name
         )
 
         with open(rule_file_name, "w+") as rule_file, open(
             target_file_name, "w+"
         ) as target_file:
 
+            print("plan/tm.targets: ", target_manager.targets)
+            print("plan/all_targets: ", all_targets)
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
             parsing_data.add_targets(plan)
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
+            print("plan: ", plan.to_json())
 
             rule_file.write(
                 json.dumps(
@@ -683,10 +688,14 @@ class CoreRunner:
                 print("!!!This is a proprietary extension of semgrep.!!!")
                 print("!!!You must be logged in to access this extension!!!")
                 targets = target_manager.targets
+                print(targets)
                 if len(targets) == 1 and targets[0].path.is_dir():
                     root = str(targets[0].path)
                 else:
-                    raise SemgrepError("deep mode needs a single target (root) dir")
+                    if ci:
+                        root = "."
+                    else:
+                        raise SemgrepError("deep mode needs a single target (root) dir")
 
                 deep_path = SemgrepCore.deep_path()
                 if deep_path is None:
@@ -703,23 +712,27 @@ class CoreRunner:
                 ).rstrip()
                 logger.info(f"DeepSemgrep Version Info: ({version})")
 
-                cmd = [deep_path] + [
-                    "--json",
-                    "--rules",
-                    rule_file.name,
-                    "-j",
-                    str(self._jobs),
-                    "--targets",
-                    target_file.name,
-                    "--root",
-                    root,
-                    # "--timeout",
-                    # str(self._timeout),
-                    # "--timeout_threshold",
-                    # str(self._timeout_threshold),
-                    # "--max_memory",
-                    # str(self._max_memory),
-                ]
+                cmd = (
+                    [deep_path]
+                    + [
+                        "--json",
+                        "--rules",
+                        rule_file.name,
+                        "-j",
+                        str(self._jobs),
+                        "--targets",
+                        target_file.name,
+                        "--root",
+                        root,
+                        # "--timeout",
+                        # str(self._timeout),
+                        # "--timeout_threshold",
+                        # str(self._timeout_threshold),
+                        # "--max_memory",
+                        # str(self._max_memory),
+                    ]
+                    + (["--ci"] if ci else [])
+                )
 
             stderr: Optional[int] = subprocess.PIPE
             if state.terminal.is_debug:
@@ -731,6 +744,8 @@ class CoreRunner:
             if dump_command_for_core:
                 print(" ".join(cmd))
                 sys.exit(0)
+
+            # assert (1 == 0)
 
             runner = StreamingSemgrepCore(cmd, plan.num_targets)
             returncode = runner.execute()
@@ -788,6 +803,7 @@ class CoreRunner:
         rules: List[Rule],
         dump_command_for_core: bool,
         deep: bool,
+        ci: bool,
     ) -> Tuple[
         RuleMatchMap,
         List[SemgrepError],
@@ -807,7 +823,7 @@ class CoreRunner:
             profiling_data,
             parsing_data,
         ) = self._run_rules_direct_to_semgrep_core(
-            rules, target_manager, dump_command_for_core, deep
+            rules, target_manager, dump_command_for_core, deep, ci
         )
 
         logger.debug(
