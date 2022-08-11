@@ -142,19 +142,6 @@ let error_with_rule_id rule_id (error : E.error) =
 
 let lazy_force x = Lazy.force x [@@profiling]
 
-let if_explanations (env : env) (ranges : RM.ranges)
-    (children : ME.t option list) (op, tok) : ME.t option =
-  if env.xconf.matching_explanations then
-    let matches =
-      ranges
-      |> Common.map (fun range ->
-             RM.range_to_pattern_match_adjusted env.rule range)
-    in
-    let xs = Common.map_filter (fun x -> x) children in
-    let expl = { ME.op; pos = tok; children = xs; matches } in
-    Some expl
-  else None
-
 (*****************************************************************************)
 (* Adapters *)
 (*****************************************************************************)
@@ -350,6 +337,61 @@ let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
   [@@profiling]
 
 (*****************************************************************************)
+(* Maching explanations helpers *)
+(*****************************************************************************)
+
+let if_explanations (env : env) (ranges : RM.ranges)
+    (children : ME.t option list) (op, tok) : ME.t option =
+  if env.xconf.matching_explanations then
+    let matches =
+      ranges
+      |> Common.map (fun range ->
+             RM.range_to_pattern_match_adjusted env.rule range)
+    in
+    let xs = Common.map_filter (fun x -> x) children in
+    let expl = { ME.op; pos = tok; children = xs; matches } in
+    Some expl
+  else None
+
+let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
+  if env.xconf.matching_explanations then
+    match xpat.pat with
+    (* TODO: generalize to more patterns *)
+    | Sem
+        ( G.Ss [ s1; { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ }; s2 ],
+          _lang ) ->
+        let subs = [ G.S s1; G.S s2 ] in
+        (* we could optimize and run matches_of_patterns() below once
+         * per all the subs, but that would require to generate
+         * new xpat pid, and map the results back to their corresponding
+         * pattern id (see group_matches_per_pattern_id), which is
+         * not worth it given this code is executed only when
+         * one requests -matching_explanations
+         *)
+        let children =
+          subs
+          |> Common.map (fun pat ->
+                 let match_result =
+                   matches_of_patterns env.xconf env.xtarget
+                     [ (pat, None, xpat.pid, "TODO") ]
+                 in
+                 let matches = match_result.matches in
+                 (* TODO: equivalent to an abstract_content, so not great *)
+                 let pstr = JSON_report.metavar_string_of_any pat in
+                 (* TODO: could use first_info_of_any pat, but not sure the
+                  * tok position in pat are related to the rule of the intermediate
+                  * file used to parse the pattern in xpat.pat.
+                  *)
+                 let pos = snd xpat.pstr in
+                 (* less: in theory we could decompose again pat and get children*)
+                 { ME.op = Out.XPat pstr; pos; matches; children = [] })
+        in
+        (* less: add a Out.EllipsisAndStmts intermediate? *)
+        children
+    | _ -> []
+  else []
+
+(*****************************************************************************)
 (* Metavariable condition evaluation *)
 (*****************************************************************************)
 
@@ -473,10 +515,13 @@ and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
         |> Common.map RM.match_result_to_range
         |> Common.map (fun r -> { r with RM.kind })
       in
-      (* TODO: we could decompose the pattern in subpatterns to provide
+      (* we can decompose the pattern in subpatterns to provide
        * intermediate explanations for complex patterns like A...B
        *)
-      let expl = if_explanations env ranges [] (Out.XPat pstr, tok) in
+      let children =
+        children_explanations_of_xpat env xpat |> Common.map (fun x -> Some x)
+      in
+      let expl = if_explanations env ranges children (Out.XPat pstr, tok) in
       (ranges, expl)
   | S.Or (tok, xs) ->
       let ranges, expls =
