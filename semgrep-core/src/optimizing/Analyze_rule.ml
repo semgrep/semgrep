@@ -238,17 +238,20 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    *)
   (* Check this... *)
   | R.Inside (_, formula) -> cnf formula
-  | R.Taint (_, { sources; sinks; _ }) ->
-      let collected =
-        Common.map (fun source -> cnf source.R.source_formula) sources
-        @ Common.map (fun sink -> cnf sink.R.sink_formula) sinks
-      in
-      And
-        (Common.map
-           (function
-             | And ors -> ors)
-           collected
-        |> List.flatten)
+  | R.Taint (t, { sources; sinks; _ }) ->
+      R.And
+        {
+          conj_tok = t;
+          conjuncts =
+            [
+              R.Or
+                (t, Common.map (fun source -> source.R.source_formula) sources);
+              R.Or (t, Common.map (fun sink -> sink.R.sink_formula) sinks);
+            ];
+          conditions = [];
+          focus = [];
+        }
+      |> cnf
   | R.And { conjuncts = xs; conditions = conds; _ } ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
