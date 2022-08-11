@@ -1,6 +1,0 @@
-taint-mode: Taint traces (`--dataflow-traces`) should no longer report "strange"
-intermediate variables when there are record accesses involved. This happened e.g.
-if `foo` was a tainted record and the code accessed some of its fields as in
-`foo.bar.baz`. This was related to the use of auxiliary variables in the Dataflow IL.
-These variables got tainted, but they had real tokens attached corresponding to the
-dot `.` operator. Now we do not include these variables in the taint trace.
