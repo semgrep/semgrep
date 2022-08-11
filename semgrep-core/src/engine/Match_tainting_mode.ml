@@ -85,6 +85,7 @@ type debug_taint = {
 (*****************************************************************************)
 
 let hook_file_taint_config = ref None
+let hook_function_taint_findings = ref None
 
 (*****************************************************************************)
 (* Helpers *)
@@ -456,13 +457,13 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
   let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
+  let handle_findings _ findings _env =
+    findings
+    |> List.iter (fun finding ->
+            pm_of_finding finding
+            |> Option.iter (fun pm -> Common.push pm matches))
+  in
   let taint_config, debug_taint =
-    let handle_findings _ findings _env =
-      findings
-      |> List.iter (fun finding ->
-             pm_of_finding finding
-             |> Option.iter (fun pm -> Common.push pm matches))
-    in
     match !hook_file_taint_config with
     | None ->
       logger#flash "Could not get taint config (1) for rule %s and file %s" (fst rule.Rule.id) file;
@@ -473,15 +474,15 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
       logger#flash "Could not get taint config (2) for rule %s and file %s" (fst rule.Rule.id) file;
       taint_config_of_rule default_config equivs file (ast, []) rule handle_findings
       | Some (taint_config, debug_taint) ->
-        logger#flash "Got cached taint config for rule %s and file %s" (fst rule.Rule.id) file;
+        (* logger#flash "Got cached taint config for rule %s and file %s" (fst rule.Rule.id) file; *)
         ({ taint_config with handle_findings = handle_findings; }, debug_taint)
   in
-  debug_taint.sources |> List.iter (fun s ->
+  (* debug_taint.sources |> List.iter (fun s ->
     logger#flash "source: %d-%d" s.RM.r.Range.start s.RM.r.Range.end_;
-  );
-  debug_taint.sinks |> List.iter (fun s ->
+  ); *)
+  (* debug_taint.sinks |> List.iter (fun s ->
     logger#flash "sink: %d-%d" s.RM.r.Range.start s.RM.r.Range.end_;
-  );
+  ); *)
 
   let fun_env = Hashtbl.create 8 in
 
@@ -493,7 +494,14 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
           (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
-                check_fundef lang fun_env taint_config (Some ent) fdef;
+                (match !hook_function_taint_findings with
+                | None -> 
+                  check_fundef lang fun_env taint_config (Some ent) fdef
+                | Some hook ->
+                  match hook (fst rule.Rule.id) ent with
+                  | None -> check_fundef lang fun_env taint_config (Some ent) fdef
+                  | Some findings -> handle_findings () findings ()
+                  );
                 (* go into nested functions *)
                 k def
             | __else__ -> k def);
