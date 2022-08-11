@@ -57,7 +57,7 @@ type env = {
   (* emma: save the path within the yaml file for each pattern
    * (this will allow us to later report errors in playground basic mode)
    * TODO the playground (now the editor) no longer allows multiple
-   * rules, so in each path the first number should be removed 
+   * rules, so in each path the first number should be removed
    *)
   path : string list;
 }
@@ -127,7 +127,7 @@ let generic_to_json env (key : key) ast =
     | G.Alias (_alias, e) -> aux e
     | G.N (Id ((s, _), _)) ->
         (* this is possible because templates may include strings that
-           the parser interprets as metavariables. TODO turn that 
+           the parser interprets as metavariables. TODO turn that
            interpretation off *)
         J.String s
     | _ ->
@@ -1089,10 +1089,10 @@ let parse_generic ?(error_recovery = false) file ast =
    `{ $FUNCTION_NAME :: $JSON, ... }
 
    As an example, you could have
-   ```   
+   ```
    templates:
    - declaration: sources()
-     contents: 
+     contents:
         pattern: $X
    ```
 
@@ -1103,7 +1103,7 @@ let parse_generic ?(error_recovery = false) file ast =
    Right now, this feature is limited by what can be expressed in YAML. But
    we could make it way more expressive by adding an option to insert pure
    jsonnet instead of contents! TODO for later
-  *)
+*)
 let parse_template file template_ast =
   let t, templates = parse_rules_or_templates "templates" file template_ast in
   let xs =
@@ -1114,15 +1114,24 @@ let parse_template file template_ast =
              take_no_env td parse_string_wrap_no_env "declaration" |> fst
            in
            let env =
-            {
+             {
                id = declaration;
                languages = Xlang.LGeneric;
                path = [ string_of_int i; "templates" ];
              }
            in
            let contents =
-             take_no_env td (fun k e -> generic_to_json env k e) "contents"
-             |> JSON.string_of_json
+             let content_json =
+               take_no_env td (fun k e -> generic_to_json env k e) "contents"
+             in
+             match content_json with
+             | Array _ | Object _ -> 
+                 (* interpret as the json object *)
+                  JSON.string_of_json content_json
+             | String x -> 
+                 (* interpret as pure jsonnet *)
+                 x 
+             | _ -> failwith "Not valid json format"
            in
            spf "   %s :: %s,\n" declaration contents)
   in
@@ -1130,8 +1139,8 @@ let parse_template file template_ast =
      and make the templates much more readable *)
   spf "{\n%s\n}" (String.concat "\n" xs)
 
-(* Creates a jsonnet string for the parsed imports 
-  
+(* Creates a jsonnet string for the parsed imports
+
    Imports in the yaml look like:
    ```
       uses:
@@ -1142,13 +1151,13 @@ let parse_template file template_ast =
    where $PATH is a string.
 
    This produces
-   
+
    ```
    local $NAME = import '$PATH';
    ...
-   ``` 
-  *)
-  let create_imports libsonnet_defs =
+   ```
+*)
+let create_imports libsonnet_defs =
   let create_import (name, path) = spf "local %s = import '%s';" name path in
   let imported_folder =
     match libsonnet_defs with
@@ -1226,9 +1235,11 @@ let parse_json file =
   Json_to_generic.program ~unescape_strings:true (Parse_json.parse_program file)
 
 let parse_as_jsonnet file tmpfile =
+  (* TODO any error message this gives is going to be horrible *)
   let cmd = spf "jsonnet %s -o %s" file tmpfile in
   let n = Sys.command cmd in
   if n <> 0 then failwith (spf "error executing %s" cmd);
+  (* TODO these error messages will be better but still bad *)
   Json_to_generic.program ~unescape_strings:true
     (Parse_json.parse_program tmpfile)
 
@@ -1268,9 +1279,12 @@ let parse_templated_rules rules_with_templates rules_keyword =
   let jsonnet_string =
     rules
     |> generic_to_json env rules_keyword
-    |> JSON.string_of_json  
+    |> JSON.string_of_json
+    (* TODO MAJOR LIMITATION this does not work with string literals and I cannot
+       figure out how to make it work *)
     |> Str.global_replace (Str.regexp {|{"ref":"\([^\"]*\)"}|}) {|\1|}
   in
+  pr2 jsonnet_string;
   let imports, jsonnet_folder = create_imports libsonnet_defs in
   let jsonnet_string = imports ^ "\n" ^ jsonnet_string in
 
@@ -1282,6 +1296,7 @@ let parse_templated_rules rules_with_templates rules_keyword =
   let rules_filename = jsonnet_folder ^ "/" ^ "compiled_rules.json" in
   parse_as_jsonnet jsonnet_filename rules_filename
 
+(* TODO add an explanation, also rename this function *)
 (* Notes on performance and error reporting: *)
 let parse_possibly_templated_rules error_recovery file ast =
   let uses_def field =
@@ -1331,7 +1346,9 @@ let parse_possibly_templated_rules error_recovery file ast =
       G.ExprStmt (G.Container (G.Array, (t, normal_rules, t)) |> G.e, t) |> G.s;
     ]
   in
-  (* TODO: parse templated rules and normal rules, combine *)
+  (* TODO: error messages will be ok within individual rules because the
+     tokens for each rule are real, but they will be bad for levels above.
+     This should be fine but needs to be tested *)
   let parsed_templated_rules, templated_errors =
     parse_templated_rules templated_rules ("rules", t) |> parse_generic file
   in
@@ -1348,7 +1365,7 @@ let translate_to_jsonnet_and_parse ?(error_recovery = false) file =
    * directly because we already have a tradition of YAML rules, and this
    * method allows us to implement templated rules while being compatible
    * with all our existing infrastructure. However, it certainly must be
-   * observed that it would be simpler to just write all rules in jsonnet 
+   * observed that it would be simpler to just write all rules in jsonnet
    *)
   match FT.file_type_of_file file with
   | FT.Config FT.Json ->
