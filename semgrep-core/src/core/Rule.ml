@@ -282,6 +282,7 @@ type 'mode rule_info = {
   paths : paths option;
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata : JSON.t option;
+  dep_formulas : Semgrep_output_v0_t.dep_formula list
 }
 
 and rule_id = string
@@ -296,10 +297,12 @@ and paths = {
 type search_mode = [ `Search of pformula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
-type mode = [ search_mode | taint_mode | extract_mode ] [@@deriving show]
+type dep_only_mode = [ `Dep_only ] [@@deriving show]
+type mode = [ search_mode | taint_mode | extract_mode | dep_only_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
+type dep_only_rule = dep_only_mode rule_info [@@deriving show]
 type rule = mode rule_info [@@deriving show]
 
 (* alias *)
@@ -311,14 +314,17 @@ type rules = rule list [@@deriving show]
 (*****************************************************************************)
 
 let partition_rules (rules : rules) :
-    search_rule list * taint_rule list * extract_rule list =
-  rules
-  |> Common.partition_either3 (fun r ->
-         match r.mode with
-         | `Search _ as s -> Left3 { r with mode = s }
-         | `Taint _ as t -> Middle3 { r with mode = t }
-         | `Extract _ as e -> Right3 { r with mode = e })
-
+    search_rule list * taint_rule list * extract_rule list * dep_only_rule list =
+  let rec go s t e d = function
+    | [] -> List.rev s, List.rev t, List.rev e, List.rev d
+    | x :: xs ->
+      match x.mode with
+        | `Search _ as m -> go ({x with mode = m}  :: s) t e d xs
+        | `Taint _ as m -> go s ({x with mode = m} :: t) e d xs
+        | `Extract _ as m -> go s t ({x with mode = m} :: e) d xs
+        | `Dep_only as m -> go s t e ({x with mode = m} :: d) xs
+  in
+  go [] [] [] [] rules
 (*****************************************************************************)
 (* Error Management *)
 (*****************************************************************************)

@@ -76,6 +76,7 @@ type t = {
   env : Metavariable.bindings;
   (* Lazy since construction involves forcing lazy token lists. *)
   taint_trace : taint_trace Lazy.t option; [@equal fun _a _b -> true]
+  dep_info_opt : Semgrep_output_v0_t.dep_info option [@equal (=)]
 }
 
 (* This is currently a record, but really only the rule id should matter.

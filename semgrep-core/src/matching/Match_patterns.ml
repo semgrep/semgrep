@@ -167,6 +167,7 @@ let match_rules_and_recurse lang config (file, hook, matches) rules matcher k
                           range_loc;
                           tokens;
                           taint_trace = None;
+                          dep_info_opt = None;
                         }
                       in
                       Common.push pm matches;
@@ -306,6 +307,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                     range_loc;
                                     tokens;
                                     taint_trace = None;
+                                    dep_info_opt = None;
                                   }
                                 in
                                 Common.push pm matches;
@@ -359,6 +361,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                       range_loc;
                                       tokens;
                                       taint_trace = None;
+                                      dep_info_opt = None;
                                     }
                                   in
                                   Common.push pm matches;
@@ -429,6 +432,7 @@ let check2 ~hook mvar_context range_filter (config, equivs) rules
                                         range_loc;
                                         tokens;
                                         taint_trace = None;
+                                        dep_info_opt = None
                                       }
                                     in
                                     Common.push pm matches;

@@ -1003,6 +1003,7 @@ let parse_one_rule t i rule =
     paths = paths_opt;
     equivalences = equivs_opt;
     options = options_opt;
+    dep_formulas = []
   }
 
 let parse_generic ?(error_recovery = false) file ast =

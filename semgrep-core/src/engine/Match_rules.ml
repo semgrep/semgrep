@@ -122,7 +122,8 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                        | `Extract extract_spec ->
                            Match_search_mode.check_rule
                              { r with mode = `Search extract_spec.pformula }
-                             match_hook default_config xtarget)
+                             match_hook default_config xtarget
+                       | `Dep_only -> failwith "")
                  in
                  match match_result with
                  | Some res -> Left res

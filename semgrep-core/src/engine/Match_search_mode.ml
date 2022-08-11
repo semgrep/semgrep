@@ -286,6 +286,7 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
         PM.tokens = lazy (MV.ii_of_mval mval);
         PM.env = range.mvars;
         PM.taint_trace = None;
+        PM.dep_info_opt = None;
       }
     in
     let focus_range = RM.match_result_to_range focus_match in

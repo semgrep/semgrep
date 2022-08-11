@@ -170,15 +170,16 @@ let check_formula env (lang : Xlang.t) f =
 (* Entry points *)
 (*****************************************************************************)
 
-let check r =
+let check (r : Rule.t) =
   let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
   | `Search pf
-  | `Extract { pformula = pf; _ } ->
+  | `Extract { pformula = pf; _ } 
+  | `Dep { pformula = Some pf; _ } -> 
       let f = Rule.formula_of_pformula ~rule_id pf in
       check_formula { r; errors = ref [] } r.languages f
-  | `Taint _ -> (* TODO *) []
+  | `Taint _ | `Dep _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =

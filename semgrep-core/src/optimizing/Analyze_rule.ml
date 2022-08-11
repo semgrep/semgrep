@@ -584,6 +584,7 @@ let regexp_prefilter_of_rule (r : R.rule) =
             let f = R.formula_of_pformula ~rule_id pf in
             regexp_prefilter_of_formula f
         | `Taint spec -> regexp_prefilter_of_taint_rule r.R.id spec
+        | `Dep_only -> None
       with
       (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
       | CNF_exploded ->
