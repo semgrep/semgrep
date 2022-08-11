@@ -445,6 +445,7 @@ def parse_config_string(
             f"Empty configuration file {filename}", code=UNPARSEABLE_YAML_EXIT_CODE
         )
     try:
+        # Emma note: this is where configs are wrapped to YAML
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
         return {config_id: data}
