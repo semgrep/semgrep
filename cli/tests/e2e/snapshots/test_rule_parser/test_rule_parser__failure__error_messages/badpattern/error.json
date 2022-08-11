@@ -3,37 +3,9 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Pattern parse error in rule rules.syntax.eqeq-is-bad:\n Invalid pattern for Python:\n--- pattern ---\n$X == $X 3\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
-      "rule_id": "rules.syntax.eqeq-is-bad",
-      "spans": [
-        {
-          "config_end": {
-            "col": 13,
-            "line": 0
-          },
-          "config_path": [
-            "rules",
-            "0",
-            "patterns",
-            "0",
-            "pattern"
-          ],
-          "config_start": {
-            "col": 1,
-            "line": 0
-          },
-          "end": {
-            "col": 34,
-            "line": 11
-          },
-          "file": "tmp/masked/path",
-          "start": {
-            "col": 22,
-            "line": 11
-          }
-        }
-      ],
-      "type": "Pattern parse error"
+      "message": "Fatal error at line :1:\n (Sys_error \"/rules.jsonnet: Permission denied\")\n====[ BEGIN error trace ]====\n(Sys_error \"/rules.jsonnet: Permission denied\")\nRaised by primitive operation at Stdlib.open_out_gen in file \"stdlib.ml\", line 331, characters 29-55\nCalled from Stdlib.open_out_bin in file \"stdlib.ml\" (inlined), line 339, characters 2-76\nCalled from Common.write_file in file \"src/pfff/commons/Common.ml\", line 1271, characters 13-30\nCalled from Parse_rule.parse_templated_rules in file \"src/parsing/Parse_rule.ml\", line 1290, characters 2-50\nCalled from Parse_rule.parse_possibly_templated_rules in file \"src/parsing/Parse_rule.ml\", line 1350, characters 4-54\nCalled from Common.with_time in file \"src/pfff/commons/Common.ml\", line 215, characters 12-16\nCalled from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file \"src/runner/Run_semgrep.ml\", line 665, characters 6-97\n=====[ END error trace ]=====\n",
+      "path": "",
+      "type": "Fatal error"
     }
   ],
   "paths": {

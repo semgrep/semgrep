@@ -7,12 +7,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 === end of exit code
 
 === stdout - plain
-0/1: 1 unit tests did not pass:
---------------------------------------------------------------------------------
-	✖ test4                                                        missed lines: [2, 5], incorrect lines: [] 
-	test file path: <MASKED>/fixtest/test4.py
-
-
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 0/1: 1 fix tests did not pass: 
 --------------------------------------------------------------------------------
 	✖ targets/fixtest/test4.fixed.py <> autofix applied to targets/fixtest/test4.py 
@@ -27,6 +22,21 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
 	+exit(2)
 
 
+
+--------------------------------------------------------------------------------
+The following config files produced errors:
+	rules/fixtest/test4.yaml: Fatal error at line :1:
+ (Sys_error "/rules.jsonnet: Permission denied")
+====[ BEGIN error trace ]====
+(Sys_error "/rules.jsonnet: Permission denied")
+Raised by primitive operation at Stdlib.open_out_gen in file "stdlib.ml", line 331, characters 29-55
+Called from Stdlib.open_out_bin in file "stdlib.ml" (inlined), line 339, characters 2-76
+Called from Common.write_file in file "src/pfff/commons/Common.ml", line 1271, characters 13-30
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1290, characters 2-50
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1350, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 
 
 === end of stdout - plain

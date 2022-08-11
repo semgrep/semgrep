@@ -1,8 +1,14 @@
 Scanning 11 files.
-[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Pattern parse error in rule rules.syntax.eqeq-is-bad:
- Invalid pattern for Python:
---- pattern ---
-$X == $X 3
---- end pattern ---
-Pattern error: Parsing.Parse_error
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Fatal error at line :1:
+ (Sys_error "/rules.jsonnet: Permission denied")
+====[ BEGIN error trace ]====
+(Sys_error "/rules.jsonnet: Permission denied")
+Raised by primitive operation at Stdlib.open_out_gen in file "stdlib.ml", line 331, characters 29-55
+Called from Stdlib.open_out_bin in file "stdlib.ml" (inlined), line 339, characters 2-76
+Called from Common.write_file in file "src/pfff/commons/Common.ml", line 1271, characters 13-30
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1290, characters 2-50
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1350, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 

@@ -3,35 +3,10 @@ CI="true" GITLAB_CI="true" CI_PROJECT_PATH="project_name/project_name" CI_PIPELI
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 2
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
 
 === end of stdout - plain
 
@@ -45,20 +20,18 @@ Fetching configuration from semgrep.dev
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
-  Current version has 14 findings.
+[ERROR] Fatal error at line :1:
+ (Sys_error "/rules.jsonnet: Permission denied")
+====[ BEGIN error trace ]====
+(Sys_error "/rules.jsonnet: Permission denied")
+Raised by primitive operation at Stdlib.open_out_gen in file "stdlib.ml", line 331, characters 29-55
+Called from Stdlib.open_out_bin in file "stdlib.ml" (inlined), line 339, characters 2-76
+Called from Common.write_file in file "src/pfff/commons/Common.ml", line 1271, characters 13-30
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1290, characters 2-50
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1350, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 
-Switching repository to baseline commit '<MASKED>'.
-  Will report findings introduced by these commits:
-    * <MASKED> Some other commit/ message
-
-Scanning 1 file with 4 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 6 findings (5 blocking) from 3 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

@@ -3,50 +3,10 @@ SEMGREP_APP_TOKEN="" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          6┆ a == a  # nosemgrep
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-          9┆ x == x  # nosemgrep
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-         13┆ z == z  # nosemgrep
-          ⋮┆----------------------------------------
-         23┆ b == b # Triage ignored by syntactic_id
-          ⋮┆----------------------------------------
-         24┆ a == a # Triage ignored by match_based_id
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 5
-          ⋮┆----------------------------------------
-         ▶▶┆ Autofix ▶ y == 2
-         16┆ y == 5  # nosemgrep
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         18┆ baz == 4  # nosemgrep
-          ⋮┆----------------------------------------
-         19┆ baz == 4
 
 === end of stdout - plain
 
@@ -59,12 +19,18 @@ Scan environment:
 Fetching configuration from semgrep.dev
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
+[ERROR] Fatal error at line :1:
+ (Sys_error "/rules.jsonnet: Permission denied")
+====[ BEGIN error trace ]====
+(Sys_error "/rules.jsonnet: Permission denied")
+Raised by primitive operation at Stdlib.open_out_gen in file "stdlib.ml", line 331, characters 29-55
+Called from Stdlib.open_out_bin in file "stdlib.ml" (inlined), line 339, characters 2-76
+Called from Common.write_file in file "src/pfff/commons/Common.ml", line 1271, characters 13-30
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1290, characters 2-50
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1350, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 13 findings (11 blocking) from 3 rules.
-  Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain
