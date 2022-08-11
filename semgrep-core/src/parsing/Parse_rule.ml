@@ -939,13 +939,14 @@ and produce_constraint env dict indicator =
          analyzer: ...
       *)
       let metavar, t = take dict env parse_string_wrap "metavariable" in
-      let analyzer, t = take dict env parse_string_wrap "analyzer" in
+      let analyzer, analyze_t = take dict env parse_string_wrap "analyzer" in
       let kind =
         match analyzer with
         | "entropy" -> R.CondEntropy
         | "redos" -> R.CondReDoS
         | other ->
-            error_at_key env ("analyzer", t) ("Unsupported analyzer: " ^ other)
+            error_at_key env ("analyzer", analyze_t)
+              ("Unsupported analyzer: " ^ other)
       in
       Left (t, CondAnalysis (metavar, kind))
   | Cmetavar -> (
@@ -1209,7 +1210,8 @@ and parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
   in
   let sanitizer_dict = yaml_to_dict env key value in
   let not_conflicting =
-    take_opt sanitizer_dict env parse_bool "not_conflicting"
+    take_opt sanitizer_dict env parse_bool
+      (if is_old then "not_conflicting" else "not-conflicting")
     |> Option.value ~default:false
   in
   let sanitizer_formula = f env sanitizer_dict in
@@ -1232,6 +1234,49 @@ and parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
+
+let rec is_unconstrained f =
+  match f with
+  | R.P _ -> false
+  | Inside (_, f) -> is_unconstrained f
+  | Taint (_, { sources; sinks; sanitizers; propagators }) ->
+      List.exists is_unconstrained
+        (List.map (fun source -> source.R.source_formula) sources)
+      || List.exists is_unconstrained
+           (List.map (fun sink -> sink.R.sink_formula) sinks)
+      || List.exists is_unconstrained
+           (List.map
+              (fun propagator -> propagator.R.propagate_formula)
+              propagators)
+      || List.exists is_unconstrained
+           (List.map
+              (fun sanitizer -> sanitizer.R.sanitizer_formula)
+              sanitizers)
+  | And { conjuncts; _ } ->
+      (* A CondEval can only possibly make this formula more particular.
+         Same with a CondNestedFormula, CondRegexp, and CondAnalysis.
+         Either way, if this formula can be unconstrained, the refinement
+         may be unconstrained as well. So we don't care. *)
+      List.for_all is_unconstrained conjuncts
+  | Or (_, fs) -> List.exists is_unconstrained fs
+  | Not (_, f) -> not (is_unconstrained f)
+
+let validate_formula env formula =
+  if is_unconstrained formula then
+    error env
+      (Rule.tok_of_formula formula)
+      "Formula may be unconstrained. Do not allow top-level nots in pattern."
+
+let check_mode env mode =
+  (match mode with
+  | `Search formula ->
+      validate_formula env formula;
+      formula
+  | `Extract { Rule.formula; _ } ->
+      validate_formula env formula;
+      formula)
+  |> ignore;
+  mode
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   match mode_opt with
@@ -1319,7 +1364,7 @@ let parse_one_rule t i rule =
   let languages = parse_languages ~id languages in
   let env = { id = fst id; languages; path = [ string_of_int i; "rules" ] } in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
-  let mode = parse_mode env mode_opt rd in
+  let mode = check_mode env (parse_mode env mode_opt rd) in
   let ( (message, severity),
         metadata_opt,
         fix_opt,
