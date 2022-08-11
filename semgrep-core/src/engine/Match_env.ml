@@ -34,6 +34,11 @@ type pattern_id = Xpattern.pattern_id
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
+type minimal_env = {
+  config : Config_semgrep.t * Equivalence.equivalences;
+  severity : Rule.severity;
+}
+
 type env = {
   (* less: we might want to get rid of equivalences at some point as
    * they are not exposed to the user anymore. *)
@@ -66,4 +71,9 @@ let error env msg =
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
-  { PM.id = string_of_int id; pattern_string = str; message = "" }
+  {
+    PM.id = string_of_int id;
+    pattern_string = str;
+    message = "";
+    severity = Output_from_core_t.Warning;
+  }

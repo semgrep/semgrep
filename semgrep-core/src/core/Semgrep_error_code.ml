@@ -41,7 +41,7 @@ type error = {
 [@@deriving show]
 
 (* TODO: define also in Output_from_core.atd *)
-type severity = Error | Warning
+type severity = Out.core_severity
 
 let g_errors = ref []
 
@@ -182,20 +182,22 @@ let string_of_error err =
 
 let severity_of_error typ =
   match typ with
-  | Out.SemgrepMatchFound -> Error
-  | Out.MatchingError -> Warning
-  | Out.TooManyMatches -> Warning
-  | Out.LexicalError -> Warning
-  | Out.ParseError -> Warning
-  | Out.PartialParsing _ -> Warning
-  | Out.SpecifiedParseError -> Warning
-  | Out.AstBuilderError -> Error
-  | Out.RuleParseError -> Error
-  | Out.PatternParseError _ -> Error
-  | Out.InvalidYaml -> Warning
-  | Out.FatalError -> Error
-  | Out.Timeout -> Warning
-  | Out.OutOfMemory -> Warning
+  | Out.SemgrepMatchFound -> Out.Error
+  | Out.MetacheckMatchInternal severity -> severity
+  | Out.MetacheckMatch -> Out.Warning
+  | Out.MatchingError -> Out.Warning
+  | Out.TooManyMatches -> Out.Warning
+  | Out.LexicalError -> Out.Warning
+  | Out.ParseError -> Out.Warning
+  | Out.PartialParsing _ -> Out.Warning
+  | Out.SpecifiedParseError -> Out.Warning
+  | Out.AstBuilderError -> Out.Error
+  | Out.RuleParseError -> Out.Error
+  | Out.PatternParseError _ -> Out.Error
+  | Out.InvalidYaml -> Out.Warning
+  | Out.FatalError -> Out.Error
+  | Out.Timeout -> Out.Warning
+  | Out.OutOfMemory -> Out.Warning
 
 (*****************************************************************************)
 (* Try with error *)

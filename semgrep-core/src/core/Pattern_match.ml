@@ -99,6 +99,8 @@ and rule_id = {
   message : string;
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
+  (* used for metachecker to save severity of match *)
+  severity : Output_from_core_t.core_severity;
 }
 [@@deriving show, eq]
 

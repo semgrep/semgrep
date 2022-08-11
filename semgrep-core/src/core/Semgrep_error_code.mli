@@ -16,7 +16,7 @@ type error = {
 }
 [@@deriving show]
 
-type severity = Error | Warning
+type severity = Output_from_core_t.core_severity
 
 val g_errors : error list ref
 

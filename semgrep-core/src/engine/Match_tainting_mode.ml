@@ -94,7 +94,13 @@ module DataflowY = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let convert_rule_id (id, _tok) = { PM.id; message = ""; pattern_string = id }
+let convert_rule_id (id, _tok) severity =
+  {
+    PM.id;
+    message = "";
+    pattern_string = id;
+    severity = Rule.core_severity_of_severity severity;
+  }
 
 let option_bind_list opt f =
   match opt with
@@ -563,7 +569,10 @@ let check_rule rule match_hook (default_config, equivs) xtarget =
                   let str = Common.spf "with rule %s" m.rule_id.id in
                   match_hook str m))
     |> Common.map (fun m ->
-           { m with PM.rule_id = convert_rule_id rule.Rule.id })
+           {
+             m with
+             PM.rule_id = convert_rule_id rule.Rule.id rule.Rule.severity;
+           })
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   ( RP.make_match_result matches errors

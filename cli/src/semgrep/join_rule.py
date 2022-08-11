@@ -25,6 +25,7 @@ import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigPath
+from semgrep.config_resolver import ConfigType
 from semgrep.constants import RuleSeverity
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
@@ -232,10 +233,19 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
     """
     config = {}
     for config_string in semgrep_config_strings:
-        resolved = ConfigPath(config_string, get_project_url()).resolve_config()
+        project_url = get_project_url()
+        resolved = ConfigPath(config_string, project_url).resolve_config()
+        resolved_with_path = {
+            k: (v, (ConfigType.REGISTRY, project_url if project_url else ""))
+            for (k, v) in resolved.items()
+        }
         # Some code-fu to get single rules
         config.update(
-            {config_string: list(Config._validate(resolved)[0].values())[0][0]}
+            {
+                config_string: list(Config._validate(resolved_with_path)[0].values())[
+                    0
+                ][0]
+            }
         )
     return config
 

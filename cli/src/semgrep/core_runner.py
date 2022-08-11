@@ -824,10 +824,11 @@ class CoreRunner:
 
         return (findings_by_rule, errors, all_targets, profiling_data, parsing_data)
 
-    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
-        metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
-            0
-        ].get_rules(True)
+    def validate_configs(self, configs: List[str]) -> Sequence[SemgrepError]:
+        # TODO allow users to configure this
+        metachecks = Config.from_config_list(
+            ["../semgrep-core/tests/semgrep-rules/yaml/semgrep"], None
+        )[0].get_rules(True)
 
         parsed_errors = []
 
@@ -846,7 +847,7 @@ class CoreRunner:
                     "-check_rules",
                     rule_file.name,
                 ]
-                + list(configs)
+                + configs
             )
 
             runner = StreamingSemgrepCore(cmd, 1)  # only scanning combined rules

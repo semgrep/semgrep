@@ -212,6 +212,27 @@ class OutputHandler:
             t_errors = dict(timeout_errors)  # please mypy
             self._handle_semgrep_timeout_errors(t_errors)
 
+    def handle_metacheck_errors(self, errors: Sequence[SemgrepError]) -> None:
+        for error in errors:
+            self.has_output = True
+            if error not in self.error_set:
+                self.semgrep_structured_errors.append(error)
+                self.error_set.add(error)
+                if self.settings.output_format == OutputFormat.TEXT:
+                    # TODO: we probably want another level,
+                    # suggest (maybe we can use INFO?)
+                    # TODO: ideally playground can get these
+                    # errors too! Check how playground invokes
+                    # semgrep and idk something flag
+                    if error.level == Level.ERROR:
+                        logger.error(error.format_for_terminal())
+                        self.final_error = error
+                    elif error.level == Level.WARN:
+                        logger.warn(error.format_for_terminal())
+                        if self.settings.strict:
+                            if not self.final_error:
+                                self.final_error = error
+
     def _handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
         self.has_output = True
         separator = ", "
