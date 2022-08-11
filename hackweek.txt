@@ -1,0 +1,298 @@
+
+
+2. Const-prop on top-level statements, maybe make general solution that can also
+   be reused for taint? When we reach an NOther/DefStmt node, then we "kill" the
+   facts we have about the variables that may be modified inside that DefStmt?
+3. DeepSemgrep mode that we can start running ASAP on CI, so I may try just letting
+   DeepSemgrep scan for those classes, load them, and then do normal intra-file
+   analysis... So you'll get something like mostly-intrafile
+   one-hop-inter-file-for-constants inter-procedural analysis.
+4. Special sink type for URLs. See Linear issue. https://linear.app/r2c/issue/PA-1205/provide-a-way-to-analyze-url-components
+
+
+Java benchmarks p/default
+=========================
+
+v0
+- ...
+
+v1
+- DeepSemgrep Version Info: (0.2.0-5-gf8eb064928f-dirty) # branch iago/hackweek
+- just added -j to DeepSemgrep in CLI
+
+v2
+- DeepSemgrep Version Info: (0.2.0-8-gb5831bcf54d-dirty) # branch iago/hackweek-1
+- shared taint configs through hash table
+- const-prop before deep-taint (more correct)
+
+v3
+- DeepSemgrep Version Info: (0.2.0-9-g60b6f729596-dirty) # branch iago/hackweek-1
+- shared taint findings (maybe the configs aren't needed to share? -> ideally we get all the findings already)
+
+google-guava
+------------
+
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava
+Ran 38 rules on 1977 files: 15 findings.
+       16.97 real        92.77 user         1.77 sys
+           136,708,096  maximum resident set size
+            71,370,304  peak memory footprint
+
+v0:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep
+DeepSemgrep Version Info: (0.2.0-4-gb491638b4e1-dirty)
+Ran 38 rules on 1977 files: 15 findings.
+      139.90 real       134.22 user         2.15 sys
+          2,533,326,848  maximum resident set size
+            55,707,008  peak memory footprint
+
+v2 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep -j 1
+Ran 38 rules on 1977 files: 15 findings.
+      123.24 real       117.34 user         1.88 sys  -----> 1.14x wrt v0
+          2429632512  maximum resident set size
+            57525824  peak memory footprint
+
+v3 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep -j 1
+Ran 38 rules on 1977 files: 15 findings.
+      106.27 real       102.64 user         1.95 sys
+          2492628992  maximum resident set size
+            57951424  peak memory footprint
+
+v1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep
+Ran 38 rules on 1977 files: 15 findings.
+       76.82 real       246.67 user        26.06 sys   ----> 1.8x wrt v0
+          1,293,303,808  maximum resident set size
+            55,723,456  peak memory footprint
+
+v2:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep
+Ran 38 rules on 1977 files: 15 findings.
+       73.75 real       206.10 user        18.25 sys  -----> ~same wrt v1
+          1,284,554,752  maximum resident set size
+            60032512  peak memory footprint
+
+v3:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep
+Ran 38 rules on 1977 files: 15 findings.
+       68.26 real       176.94 user        21.74 sys
+          1378844672  maximum resident set size
+            55002624  peak memory footprint
+
+spring-projects-spring-boot
+---------------------------
+
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot
+Ran 38 rules on 3826 files: 13 findings.
+       14.49 real        65.83 user         2.45 sys
+           122,322,944  maximum resident set size
+            99,649,280  peak memory footprint
+
+v0:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep
+DeepSemgrep Version Info: (0.2.0-4-gb491638b4e1-dirty)
+Ran 38 rules on 3826 files: 16 findings.
+       96.57 real        90.69 user         2.86 sys
+          1,322,713,088  maximum resident set size
+           131,204,608  peak memory footprint
+
+v2 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep -j 1
+Ran 38 rules on 3826 files: 16 findings.
+       82.88 real        78.18 user         2.35 sys  ---> 1.17x wrt v0
+          1385676800  maximum resident set size
+           132367936  peak memory footprint
+
+v3 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep -j 1
+Ran 38 rules on 3826 files: 16 findings.
+       73.47 real        69.96 user         2.37 sys
+          1388691456  maximum resident set size
+           132482624  peak memory footprint
+
+v1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep
+DeepSemgrep Version Info: (0.2.0-5-gf8eb064928f-dirty) # just added -j to DeepSemgrep in CLI
+Ran 38 rules on 3826 files: 16 findings.
+       55.49 real       153.75 user         7.08 sys  ---> 1.7x wrt v0
+           710,377,472  maximum resident set size
+           132,744,768  peak memory footprint
+
+v2:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep
+Ran 38 rules on 3826 files: 16 findings.
+       48.44 real       129.43 user         7.59 sys  ---> 1.14x wrt v1
+           759136256  maximum resident set size
+           134448704  peak memory footprint
+
+v3:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep
+Ran 38 rules on 3826 files: 16 findings.
+       44.49 real       114.81 user         8.18 sys
+           680738816  maximum resident set size
+           139364032  peak memory footprint
+
+Deep findings:
+
+  lang/java/tmp/spring-projects-spring-boot/spring-boot-project/spring-boot-tools/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/socket/DomainSocket.java
+     java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+        This socket is not encrypted. The traffic could be read by an attacker intercepting the
+        network traffic. Use an SSLSocket created by 'SSLSocketFactory' or 'SSLServerSocketFactory'
+        instead
+        Details: https://sg.run/W8zA
+
+        142┆ return new BsdDomainSocket(path);
+          ⋮┆----------------------------------------
+        144┆ return new LinuxDomainSocket(path);
+
+
+  lang/java/tmp/spring-projects-spring-boot/spring-boot-project/spring-boot-tools/spring-boot-buildpack-platform/src/main/java/org/springframework/boot/buildpack/platform/socket/NamedPipeSocket.java
+     java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+        This socket is not encrypted. The traffic could be read by an attacker intercepting the
+        network traffic. Use an SSLSocket created by 'SSLSocketFactory' or 'SSLServerSocketFactory'
+        instead
+        Details: https://sg.run/W8zA
+
+        100┆ return new NamedPipeSocket(path);
+
+square-okhttp
+-------------
+
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp
+Ran 38 rules on 505 files: 8 findings.
+        5.09 real        11.49 user         0.58 sys
+           116,916,224  maximum resident set size
+            49,743,424  peak memory footprint
+
+v0:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep
+DeepSemgrep Version Info: (0.2.0-4-gb491638b4e1-dirty)
+Ran 38 rules on 505 files: 9 findings.
+       17.85 real        14.94 user         0.63 sys
+           349,634,560  maximum resident set size
+            49,645,056  peak memory footprint
+
+v2 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep -j 1
+Ran 38 rules on 505 files: 9 findings.
+       13.95 real        11.05 user         0.46 sys  -----> ~1.3x wrt v0
+           323026944  maximum resident set size
+            50153088  peak memory footprint
+
+v3 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep -j 1
+Ran 38 rules on 505 files: 9 findings.
+       10.93 real         9.40 user         0.47 sys
+           401424384  maximum resident set size
+            49186304  peak memory footprint
+
+v1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep
+DeepSemgrep Version Info: (0.2.0-5-gf8eb064928f-dirty) # just added -j to DeepSemgrep in CLI
+Ran 38 rules on 505 files: 9 findings.
+       11.11 real        20.96 user         1.48 sys   -----> 1.6x wrt v0
+           379,043,840  maximum resident set size
+            48695040  peak memory footprint
+
+v2:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep
+Ran 38 rules on 505 files: 9 findings.
+       10.00 real        23.18 user         1.65 sys
+           306,872,320  maximum resident set size
+            50234816  peak memory footprint
+
+v3:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep
+Ran 38 rules on 505 files: 9 findings.
+        8.39 real        20.21 user         1.51 sys
+           336625664  maximum resident set size
+            47089408  peak memory footprint
+
+Deep findings:
+
+  lang/java/tmp/square-okhttp/samples/unixdomainsockets/src/main/java/okhttp3/unixdomainsockets/UnixDomainServerSocketFactory.java
+     java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+        This socket is not encrypted. The traffic could be read by an attacker intercepting the
+        network traffic. Use an SSLSocket created by 'SSLSocketFactory' or 'SSLServerSocketFactory'
+        instead
+        Details: https://sg.run/W8zA
+
+         41┆ return new UnixDomainServerSocket();
+
+elastic-elasticsearch
+---------------------
+
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/elastic-elasticsearch
+Ran 38 rules on 10536 files: 56 findings.
+      132.31 real       863.54 user        12.19 sys
+           270,958,592  maximum resident set size
+           216,663,872  peak memory footprint
+
+v0:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/elastic-elasticsearch --deep
+DeepSemgrep Version Info: (0.2.0-4-gb491638b4e1-dirty)
+Timeout
+
+v1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/elastic-elasticsearch --deep
+DeepSemgrep Version Info: (0.2.0-5-gf8eb064928f-dirty) # just added -j to DeepSemgrep in CLI
+Timeout ---> seems to swap a lot, perhaps all the SAST don't fit in memory?
+
+
+
+OWASP-Benchmark-BenchmarkJava
+-----------------------------
+
+TODO: Add this to our parsing-stats benchmarks?
+
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava
+Ran 38 rules on 2763 files: 4471 findings.
+       18.40 real        75.55 user         2.61 sys
+           250,429,440  maximum resident set size
+           214435712  peak memory footprint
+
+v0:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep
+DeepSemgrep Version Info: (0.2.0-4-gb491638b4e1-dirty)
+Ran 38 rules on 2763 files: 4224 findings.
+      151.19 real       143.42 user         3.40 sys
+          1,518,534,656  maximum resident set size
+           145,671,552  peak memory footprint
+
+v2 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep -j 1
+Ran 38 rules on 2763 files: 4219 findings.
+      172.36 real       166.62 user         3.41 sys    ----> Why significantly slower!?
+          1688616960  maximum resident set size
+           148751808  peak memory footprint
+
+v3 -j 1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep -j 1
+Ran 38 rules on 2763 files: 4219 findings.
+      152.35 real       147.34 user         3.57 sys
+          1702035456  maximum resident set size
+           148915904  peak memory footprint
+
+v1:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep
+DeepSemgrep Version Info: (0.2.0-5-gf8eb064928f-dirty) # just added -j to DeepSemgrep in CLI
+Ran 38 rules on 2763 files: 4224 findings.
+       80.92 real       244.96 user         9.03 sys   -----> 1.8x wrt v0
+           845,611,008  maximum resident set size
+           150210112  peak memory footprint
+
+v2:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep
+Ran 38 rules on 2763 files: 4219 findings.  -----> 5 fewer findings, FPs? Now we do const-prop before deep taint
+      121.28 real       250.85 user         9.99 sys
+          1,059,651,584  maximum resident set size ----> slower due to higher mem usage?
+           142739008  peak memory footprint
+
+v3:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep
+Ran 38 rules on 2763 files: 4219 findings.
+      114.07 real       213.92 user        13.71 sys
+          1055178752  maximum resident set size
+           146327296  peak memory footprint
