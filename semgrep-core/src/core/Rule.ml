@@ -323,6 +323,11 @@ let partition_rules (rules : rules) :
 (* Error Management *)
 (*****************************************************************************)
 
+let core_severity_of_severity severity =
+  match severity with
+  | Error -> Output_from_core_t.Error
+  | _ -> Output_from_core_t.Warning
+
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
  *)

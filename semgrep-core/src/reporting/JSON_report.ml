@@ -197,13 +197,17 @@ let match_to_match x =
  *)
 let error_to_error err =
   let severity_of_severity = function
-    | E.Error -> SJ.Error
-    | E.Warning -> SJ.Warning
+    | Out.Error -> SJ.Error
+    | Out.Warning -> SJ.Warning
   in
   let file = err.E.loc.PI.file in
   let startp, endp = OutH.position_range err.E.loc err.E.loc in
   let rule_id = err.E.rule_id in
-  let error_type = err.E.typ in
+  let error_type =
+    match err.E.typ with
+    | Out.MetacheckMatchInternal _ -> Out.MetacheckMatch
+    | e -> e
+  in
   let severity = severity_of_severity (E.severity_of_error err.E.typ) in
   let message = err.E.msg in
   let details = err.E.details in

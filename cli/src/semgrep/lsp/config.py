@@ -176,7 +176,9 @@ class LSPConfig:
         return self._settings
 
     def _rules(self, configs: List[str]) -> List[Rule]:
-        configs_obj, _ = get_config(None, None, configs, project_url=self.project_url)
+        configs_obj, _, _ = get_config(
+            None, None, configs, project_url=self.project_url
+        )
         all_rules = configs_obj.get_rules(True)
         filtered_rules = [
             rule for rule in all_rules if rule.severity.value in self.severity

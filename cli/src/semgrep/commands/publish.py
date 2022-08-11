@@ -155,7 +155,7 @@ def _upload_rule(
         test_code_file: optional test case to attach with the rule
     """
     state = get_state()
-    config, errors = get_config(None, None, [str(rule_file)], project_url=None)
+    config, errors, _ = get_config(None, None, [str(rule_file)], project_url=None)
 
     if errors:
         click.echo(

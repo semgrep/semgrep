@@ -73,7 +73,15 @@ let error env t s =
   let loc = Parse_info.unsafe_token_location_of_info t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
-  let err = E.mk_error ~rule_id:(Some rule_id) loc s Out.SemgrepMatchFound in
+  let severity =
+    match env.r.severity with
+    | Error -> Out.Error
+    | _ -> Out.Warning
+  in
+  let err =
+    E.mk_error ~rule_id:(Some rule_id) loc s
+      (Out.MetacheckMatchInternal severity)
+  in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -187,8 +195,10 @@ let semgrep_check config metachecks rules =
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error ~rule_id:None loc s Out.SemgrepMatchFound
+    E.mk_error ~rule_id:None loc s
+      (Out.MetacheckMatchInternal m.P.rule_id.severity)
   in
+
   let config =
     {
       config with

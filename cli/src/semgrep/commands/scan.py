@@ -771,7 +771,10 @@ def scan(
                     f"Nothing to validate, use the --config or --pattern flag to specify a rule"
                 )
             else:
-                resolved_configs, config_errors = semgrep.config_resolver.get_config(
+                # TODO this codepath is now very much
+                # duplicated by the normal validation.
+                # Figure out what to do with it
+                resolved_configs, config_errors, _ = semgrep.config_resolver.get_config(
                     pattern, lang, config or [], project_url=get_project_url()
                 )
 
@@ -785,7 +788,7 @@ def scan(
                             timeout_threshold=timeout_threshold,
                             optimizations=optimizations,
                             core_opts_str=core_opts,
-                        ).validate_configs(config)
+                        ).validate_configs(list(config))
                     except SemgrepError as e:
                         metacheck_errors = [e]
 
@@ -797,7 +800,7 @@ def scan(
                     f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
                 )
                 if config_errors:
-                    output_handler.handle_semgrep_errors(config_errors)
+                    output_handler.handle_metacheck_errors(config_errors)
                     output_handler.output({}, all_targets=set(), filtered_rules=[])
                     raise SemgrepError("Please fix the above errors and try again.")
         else:

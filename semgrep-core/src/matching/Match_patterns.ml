@@ -136,6 +136,10 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
     PM.id = mr.Mini_rule.id;
     message = mr.Mini_rule.message;
     pattern_string = mr.Mini_rule.pattern_string;
+    severity =
+      (match mr.Mini_rule.severity with
+      | Error -> Output_from_core_t.Error
+      | _ -> Output_from_core_t.Warning);
   }
 
 let match_rules_and_recurse lang config (file, hook, matches) rules matcher k

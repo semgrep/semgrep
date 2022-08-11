@@ -129,6 +129,9 @@ class ConfigPath:
             logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
         return config
 
+    def config_path_info(self) -> Tuple[ConfigType, str]:
+        return (self._origin, self._config_path)
+
     def _nice_semgrep_url(self, url: str) -> str:
         """
         Alters semgrep.dev urls to let user
@@ -221,34 +224,42 @@ class Config:
     @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+    ) -> Tuple["Config", Sequence[SemgrepError], List[str]]:
         config_dict = manual_config(pattern, lang, replacement)
-        valid, errors = cls._validate(config_dict)
-        return cls(valid), errors
+        valid, errors, local_config_paths = cls._validate(config_dict)
+        return cls(valid), errors, local_config_paths
 
     @classmethod
     def from_config_list(
         cls, configs: Sequence[str], project_url: Optional[str]
-    ) -> Tuple["Config", Sequence[SemgrepError]]:
+    ) -> Tuple["Config", Sequence[SemgrepError], List[str]]:
         """
         Takes in list of files/directories and returns Config object as well as
         list of errors parsing said config files
 
         If empty list is passed, tries to read config file at default locations
         """
-        config_dict: Dict[str, YamlTree] = {}
+        config_dict: Dict[str, Tuple[YamlTree, Tuple[ConfigType, str]]] = {}
         errors: List[SemgrepError] = []
 
         if not configs:
             try:
-                config_dict.update(load_default_config())
+                # TODO: once again using registry to mean
+                # "don't run metachecks"
+                default_config_with_path = {
+                    k: (v, (ConfigType.REGISTRY, ""))
+                    for (k, v) in load_default_config().items()
+                }
+                config_dict.update(default_config_with_path)
             except SemgrepError as e:
                 errors.append(e)
 
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = ConfigPath(config, project_url).resolve_config()
+                config_path = ConfigPath(config, project_url)
+                resolved_config = config_path.resolve_config()
+                path_info = config_path.config_path_info()
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
@@ -257,18 +268,21 @@ class Config:
                     resolved_config_key,
                     resolved_config_yaml_tree,
                 ) in resolved_config.items():
-                    patched_resolved_config: Dict[str, YamlTree] = {}
-                    patched_resolved_config[
-                        f"{resolved_config_key}_{i}"
-                    ] = resolved_config_yaml_tree
+                    patched_resolved_config: Dict[
+                        str, Tuple[YamlTree, Tuple[ConfigType, str]]
+                    ] = {}
+                    patched_resolved_config[f"{resolved_config_key}_{i}"] = (
+                        resolved_config_yaml_tree,
+                        path_info,
+                    )
 
                     config_dict.update(patched_resolved_config)
             except SemgrepError as e:
                 errors.append(e)
 
-        valid, parse_errors = cls._validate(config_dict)
+        valid, parse_errors, local_config_paths = cls._validate(config_dict)
         errors.extend(parse_errors)
-        return cls(valid), errors
+        return cls(valid), errors, local_config_paths
 
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
@@ -323,14 +337,15 @@ class Config:
 
     @staticmethod
     def _validate(
-        config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
+        config_dict: Mapping[str, Tuple[YamlTree, Tuple[ConfigType, str]]]
+    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError], List[str]]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
         errors: List[SemgrepError] = []
         valid: Dict[str, Any] = {}
-        for config_id, config_yaml_tree in config_dict.items():
+        local_configs: List[str] = []
+        for config_id, (config_yaml_tree, (path_type, path)) in config_dict.items():
             config = config_yaml_tree.value
             if not isinstance(config, YamlMap):
                 errors.append(SemgrepError(f"{config_id} was not a mapping"))
@@ -358,7 +373,14 @@ class Config:
 
             if valid_rules:
                 valid[config_id] = valid_rules
-        return valid, errors
+
+                # TODO instead of reusing path_type,
+                # create a new type specifically for
+                # whether a rule should be sent to
+                # validation or not
+                if path_type == ConfigType.LOCAL:
+                    local_configs.append(path)
+        return valid, errors, local_configs
 
 
 def validate_single_rule(
@@ -376,7 +398,7 @@ def validate_single_rule(
 
 def manual_config(
     pattern: str, lang: str, replacement: Optional[str]
-) -> Dict[str, YamlTree]:
+) -> Dict[str, Tuple[YamlTree, Tuple[ConfigType, str]]]:
     """Create a fake rule when we only have a pattern and language
 
     This is used when someone calls `semgrep scan -e print -l py`
@@ -397,10 +419,15 @@ def manual_config(
     if replacement:
         rules_key["fix"] = replacement
 
+    # TODO: It's not from the registry, but right now
+    # registry means "don't validate"
     return {
-        "manual": YamlTree.wrap(
-            {RULES_KEY: [rules_key]},
-            span=error_span,
+        "manual": (
+            YamlTree.wrap(
+                {RULES_KEY: [rules_key]},
+                span=error_span,
+            ),
+            (ConfigType.REGISTRY, "CLI Input"),
         )
     }
 
@@ -594,21 +621,25 @@ def get_config(
     *,
     project_url: Optional[str],
     replacement: Optional[str] = None,
-) -> Tuple[Config, Sequence[SemgrepError]]:
+) -> Tuple[Config, Sequence[SemgrepError], List[str]]:
     if pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
-        config, errors = Config.from_pattern_lang(pattern, lang, replacement)
+        config, errors, local_config_paths = Config.from_pattern_lang(
+            pattern, lang, replacement
+        )
     else:
         if replacement:
             raise SemgrepError(
                 "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
             )
-        config, errors = Config.from_config_list(config_strs, project_url)
+        config, errors, local_config_paths = Config.from_config_list(
+            config_strs, project_url
+        )
 
     if not config:
         raise SemgrepError(
             f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
         )
 
-    return config, errors
+    return config, errors, local_config_paths

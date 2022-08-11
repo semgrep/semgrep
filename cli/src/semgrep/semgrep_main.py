@@ -133,6 +133,7 @@ def invoke_semgrep(
 
 def run_rules(
     filtered_rules: List[Rule],
+    local_config_paths: List[str],
     target_manager: TargetManager,
     core_runner: CoreRunner,
     output_handler: OutputHandler,
@@ -146,6 +147,11 @@ def run_rules(
     dependency_only_rules, rest_of_the_rules = partition(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
+
+    metacheck_errors = core_runner.validate_configs(local_config_paths)
+    if metacheck_errors:
+        output_handler.handle_metacheck_errors(metacheck_errors)
+        output_handler.output({}, all_targets=set(), filtered_rules=[])
 
     (
         rule_matches_by_rule,
@@ -301,7 +307,7 @@ def main(
     profiler = ProfileManager()
 
     rule_start_time = time.time()
-    configs_obj, config_errors = get_config(
+    configs_obj, config_errors, local_config_paths = get_config(
         pattern, lang, configs, replacement=replacement, project_url=project_url
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
@@ -392,6 +398,7 @@ def main(
         parsing_data,
     ) = run_rules(
         filtered_rules,
+        local_config_paths,
         target_manager,
         core_runner,
         output_handler,
@@ -456,6 +463,8 @@ def main(
                             for rule, matches in rule_matches_by_rule.items()
                             if matches
                         ],
+                        # don't validate anything
+                        [],
                         baseline_target_manager,
                         core_runner,
                         output_handler,
