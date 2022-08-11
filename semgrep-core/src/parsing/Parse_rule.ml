@@ -1162,11 +1162,7 @@ let create_imports libsonnet_defs =
   let create_import (name, path) = spf "local %s = import '%s';" name path in
   let imported_folder =
     match libsonnet_defs with
-    | [] ->
-        failwith
-          "No import definitions (given by the uses key) even though we are \
-           creating imports for the import definitions. This should be \
-           impossible"
+    | [] -> (* It will never be used so doesn't matter *) ""
     | (_, path) :: _ -> Filename.dirname path
   in
   let imports = String.concat "\n" (List.map create_import libsonnet_defs) in
