@@ -3,19 +3,10 @@ CI="true" GITHUB_ACTIONS="true" GITHUB_EVENT_NAME="pull_request" GITHUB_REPOSITO
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  bar.py 
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ bar == 2
-          1┆ bar == 2
 
 === end of stdout - plain
 
@@ -124,125 +115,187 @@ Running semgrep-core with command:
   ]
 }
 <MASKED>
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+
 <MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
-<MASKED>
+[0.032  Info       Main.Runner_exit     ] exit 2: unknown exception (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+
 --- end semgrep-core stderr ---
-semgrep ran in <MASKED> on 1 files
-findings summary: 1 error, 0 info
-  Current version has 1 finding.
-
-Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
 Returning to original head revision 17b3114fb3d41437abc2a3e6499db84ad921e6f0
+[ERROR] Fatal error at line :1:
+ (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+====[ BEGIN error trace ]====
+(Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 
-========================================
-Files skipped:
-========================================
-
-  Always skipped by Semgrep:
-
-   • <none>
-
-  Skipped by .gitignore:
-  (Disable by passing --no-git-ignore)
-
-   • <all files not listed by `git ls-files` were skipped>
-
-  Skipped by .semgrepignore:
-  (See: https://semgrep.dev<MASKED>
-
-   • <none>
-
-  Skipped by --include patterns:
-
-   • <none>
-
-  Skipped by --exclude patterns:
-
-   • <none>
-
-  Skipped by limiting to files smaller than 1000000 bytes:
-  (Adjust with the --max-target-bytes flag)
-
-   • <none>
-
-  Skipped by analysis failure due to parsing or internal Semgrep error
-
-   • <none>
-
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
-CI scan completed successfully.
-  Found 1 finding (0 blocking) from 3 rules.
-  Uploading findings to Semgrep App.
-Sending findings blob: {
-    "token": null,
-    "gitlab_token": null,
-    "findings": [
-        {
-            "check_id": "eqeq-five",
-            "path": "bar.py",
-            "line": 1,
-            "column": 1,
-            "end_line": 1,
-            "end_column": 9,
-            "message": "useless comparison to 5",
-            "severity": 2,
-            "index": 0,
-            "commit_date":<MASKED>
-            "syntactic_id": "79b90242d13e90751d81594d5863a672",
-            "metadata": {
-                "dev.semgrep.actions": []
-            },
-            "is_blocking": false,
-            "match_based_id": "81ccf0034358a3caf8caef04451dc035f1b37240ce39ce08044ed5dcaafbe171d65792c5a3119e04e6802388c431ec8967d98a6c5666b1f4502a45df8b1eedd6_0",
-            "fixed_lines": [
-                "bar == 2"
-            ]
-        }
-    ],
-    "searched_paths": [
-        "bar.py"
-    ],
-    "rule_ids": [
-        "eqeq-bad",
-        "eqeq-five",
-        "eqeq-four"
-    ],
-    "cai_ids": [
-        "__r2c-internal-cai_eqeq"
-    ]
-}
-Sending ignores blob: {
-    "findings": []
-}
-Sending complete blob: {
-    "exit_code": 0,
-    "stats": {
-        "findings": 1,
-        "errors": [],
-        "total_time":<MASKED>
-        "unsupported_exts": {},
-        "parse_rate": {
-            "python": {
-                "targets_parsed": 1,
-                "num_targets": 1,
-                "bytes_parsed": 10,
-                "num_bytes": 10
-            }
-        }
-    }
-}
-  No blocking findings so exiting with code 0
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is True
 
 === end of stderr - plain
+
+=== stdout - color
+
+=== end of stdout - color
+
+=== stderr - color
+Scan environment:
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment github-actions, triggering event is pull_request
+  semgrep.dev - authenticated as org_name
+
+head branch (bar) has latest commit 17b3114fb3d41437abc2a3e6499db84ad921e6f0, fetching that commit now.
+Trying to shallow fetch branch foo from origin
+base branch (foo) has latest commit f7ee3123ed098941662685dd8b726fceee48f78d
+Fixing git state for github action pull request
+Calling git rev-parse HEAD
+stashed_rev: 17b3114fb3d41437abc2a3e6499db84ad921e6f0
+Not on head ref: 17b3114fb3d41437abc2a3e6499db84ad921e6f0; checking that out now.
+Attempting to find merge base, attempt_count=0, fetch_depth=0
+Attempting to find merge base, attempt_count=1, fetch_depth=4
+Trying to fetch branch foo from origin as base branch
+Trying to fetch branch bar as commit from origin as head branch tip commit
+Using f7ee3123ed098941662685dd8b726fceee48f78d as the merge-base of f7ee3123ed098941662685dd8b726fceee48f78d and 17b3114fb3d41437abc2a3e6499db84ad921e6f0
+Fetching configuration from semgrep.dev
+Starting scan
+Using https://semgrep.dev<MASKED>
+Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
+semgrep version <MASKED>
+Fetching rules from https://semgrep.dev<MASKED>
+trying to download from https://semgrep.dev<MASKED>
+finished downloading from https://semgrep.dev<MASKED>
+loaded 1 configs in<MASKED>
+running 4 rules from 1 config remote-url_0
+Initializing git status
+Running git diff
+Finished git diff. Parsing git status output
+['A', 'bar.py']
+Git status:
+added: [PosixPath('bar.py')]
+modified: []
+removed: []
+unmerged: []
+Initializing dirty paths
+Git status output: 
+finished getting dirty paths
+{}
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev<MASKED>
+Rules:
+- __r2c-internal-cai_eqeq
+- eqeq-bad
+- eqeq-five
+- eqeq-four
+Passing whole rules directly to semgrep_core
+Scanning 1 file with 4 python rules.
+Running semgrep-core with command:
+/<MASKED>/semgrep-core -json -rules <MASKED>-json_time -fast --debug
+--- semgrep-core stderr ---
+<MASKED>
+<MASKED>
+<MASKED>
+{
+  "rules": [
+    {
+      "id": "eqeq-bad",
+      "languages": [
+        "python"
+      ],
+      "message": "useless comparison",
+      "pattern": "$X == $X",
+      "severity": "ERROR"
+    },
+    {
+      "fix": "$X == 2",
+      "id": "eqeq-five",
+      "languages": [
+        "python"
+      ],
+      "message": "useless comparison to 5",
+      "metadata": {
+        "dev.semgrep.actions": []
+      },
+      "pattern": "$X == 5",
+      "severity": "ERROR"
+    },
+    {
+      "id": "eqeq-four",
+      "languages": [
+        "python"
+      ],
+      "message": "useless comparison to 4",
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ]
+      },
+      "pattern": "$X == 4",
+      "severity": "ERROR"
+    },
+    {
+      "id": "__r2c-internal-cai_eqeq",
+      "languages": [
+        "python"
+      ],
+      "message": "useless comparison to 3",
+      "pattern": "$X == 3",
+      "severity": "INFO"
+    }
+  ]
+}
+<MASKED>
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+
+<MASKED>
+[0.032  [94mInfo[39m       [4mMain.Runner_exit[24m     ] exit 2: unknown exception (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+
+--- end semgrep-core stderr ---
+Returning to original head revision 17b3114fb3d41437abc2a3e6499db84ad921e6f0
+[ERROR] Fatal error at line :1:
+ (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+====[ BEGIN error trace ]====
+(Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
+
+Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is True
+
+=== end of stderr - color

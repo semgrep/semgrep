@@ -3,35 +3,10 @@ BUILDKITE="true" BUILDKITE_REPO="git@github.com/project_name/project_name.git" B
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  foo.py 
-     eqeq-bad
-        useless comparison
-
-          4┆ a == a
-          ⋮┆----------------------------------------
-          5┆ a == a
-          ⋮┆----------------------------------------
-          7┆ a == a
-          ⋮┆----------------------------------------
-         11┆ y == y
-          ⋮┆----------------------------------------
-     eqeq-five
-        useless comparison to 5
-
-         ▶▶┆ Autofix ▶ x == 2
-         15┆ x == 5
-          ⋮┆----------------------------------------
-     eqeq-four
-        useless comparison to 4
-
-         19┆ baz == 4
 
 === end of stdout - plain
 
@@ -45,13 +20,19 @@ Fetching configuration from semgrep.dev
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
+[ERROR] Fatal error at line :1:
+ (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+====[ BEGIN error trace ]====
+(Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 6 findings (5 blocking) from 3 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

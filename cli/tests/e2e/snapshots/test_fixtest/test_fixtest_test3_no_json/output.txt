@@ -1,4 +1,4 @@
-1/1: ✓ All tests passed 
+No unit tests found. See https://semgrep.dev/docs/writing-rules/testing-rules
 0/1: 1 fix tests did not pass: 
 --------------------------------------------------------------------------------
 	✖ targets/fixtest/test3.fixed.py <> autofix applied to targets/fixtest/test3.py 
@@ -7,10 +7,26 @@
 	+++
 	@@ -2 +2 @@
 	-sys.exit(1)
-	+somethingElse(1)
+	+exit(1)
 	@@ -5 +5 @@
 	-sys.exit(2)
-	+somethingElse(1)
+	+exit(2)
 
 
+
+--------------------------------------------------------------------------------
+The following config files produced errors:
+	rules/fixtest/test3.yaml: Fatal error at line :1:
+ (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+====[ BEGIN error trace ]====
+(Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 

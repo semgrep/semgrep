@@ -3,26 +3,28 @@ SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_VERS
 === end of command
 
 === exit code
-0
+2
 === end of exit code
 
 === stdout - plain
-
-Findings:
-
-  stupid.py 
-          3┆ return a + b == a + b
-          ⋮┆----------------------------------------
-          8┆ x == x
-          ⋮┆----------------------------------------
-         12┆ assertTrue(x == x)
 
 === end of stdout - plain
 
 === stderr - plain
 Scanning 1 file.
+[ERROR] Fatal error at line :1:
+ (Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+====[ BEGIN error trace ]====
+(Failure
+  "No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible")
+Raised at Stdlib.failwith in file "stdlib.ml", line 29, characters 17-33
+Called from Parse_rule.create_imports in file "src/parsing/Parse_rule.ml", line 1156, characters 8-190
+Called from Parse_rule.parse_templated_rules in file "src/parsing/Parse_rule.ml", line 1274, characters 32-61
+Called from Parse_rule.parse_possibly_templated_rules in file "src/parsing/Parse_rule.ml", line 1336, characters 4-54
+Called from Common.with_time in file "src/pfff/commons/Common.ml", line 215, characters 12-16
+Called from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file "src/runner/Run_semgrep.ml", line 665, characters 6-97
+=====[ END error trace ]=====
 
-
-Ran 1 rule on 1 file: 3 findings.
 
 === end of stderr - plain

@@ -3,249 +3,25 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 === end of command
 
 === exit code
-1
+2
 === end of exit code
 
 === stdout - plain
 {
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "foo.py"
-    ]
-  },
-  "results": [
+  "errors": [
     {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 4,
-        "offset": 43
-      },
-      "extra": {
-        "fingerprint": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0",
-        "is_ignored": false,
-        "lines": "    a == a",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a",
-            "end": {
-              "col": 6,
-              "line": 4,
-              "offset": 38
-            },
-            "start": {
-              "col": 5,
-              "line": 4,
-              "offset": 37
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 4,
-        "offset": 37
-      }
-    },
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 5,
-        "offset": 54
-      },
-      "extra": {
-        "fingerprint": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1",
-        "is_ignored": false,
-        "lines": "    a == a",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a",
-            "end": {
-              "col": 6,
-              "line": 5,
-              "offset": 49
-            },
-            "start": {
-              "col": 5,
-              "line": 5,
-              "offset": 48
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 5,
-        "offset": 48
-      }
-    },
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 7,
-        "offset": 89
-      },
-      "extra": {
-        "fingerprint": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3",
-        "is_ignored": false,
-        "lines": "    a == a",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a",
-            "end": {
-              "col": 6,
-              "line": 7,
-              "offset": 84
-            },
-            "start": {
-              "col": 5,
-              "line": 7,
-              "offset": 83
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 7,
-        "offset": 83
-      }
-    },
-    {
-      "check_id": "eqeq-bad",
-      "end": {
-        "col": 11,
-        "line": 11,
-        "offset": 126
-      },
-      "extra": {
-        "fingerprint": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0",
-        "is_ignored": false,
-        "lines": "    y == y",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "y",
-            "end": {
-              "col": 6,
-              "line": 11,
-              "offset": 121
-            },
-            "start": {
-              "col": 5,
-              "line": 11,
-              "offset": 120
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 11,
-        "offset": 120
-      }
-    },
-    {
-      "check_id": "eqeq-four",
-      "end": {
-        "col": 13,
-        "line": 19,
-        "offset": 227
-      },
-      "extra": {
-        "fingerprint": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
-        "is_ignored": false,
-        "lines": "    baz == 4",
-        "message": "useless comparison to 4",
-        "metadata": {
-          "dev.semgrep.actions": [
-            "block"
-          ]
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "baz",
-            "end": {
-              "col": 8,
-              "line": 19,
-              "offset": 222
-            },
-            "start": {
-              "col": 5,
-              "line": 19,
-              "offset": 219
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 19,
-        "offset": 219
-      }
-    },
-    {
-      "check_id": "eqeq-five",
-      "end": {
-        "col": 11,
-        "line": 15,
-        "offset": 163
-      },
-      "extra": {
-        "fingerprint": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
-        "fix": "x == 2",
-        "is_ignored": false,
-        "lines": "    x == 5",
-        "message": "useless comparison to 5",
-        "metadata": {
-          "dev.semgrep.actions": []
-        },
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 6,
-              "line": 15,
-              "offset": 158
-            },
-            "start": {
-              "col": 5,
-              "line": 15,
-              "offset": 157
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "foo.py",
-      "start": {
-        "col": 5,
-        "line": 15,
-        "offset": 157
-      }
+      "code": 2,
+      "level": "error",
+      "message": "Fatal error at line :1:\n (Failure\n  \"No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible\")\n====[ BEGIN error trace ]====\n(Failure\n  \"No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible\")\nRaised at Stdlib.failwith in file \"stdlib.ml\", line 29, characters 17-33\nCalled from Parse_rule.create_imports in file \"src/parsing/Parse_rule.ml\", line 1156, characters 8-190\nCalled from Parse_rule.parse_templated_rules in file \"src/parsing/Parse_rule.ml\", line 1274, characters 32-61\nCalled from Parse_rule.parse_possibly_templated_rules in file \"src/parsing/Parse_rule.ml\", line 1336, characters 4-54\nCalled from Common.with_time in file \"src/pfff/commons/Common.ml\", line 215, characters 12-16\nCalled from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file \"src/runner/Run_semgrep.ml\", line 665, characters 6-97\n=====[ END error trace ]=====\n",
+      "path": "",
+      "type": "Fatal error"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
   "version": "0.42"
 }
 === end of stdout - plain
@@ -260,13 +36,5 @@ Fetching configuration from semgrep.dev
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 4 python rules.
-
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 6 findings (5 blocking) from 3 rules.
-  Uploading findings to Semgrep App.
-  Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

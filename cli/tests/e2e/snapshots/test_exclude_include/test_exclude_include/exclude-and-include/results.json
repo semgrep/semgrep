@@ -1,62 +1,17 @@
 {
-  "errors": [],
-  "paths": {
-    "_comment": "<add --verbose for a list of skipped paths>",
-    "scanned": [
-      "targets/exclude_include/included/included.js"
-    ]
-  },
-  "results": [
+  "errors": [
     {
-      "check_id": "rules.javascript-basic-eqeq-bad",
-      "end": {
-        "col": 19,
-        "line": 3,
-        "offset": 30
-      },
-      "extra": {
-        "fingerprint": "f0dc6bb763a65d736f8476d961bbc2ded9a4659fac904e481df30f95e4a5c5ef6f71d9117c3bfe66de807451c98165fb31330d437b1a0130bddb2ec6318d6a63_0",
-        "is_ignored": false,
-        "lines": "console.log(x == x)",
-        "message": "useless comparison",
-        "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 14,
-              "line": 3,
-              "offset": 25
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "1",
-              "svalue_end": {
-                "col": 10,
-                "line": 1,
-                "offset": 9
-              },
-              "svalue_start": {
-                "col": 9,
-                "line": 1,
-                "offset": 8
-              }
-            },
-            "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 24
-            }
-          }
-        },
-        "severity": "ERROR"
-      },
-      "path": "targets/exclude_include/included/included.js",
-      "start": {
-        "col": 13,
-        "line": 3,
-        "offset": 24
-      }
+      "code": 2,
+      "level": "error",
+      "message": "Fatal error at line :1:\n (Failure\n  \"No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible\")\n====[ BEGIN error trace ]====\n(Failure\n  \"No import definitions (given by the uses key) even though we are creating imports for the import definitions. This should be impossible\")\nRaised at Stdlib.failwith in file \"stdlib.ml\", line 29, characters 17-33\nCalled from Parse_rule.create_imports in file \"src/parsing/Parse_rule.ml\", line 1156, characters 8-190\nCalled from Parse_rule.parse_templated_rules in file \"src/parsing/Parse_rule.ml\", line 1274, characters 32-61\nCalled from Parse_rule.parse_possibly_templated_rules in file \"src/parsing/Parse_rule.ml\", line 1336, characters 4-54\nCalled from Common.with_time in file \"src/pfff/commons/Common.ml\", line 215, characters 12-16\nCalled from Run_semgrep.semgrep_with_raw_results_and_exn_handler in file \"src/runner/Run_semgrep.ml\", line 665, characters 6-97\n=====[ END error trace ]=====\n",
+      "path": "",
+      "type": "Fatal error"
     }
   ],
+  "paths": {
+    "_comment": "<add --verbose for a list of skipped paths>",
+    "scanned": []
+  },
+  "results": [],
   "version": "0.42"
 }
