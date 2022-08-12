@@ -438,7 +438,7 @@ let filter_irrelevant_rules_tests () =
 (*****************************************************************************)
 
 let get_extract_source_lang file rules =
-  let _, _, erules = R.partition_rules rules in
+  let _, erules = R.partition_rules rules in
   let erule_langs =
     erules |> Common.map (fun r -> r.R.languages) |> List.sort_uniq compare
   in
@@ -466,6 +466,7 @@ let extract_tests () =
 (* Tainting tests *)
 (*****************************************************************************)
 
+(*
 let tainting_test lang rules_file file =
   let rules =
     try Parse_rule.parse rules_file with
@@ -578,6 +579,7 @@ let lang_tainting_tests () =
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
     ]
+*)
 
 (*****************************************************************************)
 (* Full rule tests *)
@@ -706,7 +708,8 @@ let tests () =
       eval_regression_tests ();
       filter_irrelevant_rules_tests ();
       extract_tests ();
-      lang_tainting_tests ();
+      (* lang_tainting_tests ();
+      *)
       maturity_tests ();
       full_rule_regression_tests ();
       full_rule_semgrep_rules_regression_tests ();

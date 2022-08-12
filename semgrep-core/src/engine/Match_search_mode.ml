@@ -102,10 +102,10 @@ let debug_matches = ref false
 (* Helpers *)
 (*****************************************************************************)
 
-let (xpatterns_in_formula : S.sformula -> (Xpattern.t * R.inside option) list) =
+let (xpatterns_in_formula : S.sformula -> (Xpattern.t * 'a option) list) =
  fun e ->
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat inside -> Common.push (xpat, inside) res);
+  e |> S.visit_sformula (fun xpat -> Common.push (xpat, None) res);
   !res
 
 let partition_xpatterns xs =
@@ -152,9 +152,7 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      Xlang.t ->
-      Pattern.t * R.inside option * Xpattern.pattern_id * string ->
-      MR.t) =
+      Xlang.t -> Pattern.t * 'a option * Xpattern.pattern_id * string -> MR.t) =
  fun xlang (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
@@ -432,21 +430,24 @@ and nested_formula_has_matches env formula opt_context =
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
  fun env opt_context e ->
   match e with
-  | S.Leaf (xpat, inside) ->
+  | S.Leaf xpat ->
       let id = xpat.XP.pid in
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
       in
-      let kind =
-        match inside with
-        | Some R.Inside -> RM.Inside
-        | None when Xpattern.is_regexp xpat -> RM.Regexp
-        | None -> RM.Plain
-      in
+      let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
       match_results
       |> Common.map RM.match_result_to_range
       |> Common.map (fun r -> { r with RM.kind })
+  | S.Taint tspec ->
+      let evaluate_formula sformula =
+        evaluate_formula env opt_context sformula
+      in
+      Match_tainting_mode.get_matches_raw env tspec evaluate_formula
+  | S.Inside formula ->
+      evaluate_formula env opt_context formula
+      |> Common.map (fun r -> { r with RM.kind = RM.Inside })
   | S.Or xs ->
       xs |> Common.map (evaluate_formula env opt_context) |> List.flatten
   | S.And
@@ -582,11 +583,10 @@ and matches_of_formula config rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search pformula; _ } as r) hook
+let check_rule ({ R.mode = `Search formula; _ } as r) hook
     (default_config, equivs) xtarget =
   let config = r.R.options ||| default_config in
   let rule_id = fst r.id in
-  let formula = R.formula_of_pformula ~rule_id pformula in
   let res, final_ranges =
     matches_of_formula (config, equivs) r xtarget formula None
   in

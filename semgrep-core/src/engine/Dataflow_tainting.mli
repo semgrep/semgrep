@@ -11,14 +11,14 @@ type 'spec tmatch = { spec : 'spec; pm : Pattern_match.t; overlap : overlap }
 
 type a_propagator = {
   kind : [ `From | `To ];
-  prop : Rule.taint_propagator;
+  prop : Specialize_formula.taint_propagator;
   var : var; (* REMOVE USE prop.id *)
 }
 
 type config = {
   filepath : Common.filename;  (** File under analysis, for Deep Semgrep. *)
   rule_id : string;  (** Taint rule id, for Deep Semgrep. *)
-  is_source : AST_generic.any -> Rule.taint_source tmatch list;
+  is_source : AST_generic.any -> Specialize_formula.taint_source tmatch list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
   is_propagator : AST_generic.any -> a_propagator tmatch list;
@@ -51,10 +51,11 @@ type config = {
        * anyhow it's clearly incorrect to taint `Shell`, so a better solution was
        * needed (hence `pattern-propagators`).
        *)
-  is_sink : AST_generic.any -> Rule.taint_sink tmatch list;
+  is_sink : AST_generic.any -> Specialize_formula.taint_sink tmatch list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)
-  is_sanitizer : AST_generic.any -> Rule.taint_sanitizer tmatch list;
+  is_sanitizer :
+    AST_generic.any -> Specialize_formula.taint_sanitizer tmatch list;
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)

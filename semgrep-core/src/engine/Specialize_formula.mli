@@ -12,10 +12,39 @@ type selector = {
 }
 [@@deriving show]
 
-type sformula =
-  | Leaf of Xpattern.t * Rule.inside option
+(* These are exactly the same as what are in `Rule.ml`.
+   I'm doing it this way to avoid having to make like, 10 different types polymorphic,
+   which would make me feel bad and want to kick small puppies.
+*)
+type taint_source = {
+  source_formula : sformula;
+  label : string;
+  source_requires : AST_generic.expr;
+}
+
+and taint_sanitizer = { not_conflicting : bool; sanitizer_formula : sformula }
+
+and taint_propagator = {
+  propagate_formula : sformula;
+  from : Metavariable.mvar Rule.wrap;
+  to_ : Metavariable.mvar Rule.wrap;
+}
+
+and taint_sink = { sink_formula : sformula; sink_requires : AST_generic.expr }
+
+and taint_spec = {
+  sources : taint_source list;
+  propagators : taint_propagator list;
+  sanitizers : taint_sanitizer list;
+  sinks : taint_sink list;
+}
+
+and sformula =
+  | Leaf of Xpattern.t
   | And of sformula_and
   | Or of sformula list
+  | Inside of sformula
+  | Taint of taint_spec
   | Not of sformula
 
 and sformula_and = {
@@ -45,5 +74,4 @@ val formula_to_sformula : Rule.formula -> sformula
 (* Visitor *)
 (*****************************************************************************)
 
-val visit_sformula :
-  (Xpattern.t -> Rule.inside option -> unit) -> sformula -> unit
+val visit_sformula : (Xpattern.t -> unit) -> sformula -> unit

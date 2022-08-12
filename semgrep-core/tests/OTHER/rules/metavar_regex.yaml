@@ -5,8 +5,8 @@ rules:
   match:
     and:
     - foo($ARG)
-    - metavariable_regex:
-      - $ARG
-      - .*bar.*
+    where:
+    - metavariable: $ARG
+      regex: .*bar.*
   message: rule_template_message
   severity: ERROR
