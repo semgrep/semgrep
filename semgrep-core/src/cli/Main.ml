@@ -511,6 +511,9 @@ let all_actions () =
       " <metachecks file> <files or dirs>",
       Common.mk_action_n_arg (Check_rule.check_files mk_config Parse_rule.parse)
     );
+    ( "-translate_rules",
+      " <files or dirs>",
+      Common.mk_action_n_arg (Check_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
       Common.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse) );
