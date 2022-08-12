@@ -49,6 +49,8 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
+from semgrep.template_resolver import resolve_template_urls
+from semgrep.template_resolver import TemplateDirectory
 from semgrep.util import sub_check_output
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
@@ -618,10 +620,16 @@ class CoreRunner:
             if dump_command_for_core
             else tempfile.NamedTemporaryFile("w").name
         )
+        # template_dir = (
+        # TODO use custom context manager for dump_command_for_core
+        # option
+        # tempfile.TemporaryDirectory(prefix="templates")
+        # )
 
         with open(rule_file_name, "w+") as rule_file, open(
             target_file_name, "w+"
-        ) as target_file:
+        ) as target_file, TemplateDirectory(dump_command_for_core) as template_dir:
+            resolve_template_urls(rules, Path(template_dir.name))
 
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
@@ -629,6 +637,11 @@ class CoreRunner:
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
 
+            # Rules are dumped as JSON for two reasons:
+            # 1. Performance: JSON is faster to parse
+            # 2. Templated rules: currently, semgrep-core only supports
+            #    templated rules for JSON files. If this is changed to
+            #    dump rules using YAML, templated rules will fail to parse
             rule_file.write(
                 json.dumps(
                     {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
