@@ -319,11 +319,9 @@ and paths = {
 [@@deriving show]
 
 type search_mode = [ `Search of formula ] [@@deriving show]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract_spec ] [@@deriving show]
 type mode = [ search_mode | extract_mode ] [@@deriving show]
 type search_rule = search_mode rule_info [@@deriving show]
-type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
 type rule = mode rule_info [@@deriving show]
 
