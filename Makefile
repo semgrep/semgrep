@@ -45,7 +45,6 @@ build-core:
 rebuild:
 	git submodule update --init
 	-$(MAKE) clean
-	$(MAKE) config
 	$(MAKE) build
 
 # This is a best effort to install some external dependencies.
@@ -54,8 +53,11 @@ rebuild:
 .PHONY: setup
 setup:
 	git submodule update --init
+	# Fetch, build and install tree-sitter locally.
+	cd semgrep-core/src/ocaml-tree-sitter-core && ./configure
+	$(MAKE) -C semgrep-core/src/ocaml-tree-sitter-core setup
+	# Install OCaml dependencies (globally).
 	opam update -y
-	./scripts/install-tree-sitter-runtime
 	opam install -y --deps-only ./semgrep-core/src/pfff
 	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only ./semgrep-core
@@ -66,14 +68,6 @@ setup:
 dev-setup:
 	$(MAKE) setup
 	opam install -y --deps-only ./semgrep-core/dev
-
-# This needs to run initially or when something changed in the external
-# build environment. This typically looks for the location of libraries
-# and header files outside of the project.
-#
-.PHONY: config
-config:
-	cd semgrep-core/src/ocaml-tree-sitter-core && ./configure
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.

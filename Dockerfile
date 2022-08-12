@@ -30,7 +30,8 @@ ENV OPAMYES=true
 
 WORKDIR /semgrep/semgrep-core/src/ocaml-tree-sitter-core
 COPY --chown=user semgrep-core/src/ocaml-tree-sitter-core/ .
-RUN scripts/install-tree-sitter-lib
+RUN ./configure \
+ && make setup
 
 WORKDIR /semgrep/semgrep-core/src/pfff
 COPY --chown=user semgrep-core/src/pfff/*.opam .
