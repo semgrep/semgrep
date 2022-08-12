@@ -268,11 +268,6 @@ let parse_string_list env (key : key) e =
   in
   parse_list env key extract_string e
 
-let _parse_listi env (key : key) f x =
-  match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List.mapi f xs
-  | _ -> error_at_key env key ("Expected a list for " ^ fst key)
-
 let parse_bool env (key : key) x =
   match x.G.e with
   | G.L (String ("true", _)) -> true
@@ -918,15 +913,6 @@ and produce_constraint env dict indicator =
         match strip with
         | Some true -> R.rewrite_metavar_comparison_strip cond
         | _ -> cond
-        (* This error should be caught already in Parse_rule, this is just
-                defensive programming.
-            let error_msg =
-              "'metavariable-comparison' is missing 'metavariable' despite \
-                'strip: true'"
-            in
-            logger#error "%s" error_msg;
-            raise (InvalidRule (InvalidOther error_msg, rule_id, t))
-        *)
       in
       Left (t, R.CondEval cond)
   | Cfocus ->
@@ -1054,87 +1040,6 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
             sinks;
           } )
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
-
-(* NOTE: this is mostly deadcode! None of our rules are using
- * this new formula syntax directly (internally we do convert
- * old style formula to new formula, but we always use the old
- * syntax formula in yaml files).
- *)
-(*
-and parse_formula_new env (x : G.expr) : R.formula =
-  match x.G.e with
-  | G.Container
-      ( Dict,
-        ( _,
-          [
-            {
-              e = Container (Tuple, (_, [ { e = L (String key); _ }; value ], _));
-              _;
-            };
-          ],
-          _ ) ) -> (
-      let s, t = key in
-
-      match s with
-      | "and" ->
-          let xs = parse_list env key parse_formula_and_new value in
-          let fs, conds = Common.partition_either (fun x -> x) xs in
-          (* sanity check fs *)
-          let pos, _negs = R.split_and fs in
-          if pos = [] then
-            raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
-          R.And
-            {
-              conj_tok = t;
-              conjuncts = fs;
-              conditions = conds;
-              (* TODO: 'focus-metavariable:' *)
-              focus = [];
-            }
-      | "or" -> R.Or (t, parse_list env key parse_formula_new value)
-      | "not" -> R.Not (t, parse_formula_new env value)
-      | "inside" -> R.Inside (t, parse_pattern env value)
-      | "regex" ->
-          let x = parse_string_wrap env key value in
-          let xpat = XP.mk_xpat (XP.Regexp (parse_regexp env x)) x in
-          R.P (xpat)
-      | _ -> error_at_key env key ("Invalid key for formula_new " ^ fst key))
-  | _ -> R.P (parse_xpattern_expr env x)
-
-and parse_formula_and_new env (x : G.expr) :
-    (R.formula, R.tok * R.metavar_cond) Common.either =
-  match x.G.e with
-  | G.Container
-      ( Dict,
-        ( _,
-          [
-            {
-              e = Container (Tuple, (_, [ { e = L (String key); _ }; value ], _));
-              _;
-            };
-          ],
-          _ ) ) -> (
-      let s, t = key in
-
-      match s with
-      | "where" ->
-          let s = parse_string env key value in
-          Right (t, R.CondEval (parse_metavar_cond env key s))
-      | "metavariable_regex" -> (
-          match value.G.e with
-          | G.Container (Array, (_, [ mvar; re ], _)) ->
-              let mvar = parse_string env key mvar in
-              let x = parse_string_wrap env key re in
-              Right (t, R.CondRegexp (mvar, parse_regexp env x, false))
-          | G.Container (Array, (_, [ mvar; re; const_prop ], _)) ->
-              let mvar = parse_string env key mvar in
-              let x = parse_string_wrap env key re in
-              let const_prop = parse_bool env key const_prop in
-              Right (t, R.CondRegexp (mvar, parse_regexp env x, const_prop))
-          | _ -> error_at_expr env value "Expected a metavariable and regex")
-      | _ -> Left (parse_formula_new env x))
-  | _ -> Left (R.P (parse_xpattern_expr env x, None))
-*)
 
 (*****************************************************************************)
 (* Sub parsers taint *)
