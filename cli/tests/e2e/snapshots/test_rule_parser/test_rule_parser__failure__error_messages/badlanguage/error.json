@@ -1,33 +1,31 @@
 {
   "errors": [
     {
-      "code": 8,
+      "code": 4,
       "level": "error",
-      "long_msg": "unsupported language: intercal. supported languages are: bash, c, c#, c++, cpp, csharp, dart, docker, dockerfile, elixir, ex, generic, go, golang, hack, hcl, html, java, javascript, js, json, julia, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, sol, solidity, swift, terraform, tf, ts, typescript, vue, yaml",
-      "short_msg": "invalid language: intercal",
+      "long_msg": "Additional properties are not allowed ('pattern-either' was unexpected)",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "context_end": {
-            "col": 0,
-            "line": 8
-          },
-          "context_start": {
-            "col": 0,
-            "line": 6
-          },
           "end": {
-            "col": 26,
-            "line": 7
+            "col": 1,
+            "line": 9
           },
           "file": "rules/syntax/badlanguage.yaml",
           "source_hash": "a586ed585e5f1676161a6663c037292f13a97ff02aeb7fa9c62517732cc00766",
           "start": {
-            "col": 16,
-            "line": 7
+            "col": 5,
+            "line": 2
           }
         }
       ],
-      "type": "UnknownLanguageError"
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
     }
   ],
   "paths": {
