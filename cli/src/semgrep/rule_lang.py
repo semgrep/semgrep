@@ -439,6 +439,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
 class RuleValidation:
     REQUIRE_REGEX = re.compile(r"'(.*)' is a required property")
     PATTERN_KEYS = {
+        "match",
         "pattern",
         "pattern-either",
         "pattern-regex",

@@ -83,7 +83,7 @@ let error env t s =
 let unknown_metavar_in_comparison env f =
   let rec collect_metavars f : MV.mvar Set.t =
     match f with
-    | P ({ pat = _pat; pstr = pstr, _; pid = _pid }, _) ->
+    | P { pat = _pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
            that have a valid metavariable name. We should ideally have each
            matcher expose the metavariables it detects. *)
@@ -96,6 +96,40 @@ let unknown_metavar_in_comparison env f =
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
         let metavars = words |> List.filter Metavariable.is_metavar_name in
         Set.union (Set.of_list metavars) (Set.of_list ellipsis_metavars)
+    | Inside (_, f) -> collect_metavars f
+    | Taint (_, { sources; sanitizers; sinks; propagators }) ->
+        let union_sets sets =
+          List.fold_left
+            (* TODO originally we took the intersection, since strictly
+             * speaking a metavariable needs to be in all cases of a pattern-either
+             * to be bound. However, due to how the pattern is transformed, this
+             * is not always enforced, so the metacheck is too strict
+             *
+          (fun acc mv_set ->
+            if acc == Set.empty then mv_set else Set.inter acc mv_set)
+             *)
+              (fun acc mv_set -> Set.union acc mv_set)
+            Set.empty sets
+        in
+        [
+          Common.map collect_metavars
+            (Common.map (fun source -> source.R.source_formula) sources)
+          |> union_sets;
+          Common.map collect_metavars
+            (Common.map (fun sink -> sink.R.sink_formula) sinks)
+          |> union_sets;
+          Common.map collect_metavars
+            (Common.map
+               (fun propagator -> propagator.R.propagate_formula)
+               propagators)
+          |> union_sets;
+          Common.map collect_metavars
+            (Common.map
+               (fun sanitizer -> sanitizer.R.sanitizer_formula)
+               sanitizers)
+          |> union_sets;
+        ]
+        |> union_sets
     | Not (_, _) -> Set.empty
     | Or (_, xs) ->
         let mv_sets = Common.map collect_metavars xs in
@@ -110,7 +144,7 @@ let unknown_metavar_in_comparison env f =
            *)
             (fun acc mv_set -> Set.union acc mv_set)
           Set.empty mv_sets
-    | And { tok = _; conjuncts; conditions; focus } ->
+    | And { conj_tok = _; conjuncts; conditions; focus } ->
         let mv_sets = Common.map collect_metavars conjuncts in
         let mvs =
           List.fold_left
@@ -171,14 +205,11 @@ let check_formula env (lang : Xlang.t) f =
 (*****************************************************************************)
 
 let check r =
-  let rule_id = fst r.id in
   (* less: maybe we could also have formula_old specific checks *)
   match r.mode with
-  | `Search pf
-  | `Extract { pformula = pf; _ } ->
-      let f = Rule.formula_of_pformula ~rule_id pf in
+  | `Search f
+  | `Extract { formula = f; _ } ->
       check_formula { r; errors = ref [] } r.languages f
-  | `Taint _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =
@@ -294,3 +325,204 @@ let stat_files fparser xs =
                     let s = Semgrep_prefilter_j.string_of_formula f in
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)
+
+let expr_to_string expr =
+  let { AST_generic.e_range; _ } = expr in
+  match e_range with
+  | Some (start, end_) ->
+      let source_file = open_in_bin start.file in
+      let extract_size = end_.charpos - start.charpos in
+      seek_in source_file start.charpos;
+      really_input_string source_file extract_size
+  | None -> failwith "invalid source/sink requires"
+
+let rec translate_taint_source source : [> `O of (string * Yaml.value) list ] =
+  let (`O source_f) = translate_formula source.source_formula in
+  `O
+    (source_f
+    @
+    if source.label = Rule.default_source_label then []
+    else
+      [ ("label", `String source.label) ]
+      @
+      match source.source_requires.e with
+      | G.L (G.Bool (true, _)) -> []
+      | _ -> [ ("requires", `String (expr_to_string source.source_requires)) ])
+
+and translate_taint_sink sink : [> `O of (string * Yaml.value) list ] =
+  let (`O sink_f) = translate_formula sink.sink_formula in
+  `O
+    (sink_f
+    @
+    match sink.sink_requires.e with
+    | G.N (G.Id (name, _)) when fst name = Rule.default_source_label -> []
+    | _ -> [ ("requires", `String (expr_to_string sink.sink_requires)) ])
+
+and translate_taint_sanitizer san : [> `O of (string * Yaml.value) list ] =
+  let (`O san_f) = translate_formula san.sanitizer_formula in
+  `O
+    (san_f
+    @ if san.not_conflicting then [ ("not-conflicting", `Bool true) ] else [])
+
+and translate_taint_propagator prop : [> `O of (string * Yaml.value) list ] =
+  let (`O prop_f) = translate_formula prop.propagate_formula in
+  `O
+    (prop_f
+    @ [ ("from", `String (fst prop.from)); ("to", `String (fst prop.to_)) ])
+
+and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
+  match cond with
+  | CondEval e -> `O [ ("comparison", `String (expr_to_string e)) ]
+  | CondRegexp (mv, re, _) ->
+      `O
+        [
+          ("metavariable", `String mv);
+          ("regex", `String (Regexp_engine.pcre_pattern re));
+        ]
+  | CondAnalysis (mv, analysis) ->
+      `O
+        [
+          ("metavariable", `String mv);
+          ( "analyzer",
+            `String
+              (match analysis with
+              | CondEntropy -> "entropy"
+              | CondReDoS -> "redos") );
+        ]
+  | CondNestedFormula (mv, lang, f) ->
+      let (`O fs) = translate_formula f in
+      `O
+        ([ ("metavariable", `String mv) ]
+        @ fs
+        @
+        match lang with
+        | None -> []
+        | Some x -> [ ("language", `String (Xlang.to_string x)) ])
+
+and translate_formula f : [> `O of (string * Yaml.value) list ] =
+  match f with
+  | P { pat; pstr; _ } -> (
+      match pat with
+      | Sem (_, _)
+      | Spacegrep _ ->
+          `O [ ("pattern", `String (fst pstr)) ]
+      | Regexp _ -> `O [ ("regex", `String (fst pstr)) ]
+      | Comby _ -> failwith "comby not supported in new")
+  | Inside (_, f) -> `O [ ("inside", (translate_formula f :> Yaml.value)) ]
+  | Taint (_, { sinks; sources; sanitizers; propagators }) ->
+      `O
+        [
+          ( "taint",
+            `O
+              ([ ("sources", `A (Common.map translate_taint_source sources)) ]
+              @ (if propagators = [] then []
+                else
+                  [
+                    ( "propagators",
+                      `A (Common.map translate_taint_propagator propagators) );
+                  ])
+              @ (if sanitizers = [] then []
+                else
+                  [
+                    ( "sanitizers",
+                      `A (Common.map translate_taint_sanitizer sanitizers) );
+                  ])
+              @ [ ("sinks", `A (Common.map translate_taint_sink sinks)) ]) );
+        ]
+  | And { conjuncts; focus; conditions; _ } ->
+      `O
+        (("and", `A (Common.map translate_formula conjuncts :> Yaml.value list))
+        ::
+        (if focus = [] && conditions = [] then []
+        else
+          [
+            ( "where",
+              `A
+                (Common.map
+                   (fun (_, cond) -> translate_metavar_cond cond)
+                   conditions
+                @ Common.map (fun (_, mv) -> `O [ ("focus", `String mv) ]) focus
+                ) );
+          ]))
+  | Or (_, fs) ->
+      `O [ ("or", `A (Common.map translate_formula fs :> Yaml.value list)) ]
+  | Not (_, f) -> `O [ ("not", (translate_formula f :> Yaml.value)) ]
+
+let rec json_to_yaml json : Yaml.value =
+  match json with
+  | JSON.Object fields ->
+      `O (Common.map (fun (name, value) -> (name, json_to_yaml value)) fields)
+  | Array items -> `A (Common.map json_to_yaml items)
+  | String s -> `String s
+  | Int i -> `Float (float_of_int i)
+  | Float f -> `Float f
+  | Bool b -> `Bool b
+  | Null -> `Null
+
+let replace_pattern rule_fields translated_formula =
+  List.concat_map
+    (fun (name, value) ->
+      (* Remove all taint fields, except replace sources with translation *)
+      if name = "mode" && value = `String "taint" then []
+      else if
+        List.mem name
+          [ "pattern-sinks"; "pattern-sanitizers"; "pattern-propagators" ]
+      then []
+      else if
+        (* Replace top level pattern with translation *)
+        List.mem name
+          [
+            "pattern";
+            "patterns";
+            "pattern-either";
+            "pattern-regex";
+            "pattern-comby";
+            "pattern-sources";
+          ]
+      then [ ("match", translated_formula) ]
+      else [ (name, value) ])
+    rule_fields
+
+let translate_files fparser xs =
+  let formulas_by_file =
+    xs
+    |> Common.map (fun file ->
+           logger#info "processing %s" file;
+           let formulas =
+             fparser file
+             |> Common.map (fun rule ->
+                    match rule.mode with
+                    | `Search formula
+                    | `Extract { formula; _ } ->
+                        (formula |> translate_formula :> Yaml.value))
+           in
+           (file, formulas))
+  in
+  List.iter
+    (fun (file, formulas) ->
+      let rules =
+        match FT.file_type_of_file file with
+        | FT.Config FT.Json ->
+            Common.read_file file |> JSON.json_of_string |> json_to_yaml
+        | FT.Config FT.Yaml ->
+            Yaml.of_string (Common.read_file file) |> Result.get_ok
+        | _ ->
+            logger#error "wrong rule format, only JSON/YAML/JSONNET are valid";
+            logger#info "trying to parse %s as YAML" file;
+            Yaml.of_string (Common.read_file file) |> Result.get_ok
+      in
+      match rules with
+      | `O [ ("rules", `A rules) ] ->
+          let new_rules =
+            List.map2
+              (fun rule new_formula ->
+                match rule with
+                | `O rule_fields -> `O (replace_pattern rule_fields new_formula)
+                | _ -> failwith "wrong syntax")
+              rules formulas
+          in
+          `O [ ("rules", `A new_rules) ]
+          |> Yaml.to_string ~len:5242880 ~encoding:`Utf8 ~layout_style:`Block
+          |> Result.get_ok |> pr
+      | _ -> failwith "wrong syntax")
+    formulas_by_file

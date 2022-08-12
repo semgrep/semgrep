@@ -15,6 +15,7 @@
 
 module G = AST_generic
 module PM = Pattern_match
+module S = Specialize_formula
 
 type tainted_tokens = G.tok list [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
@@ -28,8 +29,8 @@ type 'a call_trace =
   | Call of G.expr * tainted_tokens * 'a call_trace
 [@@deriving show]
 
-type source = Rule.taint_source call_trace [@@deriving show]
-type sink = Rule.taint_sink call_trace [@@deriving show]
+type source = S.taint_source call_trace [@@deriving show]
+type sink = S.taint_sink call_trace [@@deriving show]
 type arg_pos = int [@@deriving show]
 
 type source_to_sink = {

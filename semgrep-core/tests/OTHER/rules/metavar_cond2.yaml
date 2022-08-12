@@ -5,6 +5,7 @@ rules:
   match:
     and:
     - foo($ARG)
-    - where: $ARG > 10
+    where:
+    - comparison: $ARG > 10
   message: rule_template_message
   severity: ERROR
