@@ -1,31 +1,11 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 2,
       "level": "error",
-      "long_msg": "'4' is not of type 'object'",
-      "short_msg": "Invalid rule schema",
-      "spans": [
-        {
-          "end": {
-            "col": 12,
-            "line": 5
-          },
-          "file": "rules/syntax/bad5.yaml",
-          "source_hash": "5c4f00f11940b0b9526ec7832ba2b1b539877e705bc7d73a4421db5a7006eba9",
-          "start": {
-            "col": 9,
-            "line": 5
-          }
-        }
-      ],
-      "type": "InvalidRuleSchemaError"
-    },
-    {
-      "code": 7,
-      "level": "error",
-      "message": "Ran with --strict and got 1 error while loading configs",
-      "type": "SemgrepError"
+      "message": "Rule parse error in rule rules.syntax.arg-reassign:\n Wrong parse_formula fields",
+      "rule_id": "rules.syntax.arg-reassign",
+      "type": "Rule parse error"
     }
   ],
   "paths": {
