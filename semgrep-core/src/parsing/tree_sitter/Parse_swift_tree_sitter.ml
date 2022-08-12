@@ -713,8 +713,11 @@ let rec map_annotated_inheritance_specifier (env : env)
   let v2 = map_inheritance_specifier env v2 in
   v2
 
-and map_enum_entry_suffix_union (env : env) (ident : G.ident)
-    (x : CST.enum_entry_suffix) : G.type_ =
+(* Similarly to how Java handles enum fields, each are parsed as an
+   EnumEntryDef.
+*)
+and map_enum_entry_suffix (env : env) (ent : G.entity)
+    (x : CST.enum_entry_suffix) : G.stmt =
   match x with
   | `Enum_type_params (v1, v2, v3) ->
       let v1 = (* "(" *) token env v1 in
@@ -749,16 +752,12 @@ and map_enum_entry_suffix_union (env : env) (ident : G.ident)
         | None -> []
       in
       let v3 = (* ")" *) token env v3 in
-      G.TyRecordAnon ((G.Class, v1), (v1, fields, v3)) |> G.t
-  | `Equal_sign_exp (v1, v2) -> raise Common.Impossible
-
-(* Similarly to how Java handles enum fields, each are parsed as an
-   EnumEntryDef.
-*)
-and map_enum_entry_suffix_raw (env : env) (ent : G.entity)
-    (x : CST.enum_entry_suffix) : G.stmt =
-  match x with
-  | `Enum_type_params (v1, v2, v3) -> raise Common.Impossible
+      let ty = G.TyRecordAnon ((G.Class, v1), (v1, fields, v3)) |> G.t in
+      let defkind =
+        G.EnumEntryDef
+          { ee_args = Some (G.fake_bracket [ G.ArgType ty ]); ee_body = None }
+      in
+      G.DefStmt (ent, defkind) |> G.s
   | `Equal_sign_exp (v1, v2) ->
       let v1 = (* eq_custom *) token env v1 in
       let exp = map_expression env v2 in
@@ -1373,49 +1372,21 @@ and map_enum_class_body (is_raw : bool) (enum_ident : G.ident) (env : env)
      Vice versa for the opposite.
   *)
   let fields =
-    if is_raw then
-      let fields =
-        Common.map
-          (fun x ->
-            match x with
-            | `Enum_entry x -> map_enum_entry_raw env x
-            | `Type_level_decl x -> map_type_level_declaration env x)
-          v2
-        |> List.concat_map (fun fields -> Common.map (fun x -> G.F x) fields)
-      in
-      fields
-    else
-      (* Get all of the enum variants, and put them at the front as an OrType declaration.
-         This is because we can't really leave them strewn about and preserve ordering, if we're
-         gonna put them in an OrType.
-      *)
-      let collect_entries entries =
-        List.fold_right
-          (fun entry (variants, decls) ->
-            match entry with
-            | Either.Left new_variants -> (new_variants @ variants, decls)
-            | Right new_decls -> (variants, new_decls @ decls))
-          entries ([], [])
-      in
-      let or_type_elems, stmts =
-        Common.map
-          (fun x ->
-            match x with
-            | `Enum_entry x -> Either.Left (map_enum_entry_union env x)
-            | `Type_level_decl x ->
-                Either.Right (map_type_level_declaration env x))
-          v2
-        |> collect_entries
-      in
-      let type_def = { G.tbody = OrType or_type_elems } in
-      (G.DefStmt (G.basic_entity enum_ident, G.TypeDef type_def) |> G.s)
-      :: stmts
-      |> Common.map (fun x -> G.F x)
+    let fields =
+      Common.map
+        (fun x ->
+          match x with
+          | `Enum_entry x -> map_enum_entry env x
+          | `Type_level_decl x -> map_type_level_declaration env x)
+        v2
+      |> List.concat_map (fun fields -> Common.map (fun x -> G.F x) fields)
+    in
+    fields
   in
   (v1, fields, v3)
 
-and map_enum_entry_raw (env : env)
-    ((v1, v2, v3, v4, v5, v6, _v7) : CST.enum_entry) : G.stmt list =
+and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, _v7) : CST.enum_entry)
+    : G.stmt list =
   let modifiers =
     let v2 =
       match v2 with
@@ -1429,45 +1400,13 @@ and map_enum_entry_raw (env : env)
     | None -> [])
     @ v2
   in
-
   let mk_variant id suffix_opt =
     let ent = G.basic_entity ~attrs:modifiers (map_simple_identifier env v4) in
     match v5 with
-    | Some x -> map_enum_entry_suffix_raw env ent x
+    | Some x -> map_enum_entry_suffix env ent x
     | None ->
         G.DefStmt (ent, G.EnumEntryDef { ee_args = None; ee_body = None })
         |> G.s
-  in
-  let variant_first = mk_variant v4 v5 in
-  let variants_rest = Common.map (fun (v1, v2, v3) -> mk_variant v2 v3) v6 in
-  variant_first :: variants_rest
-
-and map_enum_entry_union (env : env)
-    ((v1, v2, v3, v4, v5, v6, _v7) : CST.enum_entry) : G.or_type_element list =
-  (* This is weird... theoretically these modifiers should only apply to the variants
-     listed directly afterwards, but our generic AST can't really represent that
-     within an OrType without applying to the whole definition.
-  *)
-  let modifiers =
-    let v2 =
-      match v2 with
-      | Some tok ->
-          (* "indirect" *)
-          [ G.unhandled_keywordattr ("Indirect", token env tok) ]
-      | None -> []
-    in
-    (match v1 with
-    | Some x -> map_modifiers env x
-    | None -> [])
-    @ v2
-  in
-
-  let mk_variant id suffix_opt =
-    let ident = map_simple_identifier env v4 in
-    match v5 with
-    | Some x ->
-        G.OrConstructor (ident, [ map_enum_entry_suffix_union env ident x ])
-    | None -> G.OrConstructor (ident, [])
   in
   let variant_first = mk_variant v4 v5 in
   let variants_rest = Common.map (fun (v1, v2, v3) -> mk_variant v2 v3) v6 in
