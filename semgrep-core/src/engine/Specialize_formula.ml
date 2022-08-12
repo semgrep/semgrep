@@ -114,10 +114,10 @@ let formula_to_sformula formula =
     | R.Taint (_, { sources; propagators; sanitizers; sinks }) ->
         Taint
           {
-            sources = List.map convert_taint_source sources;
-            propagators = List.map convert_taint_propagator propagators;
-            sanitizers = List.map convert_taint_sanitizer sanitizers;
-            sinks = List.map convert_taint_sink sinks;
+            sources = Common.map convert_taint_source sources;
+            propagators = Common.map convert_taint_propagator propagators;
+            sanitizers = Common.map convert_taint_sanitizer sanitizers;
+            sinks = Common.map convert_taint_sink sinks;
           }
   and convert_taint_source { R.source_formula; label; source_requires } =
     {

@@ -1146,15 +1146,15 @@ let rec is_unconstrained f =
   | Inside (_, f) -> is_unconstrained f
   | Taint (_, { sources; sinks; sanitizers; propagators }) ->
       List.exists is_unconstrained
-        (List.map (fun source -> source.R.source_formula) sources)
+        (Common.map (fun source -> source.R.source_formula) sources)
       || List.exists is_unconstrained
-           (List.map (fun sink -> sink.R.sink_formula) sinks)
+           (Common.map (fun sink -> sink.R.sink_formula) sinks)
       || List.exists is_unconstrained
-           (List.map
+           (Common.map
               (fun propagator -> propagator.R.propagate_formula)
               propagators)
       || List.exists is_unconstrained
-           (List.map
+           (Common.map
               (fun sanitizer -> sanitizer.R.sanitizer_formula)
               sanitizers)
   | And { conjuncts; _ } ->
