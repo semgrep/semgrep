@@ -41,7 +41,7 @@ git submodule update --init --recursive --depth 1
   cd semgrep-core/src/ocaml-tree-sitter-core
   echo "Install tree-sitter runtime and prepare ocaml-tree-sitter source"
   ./configure
-  make setup
+  ./scripts/install-tree-sitter-lib
 
   echo "Install ocaml-tree-sitter-core dependencies"
   opam install --deps-only -y .

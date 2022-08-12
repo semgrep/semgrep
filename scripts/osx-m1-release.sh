@@ -14,12 +14,12 @@ eval "$(opam env)"
 export HOMEBREW_SYSTEM=1
 
 make setup
-make config
 
 # Remove dynamically linked libraries to force MacOS to use static ones
 # This needs to be done after make setup but before make build-*
-rm /usr/local/lib/libtree-sitter.0.0.dylib || true
-rm /usr/local/lib/libtree-sitter.dylib || true
+TREESITTER_LIBDIR=semgrep-core/src/ocaml-tree-sitter-core/tree-sitter/lib
+rm "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib || true
+rm "$TREESITTER_LIBDIR"/libtree-sitter.dylib || true
 
 make build-core
 

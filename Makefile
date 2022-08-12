@@ -53,9 +53,10 @@ rebuild:
 .PHONY: setup
 setup:
 	git submodule update --init
-	# Fetch, build and install tree-sitter locally.
-	cd semgrep-core/src/ocaml-tree-sitter-core && ./configure
-	$(MAKE) -C semgrep-core/src/ocaml-tree-sitter-core setup
+	# Fetch, build and install the tree-sitter runtime library locally.
+	cd semgrep-core/src/ocaml-tree-sitter-core \
+	&& ./configure \
+	&& ./scripts/install-tree-sitter-lib
 	# Install OCaml dependencies (globally).
 	opam update -y
 	opam install -y --deps-only ./semgrep-core/src/pfff
