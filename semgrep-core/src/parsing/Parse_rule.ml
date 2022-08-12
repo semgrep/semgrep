@@ -1347,7 +1347,9 @@ let parse_possibly_templated_rules error_recovery file ast =
      tokens for each rule are real, but they will be bad for levels above.
      This should be fine but needs to be tested *)
   let parsed_templated_rules, templated_errors =
-    parse_templated_rules templated_rules ("rules", t) |> parse_generic file
+    if templated_rules != [] then
+      parse_templated_rules templated_rules ("rules", t) |> parse_generic file
+    else ([], [])
   in
   let parsed_normal_rules, normal_errors =
     parse_generic ~error_recovery file recreated_normal_rules
