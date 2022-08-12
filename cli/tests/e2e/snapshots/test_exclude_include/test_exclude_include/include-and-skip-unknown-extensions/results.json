@@ -1,5 +1,33 @@
 {
-  "errors": [],
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "Additional properties are not allowed ('pattern' was unexpected)",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "end": {
+            "col": 3,
+            "line": 10
+          },
+          "file": "rules/eqeq.yaml",
+          "source_hash": "c62c80577139b4cbba3c5eaa496285c22575b02b05f34b1488e8348f865f224a",
+          "start": {
+            "col": 5,
+            "line": 2
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
+    }
+  ],
   "paths": {
     "_comment": "<add --verbose for a list of skipped paths>",
     "scanned": []

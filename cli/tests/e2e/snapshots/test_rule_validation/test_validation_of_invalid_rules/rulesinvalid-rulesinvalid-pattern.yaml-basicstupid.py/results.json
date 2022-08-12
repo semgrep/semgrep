@@ -1,37 +1,31 @@
 {
   "errors": [
     {
-      "code": 2,
+      "code": 4,
       "level": "error",
-      "message": "Pattern parse error in rule rules.invalid-rules.print:\n Invalid pattern for Python:\n--- pattern ---\nprint..);\n--- end pattern ---\nPattern error: Parsing.Parse_error\n",
-      "rule_id": "rules.invalid-rules.print",
+      "long_msg": "Additional properties are not allowed ('pattern' was unexpected)",
+      "short_msg": "Invalid rule schema",
       "spans": [
         {
-          "config_end": {
-            "col": 12,
-            "line": 0
-          },
-          "config_path": [
-            "rules",
-            "1",
-            "pattern"
-          ],
-          "config_start": {
-            "col": 1,
-            "line": 0
-          },
           "end": {
-            "col": 29,
-            "line": 18
+            "col": 1,
+            "line": 7
           },
-          "file": "tmp/masked/path",
+          "file": "rules/invalid-rules/invalid-pattern.yaml",
+          "source_hash": "cf816c71355a052980fa45210ff78ee08b20357b47e7ce4c0b8d5f343c3880cf",
           "start": {
-            "col": 18,
-            "line": 18
+            "col": 3,
+            "line": 2
           }
         }
       ],
-      "type": "Pattern parse error"
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "Ran with --strict and got 1 error while loading configs",
+      "type": "SemgrepError"
     }
   ],
   "paths": {

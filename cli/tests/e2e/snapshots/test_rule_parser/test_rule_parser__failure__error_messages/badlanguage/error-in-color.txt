@@ -1,9 +1,13 @@
-[31m[22m[24msemgrep error[0m: invalid language: intercal
-  --> rules/syntax/badlanguage.yaml:7
+[31m[22m[24msemgrep error[0m: Invalid rule schema
+  --> rules/syntax/badlanguage.yaml:2
+[94m[22m[24m2 | [0m  - id: arg-reassign
+[94m[22m[24m3 | [0m    pattern-either:
+[94m[22m[24m4 | [0m      - pattern: $X = 1
+[94m[22m[24m5 | [0m      - pattern: $X = 2
 [94m[22m[24m6 | [0m    message: "$X is being assigned to one or two"
 [94m[22m[24m7 | [0m    languages: [intercal]
-[94m[22m[24m  | [0m               [31m[22m[24m^^^^^^^^^^[0m
 [94m[22m[24m8 | [0m    severity: WARNING
 
-[31m[22m[24munsupported language: intercal. supported languages are: bash, c, c#, c++, cpp, csharp, dart, docker, dockerfile, elixir, ex, generic, go, golang, hack, hcl, html, java, javascript, js, json, julia, kotlin, kt, lua, none, ocaml, php, py, python, python2, python3, r, regex, ruby, rust, scala, sh, sol, solidity, swift, terraform, tf, ts, typescript, vue, yaml[0m
+[31m[22m[24mAdditional properties are not allowed ('pattern-either' was unexpected)[0m
 
+[31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m Ran with --strict and got 1 error while loading configs
