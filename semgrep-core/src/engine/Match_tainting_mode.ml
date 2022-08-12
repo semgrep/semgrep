@@ -346,15 +346,6 @@ let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
            else Some (range, spec))
   in
   let rule = env.rule in
-  (* These checks just allow the tainting analysis to know if anything
-     happens to lie in the range of a source, propagator, sanitizer, and sink.
-     Notably, dataflow analysis runs on every function definition.
-     This means that if we produce a different taint_config for each taint
-     sub-pattern, we're going to have to run dataflow on every function
-     for each rule...
-     Moreover, dataflow analysis produces findings for each time it's called, and
-     imperatively collects them. We would need to turn those back into ranges.
-  *)
   ( {
       Dataflow_tainting.filepath = env.xtarget.file;
       rule_id = fst rule.R.id;
@@ -490,84 +481,6 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   let _, xs = AST_to_IL.function_definition lang fdef in
   let flow = CFG_build.cfg_of_stmts xs in
   Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
-
-(* TODO: kill
-let check_rule rule match_hook (default_config, equivs) xtarget =
-  let matches = ref [] in
-  let { Xtarget.file; xlang; lazy_ast_and_errors; _ } = xtarget in
-  let lang =
-    match xlang with
-    | L (lang, _) -> lang
-    | LGeneric
-    | LRegex ->
-        failwith "taint-mode and generic/regex matching are incompatible"
-  in
-  let (ast, skipped_tokens), parse_time =
-    Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
-  in
-  let taint_config, debug_taint =
-    let handle_findings _ findings _env =
-      findings
-      |> List.iter (fun finding ->
-             pm_of_finding finding
-             |> Option.iter (fun pm -> Common.push pm matches))
-    in
-    get_taint_config env default_config equivs file (ast, []) rule
-      handle_findings
-  in
-
-  let fun_env = Hashtbl.create 8 in
-
-  let v =
-    V.mk_visitor
-      {
-        V.default_visitor with
-        V.kdef =
-          (fun (k, _v) ((ent, def_kind) as def) ->
-            match def_kind with
-            | G.FuncDef fdef ->
-                check_fundef lang fun_env taint_config (Some ent) fdef;
-                (* go into nested functions *)
-                k def
-            | __else__ -> k def);
-        V.kfunction_definition =
-          (fun (k, _v) def ->
-            check_fundef lang fun_env taint_config None def;
-            (* go into nested functions *)
-            k def);
-      }
-  in
-  (* Check each function definition. *)
-  v (G.Pr ast);
-  (* Check the top-level statements.
- * In scripting languages it is not unusual to write code outside
- * function declarations and we want to check this too. We simply
- * treat the program itself as an anonymous function. *)
-  let (), match_time =
-    Common.with_time (fun () ->
-        let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-        let flow = CFG_build.cfg_of_stmts xs in
-        Dataflow_tainting.fixpoint ~fun_env taint_config flow |> ignore)
-  in
-
-  let matches =
-    !matches
-    (* same post-processing as for search-mode in Match_rules.ml *)
-    |> PM.uniq
-    |> PM.no_submatches (* see "Taint-tracking via ranges" *)
-    |> Common.before_return (fun v ->
-           v
-           |> List.iter (fun (m : Pattern_match.t) ->
-                  let str = Common.spf "with rule %s" m.rule_id.id in
-                  match_hook str m))
-    |> Common.map (fun m ->
-           { m with PM.rule_id = convert_rule_id rule.Rule.id })
-  in
-  let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
-  ( RP.make_match_result matches errors
-      { RP.rule_id = fst rule.Rule.id; parse_time; match_time },
-    debug_taint )
- *)
 
 let get_matches_raw env taint_spec evaluate_fn =
   let matches = ref [] in
