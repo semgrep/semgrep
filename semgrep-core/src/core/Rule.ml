@@ -63,7 +63,7 @@ type formula =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of Xpattern.t (* a leaf pattern *) * inside option
-  | And of conjunction
+  | And of tok * conjunction
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -77,7 +77,6 @@ type formula =
  * See also split_and().
  *)
 and conjunction = {
-  tok : tok;
   (* pattern-inside:'s and pattern:'s *)
   conjuncts : formula list;
   (* metavariable-xyz:'s *)
@@ -237,10 +236,10 @@ let default_sink_requires tok =
   G.N (G.Id ((default_source_label, tok), G.empty_id_info ())) |> G.e
 
 type taint_spec = {
-  sources : taint_source list;
+  sources : tok * taint_source list;
   propagators : taint_propagator list;
   sanitizers : taint_sanitizer list;
-  sinks : taint_sink list;
+  sinks : tok * taint_sink list;
 }
 [@@deriving show]
 
@@ -417,12 +416,12 @@ let rec visit_new_formula f formula =
   | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
-  | And { conjuncts = xs; _ } ->
+  | And (_, { conjuncts = xs; _ }) ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And { tok = t; _ }
+  | And (t, _)
   | Or (t, _)
   | Not (t, _) ->
       t
@@ -489,7 +488,7 @@ let remove_noop (e : formula_old) : formula_old =
   aux e
 
 (* return list of "positive" x list of Not *)
-let split_and : formula list -> formula list * formula list =
+let split_and : formula list -> formula list * (tok * formula) list =
  fun xs ->
   xs
   |> Common.partition_either (fun e ->
@@ -500,7 +499,7 @@ let split_and : formula list -> formula list * formula list =
          | Or _ ->
              Left e
          (* negatives *)
-         | Not (_, f) -> Right f)
+         | Not (tok, f) -> Right (tok, f))
 
 let rec (convert_formula_old :
           ?in_metavariable_pattern:bool ->
@@ -522,7 +521,7 @@ let rec (convert_formula_old :
         let pos, _ = split_and fs in
         if pos = [] && not in_metavariable_pattern then
           raise (InvalidRule (MissingPositiveTermInAnd, rule_id, t));
-        And { tok = t; conjuncts = fs; conditions = conds; focus }
+        And (t, { conjuncts = fs; conditions = conds; focus })
     | PatExtra (t, _) ->
         raise
           (InvalidYaml

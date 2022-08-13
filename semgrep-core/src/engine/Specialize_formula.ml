@@ -15,19 +15,19 @@ type selector = {
 
 type sformula =
   | Leaf of Xpattern.t * R.inside option
-  | And of sformula_and
-  | Or of sformula list
+  | And of Rule.tok * sformula_and
+  | Or of Rule.tok * sformula list
   (* There are restrictions on where a Not can appear in a formula. It
    * should always be inside an And to be intersected with "positive" formula.
    *)
-  | Not of sformula
+  | Not of Rule.tok * sformula
 
 and sformula_and = {
   selector_opt : selector option;
   positives : sformula list;
-  negatives : sformula list;
-  conditionals : R.metavar_cond list;
-  focus : MV.mvar list;
+  negatives : (Rule.tok * sformula) list;
+  conditionals : (Rule.tok * R.metavar_cond) list;
+  focus : (Rule.tok * MV.mvar) list;
 }
 [@@deriving show]
 
@@ -77,14 +77,14 @@ let formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
     | R.P (p, inside) -> Leaf (p, inside)
-    | R.And { tok = _; conjuncts = fs; conditions = conds; focus } ->
-        And (convert_and_formulas fs conds focus)
-    | R.Or (_, fs) -> Or (Common.map formula_to_sformula fs)
-    | R.Not (_, f) -> Not (formula_to_sformula f)
-  and convert_and_formulas fs cond focus =
+    | R.And (tok, { conjuncts = fs; conditions = conds; focus }) ->
+        And (tok, convert_and_formulas fs conds focus)
+    | R.Or (tok, fs) -> Or (tok, Common.map formula_to_sformula fs)
+    | R.Not (tok, f) -> Not (tok, formula_to_sformula f)
+  and convert_and_formulas fs conditionals focus =
     let pos, neg = Rule.split_and fs in
     let pos = Common.map formula_to_sformula pos in
-    let neg = Common.map formula_to_sformula neg in
+    let neg = Common.map (fun (t, f) -> (t, formula_to_sformula f)) neg in
     let sel, pos =
       (* We only want a selector if there is something to select from. *)
       match remove_selectors (None, []) pos with
@@ -95,8 +95,8 @@ let formula_to_sformula formula =
       selector_opt = sel;
       positives = pos;
       negatives = neg;
-      conditionals = cond |> Common.map snd;
-      focus = focus |> Common.map snd;
+      conditionals;
+      focus;
     }
   in
   formula_to_sformula formula
@@ -108,8 +108,8 @@ let formula_to_sformula formula =
 let rec visit_sformula f formula =
   match formula with
   | Leaf (p, i) -> f p i
-  | Not x -> visit_sformula f x
-  | Or xs -> xs |> List.iter (visit_sformula f)
-  | And fand ->
+  | Not (_, x) -> visit_sformula f x
+  | Or (_, xs) -> xs |> List.iter (visit_sformula f)
+  | And (_, fand) ->
       fand.positives |> List.iter (visit_sformula f);
-      fand.negatives |> List.iter (visit_sformula f)
+      fand.negatives |> List.iter (fun (_tk, x) -> visit_sformula f x)

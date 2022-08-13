@@ -133,12 +133,12 @@ let option_map f xs =
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And { tok = t; conjuncts = xs; conditions = conds; focus } ->
+  | R.And (t, { conjuncts = xs; conditions = conds; focus }) ->
       let ys = Common.map_filter remove_not xs in
       if null ys then (
         logger#warning "null And after remove_not";
         None)
-      else Some (R.And { tok = t; conjuncts = ys; conditions = conds; focus })
+      else Some (R.And (t, { conjuncts = ys; conditions = conds; focus }))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
@@ -194,7 +194,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.And { conjuncts = xs; conditions = conds; _ } ->
+  | R.And (_, { conjuncts = xs; conditions = conds; _ }) ->
       let ys = Common.map cnf xs in
       let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
       And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
@@ -548,12 +548,12 @@ let regexp_prefilter_of_formula f : prefilter option =
 let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
-    taint_spec.R.sources
+    taint_spec.R.sources |> snd
     |> Common.map (fun (src : R.taint_source) ->
            R.formula_of_pformula ~rule_id src.formula)
   in
   let sinks =
-    taint_spec.R.sinks
+    taint_spec.R.sinks |> snd
     |> Common.map (fun (sink : R.taint_sink) ->
            R.formula_of_pformula ~rule_id sink.formula)
   in
@@ -562,12 +562,12 @@ let regexp_prefilter_of_taint_rule (rule_id, rule_tok) taint_spec =
      * if executed by search-mode, but it works for the purpose of this
      * analysis! *)
     R.And
-      {
-        tok = rule_tok;
-        conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
-        conditions = [];
-        focus = [];
-      }
+      ( rule_tok,
+        {
+          conjuncts = [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ];
+          conditions = [];
+          focus = [];
+        } )
   in
   regexp_prefilter_of_formula f
 

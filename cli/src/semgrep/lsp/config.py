@@ -13,6 +13,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.commands.ci
+import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
@@ -239,6 +240,7 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
         ],
     ]:
@@ -281,6 +283,7 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
         ],
     ]:
@@ -300,6 +303,7 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
         ],
     ]:

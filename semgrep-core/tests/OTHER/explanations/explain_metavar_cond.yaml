@@ -1,0 +1,10 @@
+rules:
+- id: explain
+  patterns:
+    - pattern: foo($X)
+    - metavariable-comparison:
+        metavariable: $X
+        comparison: $X >= 10
+  message: found it
+  languages: [python]
+  severity: WARNING

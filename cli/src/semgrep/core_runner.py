@@ -595,6 +595,7 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
         ParsingData,
+        Optional[List[core.MatchingExplanation]],
     ]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -778,7 +779,14 @@ class CoreRunner:
         os.remove(rule_file_name)
         os.remove(target_file_name)
 
-        return outputs, errors, all_targets, profiling_data, parsing_data
+        return (
+            outputs,
+            errors,
+            all_targets,
+            profiling_data,
+            parsing_data,
+            core_output.explanations,
+        )
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -794,6 +802,7 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
         ParsingData,
+        Optional[List[core.MatchingExplanation]],
     ]:
         """
         Takes in rules and targets and retuns object with findings
@@ -806,6 +815,7 @@ class CoreRunner:
             all_targets,
             profiling_data,
             parsing_data,
+            explanations,
         ) = self._run_rules_direct_to_semgrep_core(
             rules, target_manager, dump_command_for_core, deep
         )
@@ -822,7 +832,14 @@ class CoreRunner:
         ]
         logger.debug(f'findings summary: {", ".join(by_sev_strings)}')
 
-        return (findings_by_rule, errors, all_targets, profiling_data, parsing_data)
+        return (
+            findings_by_rule,
+            errors,
+            all_targets,
+            profiling_data,
+            parsing_data,
+            explanations,
+        )
 
     def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
         metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
