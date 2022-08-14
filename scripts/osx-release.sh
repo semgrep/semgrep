@@ -15,12 +15,12 @@ eval "$(opam env)"
 rm /usr/local/opt/pcre/lib/libpcre.1.dylib
 
 make setup
-make config
 
 # Remove dynamically linked libraries to force MacOS to use static ones
 # This needs to be done after make setup but before make build-*
-rm /usr/local/lib/libtree-sitter.0.0.dylib
-rm /usr/local/lib/libtree-sitter.dylib
+TREESITTER_LIBDIR=semgrep-core/src/ocaml-tree-sitter-core/tree-sitter/lib
+rm "$TREESITTER_LIBDIR"/libtree-sitter.0.0.dylib
+rm "$TREESITTER_LIBDIR"/libtree-sitter.dylib
 
 make build-core
 
