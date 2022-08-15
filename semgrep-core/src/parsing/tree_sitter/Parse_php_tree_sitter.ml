@@ -1025,6 +1025,7 @@ and map_function_name env tok =
   let id = _str env tok in
   let str, tok = id in
   match String.lowercase_ascii str with
+  | "die" -> A.IdSpecial (A.FuncLike A.Exit, tok)
   | "empty" -> A.IdSpecial (A.FuncLike A.Empty, tok)
   | "eval" -> A.IdSpecial (A.FuncLike A.Eval, tok)
   | "exit" -> A.IdSpecial (A.FuncLike A.Exit, tok)
