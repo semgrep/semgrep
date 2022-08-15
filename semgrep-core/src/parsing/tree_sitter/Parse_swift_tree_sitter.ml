@@ -2886,7 +2886,7 @@ and map_tuple_type (env : env) ((v1, v2, v3) : CST.tuple_type) =
               v2)
             v2
         in
-        List.map (fun x -> G.F x) (v1 :: v2)
+        Common.map (fun x -> G.F x) (v1 :: v2)
     | None -> []
   in
   let v3 = (* ")" *) token env v3 in
