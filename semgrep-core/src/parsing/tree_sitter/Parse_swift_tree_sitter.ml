@@ -1361,7 +1361,7 @@ and map_else_options (env : env) (x : CST.else_options) =
   | `Blk x -> map_block env x
   | `If_stmt x -> map_if_statement env x
 
-and map_enum_class_body (is_raw : bool) (enum_ident : G.ident) (env : env)
+and map_enum_class_body (enum_ident : G.ident) (env : env)
     ((v1, v2, v3) : CST.enum_class_body) =
   let v1 = (* "{" *) token env v1 in
   let v3 = (* "}" *) token env v3 in
@@ -1369,16 +1369,13 @@ and map_enum_class_body (is_raw : bool) (enum_ident : G.ident) (env : env)
      Vice versa for the opposite.
   *)
   let fields =
-    let fields =
-      Common.map
-        (fun x ->
-          match x with
-          | `Enum_entry x -> map_enum_entry env x
-          | `Type_level_decl x -> map_type_level_declaration env x)
-        v2
-      |> List.concat_map (fun fields -> Common.map (fun x -> G.F x) fields)
-    in
-    fields
+    Common.map
+      (fun x ->
+        match x with
+        | `Enum_entry x -> map_enum_entry env x
+        | `Type_level_decl x -> map_type_level_declaration env x)
+      v2
+    |> List.concat_map (fun fields -> Common.map (fun x -> G.F x) fields)
   in
   (v1, fields, v3)
 
@@ -1719,15 +1716,15 @@ and map_arguments (env : env) ((v1, v2) : CST.interpolation_contents) :
   in
   v1 @ v2
 
-and _map_key_path_component (env : env) (x : CST.key_path_component) =
+and map_key_path_component (env : env) (x : CST.key_path_component) =
   match x with
   | `Simple_id_rep_key_path_postfs (v1, v2) ->
       let v1 = map_simple_identifier env v1 in
-      let v2 = Common.map (_map_key_path_postfixes env) v2 in
+      let v2 = Common.map (map_key_path_postfixes env) v2 in
       todo env (v1, v2)
-  | `Rep1_key_path_postfs xs -> Common.map (_map_key_path_postfixes env) xs
+  | `Rep1_key_path_postfs xs -> Common.map (map_key_path_postfixes env) xs
 
-and _map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
+and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
   match x with
   | `QMARK tok -> (* "?" *) token env tok
   | `Bang tok -> (* bang *) token env tok
@@ -1887,9 +1884,10 @@ and map_lambda_parameter (env : env) ((v1, v2) : CST.lambda_parameter) :
         let v2 = map_simple_identifier env v2 in
         let v3 = (* ":" *) token env v3 in
         let attrs =
-          match v4 with
+          (match v4 with
           | Some x -> map_parameter_modifiers env x
-          | None -> []
+          | None -> [])
+          @ attrs
         in
         let v5 = map_possibly_implicitly_unwrapped_type env v5 in
         let ty = { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
@@ -2008,18 +2006,6 @@ and construct_class_def :
   let entity = { ent with G.attrs = type_constraints @ ent.G.attrs } in
   G.DefStmt (entity, G.ClassDef definition_kind) |> G.s
 
-(* TODO?: probably not complete, but that's OK *)
-and is_raw_type env s =
-  match s with
-  | "Int"
-  | "Double"
-  | "String"
-  | "Float"
-  | "UInt"
-  | "Character" ->
-      true
-  | _ -> false
-
 and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
     (x : CST.modifierless_class_declaration) =
   match x with
@@ -2080,16 +2066,8 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
          base type like integers, floating point values, or whatever.
          It's just kind of a pain to extract that information.
       *)
-      let is_raw =
-        match v5 with
-        | Some (_, (spec, _)) -> (
-            match (map_annotated_inheritance_specifier env spec).G.t with
-            | G.TyN (Id ((s, _), _)) -> is_raw_type env s
-            | _ -> false)
-        | _ -> false
-      in
       let entity = G.basic_entity ~attrs ~tparams v3 in
-      construct_class_def env v2 v5 entity v6 v7 (map_enum_class_body is_raw v3)
+      construct_class_def env v2 v5 entity v6 v7 (map_enum_class_body v3)
 
 and map_modifierless_function_declaration (env : env) (attrs : G.attribute list)
     ((v1, v2) : CST.modifierless_function_declaration) =
@@ -2489,31 +2467,29 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       G.Await (v1, v2) |> G.e
   | `Refe_op x -> map_referenceable_operator env x |> snd |> G.e
   | `Key_path_exp (v1, v2, v3) ->
-      (*let v1 = (* "\\" *) token env v1 in
-        let v2 =
-          match v2 with
-          | Some x -> (
-              match x with
-              | `Simple_user_type x ->
-                  let id, targs = map_simple_user_type env x in
-                  let name = H2.name_of_id id in
-                  let name = H2.add_type_args_opt_to_name name targs in
-                  G.TyN name |> G.t
-              | `Array_type x -> map_array_type env x
-              | `Dict_type x -> map_dictionary_type env x)
-          | None -> todo env ()
-        in
-        let v3 =
-          Common.map
-            (fun (v1, v2) ->
-              let v1 = (* "." *) token env v1 in
-              let v2 = map_key_path_component env v2 in
-              todo env (v1, v2))
-            v3
-        in
-        todo env (v1, v2, v3)
-      *)
-      G.StmtExpr (G.Block (G.fake_bracket []) |> G.s) |> G.e
+      let v1 = (* "\\" *) token env v1 in
+      let v2 =
+        match v2 with
+        | Some x -> (
+            match x with
+            | `Simple_user_type x ->
+                let id, targs = map_simple_user_type env x in
+                let name = H2.name_of_id id in
+                let name = H2.add_type_args_opt_to_name name targs in
+                G.TyN name |> G.t
+            | `Array_type x -> map_array_type env x
+            | `Dict_type x -> map_dictionary_type env x)
+        | None -> todo env ()
+      in
+      let v3 =
+        Common.map
+          (fun (v1, v2) ->
+            let v1 = (* "." *) token env v1 in
+            let v2 = map_key_path_component env v2 in
+            todo env (v1, v2))
+          v3
+      in
+      todo env (v1, v2, v3)
   | `Key_path_str_exp (v1, v2, v3, v4) ->
       let v1 = (* "#keyPath" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
