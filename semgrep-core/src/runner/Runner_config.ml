@@ -4,7 +4,11 @@ open Common
    Type definitions, mostly.
 *)
 
-type output_format = Text | Json [@@deriving show]
+(* in JSON mode, we might need to display intermediate '.' in the
+ * output for semgrep to track progress as well as extra targets
+ * found by extract rules.
+ *)
+type output_format = Text | Json of bool (* dots *) [@@deriving show]
 
 type t = {
   (* Debugging/profiling/logging flags *)
@@ -16,6 +20,7 @@ type t = {
   report_time : bool;
   error_recovery : bool;
   profile_start : float;
+  matching_explanations : bool;
   (* Main flags *)
   pattern_string : string;
   pattern_file : filename;

@@ -1,4 +1,4 @@
-(********************************************************************************
+(******************************************************************************
  * Full result information
  *
  * In addition to the results (matches + errors), we also may report extra
@@ -44,14 +44,14 @@
  *
  * TODO: We could use atdgen to specify those to factorize type definitions
  * that have to be present anyway in Output_from_core.atd.
- ********************************************************************************)
+ *****************************************************************************)
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(********************************************************************************)
+(*****************************************************************************)
 (* Options for what extra debugging information to output.
    These are generally memory intensive fields that aren't strictly needed *)
-(********************************************************************************)
+(*****************************************************************************)
 
 (* Coupling: the debug_info variant of each result record should always
       be the same as the mode's variant *)
@@ -71,9 +71,9 @@ type 'a debug_info =
 
 let mode = ref MNo_info
 
-(********************************************************************************)
+(*****************************************************************************)
 (* Different formats for profiling information as we have access to more data *)
-(********************************************************************************)
+(*****************************************************************************)
 
 (* Save time information as we run each rule *)
 
@@ -115,6 +115,7 @@ type final_result = {
   errors : Semgrep_error_code.error list;
   skipped_rules : Rule.invalid_rule_error list;
   extra : final_profiling debug_info;
+  explanations : Matching_explanation.t list;
 }
 [@@deriving show]
 
@@ -138,12 +139,13 @@ type 'a match_result = {
             errors;
           fprintf fmt "}"]
   extra : 'a debug_info;
+  explanations : Matching_explanation.t list;
 }
 [@@deriving show]
 
-(********************************************************************************)
+(*****************************************************************************)
 (* Create empty versions of profiling/results objects *)
-(********************************************************************************)
+(*****************************************************************************)
 
 let empty_partial_profiling file = { file; rule_times = [] }
 let empty_file_profiling = { file = ""; rule_times = []; run_time = 0.0 }
@@ -164,14 +166,21 @@ let empty_semgrep_result =
     matches = [];
     errors = ErrorSet.empty;
     extra = empty_extra empty_times_profiling;
+    explanations = [];
   }
 
 let empty_final_result =
-  { matches = []; errors = []; skipped_rules = []; extra = No_info }
+  {
+    matches = [];
+    errors = [];
+    skipped_rules = [];
+    extra = No_info;
+    explanations = [];
+  }
 
-(********************************************************************************)
+(*****************************************************************************)
 (* Helpful functions *)
-(********************************************************************************)
+(*****************************************************************************)
 
 (* Create a match result *)
 let make_match_result matches errors profiling =
@@ -181,20 +190,20 @@ let make_match_result matches errors profiling =
     | MTime -> Time { profiling }
     | MNo_info -> No_info
   in
-  { matches; errors; extra }
+  { matches; errors; extra; explanations = [] }
 
 (* Augment reported information with additional info *)
 
-let modify_match_result_profiling { matches; errors; extra } f =
+let modify_match_result_profiling result f =
   let extra =
     (* should match mode *)
-    match extra with
+    match result.extra with
     | Debug { skipped_targets; profiling } ->
         Debug { skipped_targets; profiling = f profiling }
     | Time { profiling } -> Time { profiling = f profiling }
     | No_info -> No_info
   in
-  { matches; errors; extra }
+  { result with extra }
 
 let add_run_time :
     float -> partial_profiling match_result -> file_profiling match_result =
@@ -210,20 +219,24 @@ let add_rule : Rule.rule -> times match_result -> rule_profiling match_result =
 (* Helper to aggregate the shared parts of results *)
 let collate_results init_extra unzip_extra base_case_extra final_extra results =
   let unzip_results l =
-    let rec unzip all_matches all_errors (all_skipped_targets, all_profiling) =
-      function
-      | { matches; errors; extra } :: l ->
+    let rec unzip all_matches all_errors (all_skipped_targets, all_profiling)
+        all_explanations = function
+      | { matches; errors; extra; explanations } :: l ->
           unzip (matches :: all_matches) (errors :: all_errors)
             (unzip_extra extra all_skipped_targets all_profiling)
+            (explanations :: all_explanations)
             l
       | [] ->
           ( List.rev all_matches,
             List.rev all_errors,
-            base_case_extra all_skipped_targets all_profiling )
+            base_case_extra all_skipped_targets all_profiling,
+            List.rev all_explanations )
     in
-    unzip [] [] init_extra l
+    unzip [] [] init_extra [] l
   in
-  let matches, errors, (skipped_targets, profiling) = unzip_results results in
+  let matches, errors, (skipped_targets, profiling), explanations =
+    unzip_results results
+  in
   {
     matches = List.flatten matches;
     (* We deduplicate errors here to avoid repeat PartialParsing errors
@@ -235,6 +248,7 @@ let collate_results init_extra unzip_extra base_case_extra final_extra results =
     *)
     errors = List.fold_left ErrorSet.union ErrorSet.empty errors;
     extra = final_extra skipped_targets profiling;
+    explanations = List.flatten explanations;
   }
 
 (* Aggregate a list of pattern results into one result *)
@@ -315,6 +329,9 @@ let make_final_result results rules ~rules_parse_time =
     |> Common.map (fun x -> x.errors |> ErrorSet.elements)
     |> List.flatten
   in
+  let explanations =
+    results |> Common.map (fun x -> x.explanations) |> List.flatten
+  in
 
   (* Create extra *)
   let get_skipped_targets result =
@@ -346,4 +363,4 @@ let make_final_result results rules ~rules_parse_time =
     | MTime -> Time { profiling = mk_profiling () }
     | MNo_info -> No_info
   in
-  { matches; errors; extra; skipped_rules = [] }
+  { matches; errors; extra; skipped_rules = []; explanations }

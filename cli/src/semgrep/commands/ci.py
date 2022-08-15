@@ -149,7 +149,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> Iterator[None]:
 @click.option(
     "--suppress-errors/--no-suppress-errors",
     "suppress_errors",
-    default=False,
+    default=True,
     help="""
         Configures how the CI command reacts when an error occurs.
         If true, encountered errors are suppressed and the exit code is zero (success).
@@ -334,6 +334,7 @@ def ci(
                 profiler,
                 profiling_data,
                 parsing_data,
+                _explanations,
                 shown_severities,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
