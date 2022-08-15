@@ -368,6 +368,7 @@ class Target:
         If list is empty then returns an empty set
         """
         files: FrozenSet[Path] = frozenset()
+
         if output:
             files = frozenset(
                 p
