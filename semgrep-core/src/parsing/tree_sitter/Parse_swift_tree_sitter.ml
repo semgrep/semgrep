@@ -108,23 +108,16 @@ let map_possibly_async_binding_pattern_kind (env : env)
 let map_binding_pattern_kind_to_attr (env : env) (x : CST.binding_pattern_kind)
     : G.attribute list =
   match x with
-  | `Var tok ->
-      (* "var" *)
-      let tok = token env tok in
-      [ G.unhandled_keywordattr ("Var", tok) ]
-  | `Let tok ->
-      (* "let" *)
-      let tok = token env tok in
-      [ G.unhandled_keywordattr ("Let", tok) ]
+  | `Var tok -> (* "var" *) [ G.attr G.Mutable (token env tok) ]
+  | `Let tok -> (* "let" *) [ G.attr G.Const (token env tok) ]
 
 let map_possibly_async_binding_pattern_kind_to_attr (env : env)
-    ((v1, v2) : CST.possibly_async_binding_pattern_kind) : G.attribute list =
+    ((v1, v2) : CST.possibly_async_binding_pattern_kind) =
   let async =
     match v1 with
     | Some tok ->
         (* async_modifier *)
-        let tok = token env tok in
-        [ G.KeywordAttr (G.Async, tok) ]
+        [ G.attr G.Async (token env tok) ]
     | None -> []
   in
   async @ map_binding_pattern_kind_to_attr env v2
@@ -183,16 +176,19 @@ let map_optionally_valueful_control_keyword (env : env)
       match expr with
       | Some { G.e = N (Id (id, _)); _ } ->
           G.Continue (tok, LId id, semi) |> G.s
+      (* Need to have an identifier to continue to *)
       | Some { G.e = _; _ } -> raise Common.Impossible
       | None -> G.Continue (tok, LNone, semi) |> G.s)
   | `Brk tok -> (
       let tok = (* "break" *) token env tok in
       match expr with
       | Some { G.e = N (Id (id, _)); _ } -> G.Break (tok, LId id, semi) |> G.s
+      (* Need to have an identifier to continue to *)
       | Some { G.e = _; _ } -> raise Common.Impossible
       | None -> G.Break (tok, LNone, semi) |> G.s)
   | `Yield tok ->
       let tok = (* "yield" *) token env tok in
+      (* Not Python, so set the flag to false *)
       G.ExprStmt (G.Yield (tok, expr, false) |> G.e, semi) |> G.s
 
 let map_multiplicative_operator (env : env) (x : CST.multiplicative_operator) :
@@ -347,6 +343,7 @@ let map_constructor_function_decl (env : env)
     ((v1, v2) : CST.constructor_function_decl) =
   (* TODO special-case the constructor somehow? *)
   let v1 = (* "init" *) str env v1 in
+  (* Bangs won't change the type, so we don't care about them. Question marks will, though. *)
   let is_quest =
     match v2 with
     | Some x -> (
