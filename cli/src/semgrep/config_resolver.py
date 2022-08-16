@@ -634,7 +634,7 @@ def get_config(
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
         config, errors = Config.from_pattern_lang(pattern, lang, replacement)
-    elif is_rules(config_strs[0]):
+    elif len(config_strs) == 1 and is_rules(config_strs[0]):
         config, errors = Config.from_rules_yaml(config_strs[0])
     elif replacement:
         raise SemgrepError(
