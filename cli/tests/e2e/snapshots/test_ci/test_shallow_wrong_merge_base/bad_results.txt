@@ -15,7 +15,7 @@ Findings:
         useless comparison to 5
 
          ▶▶┆ Autofix ▶ bar == 2
-          1┆ bar == 2
+          1┆ bar == 5
 
 
   foo.py 
@@ -23,7 +23,7 @@ Findings:
         useless comparison to 5
 
          ▶▶┆ Autofix ▶ foo == 2
-          2┆ foo == 2
+          2┆ foo == 5
 
 === end of stdout - plain
 
@@ -31,14 +31,14 @@ Findings:
 Scan environment:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment github-actions, triggering event is pull_request
-  semgrep.dev - authenticated as org_name
+  server      - https://semgrep.dev
 
 Fixing git state for github action pull request
 Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
 Using b903231925961ac9d787ae53ee0bd15ec156e689 as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
 Fetching configuration from semgrep.dev
+Authenticated as org_name
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
-Fetching rules from https://semgrep.dev/registry.
 Scanning 2 files with 5 python rules.
   Current version has 3 findings.
 

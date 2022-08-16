@@ -100,6 +100,23 @@ class ScanHandler:
         """
         return self._rules
 
+    def get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
+        state = get_state()
+        response = state.app_session.get(url)
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            )
+        body = response.json()
+        if isinstance(body, dict):
+            return body
+        else:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
+            )
+
     def get_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
@@ -116,19 +133,9 @@ class ScanHandler:
                 "semgrep_version": meta.get("semgrep_version", "0.0.0"),
             }
         )
+        app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+        body = self.get_scan_config_from_app(app_get_config_url)
 
-        response = state.app_session.get(
-            f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-        )
-
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
-            )
-
-        body = response.json()
         self._deployment_id = body["deployment_id"]
         self._deployment_name = body["deployment_name"]
         self._policy_names = body["policy_names"]

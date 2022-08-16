@@ -8,8 +8,10 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+import yaml as pyyaml
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
+from yaml import SafeLoader
 
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
@@ -167,7 +169,14 @@ def automocks(mocker):
 
     mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
     mocker.patch.object(
-        ScanHandler, "_get_deployment_details", return_value=(DEPLOYMENT_ID, "org_name")
+        ScanHandler,
+        "get_scan_config_from_app",
+        return_value={
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+            "policy_names": ["audit", "comment", "block"],
+            "rule_config": pyyaml.load(file_content, Loader=SafeLoader),
+        },
     )
     mocker.patch.object(
         ScanHandler,
@@ -566,7 +575,6 @@ def test_github_ci_bad_base_sha(
         assert_exit_code=None,
         env=env,
     )
-
     snapshot.assert_match(
         result.as_snapshot(
             mask=[

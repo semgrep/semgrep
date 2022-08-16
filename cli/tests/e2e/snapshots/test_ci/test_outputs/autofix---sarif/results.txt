@@ -484,11 +484,11 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
 Scan environment:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment git, triggering event is unknown
-  semgrep.dev - authenticated as org_name
+  server      - https://semgrep.dev
 
 Fetching configuration from semgrep.dev
+Authenticated as org_name
 Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
-Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 5 python rules.
 
 Some files were skipped or only partially analyzed.
