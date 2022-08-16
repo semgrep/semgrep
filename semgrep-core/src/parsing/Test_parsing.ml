@@ -32,33 +32,30 @@ let logger = Logging.get_logger [ __MODULE__ ]
 module SMap = Map.Make (String)
 module IMap = Map.Make (Int)
 
-type mode = Searching | Finding
-
 (* Global store, because I don't want to pass it through a bunch of func calls.
  *)
 let store = ref []
 
+(* This function just processes the exception backtrace to find the first instance where a function
+   that is not called "todo" was called.
+   It then records the line number and name of the function, adding it to a global store.
+*)
 let process_exn () =
-  let rec process mode (lines : string list) =
+  let rec process (lines : string list) =
     match lines with
     | [] -> "failure"
     | line :: rest -> (
-        (* Sue me. *)
+        (* Sue me. I don't want to write a real lexer and parser. *)
         let tokens = Common.split " " line in
-        match (mode, tokens) with
-        | Searching, "Called" :: "from" :: _ -> process Finding rest
-        | Searching, _ -> process Searching rest
-        | ( Finding,
-            "Called" :: "from" :: funcname :: _in :: _file :: _filename
-            :: "line" :: linenum :: _ ) ->
-            funcname ^ ":" ^ linenum
-            (* There should be at least one `Called from` after the first... *)
-        | Finding, _ -> failwith "bad")
+        match tokens with
+        | "Called" :: "from" :: funcname :: _in :: _file :: _filename :: "line"
+          :: linenum :: _ ->
+            if String.ends_with ~suffix:"todo" funcname then process rest
+            else funcname ^ ":" ^ linenum
+        | _ -> process rest)
   in
   let res =
-    Printexc.get_backtrace ()
-    |> Common.split (Str.quote "\n")
-    |> process Searching
+    Printexc.get_backtrace () |> Common.split (Str.quote "\n") |> process
   in
   store := res :: !store;
   ()
@@ -68,6 +65,10 @@ let print_exn file e =
   process_exn ();
   pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
 
+(* This function collects all the function name and line number pairs, and then
+   sorts them in descending order of frequency.
+   I'm using maps to do this so that I can achieve O(log n) insertion per increment.
+*)
 let report_counts () =
   let counts =
     List.fold_left
@@ -82,6 +83,7 @@ let report_counts () =
     |> Seq.map (fun (x, y) -> (y, x))
     |> IMap.of_seq |> IMap.to_rev_seq |> List.of_seq
   in
+  (* Report all the statistics. *)
   pr2 "\nTODO statistics:";
   List.fold_left
     (fun acc (count, filename) -> acc ^ Common.spf "\n%s -> %d" filename count)
