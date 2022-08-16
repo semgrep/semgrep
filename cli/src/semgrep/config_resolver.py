@@ -203,10 +203,10 @@ class ConfigPath:
             headers={"Accept": "application/json", **self._extra_headers},
         )
         if resp.status_code == requests.codes.ok:
-            try:
-                rules_dict = resp.json().get("rule_config")
+            rules_dict = resp.json().get("rule_config", None)
+            if rules_dict:
                 return pyyaml.dump(rules_dict, Dumper=SafeDumper)  # type: ignore
-            except json.JSONDecodeError:
+            else:
                 return resp.content.decode("utf-8", errors="replace")
         else:
             raise SemgrepError(
