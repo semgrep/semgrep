@@ -204,7 +204,7 @@ class ConfigPath:
         )
         if resp.status_code == requests.codes.ok:
             try:
-                rules_dict = resp.json().get("rules")
+                rules_dict = resp.json().get("rule_config")
                 return pyyaml.dump(rules_dict, Dumper=SafeDumper)  # type: ignore
             except json.JSONDecodeError:
                 return resp.content.decode("utf-8", errors="replace")
@@ -636,11 +636,11 @@ def get_config(
         config, errors = Config.from_pattern_lang(pattern, lang, replacement)
     elif is_rules(config_strs[0]):
         config, errors = Config.from_rules_yaml(config_strs[0])
+    elif replacement:
+        raise SemgrepError(
+            "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
+        )
     else:
-        if replacement:
-            raise SemgrepError(
-                "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
-            )
         config, errors = Config.from_config_list(config_strs, project_url)
 
     if not config:
