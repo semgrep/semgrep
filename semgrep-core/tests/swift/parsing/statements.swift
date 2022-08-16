@@ -15,6 +15,9 @@ import protocol foo;
 import let foo;
 import var foo;
 import func foo;
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+import foo;
 
 // Constant
 
@@ -36,39 +39,90 @@ var foo = 1;
 var bar: Int = 2;
 var baz: Int;
 
-// TODO computed variables
-// var computed: Int {
-//     get { 4 }
-//     set { }
-// }
+var x {
+  var x = 2
+  var y = 3
+}
+
+var y { }
+var x {
+  get { return 2 }
+  _modify { }
+  set { return () }
+}
+var x {
+  var y = 3
+  get { return 2 }
+  set (setter_name) { return () }
+  _modify { }
+}
+
+// Closures
+var x =
+  { @foo [ self, x, y = 3]
+    return 2
+  }
+var x =
+  { @foo(x : 3 + 4, 5, long:thing:here:, name 5 . 0 . 2 . 3) [ self, x, y = 3]
+    return 2
+  }
+
+// Type
+var x : Int? = 1
 
 // Typealias
-
-// TODO include modifiers
 typealias foo = bar;
 typealias foo<baz> = bar;
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
 typealias foo<baz: Int> = bar;
+
+// Associated types
+associatedtype foo : Protocol where foo : Bar = Int
+associatedtype foo : Protocol where foo == Bar = Int
 
 // Function
 
-// TODO include modifiers
 func foo() { }
 func foo() -> Int { return 5; }
 func foo(x: Int, y: Int) { }
 func foo(_: Int) { }
 func foo(_ x: Int) { }
 func foo(x y: Int) { }
-// TODO
-// func foo(x: inout Int) { }
+func foo(x: inout Int) { }
 func foo(x: Int = 5) { }
 func foo(x: Int...) { }
-// TODO
-// func foo() throws { }
-// func foo() throws -> Int { }
-// func foo(f: () throws -> void) rethrows { }
-// func foo() async { }
-// func foo() async -> Int { return 5; }
-// func foo() async throws { }
+
+infix func foo() { }
+postfix func foo() { }
+prefix func foo() { }
+mutating func foo() { }
+nonmutating func foo() { }
+private func foo() { }
+public func foo() { }
+open func foo() { }
+fileprivate func foo() { }
+internal func foo() { }
+private(set) func foo() { }
+public(set) func foo() { }
+open(set) func foo() { }
+fileprivate(set) func foo() { }
+internal(set) func foo() { }
+@attr func foo ( ) { }
+
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
+func foo () { }
+func foo() throws { }
+func foo() throws -> Int { }
+func foo(f: () throws -> void) rethrows { }
+func foo() async { }
+func foo() async -> Int { return 5; }
+func foo() async throws { }
+
+// deinit 
+deinit {}
 
 // Class etc.
 
@@ -87,24 +141,73 @@ class foo {
     class cla { }
     protocol prot { }
     deinit { }
+    associatedtype foo 
     // TODO others
 }
 class bar: foo { }
 class bar: foo, baz, asdf { }
 class foo<bar, baz> { }
 class foo<bar: baz> { }
-// TODO
-// class foo<bar> where bar: baz { }
-// class foo<bar> where bar: baz, bar: asdf { }
+
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
+class foo { }
+class foo<bar> where bar: baz { }
+class foo<bar> where bar: baz, bar: asdf { }
 
 // TODO test other varieties
 struct foo { }
 
 // TODO test other varieties
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr 
 extension bar { }
 
-// TODO test other varieties
+extension bar { }
+
 enum baz { }
+enum Error: Int {
+    case a = 1
+    case b
+}
+enum Error: String {
+    case a = "hi"
+    case b
+}
+enum Error: Character {
+    case a = "h"
+    case b
+}
+enum Error: Float {
+    case a = 0.0
+    func foo() { return 2 }
+    case b
+}
+enum SumType {
+  case a(Int, String)
+  case b
+}
+enum SumType<T> {
+  case a(Int, String)
+  case b(T)
+}
+enum SumTypeWithNames<T> {
+  case a(x: Int, String)
+  func foo() { return 2 }
+  case b(z: T)
+  case c(i: Int, Int, k: Character)
+}
+indirect enum RecursiveType<T> {
+  case Base
+  indirect case Recur(RecursiveType, T, RecursiveType)
+}
+
+infix postfix prefix mutating nonmutating private public open fileprivate 
+internal private(set) public(set) open(set) fileprivate(set) internal(set) 
+@attr indirect 
+enum bar { }
 
 // For-in loops
 for x in collection {
@@ -152,6 +255,14 @@ if true {}
 if true {} else {}
 if async let x = true {} else {}
 if case x = true {} else if case x = false {} else {}
+if #available(things2) {}
+if #available(things 1 . 2 . 3) {}
+if #available(things 2 . 3) {}
+if #available(*) {}
+
+// Guard statements
+guard true else {}
+guard async let x = true else {}
 
 // Switch statements
 switch foo {
@@ -172,6 +283,27 @@ switch foo {
   default:
 }
 
+switch foo {
+  // Literal patterns
+  case 1, 2:
+    return 1
+  case true where true, false:
+    return 2
+  // Type casting patterns
+  case foo as Int: 
+    return 1
+  case is Int:
+    return 2
+}
+
+// Precedence group
+precedencegroup foo { } 
+precedencegroup foo {
+  bar : x
+  baz : argh
+  bank : true
+}
+
 // Protocol
 
 protocol foo {
@@ -190,8 +322,7 @@ protocol foo {
 protocol foo<T> { }
 protocol foo: bar { }
 protocol foo: bar, baz { }
-// TODO
-// protocol foo<T> where T: bar { }
+protocol foo<T> where T: bar { }
 
 foo: if 1 < 150 {
 }
