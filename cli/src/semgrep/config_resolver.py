@@ -580,7 +580,7 @@ def url_for_policy(config_str: str) -> str:
         "sca": False,
         "dry_run": True,
         "full_scan": True,
-        "repository": repo_name,
+        "repo_name": repo_name,
         "semgrep_version": __VERSION__,
     }
     params_str = urlencode(params)
@@ -600,7 +600,7 @@ def url_for_sca() -> str:
         "sca": True,
         "dry_run": True,
         "full_scan": True,
-        "repository": repo_name,
+        "repo_name": repo_name,
         "semgrep_version": __VERSION__,
     }
     params_str = urlencode(params)

@@ -16,6 +16,7 @@ import yaml as pyyaml
 from boltons.iterutils import partition
 from yaml import SafeDumper
 
+from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
@@ -109,7 +110,7 @@ class ScanHandler:
         self._scan_params = urlencode(
             {
                 "dry_run": self.dry_run,
-                "repository": meta.get("repository"),
+                "repo_name": meta.get("repository"),
                 "sca": meta.get("is_sca_scan", False),
                 "full_scan": meta.get("is_full_scan", False),
                 "semgrep_version": meta.get("semgrep_version", "0.0.0"),
@@ -117,7 +118,7 @@ class ScanHandler:
         )
 
         response = state.app_session.get(
-            f"{state.env.semgrep_url}/api/agent/deployments/scans/config?{self._scan_params}"
+            f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
         )
 
         try:
