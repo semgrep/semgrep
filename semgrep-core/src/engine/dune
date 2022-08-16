@@ -20,6 +20,7 @@
    ; we now call Parse_target from Match_search_rules (we actually also
    ; call Parse_pattern from Eval_generic)
    semgrep_parsing
+   ; TODO: why the engine depends on semgrep_reporting?
    semgrep_reporting
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))

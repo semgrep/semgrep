@@ -1,7 +1,7 @@
 {
   "exit_code": 1,
   "stats": {
-    "findings": 9,
+    "findings": 10,
     "errors": [],
     "total_time": 0.5,
     "unsupported_exts": {},
@@ -9,8 +9,8 @@
       "python": {
         "targets_parsed": 1,
         "num_targets": 1,
-        "bytes_parsed": 336,
-        "num_bytes": 336
+        "bytes_parsed": 366,
+        "num_bytes": 366
       }
     }
   }

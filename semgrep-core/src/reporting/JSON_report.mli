@@ -10,5 +10,10 @@ val match_results_of_matches_and_errors :
   Report.final_result ->
   Output_from_core_t.core_match_results
 
+(* for abstract_content and subpatterns matching-explanations
+ * TODO: should not use! the result may miss some commas
+ *)
+val metavar_string_of_any : AST_generic.any -> string
+
 (* internal *)
 val match_to_error : Pattern_match.t -> unit

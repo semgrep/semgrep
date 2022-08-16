@@ -44,6 +44,7 @@ jobs:
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
       SEMGREP_APP_URL: https://staging.semgrep.dev
+      SEMGREP_USER_AGENT_APPEND: semgrep-ci-e2e
     needs: get-inputs
     container:
       image: "returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}"

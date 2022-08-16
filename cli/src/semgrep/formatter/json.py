@@ -72,6 +72,7 @@ class JsonFormatter(BaseFormatter):
             errors=[error.to_CliError() for error in semgrep_structured_errors],
             paths=cli_output_extra.paths,
             time=cli_output_extra.time,
+            explanations=cli_output_extra.explanations,
         )
         # Sort keys for predictable output. This helps with snapshot tests, etc.
         return json.dumps(output.to_json(), sort_keys=True, default=to_json)

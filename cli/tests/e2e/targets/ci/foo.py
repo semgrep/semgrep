@@ -22,3 +22,6 @@ def bar():
 
     b == b # Triage ignored by syntactic_id
     a == a # Triage ignored by match_based_id
+
+    d2 = danger
+    sink(d2)

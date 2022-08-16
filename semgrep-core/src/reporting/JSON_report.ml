@@ -149,34 +149,37 @@ let token_to_intermediate_var token =
 let tokens_to_intermediate_vars tokens =
   List.filter_map token_to_intermediate_var tokens
 
-let taint_trace_to_dataflow_trace { source; tokens; sink = _ } =
+let taint_trace_to_dataflow_trace { source; tokens; sink = _ } :
+    Out.core_match_dataflow_trace =
   {
     Out.taint_source = taint_call_trace_to_taint_source source;
     intermediate_vars = Some (tokens_to_intermediate_vars tokens);
   }
 
-let match_to_match x =
+let unsafe_match_to_match (x : Pattern_match.t) : Out.core_match =
+  let min_loc, max_loc = x.range_loc in
+  let startp, endp = OutH.position_range min_loc max_loc in
+  let dataflow_trace =
+    Option.map
+      (function
+        | (lazy trace) -> taint_trace_to_dataflow_trace trace)
+      x.taint_trace
+  in
+  {
+    Out.rule_id = x.rule_id.id;
+    location = { path = x.file; start = startp; end_ = endp };
+    extra =
+      {
+        message = Some x.rule_id.message;
+        metavars = x.env |> Common.map (metavars startp);
+        dataflow_trace;
+      };
+  }
+
+let match_to_match (x : Pattern_match.t) :
+    (Out.core_match, Semgrep_error_code.error) Common.either =
   try
-    let min_loc, max_loc = x.range_loc in
-    let startp, endp = OutH.position_range min_loc max_loc in
-    let dataflow_trace =
-      Option.map
-        (function
-          | (lazy trace) -> taint_trace_to_dataflow_trace trace)
-        x.taint_trace
-    in
-    Left
-      ({
-         Out.rule_id = x.rule_id.id;
-         location = { path = x.file; start = startp; end_ = endp };
-         extra =
-           {
-             message = Some x.rule_id.message;
-             metavars = x.env |> Common.map (metavars startp);
-             dataflow_trace;
-           };
-       }
-        : Out.core_match)
+    Left (unsafe_match_to_match x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -214,6 +217,17 @@ let error_to_error err =
     location = { path = file; start = startp; end_ = endp };
     message;
     details;
+  }
+
+let rec explanation_to_explanation (exp : Matching_explanation.t) :
+    Out.matching_explanation =
+  let { Matching_explanation.op; matches; pos; children } = exp in
+  let tloc = PI.unsafe_token_location_of_info pos in
+  {
+    Out.op;
+    children = children |> Common.map explanation_to_explanation;
+    matches = matches |> Common.map unsafe_match_to_match;
+    loc = OutH.location_of_token_location tloc;
   }
 
 let json_time_of_profiling_data profiling_data =
@@ -273,6 +287,10 @@ let match_results_of_matches_and_errors files res =
                    })));
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = profiling |> Option.map json_time_of_profiling_data;
+    explanations =
+      (match res.RP.explanations with
+      | [] -> None
+      | xs -> Some (xs |> Common.map explanation_to_explanation));
   }
   |> Output_from_core_util.sort_match_results
   [@@profiling]

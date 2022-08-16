@@ -11,7 +11,7 @@ val check :
   match_hook:(string -> Pattern_match.t -> unit) ->
   timeout:float ->
   timeout_threshold:int ->
-  Config_semgrep.t * Equivalence.equivalences ->
+  Match_env.xconfig ->
   Rule.rules ->
   Xtarget.t ->
   Report.partial_profiling Report.match_result

@@ -1,0 +1,9 @@
+rules:
+- id: explain
+  pattern: |
+    foo($X)
+    ...
+    bar($X)
+  message: found it
+  languages: [python]
+  severity: WARNING

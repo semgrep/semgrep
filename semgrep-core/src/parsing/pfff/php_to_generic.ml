@@ -257,9 +257,7 @@ and expr e : G.expr =
   | Id v1 ->
       let v1 = name_of_qualified_ident v1 in
       G.N v1
-  | IdSpecial v1 ->
-      let v1 = wrap special v1 in
-      G.IdSpecial v1
+  | IdSpecial v1 -> special v1
   (* unify Id and Var, finally *)
   | Var v1 ->
       let v1 = var v1 in
@@ -448,11 +446,16 @@ and argument = function
   | ArgUnpack (tok, e) -> G.special (Spread, tok) [ expr e ] |> G.arg
   | ArgLabel (label, _tok, e) -> G.ArgKwd (label, expr e)
 
-and special = function
-  | This -> G.This
-  | Eval -> G.Eval
-  | Self -> G.Self
-  | Parent -> G.Parent
+and special (spec, tok) =
+  match spec with
+  | This -> G.IdSpecial (G.This, tok)
+  | Self -> G.IdSpecial (G.Self, tok)
+  | Parent -> G.IdSpecial (G.Parent, tok)
+  | FuncLike Empty -> G.N (G.Id (("empty", tok), G.empty_id_info ()))
+  | FuncLike Eval -> G.IdSpecial (G.Eval, tok)
+  | FuncLike Exit -> G.N (G.Id (("exit", tok), G.empty_id_info ()))
+  | FuncLike Isset -> G.IdSpecial (G.Defined, tok)
+  | FuncLike Unset -> G.N (G.Id (("unset", tok), G.empty_id_info ()))
 
 and foreach_pattern v =
   let v = expr v in
