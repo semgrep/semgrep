@@ -80,13 +80,13 @@ let map_function_modifier (env : env) (x : CST.function_modifier) =
   match x with
   | `Infix tok ->
       (* "infix" *)
-      G.unhandled_keywordattr ("Infix", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Post tok ->
       (* "postfix" *)
-      G.unhandled_keywordattr ("Postfix", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Prefix tok ->
       (* "prefix" *)
-      G.unhandled_keywordattr ("Prefix", token env tok)
+      G.unhandled_keywordattr (str env tok)
 
 let map_binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) :
     G.ident list =
@@ -143,16 +143,16 @@ let map_ownership_modifier (env : env) (x : CST.ownership_modifier) =
   match x with
   | `Weak tok ->
       (* "weak" *)
-      G.unhandled_keywordattr ("Weak", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Unow_7c8c304 tok ->
       (* "unowned" *)
-      G.unhandled_keywordattr ("Unowned", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Unow_e455cde tok ->
       (* "unowned(safe)" *)
-      G.unhandled_keywordattr ("UnownedSafe", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Unow_8fda70e tok ->
       (* "unowned(unsafe)" *)
-      G.unhandled_keywordattr ("UnownedUnsafe", token env tok)
+      G.unhandled_keywordattr (str env tok)
 
 let map_import_kind (env : env) (x : CST.import_kind) =
   match x with
@@ -218,10 +218,10 @@ let map_member_modifier (env : env) (x : CST.member_modifier) =
       G.attr G.Override (token env tok)
   | `Conv tok ->
       (* "convenience" *)
-      G.unhandled_keywordattr ("Convenience", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Requ tok ->
       (* "required" *)
-      G.unhandled_keywordattr ("Required", token env tok)
+      G.unhandled_keywordattr (str env tok)
 
 let map_try_operator (env : env) (x : CST.try_operator) =
   match x with
@@ -231,18 +231,13 @@ let map_try_operator (env : env) (x : CST.try_operator) =
 
 let map_special_literal (env : env) (x : CST.special_literal) =
   (match x with
-  | `HASH_36725ee tok -> (* "#file" *) G.OtherExpr (("File", token env tok), [])
-  | `HASH_ee0b998 tok ->
-      (* "#fileID" *) G.OtherExpr (("FileID", token env tok), [])
-  | `HASH_bd759bd tok ->
-      (* "#filePath" *) G.OtherExpr (("FilePath", token env tok), [])
-  | `HASH_709af6a tok -> (* "#line" *) G.OtherExpr (("Line", token env tok), [])
-  | `HASH_be35129 tok ->
-      (* "#column" *) G.OtherExpr (("Column", token env tok), [])
-  | `HASH_96a7ced tok ->
-      (* "#function" *) G.OtherExpr (("Function", token env tok), [])
-  | `HASH_4d47dbe tok ->
-      (* "#dsohandle" *) G.OtherExpr (("Dsohandle", token env tok), []))
+  | `HASH_36725ee tok -> (* "#file" *) G.OtherExpr (str env tok, [])
+  | `HASH_ee0b998 tok -> (* "#fileID" *) G.OtherExpr (str env tok, [])
+  | `HASH_bd759bd tok -> (* "#filePath" *) G.OtherExpr (str env tok, [])
+  | `HASH_709af6a tok -> (* "#line" *) G.OtherExpr (str env tok, [])
+  | `HASH_be35129 tok -> (* "#column" *) G.OtherExpr (str env tok, [])
+  | `HASH_96a7ced tok -> (* "#function" *) G.OtherExpr (str env tok, [])
+  | `HASH_4d47dbe tok -> (* "#dsohandle" *) G.OtherExpr (str env tok, []))
   |> G.e
 
 let map_integer_literal (env : env) (tok : CST.integer_literal) : G.literal =
@@ -253,10 +248,10 @@ let map_mutation_modifier (env : env) (x : CST.mutation_modifier) =
   match x with
   | `Muta tok ->
       (* "mutating" *)
-      G.unhandled_keywordattr ("Mutating", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Nonm tok ->
       (* "nonmutating" *)
-      G.unhandled_keywordattr ("Nonmutating", token env tok)
+      G.unhandled_keywordattr (str env tok)
 
 let map_property_modifier (env : env) (x : CST.property_modifier) =
   match x with
@@ -266,14 +261,14 @@ let map_property_modifier (env : env) (x : CST.property_modifier) =
   (* Has to do with the Obj-C runtime... probably not important *)
   | `Dyna tok ->
       (* "dynamic" *)
-      G.unhandled_keywordattr ("Dynamic", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `Opt tok ->
       (* Seems close enough to other Optional field uses.*)
       (* "optional" *)
       G.attr G.Optional (token env tok)
   | `Class tok ->
       (* "class" *)
-      G.unhandled_keywordattr ("Class", token env tok)
+      G.unhandled_keywordattr (str env tok)
 
 let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
   (* TODO? I don't think any of these will actually matter.
@@ -283,13 +278,13 @@ let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
   match x with
   | `Inout tok ->
       (* "inout" *)
-      G.unhandled_keywordattr ("Inout", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `ATes tok ->
       (* "@escaping" *)
-      G.unhandled_keywordattr ("Escaping", token env tok)
+      G.unhandled_keywordattr (str env tok)
   | `ATau tok ->
       (* "@autoclosure" *)
-      G.unhandled_keywordattr ("Autoclosure", token env tok)
+      G.unhandled_keywordattr (str env tok)
 
 let map_throws (env : env) (x : CST.throws) =
   match x with
@@ -1107,8 +1102,7 @@ and map_bodyless_function_declaration (env : env) ~in_class
     match v2 with
     | Some tok ->
         (* "class" *)
-        let _todo = token env tok in
-        ()
+        token env tok |> todo env
     | None -> ()
   in
   let v3 =
@@ -1386,7 +1380,7 @@ and map_enum_entry (env : env) ((v1, v2, v3, v4, v5, v6, _v7) : CST.enum_entry)
       match v2 with
       | Some tok ->
           (* "indirect" *)
-          [ G.unhandled_keywordattr ("Indirect", token env tok) ]
+          [ G.unhandled_keywordattr (str env tok) ]
       | None -> []
     in
     (match v1 with
@@ -1817,7 +1811,6 @@ and map_lambda_function_type_parameters (env : env)
 and map_lambda_literal (env : env) ((v1, v2, v3, v4, v5) : CST.lambda_literal) :
     G.expr =
   let v1 = (* "{" *) token env v1 in
-  (* TODO include captures *)
   let captures =
     match v2 with
     | Some x -> map_capture_list env x
@@ -1841,6 +1834,10 @@ and map_lambda_literal (env : env) ((v1, v2, v3, v4, v5) : CST.lambda_literal) :
     (* Fake brackets here since the brackets delimit the lambda expression as a
      * whole, not just the statements *)
     (* TODO consider using `in` and the closing bracket as the delimiters *)
+    (* We inject into an `OtherStmtWithStmt` here because we needed somewhere for the
+       capture list to go. This is not permitted with just a regular statement, so there is
+       a new variant `OSWS_Closure` to signify this.
+    *)
     G.FBStmt
       (G.OtherStmtWithStmt
          ( G.OSWS_Closure,
@@ -1877,7 +1874,7 @@ and map_lambda_parameter (env : env) ((v1, v2) : CST.lambda_parameter) :
         let _v1 =
           match v1 with
           | Some x ->
-              let _todo = map_simple_identifier env x in
+              map_simple_identifier env x |> ignore;
               ()
           | None -> ()
         in
@@ -2050,7 +2047,7 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
           match v1 with
           | Some tok ->
               (* "indirect" *)
-              [ G.unhandled_keywordattr ("Indirect", token env tok) ]
+              [ G.unhandled_keywordattr (str env tok) ]
           | None -> []
         in
         indirect_kw @ [ G.KeywordAttr (G.EnumClass, v2) ] @ attrs
@@ -2950,27 +2947,26 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
   | `Inhe_cons (v1, v2, v3, v4) ->
       let v1 = Common.map (map_attribute env) v1 in
       let v2 = map_identifier env v2 in
-      let v3 = (* ":" *) token env v3 in
       let v4 = map_possibly_implicitly_unwrapped_type env v4 in
       let base_type = G.ArgType (G.TyN (H2.name_of_ids v2) |> G.t) in
       let conformed_protocol = G.ArgType v4 in
       G.NamedAttr
-        ( v3,
-          H2.name_of_id ("ConformsTo", v3),
+        ( token env v3,
+          H2.name_of_id (str env v3),
           G.fake_bracket [ base_type; conformed_protocol ] )
   | `Equa_cons (v1, v2, v3, v4) ->
       let v1 = Common.map (map_attribute env) v1 in
       let v2 = map_identifier env v2 in
       let first_type = G.ArgType (G.TyN (H2.name_of_ids v2) |> G.t) in
-      let v3 =
+      let ((_, v3_tok) as v3_str) =
         match v3 with
-        | `Equal_sign tok -> (* eq_custom *) token env tok
-        | `Eq_eq tok -> (* eq_eq_custom *) token env tok
+        | `Equal_sign tok -> (* eq_custom *) str env tok
+        | `Eq_eq tok -> (* eq_eq_custom *) str env tok
       in
       let v4 = map_type_ env v4 in
       G.NamedAttr
-        ( v3,
-          H2.name_of_id ("EqualTypes", v3),
+        ( v3_tok,
+          H2.name_of_id v3_str,
           G.fake_bracket [ first_type; G.ArgType v4 ] )
 
 and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
@@ -3078,18 +3074,15 @@ and map_unannotated_type (env : env) (x : CST.unannotated_type) =
       let v2 = (* "." *) token env v2 in
       let v3 =
         match v3 with
-        | `Type tok ->
-            (* "Type" *) G.unhandled_keywordattr ("Type", token env tok)
-        | `Prot tok ->
-            (* "Protocol" *) G.unhandled_keywordattr ("Protocol", token env tok)
+        | `Type tok -> (* "Type" *) G.unhandled_keywordattr (str env tok)
+        | `Prot tok -> (* "Protocol" *) G.unhandled_keywordattr (str env tok)
       in
       { v1 with G.t_attrs = v3 :: v1.G.t_attrs }
   | `Opaque_type (v1, v2) ->
-      let v1 = (* "some" *) token env v1 in
       let v2 = map_user_type env v2 in
       {
         v2 with
-        G.t_attrs = G.unhandled_keywordattr ("Some", v1) :: v2.G.t_attrs;
+        G.t_attrs = G.unhandled_keywordattr (str env v1) :: v2.G.t_attrs;
       }
   | `Prot_comp_type (v1, v2) ->
       let v1 = map_unannotated_type env v1 in
