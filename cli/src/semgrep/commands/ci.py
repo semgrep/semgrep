@@ -232,7 +232,7 @@ def ci(
     elif token and config:
         # Logged in but has explicit config
         logger.info(
-            "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure rules to run."
+            "Cannot run `semgrep ci` with config while logged in. The `semgrep ci` command is for uploading findings to semgrep-app and those findings must come from rules configured on semgrep-app. Use `semgrep` instead."
         )
         sys.exit(FATAL_EXIT_CODE)
     elif token:
