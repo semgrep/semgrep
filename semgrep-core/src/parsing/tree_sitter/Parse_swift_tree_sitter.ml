@@ -630,8 +630,7 @@ let map_non_constructor_function_decl (env : env)
     | `Refe_op x -> map_referenceable_operator env x |> fst
     | `Bitw_bin_op x ->
         (* Maybe come back and do this better? *)
-        let _, (s, tok) = map_bitwise_binary_operator env x in
-        (s, tok)
+        map_bitwise_binary_operator env x |> snd
   in
   v2
 
@@ -653,6 +652,7 @@ let map_availability_argument (env : env) (x : CST.availability_argument) =
   (* This does not seem important semantically.
      Availability arguments just allow code to be annotated with its availability
      with respect to certain macOS (and related) versions.
+     https://docs.swift.org/swift-book/ReferenceManual/Statements.html#grammar_availability-condition
   *)
   match x with
   | `Id_int_lit_rep_DOT_int_lit (v1, v2, v3) ->
@@ -2933,7 +2933,6 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
         | None -> []
       in
       let v2 = map_unannotated_type env v2 in
-      (* TODO include type modifiers *)
       { v2 with G.t_attrs = v1 @ v2.G.t_attrs }
   | `Semg_ellips tok -> (* "..." *) token env tok |> todo env
 
