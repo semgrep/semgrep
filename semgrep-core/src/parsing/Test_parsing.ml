@@ -29,64 +29,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
-module SMap = Map.Make (String)
-module IMap = Map.Make (Int)
-
-type mode = Searching | Finding
-
-(* Global store, because I don't want to pass it through a bunch of func calls.
- *)
-let store = ref []
-
-let process_exn () =
-  let rec process mode (lines : string list) =
-    match lines with
-    | [] -> "failure"
-    | line :: rest -> (
-        (* Sue me. *)
-        let tokens = Common.split " " line in
-        match (mode, tokens) with
-        | Searching, "Called" :: "from" :: _ -> process Finding rest
-        | Searching, _ -> process Searching rest
-        | ( Finding,
-            "Called" :: "from" :: funcname :: _in :: _file :: _filename
-            :: "line" :: linenum :: _ ) ->
-            funcname ^ ":" ^ linenum
-            (* There should be at least one `Called from` after the first... *)
-        | Finding, _ -> failwith "bad")
-  in
-  let res =
-    Printexc.get_backtrace ()
-    |> Common.split (Str.quote "\n")
-    |> process Searching
-  in
-  store := res :: !store;
-  ()
-
 let print_exn file e =
   let trace = Printexc.get_backtrace () in
-  process_exn ();
   pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
-
-let report_counts () =
-  let counts =
-    List.fold_left
-      (fun map x ->
-        SMap.update x
-          (function
-            | None -> Some 1
-            | Some x -> Some (x + 1))
-          map)
-      SMap.empty !store
-    |> SMap.to_seq
-    |> Seq.map (fun (x, y) -> (y, x))
-    |> IMap.of_seq |> IMap.to_rev_seq |> List.of_seq
-  in
-  pr2 "\nTODO statistics:";
-  List.fold_left
-    (fun acc (count, filename) -> acc ^ Common.spf "\n%s -> %d" filename count)
-    "" counts
-  |> pr2
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
@@ -472,7 +417,6 @@ let parse_projects ~verbose lang project_dirs =
 
 let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects ~verbose lang project_dirs in
-  report_counts ();
   if json then print_json lang stat_list
   else
     let flat_stat = List.concat_map snd stat_list in
