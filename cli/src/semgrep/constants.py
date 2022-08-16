@@ -12,6 +12,7 @@ PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. P
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
+DEFAULT_SEMGREP_APP_CONFIG_URL = "api/agent/deployments/scans/config"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
