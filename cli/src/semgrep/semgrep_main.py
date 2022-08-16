@@ -15,6 +15,7 @@ from typing import Union
 
 from boltons.iterutils import partition
 
+import semgrep.output_from_core as out
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -110,6 +111,7 @@ def invoke_semgrep(
         profiler,
         profiling_data,
         _,
+        explanations,
         shown_severities,
     ) = main(
         output_handler=output_handler,
@@ -127,6 +129,7 @@ def invoke_semgrep(
     output_handler.profiler = profiler
     output_handler.profiling_data = profiling_data
     output_handler.severities = shown_severities
+    output_handler.explanations = explanations
 
     return json.loads(output_handler._build_output())  # type: ignore
 
@@ -138,7 +141,14 @@ def run_rules(
     output_handler: OutputHandler,
     dump_command_for_core: bool,
     deep: bool,
-) -> Tuple[RuleMatchMap, List[SemgrepError], Set[Path], ProfilingData, ParsingData,]:
+) -> Tuple[
+    RuleMatchMap,
+    List[SemgrepError],
+    Set[Path],
+    ProfilingData,
+    ParsingData,
+    Optional[List[out.MatchingExplanation]],
+]:
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -153,6 +163,7 @@ def run_rules(
         all_targets,
         profiling_data,
         parsing_data,
+        explanations,
     ) = core_runner.invoke_semgrep(
         target_manager, rest_of_the_rules, dump_command_for_core, deep
     )
@@ -222,6 +233,7 @@ def run_rules(
         all_targets,
         profiling_data,
         parsing_data,
+        explanations,
     )
 
 
@@ -288,6 +300,7 @@ def main(
     ProfileManager,
     ProfilingData,
     ParsingData,
+    Optional[List[out.MatchingExplanation]],
     Collection[RuleSeverity],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
@@ -390,6 +403,7 @@ def main(
         all_targets,
         profiling_data,
         parsing_data,
+        explanations,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -449,6 +463,7 @@ def main(
                         baseline_targets,
                         baseline_profiling_data,
                         baseline_parsing_data,
+                        _explanations,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -502,5 +517,6 @@ def main(
         profiler,
         profiling_data,
         parsing_data,
+        explanations,
         shown_severities,
     )

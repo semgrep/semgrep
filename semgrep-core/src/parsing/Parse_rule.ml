@@ -630,13 +630,13 @@ and parse_formula_new env (x : G.expr) : R.formula =
           if pos = [] then
             raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
           R.And
-            {
-              tok = t;
-              conjuncts = fs;
-              conditions = conds;
-              (* TODO: 'focus-metavariable:' *)
-              focus = [];
-            }
+            ( t,
+              {
+                conjuncts = fs;
+                conditions = conds;
+                (* TODO: 'focus-metavariable:' *)
+                focus = [];
+              } )
       | "or" -> R.Or (t, parse_list env key parse_formula_new value)
       | "not" -> R.Not (t, parse_formula_new env value)
       | "inside" -> R.P (parse_xpattern_expr env value, Some Inside)
@@ -903,9 +903,10 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       `Search formula
   | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
-        parse_list env key
-          (fun env -> parse_spec env (fst key ^ "list item", snd key))
-          x
+        ( snd key,
+          parse_list env key
+            (fun env -> parse_spec env (fst key ^ "list item", snd key))
+            x )
       in
       let sources, propagators_opt, sanitizers_opt, sinks =
         ( take rule_dict env (parse_specs parse_taint_source) "pattern-sources",
@@ -920,8 +921,15 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       `Taint
         {
           sources;
-          propagators = optlist_to_list propagators_opt;
-          sanitizers = optlist_to_list sanitizers_opt;
+          propagators =
+            (* optlist_to_list *)
+            (match propagators_opt with
+            | None -> []
+            | Some (_, xs) -> xs);
+          sanitizers =
+            (match sanitizers_opt with
+            | None -> []
+            | Some (_, xs) -> xs);
           sinks;
         }
   | Some ("extract", _) ->

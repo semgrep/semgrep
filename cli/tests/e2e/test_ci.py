@@ -934,6 +934,25 @@ def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit)
     mock_send.assert_called_once_with(mocker.ANY, 7)
 
 
+def test_fail_scan_findings(run_semgrep, mocker, git_tmp_path_with_commit):
+    """
+    Test failure with findings has exit code == 1.
+
+    Asserts that error logs are NOT sent to fail-open
+    """
+    mock_send = mocker.spy(ErrorHandler, "send")
+    mock_request_post = mocker.patch("semgrep.error_handler.requests.post")
+    run_semgrep(
+        options=["ci", "--suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+    )
+    mock_send.assert_called_once_with(mocker.ANY, 1)
+    mock_request_post.assert_not_called()
+
+
 def test_fail_finish_scan(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     Test failure to send findings has exit code > 1
