@@ -5,6 +5,11 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error_handler import ErrorHandler
 
 
+FAKE_TOKEN = "abc123"
+FAKE_USER_AGENT = "user-agent"
+FAIL_OPEN_URL = "https://fail-open.semgrep.dev/failure"
+
+
 @pytest.fixture
 def error_handler(mocker) -> ErrorHandler:
     return ErrorHandler()
@@ -14,19 +19,29 @@ class NetworkBlockedInTests(Exception):
     pass
 
 
+@pytest.fixture
+def mock_get_token(mocker):
+    mocked = mocker.patch("semgrep.app.auth.get_token", return_value=FAKE_TOKEN)
+    yield mocked
+
+
+@pytest.fixture
+def mocked_state(mocker):
+    mocked = mocker.MagicMock()
+    mocked.app_session.user_agent = FAKE_USER_AGENT
+    mocked.env.fail_open_url = FAIL_OPEN_URL
+    mocker.patch("semgrep.state.get_state", return_value=mocked)
+    yield mocked
+
+
 @pytest.mark.quick
-def test_send_nominal(error_handler, mocker: MockerFixture) -> None:
+def test_send_nominal(
+    error_handler, mocker: MockerFixture, mock_get_token, mocked_state
+) -> None:
     """
     Check that data is posted to fail-open url and zero exit code is returned
     """
-    expected_url = "https://fail-open.semgrep.dev/failure"
-    expected_user_agent = "user-agent"
-
-    mocked_state = mocker.MagicMock()
-    mocked_state.app_session.user_agent = expected_user_agent
-    mocked_state.env.fail_open_url = expected_url
     mocked_requests = mocker.patch("requests.post")
-    mocker.patch("semgrep.state.get_state", return_value=mocked_state)
 
     error_handler.configure(suppress_errors=True)
     error_handler.push_request(
@@ -35,35 +50,38 @@ def test_send_nominal(error_handler, mocker: MockerFixture) -> None:
     exit_code = error_handler.send(FATAL_EXIT_CODE)
 
     expected_payload = {
-        "headers": {"User-Agent": expected_user_agent},
         "method": "get",
         "url": "https://semgrep.dev/api/agent/deployments/current",
     }
 
+    expected_headers = {
+        "User-Agent": FAKE_USER_AGENT,
+        "Authorization": f"Bearer {FAKE_TOKEN}",
+    }
+
     assert exit_code == 0
     mocked_requests.assert_called_once_with(
-        expected_url, json=expected_payload, timeout=3
+        FAIL_OPEN_URL,
+        headers=expected_headers,
+        json=expected_payload,
+        timeout=3,
     )
 
 
 @pytest.mark.quick
-def test_send_nominal_with_trace(error_handler, mocker: MockerFixture) -> None:
+def test_send_nominal_with_trace(
+    error_handler, mocker: MockerFixture, mock_get_token, mocked_state
+) -> None:
     """
     Check that data is posted to fail-open url and zero exit code is returned
     """
-    expected_url = "https://fail-open.semgrep.dev/failure"
-    expected_user_agent = "user-agent"
 
     expected_traceback = "oops"
     error_handler.configure(suppress_errors=True)
 
-    mocked_state = mocker.MagicMock()
-    mocked_state.app_session.user_agent = expected_user_agent
-    mocked_state.env.fail_open_url = expected_url
     mocked_requests = mocker.patch("requests.post")
     mocker.patch("sys.exc_info", return_value=(ValueError, "oops", "oops"))
     mocker.patch("traceback.format_exc", return_value=expected_traceback)
-    mocker.patch("semgrep.state.get_state", return_value=mocked_state)
 
     try:
         raise ValueError()
@@ -74,12 +92,18 @@ def test_send_nominal_with_trace(error_handler, mocker: MockerFixture) -> None:
 
     expected_payload = {
         "error": expected_traceback,
-        "headers": {"User-Agent": expected_user_agent},
+    }
+    expected_headers = {
+        "User-Agent": FAKE_USER_AGENT,
+        "Authorization": f"Bearer {FAKE_TOKEN}",
     }
 
     assert exit_code == 0
     mocked_requests.assert_called_once_with(
-        expected_url, json=expected_payload, timeout=3
+        FAIL_OPEN_URL,
+        headers=expected_headers,
+        json=expected_payload,
+        timeout=3,
     )
 
 

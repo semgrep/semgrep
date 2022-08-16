@@ -147,7 +147,5 @@ class AppSession(requests.Session):
         if response.ok:
             error_handler.pop_request()
         else:
-            error_handler.append_request(
-                status_code=response.status_code, response_json=response.json()
-            )
+            error_handler.append_request(status_code=response.status_code)
         return response
