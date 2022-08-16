@@ -559,8 +559,6 @@ def url_for_policy(config_str: str) -> str:
     Return url to download a policy for a given repo_name
 
     For now uses envvar to know what repo_name is
-
-    Set SEMGREP_POLICY_INCLUDE_CAI env var to include CAI Rules
     """
     deployment_id = auth.get_deployment_id()
     if deployment_id is None:

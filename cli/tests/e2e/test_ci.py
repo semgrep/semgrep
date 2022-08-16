@@ -575,6 +575,7 @@ def test_github_ci_bad_base_sha(
         assert_exit_code=None,
         env=env,
     )
+
     snapshot.assert_match(
         result.as_snapshot(
             mask=[
