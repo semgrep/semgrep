@@ -52,7 +52,7 @@ COPY --chown=user cli/src/semgrep/lang ./cli/src/semgrep/lang
 COPY --chown=user cli/src/semgrep/semgrep_interfaces ./cli/src/semgrep/semgrep_interfaces
 
 WORKDIR /semgrep/semgrep-core
-RUN opam exec -- dune build
+RUN opam exec -- make build
 
 WORKDIR /semgrep
 RUN /semgrep/semgrep-core/_build/default/src/cli/Main.exe -version

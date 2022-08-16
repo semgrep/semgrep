@@ -10,10 +10,16 @@ include src/ocaml-tree-sitter-core/tree-sitter-config.mk
 .PHONY: all
 all:
 	rm -f bin
-	dune build
+	$(MAKE) minimal-build
 	dune build ./_build/default/tests/test.bc
 	# make executables easily accessible for manual testing:
 	test -e bin || ln -s _build/install/default/bin .
+
+# Minimal build of the semgrep-core executable. Intended for the docker build.
+# Requires the environment variables set by the included file above.
+.PHONY: minimal-build
+minimal-build:
+	dune build
 
 .PHONY: clean
 clean:
