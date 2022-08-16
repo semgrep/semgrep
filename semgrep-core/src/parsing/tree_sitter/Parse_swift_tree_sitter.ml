@@ -1873,9 +1873,7 @@ and map_lambda_parameter (env : env) ((v1, v2) : CST.lambda_parameter) :
         (* TODO As with `map_parameter`, we only support internal names right now. *)
         let _v1 =
           match v1 with
-          | Some x ->
-              map_simple_identifier env x |> ignore;
-              ()
+          | Some x -> map_simple_identifier env x |> todo env
           | None -> ()
         in
         let v2 = map_simple_identifier env v2 in

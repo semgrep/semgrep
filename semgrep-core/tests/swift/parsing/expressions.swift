@@ -28,12 +28,12 @@ named(bar: baz:);
 
 closure { x in x };
 { @foo [ self, x, y = 3]
-(self, name, externalname realname : inout @escaping @autoclosure Int ) -> Int in
+(self, name, realname : inout @escaping @autoclosure Int ) -> Int in
 return 2
 };
 
 { @foo [ self, x, y = 3]
-self, name, externalname realname : inout @escaping @autoclosure Int -> Int in
+self, name, realname : inout @escaping @autoclosure Int -> Int in
 return 2
 };
 
