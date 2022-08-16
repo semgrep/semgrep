@@ -153,6 +153,15 @@ def automocks(mocker):
           message: "useless comparison to 3"
           languages: [python]
           severity: INFO
+        - id: taint-test
+          message: "unsafe use of danger"
+          languages: [python]
+          severity: WARNING
+          mode: taint
+          pattern-sources:
+            - pattern: danger
+          pattern-sinks:
+            - pattern: sink($X)
         """
     ).lstrip()
 
