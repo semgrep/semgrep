@@ -151,8 +151,11 @@ class ScanHandler:
         returns ignored list
         """
         state = get_state()
-        logger.debug("Starting scan")
+        if self.dry_run:
+            logger.info(f"Would have sent POST request to create scan")
+            return
 
+        logger.debug("Starting scan")
         response = state.app_session.post(
             f"{state.env.semgrep_url}/api/agent/deployments/scans",
             json={"meta": meta, "policy": self._policy_names},
