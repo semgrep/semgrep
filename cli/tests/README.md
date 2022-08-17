@@ -42,7 +42,9 @@ QA tests are automated quality assurance scenarios,
 such as running Semgrep on various real life repositories.
 
 These need to run only when doing QA for releases,
-and can be run with `make qa-test` instead of `make test`.
+and can be run with `make qa` instead of `make test`.
+Look into the makefile for exact for what's being run and how to tweak
+it.
 
 ### :construction: `performance/`
 
