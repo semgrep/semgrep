@@ -991,9 +991,6 @@ and m_expr ?(is_root = false) a b =
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
-  | G.Call _, _
-  | G.New _, _
-  | G.ArrayAccess _, _
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
