@@ -1,0 +1,7 @@
+rules:
+- id: range-test
+  message: change it
+  pattern: foo($E)
+  fix: bar($E)
+  languages: [python]
+  severity: ERROR
