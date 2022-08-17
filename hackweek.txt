@@ -29,6 +29,11 @@ v3
 - DeepSemgrep Version Info: (0.2.0-9-g60b6f729596-dirty) # branch iago/hackweek-1
 - shared taint findings (maybe the configs aren't needed to share? -> ideally we get all the findings already)
 
+v4
+- DeepSemgrep Version Info: (0.2.0-15-g54f8beee18f-dirty) # branch iago/hackweek-1
+- save taint configs in files to avoid high peak mem usage and compute them in parallel
+- some basic CI support
+
 google-guava
 ------------
 
@@ -80,6 +85,13 @@ Ran 38 rules on 1977 files: 15 findings.
        68.26 real       176.94 user        21.74 sys
           1378844672  maximum resident set size
             55002624  peak memory footprint
+
+v4:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/google-guava --deep
+Ran 38 rules on 1977 files: 15 findings.
+       43.50 real       122.16 user        14.31 sys
+           795,492,352  maximum resident set size
+            56395200  peak memory footprint
 
 spring-projects-spring-boot
 ---------------------------
@@ -133,6 +145,13 @@ Ran 38 rules on 3826 files: 16 findings.
        44.49 real       114.81 user         8.18 sys
            680738816  maximum resident set size
            139364032  peak memory footprint
+
+v4:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/spring-projects-spring-boot --deep
+Ran 38 rules on 3826 files: 16 findings.
+       30.41 real        74.16 user        16.66 sys
+           690,520,064  maximum resident set size
+           128698112  peak memory footprint
 
 Deep findings:
 
@@ -210,6 +229,13 @@ Ran 38 rules on 505 files: 9 findings.
            336625664  maximum resident set size
             47089408  peak memory footprint
 
+v4:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/square-okhttp --deep
+Ran 38 rules on 505 files: 8 findings.
+        5.05 real         7.11 user         2.12 sys
+           236699648  maximum resident set size
+            44091008  peak memory footprint
+
 Deep findings:
 
   lang/java/tmp/square-okhttp/samples/unixdomainsockets/src/main/java/okhttp3/unixdomainsockets/UnixDomainServerSocketFactory.java
@@ -240,6 +266,14 @@ v1:
 DeepSemgrep Version Info: (0.2.0-5-gf8eb064928f-dirty) # just added -j to DeepSemgrep in CLI
 Timeout ---> seems to swap a lot, perhaps all the SAST don't fit in memory?
 
+...
+
+v4:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java lang/java/tmp/elastic-elasticsearch --deep
+Ran 38 rules on 10536 files: 55 findings.
+      557.63 real       840.73 user       309.73 sys
+          4,023,533,568  maximum resident set size
+           666356544  peak memory footprint
 
 
 OWASP-Benchmark-BenchmarkJava
@@ -296,3 +330,10 @@ Ran 38 rules on 2763 files: 4219 findings.
       114.07 real       213.92 user        13.71 sys
           1055178752  maximum resident set size
            146327296  peak memory footprint
+
+v4:
+% /usr/bin/time -l semgrep --metrics off --max-target-bytes 300000 -c p/java OWASP-Benchmark-BenchmarkJava --deep
+Ran 38 rules on 2763 files: 4219 findings.
+       40.55 real       112.24 user        14.43 sys
+           769998848  maximum resident set size
+           150210368  peak memory footprint

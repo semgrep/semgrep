@@ -625,14 +625,14 @@ class CoreRunner:
             target_file_name, "w+"
         ) as target_file:
 
-            print("plan/tm.targets: ", target_manager.targets)
-            print("plan/all_targets: ", all_targets)
+            # print("plan/tm.targets: ", target_manager.targets)
+            # print("plan/all_targets: ", all_targets)
             plan = self._plan_core_run(rules, target_manager, all_targets)
             plan.log()
             parsing_data.add_targets(plan)
             target_file.write(json.dumps(plan.to_json()))
             target_file.flush()
-            print("plan: ", plan.to_json())
+            # print("plan: ", plan.to_json())
 
             rule_file.write(
                 json.dumps(
