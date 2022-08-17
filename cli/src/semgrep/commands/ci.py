@@ -317,7 +317,6 @@ def ci(
 
             assert exclude is not None  # exclude is default empty tuple
             exclude = (*exclude, *yield_exclude_paths(requested_excludes))
-
             assert config  # Config has to be defined here. Helping mypy out
             start = time.time()
             (

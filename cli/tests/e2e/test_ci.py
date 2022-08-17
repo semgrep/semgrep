@@ -32,6 +32,16 @@ MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
 DEPLOYMENT_ID = 33
+BAD_CONFIG = {
+    "rules": [
+        {
+            "id": "eqeq-bad",
+            "message": "missing pattern",
+            "languages": ["python"],
+            "severity": "ERROR",
+        }
+    ]
+}
 
 
 @pytest.fixture
@@ -126,7 +136,6 @@ def automocks(mocker):
     """
     Necessary patches to run `semgrep ci` tests
     """
-
     file_content = dedent(
         """
         rules:
@@ -174,6 +183,7 @@ def automocks(mocker):
         return_value={
             "deployment_id": DEPLOYMENT_ID,
             "deployment_name": "org_name",
+            "ignored_files": [],
             "policy_names": ["audit", "comment", "block"],
             "rule_config": pyyaml.load(file_content, Loader=SafeLoader),
         },
@@ -904,17 +914,17 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     Test that bad rules has exit code > 1
     """
-    file_content = dedent(
-        """
-        rules:
-        - id: eqeq-bad
-          message: "missing pattern"
-          languages: [python]
-          severity: ERROR
-        """
-    ).lstrip()
-    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
-
+    mocker.patch.object(
+        ScanHandler,
+        "get_scan_config_from_app",
+        return_value={
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+            "ignored_files": [],
+            "policy_names": ["audit", "comment", "block"],
+            "rule_config": BAD_CONFIG,
+        },
+    )
     result = run_semgrep(
         options=["ci", "--no-suppress-errors"],
         target_name=None,
@@ -929,18 +939,18 @@ def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit)
     """
     Test that bad rules with --suppres-errors returns exit code 0
     """
-    file_content = dedent(
-        """
-        rules:
-        - id: eqeq-bad
-          message: "missing pattern"
-          languages: [python]
-          severity: ERROR
-        """
-    ).lstrip()
-    mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
+    mocker.patch.object(
+        ScanHandler,
+        "get_scan_config_from_app",
+        return_value={
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+            "ignored_files": [],
+            "policy_names": ["audit", "comment", "block"],
+            "rule_config": BAD_CONFIG,
+        },
+    )
     mock_send = mocker.spy(ErrorHandler, "send")
-
     result = run_semgrep(
         options=["ci"],
         target_name=None,
