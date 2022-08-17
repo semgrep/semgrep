@@ -6,6 +6,11 @@ from click.testing import CliRunner
 
 from semgrep.cli import cli
 
+# Specify a branch or tag to use for semgrep-rules so as to avoid deadlocks
+# between semgrep-rules CI and semgrep CI, since each depends on the other.
+#
+SEMGREP_RULES_BRANCH_OR_TAG = "mj-java-semicolons"
+
 
 @pytest.fixture(scope="session", autouse=True)
 def in_semgrep_rules_repo(tmpdir_factory):
@@ -16,6 +21,8 @@ def in_semgrep_rules_repo(tmpdir_factory):
             "git",
             "clone",
             "--depth=1",
+            "--branch",
+            SEMGREP_RULES_BRANCH_OR_TAG,
             "https://github.com/returntocorp/semgrep-rules",
             repo_dir,
         ]
