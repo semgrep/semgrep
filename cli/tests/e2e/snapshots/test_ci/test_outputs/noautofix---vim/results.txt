@@ -25,7 +25,6 @@ Scan environment:
 
 Fetching configuration from semgrep.dev
 Authenticated as org_name
-Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 Scanning 1 file with 5 python rules.
 
 Some files were skipped or only partially analyzed.

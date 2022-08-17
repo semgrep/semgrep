@@ -41,7 +41,6 @@ Fetching configuration from semgrep.dev
 Getting scan configurations
 Starting scan
 Authenticated as org_name
-Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
 semgrep version <MASKED>
 running 5 rules from 1 config rules-yaml-string
 Initializing git status

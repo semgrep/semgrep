@@ -143,6 +143,7 @@ class ScanHandler:
         self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
         self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
         self._rules = pyyaml.dump(body.get("rule_config"), Dumper=SafeDumper)
+        self.ignore_patterns = body.get("ignored_files", [])
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
@@ -177,7 +178,6 @@ class ScanHandler:
 
         body = response.json()
         self.scan_id = body["scan"]["id"]
-        self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
 
     def report_failure(self, exit_code: int) -> None:
         """
