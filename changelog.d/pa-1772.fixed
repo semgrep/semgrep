@@ -1,4 +1,5 @@
-Changed symbolic propagation such that "redundant" matches are no longer reported as findings. For instance:
+Changed symbolic propagation such that "redundant" matches are no
+longer reported as findings. For instance:
 
 ```py
 def foo():
@@ -6,7 +7,8 @@ def foo():
   f(x)
 ```
 
-If we are looking for the pattern `g(5)`, we should not match on line 3, since we will match on line 2 anyways,
-and this is just repeating information that we already know.
+If we are looking for the pattern `g(5)`, we should not match on line 3,
+since we will match on line 2 anyways, and this is just repeating information that
+we already know.
 
 This patch changes it so that we do not match on line 3 anymore.
