@@ -132,7 +132,7 @@ class LSPConfig:
             else f" to {state.env.semgrep_url}"
         )
         metadata_dict = metadata.to_dict()
-        scan_handler.get_scan_config(metadata_dict)
+        scan_handler.fetch_and_init_scan_config(metadata_dict)
         return scan_handler.rules
 
     # =====================

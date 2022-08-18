@@ -117,7 +117,7 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
             )
 
-    def get_scan_config(self, meta: Dict[str, Any]) -> None:
+    def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
         """
         Get configurations for scan
         """
