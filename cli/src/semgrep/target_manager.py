@@ -22,11 +22,11 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from semdep.models import NAMESPACE_TO_LOCKFILES
-from semdep.models import PackageManagers
-from semdep.package_restrictions import LockfileDependency
+from semdep.find_lockfiles import ECOSYSTEM_TO_LOCKFILES
 from semdep.parse_lockfile import parse_lockfile_str
 from semgrep.git import BaselineHandler
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import FoundDependency
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -116,7 +116,7 @@ class FileTargetingLog:
     # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[Path, Optional[int]] = Factory(dict)
 
-    by_language: Dict[Union[Language, PackageManagers], Set[Path]] = Factory(
+    by_language: Dict[Union[Language, Ecosystem], Set[Path]] = Factory(
         lambda: defaultdict(set)
     )
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
@@ -548,7 +548,7 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Union[Language, PackageManagers], *, candidates: FrozenSet[Path]
+        self, language: Union[Language, Ecosystem], *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
         """
         Returns only paths that have the correct extension or shebang, or are the correct lockfile format
@@ -571,7 +571,7 @@ class TargetManager:
                 for path in candidates
                 if any(
                     str(path.parts[-1]) == lockfile_name
-                    for lockfile_name in NAMESPACE_TO_LOCKFILES[language]
+                    for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
                 )
             )
         return FilteredFiles(kept, frozenset(candidates - kept))
@@ -641,9 +641,7 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(
-        self, lang: Union[Language, PackageManagers]
-    ) -> FilteredFiles:
+    def get_files_for_language(self, lang: Union[Language, Ecosystem]) -> FilteredFiles:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
@@ -721,8 +719,8 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_lockfile_dependencies(
-        self, ecosystem: PackageManagers
-    ) -> List[Tuple[Path, List[LockfileDependency]]]:
+        self, ecosystem: Ecosystem
+    ) -> List[Tuple[Path, List[FoundDependency]]]:
         lockfiles = self.get_files_for_language(ecosystem).kept
         return [
             (

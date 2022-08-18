@@ -11,7 +11,6 @@ from typing import Set
 from typing import Union
 
 import semgrep.output_from_core as core
-from semdep.models import PackageManagers
 from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -19,6 +18,7 @@ from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -161,14 +161,19 @@ class Rule:
             return []
 
     @property
-    def namespaces(self) -> Set[PackageManagers]:
+    def ecosystems(self) -> Set[Ecosystem]:
         if "r2c-internal-project-depends-on" in self._raw:
             depends_on = self._raw["r2c-internal-project-depends-on"]
             if "depends-on-either" in depends_on:
                 dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
-                return {PackageManagers(d["namespace"]) for d in dependencies}
+                return {
+                    Ecosystem.from_json(d["namespace"].lower().capitalize())
+                    for d in dependencies
+                }
             else:
-                return {PackageManagers(depends_on["namespace"])}
+                return {
+                    Ecosystem.from_json(depends_on["namespace"].lower().capitalize())
+                }
         return set()
 
     @property

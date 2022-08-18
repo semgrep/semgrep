@@ -1,35 +1,22 @@
 from pathlib import Path
 from typing import Dict
-from typing import Generator
+from typing import Iterator
 from typing import List
 from typing import Set
 from typing import Tuple
 
 import semgrep.output_from_core as core
 from semdep.find_lockfiles import find_single_lockfile
-from semdep.models import PackageManagers
 from semdep.package_restrictions import dependencies_range_match_any
-from semdep.package_restrictions import ProjectDependsOnEntry
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyPattern
+from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.target_manager import TargetManager
 
 
-PACKAGE_MANAGER_MAP = {
-    "pypi": PackageManagers.PYPI,
-    "npm": PackageManagers.NPM,
-    "gem": PackageManagers.GEM,
-    "gomod": PackageManagers.GOMOD,
-    "cargo": PackageManagers.CARGO,
-    "maven": PackageManagers.MAVEN,
-    "gradle": PackageManagers.GRADLE,
-}
-
-
-def parse_depends_on_yaml(
-    entries: List[Dict[str, str]]
-) -> Generator[ProjectDependsOnEntry, None, None]:
+def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyPattern]:
     """
     Convert the entries in the Yaml to ProjectDependsOnEntry objects that specify
     namespace, package name, and semver ranges
@@ -39,19 +26,18 @@ def parse_depends_on_yaml(
         namespace = entry.get("namespace")
         if namespace is None:
             raise SemgrepError(f"project-depends-on is missing `namespace`")
-        pm = PACKAGE_MANAGER_MAP.get(namespace)
-        if pm is None:
-            raise SemgrepError(
-                f"unknown package namespace: {namespace}, only {list(PACKAGE_MANAGER_MAP.keys())} are supported"
-            )
-        package_name = entry.get("package")
-        if package_name is None:
+        try:
+            ecosystem = Ecosystem.from_json(namespace.lower().capitalize())
+        except ValueError:
+            raise SemgrepError(f"unknown package ecosystem: {namespace}")
+        package = entry.get("package")
+        if package is None:
             raise SemgrepError(f"project-depends-on is missing `package`")
         semver_range = entry.get("version")
         if semver_range is None:
             raise SemgrepError(f"project-depends-on is missing `version`")
-        yield ProjectDependsOnEntry(
-            namespace=pm, package_name=package_name, semver_range=semver_range
+        yield DependencyPattern(
+            ecosystem=ecosystem, package=package, semver_range=semver_range
         )
 
 
@@ -62,7 +48,7 @@ def generate_unreachable_sca_findings(
     dep_rule_errors: List[SemgrepError] = []
 
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
-    namespaces = list(rule.namespaces)
+    namespaces = list(rule.ecosystems)
 
     non_reachable_matches = []
     targeted_lockfiles = set()
@@ -99,8 +85,9 @@ def generate_unreachable_sca_findings(
                         extra=core.CoreMatchExtra(metavars=core.Metavars({})),
                     ),
                     extra={
-                        "dependency_match_only": True,
-                        "dependency_matches": [json_dep_match],
+                        "reachable": False,
+                        "reachability_rule": rule.should_run_on_semgrep_core,
+                        "dependency_match": json_dep_match,
                     },
                 )
                 non_reachable_matches.append(match)
@@ -114,7 +101,7 @@ def generate_reachable_sca_findings(
     dep_rule_errors: List[SemgrepError] = []
 
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
-    namespaces = list(rule.namespaces)
+    namespaces = list(rule.ecosystems)
 
     # Reachability rule
     reachable_matches = []
