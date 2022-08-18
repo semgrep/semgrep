@@ -24,30 +24,30 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "offset": 54
       },
       "extra": {
-        "dependency_match_only": false,
-        "dependency_matches": [
-          {
-            "dependency_pattern": {
-              "namespace": "gradle",
-              "package_name": "swagger-ui-dist",
-              "semver_range": "<= 3.35.2"
-            },
-            "found_dependency": {
-              "allowed_hashes": {},
-              "name": "swagger-ui-dist",
-              "namespace": "gradle",
-              "resolved_url": null,
-              "version": "3.35.2"
-            },
-            "lockfile": "targets/dependency_aware/gradle/gradle.lockfile"
-          }
-        ],
         "fingerprint": "fb37301199de446d37504950b022ee8f468b1ebb9620feb425f9434966d9537655d6575823e946c2ab5d458038b8b62d03048384e100a8d274ac82dc2931f480_0",
         "is_ignored": false,
         "lines": "        return bad()",
         "message": "oh no",
         "metadata": {},
         "metavars": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "Gradle",
+              "package": "swagger-ui-dist",
+              "semver_range": "<= 3.35.2"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "ecosystem": "Gradle",
+              "package": "swagger-ui-dist",
+              "version": "3.35.2"
+            },
+            "lockfile": "targets/dependency_aware/gradle/gradle.lockfile"
+          },
+          "reachability_rule": true,
+          "reachable": true
+        },
         "severity": "WARNING"
       },
       "path": "targets/dependency_aware/gradle/sca-gradle.java",

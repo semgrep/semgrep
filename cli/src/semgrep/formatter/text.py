@@ -413,10 +413,10 @@ class TextFormatter(BaseFormatter):
             rule_id = rule_match.rule_id
             message = rule_match.message
             fix = rule_match.fix
-            if "dependency_matches" in rule_match.extra and (
-                not rule_match.extra.get("dependency_match_only", True)
+            if "sca_info" in rule_match.extra and (
+                rule_match.extra["sca_info"].reachable
             ):
-                lockfile = rule_match.extra["dependency_matches"][0]["lockfile"]
+                lockfile = rule_match.extra["sca_info"].dependency_match.lockfile
             else:
                 lockfile = None
             if last_file is None or last_file != current_file:
