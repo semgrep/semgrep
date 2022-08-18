@@ -729,5 +729,5 @@ class TargetManager:
             if lockfile not in self.lockfile_scan_info:
                 # We haven't seen this file during reachable finding generation
                 self.lockfile_scan_info[lockfile] = len(deps)
-                parsed[lockfile] = deps
+            parsed[lockfile] = deps
         return parsed
