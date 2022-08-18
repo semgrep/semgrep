@@ -391,11 +391,11 @@ let map_parameter_modifiers (env : env) (xs : CST.parameter_modifiers) =
 
 let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   match x with
-  | `Pat_9d0cc04 tok ->
+  | `Pat_88eeeaa tok ->
       (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env tok
   | `Pat_97d645c tok -> (* pattern `[^\r\n` ]*` *) str env tok
   | `Pat_c332828 tok -> (* pattern \$[0-9]+ *) str env tok
-  | `Tok_dollar_pat_9d0cc04 tok -> (* tok_dollar_pat_9d0cc04 *) str env tok
+  | `Tok_dollar_pat_88eeeaa tok -> (* tok_dollar_pat_9d0cc04 *) str env tok
 
 let map_bound_identifier (env : env) (x : CST.bound_identifier) =
   map_simple_identifier env x
@@ -1224,13 +1224,22 @@ and map_class_declaration (env : env) ((v1, v2) : CST.class_declaration) =
   in
   map_modifierless_class_declaration env modifiers v2
 
+and map_class_member_separator (env : env) (x : CST.class_member_separator) =
+  match x with
+  | `Semi tok -> (* semi *) token env tok
+  | `Mult_comm_expl x -> map_multiline_comment_explicit env x
+
+and map_multiline_comment_explicit (env : env)
+    (() : CST.multiline_comment_explicit) =
+  G.sc
+
 and map_class_member_declarations (env : env)
     ((v1, v2, v3) : CST.class_member_declarations) =
   let v1 = map_type_level_declaration env v1 in
   let v2 =
     Common.map
       (fun (v1, v2) ->
-        let v1 = (* semi *) token env v1 in
+        let v1 = map_class_member_separator env v1 in
         let v2 = map_type_level_declaration env v2 in
         v2)
       v2
@@ -1242,8 +1251,8 @@ and map_class_member_declarations (env : env)
   in
   let v3 =
     match v3 with
-    | Some tok ->
-        let _ = (* semi *) token env tok in
+    | Some x ->
+        let _ = map_class_member_separator env x in
         ()
     | None -> ()
   in
