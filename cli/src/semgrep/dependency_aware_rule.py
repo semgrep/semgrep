@@ -11,8 +11,10 @@ from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyMatch
 from semgrep.semgrep_interfaces.semgrep_output_v0 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
+from semgrep.semgrep_interfaces.semgrep_output_v0 import ScaInfo
 from semgrep.target_manager import TargetManager
 
 
@@ -62,11 +64,11 @@ def generate_unreachable_sca_findings(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
             for dep_pat, found_dep in dependency_matches:
-                json_dep_match = {
-                    "dependency_pattern": vars(dep_pat),
-                    "found_dependency": vars(found_dep),
-                    "lockfile": str(lockfile_path),
-                }
+                dep_match = DependencyMatch(
+                    dependency_pattern=dep_pat,
+                    found_dependency=found_dep,
+                    lockfile=str(lockfile_path),
+                )
                 match = RuleMatch(
                     message=rule.message,
                     metadata=rule.metadata,
@@ -85,9 +87,11 @@ def generate_unreachable_sca_findings(
                         extra=core.CoreMatchExtra(metavars=core.Metavars({})),
                     ),
                     extra={
-                        "reachable": False,
-                        "reachability_rule": rule.should_run_on_semgrep_core,
-                        "dependency_match": json_dep_match,
+                        "sca_info": ScaInfo(
+                            reachable=False,
+                            reachability_rule=rule.should_run_on_semgrep_core,
+                            dependency_match=dep_match,
+                        )
                     },
                 )
                 non_reachable_matches.append(match)
@@ -119,13 +123,16 @@ def generate_reachable_sca_findings(
                 if dependency_matches:
                     matched_lockfiles.add(lockfile_path)
                 for dep_pat, found_dep in dependency_matches:
-                    json_dep_match = {
-                        "dependency_pattern": vars(dep_pat),
-                        "found_dependency": vars(found_dep),
-                        "lockfile": str(lockfile_path),
-                    }
-                    match.extra["dependency_match_only"] = False
-                    match.extra["dependency_matches"] = [json_dep_match]
+                    dep_match = DependencyMatch(
+                        dependency_pattern=dep_pat,
+                        found_dependency=found_dep,
+                        lockfile=str(lockfile_path),
+                    )
+                    match.extra["sca_info"] = ScaInfo(
+                        reachable=True,
+                        reachability_rule=rule.should_run_on_semgrep_core,
+                        dependency_match=dep_match,
+                    )
                     reachable_matches.append(match)
             except SemgrepError as e:
                 dep_rule_errors.append(e)
