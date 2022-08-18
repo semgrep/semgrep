@@ -574,7 +574,7 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   let fun_env = Hashtbl.create 8 in
 
   let v =
-    V.mk_visitor
+    V.mk_visitor ~fundef_as_anon:false
       {
         V.default_visitor with
         V.kdef =

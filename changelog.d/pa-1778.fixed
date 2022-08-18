@@ -1,0 +1,3 @@
+taint-mode: Due to a mistake in the instantiation of a visitor, named function
+definitions were being analyzed twice! This is now fixed and you may observe
+significant speed ups in some cases.
