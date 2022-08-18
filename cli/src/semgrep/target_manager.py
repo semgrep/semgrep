@@ -123,21 +123,6 @@ class FileTargetingLog:
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
     @property
-    def rule_ids_with_skipped_paths(self) -> FrozenSet[str]:
-        """All rule IDs that have skipped paths.
-
-        Note that if a rule ID defines excludes/includes,
-        but they didn't skip any paths,
-        that rule ID will not show up here.
-        """
-        return frozenset(
-            {
-                *(rule_id for rule_id, skips in self.rule_includes.items() if skips),
-                *(rule_id for rule_id, skips in self.rule_excludes.items() if skips),
-            }
-        )
-
-    @property
     def unsupported_lang_paths(self) -> Set[Path]:
         # paths of all files that were ignored by ALL non-generic langs
         return (
@@ -383,6 +368,7 @@ class Target:
         If list is empty then returns an empty set
         """
         files: FrozenSet[Path] = frozenset()
+
         if output:
             files = frozenset(
                 p

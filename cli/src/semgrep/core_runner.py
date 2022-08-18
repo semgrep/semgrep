@@ -33,10 +33,8 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_output import parse_core_output
-from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
-from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
 from semgrep.parsing_data import ParsingData
 from semgrep.profiling import ProfilingData
@@ -45,7 +43,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_core import SemgrepCore
-from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
@@ -531,21 +528,6 @@ class CoreRunner:
             }
             profiling_data.set_file_times(Path(t.path), rule_timings, t.run_time)
 
-    def get_files_for_language(
-        self, language: Language, rule: Rule, target_manager: TargetManager
-    ) -> List[Path]:
-        try:
-            targets = target_manager.get_files_for_rule(
-                language, rule.includes, rule.excludes, rule.id
-            )
-        except _UnknownLanguageError as ex:
-            raise UnknownLanguageError(
-                short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. {LANGUAGE.show_suppported_languages_message()}",
-                spans=[rule.languages_span.with_context(before=1, after=1)],
-            ) from ex
-        return list(targets)
-
     def _plan_core_run(
         self, rules: List[Rule], target_manager: TargetManager, all_targets: Set[Path]
     ) -> Plan:
@@ -565,7 +547,11 @@ class CoreRunner:
 
         for i, rule in enumerate(rules):
             for language in rule.languages:
-                targets = self.get_files_for_language(language, rule, target_manager)
+                targets = list(
+                    target_manager.get_files_for_rule(
+                        language, rule.includes, rule.excludes, rule.id
+                    )
+                )
 
                 for target in targets:
                     all_targets.add(target)

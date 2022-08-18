@@ -206,18 +206,6 @@ class Span:
             )
         return self
 
-    def extend_to(self, span: "Span", context_only: bool = True) -> "Span":
-        """
-        Extend this span to go as far as `span`.
-        :param span: The span to extend to
-        :param context_only: If true, the additional lines will only be marked as context. These will be displayed,
-        but unlike to core span area, they won't be highlighted in error messages.
-        """
-        if context_only:
-            return evolve(self, context_end=span.context_end or span.end)
-        else:
-            return evolve(self, end=span.end, context_end=span.context_end)
-
     def with_context(
         self, before: Optional[int] = None, after: Optional[int] = None
     ) -> "Span":

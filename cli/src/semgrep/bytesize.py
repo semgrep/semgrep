@@ -52,7 +52,7 @@ class ByteSizeType(click.ParamType):
     def convert(
         self,
         value: Union[None, str, int],
-        param: Optional[click.Parameter],
+        _param: Optional[click.Parameter],
         ctx: Optional[click.Context],
     ) -> Optional[int]:
         try:
