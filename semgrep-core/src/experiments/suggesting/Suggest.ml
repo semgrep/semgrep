@@ -1,6 +1,8 @@
-(*
-  val suggest : targets -> (rule * score) list
-*)
+(* Cooper Pierce (c) r2c 2022
+ *
+ * See (internal) https://docs.google.com/document/d/1MvHBD-88T09EjRqUEfSBlnrcy2IEbRVRB4VzqbzPzsA/edit?usp=sharing
+ *  and the associated scope doc for more information on the approach/outcomes
+ *)
 
 module G = AST_generic
 module V = Visitor_AST
@@ -15,26 +17,74 @@ module Util = struct
         | NInstr i -> (
             match
               CFG.successors cfg nodei
-              |> List.filter (fun (succi, _) ->
+              (* Filter out non-join successors of an assign anon instruction.
+                 This is done to remove the expression which is assigned, which
+                 is prototypically a function, and therefore doesn't comprise
+                 comuptation done at that point.
+              *)
+              |> (match i.i with
+                 | AssignAnon _ ->
+                     List.filter (fun (succi, _) ->
+                         match (cfg.graph#nodes#assoc succi).IL.n with
+                         | Join -> true
+                         | _ -> false)
+                 | _ -> Fun.id)
+              (* Partition out catch operations so that we can treat
+                 the insides of, e.g., Python `try` blocks as a single basic
+                 block. Need to partition instead of filter, because when we
+                 get to the actual final instruction in the try we want to
+                 continue from the catch instruction. For context, the cfg for
+                 a try / except looks like:
+
+                 ```py
+                 def foo():
+                     a()
+                     try:
+                         b()
+                         c()
+                     except _:
+                         d()
+                     e()
+                 ```
+
+                 [a]-->[noop try]
+                           |
+                           '->[b]-->[c]--.
+                                \        v
+                                 '-->[noop catch] -> [todo stmt] -> [d]
+                                             \                      /
+                                              \-->[noop finally]<--/
+                                                      \
+                                                       \--->[e]
+              *)
+              |> List.partition (fun (succi, _) ->
                      match (cfg.graph#nodes#assoc succi).IL.n with
-                     | NOther (Noop _) -> false
+                     | NOther (Noop "catch") -> false
                      | _ -> true)
             with
-            | [ (succi, _) ]
+            | [ (succi, _) ], _
               when match cfg.graph#nodes#assoc succi with
                    | { n = NInstr _ } -> true
                    | _ -> false -> (
                 match go seen succi with
                 | seen, block :: blocks -> (seen, (i :: block) :: blocks)
-                | _, [] -> raise Common.Impossible)
-            | [ (succi, _) ] ->
+                | seen, [] -> (seen, [ [ i ] ]))
+            | [ (succi, _) ], _
+            | [], [ (succi, _) ] ->
                 let seen, blocks = go seen succi in
                 (seen, [ i ] :: blocks)
-            | [] -> (seen, [])
-            | succs ->
+            | [], _ -> (seen, [])
+            | succs, _ ->
                 Common.pr2
-                  (Common.spf "at node %i, succs are %s" nodei
-                     ([%show: int list] (List.map fst succs)));
+                  (Common.spf "at node %s [%i], succs are %s"
+                     (IL.show_node_kind (cfg.graph#nodes#assoc nodei).IL.n)
+                     nodei
+                     ([%show: IL.node_kind list]
+                        (List.map
+                           (fun succ ->
+                             fst succ |> cfg.graph#nodes#assoc |> fun x ->
+                             x.IL.n)
+                           succs)));
                 raise Common.Impossible)
         | _ ->
             List.fold_left
@@ -59,12 +109,18 @@ type scored_rules = (Rule.rule * score) list
 let ast_passes : (G.program -> scored_rules) array = [||]
 
 let local_cfg_passes : (IL.stmt list list -> scored_rules) array =
-  [| (* Temporal.b_must_follow_a *) |]
+  [| 
+  (* TODO: Temporal.b_must_follow_a --- once it emits scored rules directly *)
+  |]
 
 (***
    Entry
    ***)
 let suggest files =
+  (*
+  We first collect all of the CFGs for each function, which we'll later extract
+  the traces from.
+  *)
   let cfgs = ref [] in
   List.iter
     (fun file ->
@@ -85,10 +141,15 @@ let suggest files =
       v (Pr ast))
     files;
   let bbs = List.concat_map Util.cfg_to_bb !cfgs in
+  (* We perform trace extraction using the templates we have implemented in
+     Temporal *)
   Temporal.b_must_follow_a bbs
   |> List.sort (fun (_, s) (_, s') -> Float.compare s s')
-  |> List.to_seq |> Seq.take 10 |> List.of_seq
+  |> List.to_seq
+  (* and take the top 10 ranked pairs *)
+  |> Seq.take 10
+  |> List.of_seq
   |> List.map (fun ((a, b), score) ->
-         Common.spf "score: %f\t\tcall %s before %s" score (IL.show_lval a)
+         Common.spf "score: %f\t\tcall %s before %s\n" score (IL.show_lval a)
            (IL.show_lval b))
-  |> List.iter Common.pr2
+  |> List.iter Common.pr

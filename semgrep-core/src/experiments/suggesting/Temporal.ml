@@ -59,6 +59,9 @@ module Templates = struct
   type ('a, 'b) matcher = 'a -> 'b option
 
   let trace_templates =
+    (* NOTE: lvals are accepted even if we think they should be none, because
+       we often save calls into a temp even if not needed.
+    *)
     [|
       (* Type 1 Trace:
          $X = $FOO();
@@ -67,14 +70,14 @@ module Templates = struct
       *)
       cons (call ~lval:Fun.id ~fn:only_fetch ~args:accept) (fun (x, foo, _) ->
           cons
-            (call ~lval:is_none ~fn:only_fetch
+            (call ~lval:accept ~fn:only_fetch
                ~args:
                  (List.find_opt (function
                    | { IL.e = Fetch l; _ } -> l = x
                    | _ -> false)))
             (fun (_, bar, _) ->
               cons
-                (call ~lval:is_none ~fn:only_fetch
+                (call ~lval:accept ~fn:only_fetch
                    ~args:
                      (List.find_opt (function
                        | { IL.e = Fetch l; _ } -> l = x
@@ -85,12 +88,12 @@ module Templates = struct
          $BAR(..., $X, ...);
          $BAZ(..., $X, ...);
       *)
-      cons (call ~lval:is_none ~fn:only_fetch ~args:accept)
+      cons (call ~lval:accept ~fn:only_fetch ~args:accept)
         (fun (_, foo, foo_args) ->
-          cons (call ~lval:is_none ~fn:only_fetch ~args:accept)
+          cons (call ~lval:accept ~fn:only_fetch ~args:accept)
             (fun (_, bar, bar_args) ->
               cons
-                (call ~lval:is_none ~fn:only_fetch ~args:(fun baz_args ->
+                (call ~lval:accept ~fn:only_fetch ~args:(fun baz_args ->
                      (* This asymtotically slow, but most functions don't have
                       * many arguments *)
                      List.find_opt
@@ -104,10 +107,9 @@ module Templates = struct
           $BAR();
           $BAZ();
       *)
-      cons (call ~lval:is_none ~fn:only_fetch ~args:null) (fun (_, foo, _) ->
-          cons (call ~lval:is_none ~fn:only_fetch ~args:null)
-            (fun (_, bar, _) ->
-              cons (call ~lval:is_none ~fn:only_fetch ~args:null)
+      cons (call ~lval:accept ~fn:only_fetch ~args:null) (fun (_, foo, _) ->
+          cons (call ~lval:accept ~fn:only_fetch ~args:null) (fun (_, bar, _) ->
+              cons (call ~lval:accept ~fn:only_fetch ~args:null)
                 (fun (_, baz, _) _ -> accept [ foo; bar; baz ])));
     |]
 
@@ -164,18 +166,26 @@ let get_all_call_traces bbs =
        (List.filter_map (function
          | { IL.i = Call _; _ } as i -> Some i
          | _ -> None))
+  |> (fun x ->
+       [%show: IL.instr list list] x |> Common.pr2;
+       x)
   |> List.concat_map
        (Templates.extract_matching_traces Templates.trace_templates)
 
 let b_must_follow_a (basic_blocks : basic_block list) =
   let traces = get_all_call_traces basic_blocks in
+  Common.pr2 (string_of_int (List.length traces));
   let functions = FnSet.of_list (List.flatten traces) in
+  Common.pr2 (string_of_int (FnSet.cardinal functions));
   Seq.flat_map
     (fun x ->
       Seq.filter_map
         (* 0.9 used per section 5 of Bugs as Deviant Behaviours:
            See <https://web.stanford.edu/~engler/deviant-sosp-01.pdf> *)
           (fun y ->
+          Common.(
+            spf "checking the pair (%s, %s)" (IL.show_lval x) (IL.show_lval y)
+            |> pr2);
           if x = y then None
           else Some ((x, y), compute_z_score 0.9 traces (x, y)))
         (FnSet.to_seq functions))
