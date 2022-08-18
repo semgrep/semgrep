@@ -1,5 +1,5 @@
 rules:
-  - id: mevatariable-unification-test
+  - id: mevatar_unification
     message: Semgrep found a match
     languages:
       - json
