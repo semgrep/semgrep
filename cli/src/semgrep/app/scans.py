@@ -100,7 +100,7 @@ class ScanHandler:
         """
         return self._rules
 
-    def get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
+    def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
         state = get_state()
         response = state.app_session.get(url)
         try:
@@ -134,7 +134,7 @@ class ScanHandler:
             }
         )
         app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
-        body = self.get_scan_config_from_app(app_get_config_url)
+        body = self._get_scan_config_from_app(app_get_config_url)
 
         self._deployment_id = body["deployment_id"]
         self._deployment_name = body["deployment_name"]
