@@ -39,13 +39,11 @@ val mk_visitor :
   ?vardef_assign:bool ->
   ?flddef_assign:bool ->
   ?attr_expr:bool ->
-  ?fundef_as_anon:bool ->
   visitor_in ->
   visitor_out
 (** @param vardef_assign VarDef-Assign equivalence (default is [false])
     @param flddef_assign FieldDef-Assign equivalence (default is [false])
     @param attr_expr Attribute-expression equivalence (default is [false])
-    @param funcdef_as_anon Visit named function definitions also as anonymous ones (default is [true])
 *)
 
 (* Note that ii_of_any relies on Visitor_AST which itself

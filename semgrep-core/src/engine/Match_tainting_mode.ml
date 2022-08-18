@@ -574,16 +574,19 @@ let check_rule (rule : R.taint_rule) match_hook (xconf : Match_env.xconfig)
   let fun_env = Hashtbl.create 8 in
 
   let v =
-    V.mk_visitor ~fundef_as_anon:false
+    V.mk_visitor
       {
         V.default_visitor with
         V.kdef =
-          (fun (k, _v) ((ent, def_kind) as def) ->
+          (fun (k, v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
                 check_fundef lang fun_env taint_config (Some ent) fdef;
-                (* go into nested functions *)
-                k def
+                (* go into nested functions
+                   but do NOT revisit the function definition again
+                   with `kfunction_definition` below! *)
+                let body = H.funcbody_to_stmt fdef.G.fbody in
+                v (G.S body)
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
