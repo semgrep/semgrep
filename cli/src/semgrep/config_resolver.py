@@ -243,7 +243,7 @@ class Config:
         errors: List[SemgrepError] = []
 
         try:
-            resolved_config_key = "rules-yaml-string"
+            resolved_config_key = "semgrep-app-rules"
             config_dict.update(
                 parse_config_string(resolved_config_key, config, filename=None)
             )

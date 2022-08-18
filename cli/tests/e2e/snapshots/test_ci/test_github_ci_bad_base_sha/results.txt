@@ -42,7 +42,7 @@ Getting scan configurations
 Starting scan
 Authenticated as org_name
 semgrep version <MASKED>
-running 5 rules from 1 config rules-yaml-string
+running 5 rules from 1 config semgrep-app-rules
 Initializing git status
 Running git diff
 Finished git diff. Parsing git status output
