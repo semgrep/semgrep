@@ -1,5 +1,5 @@
 (* entry points, used in the sgrep_generic visitors *)
-val m_expr : AST_generic.expr Matching_generic.matcher
+val m_expr_root : AST_generic.expr Matching_generic.matcher
 val m_stmt : AST_generic.stmt Matching_generic.matcher
 
 val m_stmts_deep :
