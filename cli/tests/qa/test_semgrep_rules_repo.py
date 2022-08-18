@@ -1,27 +1,31 @@
-import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
 from semgrep.cli import cli
 
+# We use this to locate the semgrep-rules submodule
+def get_git_project_root() -> str:
+    res = subprocess.Popen(
+        ["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE
+    )
+    return res.communicate()[0].rstrip().decode("utf-8")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def in_semgrep_rules_repo(tmpdir_factory):
+    project_root = Path(get_git_project_root())
     monkeypatch = pytest.MonkeyPatch()
-    repo_dir = tmpdir_factory.mktemp("semgrep-rules")
-    subprocess.check_output(
-        [
-            "git",
-            "clone",
-            "--depth=1",
-            "https://github.com/returntocorp/semgrep-rules",
-            repo_dir,
-        ]
-    )
+    # semgrep-rules is available as a git submodule:
+    repo_dir = project_root / "semgrep-core/tests/semgrep-rules"
+    # The old code was modifying the semgrep-rules folder. Better not do this
+    # since it's a shared resource. If writes are necessary, make a copy
+    # of the folder to create a safe read-write workspace.
+    #
     # Remove subdir that doesnt contain rules
-    shutil.rmtree(repo_dir / "stats")
+    # shutil.rmtree(repo_dir / "stats")
     monkeypatch.chdir(repo_dir)
     yield
     monkeypatch.undo()
