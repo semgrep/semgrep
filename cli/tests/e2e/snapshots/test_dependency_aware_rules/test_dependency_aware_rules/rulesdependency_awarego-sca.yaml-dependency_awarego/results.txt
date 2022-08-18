@@ -51,7 +51,8 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
             "lockfile": "targets/dependency_aware/go/go.sum"
           },
           "reachability_rule": true,
-          "reachable": true
+          "reachable": true,
+          "sca_finding_schema": 20220818
         },
         "severity": "WARNING"
       },

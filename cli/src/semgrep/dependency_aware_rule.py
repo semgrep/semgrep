@@ -17,6 +17,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v0 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v0 import ScaInfo
 from semgrep.target_manager import TargetManager
 
+SCA_FINDING_SCHEMA = 20220818
+
 
 def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyPattern]:
     """
@@ -88,6 +90,7 @@ def generate_unreachable_sca_findings(
                     ),
                     extra={
                         "sca_info": ScaInfo(
+                            sca_finding_schema=SCA_FINDING_SCHEMA,
                             reachable=False,
                             reachability_rule=rule.should_run_on_semgrep_core,
                             dependency_match=dep_match,
@@ -129,6 +132,7 @@ def generate_reachable_sca_findings(
                         lockfile=str(lockfile_path),
                     )
                     match.extra["sca_info"] = ScaInfo(
+                        sca_finding_schema=SCA_FINDING_SCHEMA,
                         reachable=True,
                         reachability_rule=rule.should_run_on_semgrep_core,
                         dependency_match=dep_match,
