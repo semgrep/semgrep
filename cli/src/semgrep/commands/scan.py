@@ -238,6 +238,15 @@ _scan_options: List[Callable] = [
         shell_complete=__get_file_options,
     ),
     optgroup.option(
+        "--exclude-rule",
+        multiple=True,
+        default=[],
+        help="""
+            Skip any rule with the given id. Can add multiple times.
+        """,
+        shell_complete=__get_file_options,
+    ),
+    optgroup.option(
         "--include",
         multiple=True,
         default=[],
@@ -610,6 +619,7 @@ def scan(
     enable_version_check: bool,
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
+    exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
     gitlab_sast: bool,
     gitlab_secrets: bool,
@@ -826,6 +836,7 @@ def scan(
                     jobs=jobs,
                     include=include,
                     exclude=exclude,
+                    exclude_rule=exclude_rule,
                     max_target_bytes=max_target_bytes,
                     replacement=replacement,
                     strict=strict,

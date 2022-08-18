@@ -277,6 +277,7 @@ def main(
     jobs: int = 1,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Sequence[str]] = None,
+    exclude_rule: Optional[Sequence[str]] = None,
     strict: bool = False,
     autofix: bool = False,
     replacement: Optional[str] = None,
@@ -309,6 +310,9 @@ def main(
 
     if exclude is None:
         exclude = []
+
+    if exclude_rule is None:
+        exclude_rule = []
 
     project_url = get_project_url()
     profiler = ProfileManager()
@@ -396,6 +400,8 @@ def main(
     logger.verbose("Rules:")
     for ruleid in sorted(rule.id for rule in filtered_rules):
         logger.verbose(f"- {ruleid}")
+
+    filtered_rules = list(filter(lambda r: r.id not in exclude_rule, filtered_rules))
 
     (
         rule_matches_by_rule,
