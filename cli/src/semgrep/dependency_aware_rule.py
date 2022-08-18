@@ -121,6 +121,7 @@ def generate_reachable_sca_findings(
                     continue
                 lockfile_path, deps = lockfile_data
                 if lockfile_path not in target_manager.lockfile_scan_info:
+                    # If the lockfile is not part of the actual targets or we just haven't parsed this lockfile yet
                     target_manager.lockfile_scan_info[lockfile_path] = len(deps)
 
                 dependency_matches = list(

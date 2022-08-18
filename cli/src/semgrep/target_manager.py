@@ -733,6 +733,8 @@ class TargetManager:
         parsed: Dict[Path, List[FoundDependency]] = {}
         for lockfile in lockfiles:
             deps = parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
-            self.lockfile_scan_info[lockfile] = len(deps)
-            parsed[lockfile] = deps
+            if lockfile not in self.lockfile_scan_info:
+                # We haven't seen this file during reachable finding generation
+                self.lockfile_scan_info[lockfile] = len(deps)
+                parsed[lockfile] = deps
         return parsed
