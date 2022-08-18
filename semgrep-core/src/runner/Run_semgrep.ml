@@ -432,9 +432,15 @@ let mk_rule_table rules list_of_rule_ids =
   let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
   let rule_table = Common.hash_of_list rule_pairs in
   let id_pairs =
-    List.mapi
-      (fun i rule_id -> (i, Hashtbl.find rule_table rule_id))
-      list_of_rule_ids
+    list_of_rule_ids
+    |> List.mapi (fun i x -> (i, x))
+    (* We filter out rules here if they don't exist, because we might have a
+     * rule_id for an extract mode rule, but extract mode rules won't appear in
+     * rule pairs, because they won't be in the table we make for search
+     * because we don't want to run them at this stage.
+     *)
+    |> List.filter_map (fun (i, rule_id) ->
+           Hashtbl.find_opt rule_table rule_id >>= fun x -> Some (i, x))
   in
   Common.hash_of_list id_pairs
 
