@@ -102,5 +102,10 @@ let program ?unescape_strings ast =
 let any x =
   match x with
   | E e -> G.E (expr e)
-  | PartialSingleField (v1, v2, v3) ->
-      G.Partial (G.PartialSingleField (v1, v2, expr v3))
+  | PartialSingleField (v1, _v2, v3) ->
+      let key = 
+        if AST_generic_.is_metavar_name (fst v1) then
+          G.N (G.Id (v1, G.empty_id_info ())) |> G.e
+        else G.L (G.String v1) |> G.e
+      in
+      G.E (G.Container (G.Tuple, G.fake_bracket [key; expr v3]) |> G.e)
