@@ -16,9 +16,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import requests
-import yaml as pyyaml
 from ruamel.yaml import YAMLError
-from yaml import SafeDumper
 
 from semgrep import __VERSION__
 from semgrep.app import auth
@@ -204,9 +202,9 @@ class ConfigPath:
         )
         if resp.status_code == requests.codes.ok:
             try:
-                rules_dict = resp.json()["rule_config"]
-                assert rules_dict is not None
-                return pyyaml.dump(rules_dict, Dumper=SafeDumper)  # type: ignore
+                rule_config = resp.json()["rule_config"]
+                assert isinstance(rule_config, str)
+                return rule_config
             except BaseException:  # catch JSONDecodeError, AssertionError, etc.
                 return resp.content.decode("utf-8", errors="replace")
         else:

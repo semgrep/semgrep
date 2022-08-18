@@ -12,9 +12,7 @@ from urllib.parse import urlencode
 
 import click
 import requests
-import yaml as pyyaml
 from boltons.iterutils import partition
-from yaml import SafeDumper
 
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import SemgrepError
@@ -139,11 +137,11 @@ class ScanHandler:
         self._deployment_id = body["deployment_id"]
         self._deployment_name = body["deployment_name"]
         self._policy_names = body["policy_names"]
-        self._autofix = body.get("autofix", False)
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
-        self._rules = pyyaml.dump(body.get("rule_config"), Dumper=SafeDumper)
-        self.ignore_patterns = body.get("ignored_files", [])
+        self._rules = body["rule_config"]
+        self._autofix = body.get("autofix") or False
+        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
+        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
+        self.ignore_patterns = body.get("ignored_files") or []
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """

@@ -8,10 +8,8 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-import yaml as pyyaml
 from tests.e2e.test_baseline import _git_commit
 from tests.e2e.test_baseline import _git_merge
-from yaml import SafeLoader
 
 from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
@@ -32,16 +30,15 @@ MAIN_BRANCH_NAME = "main"
 COMMIT_MESSAGE = "some: commit message! foo"
 COMMIT_MESSAGE_2 = "Some other commit/ message"
 DEPLOYMENT_ID = 33
-BAD_CONFIG = {
-    "rules": [
-        {
-            "id": "eqeq-bad",
-            "message": "missing pattern",
-            "languages": ["python"],
-            "severity": "ERROR",
-        }
-    ]
-}
+BAD_CONFIG = dedent(
+    """
+    rules:
+    - id: eqeq-bad
+      message: "useless comparison"
+      languages: [python]
+      severity: ERROR
+"""
+).lstrip()
 
 
 @pytest.fixture
@@ -185,7 +182,7 @@ def automocks(mocker):
             "deployment_name": "org_name",
             "ignored_files": [],
             "policy_names": ["audit", "comment", "block"],
-            "rule_config": pyyaml.load(file_content, Loader=SafeLoader),
+            "rule_config": file_content,
         },
     )
     mocker.patch.object(
