@@ -1,5 +1,5 @@
 rules:
-  - id: mevatar_unification
+  - id: metavar_unification
     message: Semgrep found a match
     languages:
       - json
