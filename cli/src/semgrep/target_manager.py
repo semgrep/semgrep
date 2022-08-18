@@ -3,7 +3,6 @@ import stat
 import subprocess
 import sys
 from collections import defaultdict
-from dataclasses import dataclass
 from functools import lru_cache
 from functools import partial
 from pathlib import Path
@@ -451,12 +450,6 @@ class Target:
                 )
 
         return self.files_from_filesystem()
-
-
-@dataclass
-class LockfileScanInfo:
-    lockfile_count: int
-    dependency_count: int
 
 
 @define(eq=False)
