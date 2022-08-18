@@ -7,6 +7,7 @@
     "unsupported_exts": {
       ".txt": 1
     },
+    "lockfile_scan_info": {},
     "parse_rate": {
       "python": {
         "targets_parsed": 1,
