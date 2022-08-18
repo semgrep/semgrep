@@ -493,12 +493,12 @@ class TextFormatter(BaseFormatter):
         unreachable = []
         first_party = []
         for match in rule_matches:
-            if "dependency_match_only" not in match.extra:
+            if "sca_info" not in match.extra:
                 first_party.append(match)
-            elif match.extra["dependency_match_only"]:
-                unreachable.append(match)
-            else:
+            elif match.extra["sca_info"].reachable:
                 reachable.append(match)
+            else:
+                unreachable.append(match)
 
         timing_output = (
             self._build_summary(
