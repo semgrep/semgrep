@@ -179,7 +179,7 @@ def automocks(mocker):
     mocker.patch.object(ConfigPath, "_make_config_request", return_value=file_content)
     mocker.patch.object(
         ScanHandler,
-        "get_scan_config_from_app",
+        "_get_scan_config_from_app",
         return_value={
             "deployment_id": DEPLOYMENT_ID,
             "deployment_name": "org_name",
@@ -916,7 +916,7 @@ def test_bad_config(run_semgrep, mocker, git_tmp_path_with_commit):
     """
     mocker.patch.object(
         ScanHandler,
-        "get_scan_config_from_app",
+        "_get_scan_config_from_app",
         return_value={
             "deployment_id": DEPLOYMENT_ID,
             "deployment_name": "org_name",
@@ -941,7 +941,7 @@ def test_bad_config_error_handler(run_semgrep, mocker, git_tmp_path_with_commit)
     """
     mocker.patch.object(
         ScanHandler,
-        "get_scan_config_from_app",
+        "_get_scan_config_from_app",
         return_value={
             "deployment_id": DEPLOYMENT_ID,
             "deployment_name": "org_name",

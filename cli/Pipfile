@@ -42,9 +42,8 @@ pytest-rerunfailures = "*"
 importlib_metadata = "*"
 typing_extensions = "*"
 importlib_resources = ">=1.4.0"
+types-pyyaml = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
 jsonschema = "==4.6.1"
-pyyaml = "*"
-types-pyyaml = "*"
