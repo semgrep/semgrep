@@ -103,9 +103,9 @@ let any x =
   match x with
   | E e -> G.E (expr e)
   | PartialSingleField (v1, _v2, v3) ->
-      let key = 
+      let key =
         if AST_generic_.is_metavar_name (fst v1) then
           G.N (G.Id (v1, G.empty_id_info ())) |> G.e
         else G.L (G.String v1) |> G.e
       in
-      G.E (G.Container (G.Tuple, G.fake_bracket [key; expr v3]) |> G.e)
+      G.E (G.Container (G.Tuple, G.fake_bracket [ key; expr v3 ]) |> G.e)
