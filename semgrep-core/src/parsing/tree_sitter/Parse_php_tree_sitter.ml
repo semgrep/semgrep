@@ -2446,7 +2446,11 @@ and map_variable (env : env) (x : CST.variable) =
 and map_variable_name_ (env : env) (x : CST.variable_name_) : A.expr =
   match x with
   | `Dyna_var_name x -> map_dynamic_variable_name env x
-  | `Var_name x -> A.Id [ map_variable_name env x ]
+  | `Var_name x -> (
+      let str, tok = map_variable_name env x in
+      match str with
+      | "$this" -> IdSpecial (A.This, tok)
+      | _ -> A.Id [ (str, tok) ])
 
 and map_variadic_unpacking (env : env) ((v1, v2) : CST.variadic_unpacking) =
   let v1 = (* "..." *) token env v1 in
