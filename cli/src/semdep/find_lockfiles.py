@@ -37,10 +37,8 @@ def find_single_lockfile(
         for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
             lockfile_path = path / lockfile_pattern
             if lockfile_path.exists():
-                return lockfile_path, list(
-                    parse_lockfile_str(
-                        lockfile_path.read_text(encoding="utf8"), lockfile_path
-                    )
+                return lockfile_path, parse_lockfile_str(
+                    lockfile_path.read_text(encoding="utf8"), lockfile_path
                 )
             else:
                 continue

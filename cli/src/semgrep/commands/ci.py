@@ -336,6 +336,7 @@ def ci(
                 parsing_data,
                 _explanations,
                 shown_severities,
+                lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
                 output_handler=output_handler,
@@ -448,6 +449,7 @@ def ci(
             parsing_data,
             total_time,
             metadata.commit_datetime,
+            lockfile_scan_info,
         )
 
     audit_mode = metadata.event_name in audit_on

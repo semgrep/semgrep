@@ -58,7 +58,7 @@ def generate_unreachable_sca_findings(
     targeted_lockfiles = set()
     for namespace in namespaces:
         lockfile_data = target_manager.get_lockfile_dependencies(namespace)
-        for lockfile_path, deps in lockfile_data:
+        for lockfile_path, deps in lockfile_data.items():
             if lockfile_path in exlcude:
                 continue
             targeted_lockfiles.add(lockfile_path)
@@ -102,7 +102,7 @@ def generate_unreachable_sca_findings(
 
 
 def generate_reachable_sca_findings(
-    matches: List[RuleMatch], rule: Rule
+    matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
 ) -> Tuple[List[RuleMatch], List[SemgrepError], Set[Path]]:
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
@@ -120,6 +120,9 @@ def generate_reachable_sca_findings(
                 if lockfile_data is None:
                     continue
                 lockfile_path, deps = lockfile_data
+                if lockfile_path not in target_manager.lockfile_scan_info:
+                    target_manager.lockfile_scan_info[lockfile_path] = len(deps)
+
                 dependency_matches = list(
                     dependencies_range_match_any(depends_on_entries, deps)
                 )

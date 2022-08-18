@@ -113,6 +113,7 @@ def invoke_semgrep(
         _,
         explanations,
         shown_severities,
+        _,
     ) = main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -204,6 +205,7 @@ def run_rules(
                 ) = generate_reachable_sca_findings(
                     rule_matches_by_rule.get(rule, []),
                     rule,
+                    target_manager,
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -302,6 +304,7 @@ def main(
     ParsingData,
     Optional[List[out.MatchingExplanation]],
     Collection[RuleSeverity],
+    Dict[Path, int],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
     if include is None:
@@ -519,4 +522,5 @@ def main(
         parsing_data,
         explanations,
         shown_severities,
+        target_manager.lockfile_scan_info,
     )

@@ -3,6 +3,7 @@ import stat
 import subprocess
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import lru_cache
 from functools import partial
 from pathlib import Path
@@ -452,6 +453,12 @@ class Target:
         return self.files_from_filesystem()
 
 
+@dataclass
+class LockfileScanInfo:
+    lockfile_count: int
+    dependency_count: int
+
+
 @define(eq=False)
 class TargetManager:
     """
@@ -482,6 +489,7 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
+    lockfile_scan_info: Dict[Path, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -720,12 +728,11 @@ class TargetManager:
     @lru_cache(maxsize=None)
     def get_lockfile_dependencies(
         self, ecosystem: Ecosystem
-    ) -> List[Tuple[Path, List[FoundDependency]]]:
+    ) -> Dict[Path, List[FoundDependency]]:
         lockfiles = self.get_files_for_language(ecosystem).kept
-        return [
-            (
-                lockfile,
-                list(parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)),
-            )
-            for lockfile in lockfiles
-        ]
+        parsed: Dict[Path, List[FoundDependency]] = {}
+        for lockfile in lockfiles:
+            deps = parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
+            self.lockfile_scan_info[lockfile] = len(deps)
+            parsed[lockfile] = deps
+        return parsed

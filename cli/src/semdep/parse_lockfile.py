@@ -1,6 +1,7 @@
 import base64
 import collections
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -373,20 +374,21 @@ LOCKFILE_PARSERS = {
 }
 
 
+@lru_cache(maxsize=1000)
 def parse_lockfile_str(
     lockfile_text: str, filepath_for_reference: Path
-) -> Generator[FoundDependency, None, None]:
+) -> List[FoundDependency]:
     # coupling with the github action, which decides to send files with these names back to us
     filepath = filepath_for_reference.name.lower()
     if filepath in LOCKFILE_PARSERS:
         try:
-            yield from LOCKFILE_PARSERS[filepath](lockfile_text)
+            return list(LOCKFILE_PARSERS[filepath](lockfile_text))
         # Such a general except clause is suspect, but the parsing error could be any number of
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
             logger.error(f"Failed to parse {filepath_for_reference} with exception {e}")
-            return
+            return []
     else:
         raise SemgrepError(
             f"don't know how to parse this filename: {filepath_for_reference}"
