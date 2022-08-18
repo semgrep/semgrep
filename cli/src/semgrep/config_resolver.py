@@ -15,7 +15,9 @@ from typing import Sequence
 from typing import Tuple
 
 import requests
+import yaml as pyyaml
 from ruamel.yaml import YAMLError
+from yaml import SafeDumper
 
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
@@ -494,6 +496,8 @@ def load_default_config() -> Dict[str, YamlTree]:
     """
     Load config from DEFAULT_CONFIG_FILE or DEFAULT_CONFIG_FOLDER
     """
+    rules_dict = {"rules": [{"id": "check-thing", "pattern": "fake"}]}
+    rules_test = pyyaml.dump(rules_dict, Dumper=SafeDumper)
     default_file = Path(DEFAULT_CONFIG_FILE)
     default_folder = Path(DEFAULT_CONFIG_FOLDER)
     if default_file.exists():

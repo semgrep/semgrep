@@ -132,6 +132,7 @@ install_requires = [
     "urllib3~=1.26",
     "typing-extensions~=4.2",
     "python-lsp-jsonrpc~=1.0.0",
+    "pyyaml~=6.0",
 ]
 
 setuptools.setup(
