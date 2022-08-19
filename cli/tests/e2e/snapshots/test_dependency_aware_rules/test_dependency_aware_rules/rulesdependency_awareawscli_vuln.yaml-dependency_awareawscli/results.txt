@@ -33,7 +33,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": "== 1.11.82"
             },
@@ -44,7 +44,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -80,7 +80,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": "== 1.11.82"
             },
@@ -91,7 +91,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -127,7 +127,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": "== 1.11.82"
             },
@@ -138,7 +138,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -174,7 +174,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": ">= 0.0.1"
             },
@@ -185,7 +185,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -221,7 +221,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": ">= 0.0.1"
             },
@@ -232,7 +232,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -268,7 +268,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": "<= 1.11.82"
             },
@@ -279,7 +279,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -315,7 +315,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": "<= 1.11.82"
             },
@@ -326,7 +326,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },
@@ -362,7 +362,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "semver_range": "== 1.11.82"
             },
@@ -373,7 +373,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
                 ]
               },
-              "ecosystem": "Pypi",
+              "ecosystem": "pypi",
               "package": "awscli",
               "version": "1.11.82"
             },

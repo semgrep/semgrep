@@ -33,13 +33,13 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Gem",
+              "ecosystem": "gem",
               "package": "parallel",
               "semver_range": "== 1.21.0"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "ecosystem": "Gem",
+              "ecosystem": "gem",
               "package": "parallel",
               "version": "1.21.0"
             },

@@ -33,7 +33,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Gomod",
+              "ecosystem": "gomod",
               "package": "github.com/cheekybits/genny",
               "semver_range": "== 1.0.0"
             },
@@ -43,7 +43,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "uGGa4nei+j20rOSeDeP5Of12XVm7TGUd4dJA9RDitfE"
                 ]
               },
-              "ecosystem": "Gomod",
+              "ecosystem": "gomod",
               "package": "github.com/cheekybits/genny",
               "resolved_url": "github.com/cheekybits/genny",
               "version": "1.0.0"
