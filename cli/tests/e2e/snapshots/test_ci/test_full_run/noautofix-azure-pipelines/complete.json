@@ -7,6 +7,10 @@
     "unsupported_exts": {
       ".txt": 1
     },
+    "lockfile_scan_info": {
+      "poetry.lock": 1,
+      "yarn.lock": 1
+    },
     "parse_rate": {
       "python": {
         "targets_parsed": 1,

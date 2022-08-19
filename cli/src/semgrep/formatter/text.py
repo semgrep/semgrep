@@ -413,10 +413,10 @@ class TextFormatter(BaseFormatter):
             rule_id = rule_match.rule_id
             message = rule_match.message
             fix = rule_match.fix
-            if "dependency_matches" in rule_match.extra and (
-                not rule_match.extra.get("dependency_match_only", True)
+            if "sca_info" in rule_match.extra and (
+                rule_match.extra["sca_info"].reachable
             ):
-                lockfile = rule_match.extra["dependency_matches"][0]["lockfile"]
+                lockfile = rule_match.extra["sca_info"].dependency_match.lockfile
             else:
                 lockfile = None
             if last_file is None or last_file != current_file:
@@ -493,12 +493,12 @@ class TextFormatter(BaseFormatter):
         unreachable = []
         first_party = []
         for match in rule_matches:
-            if "dependency_match_only" not in match.extra:
+            if "sca_info" not in match.extra:
                 first_party.append(match)
-            elif match.extra["dependency_match_only"]:
-                unreachable.append(match)
-            else:
+            elif match.extra["sca_info"].reachable:
                 reachable.append(match)
+            else:
+                unreachable.append(match)
 
         timing_output = (
             self._build_summary(

@@ -1,0 +1,9 @@
+Updated the supply chain finding API:
+- The API is now typed and defined entirely in semgrep_output_v0.atd
+- Supply chain findings now have only one dependency match, not a list, and only one resolved url
+- Supply chain findings now have a field called reachable and reachability_rule,
+  which indicate if the finding is reachable, and whether or not it was generated
+  by a reachability rule (rule that had a semgrep pattern)
+- Supply chain findings now include a schema version
+- The complete finding information sent to semgrep app now includes a mapping from lockfile
+  paths to the number of dependencies that were present in that lockfile
