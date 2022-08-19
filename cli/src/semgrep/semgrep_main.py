@@ -304,7 +304,7 @@ def main(
     ParsingData,
     Optional[List[out.MatchingExplanation]],
     Collection[RuleSeverity],
-    Dict[Path, int],
+    Dict[str, int],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
     if include is None:

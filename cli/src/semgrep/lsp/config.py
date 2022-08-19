@@ -243,7 +243,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
-            Dict[Path, int],
+            Dict[str, int],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -287,7 +287,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
-            Dict[Path, int],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -308,7 +308,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
-            Dict[Path, int],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])

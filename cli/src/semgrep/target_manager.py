@@ -482,7 +482,7 @@ class TargetManager:
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
     file_ignore: Optional[FileIgnore] = None
-    lockfile_scan_info: Dict[Path, int] = {}
+    lockfile_scan_info: Dict[str, int] = {}
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
 
@@ -728,6 +728,6 @@ class TargetManager:
             deps = parse_lockfile_str(lockfile.read_text(encoding="utf8"), lockfile)
             if lockfile not in self.lockfile_scan_info:
                 # We haven't seen this file during reachable finding generation
-                self.lockfile_scan_info[lockfile] = len(deps)
+                self.lockfile_scan_info[str(lockfile)] = len(deps)
             parsed[lockfile] = deps
         return parsed

@@ -164,7 +164,7 @@ class ScanHandler:
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
-        lockfile_scan_info: Dict[Path, int],
+        lockfile_scan_info: Dict[str, int],
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
