@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
-set -e
+# Build semgrep-core for MacOS
+set -eux
+
 brew update # Needed to sidestep bintray brownout
 brew install opam pkg-config coreutils
 opam init --no-setup --bare;
@@ -12,7 +14,8 @@ eval "$(opam env)"
 
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
-rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+ls /usr/local/opt/pcre/lib
+rm -f /usr/local/opt/pcre/lib/libpcre.1.dylib
 
 make setup
 
