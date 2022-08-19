@@ -108,11 +108,8 @@ workflows:
               only:
                 - parsing-stats
 
-  # Temporary debugging (main runner is on GitHub Actions)
+  # Debugging (main runner is on GitHub Actions). This allows us to
+  # ssh into the host if something goes wrong.
   debug-macos:
     jobs:
-      - macos-build:
-          filters:
-            branches:
-              only:
-                - release-0.111.0
+      - macos-build
