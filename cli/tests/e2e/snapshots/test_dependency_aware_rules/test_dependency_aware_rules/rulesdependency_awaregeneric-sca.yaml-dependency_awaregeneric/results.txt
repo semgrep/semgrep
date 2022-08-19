@@ -34,7 +34,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Npm",
+              "ecosystem": "npm",
               "package": "@types/jquery",
               "semver_range": "== 3.3.22"
             },
@@ -44,7 +44,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "6b8243708849847627a160a41b7c53d826715d9780f7625e444112a2b8340cc43766c8ee285e3c87b5cae25e469761916bf22d191a4a313d29c8af3cc9182a5d"
                 ]
               },
-              "ecosystem": "Npm",
+              "ecosystem": "npm",
               "package": "@types/jquery",
               "resolved_url": "https://registry.npmjs.org/@types/jquery/-/jquery-3.3.22.tgz",
               "version": "3.3.22"

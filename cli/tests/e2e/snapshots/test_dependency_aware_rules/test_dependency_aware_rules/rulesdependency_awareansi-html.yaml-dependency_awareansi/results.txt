@@ -45,13 +45,13 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Npm",
+              "ecosystem": "npm",
               "package": "ansi-html",
               "semver_range": "< 0.0.8"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "ecosystem": "Npm",
+              "ecosystem": "npm",
               "package": "ansi-html",
               "resolved_url": "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz",
               "version": "0.0.7"

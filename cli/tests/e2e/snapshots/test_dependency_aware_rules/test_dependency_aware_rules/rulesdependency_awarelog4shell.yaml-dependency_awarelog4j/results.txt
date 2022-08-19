@@ -112,13 +112,13 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
-              "ecosystem": "Maven",
+              "ecosystem": "maven",
               "package": "log4j-core",
               "semver_range": "<= 0.0.2"
             },
             "found_dependency": {
               "allowed_hashes": {},
-              "ecosystem": "Maven",
+              "ecosystem": "maven",
               "package": "log4j-core",
               "version": "0.0.1"
             },
