@@ -52,12 +52,12 @@ def generate_unreachable_sca_findings(
     dep_rule_errors: List[SemgrepError] = []
 
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
-    namespaces = list(rule.ecosystems)
+    ecosystems = list(rule.ecosystems)
 
     non_reachable_matches = []
     targeted_lockfiles = set()
-    for namespace in namespaces:
-        lockfile_data = target_manager.get_lockfile_dependencies(namespace)
+    for ecosystem in ecosystems:
+        lockfile_data = target_manager.get_lockfile_dependencies(ecosystem)
         for lockfile_path, deps in lockfile_data.items():
             if lockfile_path in exlcude:
                 continue
@@ -108,15 +108,15 @@ def generate_reachable_sca_findings(
     dep_rule_errors: List[SemgrepError] = []
 
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
-    namespaces = list(rule.ecosystems)
+    ecosystems = list(rule.ecosystems)
 
     # Reachability rule
     reachable_matches = []
     matched_lockfiles = set()
-    for namespace in namespaces:
+    for ecosystem in ecosystems:
         for match in matches:
             try:
-                lockfile_data = find_single_lockfile(match.path, namespace)
+                lockfile_data = find_single_lockfile(match.path, ecosystem)
                 if lockfile_data is None:
                     continue
                 lockfile_path, deps = lockfile_data
