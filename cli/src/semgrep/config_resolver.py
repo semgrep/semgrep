@@ -205,7 +205,7 @@ class ConfigPath:
                 rule_config = resp.json()["rule_config"]
                 assert isinstance(rule_config, str)
                 return rule_config
-            except BaseException:  # catch JSONDecodeError, AssertionError, etc.
+            except Exception:  # catch JSONDecodeError, AssertionError, etc.
                 return resp.content.decode("utf-8", errors="replace")
         else:
             raise SemgrepError(
