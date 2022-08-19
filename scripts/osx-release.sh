@@ -14,7 +14,7 @@ eval "$(opam env)"
 
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
-ls /usr/local/opt/pcre/lib
+ls -l /usr/local/opt/pcre/lib
 rm -f /usr/local/opt/pcre/lib/libpcre.1.dylib
 
 make setup
