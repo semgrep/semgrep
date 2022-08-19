@@ -212,7 +212,9 @@
     "eqeq-bad",
     "eqeq-five",
     "eqeq-four",
-    "taint-test"
+    "taint-test",
+    "supply-chain1",
+    "supply-chain2"
   ],
   "cai_ids": [
     "__r2c-internal-cai_eqeq"
