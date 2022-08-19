@@ -440,7 +440,7 @@ jobs:
 
   build-macos-release:
     name: build macOS release
-    runs-on: macos-12
+    runs-on: macos-11
     # there are too many PR events which deplete our macOS concurrency limit
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     steps:
@@ -464,7 +464,7 @@ jobs:
 
   test-macos-release:
     name: test macOS release
-    runs-on: macos-12
+    runs-on: macos-11
     # there are too many PR events which deplete our macOS concurrency limit
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     needs: [build-macos-release]
