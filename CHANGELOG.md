@@ -2,6 +2,45 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.111.0](https://github.com/returntocorp/semgrep/releases/tag/v0.111.0) - 2022-08-19
+
+### Added
+
+- Introduced experimental support for Swift (gh-2232)
+
+### Fixed
+
+- When parsing PHP with tree-sitter, parse `$this` similar to pfff, as an IdSpecial. This makes it possible to match `$this` when the pattern is parsed with pfff and the program with tree-sitter. (gh-5594)
+- Parse die() as exit() in tree-sitter PHP. This makes pfff and tree-sitter parse die() in the same way. (gh-5880)
+- All: Applied a fix so that qualified identifiers can unify with metavariables. Notably, this
+  affected Python decorators, among others. (pa-1700)
+- Fixed metavariable unification in JSON when one of the patterns is a single field. (pa-1763)
+- Changed symbolic propagation such that "redundant" matches are no
+  longer reported as findings. For instance:
+
+  ```py
+  def foo():
+    x = g(5)
+    f(x)
+  ```
+
+  If we are looking for the pattern `g(5)`, we should not match on line 3,
+  since we will match on line 2 anyways, and this is just repeating information that
+  we already know.
+
+  This patch changes it so that we do not match on line 3 anymore. (pa-1772)
+
+- Semgrep now passes -j to DeepSemgrep engine so --deep became noticeably faster. (pa-1776)
+- taint-mode: Due to a mistake in the instantiation of a visitor, named function
+  definitions were being analyzed twice! This is now fixed and you may observe
+  significant speed ups in some cases. (pa-1778)
+- Changed the fail-open message body (pm-194)
+
+### Infra/Release Changes
+
+- Keep the tree-sitter library inside a local folder rather than requiring
+  a global installation. (gh-2956)
+
 ## [0.110.0](https://github.com/returntocorp/semgrep/releases/tag/v0.110.0) - 2022-08-15
 
 ### Changed
