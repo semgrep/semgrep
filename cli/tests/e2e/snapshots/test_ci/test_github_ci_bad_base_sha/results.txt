@@ -46,7 +46,7 @@ Fetching rules from https://semgrep.dev<MASKED>
 trying to download from https://semgrep.dev<MASKED>
 finished downloading from https://semgrep.dev<MASKED>
 loaded 1 configs in<MASKED>
-running 5 rules from 1 config remote-url_0
+running 7 rules from 1 config remote-url_0
 Initializing git status
 Running git diff
 Finished git diff. Parsing git status output
@@ -66,6 +66,8 @@ Rules:
 - eqeq-bad
 - eqeq-five
 - eqeq-four
+- supply-chain1
+- supply-chain2
 - taint-test
 Passing whole rules directly to semgrep_core
 Scanning 1 file with 5 python rules.
@@ -205,7 +207,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
-  Found 1 finding (0 blocking) from 4 rules.
+  Found 1 finding (0 blocking) from 6 rules.
   Uploading findings to Semgrep App.
 Sending findings blob: {
     "token": null,
@@ -240,7 +242,9 @@ Sending findings blob: {
         "eqeq-bad",
         "eqeq-five",
         "eqeq-four",
-        "taint-test"
+        "taint-test",
+        "supply-chain1",
+        "supply-chain2"
     ],
     "cai_ids": [
         "__r2c-internal-cai_eqeq"
@@ -256,7 +260,10 @@ Sending complete blob: {
         "errors": [],
         "total_time":<MASKED>
         "unsupported_exts": {},
-        "lockfile_scan_info": {},
+        "lockfile_scan_info": {
+            "poetry.lock": 1,
+            "yarn.lock": 1
+        },
         "parse_rate": {
             "python": {
                 "targets_parsed": 1,

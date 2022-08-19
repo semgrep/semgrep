@@ -54,7 +54,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 CI scan completed successfully.
-  Found 7 findings (6 blocking) from 4 rules.
+  Found 7 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
 Would have sent findings blob: {
     "token": null,
@@ -270,7 +270,9 @@ Would have sent findings blob: {
         "eqeq-bad",
         "eqeq-five",
         "eqeq-four",
-        "taint-test"
+        "taint-test",
+        "supply-chain1",
+        "supply-chain2"
     ],
     "cai_ids": [
         "__r2c-internal-cai_eqeq"
@@ -375,7 +377,10 @@ Would have sent complete blob: {
         "unsupported_exts": {
             ".txt": 1
         },
-        "lockfile_scan_info": {},
+        "lockfile_scan_info": {
+            "poetry.lock": 1,
+            "yarn.lock": 1
+        },
         "parse_rate": {
             "python": {
                 "targets_parsed": 1,
