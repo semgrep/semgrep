@@ -41,6 +41,7 @@ let str = H.str
 let no_ctx = Param
 let _fake = PI.fake_info
 let fb = AST_generic.fake_bracket
+let invalid () = raise (PI.NoTokenLocation "Invalid program")
 
 (* AST builders helpers
  * less: could be moved in AST_Python.ml to factorize things with
@@ -111,7 +112,8 @@ let rec map_anon_choice_id_b80cb38 (env : env) (x : CST.anon_choice_id_b80cb38)
     | `Id id -> [ (str env id, None) ]
     | `Attr (e, dot, id) ->
         (str env id, Some (token env dot)) :: get_dotted_name_rev e
-    | _ -> failwith "bad"
+    (* Because we are looking to parse a dotted name, this should not happen. *)
+    | _ -> invalid ()
   in
   let get_dotted_name x = get_dotted_name_rev x |> List.rev in
   match x with
@@ -348,17 +350,19 @@ and map_dictionary_splat_pattern (env : env)
   let v2 = map_anon_choice_id_b80cb38 env v2 in
   (v1, v2)
 
+(* This is if we permit dotted names. *)
 and map_dictionary_splat_pattern_to_id (env : env)
     ((v1, v2) : CST.dictionary_splat_pattern) =
   match map_dictionary_splat_pattern env (v1, v2) with
   | v1, Left id -> (v1, id)
-  | _ -> failwith "bad"
+  | _ -> invalid ()
 
+(* This is if we are looking for only a single identifier. *)
 and map_dictionary_splat_pattern_to_id_single (env : env)
     ((v1, v2) : CST.dictionary_splat_pattern) =
   match map_dictionary_splat_pattern_to_id env (v1, v2) with
   | v1, [ id ] -> (v1, id)
-  | _ -> failwith "bad"
+  | _ -> invalid ()
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
@@ -608,17 +612,19 @@ and map_list_splat_pattern (env : env) ((v1, v2) : CST.list_splat_pattern) =
   let v2 = map_anon_choice_id_b80cb38 env v2 in
   (v1, v2)
 
+(* This is if we permit dotted names *)
 and map_list_splat_pattern_to_id (env : env) ((v1, v2) : CST.list_splat_pattern)
     =
   match map_list_splat_pattern env (v1, v2) with
   | v1, Left id -> (v1, id)
-  | _ -> failwith "bad"
+  | _ -> invalid ()
 
+(* This is if we expect only a single identifier *)
 and map_list_splat_pattern_to_id_single (env : env)
     ((v1, v2) : CST.list_splat_pattern) =
   match map_list_splat_pattern_to_id env (v1, v2) with
   | v1, [ id ] -> (v1, id)
-  | _ -> failwith "bad"
+  | _ -> invalid ()
 
 and map_pair (env : env) ((v1, v2, v3) : CST.pair) =
   let key = map_type_ env v1 in
@@ -724,16 +730,15 @@ and map_pattern_to_parameter (env : env) (x : CST.pattern) : param_pattern =
   | `Subs _
   | `List_pat _
   | `Attr _ ->
-      raise Common.Impossible
+      raise (PI.NoTokenLocation "")
   | `List_splat_pat x ->
       (* Via the Python 3 grammar, you can only have a pow in a pattern if the next
          is just a NAME.
       *)
       let tstar, id = map_list_splat_pattern_to_id env x in
-      (* bTODO *)
-      failwith "bad"
+      invalid ()
   (* Tuples are not parameters, after the first. *)
-  | `Tuple_pat x -> raise Common.Impossible
+  | `Tuple_pat x -> invalid ()
 
 and map_pattern (env : env) (x : CST.pattern) : pattern =
   match x with
@@ -757,14 +762,14 @@ and map_pattern (env : env) (x : CST.pattern) : pattern =
             (* the token should only be None for the first one *)
             match (tok, acc) with
             | None, None -> Some (name_of_id x)
-            | None, Some res -> failwith "bad"
-            | Some tok, None -> failwith "bad"
+            | None, Some res -> raise Common.Impossible
+            | Some tok, None -> raise Common.Impossible
             | Some tok, Some acc -> Some (Attribute (acc, tok, x, no_ctx)))
           None names
       in
       (* This should only happen if there are no things after the star. *)
       match expr with
-      | None -> failwith "bad"
+      | None -> invalid ()
       | Some e -> ExprStar e)
   | `Tuple_pat x ->
       let lp, xs, rp = map_tuple_pattern env x in
@@ -1030,7 +1035,8 @@ let map_relative_import (env : env) ((v1, v2) : CST.relative_import) :
   let v1 = map_import_prefix env v1 in
   let v2 = Option.map (map_dotted_name env) v2 in
   match (v1, v2) with
-  | [], None -> failwith "should not happen"
+  (* This case is an empty import and cannot happen. *)
+  | [], None -> invalid ()
   (* This case is taken directly from the pfff parser. I do not know why it does that. *)
   | fst :: rest, None -> ([ ("", fst (*TODO*)) ], Some v1)
   | [], Some dname -> (dname, None)
@@ -1060,7 +1066,7 @@ let rec map_assignment (env : env) ((v1, v2) : CST.assignment) =
   (* we can only reach here if we called `map_assignment` through at least one assignment already
      something like x = y : Int is not valid syntax, so we should reject here
   *)
-  | `COLON_type (v1, v2) -> failwith "bad"
+  | `COLON_type (v1, v2) -> invalid ()
   | `COLON_type_EQ_right_hand_side (v1, v2, v3, v4) ->
       let v1 = (* ":" *) token env v1 in
       let v2 = map_type_ env v2 in
@@ -1105,7 +1111,7 @@ and map_augmented_assignment (env : env)
   (* The RHS of an augmented assignment cannot be an assignment itself.
      So vars should be empty.
   *)
-  | _ :: _ -> failwith "bad"
+  | _ :: _ -> invalid ()
   | _ -> AugAssign (lhs, wrap, expr)
 
 and map_right_hand_side (env : env) (x : CST.right_hand_side) =
@@ -1118,22 +1124,23 @@ and map_right_hand_side (env : env) (x : CST.right_hand_side) =
       let vars, tok, expr = map_assignment env x in
       (vars, Some tok, expr)
   (* An augmented assignment cannot actually occur as the RHS to an assignment. *)
-  | `Augm_assign x -> failwith "bad"
+  | `Augm_assign x -> invalid ()
   | `Yield x -> ([], None, map_yield env x)
 
 let map_decorator (env : env) ((v1, v2, v3) : CST.decorator) =
   let tat = (* "@" *) token env v1 in
+  (* We are looking for a dotted name, so we don't permit other variants. *)
   let rec get_dotted_name_rev e =
     match e with
     | `Id id -> [ str env id ]
     | `Attr (e, _, id) -> str env id :: get_dotted_name_rev e
-    | _ -> failwith "bad"
+    | _ -> invalid ()
   in
   let get_dotted_name x = List.rev (get_dotted_name_rev x) in
   let dotted_name, args =
     match v2 with
     (* We won't support this for now. *)
-    | `Call (e, `Gene_exp _) -> failwith "bad"
+    | `Call (e, `Gene_exp _) -> todo env ()
     | `Call (e, `Arg_list args) ->
         (get_dotted_name e, Some (map_argument_list env args))
     | _ -> (get_dotted_name v2, None)
@@ -1276,7 +1283,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
                 (function
                   | [ name ], y -> (name, y)
                   (* import _ from _ only permits single identifiers in the second list *)
-                  | _ -> failwith "bad")
+                  | _ -> invalid ())
                 xs
             in
             [ ImportFrom (v1, ([ str env v2 ], None), xs) ]
@@ -1306,7 +1313,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
               (function
                 | [ name ], y -> (name, y)
                 (* import _ from _ only permits single identifiers in the second list *)
-                | _ -> failwith "bad")
+                | _ -> invalid ())
               xs
           in
           [ ImportFrom (tfrom, path, xs) ])
@@ -1319,7 +1326,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
         | [] -> None
         | [ e ] -> Some (map_type_ env (e |> snd))
         (* python only permits two of these at max *)
-        | _ -> failwith "bad"
+        | _ -> invalid ()
       in
       [ Assert (tassert, test, test2) ]
   | `Exp_stmt x -> [ map_expression_statement env x ]
@@ -1354,7 +1361,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
         | Some [ e1; e2 ] -> RaisePython2 (traise, e1, Some e2, None)
         | Some [ e1; e2; e3 ] -> RaisePython2 (traise, e1, Some e2, Some e3)
         (* Python2 only permits three of these at maximum. *)
-        | _ -> failwith "bad");
+        | _ -> invalid ());
       ]
   | `Pass_stmt tok ->
       let t = (* "pass" *) token env tok in
@@ -1402,7 +1409,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
         | Some (v1, v2, [ e ]) ->
             (Some (map_type_ env v2), Some (map_type_ env (e |> snd)))
         (* Python2 only permits two of these at maximum. *)
-        | Some _ -> failwith "bad"
+        | Some _ -> invalid ()
         | None -> (None, None)
       in
       [ Exec (v1, InterpolatedString v2, v3, v4) ]
@@ -1610,11 +1617,11 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) :
                 (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env tok
               in
               Some id
-          | _ -> failwith "bad"
+          | _ -> invalid ()
         in
         match (v1, v2) with
         (* Should not be permissible by the Python grammar. *)
-        | `As_pat _, Some _ -> failwith "bad"
+        | `As_pat _, Some _ -> invalid ()
         | `As_pat (v1, _, v3), None -> (Some (map_type_ env v1), get_name v3)
         | _, Some (_, v2) -> (Some (map_type_ env v1), get_name v2)
         | _, None -> (Some (map_type_ env v1), None))
