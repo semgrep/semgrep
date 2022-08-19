@@ -9,6 +9,14 @@ jobs:
       - checkout
       - run: semgrep --config semgrep.yml --error --verbose --exclude tests --exclude TODO --exclude _build .
 
+  # debugging 2022-08-19
+  macos-build:
+    macos:
+      xcode: 12.5.1 # indicate your selected version of Xcode
+    steps:
+      - checkout
+      - run: ./scripts/osx-release.sh
+
   # For the benchmarks below, we had two alternatives:
   # A. run semgrep container from existing container: requires mounting
   #    a volume, which is disabled by CircleCI (results in empty folder
@@ -99,3 +107,12 @@ workflows:
             branches:
               only:
                 - parsing-stats
+
+  # Temporary debugging (main runner is on GitHub Actions)
+  debug-macos:
+    jobs:
+      - macos-build:
+          filters:
+            branches:
+              only:
+                - release-0.111.0
