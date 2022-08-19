@@ -428,6 +428,10 @@ let rules_for_xlang xlang rules =
          | Xlang.L (x, _empty), Xlang.L (y, ys) -> List.mem x (y :: ys)
          | (Xlang.LRegex | Xlang.LGeneric | Xlang.L _), _ -> false)
 
+(* Creates a table mapping rule id indicies to rules. In the case that a rule
+ * id is present and there is no correpsonding rule, that rule is simply
+ * omitted from the final table.
+ *)
 let mk_rule_table rules list_of_rule_ids =
   let rule_pairs = Common.map (fun r -> (fst r.R.id, r)) rules in
   let rule_table = Common.hash_of_list rule_pairs in
@@ -597,6 +601,12 @@ let semgrep_with_rules config ((rules, invalid_rules), rules_parse_time) =
   if not (config.metatypes_file = "") then
     process_metatypes config.metatypes_file;
   let target_info, skipped = targets_of_config config rule_ids in
+  (* Note that rules here is only the search/taint rules from the above
+   * partition; i.e., it doesn't contain any extract mode rules. However,
+   * target_info.rule_ids might include extract mode rules previously used on
+   * this target. mk_rule_table resolves this by ignoring any rule id it can't
+   * find in the rules list.
+   *)
   let rule_table = mk_rule_table rules target_info.rule_ids in
   logger#info "processing %d files, skipping %d files"
     (List.length target_info.target_mappings)
