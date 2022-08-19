@@ -167,8 +167,7 @@ class Rule:
             if "depends-on-either" in depends_on:
                 dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
                 return {
-                    Ecosystem.from_json(d["namespace"].lower().capitalize())
-                    for d in dependencies
+                    Ecosystem.from_json(d["namespace"].lower()) for d in dependencies
                 }
             else:
                 return {
