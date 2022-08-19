@@ -170,9 +170,7 @@ class Rule:
                     Ecosystem.from_json(d["namespace"].lower()) for d in dependencies
                 }
             else:
-                return {
-                    Ecosystem.from_json(depends_on["namespace"].lower().capitalize())
-                }
+                return {Ecosystem.from_json(depends_on["namespace"].lower())}
         return set()
 
     @property

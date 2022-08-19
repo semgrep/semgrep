@@ -31,7 +31,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
         if namespace is None:
             raise SemgrepError(f"project-depends-on is missing `namespace`")
         try:
-            ecosystem = Ecosystem.from_json(namespace.lower().capitalize())
+            ecosystem = Ecosystem.from_json(namespace.lower())
         except ValueError:
             raise SemgrepError(f"unknown package ecosystem: {namespace}")
         package = entry.get("package")
