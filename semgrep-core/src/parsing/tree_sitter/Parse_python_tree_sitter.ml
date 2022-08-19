@@ -928,14 +928,22 @@ and map_yield (env : env) ((v1, v2) : CST.yield) : expr =
 let map_relative_import (env : env) ((v1, v2) : CST.relative_import) :
     module_name =
   let v1 = map_import_prefix env v1 in
-  let v2 =
-    match v2 with
-    | Some x -> map_dotted_name env x
-    | None -> todo env ()
-  in
-  todo env (v1, v2)
+  let v2 = Option.map (map_dotted_name env) v2 in
+  match (v1, v2) with
+  | [], None -> failwith "should not happen"
+  (* This case is taken directly from the pfff parser. I do not know why it does that. *)
+  | fst :: rest, None -> ([ ("", fst (*TODO*)) ], Some v1)
+  | [], Some dname -> (dname, None)
+  | _, Some dname -> (dname, Some v1)
 
-let map_with_item (env : env) (v1 : CST.with_item) = map_type_ env v1
+let map_with_item (env : env) (v1 : CST.with_item) =
+  match v1 with
+  | `As_pat (v1, v2, v3) ->
+      let v1 = map_type_ env v1 in
+      let v2 = (* "as" *) token env v2 in
+      let v3 = map_type_ env v3 in
+      (v1, Some v3)
+  | _ -> (map_type_ env v1, None)
 
 let rec map_assignment (env : env) ((v1, v2) : CST.assignment) =
   let lhs = map_left_hand_side env v1 in
@@ -1052,32 +1060,28 @@ let map_anon_choice_dotted_name_c5c573a (env : env)
       let id = (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env v3 in
       (m, Some id)
 
-let map_with_clause (env : env) (x : CST.with_clause) : with_clause =
+let map_with_clause (env : env) (x : CST.with_clause) (twith : tok)
+    (body : stmt list) =
   match x with
-  | `With_item_rep_COMMA_with_item (v1, v2) ->
-      let v1 = map_with_item env v1 in
-      let v2 =
+  | `With_item_rep_COMMA_with_item (w, ws)
+  | `LPAR_with_item_rep_COMMA_with_item_RPAR (_, w, ws, _) ->
+      let w = map_with_item env w in
+      let ws =
         Common.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = map_with_item env v2 in
             v2)
-          v2
+          ws
       in
-      todo env (v1, v2)
-  | `LPAR_with_item_rep_COMMA_with_item_RPAR (v1, v2, v3, v4) ->
-      let _l = (* "(" *) token env v1 in
-      let v2 = map_with_item env v2 in
-      let v3 =
-        Common.map
-          (fun (v1, v2) ->
-            let _v1 = (* "," *) token env v1 in
-            let v2 = map_with_item env v2 in
-            v2)
-          v3
-      in
-      let _r = (* ")" *) token env v4 in
-      todo env (v2, v3)
+      List.fold_right
+        (fun wclause acc ->
+          match acc with
+          | None -> Some (With (twith, wclause, body))
+          | Some acc -> Some (With (twith, wclause, [ acc ])))
+        (w :: ws) None
+      (* This is safe because v1::v2 will never be empty. *)
+      |> Option.get
 
 let map_expression_statement (env : env) (x : CST.expression_statement) : stmt =
   match x with
@@ -1142,27 +1146,32 @@ let map_import_list (env : env) ((v1, v2, v3) : CST.import_list) =
   let v3 = map_trailing_comma env v3 in
   v1 :: v2
 
-let map_simple_statement (env : env) (x : CST.simple_statement) : stmt =
+let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
   match x with
   | `Future_import_stmt (v1, v2, v3, v4) ->
       let v1 = (* "from" *) token env v1 in
-      let v2 = (* "__future__" *) token env v2 in
       let v3 = (* "import" *) token env v3 in
       let v4 =
         match v4 with
-        | `Import_list x -> map_import_list env x
-        | `LPAR_import_list_RPAR (v1, v2, v3) ->
-            let _v1 = (* "(" *) token env v1 in
-            let v2 = map_import_list env v2 in
-            let _v3 = (* ")" *) token env v3 in
-            v2
+        | `Import_list x
+        | `LPAR_import_list_RPAR (_, x, _) ->
+            let xs = map_import_list env x in
+            let xs =
+              Common.map
+                (function
+                  | [ name ], y -> (name, y)
+                  (* import _ from _ only permits single identifiers in the second list *)
+                  | _ -> failwith "bad")
+                xs
+            in
+            [ ImportFrom (v1, ([ str env v2 ], None), xs) ]
       in
-      todo env (v1, v2, v3, v4)
+      v4
   | `Import_stmt (v1, v2) ->
       let v1 = (* "import" *) token env v1 in
       let v2 = map_import_list env v2 in
-      todo env (v1, v2)
-  | `Import_from_stmt (v1, v2, v3, v4) ->
+      Common.map (fun (dname, asopt) -> ImportAs (v1, (dname, None), asopt)) v2
+  | `Import_from_stmt (v1, v2, v3, v4) -> (
       let tfrom = (* "from" *) token env v1 in
       let path =
         match v2 with
@@ -1170,36 +1179,35 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt =
         | `Dotted_name x -> (map_dotted_name env x, None)
       in
       let _timport = (* "import" *) token env v3 in
-      let xs =
-        match v4 with
-        | `Wild_import tok ->
-            let id = (* "*" *) str env tok in
-            [ (id, None) ]
-        | `Import_list x ->
-            (* TODO: in pfff this can be a name * name option *)
-            let xs = map_import_list env x in
-            todo env xs
-        | `LPAR_import_list_RPAR (v1, v2, v3) ->
-            let _v1 = (* "(" *) token env v1 in
-            let xs = map_import_list env v2 in
-            let _v3 = (* ")" *) token env v3 in
-            todo env xs
-      in
-      ImportFrom (tfrom, path, xs)
-  | `Print_stmt x -> map_print_statement env x
+      match v4 with
+      | `Wild_import tok ->
+          let tok = (* "*" *) token env tok in
+          [ ImportAll (tfrom, path, tok) ]
+      | `Import_list x
+      | `LPAR_import_list_RPAR (_, x, _) ->
+          let xs = map_import_list env x in
+          let xs =
+            Common.map
+              (function
+                | [ name ], y -> (name, y)
+                (* import _ from _ only permits single identifiers in the second list *)
+                | _ -> failwith "bad")
+              xs
+          in
+          [ ImportFrom (tfrom, path, xs) ])
+  | `Print_stmt x -> [ map_print_statement env x ]
   | `Assert_stmt (v1, v2, v3) ->
       let tassert = (* "assert" *) token env v1 in
       let test = map_type_ env v2 in
-      let _extraTODO =
-        Common.map
-          (fun (v1, v2) ->
-            let v1 = (* "," *) token env v1 in
-            let v2 = map_type_ env v2 in
-            todo env (v1, v2))
-          v3
+      let test2 =
+        match v3 with
+        | [] -> None
+        | [ e ] -> Some (map_type_ env (e |> snd))
+        (* python only permits two of these at max *)
+        | _ -> failwith "bad"
       in
-      Assert (tassert, test, None)
-  | `Exp_stmt x -> map_expression_statement env x
+      [ Assert (tassert, test, test2) ]
+  | `Exp_stmt x -> [ map_expression_statement env x ]
   | `Ret_stmt (v1, v2) ->
       let tret = (* "return" *) token env v1 in
       let eopt =
@@ -1207,18 +1215,14 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt =
         | Some x -> Some (map_expressions env x)
         | None -> None
       in
-      Return (tret, eopt)
+      [ Return (tret, eopt) ]
   | `Delete_stmt (v1, v2) ->
       let tdel = (* "del" *) token env v1 in
       let xs = map_expressions2 env v2 in
-      Delete (tdel, xs)
+      [ Delete (tdel, xs) ]
   | `Raise_stmt (v1, v2, v3) ->
       let traise = (* "raise" *) token env v1 in
-      let v2 =
-        match v2 with
-        | Some x -> map_expressions env x
-        | None -> todo env ()
-      in
+      let v2 = Option.map (map_expressions2 env) v2 in
       let v3 =
         match v3 with
         | Some (v1, v2) ->
@@ -1227,16 +1231,25 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt =
             Some v2
         | None -> None
       in
-      todo env (v1, v2, v3)
+      [
+        (match v2 with
+        | None -> Raise (traise, None)
+        | Some [ e ] -> Raise (traise, Some (e, v3))
+        (* We're not using v3 in these cases, but the python2 grammar doesn't permit that anyways. *)
+        | Some [ e1; e2 ] -> RaisePython2 (traise, e1, Some e2, None)
+        | Some [ e1; e2; e3 ] -> RaisePython2 (traise, e1, Some e2, Some e3)
+        (* Python2 only permits three of these at maximum. *)
+        | _ -> failwith "bad");
+      ]
   | `Pass_stmt tok ->
       let t = (* "pass" *) token env tok in
-      Pass t
+      [ Pass t ]
   | `Brk_stmt tok ->
       let t = (* "break" *) token env tok in
-      Break t
+      [ Break t ]
   | `Cont_stmt tok ->
       let t = (* "continue" *) token env tok in
-      Continue t
+      [ Continue t ]
   | `Global_stmt (v1, v2, v3) ->
       let tglobal = (* "global" *) token env v1 in
       let id = (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env v2 in
@@ -1250,7 +1263,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt =
             v2)
           v3
       in
-      Global (tglobal, id :: ids)
+      [ Global (tglobal, id :: ids) ]
   | `Nonl_stmt (v1, v2, v3) ->
       let tnonlocal = (* "nonlocal" *) token env v1 in
       let id = (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env v2 in
@@ -1264,27 +1277,20 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt =
             v2)
           v3
       in
-      NonLocal (tnonlocal, id :: ids)
+      [ NonLocal (tnonlocal, id :: ids) ]
   | `Exec_stmt (v1, v2, v3) ->
       let v1 = (* "exec" *) token env v1 in
-      let v2 = map_string_ env v2 in
-      let v3 =
+      let _, v2, _ = map_string_ env v2 in
+      let v3, v4 =
         match v3 with
-        | Some (v1, v2, v3) ->
-            let v1 = (* "in" *) token env v1 in
-            let v2 = map_type_ env v2 in
-            let v3 =
-              Common.map
-                (fun (v1, v2) ->
-                  let _v1 = (* "," *) token env v1 in
-                  let v2 = map_type_ env v2 in
-                  v2)
-                v3
-            in
-            Some (v1, v2 :: v3)
-        | None -> None
+        | Some (v1, v2, []) -> (Some (map_type_ env v2), None)
+        | Some (v1, v2, [ e ]) ->
+            (Some (map_type_ env v2), Some (map_type_ env (e |> snd)))
+        (* Python2 only permits two of these at maximum. *)
+        | Some _ -> failwith "bad"
+        | None -> (None, None)
       in
-      todo env (v1, v2, v3)
+      [ Exec (v1, InterpolatedString v2, v3, v4) ]
 
 let map_simple_statements (env : env) ((v1, v2, v3, v4) : CST.simple_statements)
     : stmt list =
@@ -1303,7 +1309,7 @@ let map_simple_statements (env : env) ((v1, v2, v3, v4) : CST.simple_statements)
     | None -> None
   in
   let _v4 = (* newline *) token env v4 in
-  v1 :: v2
+  v1 :: v2 |> Common.flatten
 
 let rec map_block (env : env) ((v1, v2) : CST.block) =
   let v1 = map_module_ env v1 in
@@ -1369,10 +1375,14 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       let elseifs = Common.map (map_elif_clause env) v5 in
       let else_ =
         match v6 with
-        | Some x -> map_else_clause env x
-        | None -> todo env ()
+        | Some x -> Some (map_else_clause env x)
+        | None -> None
       in
-      let orelse = todo env (elseifs, else_) in
+      let orelse =
+        List.fold_right
+          (fun (tif, test, stmts) acc -> Some [ If (tif, test, stmts, acc) ])
+          elseifs else_
+      in
       If (tif, cond, then_, orelse)
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let _asyncTODO = map_async_opt env v1 in
@@ -1397,17 +1407,18 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       let body = map_suite env v3 in
       let res =
         match v4 with
-        | `Rep1_except_clause_opt_else_clause_opt_fina_clause (v1, v2, v3) ->
+        | `Rep1_except_clause_opt_else_clause_opt_fina_clause (v1, v2, v3) -> (
             let excepts = Common.map (map_except_clause env) v1 in
             let orelse = map_or_else_as_list env v2 in
-            let _finallyTODO =
-              match v3 with
-              | Some x ->
-                  let tfinal, finalbody = map_finally_clause env x in
-                  todo env (tfinal, finalbody)
-              | None -> None
-            in
-            TryExcept (ttry, body, excepts, orelse)
+            match v3 with
+            | Some x ->
+                let tfinal, finalbody = map_finally_clause env x in
+                TryFinally
+                  ( ttry,
+                    [ TryExcept (ttry, body, excepts, orelse) ],
+                    tfinal,
+                    finalbody )
+            | None -> TryExcept (ttry, body, excepts, orelse))
         | `Fina_clause x ->
             let tfinal, finalbody = map_finally_clause env x in
             TryFinally (ttry, body, tfinal, finalbody)
@@ -1416,10 +1427,9 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
   | `With_stmt (v1, v2, v3, v4, v5) ->
       let _asyncTODO = map_async_opt env v1 in
       let twith = (* "with" *) token env v2 in
-      let clause = map_with_clause env v3 in
       let _tcolon = (* ":" *) token env v4 in
       let body = map_suite env v5 in
-      With (twith, clause, body)
+      map_with_clause env v3 twith body
   | `Func_defi x ->
       let def = map_function_definition env x in
       FunctionDef def
@@ -1463,7 +1473,7 @@ and map_elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) =
   let v2 = map_type_ env v2 in
   let v3 = (* ":" *) token env v3 in
   let v4 = map_suite env v4 in
-  todo env (v1, v2, v3, v4)
+  (v1, v2, v4)
 
 and map_else_clause (env : env) ((v1, v2, v3) : CST.else_clause) =
   let _telse = (* "else" *) token env v1 in
@@ -1476,22 +1486,23 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) :
   let texpect = (* "except" *) token env v1 in
   let eopt, nameopt =
     match v2 with
-    | Some (v1, v2) ->
-        let e = map_type_ env v1 in
-        let nameopt =
-          match v2 with
-          | Some (v1, v2) ->
-              let _v1 =
-                match v1 with
-                | `As tok -> (* "as" *) token env tok
-                | `COMMA tok -> (* "," *) token env tok
+    | Some (v1, v2) -> (
+        (* We only allow identifiers to appear in this position. *)
+        let get_name e =
+          match e with
+          | `Prim_exp (`Id tok) ->
+              let id =
+                (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env tok
               in
-              (* pfff impose a name here *)
-              let v2 = map_type_ env v2 in
-              todo env (v1, v2)
-          | None -> None
+              Some id
+          | _ -> failwith "bad"
         in
-        (Some e, nameopt)
+        match (v1, v2) with
+        (* Should not be permissible by the Python grammar. *)
+        | `As_pat _, Some _ -> failwith "bad"
+        | `As_pat (v1, _, v3), None -> (Some (map_type_ env v1), get_name v3)
+        | _, Some (_, v2) -> (Some (map_type_ env v1), get_name v2)
+        | _, None -> (Some (map_type_ env v1), None))
     | None -> (None, None)
   in
   let _tcolon = (* ":" *) token env v3 in
