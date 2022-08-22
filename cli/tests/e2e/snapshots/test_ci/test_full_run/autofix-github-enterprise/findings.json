@@ -219,7 +219,95 @@
     "supply-chain1",
     "supply-chain2"
   ],
-  "cai_ids": [
-    "__r2c-internal-cai_eqeq"
+  "ignored_findings": [
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 6,
+      "column": 5,
+      "end_line": 6,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 2,
+      "commit_date": "2022-08-22T21:11:54",
+      "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
+      "metadata": {},
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 9,
+      "column": 5,
+      "end_line": 9,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "2022-08-22T21:11:54",
+      "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
+      "metadata": {},
+      "is_blocking": true,
+      "match_based_id": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 13,
+      "column": 5,
+      "end_line": 13,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "2022-08-22T21:11:54",
+      "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
+      "metadata": {},
+      "is_blocking": true,
+      "match_based_id": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0"
+    },
+    {
+      "check_id": "eqeq-five",
+      "path": "foo.py",
+      "line": 16,
+      "column": 5,
+      "end_line": 16,
+      "end_column": 11,
+      "message": "useless comparison to 5",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "2022-08-22T21:11:54",
+      "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
+      "metadata": {
+        "dev.semgrep.actions": []
+      },
+      "is_blocking": false,
+      "match_based_id": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0",
+      "fixed_lines": [
+        "    y == 2  # nosemgrep"
+      ]
+    },
+    {
+      "check_id": "eqeq-four",
+      "path": "foo.py",
+      "line": 18,
+      "column": 5,
+      "end_line": 18,
+      "end_column": 13,
+      "message": "useless comparison to 4",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "2022-08-22T21:11:54",
+      "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ]
+      },
+      "is_blocking": true,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0"
+    }
   ]
 }
