@@ -1,1 +1,0 @@
-When a YAML rule file had a string that contained an ISO timestamp, that would be parsed as a datetime object, which would then be rejected by Semgrep's rule schema validator. This is now fixed by keeping strings that contain an ISO timestamp as strings.
