@@ -1443,7 +1443,7 @@ and map_case_clause (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.case_clause)
   let v1 = (* "case" *) token env v1 in
   let e = map_anon_choice_type_756d23d env v2 in
   let es =
-    List.map
+    Common.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         map_anon_choice_type_756d23d env v2)
@@ -1574,7 +1574,7 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       let v1 = (* "match" *) token env v1 in
       let e = map_type_ env v2 in
       let es =
-        List.map
+        Common.map
           (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             map_type_ env v2)
@@ -1587,7 +1587,7 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       in
       let cond = Tuple (CompList (fb (e :: es)), no_ctx) in
       let v5 = (* ":" *) token env v5 in
-      let cases = List.map (map_case_clause env) v6 in
+      let cases = Common.map (map_case_clause env) v6 in
       Switch (v1, cond, cases)
 
 and map_elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) =
