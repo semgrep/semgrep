@@ -307,8 +307,8 @@ let rec just_parse_with_lang lang file =
   | Lang.Python3 ->
       run file
         [
-          TreeSitter Parse_python_tree_sitter.parse;
           Pfff (throw_tokens Parse_python.parse);
+          TreeSitter Parse_python_tree_sitter.parse;
         ]
         Python_to_generic.program
   | Lang.Json ->
