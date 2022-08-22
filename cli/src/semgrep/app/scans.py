@@ -183,7 +183,7 @@ class ScanHandler:
             lambda match: bool(match.is_ignored),
         )
 
-        findings = {
+        findings_and_ignores = {
             # send a backup token in case the app is not available
             "token": os.getenv("GITHUB_TOKEN"),
             "gitlab_token": os.getenv("GITLAB_TOKEN"),
@@ -193,10 +193,7 @@ class ScanHandler:
             ],
             "searched_paths": [str(t) for t in targets],
             "rule_ids": rule_ids,
-            "cai_ids": cai_ids,
-        }
-        ignores = {
-            "findings": [
+            "ignored_findings": [
                 match.to_app_finding_format(commit_date).to_json()
                 for match in new_ignored
             ],
@@ -231,23 +228,21 @@ class ScanHandler:
 
         if self.dry_run:
             logger.info(
-                f"Would have sent findings blob: {json.dumps(findings, indent=4)}"
-            )
-            logger.info(
-                f"Would have sent ignores blob: {json.dumps(ignores, indent=4)}"
+                f"Would have sent findings and ignores blog: {json.dumps(findings_and_ignores, indent=4)}"
             )
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete, indent=4)}"
             )
             return
         else:
-            logger.debug(f"Sending findings blob: {json.dumps(findings, indent=4)}")
-            logger.debug(f"Sending ignores blob: {json.dumps(ignores, indent=4)}")
+            logger.debug(
+                f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
+            )
             logger.debug(f"Sending complete blob: {json.dumps(complete, indent=4)}")
 
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings",
-            json=findings,
+            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/findings_and_ignores",
+            json=findings_and_ignores,
         )
         try:
             response.raise_for_status()
@@ -257,15 +252,6 @@ class ScanHandler:
                 message = error["message"]
                 click.echo(f"Server returned following warning: {message}", err=True)
 
-        except requests.RequestException:
-            raise Exception(f"API server returned this error: {response.text}")
-
-        response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/ignores",
-            json=ignores,
-        )
-        try:
-            response.raise_for_status()
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
