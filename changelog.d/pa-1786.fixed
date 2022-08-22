@@ -1,2 +1,0 @@
-Extract mode: fixed a possible exception in normal usage introduced due to
-changes in handling of search/taint rules.
