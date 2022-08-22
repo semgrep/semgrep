@@ -1,0 +1,1 @@
+When rule YAML metadata contains a date or datetime it is parsed as a timestamp causing a validation error. This overrides the ruamel loader so that timestamps are loaded as strings.
