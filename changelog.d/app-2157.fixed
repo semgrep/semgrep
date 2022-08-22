@@ -1,1 +1,1 @@
-When rule YAML metadata contains a date or datetime it is parsed as a timestamp causing a validation error. This overrides the ruamel loader so that timestamps are loaded as strings.
+When a YAML rule file had a string that contained an ISO timestamp, that would be parsed as a datetime object, which would then be rejected by Semgrep's rule schema validator. This is now fixed by keeping strings that contain an ISO timestamp as strings.
