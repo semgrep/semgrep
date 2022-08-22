@@ -4,6 +4,10 @@ import shutil
 import sys
 from typing import Optional
 
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
+
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
     """
@@ -12,9 +16,12 @@ def compute_executable_path(exec_name: str) -> Optional[str]:
     Return None if no executable found
     """
     # First, try packaged binaries
-    with importlib.resources.path("semgrep.bin", exec_name) as path:
-        if path.is_file():
-            return str(path)
+    try:
+        with importlib.resources.path("semgrep.bin", exec_name) as path:
+            if path.is_file():
+                return str(path)
+    except FileNotFoundError as e:
+        logger.debug(f"Failed to open resource {exec_name}: {e}.")
 
     # Second, try system binaries in PATH.
     #
