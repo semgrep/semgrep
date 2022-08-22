@@ -14,6 +14,8 @@ from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
 
+from typing import Dict
+
 logger = getLogger(__name__)
 
 
@@ -56,9 +58,11 @@ def cli(ctx: click.Context) -> None:
     state = get_state()
     state.terminal.init_for_cli()
 
+    commands: Dict[str, Command] = ctx.command.commands # type: ignore
+
     subcommand: str = (
         ctx.invoked_subcommand
-        if ctx.invoked_subcommand in ctx.command.commands  # type: ignore
+        if ctx.invoked_subcommand in commands
         else "unset"
     )
 
