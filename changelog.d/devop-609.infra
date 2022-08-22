@@ -1,3 +1,0 @@
-GHA Runner `macos-12` is unreliable and has begun failing without
-a clear explanation as to why: this downgrades to `macos-11`,
-since 10.15 is to be depracted ~10 from now.

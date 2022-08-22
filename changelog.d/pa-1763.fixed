@@ -1,1 +1,0 @@
-Fixed metavariable unification in JSON when one of the patterns is a single field.
