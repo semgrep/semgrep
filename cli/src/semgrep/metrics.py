@@ -152,8 +152,7 @@ def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
-        except Exception as e:
-            logger.error(f"Error in {func.__name__}: {e}")
+        except Exception:
             return None
 
     return wrapper
