@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 from io import StringIO
 from os import environ
@@ -307,6 +308,7 @@ def main(
     Dict[str, int],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
+    logger.debug(f"semgrep command line: {sys.argv}")
     if include is None:
         include = []
 
