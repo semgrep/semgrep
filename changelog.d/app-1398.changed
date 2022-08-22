@@ -1,0 +1,5 @@
+Previously, the following error message appears when metrics are not uploaded within the set timeout timeframe:
+
+Error in send: HTTPSConnectionPool(host='metrics.semgrep.dev', port=443): Read timed out. (read timeout=3)
+
+As this causes users confusion when running the CLI, the log level of the message is reduced to appear for development and debugging purposes only. Note that metrics are still successfully uploaded, but the success status is not sent in time for the curent timeout set.
