@@ -1094,7 +1094,7 @@ let parse_bis ?error_recovery file =
           (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet %s -o %s" file tmpfile in
+            let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
             Json_to_generic.program ~unescape_strings:true
