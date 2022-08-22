@@ -82,6 +82,8 @@ jobs:
       - name: Run CI
         id: run-ci
         run: |
+          # If we get error code 0: unexpected, return an error. Otherwise, continue on.
+          # other tests ensure that error code >=2 are handled appropriately.
           if semgrep ci --suppress-errors; then
             exit 2
           else
