@@ -1,0 +1,5 @@
+bar('abc')
+bar("abc")
+bar("""abc""")
+bar(r"abc")
+bar(f"abc")

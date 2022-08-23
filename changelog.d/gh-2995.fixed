@@ -1,0 +1,1 @@
+Fix an incorrect autofix application when the fix includes Python f strings
