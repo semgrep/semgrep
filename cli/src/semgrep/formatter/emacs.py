@@ -26,7 +26,7 @@ class EmacsFormatter(BaseFormatter):
             str(rule_match.start.line),
             str(rule_match.start.col),
             severity,
-            rule_match.lines[0].rstrip(),
+            rule_match.lines[0].rstrip() if rule_match.lines else "",
             rule_match.message,
         ]
 

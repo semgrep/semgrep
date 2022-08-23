@@ -283,7 +283,11 @@ class RuleMatch:
         """
         Returns if this finding indicates it should block CI
         """
-        return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+        blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
+        if "sca_info" in self.extra:
+            return blocking and self.extra["sca_info"].reachable
+        else:
+            return blocking
 
     @property
     def dataflow_trace(self) -> Optional[core.CliMatchDataflowTrace]:
