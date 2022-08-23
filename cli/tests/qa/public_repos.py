@@ -188,7 +188,7 @@ REPOS = [
     ),
     Repo(
         "https://github.com/dropbox/changes",
-        xfail_reason="bower/.../insight/.../inquirer/.../rx/.../outro.js is an unbalanced JS fragment"
+        xfail_reason="bower/.../insight/.../inquirer/.../rx/.../outro.js is an unbalanced JS fragment",
     ),
     Repo(
         "https://github.com/dropbox/pyston-perf",

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from typing import Dict
+
 import click
 
 from semgrep.commands.ci import ci
@@ -13,8 +15,6 @@ from semgrep.default_group import DefaultGroup
 from semgrep.state import get_state
 from semgrep.util import git_check_output
 from semgrep.verbose_logging import getLogger
-
-from typing import Dict
 
 logger = getLogger(__name__)
 
@@ -58,12 +58,10 @@ def cli(ctx: click.Context) -> None:
     state = get_state()
     state.terminal.init_for_cli()
 
-    commands: Dict[str, Command] = ctx.command.commands # type: ignore
+    commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
 
     subcommand: str = (
-        ctx.invoked_subcommand
-        if ctx.invoked_subcommand in commands
-        else "unset"
+        ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"
     )
 
     state.app_session.authenticate()
