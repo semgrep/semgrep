@@ -416,7 +416,8 @@ def ci(
                 if "r2c-internal-cai" in rule.id
                 else blocking_matches_by_rule
                 # if an SCA finding is unreachable, it always goes in non-blocking
-                if rule.is_blocking and not match.extra.get("dependency_match_only")
+                if rule.is_blocking
+                and ("sca_info" in match.extra and match.extra["sca_info"].reachable)
                 else nonblocking_matches_by_rule
             )
             applicable_result_set[rule].append(match)
