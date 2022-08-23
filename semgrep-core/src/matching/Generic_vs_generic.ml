@@ -3118,6 +3118,7 @@ and m_partial a b =
       m_expr a3 b3
   | G.PartialLambdaOrFuncDef a1, B.PartialLambdaOrFuncDef b1 ->
       m_function_definition a1 b1
+  | G.PartialSwitchCase a1, B.PartialSwitchCase b1 -> m_case_and_body a1 b1
   | G.PartialDef _, _
   | G.PartialIf _, _
   | G.PartialMatch _, _
@@ -3125,7 +3126,8 @@ and m_partial a b =
   | G.PartialCatch _, _
   | G.PartialFinally _, _
   | G.PartialSingleField _, _
-  | G.PartialLambdaOrFuncDef _, _ ->
+  | G.PartialLambdaOrFuncDef _, _
+  | G.PartialSwitchCase _, _ ->
       fail ()
 
 and m_any a b =

@@ -1152,6 +1152,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v2 = map_tok v2 in
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
+    | PartialSwitchCase v1 ->
+        let v1 = map_case_and_body v1 in
+        PartialSwitchCase v1
   and map_any = function
     | Xmls v1 ->
         let v1 = map_of_list map_xml_body v1 in

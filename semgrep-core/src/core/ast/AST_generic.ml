@@ -1800,6 +1800,7 @@ and partial =
   | PartialSingleField of string wrap (* id or str *) * tok (*:*) * expr
   (* not really a partial, but the partial machinery can help with that *)
   | PartialLambdaOrFuncDef of function_definition
+  | PartialSwitchCase of case_and_body
 
 (*****************************************************************************)
 (* Any *)

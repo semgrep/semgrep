@@ -1382,6 +1382,9 @@ and vof_partial = function
       let v2 = vof_tok v2 in
       let v3 = vof_expr v3 in
       OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
+  | PartialSwitchCase v1 ->
+      let v1 = vof_case_and_body v1 in
+      OCaml.VSum ("PartialSwitchCase", [ v1 ])
 
 and vof_any = function
   | Xmls v1 ->
