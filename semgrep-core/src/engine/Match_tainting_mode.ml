@@ -1,6 +1,6 @@
-(* Yoann Padioleau, Iago Abal
+(* Iago Abal, Yoann Padioleau
  *
- * Copyright (C) 2019-2021 r2c
+ * Copyright (C) 2019-2022 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -24,6 +24,9 @@ module RP = Report
 module S = Specialize_formula
 module T = Taint
 module PI = Parse_info
+module MV = Metavariable
+module ME = Matching_explanation
+module Out = Output_from_core_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -84,7 +87,6 @@ type debug_taint = {
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
 module F2 = IL
 
 module DataflowY = Dataflow_core.Make (struct
@@ -105,7 +107,8 @@ let option_bind_list opt f =
 (* Finds all matches of a taint-spec pattern formula. *)
 let range_w_metas_of_pformula evaluate_fn formula =
   (* !! Calling Match_search_mode here !! *)
-  evaluate_fn formula
+  let ranges, expl_opt = evaluate_fn formula in
+  (ranges, Option.to_list expl_opt)
 
 type propagator_match = {
   id : D.var;
@@ -122,20 +125,37 @@ type propagator_match = {
 (* Finding matches for taint specs *)
 (*****************************************************************************)
 
+(* =~ List.concat_map with automatic management of matching-explanations *)
+let concat_map_with_expls f xs =
+  let all_expls = ref [] in
+  let res =
+    xs
+    |> List.concat_map (fun x ->
+           let ys, expls = f x in
+           Common.push expls all_expls;
+           ys)
+  in
+  (res, List.flatten !all_expls)
+
 let find_range_w_metas evaluate_fn specs =
   (* TODO: Make an Or formula and run a single query. *)
   (* if perf is a problem, we could build an interval set here *)
   specs
-  |> List.concat_map (fun (f, x) ->
-         range_w_metas_of_pformula evaluate_fn f
-         |> Common.map (fun rwm -> (rwm, x)))
+  |> concat_map_with_expls (fun (f, x) ->
+         let range, expls = range_w_metas_of_pformula evaluate_fn f in
+         (range |> Common.map (fun rwm -> (rwm, x)), expls))
 
-let find_sanitizers_matches evaluate_fn specs =
+let find_sanitizers_matches evaluate_fn (specs : S.taint_sanitizer list) :
+    (bool * RM.t * S.taint_sanitizer) list * ME.t list =
   specs
-  |> List.concat_map (fun sanitizer ->
-         Common.map
-           (fun pf -> (sanitizer.S.not_conflicting, pf, sanitizer))
-           (range_w_metas_of_pformula evaluate_fn sanitizer.S.sanitizer_formula))
+  |> concat_map_with_expls (fun sanitizer ->
+         let ranges, expls =
+           range_w_metas_of_pformula evaluate_fn sanitizer.S.sanitizer_formula
+         in
+         ( ranges
+           |> Common.map (fun pf ->
+                  (sanitizer.S.not_conflicting, pf, sanitizer)),
+           expls ))
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches evaluate_fn propagators_spec =
@@ -145,7 +165,7 @@ let find_propagators_matches evaluate_fn propagators_spec =
   |> List.concat_map (fun (p : S.taint_propagator) ->
          let mvar_pfrom, tok_pfrom = p.from in
          let mvar_pto, tok_pto = p.to_ in
-         let ranges_w_metavars =
+         let ranges_w_metavars, _expsTODO =
            range_w_metas_of_pformula evaluate_fn p.S.propagate_formula
          in
          (* Now, for each match of the propagator pattern, we try to construct
@@ -312,24 +332,30 @@ let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
   (* TODO?
      let config = Common.( ||| ) rule.options default_config in
   *)
-  let config = env.Match_env.config |> fst in
-  let sources_ranges =
+  let xconf =
+    Match_env.adjust_xconfig_with_rule_options env.Match_env.xconf
+      env.rule.options
+  in
+  let sources_ranges, expls_sources =
     find_range_w_metas evaluate_fn
-      (spec.sources
+      (spec.sources |> snd
       |> Common.map (fun (src : S.taint_source) -> (src.source_formula, src)))
   and propagators_ranges = find_propagators_matches evaluate_fn spec.propagators
-  and sinks_ranges =
+  and sinks_ranges, expls_sinks =
     find_range_w_metas evaluate_fn
-      (spec.sinks
+      (spec.sinks |> snd
       |> Common.map (fun (sink : S.taint_sink) -> (sink.sink_formula, sink)))
   in
-  let sanitizers_ranges =
+  let sanitizers_ranges, _exps_sanitizersTODO =
     find_sanitizers_matches evaluate_fn spec.sanitizers
+  in
+  let (sanitizers_ranges : (RM.t * S.taint_sanitizer) list) =
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
      * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
+    sanitizers_ranges
     |> List.filter_map (fun (not_conflicting, range, spec) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
            if not_conflicting then
@@ -346,6 +372,31 @@ let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
            else Some (range, spec))
   in
   let rule = env.rule in
+  let expls =
+    if xconf.matching_explanations then
+      let ranges_to_pms ranges_and_stuff =
+        ranges_and_stuff
+        |> Common.map (fun (rwm, _) ->
+               RM.range_to_pattern_match_adjusted rule rwm)
+      in
+      [
+        {
+          ME.op = Out.TaintSource;
+          pos = fst spec.sources;
+          children = expls_sources;
+          matches = ranges_to_pms sources_ranges;
+        };
+        {
+          ME.op = Out.TaintSink;
+          pos = fst spec.sinks;
+          children = expls_sinks;
+          matches = ranges_to_pms sinks_ranges;
+        }
+        (* TODO: sanitizer and propagators *);
+      ]
+    else []
+  in
+  let config = xconf.config in
   ( {
       Dataflow_tainting.filepath = env.xtarget.file;
       rule_id = fst rule.R.id;
@@ -362,7 +413,8 @@ let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
       sources = sources_ranges;
       sanitizers = sanitizers_ranges |> Common.map fst;
       sinks = sinks_ranges;
-    } )
+    },
+    expls )
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
@@ -483,8 +535,10 @@ let check_fundef lang fun_env taint_config opt_ent fdef =
   Dataflow_tainting.fixpoint ~in_env ?name ~fun_env taint_config flow |> ignore
 
 let get_matches_raw env taint_spec evaluate_fn =
+  let xconf = env.Match_env.xconf in
+  let rule = env.rule in
   let matches = ref [] in
-  let taint_config, _debug_taint =
+  let taint_config, _debug_taint, expls =
     let handle_findings _ findings _env =
       findings
       |> List.iter (fun finding ->
@@ -511,12 +565,15 @@ let get_matches_raw env taint_spec evaluate_fn =
       {
         V.default_visitor with
         V.kdef =
-          (fun (k, _v) ((ent, def_kind) as def) ->
+          (fun (k, v) ((ent, def_kind) as def) ->
             match def_kind with
             | G.FuncDef fdef ->
                 check_fundef lang fun_env taint_config (Some ent) fdef;
-                (* go into nested functions *)
-                k def
+                (* go into nested functions
+                   but do NOT revisit the function definition again
+                   with `kfunction_definition` below! *)
+                let body = H.funcbody_to_stmt fdef.G.fbody in
+                v (G.S body)
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
@@ -537,12 +594,20 @@ let get_matches_raw env taint_spec evaluate_fn =
         let flow = CFG_build.cfg_of_stmts xs in
         Dataflow_tainting.fixpoint ~fun_env taint_config flow |> ignore)
   in
-
-  !matches
-  (* same post-processing as for search-mode in Match_rules.ml *)
-  |> PM.uniq
-  |> PM.no_submatches (* see "Taint-tracking via ranges" *)
-  (* TODO?: I killed the before_return here. *)
-  |> Common.map (fun m ->
-         { m with PM.rule_id = convert_rule_id env.rule.Rule.id })
-  |> Common.map RM.match_result_to_range
+  let matches =
+    !matches
+    (* same post-processing as for search-mode in Match_rules.ml *)
+    |> PM.uniq
+    |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+    |> Common.map (fun m ->
+           { m with PM.rule_id = convert_rule_id env.rule.Rule.id })
+  in
+  (* bTODO
+     let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
+  *)
+  let explanations =
+    if xconf.matching_explanations then
+      [ { ME.op = Out.Taint; children = expls; matches; pos = snd rule.id } ]
+    else []
+  in
+  (matches |> Common.map RM.match_result_to_range, explanations)

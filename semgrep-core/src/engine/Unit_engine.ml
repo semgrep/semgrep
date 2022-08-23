@@ -490,10 +490,17 @@ let tainting_test lang rules_file file =
   let search_rules, taint_rules, extract_rules = Rule.partition_rules rules in
   assert (search_rules = []);
   assert (extract_rules = []);
+  let xconf =
+    {
+      Match_env.config = Config_semgrep.default_config;
+      equivs = [];
+      matching_explanations = false;
+    }
+  in
+
   let matches =
     taint_rules
     |> Common.map (fun rule ->
-           let equivs = [] in
            let xtarget =
              {
                Xtarget.file;
@@ -503,10 +510,7 @@ let tainting_test lang rules_file file =
              }
            in
            let res, _debug =
-             Match_tainting_mode.check_rule rule
-               (fun _ _ -> ())
-               (Config_semgrep.default_config, equivs)
-               xtarget
+             Match_tainting_mode.check_rule rule (fun _ _ -> ()) xconf xtarget
            in
            res.matches)
     |> List.flatten

@@ -364,9 +364,12 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
       in
       b |> sub_fun |> aux)
 
-let m_with_symbolic_propagation f b =
+let m_with_symbolic_propagation ~is_root f b =
   if_config
-    (fun x -> x.Config.constant_propagation && x.Config.symbolic_propagation)
+    (* If we are not at the root, then we permit recursing into substituted values. *)
+      (fun x ->
+      x.Config.constant_propagation && x.Config.symbolic_propagation
+      && not is_root)
     ~then_:
       (match b.G.e with
       | G.N (G.Id (_, { id_svalue = { contents = Some (G.Sym b1) }; _ })) ->
@@ -652,7 +655,10 @@ and m_expr_deep a b tin =
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr ~symbolic_propagation
   in
-  m_deep m_expr_deep m_expr subexprs_of_expr a b tin
+  (* Deep expression matching extracts sub-expressions without decomposing on the pattern,
+     meaning that matching those sub-expressions should be considered as the root.
+  *)
+  m_deep m_expr_deep m_expr_root subexprs_of_expr a b tin
 
 (* possibly go deeper. When someone writes a pattern like
  *   'bar();'
@@ -670,18 +676,33 @@ and m_expr_deep a b tin =
  *   - x = <expr>,
  *   - <call>(<exprs).
  * see SubAST_generic.subexprs_of_expr_implicit
+ *
  *)
 and m_expr_deep_implict a b tin =
   let symbolic_propagation = tin.config.Config.symbolic_propagation in
   let subexprs_of_expr =
     SubAST_generic.subexprs_of_expr_implicit ~symbolic_propagation
   in
-  m_deep m_expr_deep_implict m_expr subexprs_of_expr a b tin
+  (* Deep expression matching extracts sub-expressions without decomposing on the pattern,
+     meaning that matching those sub-expressions should be considered as the root.
+  *)
+  m_deep m_expr_deep_implict m_expr_root subexprs_of_expr a b tin
 
+(* This just calls `m_expr_inner` as the root. This is exposed, so that exterior uses will
+   properly register as the root, and should only be called at the start of matching.
+*)
+and m_expr_root a b = m_expr ~is_root:true a b
+
+(* This allows the matching of expressions, where we are considered to not be
+   at the "root" of the pattern.
+   This is because, for most of the other mutually recursive uses of `m_expr`, we are
+   usually having already decomposed on the pattern, meaning that it is safe to
+   use `m_expr`.
+*)
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
  *)
-and m_expr a b =
+and m_expr ?(is_root = false) a b =
   Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
@@ -752,7 +773,7 @@ and m_expr a b =
       (match H.name_of_dot_access a with
       | None -> fail ()
       | Some a1 -> m_name a1 b1)
-      >||> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   (* $X should not match an IdSpecial in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
    * Call(IdSpecial Plus, ...).
@@ -776,7 +797,8 @@ and m_expr a b =
    * TODO: should be B.N (B.Id _ | B.IdQualified _)?
    *)
   | G.N (G.Id _ as na), B.N (B.Id _ as nb) ->
-      m_name na nb >||> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+      m_name na nb
+      >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
       envf (str, tok) (MV.E b)
   (* metavar: typed! *)
@@ -866,8 +888,9 @@ and m_expr a b =
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
   | G.New (_a0, a1, a2), B.New (_b0, b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_arguments a2 b2
-  | G.Call _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
-  | G.New _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+  | G.Call _, _ ->
+      m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
+  | G.New _, _ -> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
@@ -920,7 +943,8 @@ and m_expr a b =
       aux candidates
   | G.ArrayAccess (a1, a2), B.ArrayAccess (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_bracket m_expr a2 b2
-  | G.ArrayAccess _, _ -> m_with_symbolic_propagation (fun b1 -> m_expr a b1) b
+  | G.ArrayAccess _, _ ->
+      m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
@@ -2106,7 +2130,7 @@ and m_stmt a b =
         if_config
           (fun x -> x.implicit_deep_exprstmt)
           ~then_:(m_expr_deep_implict a1 b1)
-          ~else_:(m_expr a1 b1)
+          ~else_:(m_expr_root a1 b1)
       in
       m_tok a2 b2
   (* opti: specialization to avoid going in the deep stmt matching!
@@ -2164,7 +2188,7 @@ and m_stmt a b =
         ~then_:
           (let resolved = Some (G.LocalVar, G.sid_TODO) in
            let b1 = H.funcdef_to_lambda (ent, fdef) resolved in
-           m_expr a1 b1)
+           m_expr_root a1 b1)
         ~else_:(fail ())
   (* equivalence: *)
   | G.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1

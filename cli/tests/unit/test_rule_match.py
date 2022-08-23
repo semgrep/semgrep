@@ -5,8 +5,10 @@ from textwrap import dedent
 import pytest
 
 import semgrep.output_from_core as core
+import semgrep.semgrep_interfaces.semgrep_output_v0 as out
 from semgrep.config_resolver import parse_config_string
 from semgrep.constants import RuleSeverity
+from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchSet
@@ -315,26 +317,26 @@ def test_rule_match_set_indexes(mocker):
 @pytest.mark.quick
 def test_rule_match_to_app_finding(snapshot, mocker):
     mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
-    dependency_match = {
-        "dependency_pattern": {
-            "namespace": "pypi",
-            "package_name": "awscli",
-            "semver_range": "== 1.11.82",
-        },
-        "found_dependency": {
-            "allowed_hashes": {
+    dependency_match = out.DependencyMatch(
+        dependency_pattern=out.DependencyPattern(
+            ecosystem=out.Ecosystem(out.Pypi()),
+            package="awscli",
+            semver_range="== 1.11.82",
+        ),
+        found_dependency=out.FoundDependency(
+            ecosystem=out.Ecosystem(out.Pypi()),
+            package="awscli",
+            version="1.11.82",
+            resolved_url=None,
+            allowed_hashes={
                 "sha256": [
                     "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
                     "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb",
                 ]
             },
-            "name": "awscli",
-            "namespace": "pypi",
-            "resolved_url": None,
-            "version": "1.11.82",
-        },
-        "lockfile": "targets/dependency_aware/Pipfile.lock",
-    }
+        ),
+        lockfile="foo/Pipfile.lock",
+    )
     match = RuleMatch(
         message="message",
         severity=RuleSeverity.ERROR,
@@ -348,8 +350,12 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             extra=core.CoreMatchExtra(metavars=core.Metavars({})),
         ),
         extra={
-            "dependency_match_only": False,
-            "dependency_matches": [dependency_match],
+            "sca_info": out.ScaInfo(
+                sca_finding_schema=SCA_FINDING_SCHEMA,
+                reachable=True,
+                reachability_rule=True,
+                dependency_match=dependency_match,
+            )
         },
     )
     app_finding = match.to_app_finding_format("0")

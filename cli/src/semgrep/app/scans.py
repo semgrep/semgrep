@@ -164,6 +164,7 @@ class ScanHandler:
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
+        lockfile_scan_info: Dict[str, int],
     ) -> None:
         """
         commit_date here for legacy reasons. epoch time of latest commit
@@ -215,6 +216,7 @@ class ScanHandler:
                 "errors": [error.to_dict() for error in errors],
                 "total_time": total_time,
                 "unsupported_exts": dict(ignored_ext_freqs),
+                "lockfile_scan_info": lockfile_scan_info,
                 "parse_rate": {
                     lang: {
                         "targets_parsed": data.num_targets - data.targets_with_errors,

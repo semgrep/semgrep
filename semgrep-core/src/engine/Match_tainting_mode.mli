@@ -9,18 +9,21 @@ type debug_taint = {
 (** To facilitate debugging of taint rules. *)
 
 (* It could be a private function, but it is also used by Deep Semgrep. *)
+
 val get_taint_config :
   Match_env.env ->
-  (Specialize_formula.sformula -> Range_with_metavars.t list) ->
+  (Specialize_formula.sformula ->
+  Range_with_metavars.t list * Matching_explanation.t option) ->
   Specialize_formula.taint_spec ->
   (Dataflow_tainting.var option ->
   Taint.finding list ->
   Taint.taints Dataflow_core.env ->
   unit) ->
-  Dataflow_tainting.config * debug_taint
+  Dataflow_tainting.config * debug_taint * Matching_explanation.t list
 
 val get_matches_raw :
   Match_env.env ->
   Specialize_formula.taint_spec ->
-  (Specialize_formula.sformula -> Range_with_metavars.t list) ->
-  Range_with_metavars.t list
+  (Specialize_formula.sformula ->
+  Range_with_metavars.t list * Matching_explanation.t option) ->
+  Range_with_metavars.t list * Matching_explanation.t list

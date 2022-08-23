@@ -29,9 +29,66 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
+module SMap = Map.Make (String)
+module IMap = Map.Make (Int)
+
+(* Global store, because I don't want to pass it through a bunch of func calls.
+ *)
+let store = ref []
+
+(* This function just processes the exception backtrace to find the first instance where a function
+   that is not called "todo" was called.
+   It then records the line number and name of the function, adding it to a global store.
+*)
+let process_exn () =
+  let rec process (lines : string list) =
+    match lines with
+    | [] -> "failure"
+    | line :: rest -> (
+        (* Sue me. I don't want to write a real lexer and parser. *)
+        let tokens = Common.split " " line in
+        match tokens with
+        | "Called" :: "from" :: funcname :: _in :: _file :: _filename :: "line"
+          :: linenum :: _ ->
+            if String.ends_with ~suffix:"todo" funcname then process rest
+            else funcname ^ ":" ^ linenum
+        | _ -> process rest)
+  in
+  let res =
+    Printexc.get_backtrace () |> Common.split (Str.quote "\n") |> process
+  in
+  store := res :: !store;
+  ()
+
 let print_exn file e =
   let trace = Printexc.get_backtrace () in
+  process_exn ();
   pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
+
+(* This function collects all the function name and line number pairs, and then
+   sorts them in descending order of frequency.
+   I'm using maps to do this so that I can achieve O(log n) insertion per increment.
+*)
+let report_counts () =
+  let counts =
+    List.fold_left
+      (fun map x ->
+        SMap.update x
+          (function
+            | None -> Some 1
+            | Some x -> Some (x + 1))
+          map)
+      SMap.empty !store
+    |> SMap.to_seq
+    |> Seq.map (fun (x, y) -> (y, x))
+    |> IMap.of_seq |> IMap.to_rev_seq |> List.of_seq
+  in
+  (* Report all the statistics. *)
+  pr2 "\nTODO statistics:";
+  List.fold_left
+    (fun acc (count, filename) -> acc ^ Common.spf "\n%s -> %d" filename count)
+    "" counts
+  |> pr2
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
@@ -417,6 +474,7 @@ let parse_projects ~verbose lang project_dirs =
 
 let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects ~verbose lang project_dirs in
+  report_counts ();
   if json then print_json lang stat_list
   else
     let flat_stat = List.concat_map snd stat_list in

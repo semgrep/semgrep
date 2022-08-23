@@ -1100,6 +1100,8 @@ and other_stmt_with_stmt_operator =
   | OSWS_UncheckedBlock
   (* C/C++/cpp *)
   | OSWS_Iterator
+  (* Closures in Swift *)
+  | OSWS_Closure
   (* e.g., Assembly in Solidity *)
   | OSWS_Todo
 
@@ -1322,7 +1324,7 @@ and keyword_attribute =
   (* Rust *)
   | Unsafe
   | DefaultImpl (* Rust unstable, RFC 1210 *)
-  (* Scala *)
+  (* Scala and Swift *)
   | Lazy
   (* Swift *)
   | Throws

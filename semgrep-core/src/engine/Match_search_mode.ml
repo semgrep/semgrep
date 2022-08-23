@@ -24,13 +24,14 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module E = Semgrep_error_code
-module Resp = Output_from_core_t
-module Out = Output_from_core_t
+module ME = Matching_explanation
 open Match_env
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
-(* debugging flags *)
+(* Debugging flags.
+ * Note that semgrep-core -matching_explanations can also be useful to debug.
+ *)
 let debug_timeout = ref false
 let debug_matches = ref false
 
@@ -48,7 +49,7 @@ let debug_matches = ref false
  *  - visiting code (=~ Match_patterns.ml)
  *  - matching code (=~ Generic_vs_generic.ml)
  *
- * There are also "preprocessing" work before:
+ * There are also "preprocessing" steps before:
  *  - parsing (lexing, parsing) rules, code, patterns
  *  - normalizing (convert to a generic AST)
  *  - naming (but bugs probably)
@@ -61,7 +62,7 @@ let debug_matches = ref false
  *    to get the right scope (right now we accept the wrong scope but
  *    this forces to extend some ranges with metavars from other ranges)
  *
- * LATER (if really decide to rewrite the whole python wrapper code in OCaml):
+ * LATER (if we decide to rewrite the whole python wrapper code in OCaml):
  *  - paths
  *  - autofix
  *  - adjust messages with metavariable content
@@ -96,16 +97,16 @@ let debug_matches = ref false
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* Now in Match_env.ml *)
+(* The types are now defined in Match_env.ml *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+let ( let* ) = Option.bind
 
-let (xpatterns_in_formula : S.sformula -> (Xpattern.t * 'a option) list) =
- fun e ->
+let xpatterns_in_formula (e : S.sformula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat -> Common.push (xpat, None) res);
+  e |> S.visit_sformula (fun xpat b -> Common.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -123,9 +124,8 @@ let partition_xpatterns xs =
          | XP.Comby x -> Common.push (x, pid, str) comby);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
-let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
-    =
- fun xs ->
+let group_matches_per_pattern_id (xs : Pattern_match.t list) :
+    id_to_match_results =
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun m ->
@@ -152,12 +152,12 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      Xlang.t -> Pattern.t * 'a option * Xpattern.pattern_id * string -> MR.t) =
+      Xlang.t -> Pattern.t * bool * Xpattern.pattern_id * string -> MR.t) =
  fun xlang (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
-    inside = Option.is_some inside;
+    inside;
     (* parts that are not really needed I think in this context, since
      * we just care about the matching result.
      *)
@@ -208,11 +208,14 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter config file_and_more
-    patterns =
+let matches_of_patterns ?mvar_context ?range_filter (xconf : xconfig)
+    (xtarget : Xtarget.t)
+    (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
+    RP.times RP.match_result =
   let { Xtarget.file; xlang; lazy_ast_and_errors; lazy_content = _ } =
-    file_and_more
+    xtarget
   in
+  let config = (xconf.config, xconf.equivs) in
   match xlang with
   | Xlang.L (lang, _) ->
       let (ast, skipped_tokens), parse_time =
@@ -257,19 +260,19 @@ let run_selector_on_ranges env selector_opt ranges =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
       in
-      let patterns = [ (pattern, None, pid, fst pstr) ] in
+      let patterns = [ (pattern, false, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.config env.xtarget patterns
+        matches_of_patterns ~range_filter env.xconf env.xtarget patterns
       in
       logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
       res.matches
       |> Common.map RM.match_result_to_range
-      |> RM.intersect_ranges (fst env.config) !debug_matches ranges
+      |> RM.intersect_ranges env.xconf.config !debug_matches ranges
 
-let apply_focus_on_ranges env focus ranges : RM.ranges =
-  let ( let* ) = Option.bind in
-  let apply_focus_mvar range focus_mvar =
+let apply_focus_on_ranges env focus_mvars ranges : RM.ranges =
+  (* this will return a new range (or a no match) *)
+  let apply_focus_mvar (range : RM.t) (focus_mvar : MV.mvar) : RM.t option =
     let* _mvar, mval =
       List.find_opt
         (fun (mvar, _mval) -> MV.equal_mvar focus_mvar mvar)
@@ -292,22 +295,24 @@ let apply_focus_on_ranges env focus ranges : RM.ranges =
     else if Range.( $<=$ ) range.r focus_range.r then Some range
     else None
   in
-  let apply_focus init_range =
-    focus
+  let apply_focus_mvars init_range =
+    focus_mvars
     |> List.fold_left
-         (fun opt_range focus_mvar ->
+         (fun opt_range (_tok, focus_mvar) ->
            let* range = opt_range in
-           apply_focus_mvar range focus_mvar)
+           let final = apply_focus_mvar range focus_mvar in
+           final)
          (Some init_range)
   in
-  ranges |> List.filter_map apply_focus
+  ranges |> List.filter_map apply_focus_mvars
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
-  let { Xtarget.file; lazy_content; _ } = file_and_more in
+let matches_of_xpatterns ~mvar_context (xconf : xconfig) (xtarget : Xtarget.t)
+    (xpatterns : (Xpattern.t * bool) list) : RP.times RP.match_result =
+  let { Xtarget.file; lazy_content; _ } = xtarget in
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
@@ -318,26 +323,84 @@ let matches_of_xpatterns ~mvar_context config file_and_more xpatterns =
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context config file_and_more patterns;
-      Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file;
+      matches_of_patterns ~mvar_context xconf xtarget patterns;
+      (let config = (xconf.config, xconf.equivs) in
+       Xpattern_match_spacegrep.matches_of_spacegrep config spacegreps file);
       Xpattern_match_regexp.matches_of_regexs regexps lazy_content file;
       Xpattern_match_comby.matches_of_combys combys lazy_content file;
     ]
   [@@profiling]
 
 (*****************************************************************************)
-(* Formula evaluation *)
+(* Maching explanations helpers *)
 (*****************************************************************************)
 
-let rec filter_ranges env xs cond =
+let if_explanations (env : env) (ranges : RM.ranges)
+    (children : ME.t option list) (op, tok) : ME.t option =
+  if env.xconf.matching_explanations then
+    let matches =
+      ranges
+      |> Common.map (fun range ->
+             RM.range_to_pattern_match_adjusted env.rule range)
+    in
+    let xs = Common.map_filter (fun x -> x) children in
+    let expl = { ME.op; pos = tok; children = xs; matches } in
+    Some expl
+  else None
+
+let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
+  if env.xconf.matching_explanations then
+    match xpat.pat with
+    (* TODO: generalize to more patterns *)
+    | Sem
+        ( G.Ss [ s1; { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ }; s2 ],
+          _lang ) ->
+        let subs = [ G.S s1; G.S s2 ] in
+        (* we could optimize and run matches_of_patterns() below once
+         * per all the subs, but that would require to generate
+         * new xpat pid, and map the results back to their corresponding
+         * pattern id (see group_matches_per_pattern_id), which is
+         * not worth it given this code is executed only when
+         * one requests -matching_explanations
+         *)
+        let children =
+          subs
+          |> Common.map (fun pat ->
+                 let match_result =
+                   matches_of_patterns env.xconf env.xtarget
+                     [ (pat, false, xpat.pid, "TODO") ]
+                 in
+                 let matches = match_result.matches in
+                 (* TODO: equivalent to an abstract_content, so not great *)
+                 let pstr = JSON_report.metavar_string_of_any pat in
+                 (* TODO: could use first_info_of_any pat, but not sure the
+                  * tok position in pat are related to the rule of the intermediate
+                  * file used to parse the pattern in xpat.pat.
+                  *)
+                 let pos = snd xpat.pstr in
+                 (* less: in theory we could decompose again pat and get children*)
+                 { ME.op = Out.XPat pstr; pos; matches; children = [] })
+        in
+        (* less: add a Out.EllipsisAndStmts intermediate? *)
+        children
+    | _ -> []
+  else []
+
+(*****************************************************************************)
+(* Metavariable condition evaluation *)
+(*****************************************************************************)
+
+let rec filter_ranges (env : env) (xs : RM.ranges) (cond : R.metavar_cond) :
+    RM.ranges =
   xs
   |> List.filter (fun r ->
          let bindings = r.RM.mvars in
          match cond with
          | R.CondEval e ->
-             let env = Eval_generic.bindings_to_env (fst env.config) bindings in
+             let env = Eval_generic.bindings_to_env env.xconf.config bindings in
              Eval_generic.eval_bool env e
          | R.CondNestedFormula (mvar, opt_lang, formula) ->
+             (* TODO: could return expl for nested matching! *)
              Metavariable_pattern.satisfies_metavar_pattern_condition
                nested_formula_has_matches env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
@@ -379,13 +442,11 @@ let rec filter_ranges env xs cond =
                   $MVAR's value. *)
                call_re_match re_exp (call_str mvar_exp)
              in
-
+             let config = env.xconf.config in
              let env =
-               if const_prop && (fst env.config).constant_propagation then
-                 Eval_generic.bindings_to_env (fst env.config) bindings
-               else
-                 Eval_generic.bindings_to_env_just_strings (fst env.config)
-                   bindings
+               if const_prop && config.constant_propagation then
+                 Eval_generic.bindings_to_env config bindings
+               else Eval_generic.bindings_to_env_just_strings config bindings
              in
              Eval_generic.eval_bool env e
          | R.CondAnalysis (mvar, CondEntropy) ->
@@ -419,45 +480,72 @@ let rec filter_ranges env xs cond =
 
 and nested_formula_has_matches env formula opt_context =
   let res, final_ranges =
-    matches_of_formula env.config env.rule env.xtarget formula opt_context
+    matches_of_formula env.xconf env.rule env.xtarget formula opt_context
   in
   env.errors := Report.ErrorSet.union res.RP.errors !(env.errors);
   match final_ranges with
   | [] -> false
   | _ :: _ -> true
 
-(* less: use Set instead of list? *)
-and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
- fun env opt_context e ->
+(*****************************************************************************)
+(* Formula evaluation *)
+(*****************************************************************************)
+
+and evaluate_formula (env : env) (opt_context : RM.t option) (e : S.sformula) :
+    RM.ranges * Matching_explanation.t option =
   match e with
-  | S.Leaf xpat ->
-      let id = xpat.XP.pid in
+  | S.Leaf ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with
         | Not_found -> []
       in
       let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
-      match_results
-      |> Common.map RM.match_result_to_range
-      |> Common.map (fun r -> { r with RM.kind })
-  | S.Taint tspec ->
+      let ranges =
+        match_results
+        |> Common.map RM.match_result_to_range
+        |> Common.map (fun r -> { r with RM.kind })
+      in
+      (* we can decompose the pattern in subpatterns to provide
+       * intermediate explanations for complex patterns like A...B
+       *)
+      let children =
+        children_explanations_of_xpat env xpat |> Common.map (fun x -> Some x)
+      in
+      let expl = if_explanations env ranges children (Out.XPat pstr, tok) in
+      (ranges, expl)
+  | S.Taint (tok, tspec) ->
       let evaluate_formula sformula =
         evaluate_formula env opt_context sformula
       in
-      Match_tainting_mode.get_matches_raw env tspec evaluate_formula
-  | S.Inside formula ->
-      evaluate_formula env opt_context formula
-      |> Common.map (fun r -> { r with RM.kind = RM.Inside })
-  | S.Or xs ->
-      xs |> Common.map (evaluate_formula env opt_context) |> List.flatten
+      let ranges, expls =
+        Match_tainting_mode.get_matches_raw env tspec evaluate_formula
+      in
+      let expl =
+        if_explanations env ranges
+          (expls |> Common.map (fun x -> Some x))
+          (Out.Taint, tok)
+      in
+      (ranges, expl)
+  | S.Inside (tok, formula) ->
+      let ranges, expls = evaluate_formula env opt_context formula in
+      let expl = if_explanations env ranges [ expls ] (Out.Inside, tok) in
+      (Common.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+  | S.Or (tok, xs) ->
+      let ranges, expls =
+        xs |> Common.map (evaluate_formula env opt_context) |> Common2.unzip
+      in
+      let ranges = List.flatten ranges in
+      let expl = if_explanations env ranges expls (Out.Or, tok) in
+      (ranges, expl)
   | S.And
-      {
-        selector_opt;
-        positives = pos;
-        negatives = neg;
-        conditionals = conds;
-        focus;
-      } -> (
+      ( tok,
+        {
+          selector_opt;
+          positives = pos;
+          negatives = neg;
+          conditionals = conds;
+          focus;
+        } ) -> (
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
@@ -473,7 +561,9 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
        *)
 
       (* let's start with the positive ranges *)
-      let posrs = Common.map (evaluate_formula env opt_context) pos in
+      let posrs, posrs_expls =
+        Common.map (evaluate_formula env opt_context) pos |> Common2.unzip
+      in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -500,26 +590,32 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       match all_posr with
       | [] -> failwith "FIXME"
       | posr :: posrs ->
-          let res = posr in
-          let res =
+          let ranges = posr in
+          let ranges =
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   RM.intersect_ranges (fst env.config) !debug_matches acc r)
-                 res
+                   RM.intersect_ranges env.xconf.config !debug_matches acc r)
+                 ranges
           in
 
           (* optimization of `pattern: $X` *)
-          let res = run_selector_on_ranges env selector_opt res in
+          let ranges = run_selector_on_ranges env selector_opt ranges in
 
           (* let's remove the negative ranges *)
-          let res =
+          let ranges, negs_expls =
             neg
             |> List.fold_left
-                 (fun acc x ->
-                   RM.difference_ranges (fst env.config) acc
-                     (evaluate_formula env opt_context x))
-                 res
+                 (fun (ranges, acc_expls) (tok, x) ->
+                   let ranges_neg, expl = evaluate_formula env opt_context x in
+                   let ranges =
+                     RM.difference_ranges env.xconf.config ranges ranges_neg
+                   in
+                   let expl =
+                     if_explanations env ranges [ expl ] (Out.Negation, tok)
+                   in
+                   (ranges, expl :: acc_expls))
+                 (ranges, [])
           in
           (* let's apply additional filters.
            * TODO: Note that some metavariable-regexp may be part of an
@@ -536,17 +632,38 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
            *  - distribute filter_range in intersect_range?
            * See https://github.com/returntocorp/semgrep/issues/2664
            *)
-          let res =
+          let ranges, filter_expls =
             conds
-            |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
+            |> List.fold_left
+                 (fun (ranges, acc_expls) (tok, cond) ->
+                   let ranges = filter_ranges env ranges cond in
+                   let expl =
+                     if_explanations env ranges []
+                       (Out.Filter (PI.str_of_info tok), tok)
+                   in
+                   (ranges, expl :: acc_expls))
+                 (ranges, [])
           in
-
-          let res = apply_focus_on_ranges env focus res in
-
-          res)
+          let ranges = apply_focus_on_ranges env focus ranges in
+          let focus_expls =
+            match focus with
+            | [] -> []
+            (* less: what if have multiple focus-metavariable? *)
+            | (tok, _mvar) :: _rest ->
+                [
+                  if_explanations env ranges []
+                    (Out.Filter "metavariable-focus", tok);
+                ]
+          in
+          let expl =
+            if_explanations env ranges
+              (posrs_expls @ negs_expls @ filter_expls @ focus_expls)
+              (Out.And, tok)
+          in
+          (ranges, expl))
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
 
-and matches_of_formula config rule xtarget formula opt_context :
+and matches_of_formula xconf rule xtarget formula opt_context :
     RP.rule_profiling RP.match_result * RM.ranges =
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
@@ -554,7 +671,7 @@ and matches_of_formula config rule xtarget formula opt_context :
     Option.map (fun s -> s.RM.mvars) opt_context
   in
   let res =
-    matches_of_xpatterns mvar_context config xtarget xpatterns
+    matches_of_xpatterns mvar_context xconf xtarget xpatterns
     |> RP.add_rule rule
   in
   logger#trace "found %d matches" (List.length res.matches);
@@ -563,7 +680,7 @@ and matches_of_formula config rule xtarget formula opt_context :
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
   let env =
     {
-      config;
+      xconf;
       pattern_matches = pattern_matches_per_id;
       xtarget;
       rule;
@@ -571,10 +688,14 @@ and matches_of_formula config rule xtarget formula opt_context :
     }
   in
   logger#trace "evaluating the formula";
-  let final_ranges = evaluate_formula env opt_context formula in
+  let final_ranges, expl = evaluate_formula env opt_context formula in
   logger#trace "found %d final ranges" (List.length final_ranges);
   let res' =
-    { res with RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors) }
+    {
+      res with
+      RP.errors = Report.ErrorSet.union res.RP.errors !(env.errors);
+      explanations = Option.to_list expl;
+    }
   in
   (res', final_ranges)
   [@@profiling]
@@ -583,15 +704,13 @@ and matches_of_formula config rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search formula; _ } as r) hook
-    (default_config, equivs) xtarget =
-  let config = r.R.options ||| default_config in
+let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
+  let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
   let rule_id = fst r.id in
-  let res, final_ranges =
-    matches_of_formula (config, equivs) r xtarget formula None
-  in
+  let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> Report.ErrorSet.map (error_with_rule_id rule_id) in
   {
+    res with
     RP.matches =
       final_ranges
       |> Common.map (RM.range_to_pattern_match_adjusted r)
@@ -605,5 +724,4 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook
                     let str = spf "with rule %s" rule_id in
                     hook str m));
     errors;
-    extra = res.extra;
   }

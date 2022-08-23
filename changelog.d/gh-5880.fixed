@@ -1,0 +1,1 @@
+Parse die() as exit() in tree-sitter PHP. This makes pfff and tree-sitter parse die() in the same way.

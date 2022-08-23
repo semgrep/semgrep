@@ -113,10 +113,12 @@ let unknown_metavar_in_comparison env f =
         in
         [
           Common.map collect_metavars
-            (Common.map (fun source -> source.R.source_formula) sources)
+            (Common.map
+               (fun source -> source.R.source_formula)
+               (sources |> snd))
           |> union_sets;
           Common.map collect_metavars
-            (Common.map (fun sink -> sink.R.sink_formula) sinks)
+            (Common.map (fun sink -> sink.R.sink_formula) (sinks |> snd))
           |> union_sets;
           Common.map collect_metavars
             (Common.map
@@ -225,7 +227,7 @@ let semgrep_check config metachecks rules =
       config with
       Runner_config.lang = Some (Xlang.of_lang Yaml);
       rules_file = metachecks;
-      output_format = Json;
+      output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
       roots = rules;
     }
@@ -292,7 +294,7 @@ let check_files mk_config fparser input =
   in
   match config.output_format with
   | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
-  | Json ->
+  | Json _ ->
       let res = { RP.empty_final_result with errors } in
       let json = JSON_report.match_results_of_matches_and_errors [] res in
       pr (SJ.string_of_core_match_results json)
@@ -414,7 +416,10 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
         [
           ( "taint",
             `O
-              ([ ("sources", `A (Common.map translate_taint_source sources)) ]
+              ([
+                 ( "sources",
+                   `A (Common.map translate_taint_source (sources |> snd)) );
+               ]
               @ (if propagators = [] then []
                 else
                   [
@@ -427,7 +432,9 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
                     ( "sanitizers",
                       `A (Common.map translate_taint_sanitizer sanitizers) );
                   ])
-              @ [ ("sinks", `A (Common.map translate_taint_sink sinks)) ]) );
+              @ [
+                  ("sinks", `A (Common.map translate_taint_sink (sinks |> snd)));
+                ]) );
         ]
   | And { conjuncts; focus; conditions; _ } ->
       `O

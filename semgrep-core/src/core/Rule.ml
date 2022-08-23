@@ -115,10 +115,10 @@ and taint_sink = {
 }
 
 and taint_spec = {
-  sources : taint_source list;
+  sources : tok * taint_source list;
   propagators : taint_propagator list;
   sanitizers : taint_sanitizer list;
-  sinks : taint_sink list;
+  sinks : tok * taint_sink list;
 }
 
 (* Method to combine extracted ranges within a file:
@@ -376,9 +376,9 @@ let rec visit_new_formula f formula =
         Common.map (g (visit_new_formula f)) l |> ignore;
         ()
       in
-      apply visit_source sources;
+      apply visit_source (sources |> snd);
       apply visit_propagate propagators;
-      apply visit_sink sinks;
+      apply visit_sink (sinks |> snd);
       apply visit_sanitizer sanitizers;
       ()
   | Not (_, x) -> visit_new_formula f x
@@ -390,49 +390,6 @@ and visit_source f { source_formula; _ } = f source_formula
 and visit_sink f { sink_formula; _ } = f sink_formula
 and visit_propagate f { propagate_formula; _ } = f propagate_formula
 and visit_sanitizer f { sanitizer_formula; _ } = f sanitizer_formula
-
-let rec map_formula f formula =
-  match formula with
-  | P p -> f (P p)
-  | Inside (t, formula) -> f (Inside (t, map_formula f formula))
-  | Taint (t, { sources; propagators; sanitizers; sinks }) ->
-      let map_source source =
-        { source with source_formula = map_formula f source.source_formula }
-      in
-      let map_sink sink =
-        { sink with sink_formula = map_formula f sink.sink_formula }
-      in
-      let map_propagate propagator =
-        {
-          propagator with
-          propagate_formula = map_formula f propagator.propagate_formula;
-        }
-      in
-      let map_sanitizer sanitizer =
-        {
-          sanitizer with
-          sanitizer_formula = map_formula f sanitizer.sanitizer_formula;
-        }
-      in
-      let apply g l = Common.map g l in
-      f
-        (Taint
-           ( t,
-             {
-               sources = apply map_source sources;
-               sinks = apply map_sink sinks;
-               propagators = apply map_propagate propagators;
-               sanitizers = apply map_sanitizer sanitizers;
-             } ))
-  | Not (t, formula) -> f (Not (t, map_formula f formula))
-  | Or (t, xs) -> f (Or (t, Common.map (map_formula f) xs))
-  | And conjunction ->
-      f
-        (And
-           {
-             conjunction with
-             conjuncts = Common.map (map_formula f) conjunction.conjuncts;
-           })
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
@@ -481,7 +438,7 @@ let rewrite_metavar_comparison_strip cond =
   visitor.Map_AST.vexpr cond
 
 (* return list of "positive" x list of Not *)
-let split_and : formula list -> formula list * formula list =
+let split_and : formula list -> formula list * (tok * formula) list =
  fun xs ->
   xs
   |> Common.partition_either (fun e ->
@@ -494,4 +451,4 @@ let split_and : formula list -> formula list * formula list =
          | Taint _ ->
              Left e
          (* negatives *)
-         | Not (_, f) -> Right f)
+         | Not (tok, f) -> Right (tok, f))

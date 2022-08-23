@@ -1014,9 +1014,10 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "taint" ->
       let dict = yaml_to_dict env key value in
       let parse_specs parse_spec env key x =
-        parse_list env key
-          (fun env -> parse_spec env (fst key ^ "list item", snd key))
-          x
+        ( snd key,
+          parse_list env key
+            (fun env -> parse_spec env (fst key ^ "list item", snd key))
+            x )
       in
       let sources, propagators_opt, sanitizers_opt, sinks =
         ( take dict env
@@ -1035,8 +1036,8 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
         ( t,
           {
             sources;
-            propagators = optlist_to_list propagators_opt;
-            sanitizers = optlist_to_list sanitizers_opt;
+            propagators = optlist_to_list (Option.map snd propagators_opt);
+            sanitizers = optlist_to_list (Option.map snd sanitizers_opt);
             sinks;
           } )
   | _ -> error_at_key env key (spf "unexpected key %s" (fst key))
@@ -1146,9 +1147,9 @@ let rec is_unconstrained f =
   | Inside (_, f) -> is_unconstrained f
   | Taint (_, { sources; sinks; sanitizers; propagators }) ->
       List.exists is_unconstrained
-        (Common.map (fun source -> source.R.source_formula) sources)
+        (Common.map (fun source -> source.R.source_formula) (sources |> snd))
       || List.exists is_unconstrained
-           (Common.map (fun sink -> sink.R.sink_formula) sinks)
+           (Common.map (fun sink -> sink.R.sink_formula) (sinks |> snd))
       || List.exists is_unconstrained
            (Common.map
               (fun propagator -> propagator.R.propagate_formula)
@@ -1197,9 +1198,10 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       | None -> `Search (parse_pair_old env (find_formula_old env rule_dict)))
   | Some ("taint", _) ->
       let parse_specs parse_spec env key x =
-        parse_list env key
-          (fun env -> parse_spec env (fst key ^ "list item", snd key))
-          x
+        ( snd key,
+          parse_list env key
+            (fun env -> parse_spec env (fst key ^ "list item", snd key))
+            x )
       in
       let sources, propagators_opt, sanitizers_opt, sinks =
         ( take rule_dict env
@@ -1220,8 +1222,15 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
            ( G.fake "xd",
              {
                sources;
-               propagators = optlist_to_list propagators_opt;
-               sanitizers = optlist_to_list sanitizers_opt;
+               propagators =
+                 (* optlist_to_list *)
+                 (match propagators_opt with
+                 | None -> []
+                 | Some (_, xs) -> xs);
+               sanitizers =
+                 (match sanitizers_opt with
+                 | None -> []
+                 | Some (_, xs) -> xs);
                sinks;
              } ))
   | Some ("extract", _) ->
@@ -1386,7 +1395,7 @@ let parse_bis ?error_recovery file =
           (Parse_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet %s -o %s" file tmpfile in
+            let cmd = spf "jsonnet -J vendor %s -o %s" file tmpfile in
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
             Json_to_generic.program ~unescape_strings:true

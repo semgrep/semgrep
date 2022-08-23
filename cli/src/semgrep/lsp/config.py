@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Collection
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -13,6 +14,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.commands.ci
+import semgrep.output_from_core as core
 import semgrep.semgrep_main
 from semgrep.app.scans import ScanHandler
 from semgrep.config_resolver import get_config
@@ -239,7 +241,9 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -281,7 +285,9 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -300,7 +306,9 @@ class LSPConfig:
             ProfileManager,
             ProfilingData,
             ParsingData,
+            Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])

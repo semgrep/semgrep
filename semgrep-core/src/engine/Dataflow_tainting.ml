@@ -218,26 +218,28 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
   let labels = labels_in_taint taints in
   let sink_pm, ts = T.pm_of_trace sink in
   let req = eval_label_requires ~labels ts.sink_requires in
-  if req then
-    (* TODO: With taint labels it's less clear what is "the source",
+  (* TODO: With taint labels it's less clear what is "the source",
      * in fact, there could be many sources, each one providing a
      * different label. Here these would be reported as different
-     * findings... We would need to compute subsets of taints satisfying
-     * the `requires`, and then have multiple sources in `SrcToSink`! *)
-    taints |> Taints.elements
-    |> List.filter_map (fun (taint : T.taint) ->
-           let tokens = List.rev taint.tokens in
-           match taint.orig with
-           | Arg i ->
-               (* We need to check unifiability at the call site. *)
-               Some (T.ArgToSink (i, tokens, sink))
-           | Src source ->
+     * findings... We would need to have multiple sources in `SrcToSink`!
+     * And `ArgtoSink` needs to carry the other taint that reaches the
+     * sink besides the argument. *)
+  taints |> Taints.elements
+  |> List.filter_map (fun (taint : T.taint) ->
+         let tokens = List.rev taint.tokens in
+         match taint.orig with
+         | Arg i ->
+             (* We need to check the label and unifiability requirements
+                at the call site. *)
+             Some (T.ArgToSink (i, tokens, sink))
+         | Src source ->
+             if req then
                let src_pm, _ = T.pm_of_trace source in
                let* merged_env =
                  merge_source_sink_mvars env sink_pm.PM.env src_pm.PM.env
                in
-               Some (T.SrcToSink { source; tokens; sink; merged_env }))
-  else []
+               Some (T.SrcToSink { source; tokens; sink; merged_env })
+             else None)
 
 (* Produces a finding for every unifiable source-sink pair. *)
 let findings_of_tainted_sinks env taints sinks : T.finding list =

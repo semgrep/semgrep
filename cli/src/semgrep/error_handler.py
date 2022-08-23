@@ -8,6 +8,8 @@ from attr import define
 from attr import Factory
 from attr import field
 
+from semgrep.error import FINDINGS_EXIT_CODE
+from semgrep.error import OK_EXIT_CODE
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -32,7 +34,7 @@ class ErrorHandler:
             self.suppress_errors = suppress_errors
 
     def push_request(self, method: str, url: str, **kwargs: Any) -> None:
-        self.payload = {"method": method, "url": url, **kwargs}
+        self.payload = {"method": method, "url": url}
 
     def append_request(self, **kwargs: Any) -> None:
         self.payload = {**self.payload, **kwargs}
@@ -54,10 +56,15 @@ class ErrorHandler:
         Status will only be emitted if is_enabled is True
         """
         from semgrep.state import get_state  # avoiding circular import
+        from semgrep.app import auth  # avoiding circular import
 
         state = get_state()
 
-        if not self.is_enabled or exit_code == 0:
+        if (
+            not self.is_enabled
+            or exit_code == OK_EXIT_CODE
+            or exit_code == FINDINGS_EXIT_CODE
+        ):
             return exit_code
 
         import traceback
@@ -66,13 +73,17 @@ class ErrorHandler:
             f"Sending to fail-open endpoint {state.env.fail_open_url} since fail-open is configured to {self.suppress_errors}"
         )
 
-        headers = self.payload.get("headers", {})
-        headers["User-Agent"] = str(state.app_session.user_agent)
-        self.payload["headers"] = headers
+        token = auth.get_token()
+        headers = {
+            "User-Agent": str(state.app_session.user_agent),
+            "Authorization": f"Bearer {token or ''}",
+        }
         if sys.exc_info()[0] is not None:
             self.payload["error"] = traceback.format_exc()
         try:
-            requests.post(state.env.fail_open_url, json=self.payload, timeout=3)
+            requests.post(
+                state.env.fail_open_url, headers=headers, json=self.payload, timeout=3
+            )
         except Exception as e:
             logger.error(f"Error sending to fail-open endpoint: {e}")
         return 0

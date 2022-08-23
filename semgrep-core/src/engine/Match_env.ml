@@ -34,10 +34,19 @@ type pattern_id = Xpattern.pattern_id
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
+(* eXtended config.
+ * less: we might want to get rid of equivalences at some point as
+ * they are not exposed to the user anymore.
+ *)
+type xconfig = {
+  config : Config_semgrep.t;
+  equivs : Equivalence.equivalences;
+  (* field(s) coming from Runner_config.t used by the engine *)
+  matching_explanations : bool;
+}
+
 type env = {
-  (* less: we might want to get rid of equivalences at some point as
-   * they are not exposed to the user anymore. *)
-  config : Config_semgrep.t * Equivalence.equivalences;
+  xconf : xconfig;
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   xtarget : Xtarget.t;
@@ -67,3 +76,7 @@ let error env msg =
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
   { PM.id = string_of_int id; pattern_string = str; message = "" }
+
+let adjust_xconfig_with_rule_options xconf options =
+  let config = Common.( ||| ) options xconf.config in
+  { xconf with config }

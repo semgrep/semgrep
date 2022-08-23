@@ -72,7 +72,7 @@ let skipped_target_of_rule (file_and_more : Xtarget.t) (rule : R.rule) :
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
+let check ~match_hook ~timeout ~timeout_threshold xconf rules xtarget =
   let { Xtarget.file; lazy_content; lazy_ast_and_errors; _ } = xtarget in
   logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
@@ -110,11 +110,11 @@ let check ~match_hook ~timeout ~timeout_threshold default_config rules xtarget =
                        match r.R.mode with
                        | `Search _ as mode ->
                            Match_search_mode.check_rule { r with mode }
-                             match_hook default_config xtarget
+                             match_hook xconf xtarget
                        | `Extract extract_spec ->
                            Match_search_mode.check_rule
                              { r with mode = `Search extract_spec.formula }
-                             match_hook default_config xtarget)
+                             match_hook xconf xtarget)
                  in
                  match match_result with
                  | Some res -> Left res

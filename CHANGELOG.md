@@ -2,6 +2,36 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.110.0](https://github.com/returntocorp/semgrep/releases/tag/v0.110.0) - 2022-08-15
+
+### Changed
+
+- Parse several built-in PHP functions in the same way in pfff and tree-sitter. This makes it possible to match exit, eval, empty and isset, even if the pattern is parsed with pfff and the PHP file with tree-sitter. (gh-5382)
+
+### Fixed
+
+- Skip fail-open for exit code 1 (app-2073)
+
+## [0.109.0](https://github.com/returntocorp/semgrep/releases/tag/v0.109.0) - 2022-08-11
+
+### Changed
+
+- `semgrep ci` now defaults to fail open and will always exit with exit code 0, which is equivalent to passing `--suppress-errors`.
+  To disable this behavior, you can pass `--no-suppress-errors` and semgrep will behave as it did previously, surfacing any exit codes that may result. (app-1951)
+
+### Fixed
+
+- taint-mode: Taint traces (`--dataflow-traces`) should no longer report "strange"
+  intermediate variables when there are record accesses involved. This happened e.g.
+  if `foo` was a tainted record and the code accessed some of its fields as in
+  `foo.bar.baz`. This was related to the use of auxiliary variables in the Dataflow IL.
+  These variables got tainted, but they had real tokens attached corresponding to the
+  dot `.` operator. Now we do not include these variables in the taint trace. (pa-1672)
+
+### Infra/Release Changes
+
+- GHA runner-image `macos-10.15` is deprecated and will be unsupported by 30AUG2022. We've tested and can upgrade to `macos-12` to avoid issues with brownouts or end of support. (devop-586)
+
 ## [0.108.0](https://github.com/returntocorp/semgrep/releases/tag/v0.108.0) - 2022-08-03
 
 ### Added
