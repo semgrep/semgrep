@@ -329,9 +329,6 @@ let ( let* ) = Option.bind
 (*****************************************************************************)
 
 let get_taint_config env evaluate_fn (spec : S.taint_spec) handle_findings =
-  (* TODO?
-     let config = Common.( ||| ) rule.options default_config in
-  *)
   let xconf =
     Match_env.adjust_xconfig_with_rule_options env.Match_env.xconf
       env.rule.options

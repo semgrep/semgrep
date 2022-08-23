@@ -14,8 +14,7 @@ type selector = {
 [@@deriving show]
 
 (* These are exactly the same as what are in `Rule.ml`.
-   I'm doing it this way to avoid having to make like, 10 different types polymorphic,
-   which would make me feel bad and want to kick small puppies.
+   I'm doing it this way to avoid having to make like, 10 different types polymorphic.
 *)
 type taint_source = {
   source_formula : sformula;

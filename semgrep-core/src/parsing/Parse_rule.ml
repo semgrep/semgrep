@@ -22,8 +22,6 @@ module G = AST_generic
 module PI = Parse_info
 module Set = Set_
 
-[@@@warning "-27"]
-
 let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
@@ -222,7 +220,7 @@ let (take_no_env : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
 let yaml_to_dict_no_env =
   yaml_to_dict_helper yaml_error_at_expr yaml_error_at_expr
 
-let parse_string_wrap_no_env (key : key) x =
+let parse_string_wrap_no_env (_key : key) x =
   match read_string_wrap x.G.e with
   | Some (value, t) -> (value, t)
   | None -> raise Common.Todo
@@ -245,7 +243,7 @@ let parse_string_wrap_list_no_env (key : key) e =
 (* Sub parsers basic types *)
 (*****************************************************************************)
 
-let parse_string_wrap env (key : key) x =
+let parse_string_wrap _env (_key : key) x =
   match read_string_wrap x.G.e with
   | Some (value, t) -> (value, t)
   | None -> raise Common.Todo
@@ -606,7 +604,7 @@ let parse_str_or_dict env (value : G.expr) : (G.ident, dict) Either.t =
       if Float.is_integer n then Left (string_of_int (Float.to_int n), t)
       else Left (string_of_float n, t)
   | G.N (Id ((value, t), _)) -> Left (value, t)
-  | G.Container (Dict, (_, entries, _)) ->
+  | G.Container (Dict, _) ->
       Right (yaml_to_dict env ("<TODO>", G.fake "<TODO>") value)
   | _ ->
       error_at_expr env value
@@ -698,7 +696,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
   | "patterns" ->
       let parse_pattern _i expr =
         match parse_str_or_dict env expr with
-        | Left (s, t) -> failwith "use patterns:"
+        | Left (_s, _t) -> failwith "use patterns:"
         | Right dict -> (
             let find key_str = Hashtbl.find_opt dict.h key_str in
             let process_extra extra =
@@ -706,7 +704,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
               | R.MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
               | MetavarPattern (mvar, xlang_opt, formula) ->
                   R.CondNestedFormula (mvar, xlang_opt, formula)
-              | MetavarComparison { metavariable; comparison; strip; base } ->
+              | MetavarComparison { comparison; strip; _ } ->
                   R.CondEval
                     (match strip with
                     (* TODO *)
