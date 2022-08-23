@@ -163,6 +163,8 @@ jobs:
     steps:
       - name: Install pipenv
         run: sudo pip install pipenv==2022.6.7
+      - name: Install python3-config
+        run: sudo apk add python3-dev
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github
