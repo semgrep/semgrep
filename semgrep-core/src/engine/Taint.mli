@@ -11,8 +11,8 @@ type 'a call_trace =
       (** An indirect match through a function call. *)
 [@@deriving show]
 
-type source = Rule.taint_source call_trace [@@deriving show]
-type sink = Rule.taint_sink call_trace [@@deriving show]
+type source = Specialize_formula.taint_source call_trace [@@deriving show]
+type sink = Specialize_formula.taint_sink call_trace [@@deriving show]
 type arg_pos = int [@@deriving show]
 
 type source_to_sink = {
@@ -62,6 +62,9 @@ type taints = Taint_set.t
 
 val trace_of_pm : Pattern_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Pattern_match.t * 'a
-val taint_of_pm : Pattern_match.t * Rule.taint_source -> taint
-val taints_of_pms : (Pattern_match.t * Rule.taint_source) list -> taints
+val taint_of_pm : Pattern_match.t * Specialize_formula.taint_source -> taint
+
+val taints_of_pms :
+  (Pattern_match.t * Specialize_formula.taint_source) list -> taints
+
 val show_taints : taints -> string

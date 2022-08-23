@@ -516,6 +516,9 @@ let all_actions () =
       " <metachecks file> <files or dirs>",
       Common.mk_action_n_arg (Check_rule.check_files mk_config Parse_rule.parse)
     );
+    ( "-translate_rules",
+      " <files or dirs>",
+      Common.mk_action_n_arg (Check_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
       Common.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse) );
@@ -535,7 +538,6 @@ let all_actions () =
     ("-test_eval", " <JSON file>", Common.mk_action_1_arg Eval_generic.test_eval);
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
-  @ Test_dataflow_tainting.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
 let options () =
