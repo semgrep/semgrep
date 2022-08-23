@@ -201,6 +201,40 @@ demonstrates the procedure, and the OCaml code is ignoring it right now
 anyway.
 
 
+Environment variables
+---------------------
+
+There are two new environment variables that the semgrep CLI is
+sensitive to that affect the bridge operation:
+
+* SEMGREP_DISABLE_BRIDGE: If set to a Python truthy value (e.g., "1"),
+  then the bridge will be deactivated, and the core executed as a
+  stand-alone executable.
+
+* SEMGREP_REQUIRE_BRIDGE: Normally, semgrep_core.py quietly falls back
+  on the executable if it fails to load the bridge module (just to be
+  conservative).  If this envvar is truthy, that fallback is disabled,
+  and semgrep will instead fail if it cannot load the bridge.
+
+
+Testing
+-------
+
+As this work is preliminary to building a Snowflake UDF, there is not
+meant to be any user-visible consequence of using the bridge module.
+However, its existence can be confirmed in the log file, as the command
+after "Running semgrep-core with command" will mention
+semgrep_bridge_python.so instead of semgrep-core.  That is tested by
+cli/tests/e2e/test_bridge_active.py.
+
+Otherwise, the main test suite ("make test", etc.) runs with the bridge
+active, and consequently checks that it works.  The suite can be run
+with SEMGREP_DISABLE_BRIDGE=1 and/or SEMGREP_REQUIRE_BRIDGE=1 to further
+check that it is or is not being used.  Note that setting
+SEMGREP_DISABLE_BRIDGE=1 will cause test_bridge_active.py to fail, but
+nothing else should.
+
+
 Impact on debugging semgrep-core
 --------------------------------
 
