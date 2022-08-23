@@ -22,21 +22,21 @@ Fetching rules from https://semgrep.dev/registry.
 Scanning 1 file with 5 python rules.
 list index out of range
 Traceback (most recent call last):
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/wrapper.py", line 35, in wrapper
     func(*args, **kwargs)
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/commands/ci.py", line 428, in ci
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/commands/ci.py", line 432, in ci
     output_handler.output(
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/output.py", line 347, in output
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 347, in output
     output = self._build_output()
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/output.py", line 461, in _build_output
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/output.py", line 461, in _build_output
     return self.formatter.output(
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/formatter/base.py", line 28, in output
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/base.py", line 28, in output
     return self.format(
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/formatter/emacs.py", line 42, in format
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/emacs.py", line 42, in format
     return "\n".join(":".join(self._get_parts(rm)) for rm in sorted_matches)
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/formatter/emacs.py", line 42, in <genexpr>
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/emacs.py", line 42, in <genexpr>
     return "\n".join(":".join(self._get_parts(rm)) for rm in sorted_matches)
-  File "/Users/matthewmcquaid/semgrep/cli/src/semgrep/formatter/emacs.py", line 29, in _get_parts
+  File "/home/runner/work/semgrep/semgrep/cli/src/semgrep/formatter/emacs.py", line 29, in _get_parts
     rule_match.lines[0].rstrip(),
 IndexError: list index out of range
 
