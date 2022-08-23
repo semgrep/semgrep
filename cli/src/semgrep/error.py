@@ -394,10 +394,6 @@ class UnknownLanguageError(ErrorWithSpan):
     level = Level.ERROR
 
 
-class _UnknownLanguageError(SemgrepInternalError):
-    pass
-
-
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
 ERROR_MAP = {
     classname: classdef

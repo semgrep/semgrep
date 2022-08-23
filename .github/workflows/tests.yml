@@ -292,6 +292,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # These tests aren't run by default by pytest.
+  # To reproduce errors locally, use:
+  #   pipenv run pytest -k test_whatever tests/qa
+  #
+  # TODO: explain why the code below is so complicated (and reject all
+  # PRs that don't explain things)
   test-qa:
     name: quality assurance on semgrep
     runs-on: ubuntu-latest
@@ -434,7 +440,7 @@ jobs:
 
   build-macos-release:
     name: build macOS release
-    runs-on: macos-12
+    runs-on: macos-10.15
     # there are too many PR events which deplete our macOS concurrency limit
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     steps:
@@ -458,7 +464,7 @@ jobs:
 
   test-macos-release:
     name: test macOS release
-    runs-on: macos-12
+    runs-on: macos-10.15
     # there are too many PR events which deplete our macOS concurrency limit
     if: (!contains(github.event_name, 'pull_request')) || contains(github.event.pull_request.head.ref, 'release-')
     needs: [build-macos-release]

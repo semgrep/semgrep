@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Collection
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -242,6 +243,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -285,6 +287,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -305,6 +308,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])

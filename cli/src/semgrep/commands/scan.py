@@ -71,7 +71,7 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
 
 
 def __get_severity_options(
-    context: click.Context, param: str, incomplete: str
+    context: click.Context, _param: str, incomplete: str
 ) -> List[Any]:
     return [
         CompletionItem(e.value) for e in RuleSeverity if e.value.startswith(incomplete)
@@ -79,7 +79,7 @@ def __get_severity_options(
 
 
 def __get_language_options(
-    context: click.Context, param: str, incomplete: str
+    context: click.Context, _param: str, incomplete: str
 ) -> List[Any]:
     return [
         CompletionItem(e)
@@ -89,7 +89,7 @@ def __get_language_options(
 
 
 def __get_size_options(
-    context: click.Context, param: str, incomplete: str
+    context: click.Context, _param: str, incomplete: str
 ) -> List[Any]:
     if incomplete.isnumeric():
         sizes = [f"{incomplete}{u}" for u in bytesize.UNITS.keys()]
@@ -99,13 +99,13 @@ def __get_size_options(
 
 
 def __get_file_options(
-    context: click.Context, param: str, incomplete: str
+    context: click.Context, _param: str, incomplete: str
 ) -> List[Any]:
     return [CompletionItem(f, type="file") for f in os.listdir(".")]
 
 
 def __get_config_options(
-    context: click.Context, param: str, incomplete: str
+    context: click.Context, _param: str, incomplete: str
 ) -> List[Any]:
     if incomplete[:2] == "p/":
         # Get list of rulesets
@@ -124,7 +124,7 @@ def __get_config_options(
 
 
 def __get_optimization_options(
-    context: click.Context, param: str, incomplete: str
+    context: click.Context, _param: str, incomplete: str
 ) -> List[Any]:
     return [CompletionItem("all"), CompletionItem("none")]
 
@@ -132,11 +132,11 @@ def __get_optimization_options(
 class MetricsStateType(click.ParamType):
     name = "metrics_state"
 
-    def get_metavar(self, param: click.Parameter) -> str:
+    def get_metavar(self, _param: click.Parameter) -> str:
         return "[auto|on|off]"
 
     def shell_complete(
-        self, context: click.Context, param: click.Parameter, incomplete: str
+        self, context: click.Context, _param: click.Parameter, incomplete: str
     ) -> List[Any]:
         return [
             CompletionItem(e) for e in ["auto", "on", "off"] if e.startswith(incomplete)
@@ -145,7 +145,7 @@ class MetricsStateType(click.ParamType):
     def convert(
         self,
         value: Any,
-        param: Optional["click.Parameter"],
+        _param: Optional["click.Parameter"],
         ctx: Optional["click.Context"],
     ) -> Any:
         if value is None:
@@ -813,6 +813,7 @@ def scan(
                     _,
                     explanations,
                     shown_severities,
+                    _,
                 ) = semgrep.semgrep_main.main(
                     core_opts_str=core_opts,
                     dump_command_for_core=dump_command_for_core,

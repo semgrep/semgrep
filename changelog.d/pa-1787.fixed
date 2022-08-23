@@ -1,0 +1,3 @@
+taint-mode: Fixed the translation from Generic to IL for expressions like
+`"some string".concat(x)`. Previously, when `x` was tainted, the `concat`
+expression was not recognized as tainted and this caused false negatives.

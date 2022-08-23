@@ -63,7 +63,7 @@ let set_last_matched_rule rule f =
 
 let match_e_e rule a b env =
   Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
-      set_last_matched_rule rule (fun () -> GG.m_expr a b env))
+      set_last_matched_rule rule (fun () -> GG.m_expr_root a b env))
   [@@profiling]
 
 let match_st_st rule a b env =

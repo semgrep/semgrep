@@ -40,7 +40,7 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files changed since baseline commit.
 
 CI scan completed successfully.
-  Found 1 finding (0 blocking) from 4 rules.
+  Found 1 finding (0 blocking) from 6 rules.
   Uploading findings to Semgrep App.
   No blocking findings so exiting with code 0
 

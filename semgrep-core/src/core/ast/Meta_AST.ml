@@ -785,6 +785,7 @@ and vof_other_stmt_with_stmt_operator = function
   | OSWS_CheckedBlock -> OCaml.VSum ("OSWS_CheckedBlock", [])
   | OSWS_UncheckedBlock -> OCaml.VSum ("OSWS_UncheckedBlock", [])
   | OSWS_Iterator -> OCaml.VSum ("OSWS_Iterator", [])
+  | OSWS_Closure -> OCaml.VSum ("OSWS_Closure", [])
   | OSWS_Todo -> OCaml.VSum ("OSWS_Todo", [])
 
 and vof_label_ident = function

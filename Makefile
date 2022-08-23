@@ -45,7 +45,6 @@ build-core:
 rebuild:
 	git submodule update --init
 	-$(MAKE) clean
-	$(MAKE) config
 	$(MAKE) build
 
 # This is a best effort to install some external dependencies.
@@ -54,11 +53,38 @@ rebuild:
 .PHONY: setup
 setup:
 	git submodule update --init
+	# Fetch, build and install the tree-sitter runtime library locally.
+	cd semgrep-core/src/ocaml-tree-sitter-core \
+	&& ./configure \
+	&& ./scripts/install-tree-sitter-lib
+	# Install OCaml dependencies (globally).
 	opam update -y
-	./scripts/install-tree-sitter-runtime
 	opam install -y --deps-only ./semgrep-core/src/pfff
 	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only ./semgrep-core
+
+# Install dependencies needed for the Homebrew build.
+#
+# We don't use just 'make setup' because Homebrew installs its own version
+# of tree-sitter, globally.
+# The Homebrew package definition ("formula") lives at:
+#   https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
+#
+# Some of this can be tested on Linux, see instructions in
+#   dockerfiles/linuxbrew.Dockerfile
+#
+.PHONY: homebrew-setup
+homebrew-setup:
+	cd semgrep-core/src/ocaml-tree-sitter-core \
+	&& ./configure --prefix "$$(brew --prefix tree-sitter)"
+	# We pass --no-depexts so as to disable the check for pkg-config
+	# (which is present due to brew dependencies)
+	# because this check was failing on some platform.
+	# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
+	# This workaround may no longer be necessary.
+	opam install -y --deps-only --no-depexts ./semgrep-core/src/pfff
+	opam install -y --deps-only --no-depexts ./semgrep-core/src/ocaml-tree-sitter-core
+	opam install -y --deps-only --no-depexts ./semgrep-core
 
 # Install development dependencies in addition to build dependencies.
 #
@@ -66,14 +92,6 @@ setup:
 dev-setup:
 	$(MAKE) setup
 	opam install -y --deps-only ./semgrep-core/dev
-
-# This needs to run initially or when something changed in the external
-# build environment. This typically looks for the location of libraries
-# and header files outside of the project.
-#
-.PHONY: config
-config:
-	cd semgrep-core/src/ocaml-tree-sitter-core && ./configure
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
