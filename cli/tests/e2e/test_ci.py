@@ -70,9 +70,9 @@ def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     lockfile1.write_text(
         dedent(
             """[[package]]
-    name = "tomli"
-    version = "2.0.1"
-    description = "A lil' TOML parser"
+    name = "badlib"
+    version = "1.0.0"
+    description = "it's bad"
     category = "dev"
     optional = false
     python-versions = ">=3.7"
@@ -199,6 +199,8 @@ def automocks(mocker):
             namespace: pypi
             package: badlib
             version: == 1.0.0
+          metadata:
+            dev.semgrep.actions: [block]
         - id: supply-chain2
           message: "found a dependency"
           languages: [js]

@@ -417,7 +417,11 @@ def ci(
                 else blocking_matches_by_rule
                 # if an SCA finding is unreachable, it always goes in non-blocking
                 if rule.is_blocking
-                and ("sca_info" in match.extra and match.extra["sca_info"].reachable)
+                and (
+                    match.extra["sca_info"].reachable
+                    if "sca_info" in match.extra
+                    else True
+                )
                 else nonblocking_matches_by_rule
             )
             applicable_result_set[rule].append(match)
