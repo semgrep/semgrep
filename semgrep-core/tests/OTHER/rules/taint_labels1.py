@@ -1,6 +1,11 @@
 def foo():
   a = source()
-  if cond():
-     b = a
+  b = a
+  #OK: tainting
+  sink(b)
+
+def bar(x):
+  a = source()
+  b = a + x
   #OK: tainting
   sink(b)

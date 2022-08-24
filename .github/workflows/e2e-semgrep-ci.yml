@@ -58,6 +58,38 @@ jobs:
       - name: Run CI
         run: semgrep ci --suppress-errors
 
+  semgrep-ci-fail-open-blocking-findings:
+    name: Semgrep CI Fail Open Blocking Findings
+    runs-on: ubuntu-22.04
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
+      SEMGREP_USER_AGENT_APPEND: semgrep-ci-e2e
+    needs: get-inputs
+    container:
+      image: "returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: Create code under test
+        id: create-code
+        run: |
+          cat > ./test.py <<- EOF
+          import click
+
+          # ruleid:use-click-secho
+          click.echo(click.style("foo"))
+          EOF
+      - name: Run CI
+        id: run-ci
+        run: |
+          # If we get error code 0: unexpected, return an error. Otherwise, continue on.
+          # other tests ensure that error code >=2 are handled appropriately.
+          if semgrep ci --suppress-errors; then
+            exit 2
+          else
+            exit 0
+          fi
+
   semgrep-ci-on-pr:
     name: Run Semgrep CI on a PR
     uses: ./.github/workflows/open-bump-pr.yml

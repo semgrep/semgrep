@@ -1,2 +1,0 @@
-Keep the tree-sitter library inside a local folder rather than requiring
-a global installation.

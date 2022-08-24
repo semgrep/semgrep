@@ -246,7 +246,7 @@ let dump_ast ?(naming = false) lang file =
         Runner_exit.(exit_semgrep False)))
 
 (* mostly a copy paste of pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
-let dump_il file =
+let dump_il_all file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
@@ -254,10 +254,9 @@ let dump_il file =
   List.iter (fun stmt -> pr2 (IL.show_stmt stmt)) xs
   [@@action]
 
-module G = AST_generic
-module V = Visitor_AST
-
-let dump_il_functions file =
+let dump_il file =
+  let module G = AST_generic in
+  let module V = Visitor_AST in
   let lang = List.hd (Lang.langs_of_filename file) in
   let ast = Parse_target.parse_program file in
   Naming_AST.resolve lang ast;
@@ -456,8 +455,8 @@ let all_actions () =
         Common.mk_action_1_arg
           (dump_ast ~naming:true (Xlang.lang_of_opt_xlang !lang))
           file );
+    ("-dump_il_all", " <file>", Common.mk_action_1_arg dump_il_all);
     ("-dump_il", " <file>", Common.mk_action_1_arg dump_il);
-    ("-dump_il_functions", " <file>", Common.mk_action_1_arg dump_il_functions);
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
     ( "-dump_equivalences",
       " <file> (deprecated)",

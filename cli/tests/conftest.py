@@ -169,7 +169,7 @@ def mask_capture_group(match: re.Match) -> str:
         return "<MASKED>"
     text: str = match.group()
     for group in match.groups():
-        text = text.replace(group, "<MASKED>")
+        text = text.replace(group, "<MASKED>") if group else text
     return text
 
 

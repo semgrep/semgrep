@@ -25,12 +25,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
         "offset": 6
       },
       "extra": {
-        "dependency_match_only": false,
-        "dependency_matches": [
-          {
+        "fingerprint": "3bc311607608265402a4286a74b21f45a78ca76ec662899c1ee5418cfe33c7d17876610dd5023acffe6de2721a00b5916d87292e5ef29ec1e255daa2b5b97195_0",
+        "is_ignored": false,
+        "lines": "foobar",
+        "message": "oh no",
+        "metadata": {},
+        "metavars": {},
+        "sca_info": {
+          "dependency_match": {
             "dependency_pattern": {
-              "namespace": "npm",
-              "package_name": "@types/jquery",
+              "ecosystem": "npm",
+              "package": "@types/jquery",
               "semver_range": "== 3.3.22"
             },
             "found_dependency": {
@@ -39,22 +44,17 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
                   "6b8243708849847627a160a41b7c53d826715d9780f7625e444112a2b8340cc43766c8ee285e3c87b5cae25e469761916bf22d191a4a313d29c8af3cc9182a5d"
                 ]
               },
-              "name": "@types/jquery",
-              "namespace": "npm",
-              "resolved_url": [
-                "https://registry.npmjs.org/@types/jquery/-/jquery-3.3.22.tgz"
-              ],
+              "ecosystem": "npm",
+              "package": "@types/jquery",
+              "resolved_url": "https://registry.npmjs.org/@types/jquery/-/jquery-3.3.22.tgz",
               "version": "3.3.22"
             },
             "lockfile": "targets/dependency_aware/generic/package-lock.json"
-          }
-        ],
-        "fingerprint": "3bc311607608265402a4286a74b21f45a78ca76ec662899c1ee5418cfe33c7d17876610dd5023acffe6de2721a00b5916d87292e5ef29ec1e255daa2b5b97195_0",
-        "is_ignored": false,
-        "lines": "foobar",
-        "message": "oh no",
-        "metadata": {},
-        "metavars": {},
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220818
+        },
         "severity": "WARNING"
       },
       "path": "targets/dependency_aware/generic/generic.txt",

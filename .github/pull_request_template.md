@@ -1,14 +1,12 @@
 PR checklist:
 
+- [ ] Each source file starts with an up-to-date [summary of why it exists](https://semgrep.dev/docs/contributing/contributing-code/#explaining)
 - [ ] Tests included or PR comment includes a reproducible test plan
 - [ ] Documentation is up-to-date
-- [ ] `changelog.d/<issue>.<type>` is a file with the _what_, _why_, and _how_ of the change.
-  - \<issue> is `pa-312` (Linear ticket), `gh-1234` (GitHub issue), or `new-gizmo` (unique semantic name)
-  - \<type> is `added`, `changed`, `fixed`, or `infra`.
+- [ ] A changelog entry was [added to changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry) for any user-facing change
 - [ ] Change has no security implications (otherwise, ping security team)
 
 If you're unsure on any of this, please see:
 
-- [Changelog guidelines](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
 - [Contribution guidelines](https://semgrep.dev/docs/contributing/contributing-code)!
 - [One of the more specific guides located here](https://semgrep.dev/docs/contributing/contributing/)

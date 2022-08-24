@@ -2,7 +2,9 @@ open IL
 
 let string_of_lval x =
   (match x.base with
-  | Var n -> str_of_name n
+  | Var n ->
+      (* coupling: Dataflow_xyz.str_of_name *)
+      Common.spf "%s:%d" (fst n.ident) n.sid
   | VarSpecial _ -> "<varspecial>"
   | Mem _ -> "<Mem>")
   ^
@@ -36,7 +38,13 @@ let short_string_of_node_kind nkind =
       match x.i with
       | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
       | AssignAnon _ -> " ... = <lambda|class>"
-      | Call (_lopt, exp, _) -> string_of_exp exp ^ "(...)"
+      | Call (lval_opt, exp, _) ->
+          let lval_str =
+            match lval_opt with
+            | None -> ""
+            | Some lval -> string_of_lval lval ^ " = "
+          in
+          lval_str ^ string_of_exp exp ^ "(...)"
       | CallSpecial (lval_opt, (call_special, _tok), _args) ->
           let lval_str =
             match lval_opt with
