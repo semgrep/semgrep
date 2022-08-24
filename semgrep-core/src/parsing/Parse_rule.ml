@@ -1165,19 +1165,21 @@ let rec is_unconstrained f =
   | Or (_, fs) -> List.exists is_unconstrained fs
   | Not (_, f) -> not (is_unconstrained f)
 
-let validate_formula env formula =
+let _validate_formula env formula =
   if is_unconstrained formula then
     error env
       (Rule.tok_of_formula formula)
       "Formula may be unconstrained. Do not allow top-level nots in pattern."
 
-let check_mode env mode =
+let check_mode _env mode =
   (match mode with
   | `Search formula ->
-      validate_formula env formula;
+      (* validate_formula env formula;
+      *)
       formula
   | `Extract { Rule.formula; _ } ->
-      validate_formula env formula;
+      (* validate_formula env formula;
+      *)
       formula)
   |> ignore;
   mode
