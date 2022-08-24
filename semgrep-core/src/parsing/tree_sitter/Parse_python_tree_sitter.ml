@@ -824,8 +824,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       let id = map_keyword_identifier env x in
       name_of_id id
   | `Str x ->
-      let _, x, _ = map_string_ env x in
-      InterpolatedString x
+      let t1, s, t2 = map_string_ env x in
+      InterpolatedString (t1, s, t2)
   | `Conc_str (v1, v2) ->
       let _, v1, _ = map_string_ env v1 in
       let v2 = Common.map (map_string_ env) v2 in
@@ -1402,7 +1402,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
       [ NonLocal (tnonlocal, id :: ids) ]
   | `Exec_stmt (v1, v2, v3) ->
       let v1 = (* "exec" *) token env v1 in
-      let _, v2, _ = map_string_ env v2 in
+      let t1, v2, t2 = map_string_ env v2 in
       let v3, v4 =
         match v3 with
         | Some (v1, v2, []) -> (Some (map_type_ env v2), None)
@@ -1412,7 +1412,7 @@ let map_simple_statement (env : env) (x : CST.simple_statement) : stmt list =
         | Some _ -> invalid ()
         | None -> (None, None)
       in
-      [ Exec (v1, InterpolatedString v2, v3, v4) ]
+      [ Exec (v1, InterpolatedString (t1, v2, t2), v3, v4) ]
 
 let map_simple_statements (env : env) ((v1, v2, v3, v4) : CST.simple_statements)
     : stmt list =
