@@ -1,0 +1,11 @@
+{
+    // ruleid: metavar_unification
+    "bob": 123,
+    // ruleid: metavar_unification
+    "alice": 123,
+    "john": {
+        // ruleid: metavar_unification
+        "great": 123
+    }
+}
+

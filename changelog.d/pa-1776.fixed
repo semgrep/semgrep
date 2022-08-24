@@ -1,1 +1,0 @@
-Semgrep now passes -j to DeepSemgrep engine so --deep became noticeably faster.

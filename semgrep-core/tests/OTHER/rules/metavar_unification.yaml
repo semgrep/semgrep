@@ -1,0 +1,15 @@
+rules:
+  - id: metavar_unification
+    message: Semgrep found a match
+    languages:
+      - json
+    severity: WARNING
+    patterns:
+      - pattern-inside: |
+          {
+              $K: 123,
+              ...
+          }
+      - pattern: |
+          $K: 123
+

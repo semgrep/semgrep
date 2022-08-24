@@ -12,29 +12,28 @@
   "metadata": {},
   "path": "foo.py",
   "sca_info": {
-    "dependency_match_only": false,
-    "dependency_matches": [
-      {
-        "dependency_pattern": {
-          "namespace": "pypi",
-          "package_name": "awscli",
-          "semver_range": "== 1.11.82"
+    "dependency_match": {
+      "dependency_pattern": {
+        "ecosystem": "pypi",
+        "package": "awscli",
+        "semver_range": "== 1.11.82"
+      },
+      "found_dependency": {
+        "allowed_hashes": {
+          "sha256": [
+            "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
+            "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
+          ]
         },
-        "found_dependency": {
-          "allowed_hashes": {
-            "sha256": [
-              "149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1",
-              "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"
-            ]
-          },
-          "name": "awscli",
-          "namespace": "pypi",
-          "resolved_url": null,
-          "version": "1.11.82"
-        },
-        "lockfile": "targets/dependency_aware/Pipfile.lock"
-      }
-    ]
+        "ecosystem": "pypi",
+        "package": "awscli",
+        "version": "1.11.82"
+      },
+      "lockfile": "foo/Pipfile.lock"
+    },
+    "reachability_rule": true,
+    "reachable": true,
+    "sca_finding_schema": 20220818
   },
   "severity": 2,
   "syntactic_id": "0639a4883ba9b83e767a5dc4c09e001a"

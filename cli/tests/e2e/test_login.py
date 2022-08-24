@@ -106,7 +106,4 @@ def test_login(tmp_path, mocker):
         cli, ["--config", "policy"], env={"SEMGREP_REPO_NAME": "org/repo"}
     )
     assert result.exit_code == 7
-    assert (
-        "https://semgrep.dev/api/agent/deployments/1/repos/org/repo/rules.yaml"
-        in result.output
-    )
+    assert "https://semgrep.dev/api/agent/deployments/scans/config" in result.output
