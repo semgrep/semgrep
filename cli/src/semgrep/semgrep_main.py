@@ -19,6 +19,7 @@ import semgrep.output_from_core as out
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
+from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -235,9 +236,6 @@ def run_rules(
         parsing_data,
         explanations,
     )
-
-def filter_exclude_rule(rules: List[Rule], exclude_rules: Sequence[str]) -> List[Rule]:
-    return list(filter(lambda r: r.id not in exclude_rules, rules))
 
 
 def remove_matches_in_baseline(
