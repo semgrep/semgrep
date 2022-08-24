@@ -201,20 +201,26 @@ demonstrates the procedure, and the OCaml code is ignoring it right now
 anyway.
 
 
-Environment variables
----------------------
+Enablement
+----------
 
-There are two new environment variables that the semgrep CLI is
-sensitive to that affect the bridge operation:
+There is one new environment variable that the semgrep CLI is sensitive
+to that affects the bridge operation, SEMGREP_USE_BRIDGE.  The following
+values are recognized:
 
-* SEMGREP_DISABLE_BRIDGE: If set to a Python truthy value (e.g., "1"),
-  then the bridge will be deactivated, and the core executed as a
-  stand-alone executable.
+* unset or Python falsy: Do not use the bridge.  Hence, it is not used
+  by default.
 
-* SEMGREP_REQUIRE_BRIDGE: Normally, semgrep_core.py quietly falls back
-  on the executable if it fails to load the bridge module (just to be
-  conservative).  If this envvar is truthy, that fallback is disabled,
-  and semgrep will instead fail if it cannot load the bridge.
+* truthy: Try to load and use the bridge module, but if that fails, fall
+  back on invoking the executable after logging the failure reason.
+
+* "require": Load the bridge, and if that fails, fail the entire
+  invocation.
+
+Currently, the fallback code will log what happens at "debug" level
+(which goes to the log file but not stderr), except if it finds
+semgrep_bridge_python.so but fails to load it, that is logged at "warn"
+level (going to both the log file and stderr).
 
 
 Testing
@@ -224,15 +230,27 @@ As this work is preliminary to building a Snowflake UDF, there is not
 meant to be any user-visible consequence of using the bridge module.
 However, its existence can be confirmed in the log file, as the command
 after "Running semgrep-core with command" will mention
-semgrep_bridge_python.so instead of semgrep-core.  That is tested by
-cli/tests/e2e/test_bridge_active.py.
+semgrep_bridge_python.so instead of semgrep-core.
 
-Otherwise, the main test suite ("make test", etc.) runs with the bridge
-active, and consequently checks that it works.  The suite can be run
-with SEMGREP_DISABLE_BRIDGE=1 and/or SEMGREP_REQUIRE_BRIDGE=1 to further
-check that it is or is not being used.  Note that setting
-SEMGREP_DISABLE_BRIDGE=1 will cause test_bridge_active.py to fail, but
-nothing else should.
+The main method of testing is to simply run the main test suite ("make
+test", etc.) with the bridge active (SEMGREP_USE_BRIDGE=require).
+
+To test the fallback behavior, temporarily move the bridge .so files
+elsewhere.  Note that they can potentially be found in both
+cli/src/semgrep/bin and ~/.opam/4.14.0/bin (the log indicates which gets
+loaded, if any).
+
+
+Portability
+-----------
+
+As currently implemented, semgrep_bridge_*.so acquires a dependency on
+the libc shared library used to build it.  In particular, when compiled
+on Alpine Linux by the continuous integration script job "build-core" in
+.github/workflows/tests.yml, semgrep_bridge_python.so depends on
+libc.musl-x86_64.so.1.  When subsequently tested on Ubuntu by the
+"test-cli" job, the library does not load since that dependency is not
+found.
 
 
 Impact on debugging semgrep-core

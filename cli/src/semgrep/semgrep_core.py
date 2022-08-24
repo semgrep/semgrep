@@ -77,8 +77,9 @@ class SemgrepCore:
         found.
         """
         if cls._SEMGREP_PATH_ is None:
-            # Try the module first (unless disabled).
-            if not os.getenv("SEMGREP_DISABLE_BRIDGE"):
+            # Try the module first if enabled.
+            use_bridge = os.getenv("SEMGREP_USE_BRIDGE")
+            if use_bridge:
                 bridge_path = compute_executable_path("semgrep_bridge_python.so")
                 if bridge_path:
                     # Temporarily put the path to the .so in front.
@@ -103,11 +104,11 @@ class SemgrepCore:
 
             # Try the executable next.
             if cls._SEMGREP_PATH_ is None:
-                # For use during testing, this switch requires that the
-                # bridge (rather than executable) be used.
-                if os.getenv("SEMGREP_REQUIRE_BRIDGE"):
+                # For use during testing, this value requires that the
+                # bridge be used, disabling fallback to the executable.
+                if use_bridge == "require":
                     raise Exception(
-                        "Failed to load bridge, but " "SEMGREP_REQUIRE_BRIDGE is set."
+                        "Failed to load bridge, and SEMGREP_USE_BRIDGE is 'require'."
                     )
 
                 cls._SEMGREP_PATH_ = cls.executable_path()
