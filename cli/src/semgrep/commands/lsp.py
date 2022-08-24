@@ -36,7 +36,7 @@ def init_log(name: str, level: int, logfile: Optional[str] = None) -> None:
 @handle_command_errors
 def lsp(verbose: Optional[bool], debug: Optional[bool], logfile: Optional[str]) -> None:
     """
-    [EXPERIMENTAL] Start the Semgrep LSP server.
+    [EXPERIMENTAL] Start the Semgrep LSP server
     """
 
     # Setup logging

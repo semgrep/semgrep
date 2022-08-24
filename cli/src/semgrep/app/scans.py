@@ -8,12 +8,13 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import Tuple
+from urllib.parse import urlencode
 
 import click
 import requests
 from boltons.iterutils import partition
 
+from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
@@ -27,15 +28,40 @@ logger = getLogger(__name__)
 
 class ScanHandler:
     def __init__(self, dry_run: bool) -> None:
-        self.deployment_id, self.deployment_name = self._get_deployment_details()
+        self._deployment_id: Optional[int] = None
+        self._deployment_name: str = ""
 
         self.scan_id = None
         self.ignore_patterns: List[str] = []
+        self._policy_names: List[str] = []
         self._autofix = False
         self.dry_run = dry_run
         self._dry_run_rules_url: str = ""
         self._skipped_syntactic_ids: List[str] = []
         self._skipped_match_based_ids: List[str] = []
+        self._scan_params: str = ""
+        self._rules: str = ""
+
+    @property
+    def deployment_id(self) -> Optional[int]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._deployment_id
+
+    @property
+    def deployment_name(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._deployment_name
+
+    @property
+    def policy_names(self) -> List[str]:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._policy_names
 
     @property
     def autofix(self) -> bool:
@@ -58,25 +84,64 @@ class ScanHandler:
         """
         return self._skipped_match_based_ids
 
-    def _get_deployment_details(self) -> Tuple[Optional[int], Optional[str]]:
+    @property
+    def scan_params(self) -> str:
         """
-        Returns the deployment_id attached to an api_token as int
+        Seperate property for easy of mocking in test
+        """
+        return self._scan_params
 
-        Returns None if api_token is invalid/doesn't have associated deployment
+    @property
+    def rules(self) -> str:
+        """
+        Seperate property for easy of mocking in test
+        """
+        return self._rules
+
+    def _get_scan_config_from_app(self, url: str) -> Dict[str, Any]:
+        state = get_state()
+        response = state.app_session.get(url)
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            )
+        body = response.json()
+        if isinstance(body, dict):
+            return body
+        else:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned type '{type(response.json())}'. Expected a dictionary."
+            )
+
+    def fetch_and_init_scan_config(self, meta: Dict[str, Any]) -> None:
+        """
+        Get configurations for scan
         """
         state = get_state()
-        url = f"{state.env.semgrep_url}/api/agent/deployments/current"
-        logger.debug(f"Retrieving deployment details from {url}")
-        r = state.app_session.get(url)
+        logger.debug("Getting scan configurations")
 
-        if r.ok:
-            data = r.json()
-            logger.debug(f"Received: {data}")
-            return data.get("deployment", {}).get("id"), data.get("deployment", {}).get(
-                "name"
-            )
-        else:
-            return None, None
+        self._scan_params = urlencode(
+            {
+                "dry_run": self.dry_run,
+                "repo_name": meta.get("repository"),
+                "sca": meta.get("is_sca_scan", False),
+                "full_scan": meta.get("is_full_scan", False),
+                "semgrep_version": meta.get("semgrep_version", "0.0.0"),
+            }
+        )
+        app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+        body = self._get_scan_config_from_app(app_get_config_url)
+
+        self._deployment_id = body["deployment_id"]
+        self._deployment_name = body["deployment_name"]
+        self._policy_names = body["policy_names"]
+        self._rules = body["rule_config"]
+        self._autofix = body.get("autofix") or False
+        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids") or []
+        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids") or []
+        self.ignore_patterns = body.get("ignored_files") or []
 
     def start_scan(self, meta: Dict[str, Any]) -> None:
         """
@@ -85,18 +150,14 @@ class ScanHandler:
         returns ignored list
         """
         state = get_state()
-        logger.debug("Starting scan")
         if self.dry_run:
-            repo_name = meta["repository"]
-            self._dry_run_rules_url = f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/repos/{repo_name}/rules.yaml"
-            logger.debug(
-                f"ran with dryrun so setting rules url to {self._dry_run_rules_url}"
-            )
+            logger.info(f"Would have sent POST request to create scan")
             return
 
+        logger.debug("Starting scan")
         response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/agent/deployments/{self.deployment_id}/scans",
-            json={"meta": meta},
+            f"{state.env.semgrep_url}/api/agent/deployments/scans",
+            json={"meta": meta, "policy": self._policy_names},
         )
 
         if response.status_code == 404:
@@ -115,21 +176,6 @@ class ScanHandler:
 
         body = response.json()
         self.scan_id = body["scan"]["id"]
-        self._autofix = body.get("autofix", False)
-        self.ignore_patterns = body["scan"]["meta"].get("ignored_files", [])
-        self._skipped_syntactic_ids = body.get("triage_ignored_syntactic_ids", [])
-        self._skipped_match_based_ids = body.get("triage_ignored_match_based_ids", [])
-
-    @property
-    def scan_rules_url(self) -> str:
-        state = get_state()
-        if self.dry_run:
-            url = self._dry_run_rules_url
-        else:
-            url = f"{state.env.semgrep_url}/api/agent/scans/{self.scan_id}/rules.yaml"
-
-        logger.debug(f"Using {url} as scan rules url")
-        return url
 
     def report_failure(self, exit_code: int) -> None:
         """

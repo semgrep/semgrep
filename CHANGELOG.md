@@ -88,6 +88,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 
 - Parse several built-in PHP functions in the same way in pfff and tree-sitter. This makes it possible to match exit, eval, empty and isset, even if the pattern is parsed with pfff and the PHP file with tree-sitter. (gh-5382)
+- Use new semgrep-app endpoints that are pure GET with no side-effects and pure POST (app-2001)
 
 ### Fixed
 
