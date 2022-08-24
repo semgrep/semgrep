@@ -1,6 +1,28 @@
+<!-- Do not edit. This changelog is updated at release time by towncrier from
+     individual files in changelog.d/.
+-->
+
 # Changelog
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+<!-- insertion point -->
+
+## [0.111.1](https://github.com/returntocorp/semgrep/releases/tag/v0.111.1) - 2022-08-23
+
+### Changed
+
+- Previously, the following error message appears when metrics are not uploaded within the set timeout timeframe:
+
+  Error in send: HTTPSConnectionPool(host='metrics.semgrep.dev', port=443): Read timed out. (read timeout=3)
+
+  As this causes users confusion when running the CLI, the log level of the message is reduced to appear for development and debugging purposes only. Note that metrics are still successfully uploaded, but the success status is not sent in time for the curent timeout set. (app-1398)
+
+### Fixed
+
+- taint-mode: Fixed the translation from Generic to IL for expressions like
+  `"some string".concat(x)`. Previously, when `x` was tainted, the `concat`
+  expression was not recognized as tainted and this caused false negatives. (pa-1787)
 
 ## [0.111.0](https://github.com/returntocorp/semgrep/releases/tag/v0.111.0) - 2022-08-22
 
@@ -66,6 +88,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 
 - Parse several built-in PHP functions in the same way in pfff and tree-sitter. This makes it possible to match exit, eval, empty and isset, even if the pattern is parsed with pfff and the PHP file with tree-sitter. (gh-5382)
+- Use new semgrep-app endpoints that are pure GET with no side-effects and pure POST (app-2001)
 
 ### Fixed
 

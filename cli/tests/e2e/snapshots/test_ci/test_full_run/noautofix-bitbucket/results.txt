@@ -54,11 +54,10 @@ First-Party Findings:
 Scan environment:
   versions    - semgrep <MASKED> on python <MASKED>
   environment - running in environment bitbucket, triggering event is pull_request
-  semgrep.dev - authenticated as org_name
+  server      - https://semgrep.dev
 
 Fetching configuration from semgrep.dev
-Adding ignore patterns configured on semgrep.dev as `--exclude` options: ()
-Fetching rules from https://semgrep.dev/registry.
+Authenticated as org_name
 Scanning 1 file with 5 python rules.
 
 Some files were skipped or only partially analyzed.
