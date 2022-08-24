@@ -1,4 +1,6 @@
-from typing import List, Sequence
+from typing import List
+from typing import Sequence
+
 from semgrep.rule import Rule
 
 

@@ -19,7 +19,6 @@ import semgrep.output_from_core as out
 from semgrep import __VERSION__
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
-from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -27,6 +26,7 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.ignores import IGNORE_FILE_NAME
@@ -402,7 +402,6 @@ def main(
     logger.verbose("Rules:")
     for ruleid in sorted(rule.id for rule in filtered_rules):
         logger.verbose(f"- {ruleid}")
-
 
     (
         rule_matches_by_rule,
