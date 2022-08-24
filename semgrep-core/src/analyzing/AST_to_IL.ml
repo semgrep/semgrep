@@ -502,15 +502,16 @@ and expr_aux env ?(void = false) e_gen =
         args ) ->
       (* obj.concat(args) *)
       (* NOTE: Often this will be string concatenation but not necessarily! *)
-      let obj' = lval env obj in
-      let obj_arg' = mk_e (Fetch obj') (SameAs obj) in
+      let obj_arg' = expr env obj in
       let args' = arguments env args in
       let res =
         match env.lang with
         (* Ruby's concat method is side-effectful and updates the object. *)
         (* TODO: The lval in the LHs should have a differnt svalue than the
          * one in the RHS. *)
-        | Lang.Ruby -> obj'
+        | Lang.Ruby -> (
+            try lval env obj with
+            | Fixme _ -> fresh_lval ~str:"Fixme" env tok)
         | _ -> fresh_lval env tok
       in
       add_instr env

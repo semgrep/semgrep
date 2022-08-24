@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Collection
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -132,8 +133,8 @@ class LSPConfig:
             else f" to {state.env.semgrep_url}"
         )
         metadata_dict = metadata.to_dict()
-        scan_handler.start_scan(metadata_dict)
-        return scan_handler.scan_rules_url
+        scan_handler.fetch_and_init_scan_config(metadata_dict)
+        return scan_handler.rules
 
     # =====================
     # Semgrep LSP settings
@@ -242,6 +243,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         """Generate a scanner according to the config"""
@@ -285,6 +287,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=self.configs)
@@ -305,6 +308,7 @@ class LSPConfig:
             ParsingData,
             Optional[List[core.MatchingExplanation]],
             Collection[RuleSeverity],
+            Dict[str, int],
         ],
     ]:
         return self._scanner(configs=[self.scan_url])

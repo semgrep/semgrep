@@ -9,7 +9,7 @@ on:
 jobs:
   brew-build:
     name: Build Semgrep via Brew from `returntocorp/semgrep:develop`
-    runs-on: macos-12
+    runs-on: macos-10.15
     steps:
       - name: Brew update
         run: brew update

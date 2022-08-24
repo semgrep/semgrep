@@ -408,6 +408,17 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
                 r, Span.from_node(node, source_hash=source_hash, filename=filename)
             )
 
+        def construct_yaml_timestamp(
+            self, node: Node, values: Optional[List[Any]] = None
+        ) -> Any:
+            """Load YAML timestamps as strings"""
+            return self.construct_yaml_str(node)  # type: ignore ## missing from ruamel stub
+
+    SpanPreservingRuamelConstructor.add_constructor(  # type: ignore ## missing from ruamel stub
+        "tag:yaml.org,2002:timestamp",
+        SpanPreservingRuamelConstructor.construct_yaml_timestamp,
+    )
+
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
     data = yaml.load(StringIO(contents))

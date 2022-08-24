@@ -232,7 +232,7 @@ def ci(
     elif token and config:
         # Logged in but has explicit config
         logger.info(
-            "Cannot run `semgrep ci` while logged in and with explicit config. Use semgrep.dev to configure rules to run."
+            "Cannot run `semgrep ci` with --config while logged in. The `semgrep ci` command will upload findings to semgrep-app and those findings must come from rules configured there. Drop the `--config` to use rules configured on semgrep.dev or log out."
         )
         sys.exit(FATAL_EXIT_CODE)
     elif token:
@@ -280,15 +280,8 @@ def ci(
     logger.info(
         f"  environment - running in environment {metadata.environment}, triggering event is {metadata.event_name}"
     )
-    to_server = (
-        ""
-        if state.env.semgrep_url == "https://semgrep.dev"
-        else f" to {state.env.semgrep_url}"
-    )
     if scan_handler:
-        logger.info(
-            f"  semgrep.dev - authenticated{to_server} as {scan_handler.deployment_name}"
-        )
+        logger.info(f"  server      - {state.env.semgrep_url}")
     if sca:
         logger.info("  running an SCA scan")
     logger.info("")
@@ -304,8 +297,10 @@ def ci(
                 # Note this needs to happen within fix_head_if_github_action
                 # so that metadata of current commit is correct
                 if scan_handler:
+                    scan_handler.fetch_and_init_scan_config(metadata_dict)
                     scan_handler.start_scan(metadata_dict)
-                    config = (scan_handler.scan_rules_url,)
+                    logger.info(f"Authenticated as {scan_handler.deployment_name}")
+                    config = (scan_handler.rules,)
             except Exception as e:
                 import traceback
 
@@ -322,7 +317,6 @@ def ci(
 
             assert exclude is not None  # exclude is default empty tuple
             exclude = (*exclude, *yield_exclude_paths(requested_excludes))
-
             assert config  # Config has to be defined here. Helping mypy out
             start = time.time()
             (
@@ -336,6 +330,7 @@ def ci(
                 parsing_data,
                 _explanations,
                 shown_severities,
+                lockfile_scan_info,
             ) = semgrep.semgrep_main.main(
                 core_opts_str=core_opts,
                 output_handler=output_handler,
@@ -415,7 +410,12 @@ def ci(
                 if "r2c-internal-cai" in rule.id
                 else blocking_matches_by_rule
                 # if an SCA finding is unreachable, it always goes in non-blocking
-                if rule.is_blocking and not match.extra.get("dependency_match_only")
+                if rule.is_blocking
+                and (
+                    match.extra["sca_info"].reachable
+                    if "sca_info" in match.extra
+                    else True
+                )
                 else nonblocking_matches_by_rule
             )
             applicable_result_set[rule].append(match)
@@ -448,6 +448,7 @@ def ci(
             parsing_data,
             total_time,
             metadata.commit_datetime,
+            lockfile_scan_info,
         )
 
     audit_mode = metadata.event_name in audit_on

@@ -1,0 +1,5 @@
+foo('abc')
+foo("abc")
+foo("""abc""")
+foo(r"abc")
+foo(f"abc")
