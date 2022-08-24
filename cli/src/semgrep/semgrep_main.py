@@ -236,6 +236,9 @@ def run_rules(
         explanations,
     )
 
+def filter_exclude_rule(rules: List[Rule], exclude_rules: Sequence[str]) -> List[Rule]:
+    return list(filter(lambda r: r.id not in exclude_rules, rules))
+
 
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap, baseline_matches_by_rule: RuleMatchMap
@@ -330,6 +333,7 @@ def main(
     else:
         shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
+    filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     output_handler.handle_semgrep_errors(config_errors)
 
@@ -401,7 +405,6 @@ def main(
     for ruleid in sorted(rule.id for rule in filtered_rules):
         logger.verbose(f"- {ruleid}")
 
-    filtered_rules = list(filter(lambda r: r.id not in exclude_rule, filtered_rules))
 
     (
         rule_matches_by_rule,
