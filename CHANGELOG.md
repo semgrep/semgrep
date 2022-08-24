@@ -1,6 +1,12 @@
+<!-- Do not edit. This changelog is updated at release time by towncrier from
+     individual files in changelog.d/.
+-->
+
 # Changelog
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+<!-- insertion point -->
 
 ## [0.111.0](https://github.com/returntocorp/semgrep/releases/tag/v0.111.0) - 2022-08-22
 
