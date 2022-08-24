@@ -54,6 +54,8 @@ type env = {
   id : Rule.rule_id;
   (* languages of the current rule (needed by parse_pattern) *)
   languages : Xlang.t;
+  (* whether we are underneath a `metavariable-pattern` *)
+  in_metavariable_pattern : bool;
   (* emma: save the path within the yaml file for each pattern
    * (this will allow us to later report errors in playground basic mode)
    *)
@@ -738,6 +740,9 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
           (fun x -> x)
           (parse_listi env key parse_pattern value)
       in
+      let pos, _ = R.split_and conjuncts in
+      if pos = [] && not env.in_metavariable_pattern then
+        raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
       R.And { conj_tok = t; conjuncts; focus; conditions }
   | "pattern-regex" ->
       let x = parse_string_wrap env key value in
@@ -812,12 +817,14 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
               {
                 id = env.id;
                 languages = xlang;
+                in_metavariable_pattern = env.in_metavariable_pattern;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
               }
             in
             (env', Some xlang)
         | ___else___ -> (env, None)
       in
+      let env' = { env' with in_metavariable_pattern = true } in
       let formula_old =
         parse_pair_old env' (find_formula_old env mv_pattern_dict)
       in
@@ -945,7 +952,7 @@ and produce_constraint env dict indicator =
             let xlang = Xlang.of_string ~id:(Some env.id) s in
             let env' =
               {
-                id = env.id;
+                env with
                 languages = xlang;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
               }
@@ -997,13 +1004,11 @@ and parse_pair env ((key, value) : key * G.expr) : R.formula =
   | "not" -> R.Not (t, parse_pattern env value)
   | "inside" -> R.Inside (t, parse_pattern env value)
   | "and" ->
-      R.And
-        {
-          conj_tok = t;
-          conjuncts = parse_listi env key parse_pattern value;
-          focus = [];
-          conditions = [];
-        }
+      let conjuncts = parse_listi env key parse_pattern value in
+      let pos, _ = R.split_and conjuncts in
+      if pos = [] && not env.in_metavariable_pattern then
+        raise (R.InvalidRule (R.MissingPositiveTermInAnd, env.id, t));
+      R.And { conj_tok = t; conjuncts; focus = []; conditions = [] }
   | "or" -> R.Or (t, parse_listi env key parse_pattern value)
   | "regex" ->
       let x = parse_string_wrap env key value in
@@ -1276,7 +1281,14 @@ let parse_one_rule t i rule =
       take_no_env rd parse_string_wrap_list_no_env "languages" )
   in
   let languages = parse_languages ~id languages in
-  let env = { id = fst id; languages; path = [ string_of_int i; "rules" ] } in
+  let env =
+    {
+      id = fst id;
+      languages;
+      in_metavariable_pattern = false;
+      path = [ string_of_int i; "rules" ];
+    }
+  in
   let mode_opt = take_opt rd env parse_string_wrap "mode" in
   let mode = check_mode env (parse_mode env mode_opt rd) in
   let ( (message, severity),
