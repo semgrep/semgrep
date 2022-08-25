@@ -209,7 +209,7 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 1 finding (0 blocking) from 6 rules.
   Uploading findings to Semgrep App.
-Sending findings blob: {
+Sending findings and ignores blob: {
     "token": null,
     "gitlab_token": null,
     "findings": [
@@ -246,12 +246,7 @@ Sending findings blob: {
         "supply-chain1",
         "supply-chain2"
     ],
-    "cai_ids": [
-        "__r2c-internal-cai_eqeq"
-    ]
-}
-Sending ignores blob: {
-    "findings": []
+    "ignores": []
 }
 Sending complete blob: {
     "exit_code": 0,
