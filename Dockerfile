@@ -21,7 +21,7 @@ FROM returntocorp/ocaml:alpine-2022-06-09@sha256:99b453a838c9d94414991c0fd7be471
 USER root
 # for ocaml-pcre now used in semgrep-core
 # TODO: update root image to include python 3.9
-RUN apk add --no-cache pcre-dev python3 &&\
+RUN apk add --no-cache pcre-dev python3 python3-dev &&\
      pip install --no-cache-dir pipenv==2022.6.7
 
 USER user
