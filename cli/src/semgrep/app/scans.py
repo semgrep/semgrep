@@ -193,7 +193,7 @@ class ScanHandler:
             ],
             "searched_paths": [str(t) for t in targets],
             "rule_ids": rule_ids,
-            "ignored_findings": [
+            "ignores": [
                 match.to_app_finding_format(commit_date).to_json()
                 for match in new_ignored
             ],
