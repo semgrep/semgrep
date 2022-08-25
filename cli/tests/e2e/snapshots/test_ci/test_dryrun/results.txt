@@ -67,7 +67,7 @@ Some files were skipped or only partially analyzed.
 CI scan completed successfully.
   Found 8 findings (6 blocking) from 6 rules.
   Uploading findings to Semgrep App.
-Would have sent findings blob: {
+Would have sent findings and ignores blob: {
     "token": null,
     "gitlab_token": null,
     "findings": [
@@ -320,16 +320,12 @@ Would have sent findings blob: {
         "eqeq-bad",
         "eqeq-five",
         "eqeq-four",
+        "__r2c-internal-cai_eqeq",
         "taint-test",
         "supply-chain1",
         "supply-chain2"
     ],
-    "cai_ids": [
-        "__r2c-internal-cai_eqeq"
-    ]
-}
-Would have sent ignores blob: {
-    "findings": [
+    "ignores": [
         {
             "check_id": "eqeq-bad",
             "path": "foo.py",
