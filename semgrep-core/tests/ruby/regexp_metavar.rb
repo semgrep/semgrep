@@ -22,5 +22,5 @@
 # ERROR:
 /\a\z/
 
-# TODO to be consistent with interpolation in strings, we should match here
+# ERROR:
 /foo#{2 + 2}/
