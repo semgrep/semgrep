@@ -1951,15 +1951,21 @@ and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
 and map_semi (env : env) (semi : CST.semi option) : G.sc =
   match semi with
   | None -> G.sc
-  | Some semi -> token env semi
+  | Some semi -> (
+      let tok = token env semi in
+      (* Swift can have implicit semicolons, see https://github.com/alex-pinkus/tree-sitter-swift/issues/179
+         These implicit semicolons are inserted at the beginning of the next line, and mess up our range
+         data.
+         To fix this, we check if we have an implicit semicolon (which has no string data), and if so,
+         we just insert a fake semicolon, which doesn't bork the range.
+      *)
+      match Parse_info.str_of_info tok with
+      | "" -> G.sc
+      | _ -> tok)
 
 and map_local_statement (env : env) (x : CST.local_statement)
     (semi : CST.semi option) : G.stmt list =
-  let semi =
-    match semi with
-    | Some semi -> token env semi
-    | None -> G.sc
-  in
+  let semi = map_semi env semi in
   match x with
   | `Exp x ->
       let expr = map_expression env x in
@@ -3294,11 +3300,7 @@ let map_top_level_statement (env : env) (x : CST.top_level_statement)
   match x with
   | `Exp x ->
       let expr = map_expression env x in
-      let semi =
-        match semi with
-        | Some tok -> token env tok
-        | None -> G.sc
-      in
+      let semi = map_semi env semi in
       [ G.ExprStmt (expr, semi) |> G.s ]
   | `Global_decl x -> map_global_declaration env x
   | `Labe_stmt x -> [ map_labeled_statement env x ]
