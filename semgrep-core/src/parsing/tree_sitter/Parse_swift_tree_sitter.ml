@@ -1951,15 +1951,30 @@ and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
 and map_semi (env : env) (semi : CST.semi option) : G.sc =
   match semi with
   | None -> G.sc
-  | Some semi -> token env semi
+  | Some ((loc, str) as semi) -> (
+      let tok = token env semi in
+      match (loc.Tree_sitter_run.Loc.start.column, env.extra) with
+      (* If it's a program, and this semicolon is at the beginning of the line, that's
+         kind of strange. Let's just move it to the charpos occurring immediately before it
+         (the position of the newline on the previous line)
+      *)
+      | 0, Program ->
+          Parse_info.fix_token_location
+            (fun tloc ->
+              let charpos = tloc.charpos in
+              (* Only if this is not the first thing in the program, though. *)
+              if charpos >= 0 then
+                let line, column =
+                  Parse_info.full_charpos_to_pos_large env.file (charpos - 1)
+                in
+                { tloc with charpos = charpos - 1; line; column }
+              else tloc)
+            tok
+      | _ -> tok)
 
 and map_local_statement (env : env) (x : CST.local_statement)
     (semi : CST.semi option) : G.stmt list =
-  let semi =
-    match semi with
-    | Some semi -> token env semi
-    | None -> G.sc
-  in
+  let semi = map_semi env semi in
   match x with
   | `Exp x ->
       let expr = map_expression env x in
@@ -3294,11 +3309,7 @@ let map_top_level_statement (env : env) (x : CST.top_level_statement)
   match x with
   | `Exp x ->
       let expr = map_expression env x in
-      let semi =
-        match semi with
-        | Some tok -> token env tok
-        | None -> G.sc
-      in
+      let semi = map_semi env semi in
       [ G.ExprStmt (expr, semi) |> G.s ]
   | `Global_decl x -> map_global_declaration env x
   | `Labe_stmt x -> [ map_labeled_statement env x ]
