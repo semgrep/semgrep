@@ -69,7 +69,7 @@ type a_propagator = {
 type config = {
   filepath : Common.filename;
   rule_id : string;
-  is_source : G.any -> Rule.taint_source tmatch list;
+  is_source : G.any -> R.taint_source tmatch list;
   is_propagator : AST_generic.any -> a_propagator tmatch list;
   is_sink : G.any -> R.taint_sink tmatch list;
   is_sanitizer : G.any -> R.taint_sanitizer tmatch list;
@@ -177,7 +177,7 @@ let labels_in_taint taints : LabelSet.t =
          match t.orig with
          | Src src ->
              let _, ts = T.pm_of_trace src in
-             Some ts.Rule.label
+             Some ts.R.label
          | Arg _ -> None)
   |> LabelSet.of_seq
 
@@ -216,7 +216,7 @@ let findings_of_tainted_sink env taints (sink : T.sink) : T.finding list =
   let ( let* ) = Option.bind in
   let labels = labels_in_taint taints in
   let sink_pm, ts = T.pm_of_trace sink in
-  let req = eval_label_requires ~labels ts.requires in
+  let req = eval_label_requires ~labels ts.sink_requires in
   (* TODO: With taint labels it's less clear what is "the source",
      * in fact, there could be many sources, each one providing a
      * different label. Here these would be reported as different
@@ -260,7 +260,7 @@ let union_taints_filtering_labels ~new_ curr =
       | Arg _ -> Taints.add new_taint taints
       | Src src ->
           let _, ts = T.pm_of_trace src in
-          let req = eval_label_requires ~labels ts.requires in
+          let req = eval_label_requires ~labels ts.source_requires in
           if req then Taints.add new_taint taints else taints)
     new_ curr
 

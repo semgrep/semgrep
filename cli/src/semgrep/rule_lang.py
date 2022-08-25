@@ -20,7 +20,7 @@ from typing import Union
 import jsonschema.exceptions
 from attrs import evolve
 from attrs import frozen
-from jsonschema.validators import Draft7Validator
+from jsonschema.validators import Draft202012Validator
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -438,6 +438,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
 class RuleValidation:
     REQUIRE_REGEX = re.compile(r"'(.*)' is a required property")
     PATTERN_KEYS = {
+        "match",
         "pattern",
         "pattern-either",
         "pattern-regex",
@@ -535,7 +536,7 @@ def validate_yaml(data: YamlTree) -> None:
     from semgrep.error import InvalidRuleSchemaError
 
     try:
-        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft202012Validator)
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data
