@@ -307,10 +307,10 @@ let rec just_parse_with_lang lang file =
   | Lang.Python3 ->
       let parsing_mode = lang_to_python_parsing_mode lang in
       run file
-        [ Pfff (throw_tokens (Parse_python.parse ~parsing_mode)) ]
-        (* old: Resolve_python.resolve ast;
-         * switched to call Naming_AST.ml to correct def and use tagger
-         *)
+        [
+          Pfff (throw_tokens (Parse_python.parse ~parsing_mode));
+          TreeSitter Parse_python_tree_sitter.parse;
+        ]
         Python_to_generic.program
   | Lang.Json ->
       run file
