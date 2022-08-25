@@ -467,7 +467,8 @@ and literal x =
             G.L (G.String (s, t))
         | xs -> interpolated_string (l, xs, r)
       in
-      G.Regexp ((l, e |> G.e, r), opt)
+      (* TODO: use Regexp for literals, RegexpTemplate for templates *)
+      G.RegexpTemplate ((l, e |> G.e, r), opt)
 
 and expr_special_cases e =
   (* Code parsed as expressions in Ruby that we want to represent

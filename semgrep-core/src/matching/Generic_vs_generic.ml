@@ -948,7 +948,7 @@ and m_expr ?(is_root = false) a b =
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
-  | G.Regexp (a, a_opt), B.Regexp (b, b_opt) -> (
+  | G.RegexpTemplate (a, a_opt), B.RegexpTemplate (b, b_opt) -> (
       let* () = m_bracket m_expr a b in
       match (a_opt, b_opt) with
       (* less_is_ok: *)
@@ -1002,7 +1002,7 @@ and m_expr ?(is_root = false) a b =
   | G.Comprehension _, _
   | G.Record _, _
   | G.Constructor _, _
-  | G.Regexp _, _
+  | G.RegexpTemplate _, _
   | G.Lambda _, _
   | G.AnonClass _, _
   | G.N _, _

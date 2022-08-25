@@ -215,7 +215,8 @@ and literal x : G.expr_kind =
   | Regexp ((l, v1, r), v2) ->
       let v1 = (l, G.L (G.String (wrap string v1)) |> G.e, r) in
       let v2 = option (wrap string) v2 in
-      G.Regexp (v1, v2)
+      G.RegexpTemplate (v1, v2)
+(* TODO: change to Regexp *)
 
 and expr (x : expr) =
   (match x with

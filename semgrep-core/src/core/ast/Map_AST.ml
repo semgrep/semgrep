@@ -245,10 +245,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_name v1
             and v2 = map_bracket (map_of_list map_expr) v2 in
             Constructor (v1, v2)
-        | Regexp (v1, v2) ->
+        | RegexpTemplate (v1, v2) ->
             let v1 = map_bracket map_expr v1 in
             let v2 = map_of_option (map_wrap map_of_string) v2 in
-            Regexp (v1, v2)
+            RegexpTemplate (v1, v2)
         | Lambda v1 ->
             let v1 = map_function_definition v1 in
             Lambda v1
