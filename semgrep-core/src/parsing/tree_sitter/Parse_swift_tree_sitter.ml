@@ -1951,25 +1951,16 @@ and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
 and map_semi (env : env) (semi : CST.semi option) : G.sc =
   match semi with
   | None -> G.sc
-  | Some ((loc, str) as semi) -> (
+  | Some semi -> (
       let tok = token env semi in
-      match (loc.Tree_sitter_run.Loc.start.column, env.extra) with
-      (* If it's a program, and this semicolon is at the beginning of the line, that's
-         kind of strange. Let's just move it to the charpos occurring immediately before it
-         (the position of the newline on the previous line)
+      (* Swift can have implicit semicolons, see https://github.com/alex-pinkus/tree-sitter-swift/issues/179
+         These implicit semicolons are inserted at the beginning of the next line, and mess up our range
+         data.
+         To fix this, we check if we have an implicit semicolon (which has no string data), and if so,
+         we just insert a fake semicolon, which doesn't bork the range.
       *)
-      | 0, Program ->
-          Parse_info.fix_token_location
-            (fun tloc ->
-              let charpos = tloc.charpos in
-              (* Only if this is not the first thing in the program, though. *)
-              if charpos >= 0 then
-                let line, column =
-                  Parse_info.full_charpos_to_pos_large env.file (charpos - 1)
-                in
-                { tloc with charpos = charpos - 1; line; column }
-              else tloc)
-            tok
+      match Parse_info.str_of_info tok with
+      | "" -> G.sc
       | _ -> tok)
 
 and map_local_statement (env : env) (x : CST.local_statement)
