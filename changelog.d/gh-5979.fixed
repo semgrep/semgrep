@@ -1,0 +1,1 @@
+Releases were broken, as evidenced by our nightly homebrew tests. This fixes those linker errors so we can start releases.
